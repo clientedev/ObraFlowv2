@@ -17,10 +17,7 @@ class User(UserMixin, db.Model):
     ativo = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
-    projetos_responsavel = db.relationship('Projeto', backref='responsavel', lazy=True)
-    visitas = db.relationship('Visita', backref='usuario', lazy=True)
-    relatorios = db.relationship('Relatorio', backref='autor', lazy=True)
+    # Relationships - removed conflicting backrefs
 
 class TipoObra(db.Model):
     __tablename__ = 'tipos_obra'
@@ -51,7 +48,12 @@ class Projeto(db.Model):
     # Relationships
     contatos = db.relationship('ContatoProjeto', backref='projeto', lazy=True, cascade='all, delete-orphan')
     visitas = db.relationship('Visita', backref='projeto', lazy=True)
+    
     relatorios = db.relationship('Relatorio', backref='projeto', lazy=True)
+    
+    @property
+    def responsavel(self):
+        return User.query.get(self.responsavel_id)
 
 class Contato(db.Model):
     __tablename__ = 'contatos'
@@ -98,6 +100,24 @@ class Visita(db.Model):
     # Relationships
     checklist_items = db.relationship('ChecklistItem', backref='visita', lazy=True, cascade='all, delete-orphan')
     relatorios = db.relationship('Relatorio', backref='visita', lazy=True)
+    comunicacoes = db.relationship('ComunicacaoVisita', backref='visita', lazy=True, cascade='all, delete-orphan')
+    
+    @property
+    def usuario(self):
+        return User.query.get(self.usuario_id)
+
+class ComunicacaoVisita(db.Model):
+    __tablename__ = 'comunicacoes_visita'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    visita_id = db.Column(db.Integer, db.ForeignKey('visitas.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    mensagem = db.Column(db.Text, nullable=False)
+    tipo = db.Column(db.String(50), default='Comunicacao')  # Comunicacao, Alerta, Observacao
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    usuario = db.relationship('User', backref='comunicacoes_visita')
 
 class ChecklistTemplate(db.Model):
     __tablename__ = 'checklist_templates'
@@ -132,12 +152,16 @@ class Relatorio(db.Model):
     titulo = db.Column(db.String(300), nullable=False)
     conteudo = db.Column(db.Text)
     data_relatorio = db.Column(db.Date, nullable=False, default=datetime.utcnow().date())
-    status = db.Column(db.String(50), default='Rascunho')  # Rascunho, Finalizado, Enviado
-    aprovador_nome = db.Column(db.String(200))
+    status = db.Column(db.String(50), default='Rascunho')  # Rascunho, Aguardando Aprovacao, Aprovado, Rejeitado, Enviado
+    aprovador_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    data_aprovacao = db.Column(db.DateTime)
+    comentario_aprovacao = db.Column(db.Text)
     data_envio = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
+    autor = db.relationship('User', foreign_keys=[autor_id])
+    aprovador = db.relationship('User', foreign_keys=[aprovador_id])
     fotos = db.relationship('FotoRelatorio', backref='relatorio', lazy=True, cascade='all, delete-orphan')
     envios = db.relationship('EnvioRelatorio', backref='relatorio', lazy=True)
 
@@ -147,9 +171,13 @@ class FotoRelatorio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=False)
     filename = db.Column(db.String(300), nullable=False)
+    filename_original = db.Column(db.String(300))  # Original photo before annotations
+    filename_anotada = db.Column(db.String(300))   # Photo with annotations
     titulo = db.Column(db.String(200))
+    legenda = db.Column(db.Text)  # Caption for the photo
     descricao = db.Column(db.Text)
     tipo_servico = db.Column(db.String(100))
+    anotacoes_dados = db.Column(db.Text)  # JSON data for annotations (lines, arrows, text)
     ordem = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

@@ -101,6 +101,9 @@
                                                     <i class="fas fa-check"></i>
                                                 </a>
                                             {% endif %}
+                                            <a href="{{ url_for('visit_communication', visit_id=visit.id) }}" class="btn btn-sm btn-primary" title="Comunicação">
+                                                <i class="fas fa-comments"></i>
+                                            </a>
                                             <a href="{{ url_for('visit_checklist', visit_id=visit.id) }}" class="btn btn-sm btn-outline-info" title="Ver Checklist">
                                                 <i class="fas fa-list-check"></i>
                                             </a>

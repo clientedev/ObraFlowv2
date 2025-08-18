@@ -1,0 +1,504 @@
+{% extends "base.html" %}
+
+{% block title %}Editor de Fotos - {{ relatorio.titulo }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    #photoCanvas {
+        border: 2px solid #ddd;
+        cursor: crosshair;
+        max-width: 100%;
+        height: auto;
+    }
+    
+    .photo-editor-container {
+        position: relative;
+        text-align: center;
+    }
+    
+    .annotation-tools {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .tool-group {
+        display: inline-block;
+        margin-right: 20px;
+        vertical-align: top;
+    }
+    
+    .color-palette {
+        display: inline-block;
+    }
+    
+    .color-option {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        margin: 2px;
+        border: 2px solid #ccc;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+    
+    .color-option.active {
+        border-color: #000;
+    }
+    
+    .thickness-slider {
+        width: 100px;
+    }
+    
+    .annotation-preview {
+        max-width: 200px;
+        margin: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>
+                        Editor de Fotos - {{ relatorio.titulo }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Photo Selection -->
+                    <div class="mb-4">
+                        <label class="form-label">Selecionar Foto:</label>
+                        <select id="photoSelect" class="form-select">
+                            <option value="">Selecione uma foto para editar</option>
+                            {% for foto in relatorio.fotos %}
+                            <option value="{{ foto.id }}" data-filename="{{ foto.filename }}">
+                                {{ foto.titulo or 'Foto ' + loop.index|string }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Annotation Tools -->
+                    <div class="annotation-tools" id="annotationTools" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="tool-group">
+                                    <label class="form-label">Ferramenta:</label><br>
+                                    <div class="btn-group" role="group">
+                                        <input type="radio" class="btn-check" name="tool" id="toolPen" value="pen" checked>
+                                        <label class="btn btn-outline-primary" for="toolPen">
+                                            <i class="fas fa-pen"></i> Caneta
+                                        </label>
+                                        
+                                        <input type="radio" class="btn-check" name="tool" id="toolArrow" value="arrow">
+                                        <label class="btn btn-outline-primary" for="toolArrow">
+                                            <i class="fas fa-arrow-right"></i> Seta
+                                        </label>
+                                        
+                                        <input type="radio" class="btn-check" name="tool" id="toolText" value="text">
+                                        <label class="btn btn-outline-primary" for="toolText">
+                                            <i class="fas fa-font"></i> Texto
+                                        </label>
+                                        
+                                        <input type="radio" class="btn-check" name="tool" id="toolCircle" value="circle">
+                                        <label class="btn btn-outline-primary" for="toolCircle">
+                                            <i class="fas fa-circle"></i> Círculo
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="tool-group">
+                                    <label class="form-label">Espessura:</label><br>
+                                    <input type="range" id="thickness" class="thickness-slider" min="1" max="10" value="3">
+                                    <span id="thicknessValue">3</span>px
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="tool-group">
+                                    <label class="form-label">Cor:</label><br>
+                                    <div class="color-palette">
+                                        <div class="color-option active" data-color="#ff0000" style="background-color: #ff0000;"></div>
+                                        <div class="color-option" data-color="#00ff00" style="background-color: #00ff00;"></div>
+                                        <div class="color-option" data-color="#0000ff" style="background-color: #0000ff;"></div>
+                                        <div class="color-option" data-color="#ffff00" style="background-color: #ffff00;"></div>
+                                        <div class="color-option" data-color="#ff00ff" style="background-color: #ff00ff;"></div>
+                                        <div class="color-option" data-color="#00ffff" style="background-color: #00ffff;"></div>
+                                        <div class="color-option" data-color="#000000" style="background-color: #000000;"></div>
+                                        <div class="color-option" data-color="#ffffff" style="background-color: #ffffff; border-color: #000;"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="tool-group">
+                                    <button type="button" id="undoBtn" class="btn btn-secondary">
+                                        <i class="fas fa-undo"></i> Desfazer
+                                    </button>
+                                    <button type="button" id="clearBtn" class="btn btn-warning">
+                                        <i class="fas fa-eraser"></i> Limpar Tudo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Photo Editor Canvas -->
+                    <div class="photo-editor-container" id="photoEditorContainer" style="display: none;">
+                        <canvas id="photoCanvas"></canvas>
+                    </div>
+                    
+                    <!-- Text Input Modal for Text Tool -->
+                    <div class="modal fade" id="textModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Adicionar Texto</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label for="textInput" class="form-label">Texto:</label>
+                                        <input type="text" class="form-control" id="textInput" maxlength="100">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="fontSize" class="form-label">Tamanho da Fonte:</label>
+                                        <select class="form-select" id="fontSize">
+                                            <option value="12">12px</option>
+                                            <option value="16" selected>16px</option>
+                                            <option value="20">20px</option>
+                                            <option value="24">24px</option>
+                                            <option value="32">32px</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="button" class="btn btn-primary" id="addTextBtn">Adicionar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="mt-4" id="actionButtons" style="display: none;">
+                        <button type="button" id="saveAnnotations" class="btn btn-success">
+                            <i class="fas fa-save"></i> Salvar Anotações
+                        </button>
+                        <a href="{{ url_for('report_view', report_id=relatorio.id) }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar ao Relatório
+                        </a>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let canvas, ctx;
+let isDrawing = false;
+let currentTool = 'pen';
+let currentColor = '#ff0000';
+let currentThickness = 3;
+let annotations = [];
+let currentPhotoId = null;
+let startX, startY;
+
+document.addEventListener('DOMContentLoaded', function() {
+    canvas = document.getElementById('photoCanvas');
+    ctx = canvas.getContext('2d');
+    
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Photo selection
+    document.getElementById('photoSelect').addEventListener('change', loadPhoto);
+    
+    // Tool selection
+    document.querySelectorAll('input[name="tool"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            currentTool = e.target.value;
+        });
+    });
+    
+    // Color selection
+    document.querySelectorAll('.color-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+            e.target.classList.add('active');
+            currentColor = e.target.dataset.color;
+        });
+    });
+    
+    // Thickness slider
+    const thicknessSlider = document.getElementById('thickness');
+    thicknessSlider.addEventListener('input', (e) => {
+        currentThickness = e.target.value;
+        document.getElementById('thicknessValue').textContent = e.target.value;
+    });
+    
+    // Canvas events
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('click', handleCanvasClick);
+    
+    // Action buttons
+    document.getElementById('undoBtn').addEventListener('click', undoLastAnnotation);
+    document.getElementById('clearBtn').addEventListener('click', clearAllAnnotations);
+    document.getElementById('saveAnnotations').addEventListener('click', saveAnnotations);
+    document.getElementById('addTextBtn').addEventListener('click', addText);
+}
+
+function loadPhoto() {
+    const select = document.getElementById('photoSelect');
+    const selectedOption = select.selectedOptions[0];
+    
+    if (!selectedOption.value) {
+        hideEditor();
+        return;
+    }
+    
+    currentPhotoId = selectedOption.value;
+    const filename = selectedOption.dataset.filename;
+    
+    const img = new Image();
+    img.onload = function() {
+        // Set canvas size to image size (scaled to fit screen)
+        const maxWidth = 800;
+        const maxHeight = 600;
+        
+        let { width, height } = calculateImageSize(img.width, img.height, maxWidth, maxHeight);
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw image on canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Load existing annotations if any
+        loadExistingAnnotations();
+        
+        showEditor();
+    };
+    
+    img.src = `/uploads/${filename}`;
+}
+
+function calculateImageSize(originalWidth, originalHeight, maxWidth, maxHeight) {
+    const ratio = Math.min(maxWidth / originalWidth, maxHeight / originalHeight);
+    return {
+        width: originalWidth * ratio,
+        height: originalHeight * ratio
+    };
+}
+
+function showEditor() {
+    document.getElementById('annotationTools').style.display = 'block';
+    document.getElementById('photoEditorContainer').style.display = 'block';
+    document.getElementById('actionButtons').style.display = 'block';
+}
+
+function hideEditor() {
+    document.getElementById('annotationTools').style.display = 'none';
+    document.getElementById('photoEditorContainer').style.display = 'none';
+    document.getElementById('actionButtons').style.display = 'none';
+}
+
+function startDrawing(e) {
+    if (currentTool === 'text') return;
+    
+    isDrawing = true;
+    const rect = canvas.getBoundingClientRect();
+    startX = e.clientX - rect.left;
+    startY = e.clientY - rect.top;
+    
+    if (currentTool === 'pen') {
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+    }
+}
+
+function draw(e) {
+    if (!isDrawing || currentTool !== 'pen') return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    ctx.lineWidth = currentThickness;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = currentColor;
+    
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+}
+
+function stopDrawing(e) {
+    if (!isDrawing) return;
+    
+    isDrawing = false;
+    const rect = canvas.getBoundingClientRect();
+    const endX = e.clientX - rect.left;
+    const endY = e.clientY - rect.top;
+    
+    if (currentTool === 'arrow') {
+        drawArrow(startX, startY, endX, endY);
+    } else if (currentTool === 'circle') {
+        drawCircle(startX, startY, endX, endY);
+    }
+    
+    if (currentTool !== 'text') {
+        saveAnnotationState();
+    }
+}
+
+function handleCanvasClick(e) {
+    if (currentTool === 'text') {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Show text input modal
+        const modal = new bootstrap.Modal(document.getElementById('textModal'));
+        modal.show();
+        
+        // Store click position for text placement
+        window.textPosition = { x, y };
+    }
+}
+
+function drawArrow(startX, startY, endX, endY) {
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = currentThickness;
+    ctx.lineCap = 'round';
+    
+    // Draw line
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+    
+    // Draw arrowhead
+    const angle = Math.atan2(endY - startY, endX - startX);
+    const arrowLength = 20;
+    
+    ctx.beginPath();
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(
+        endX - arrowLength * Math.cos(angle - Math.PI / 6),
+        endY - arrowLength * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(
+        endX - arrowLength * Math.cos(angle + Math.PI / 6),
+        endY - arrowLength * Math.sin(angle + Math.PI / 6)
+    );
+    ctx.stroke();
+}
+
+function drawCircle(startX, startY, endX, endY) {
+    const radius = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+    
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = currentThickness;
+    ctx.fillStyle = 'transparent';
+    
+    ctx.beginPath();
+    ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
+    ctx.stroke();
+}
+
+function addText() {
+    const textInput = document.getElementById('textInput');
+    const fontSize = document.getElementById('fontSize');
+    const text = textInput.value.trim();
+    
+    if (!text || !window.textPosition) return;
+    
+    ctx.font = `${fontSize.value}px Arial`;
+    ctx.fillStyle = currentColor;
+    ctx.fillText(text, window.textPosition.x, window.textPosition.y);
+    
+    saveAnnotationState();
+    
+    // Clear inputs and close modal
+    textInput.value = '';
+    const modal = bootstrap.Modal.getInstance(document.getElementById('textModal'));
+    modal.hide();
+    
+    delete window.textPosition;
+}
+
+function saveAnnotationState() {
+    annotations.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+}
+
+function loadExistingAnnotations() {
+    // This would load previously saved annotations from the server
+    annotations = [];
+}
+
+function undoLastAnnotation() {
+    if (annotations.length > 0) {
+        annotations.pop();
+        if (annotations.length > 0) {
+            ctx.putImageData(annotations[annotations.length - 1], 0, 0);
+        } else {
+            // Reload original image
+            loadPhoto();
+        }
+    }
+}
+
+function clearAllAnnotations() {
+    if (confirm('Tem certeza que deseja limpar todas as anotações?')) {
+        annotations = [];
+        loadPhoto();
+    }
+}
+
+function saveAnnotations() {
+    if (!currentPhotoId) return;
+    
+    // Convert canvas to blob
+    canvas.toBlob(function(blob) {
+        const formData = new FormData();
+        formData.append('photo_id', currentPhotoId);
+        formData.append('annotated_image', blob, 'annotated_photo.png');
+        
+        fetch(`/reports/{{ relatorio.id }}/photos/annotate`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Anotações salvas com sucesso!');
+            } else {
+                alert('Erro ao salvar anotações: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao salvar anotações.');
+        });
+    }, 'image/png');
+}
+</script>
+{% endblock %}

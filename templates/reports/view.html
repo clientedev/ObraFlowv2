@@ -12,14 +12,28 @@
                 <small class="text-muted">({{ report.numero }})</small>
             </h1>
             <div class="btn-group" role="group">
-                {% if report.status != 'Finalizado' or current_user.is_master %}
+                {% if report.status in ['Rascunho', 'Rejeitado'] and (report.autor_id == current_user.id or current_user.is_master) %}
                     <a href="{{ url_for('report_edit', report_id=report.id) }}" class="btn btn-outline-primary">
                         <i class="fas fa-edit me-2"></i>Editar
                     </a>
                 {% endif %}
+                
+                {% if report.status in ['Rascunho', 'Rejeitado'] and (report.autor_id == current_user.id or current_user.is_master) %}
                 <a href="{{ url_for('report_add_photo', report_id=report.id) }}" class="btn btn-outline-success">
                     <i class="fas fa-camera me-2"></i>Adicionar Foto
                 </a>
+                {% endif %}
+                
+                {% if report.fotos %}
+                <a href="{{ url_for('report_photo_editor', report_id=report.id) }}" class="btn btn-outline-warning">
+                    <i class="fas fa-edit me-2"></i>Editar Fotos
+                </a>
+                {% endif %}
+                
+                <a href="{{ url_for('report_generate_pdf', report_id=report.id) }}" class="btn btn-outline-info">
+                    <i class="fas fa-file-pdf me-2"></i>Gerar PDF
+                </a>
+                
                 <a href="{{ url_for('reports_list') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left me-2"></i>Voltar
                 </a>
@@ -46,18 +60,31 @@
                     </div>
                     
                     <div>
-                        {% if report.status == 'Rascunho' %}
-                            <form method="POST" action="{{ url_for('report_finalize', report_id=report.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja finalizar este relatório? Após finalizado, apenas usuários master podem editá-lo.')">
-                                <button type="submit" class="btn btn-success btn-sm">
-                                    <i class="fas fa-check me-1"></i>Finalizar Relatório
+                        {% if report.status == 'Rascunho' and report.autor_id == current_user.id %}
+                            <form method="POST" action="{{ url_for('report_submit_for_approval', report_id=report.id) }}" style="display: inline;" onsubmit="return confirm('Enviar relatório para aprovação?')">
+                                {{ csrf_token() }}
+                                <button type="submit" class="btn btn-info btn-sm">
+                                    <i class="fas fa-check-circle me-1"></i>Enviar para Aprovação
                                 </button>
                             </form>
-                        {% elif report.status == 'Finalizado' %}
+                        {% elif report.status == 'Aguardando Aprovacao' %}
+                            <span class="text-warning">
+                                <i class="fas fa-clock me-1"></i>Aguardando aprovação
+                            </span>
+                        {% elif report.status == 'Aprovado' and current_user.is_master %}
                             <form method="POST" action="{{ url_for('report_send', report_id=report.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja enviar este relatório por email?')">
+                                {{ csrf_token() }}
                                 <button type="submit" class="btn btn-warning btn-sm">
                                     <i class="fas fa-paper-plane me-1"></i>Enviar por Email
                                 </button>
                             </form>
+                        {% elif report.status == 'Rejeitado' %}
+                            <span class="text-danger">
+                                <i class="fas fa-times-circle me-1"></i>Relatório rejeitado
+                                {% if report.comentario_aprovacao %}
+                                <br><small>{{ report.comentario_aprovacao }}</small>
+                                {% endif %}
+                            </span>
                         {% elif report.status == 'Enviado' %}
                             <span class="text-success">
                                 <i class="fas fa-check-circle me-1"></i>Relatório enviado em {{ report.data_envio.strftime('%d/%m/%Y às %H:%M') }}

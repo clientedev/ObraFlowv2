@@ -39,6 +39,8 @@ def create_app():
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_recycle": 300,
         "pool_pre_ping": True,
+        "pool_reset_on_return": "commit",
+        "connect_args": {"sslmode": "prefer"} if "postgresql" in os.environ.get("DATABASE_URL", "") else {}
     }
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     
@@ -72,7 +74,11 @@ def create_app():
     @login_manager.user_loader
     def load_user(user_id):
         from models import User
-        return User.query.get(int(user_id))
+        try:
+            return db.session.get(User, int(user_id))
+        except Exception as e:
+            current_app.logger.error(f"Error loading user {user_id}: {e}")
+            return None
     
     # Create upload directory
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

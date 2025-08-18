@@ -1,6 +1,6 @@
 # Overview
 
-This is a construction site visit tracking system built with Flask. It's designed to help construction companies manage projects, schedule and track visits, create reports, and handle reimbursements. The system provides a complete workflow for construction project management including user authentication, project creation, visit scheduling, report generation with photos, and expense tracking.
+This is a comprehensive construction site visit tracking system built with Flask. The system provides advanced project management capabilities including user authentication, project creation, visit scheduling and communication, professional report generation with photo annotation tools, approval workflows, and expense tracking. Enhanced with PDF generation, photo editing capabilities, and admin approval processes for complete construction project oversight.
 
 # User Preferences
 
@@ -30,9 +30,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Key Features
 - **Project Management**: CRUD operations with automatic numbering (PROJ-0001 format)
-- **Visit Tracking**: GPS-enabled visit logging with customizable checklists
-- **Report System**: Structured reports with photo uploads and email functionality
-- **User Management**: Role-based access with master user privileges
+- **Visit Tracking**: GPS-enabled visit logging with customizable checklists and team communication
+- **Enhanced Report System**: Professional PDF generation with photo annotation tools and approval workflows
+- **Photo Management**: Advanced photo editing with drawing tools, arrows, text annotations, and captions
+- **Communication System**: Visit-based messaging for team collaboration and progress tracking
+- **Approval Workflow**: Admin approval process for reports before distribution
+- **User Management**: Role-based access with master user privileges and approval authority
 - **File Management**: Secure file uploads with proper validation and storage
 
 ## Security Implementation
@@ -66,3 +69,8 @@ Preferred communication style: Simple, everyday language.
 ## Development Tools
 - **Werkzeug**: WSGI utilities including ProxyFix for deployment
 - **Python Logging**: Debug logging configuration for development
+
+## PDF and Media Processing
+- **ReportLab**: Professional PDF generation with custom styling and layouts
+- **Pillow**: Image processing for photo annotations and resizing
+- **Canvas API**: JavaScript-based photo annotation tools with drawing capabilities

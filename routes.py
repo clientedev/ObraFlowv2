@@ -12,6 +12,7 @@ from app import app, db, mail
 from models import *
 from forms import *
 from utils import generate_project_number, generate_report_number, send_report_email, calculate_reimbursement_total
+from pdf_generator import generate_visit_report_pdf
 
 # Authentication routes
 @app.route('/login', methods=['GET', 'POST'])
@@ -612,6 +613,174 @@ def get_location():
         })
     
     return jsonify({'success': False})
+
+# Enhanced reporting features
+
+@app.route('/reports/approval-dashboard')
+@login_required
+def reports_approval_dashboard():
+    """Dashboard for report approvals - only for master users"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem acessar o painel de aprovação.', 'error')
+        return redirect(url_for('index'))
+    
+    # Get reports awaiting approval
+    relatorios = Relatorio.query.filter_by(status='Aguardando Aprovacao').order_by(Relatorio.created_at.desc()).all()
+    
+    return render_template('reports/approval_dashboard.html', relatorios=relatorios)
+
+@app.route('/reports/<int:report_id>/approve', methods=['POST'])
+@login_required
+def report_approve(report_id):
+    """Approve or reject a report"""
+    if not current_user.is_master:
+        return jsonify({'success': False, 'message': 'Acesso negado.'})
+    
+    relatorio = Relatorio.query.get_or_404(report_id)
+    data = request.get_json()
+    action = data.get('action')
+    comment = data.get('comment', '')
+    
+    if action == 'approve':
+        relatorio.status = 'Aprovado'
+        flash_message = 'Relatório aprovado com sucesso.'
+    elif action == 'reject':
+        relatorio.status = 'Rejeitado'
+        flash_message = 'Relatório rejeitado.'
+    else:
+        return jsonify({'success': False, 'message': 'Ação inválida.'})
+    
+    relatorio.aprovador_id = current_user.id
+    relatorio.data_aprovacao = datetime.now()
+    relatorio.comentario_aprovacao = comment
+    
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': flash_message})
+
+@app.route('/reports/<int:report_id>/generate-pdf')
+@login_required
+def report_generate_pdf(report_id):
+    """Generate PDF for a report"""
+    relatorio = Relatorio.query.get_or_404(report_id)
+    
+    # Check permissions
+    if relatorio.autor_id != current_user.id and not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('reports_list'))
+    
+    try:
+        pdf_path, filename = generate_visit_report_pdf(relatorio)
+        return send_from_directory(
+            app.config['UPLOAD_FOLDER'],
+            filename,
+            as_attachment=True,
+            download_name=f"relatorio_{relatorio.numero}.pdf"
+        )
+    except Exception as e:
+        current_app.logger.error(f"Error generating PDF: {str(e)}")
+        flash('Erro ao gerar PDF do relatório.', 'error')
+        return redirect(url_for('report_view', report_id=report_id))
+
+@app.route('/reports/<int:report_id>/photo-editor')
+@login_required
+def report_photo_editor(report_id):
+    """Photo editor for report photos"""
+    relatorio = Relatorio.query.get_or_404(report_id)
+    
+    # Check permissions
+    if relatorio.autor_id != current_user.id and not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('reports_list'))
+    
+    return render_template('reports/photo_editor.html', relatorio=relatorio)
+
+@app.route('/reports/<int:report_id>/photos/annotate', methods=['POST'])
+@login_required
+def report_photo_annotate(report_id):
+    """Save annotated photo"""
+    relatorio = Relatorio.query.get_or_404(report_id)
+    
+    # Check permissions
+    if relatorio.autor_id != current_user.id and not current_user.is_master:
+        return jsonify({'success': False, 'message': 'Acesso negado.'})
+    
+    photo_id = request.form.get('photo_id')
+    annotated_image = request.files.get('annotated_image')
+    
+    if not photo_id or not annotated_image:
+        return jsonify({'success': False, 'message': 'Dados incompletos.'})
+    
+    foto = FotoRelatorio.query.get_or_404(photo_id)
+    
+    if foto.relatorio_id != relatorio.id:
+        return jsonify({'success': False, 'message': 'Foto não pertence a este relatório.'})
+    
+    try:
+        # Save annotated image
+        filename = secure_filename(f"annotated_{foto.id}_{uuid.uuid4().hex}.png")
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        annotated_image.save(file_path)
+        
+        # Update photo record
+        foto.filename_anotada = filename
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Anotações salvas com sucesso.'})
+        
+    except Exception as e:
+        app.logger.error(f"Error saving annotated photo: {str(e)}")
+        return jsonify({'success': False, 'message': 'Erro ao salvar anotações.'})
+
+@app.route('/reports/<int:report_id>/submit-for-approval', methods=['POST'])
+@login_required
+def report_submit_for_approval(report_id):
+    """Submit report for approval"""
+    relatorio = Relatorio.query.get_or_404(report_id)
+    
+    # Check permissions
+    if relatorio.autor_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('reports_list'))
+    
+    if relatorio.status != 'Rascunho':
+        flash('Apenas relatórios em rascunho podem ser enviados para aprovação.', 'error')
+        return redirect(url_for('report_view', report_id=report_id))
+    
+    relatorio.status = 'Aguardando Aprovacao'
+    db.session.commit()
+    
+    flash('Relatório enviado para aprovação.', 'success')
+    return redirect(url_for('report_view', report_id=report_id))
+
+@app.route('/visits/<int:visit_id>/communication', methods=['GET', 'POST'])
+@login_required
+def visit_communication(visit_id):
+    """Visit communication system"""
+    visita = Visita.query.get_or_404(visit_id)
+    
+    if request.method == 'POST':
+        mensagem = request.form.get('mensagem')
+        tipo = request.form.get('tipo', 'Comunicacao')
+        
+        if mensagem:
+            comunicacao = ComunicacaoVisita(
+                visita_id=visit_id,
+                usuario_id=current_user.id,
+                mensagem=mensagem,
+                tipo=tipo
+            )
+            db.session.add(comunicacao)
+            db.session.commit()
+            
+            flash('Comunicação adicionada com sucesso.', 'success')
+        
+        return redirect(url_for('visit_communication', visit_id=visit_id))
+    
+    # Get all communications for this visit
+    comunicacoes = ComunicacaoVisita.query.filter_by(visita_id=visit_id).order_by(ComunicacaoVisita.created_at.desc()).all()
+    
+    return render_template('visits/communication.html', visita=visita, comunicacoes=comunicacoes)
 
 # Error handlers
 @app.errorhandler(404)
