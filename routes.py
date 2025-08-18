@@ -184,25 +184,38 @@ def create_report():
         
         try:
             projeto_id = int(projeto_id)
-            data_relatorio = datetime.strptime(data_relatorio_str, '%Y-%m-%d').date() if data_relatorio_str else date.today()
+            # Convert date string to datetime object
+            if data_relatorio_str:
+                data_relatorio = datetime.strptime(data_relatorio_str, '%Y-%m-%d')
+            else:
+                data_relatorio = datetime.now()
         except (ValueError, TypeError):
             flash('Dados inválidos no formulário.', 'error')
             return redirect(url_for('create_report'))
         try:
-            # Create report
-            # Criar o relatório
+            print(f"DEBUG: Tentando criar relatório com:")
+            print(f"  titulo: {titulo}")
+            print(f"  projeto_id: {projeto_id}")
+            print(f"  autor_id: {current_user.id}")
+            print(f"  data_relatorio: {data_relatorio}")
+            
+            # Create report with explicit values
+            from models import Relatorio
             relatorio = Relatorio()
             relatorio.numero = generate_report_number()
             relatorio.titulo = titulo
             relatorio.projeto_id = projeto_id
-            relatorio.conteudo = conteudo
-            relatorio.aprovador_nome = aprovador_nome
-            relatorio.data_relatorio = data_relatorio
             relatorio.autor_id = current_user.id
+            relatorio.conteudo = conteudo if conteudo else ""
+            # Note: aprovador_nome is not a field in the model, removing this line
+            relatorio.data_relatorio = data_relatorio
             relatorio.status = 'Rascunho'
+            relatorio.created_at = datetime.utcnow()
             
+            print(f"DEBUG: Objeto relatório criado, tentando salvar...")
             db.session.add(relatorio)
             db.session.flush()  # Get the ID
+            print(f"DEBUG: Relatório salvo com ID: {relatorio.id}")
             
             # Handle photo uploads if any
             upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
@@ -241,6 +254,10 @@ def create_report():
             
         except Exception as e:
             db.session.rollback()
+            print(f"DEBUG: Erro detalhado ao criar relatório: {str(e)}")
+            print(f"DEBUG: Tipo do erro: {type(e)}")
+            import traceback
+            print(f"DEBUG: Traceback completo: {traceback.format_exc()}")
             flash(f'Erro ao criar relatório: {str(e)}', 'error')
     
     projetos = Projeto.query.filter_by(status='Ativo').all()
