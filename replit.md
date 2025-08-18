@@ -9,7 +9,9 @@ This is a comprehensive construction site visit tracking system built with Flask
 - Implemented interactive map selection for project locations using Leaflet.js
 - Updated database schema to support GPS coordinates (latitude/longitude) for projects
 - Configured PostgreSQL database for production use
+- Fixed database schema issues by adding missing columns (latitude, longitude, tipo_obra)
 - Application fully functional with admin user (admin/admin123)
+- Project form now allows free text input for construction type and location selection via GPS or interactive map
 
 # User Preferences
 
