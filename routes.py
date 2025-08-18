@@ -203,7 +203,7 @@ def create_report():
     projetos = Projeto.query.filter_by(status='Ativo').all()
     visitas = Visita.query.filter_by(status='Realizada').all()
     
-    return render_template('reports/form.html', projetos=projetos, visitas=visitas)
+    return render_template('reports/new.html', projetos=projetos, visitas=visitas)
 
 @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
