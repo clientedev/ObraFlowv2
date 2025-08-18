@@ -193,12 +193,6 @@ def create_report():
             flash('Dados inválidos no formulário.', 'error')
             return redirect(url_for('create_report'))
         try:
-            print(f"DEBUG: Tentando criar relatório com:")
-            print(f"  titulo: {titulo}")
-            print(f"  projeto_id: {projeto_id}")
-            print(f"  autor_id: {current_user.id}")
-            print(f"  data_relatorio: {data_relatorio}")
-            
             # Create report with explicit values
             from models import Relatorio
             relatorio = Relatorio()
@@ -207,15 +201,12 @@ def create_report():
             relatorio.projeto_id = projeto_id
             relatorio.autor_id = current_user.id
             relatorio.conteudo = conteudo if conteudo else ""
-            # Note: aprovador_nome is not a field in the model, removing this line
             relatorio.data_relatorio = data_relatorio
             relatorio.status = 'Rascunho'
             relatorio.created_at = datetime.utcnow()
             
-            print(f"DEBUG: Objeto relatório criado, tentando salvar...")
             db.session.add(relatorio)
             db.session.flush()  # Get the ID
-            print(f"DEBUG: Relatório salvo com ID: {relatorio.id}")
             
             # Handle photo uploads if any
             upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
@@ -223,17 +214,14 @@ def create_report():
                 os.makedirs(upload_folder)
             
             photo_count = 0
-            print(f"DEBUG: Verificando arquivos de foto...")
             
             # Process photos from sessionStorage (via form data)
             photos_data = request.form.get('photos_data')
             if photos_data:
-                print(f"DEBUG: Dados de fotos encontrados: {len(photos_data)} caracteres")
                 try:
                     import json
                     photos_list = json.loads(photos_data)
                     for i, photo_data in enumerate(photos_list):
-                        print(f"DEBUG: Processando foto {i+1}")
                         # Processo simplificado - apenas salvar referência
                         foto = FotoRelatorio()
                         foto.relatorio_id = relatorio.id
@@ -245,14 +233,13 @@ def create_report():
                         db.session.add(foto)
                         photo_count += 1
                 except Exception as e:
-                    print(f"DEBUG: Erro ao processar fotos da sessão: {e}")
+                    pass  # Ignore session storage errors
             
             # Also check for traditional file uploads
             for key in request.files:
                 if key.startswith('photo_') or key == 'photos':
                     file = request.files[key]
                     if file and file.filename:
-                        print(f"DEBUG: Processando arquivo upload: {file.filename}")
                         try:
                             # Secure filename
                             filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
@@ -274,23 +261,15 @@ def create_report():
                             db.session.add(foto)
                             photo_count += 1
                         except Exception as e:
-                            print(f"DEBUG: Erro ao salvar foto {file.filename}: {e}")
+                            pass  # Continue processing other files
             
-            print(f"DEBUG: Tentando commit final com {photo_count} fotos...")
             db.session.commit()
-            print(f"DEBUG: Commit realizado com sucesso!")
             
-            print(f"DEBUG: Relatório finalizado - redirecionando...")
             flash(f'Relatório {relatorio.numero} criado com sucesso!', 'success')
-            print(f"DEBUG: Redirecionando para /reports")
             return redirect(url_for('reports'))
             
         except Exception as e:
             db.session.rollback()
-            print(f"DEBUG: Erro detalhado ao criar relatório: {str(e)}")
-            print(f"DEBUG: Tipo do erro: {type(e)}")
-            import traceback
-            print(f"DEBUG: Traceback completo: {traceback.format_exc()}")
             flash(f'Erro ao criar relatório: {str(e)}', 'error')
     
     projetos = Projeto.query.filter_by(status='Ativo').all()
