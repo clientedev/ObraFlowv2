@@ -221,7 +221,7 @@ def create_report():
             db.session.commit()
             
             flash(f'Relatório {relatorio.numero} criado com sucesso!', 'success')
-            return redirect(url_for('report_view', report_id=relatorio.id))
+            return redirect(url_for('reports'))
             
         except Exception as e:
             db.session.rollback()
