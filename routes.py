@@ -236,12 +236,12 @@ def create_report():
                         photo_caption = request.form.get(f'photo_caption_{key}', f'Foto {photo_count + 1}')
                         photo_category = request.form.get(f'photo_category_{key}', 'Geral')
                         
-                        # Create photo record
+                        # Create photo record with minimal required fields
                         foto = FotoRelatorio()
                         foto.relatorio_id = relatorio.id
                         foto.filename = filename
-                        foto.legenda = photo_caption
-                        foto.tipo_servico = photo_category
+                        foto.legenda = photo_caption or f'Foto {photo_count + 1}'
+                        foto.tipo_servico = photo_category or 'Geral'
                         foto.ordem = photo_count + 1
                         
                         db.session.add(foto)
@@ -389,13 +389,12 @@ def upload_report_photos(id):
                 # Save file
                 file.save(filepath)
                 
-                # Create photo record
-                foto = FotoRelatorio(
-                    relatorio_id=relatorio.id,
-                    filename=filename,
-                    legenda=f'Foto {len(relatorio.fotos) + uploaded_count + 1}',
-                    ordem=len(relatorio.fotos) + uploaded_count + 1
-                )
+                # Create photo record with minimal fields
+                foto = FotoRelatorio()
+                foto.relatorio_id = relatorio.id
+                foto.filename = filename
+                foto.legenda = f'Foto {uploaded_count + 1}'
+                foto.ordem = uploaded_count + 1
                 
                 db.session.add(foto)
                 uploaded_count += 1
@@ -734,14 +733,14 @@ def report_add_photo(report_id):
             foto_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
             foto.save(foto_path)
             
-            foto_relatorio = FotoRelatorio(
-                relatorio_id=report_id,
-                filename=unique_filename,
-                titulo=form.titulo.data,
-                descricao=form.descricao.data,
-                tipo_servico=form.tipo_servico.data,
-                ordem=FotoRelatorio.query.filter_by(relatorio_id=report_id).count() + 1
-            )
+            # Create photo record with minimal fields
+            foto_relatorio = FotoRelatorio()
+            foto_relatorio.relatorio_id = report_id
+            foto_relatorio.filename = unique_filename
+            foto_relatorio.titulo = form.titulo.data if hasattr(form, 'titulo') else ""
+            foto_relatorio.descricao = form.descricao.data if hasattr(form, 'descricao') else ""
+            foto_relatorio.tipo_servico = form.tipo_servico.data if hasattr(form, 'tipo_servico') else "Geral"
+            foto_relatorio.ordem = FotoRelatorio.query.filter_by(relatorio_id=report_id).count() + 1
             
             db.session.add(foto_relatorio)
             db.session.commit()
@@ -791,11 +790,10 @@ def report_send(report_id):
                 send_report_email(report, contato_projeto.contato.email, contato_projeto.contato.nome)
                 
                 # Log the email sending
-                envio = EnvioRelatorio(
-                    relatorio_id=report_id,
-                    email_destinatario=contato_projeto.contato.email,
-                    nome_destinatario=contato_projeto.contato.nome
-                )
+                envio = EnvioRelatorio()
+                envio.relatorio_id = report_id
+                envio.email_destinatario = contato_projeto.contato.email
+                envio.nome_destinatario = contato_projeto.contato.nome
                 db.session.add(envio)
                 emails_enviados += 1
             except Exception as e:
