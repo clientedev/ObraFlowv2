@@ -75,7 +75,6 @@ def register():
 
 # Main routes
 @app.route('/')
-@login_required
 def index():
     # Dashboard statistics
     total_projetos = Projeto.query.count()
@@ -86,6 +85,10 @@ def index():
     # Recent activities
     recent_visitas = Visita.query.order_by(Visita.created_at.desc()).limit(5).all()
     recent_relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(5).all()
+    
+    # Se não estiver logado, redirecionar para login
+    if not current_user.is_authenticated:
+        return redirect(url_for('login'))
     
     return render_template('index.html',
                          total_projetos=total_projetos,

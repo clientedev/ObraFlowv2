@@ -251,6 +251,51 @@ function loadImageFromUrlOrStorage() {
     loadImageFromUrl();
 }
 
+function loadImageToCanvas(imageSrc) {
+    if (!imageSrc) {
+        console.warn('ImageSrc está vazio');
+        return;
+    }
+    
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = function() {
+        // Ajustar canvas para o tamanho da imagem
+        const maxWidth = 800;
+        const maxHeight = 600;
+        let { width, height } = img;
+        
+        // Redimensionar se necessário
+        if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+        }
+        if (height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Desenhar imagem no canvas
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Salvar estado original
+        originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        console.log('Imagem carregada com sucesso no canvas');
+    };
+    
+    img.onerror = function() {
+        console.error('Erro ao carregar imagem:', imageSrc);
+        alert('Erro ao carregar a imagem. Verifique se o arquivo é válido.');
+    };
+    
+    img.src = imageSrc;
+}
+
 function initializeCanvas() {
     canvas = document.getElementById('photoCanvas');
     ctx = canvas.getContext('2d');
