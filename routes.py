@@ -223,33 +223,66 @@ def create_report():
                 os.makedirs(upload_folder)
             
             photo_count = 0
-            for key in request.files:
-                if key.startswith('photo_'):
-                    file = request.files[key]
-                    if file and file.filename:
-                        # Secure filename
-                        filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
-                        filepath = os.path.join(upload_folder, filename)
-                        file.save(filepath)
-                        
-                        # Get photo metadata from form
-                        photo_caption = request.form.get(f'photo_caption_{key}', f'Foto {photo_count + 1}')
-                        photo_category = request.form.get(f'photo_category_{key}', 'Geral')
-                        
-                        # Create photo record with minimal required fields
+            print(f"DEBUG: Verificando arquivos de foto...")
+            
+            # Process photos from sessionStorage (via form data)
+            photos_data = request.form.get('photos_data')
+            if photos_data:
+                print(f"DEBUG: Dados de fotos encontrados: {len(photos_data)} caracteres")
+                try:
+                    import json
+                    photos_list = json.loads(photos_data)
+                    for i, photo_data in enumerate(photos_list):
+                        print(f"DEBUG: Processando foto {i+1}")
+                        # Processo simplificado - apenas salvar referência
                         foto = FotoRelatorio()
                         foto.relatorio_id = relatorio.id
-                        foto.filename = filename
-                        foto.legenda = photo_caption or f'Foto {photo_count + 1}'
-                        foto.tipo_servico = photo_category or 'Geral'
-                        foto.ordem = photo_count + 1
+                        foto.filename = f"sessao_foto_{i+1}.jpg"
+                        foto.legenda = photo_data.get('caption', f'Foto {i+1}')
+                        foto.tipo_servico = photo_data.get('category', 'Geral')
+                        foto.ordem = i + 1
                         
                         db.session.add(foto)
                         photo_count += 1
+                except Exception as e:
+                    print(f"DEBUG: Erro ao processar fotos da sessão: {e}")
             
+            # Also check for traditional file uploads
+            for key in request.files:
+                if key.startswith('photo_') or key == 'photos':
+                    file = request.files[key]
+                    if file and file.filename:
+                        print(f"DEBUG: Processando arquivo upload: {file.filename}")
+                        try:
+                            # Secure filename
+                            filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
+                            filepath = os.path.join(upload_folder, filename)
+                            file.save(filepath)
+                            
+                            # Get photo metadata from form
+                            photo_caption = request.form.get(f'photo_caption_{key}', f'Foto {photo_count + 1}')
+                            photo_category = request.form.get(f'photo_category_{key}', 'Geral')
+                            
+                            # Create photo record with minimal required fields
+                            foto = FotoRelatorio()
+                            foto.relatorio_id = relatorio.id
+                            foto.filename = filename
+                            foto.legenda = photo_caption or f'Foto {photo_count + 1}'
+                            foto.tipo_servico = photo_category or 'Geral'
+                            foto.ordem = photo_count + 1
+                            
+                            db.session.add(foto)
+                            photo_count += 1
+                        except Exception as e:
+                            print(f"DEBUG: Erro ao salvar foto {file.filename}: {e}")
+            
+            print(f"DEBUG: Tentando commit final com {photo_count} fotos...")
             db.session.commit()
+            print(f"DEBUG: Commit realizado com sucesso!")
             
+            print(f"DEBUG: Relatório finalizado - redirecionando...")
             flash(f'Relatório {relatorio.numero} criado com sucesso!', 'success')
+            print(f"DEBUG: Redirecionando para /reports")
             return redirect(url_for('reports'))
             
         except Exception as e:
