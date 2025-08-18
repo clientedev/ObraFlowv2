@@ -80,6 +80,21 @@ class VisitaForm(FlaskForm):
         from models import Projeto
         self.projeto_id.choices = [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
 
+class ReportForm(FlaskForm):
+    titulo = StringField('Título do Relatório', validators=[DataRequired(), Length(max=200)])
+    projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
+    conteudo = TextAreaField('Conteúdo do Relatório')
+    
+    def __init__(self, *args, **kwargs):
+        super(ReportForm, self).__init__(*args, **kwargs)
+        from models import Projeto
+        self.projeto_id.choices = [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
+    
+    def __init__(self, *args, **kwargs):
+        super(VisitaForm, self).__init__(*args, **kwargs)
+        from models import Projeto
+        self.projeto_id.choices = [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
+
 class VisitaRealizadaForm(FlaskForm):
     atividades_realizadas = TextAreaField('Atividades Realizadas', validators=[DataRequired()])
     observacoes = TextAreaField('Observações')

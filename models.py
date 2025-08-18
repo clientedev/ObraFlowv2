@@ -103,6 +103,7 @@ class Relatorio(db.Model):
     data_relatorio = db.Column(db.DateTime, default=datetime.utcnow)
     data_aprovacao = db.Column(db.DateTime, nullable=True)
     conteudo = db.Column(db.Text)
+    checklist_data = db.Column(db.Text)  # JSON string for checklist data
     status = db.Column(db.String(50), default='Rascunho')
     comentario_aprovacao = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -122,6 +123,10 @@ class Relatorio(db.Model):
     @property
     def visita(self):
         return Visita.query.get(self.visita_id) if self.visita_id else None
+    
+    @property
+    def fotos(self):
+        return FotoRelatorio.query.filter_by(relatorio_id=self.id).order_by(FotoRelatorio.ordem).all()
 
 class FotoRelatorio(db.Model):
     __tablename__ = 'fotos_relatorio'

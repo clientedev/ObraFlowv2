@@ -1,9 +1,15 @@
 import os
-from datetime import datetime
-from flask import current_app
+import uuid
+from datetime import datetime, timedelta
+from flask import current_app, render_template
 from flask_mail import Message
+from werkzeug.utils import secure_filename as werkzeug_secure_filename
 from app import mail, db
 from models import Projeto, Relatorio
+
+def secure_filename(filename):
+    """Secure filename wrapper"""
+    return werkzeug_secure_filename(filename)
 
 def generate_project_number():
     """Generate sequential project number"""

@@ -1,225 +1,55 @@
 {% extends "base.html" %}
 
-{% block title %}{% if relatorio %}Editar{% else %}Novo{% endif %} Relatório{% endblock %}
+{% block title %}Relatório de Obra{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>
-                <i class="fas fa-file-alt"></i>
-                {% if relatorio %}
-                    Editar Relatório - {{ relatorio.numero }}
-                {% else %}
-                    Novo Relatório
-                {% endif %}
-            </h2>
-            <a href="{{ url_for('reports') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Voltar
-            </a>
-        </div>
-
-        <div class="card">
-            <div class="card-body">
-                <form method="POST">
-                    <input type="hidden" name="action" value="update">
-                    
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="mb-3">
-                                <label for="titulo" class="form-label">Título do Relatório *</label>
-                                <input type="text" class="form-control" id="titulo" name="titulo" 
-                                       value="{{ relatorio.titulo if relatorio else '' }}" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            {% if relatorio %}
-                            <div class="mb-3">
-                                <label class="form-label">Status</label>
-                                <div>
-                                    {% if relatorio.status == 'Rascunho' %}
-                                        <span class="badge bg-secondary fs-6">{{ relatorio.status }}</span>
-                                    {% elif relatorio.status == 'Aguardando Aprovacao' %}
-                                        <span class="badge bg-warning fs-6">Aguardando Aprovação</span>
-                                    {% elif relatorio.status == 'Aprovado' %}
-                                        <span class="badge bg-success fs-6">{{ relatorio.status }}</span>
-                                    {% elif relatorio.status == 'Rejeitado' %}
-                                        <span class="badge bg-danger fs-6">{{ relatorio.status }}</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="projeto_id" class="form-label">Projeto *</label>
-                                <select class="form-select" id="projeto_id" name="projeto_id" required>
-                                    <option value="">Selecione um projeto</option>
-                                    {% for projeto in projetos %}
-                                    <option value="{{ projeto.id }}" 
-                                            {% if relatorio and relatorio.projeto_id == projeto.id %}selected{% endif %}>
-                                        {{ projeto.numero }} - {{ projeto.nome }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="visita_id" class="form-label">Visita Relacionada</label>
-                                <select class="form-select" id="visita_id" name="visita_id">
-                                    <option value="">Nenhuma visita específica</option>
-                                    {% for visita in visitas %}
-                                    <option value="{{ visita.id }}" 
-                                            {% if relatorio and relatorio.visita_id == visita.id %}selected{% endif %}>
-                                        {{ visita.numero or 'VIS-' + visita.id|string }} - {{ visita.data_agendada.strftime('%d/%m/%Y') }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="conteudo" class="form-label">Conteúdo do Relatório</label>
-                        <textarea class="form-control" id="conteudo" name="conteudo" rows="8" 
-                                  placeholder="Descreva os itens observados, atividades realizadas, problemas identificados, etc.">{{ relatorio.conteudo if relatorio else '' }}</textarea>
-                    </div>
-
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i>
-                            {% if relatorio %}Atualizar{% else %}Criar{% endif %} Relatório
-                        </button>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-file-alt"></i> Relatório de Obra</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="reportForm">
+                        {{ form.hidden_tag() }}
                         
-                        {% if relatorio and relatorio.status == 'Rascunho' %}
-                        <button type="submit" name="action" value="submit_approval" class="btn btn-warning">
-                            <i class="fas fa-paper-plane"></i> Enviar para Aprovação
-                        </button>
-                        {% endif %}
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        {% if relatorio %}
-        <!-- Photo Upload Section -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5><i class="fas fa-camera"></i> Fotos do Relatório</h5>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="photos" class="form-label">Adicionar Fotos</label>
-                    <input type="file" class="form-control" id="photos" multiple accept="image/*">
-                    <small class="form-text text-muted">Selecione até 50 fotos (PNG, JPG, JPEG)</small>
-                </div>
-                <button type="button" class="btn btn-outline-primary w-100" onclick="uploadPhotos()">
-                    <i class="fas fa-upload"></i> Enviar Fotos
-                </button>
-            </div>
-        </div>
-
-        <!-- Current Photos -->
-        {% if fotos %}
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-images"></i> Fotos Anexadas ({{ fotos|length }})</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    {% for foto in fotos %}
-                    <div class="col-6 mb-3">
-                        <div class="card">
-                            <img src="{{ url_for('uploaded_file', filename=foto.filename) }}" 
-                                 class="card-img-top" style="height: 100px; object-fit: cover;" 
-                                 alt="Foto {{ foto.ordem }}">
-                            <div class="card-body p-2">
-                                <small class="text-muted">{{ foto.legenda }}</small>
-                                <div class="btn-group w-100" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" 
-                                            onclick="annotatePhoto('{{ foto.filename }}', {{ relatorio.id }}, {{ foto.id }})"
-                                            title="Anotar Foto">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.titulo.label(class="form-label") }}
+                                    {{ form.titulo(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.projeto_id.label(class="form-label") }}
+                                    {{ form.projeto_id(class="form-control") }}
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
 
-        <!-- Report Info -->
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-info-circle"></i> Informações</h5>
-            </div>
-            <div class="card-body">
-                {% if relatorio %}
-                <p><strong>Número:</strong> {{ relatorio.numero }}</p>
-                <p><strong>Autor:</strong> {{ relatorio.autor.nome_completo }}</p>
-                <p><strong>Criado em:</strong> {{ relatorio.created_at.strftime('%d/%m/%Y às %H:%M') }}</p>
-                {% if relatorio.aprovador %}
-                <p><strong>Aprovador:</strong> {{ relatorio.aprovador.nome_completo }}</p>
-                <p><strong>Data de Aprovação:</strong> {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }}</p>
-                {% endif %}
-                {% if relatorio.comentario_aprovacao %}
-                <div class="alert alert-info">
-                    <strong>Comentário:</strong><br>
-                    {{ relatorio.comentario_aprovacao }}
+                        <div class="mb-3">
+                            <div class="form-group">
+                                {{ form.conteudo.label(class="form-label") }}
+                                {{ form.conteudo(class="form-control", rows="6") }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success me-2">
+                                    <i class="fas fa-save"></i> Salvar Relatório
+                                </button>
+                                <a href="{{ url_for('reports_list') }}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left"></i> Voltar
+                                </a>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                {% endif %}
-                {% else %}
-                <p class="text-muted">As informações do relatório aparecerão aqui após a criação.</p>
-                {% endif %}
             </div>
         </div>
-        {% endif %}
     </div>
 </div>
-
-<script>
-function uploadPhotos() {
-    const files = document.getElementById('photos').files;
-    if (files.length === 0) {
-        alert('Selecione pelo menos uma foto.');
-        return;
-    }
-    
-    const formData = new FormData();
-    for (let i = 0; i < files.length; i++) {
-        formData.append('photos', files[i]);
-    }
-    
-    fetch(`/reports/{{ relatorio.id if relatorio else '' }}/photos/upload`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            location.reload();
-        } else {
-            alert('Erro: ' + data.error);
-        }
-    })
-    .catch(error => {
-        alert('Erro ao enviar fotos: ' + error.message);
-    });
-}
-
-function annotatePhoto(filename, reportId, photoId) {
-    const url = `/photo-annotation?photo=${filename}&report_id=${reportId}&photo_id=${photoId}`;
-    window.open(url, 'photoAnnotation', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-}
-</script>
 {% endblock %}

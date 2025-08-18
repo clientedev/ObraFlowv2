@@ -10,7 +10,7 @@ from flask_mail import Message
 
 from app import app, db, mail
 from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio
-from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm
+from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, RelatorioForm, PhotoUploadForm
 from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
 from pdf_generator import generate_visit_report_pdf
 
@@ -658,9 +658,44 @@ def visit_checklist(visit_id):
     
     return render_template('visits/checklist.html', visit=visit, checklist_items=checklist_items)
 
-# Report management routes - movido para routes_reports.py
+# Report management routes
+@app.route('/reports')
+@login_required
+def reports_list():
+    reports = Relatorio.query.order_by(Relatorio.created_at.desc()).all()
+    return render_template('reports/list.html', reports=reports)
 
-# Rota removida - usando nova implementação em routes_reports.py
+@app.route('/reports/new', methods=['GET', 'POST'])
+@login_required
+def report_new():
+    form = RelatorioForm()
+    
+    # Set default values
+    if not form.data_relatorio.data:
+        form.data_relatorio.data = date.today()
+    
+    if form.validate_on_submit():
+        relatorio = Relatorio(
+            numero=generate_report_number(),
+            projeto_id=request.form.get('projeto_id'),
+            visita_id=request.form.get('visita_id') or None,
+            autor_id=current_user.id,
+            titulo=form.titulo.data,
+            conteudo=form.conteudo.data,
+            aprovador_nome=form.aprovador_nome.data,
+            data_relatorio=form.data_relatorio.data
+        )
+        
+        db.session.add(relatorio)
+        db.session.commit()
+        flash('Relatório criado com sucesso!', 'success')
+        return redirect(url_for('report_view', report_id=relatorio.id))
+    
+    # Get projects and visits for selection
+    projetos = Projeto.query.filter_by(status='Ativo').all()
+    visitas = Visita.query.filter_by(status='Realizada').all()
+    
+    return render_template('reports/form.html', form=form, projetos=projetos, visitas=visitas)
 
 @app.route('/reports/<int:report_id>')
 @login_required
@@ -820,7 +855,7 @@ def reimbursement_new():
     
     return render_template('reimbursement/form.html', form=form)
 
-# File serving (unique function)
+# File serving
 @app.route('/uploads/<filename>')
 @login_required
 def uploaded_file(filename):
