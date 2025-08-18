@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Projetos - Sistema de Acompanhamento de Visitas em Obras{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-building me-2"></i>
+                Projetos
+            </h1>
+            <a href="{{ url_for('project_new') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Novo Projeto
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if projects %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Nome</th>
+                                    <th>Tipo de Obra</th>
+                                    <th>Responsável</th>
+                                    <th>Status</th>
+                                    <th>Data Início</th>
+                                    <th>Previsão Fim</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for project in projects %}
+                                <tr>
+                                    <td><strong>{{ project.numero }}</strong></td>
+                                    <td>{{ project.nome }}</td>
+                                    <td>{{ project.tipo_obra.nome }}</td>
+                                    <td>{{ project.responsavel.nome_completo }}</td>
+                                    <td>
+                                        {% if project.status == 'Ativo' %}
+                                            <span class="badge bg-success">{{ project.status }}</span>
+                                        {% elif project.status == 'Pausado' %}
+                                            <span class="badge bg-warning">{{ project.status }}</span>
+                                        {% elif project.status == 'Concluído' %}
+                                            <span class="badge bg-primary">{{ project.status }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ project.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ project.data_inicio.strftime('%d/%m/%Y') if project.data_inicio else '-' }}</td>
+                                    <td>{{ project.data_previsao_fim.strftime('%d/%m/%Y') if project.data_previsao_fim else '-' }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('project_view', project_id=project.id) }}" class="btn btn-sm btn-outline-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('project_edit', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum projeto cadastrado</h5>
+                        <p class="text-muted">Comece cadastrando o primeiro projeto.</p>
+                        <a href="{{ url_for('project_new') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Cadastrar Primeiro Projeto
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

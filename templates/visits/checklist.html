@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Checklist da Visita - Sistema de Acompanhamento de Visitas em Obras{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-list-check me-2"></i>
+            Checklist da Visita
+        </h1>
+    </div>
+</div>
+
+<!-- Visit Info -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Informações da Visita
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Projeto:</strong> {{ visit.projeto.nome }} ({{ visit.projeto.numero }})</p>
+                        <p><strong>Data Agendada:</strong> {{ visit.data_agendada.strftime('%d/%m/%Y às %H:%M') }}</p>
+                        <p><strong>Responsável:</strong> {{ visit.usuario.nome_completo }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Status:</strong> 
+                            {% if visit.status == 'Realizada' %}
+                                <span class="badge bg-success">{{ visit.status }}</span>
+                            {% elif visit.status == 'Agendada' %}
+                                <span class="badge bg-warning">{{ visit.status }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ visit.status }}</span>
+                            {% endif %}
+                        </p>
+                        {% if visit.data_realizada %}
+                            <p><strong>Data Realizada:</strong> {{ visit.data_realizada.strftime('%d/%m/%Y às %H:%M') }}</p>
+                        {% endif %}
+                        {% if visit.latitude and visit.longitude %}
+                            <p><strong>Localização:</strong> 
+                                <a href="https://www.google.com/maps?q={{ visit.latitude }},{{ visit.longitude }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-map-marker-alt me-1"></i>Ver no Mapa
+                                </a>
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Objetivo da Visita:</h6>
+                        <p class="mb-0">{{ visit.objetivo }}</p>
+                    </div>
+                </div>
+                
+                {% if visit.atividades_realizadas %}
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Atividades Realizadas:</h6>
+                        <p class="mb-0">{{ visit.atividades_realizadas }}</p>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if visit.observacoes %}
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Observações:</h6>
+                        <p class="mb-0">{{ visit.observacoes }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Checklist -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-tasks me-2"></i>Checklist de Atividades
+                    </h5>
+                    {% if visit.status == 'Realizada' %}
+                        <span class="badge bg-info">
+                            {{ checklist_items|selectattr('concluido', 'equalto', True)|list|length }}/{{ checklist_items|length }} Concluídos
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                {% if checklist_items %}
+                    <form method="POST">
+                        {% for item in checklist_items %}
+                        <div class="card mb-3 {% if item.obrigatorio %}border-warning{% endif %}">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h6 class="card-title">
+                                            {{ item.pergunta }}
+                                            {% if item.obrigatorio %}
+                                                <span class="badge bg-warning text-dark ms-2">Obrigatório</span>
+                                            {% endif %}
+                                        </h6>
+                                        
+                                        <div class="mb-3">
+                                            <label for="resposta_{{ item.id }}" class="form-label">Resposta:</label>
+                                            <textarea name="resposta_{{ item.id }}" id="resposta_{{ item.id }}" class="form-control" rows="2" {% if visit.status != 'Realizada' %}readonly{% endif %}>{{ item.resposta or '' }}</textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="checkbox" name="concluido_{{ item.id }}" id="concluido_{{ item.id }}" {% if item.concluido %}checked{% endif %} {% if visit.status != 'Realizada' %}disabled{% endif %}>
+                                                <label class="form-check-label" for="concluido_{{ item.id }}">
+                                                    Concluído
+                                                </label>
+                                            </div>
+                                            
+                                            {% if item.concluido %}
+                                                <div class="mt-2">
+                                                    <i class="fas fa-check-circle fa-2x text-success"></i>
+                                                </div>
+                                            {% else %}
+                                                <div class="mt-2">
+                                                    <i class="fas fa-circle fa-2x text-muted"></i>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Mandatory items warning -->
+                        {% set mandatory_incomplete = checklist_items|selectattr('obrigatorio', 'equalto', True)|selectattr('concluido', 'equalto', False)|list %}
+                        {% if mandatory_incomplete %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Atenção:</strong> {{ mandatory_incomplete|length }} item(ns) obrigatório(s) ainda não foram concluído(s).
+                        </div>
+                        {% endif %}
+                        
+                        {% if visit.status == 'Realizada' %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('visits_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Voltar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Salvar Checklist
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="text-center">
+                            <a href="{{ url_for('visits_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Voltar
+                            </a>
+                        </div>
+                        {% endif %}
+                    </form>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum item no checklist</h5>
+                        <p class="text-muted">Esta visita não possui itens de checklist configurados.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+{% if visit.status == 'Realizada' %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-bolt me-2"></i>Ações Rápidas
+                </h6>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('report_new') }}?visita_id={{ visit.id }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-file-plus me-1"></i>Criar Relatório desta Visita
+                    </a>
+                    <a href="{{ url_for('project_view', project_id=visit.projeto.id) }}" class="btn btn-info btn-sm">
+                        <i class="fas fa-building me-1"></i>Ver Projeto
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

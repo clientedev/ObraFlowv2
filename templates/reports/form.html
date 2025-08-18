@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if report else 'Novo' }} Relatório - Sistema de Acompanhamento de Visitas em Obras{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-{{ 'edit' if report else 'file-plus' }} me-2"></i>
+            {{ 'Editar' if report else 'Novo' }} Relatório
+            {% if action == 'add_photo' %}
+                - Adicionar Foto
+            {% endif %}
+        </h1>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-body">
+                {% if report and not action == 'add_photo' %}
+                    <div class="alert alert-info">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Número:</strong> {{ report.numero }}</p>
+                                <p class="mb-1"><strong>Autor:</strong> {{ report.autor.nome_completo }}</p>
+                                <p class="mb-0"><strong>Criado em:</strong> {{ report.created_at.strftime('%d/%m/%Y às %H:%M') }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Status:</strong> 
+                                    {% if report.status == 'Enviado' %}
+                                        <span class="badge bg-success">{{ report.status }}</span>
+                                    {% elif report.status == 'Finalizado' %}
+                                        <span class="badge bg-primary">{{ report.status }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ report.status }}</span>
+                                    {% endif %}
+                                </p>
+                                {% if report.data_envio %}
+                                    <p class="mb-0"><strong>Enviado em:</strong> {{ report.data_envio.strftime('%d/%m/%Y às %H:%M') }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                
+                {% if action == 'add_photo' %}
+                    <!-- Photo upload form -->
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Adicionando foto ao relatório:</strong> {{ report.titulo }}
+                    </div>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.foto.label(class="form-label") }}
+                            {{ form.foto(class="form-control" + (" is-invalid" if form.foto.errors else "")) }}
+                            {% for error in form.foto.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">Formatos aceitos: JPG, JPEG, PNG, GIF. Tamanho máximo: 16MB</small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.titulo.label(class="form-label") }}
+                                    {{ form.titulo(class="form-control") }}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.tipo_servico.label(class="form-label") }}
+                                    {{ form.tipo_servico(class="form-control") }}
+                                    <small class="form-text text-muted">Ex: Estrutura, Acabamento, Instalações</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.descricao.label(class="form-label") }}
+                            {{ form.descricao(class="form-control", rows="3") }}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('report_view', report_id=report.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Voltar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Adicionar Foto
+                            </button>
+                        </div>
+                    </form>
+                    
+                {% else %}
+                    <!-- Regular report form -->
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        {% if not report %}
+                        <!-- Project and Visit selection for new reports -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Projeto</label>
+                                <select name="projeto_id" class="form-select" required>
+                                    <option value="">Selecione um projeto</option>
+                                    {% for projeto in projetos %}
+                                        <option value="{{ projeto.id }}">{{ projeto.numero }} - {{ projeto.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">Visita Relacionada (Opcional)</label>
+                                <select name="visita_id" class="form-select">
+                                    <option value="">Nenhuma visita específica</option>
+                                    {% for visita in visitas %}
+                                        <option value="{{ visita.id }}">{{ visita.projeto.numero }} - {{ visita.data_agendada.strftime('%d/%m/%Y') }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            {{ form.titulo.label(class="form-label") }}
+                            {{ form.titulo(class="form-control" + (" is-invalid" if form.titulo.errors else "")) }}
+                            {% for error in form.titulo.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.data_relatorio.label(class="form-label") }}
+                                    {{ form.data_relatorio(class="form-control" + (" is-invalid" if form.data_relatorio.errors else "")) }}
+                                    {% for error in form.data_relatorio.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.aprovador_nome.label(class="form-label") }}
+                                    {{ form.aprovador_nome(class="form-control") }}
+                                    <small class="form-text text-muted">Nome da pessoa que aprova este relatório</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.conteudo.label(class="form-label") }}
+                            {{ form.conteudo(class="form-control", rows="8") }}
+                            <small class="form-text text-muted">Descreva detalhadamente as atividades, observações e situação da obra</small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('reports_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Voltar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>{{ 'Atualizar' if report else 'Criar' }} Relatório
+                            </button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

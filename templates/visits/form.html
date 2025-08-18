@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Realizar' if action == 'realize' else 'Agendar' }} Visita - Sistema de Acompanhamento de Visitas em Obras{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-{{ 'check' if action == 'realize' else 'calendar-plus' }} me-2"></i>
+            {{ 'Realizar' if action == 'realize' else 'Agendar' }} Visita
+        </h1>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                {% if visit and action == 'realize' %}
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Informações da Visita</h6>
+                        <p class="mb-1"><strong>Projeto:</strong> {{ visit.projeto.nome }} ({{ visit.projeto.numero }})</p>
+                        <p class="mb-1"><strong>Data Agendada:</strong> {{ visit.data_agendada.strftime('%d/%m/%Y às %H:%M') }}</p>
+                        <p class="mb-0"><strong>Objetivo:</strong> {{ visit.objetivo }}</p>
+                    </div>
+                {% endif %}
+                
+                <form method="POST" id="visitForm">
+                    {{ form.hidden_tag() }}
+                    
+                    {% if action != 'realize' %}
+                        <div class="mb-3">
+                            {{ form.projeto_id.label(class="form-label") }}
+                            {{ form.projeto_id(class="form-select" + (" is-invalid" if form.projeto_id.errors else "")) }}
+                            {% for error in form.projeto_id.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.data_agendada.label(class="form-label") }}
+                            {{ form.data_agendada(class="form-control" + (" is-invalid" if form.data_agendada.errors else "")) }}
+                            {% for error in form.data_agendada.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.objetivo.label(class="form-label") }}
+                            {{ form.objetivo(class="form-control" + (" is-invalid" if form.objetivo.errors else ""), rows="3") }}
+                            {% for error in form.objetivo.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <!-- Realize visit form -->
+                        <div class="mb-3">
+                            {{ form.atividades_realizadas.label(class="form-label") }}
+                            {{ form.atividades_realizadas(class="form-control" + (" is-invalid" if form.atividades_realizadas.errors else ""), rows="4") }}
+                            {% for error in form.atividades_realizadas.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.observacoes.label(class="form-label") }}
+                            {{ form.observacoes(class="form-control", rows="3") }}
+                        </div>
+                        
+                        <!-- GPS Location -->
+                        <div class="mb-3">
+                            <label class="form-label">Localização GPS</label>
+                            <div class="card border-secondary">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Capturar localização atual</span>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="getLocationBtn">
+                                            <i class="fas fa-map-marker-alt me-1"></i>Obter Localização
+                                        </button>
+                                    </div>
+                                    
+                                    {{ form.latitude() }}
+                                    {{ form.longitude() }}
+                                    
+                                    <div id="locationInfo" class="text-muted" style="display: none;">
+                                        <small>
+                                            <i class="fas fa-check-circle text-success me-1"></i>
+                                            Localização capturada com sucesso
+                                        </small>
+                                    </div>
+                                    
+                                    <div class="mt-2">
+                                        {{ form.endereco_gps.label(class="form-label") }}
+                                        {{ form.endereco_gps(class="form-control", readonly=True) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('visits_list') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-{{ 'check' if action == 'realize' else 'calendar-plus' }} me-2"></i>
+                            {{ 'Confirmar Realização' if action == 'realize' else 'Agendar Visita' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if action == 'realize' %}
+<script>
+// GPS Location functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const getLocationBtn = document.getElementById('getLocationBtn');
+    const latitudeField = document.querySelector('input[name="latitude"]');
+    const longitudeField = document.querySelector('input[name="longitude"]');
+    const enderecoField = document.querySelector('input[name="endereco_gps"]');
+    const locationInfo = document.getElementById('locationInfo');
+    
+    getLocationBtn.addEventListener('click', function() {
+        if (navigator.geolocation) {
+            getLocationBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Obtendo...';
+            getLocationBtn.disabled = true;
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    latitudeField.value = lat;
+                    longitudeField.value = lng;
+                    enderecoField.value = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                    
+                    locationInfo.style.display = 'block';
+                    getLocationBtn.innerHTML = '<i class="fas fa-check me-1"></i>Localização Obtida';
+                    getLocationBtn.classList.remove('btn-outline-primary');
+                    getLocationBtn.classList.add('btn-success');
+                },
+                function(error) {
+                    console.error('Erro ao obter localização:', error);
+                    alert('Erro ao obter localização. Verifique se o GPS está habilitado.');
+                    getLocationBtn.innerHTML = '<i class="fas fa-map-marker-alt me-1"></i>Tentar Novamente';
+                    getLocationBtn.disabled = false;
+                }
+            );
+        } else {
+            alert('Geolocalização não é suportada neste navegador.');
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}
