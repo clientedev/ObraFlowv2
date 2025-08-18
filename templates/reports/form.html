@@ -363,7 +363,7 @@ document.addEventListener('change', function(e) {
 
 // Submissão do formulário
 document.getElementById('reportForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+    // Não prevenir o comportamento padrão - usar submissão tradicional
     
     // Coletar dados do checklist
     const checklistData = [];
@@ -385,35 +385,15 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
         }
     });
     
-    // Criar FormData
-    const formData = new FormData(this);
-    formData.append('checklist_data', JSON.stringify(checklistData));
+    // Adicionar dados do checklist ao formulário
+    const checklistInput = document.createElement('input');
+    checklistInput.type = 'hidden';
+    checklistInput.name = 'checklist_data';
+    checklistInput.value = JSON.stringify(checklistData);
+    this.appendChild(checklistInput);
     
-    // Adicionar fotos
-    selectedPhotos.forEach((photo, index) => {
-        formData.append(`photo_${index}`, photo.file);
-        const caption = document.querySelector(`input[name="photo_caption_${photo.id}"]`);
-        formData.append(`photo_${index}_caption`, caption ? caption.value : '');
-        formData.append(`photo_${index}_service_type`, photo.category);
-    });
-    
-    // Submeter
-    fetch(this.action, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.href = data.redirect || "{{ url_for('reports') }}";
-        } else {
-            alert('Erro: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        alert('Erro ao salvar relatório.');
-    });
+    // Submeter usando formulário tradicional - sem preventDefault
+    return true;
 });
 
 // Função para editar foto

@@ -235,10 +235,11 @@ def create_report():
                 except Exception as e:
                     pass  # Ignore session storage errors
             
-            # Also check for traditional file uploads
-            for key in request.files:
-                if key.startswith('photo_') or key == 'photos':
-                    file = request.files[key]
+            # Process traditional file uploads (photo_0, photo_1, etc.)
+            for i in range(10):  # Support up to 10 photos
+                photo_key = f'photo_{i}'
+                if photo_key in request.files:
+                    file = request.files[photo_key]
                     if file and file.filename:
                         try:
                             # Secure filename
@@ -247,10 +248,10 @@ def create_report():
                             file.save(filepath)
                             
                             # Get photo metadata from form
-                            photo_caption = request.form.get(f'photo_caption_{key}', f'Foto {photo_count + 1}')
-                            photo_category = request.form.get(f'photo_category_{key}', 'Geral')
+                            photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
+                            photo_category = request.form.get(f'photo_category_{i}', 'Geral')
                             
-                            # Create photo record with minimal required fields
+                            # Create photo record
                             foto = FotoRelatorio()
                             foto.relatorio_id = relatorio.id
                             foto.filename = filename
@@ -260,8 +261,10 @@ def create_report():
                             
                             db.session.add(foto)
                             photo_count += 1
+                            print(f"Foto {photo_count} salva: {filename}")
                         except Exception as e:
-                            pass  # Continue processing other files
+                            print(f"Erro ao processar foto {i}: {e}")
+                            continue
             
             db.session.commit()
             
@@ -276,7 +279,7 @@ def create_report():
             flash(f'Erro ao criar relatório: {str(e)}', 'error')
     
     projetos = Projeto.query.filter_by(status='Ativo').all()
-    return render_template('reports/form.html', projetos=projetos, today=date.today().isoformat())
+    return render_template('reports/form_simple.html', projetos=projetos, today=date.today().isoformat())
 
 @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
