@@ -53,13 +53,13 @@
                     
                     <div class="mb-3">
                         {{ form.endereco.label(class="form-label") }}
-                        <div class="input-group">
-                            {{ form.endereco(class="form-control", rows="2", id="endereco") }}
-                            <button type="button" class="btn btn-outline-secondary" onclick="getGPSLocation()" title="Capturar localização via GPS">
-                                <i class="fas fa-location-crosshairs"></i> GPS
+                        {{ form.endereco(class="form-control", rows="2", id="endereco") }}
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="getGPSLocation()" title="Capturar localização via GPS">
+                                <i class="fas fa-location-crosshairs"></i> Capturar GPS
                             </button>
-                            <button type="button" class="btn btn-outline-secondary" onclick="openMapModal()" title="Escolher localização no mapa">
-                                <i class="fas fa-map-marked-alt"></i> Mapa
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openMapModal()" title="Escolher localização no mapa">
+                                <i class="fas fa-map-marked-alt"></i> Escolher no Mapa
                             </button>
                         </div>
                         <small class="text-muted">
@@ -173,8 +173,10 @@ function getGPSLocation() {
             const lng = position.coords.longitude;
             
             // Set coordinates in hidden fields
-            document.getElementById('latitude').value = lat;
-            document.getElementById('longitude').value = lng;
+            const latField = document.querySelector('input[name="latitude"]');
+            const lngField = document.querySelector('input[name="longitude"]');
+            if (latField) latField.value = lat;
+            if (lngField) lngField.value = lng;
             
             // Try to get address from coordinates
             reverseGeocode(lat, lng);
@@ -212,8 +214,8 @@ function reverseGeocode(lat, lng) {
         .then(response => response.json())
         .then(data => {
             if (data && data.display_name) {
-                const endereco = document.getElementById('endereco');
-                if (!endereco.value.trim()) {
+                const endereco = document.querySelector('textarea[name="endereco"]') || document.getElementById('endereco');
+                if (endereco && !endereco.value.trim()) {
                     endereco.value = data.display_name;
                 }
             }
@@ -270,8 +272,10 @@ function openMapModal() {
         }
         
         // If we have existing coordinates, show them on map
-        const lat = document.getElementById('latitude').value;
-        const lng = document.getElementById('longitude').value;
+        const latField = document.querySelector('input[name="latitude"]');
+        const lngField = document.querySelector('input[name="longitude"]');
+        const lat = latField ? latField.value : '';
+        const lng = lngField ? lngField.value : '';
         
         if (lat && lng) {
             const latFloat = parseFloat(lat);
@@ -292,8 +296,10 @@ function openMapModal() {
 // Confirm map location
 function confirmMapLocation() {
     if (selectedLat && selectedLng) {
-        document.getElementById('latitude').value = selectedLat;
-        document.getElementById('longitude').value = selectedLng;
+        const latField = document.querySelector('input[name="latitude"]');
+        const lngField = document.querySelector('input[name="longitude"]');
+        if (latField) latField.value = selectedLat;
+        if (lngField) lngField.value = selectedLng;
         
         const statusElement = document.getElementById('locationStatus');
         statusElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> Localização selecionada no mapa';
