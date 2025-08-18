@@ -68,7 +68,7 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('reports_list') }}">Listar Relatórios</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('report_new') }}">Novo Relatório</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('report_create') }}">Novo Relatório</a></li>
                             {% if current_user.is_master %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('reports_approval_dashboard') }}">

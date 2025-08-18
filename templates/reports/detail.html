@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório {{ relatorio.numero }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3><i class="fas fa-file-alt"></i> {{ relatorio.titulo }}</h3>
+                    <div>
+                        <span class="badge 
+                            {% if relatorio.status == 'Aprovado' %}bg-success
+                            {% elif relatorio.status == 'Rejeitado' %}bg-danger
+                            {% elif relatorio.status == 'Aguardando Aprovacao' %}bg-warning
+                            {% else %}bg-secondary{% endif %}">
+                            {{ relatorio.status }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <strong>Número:</strong> {{ relatorio.numero }}<br>
+                            <strong>Projeto:</strong> {{ relatorio.projeto.nome if relatorio.projeto else '-' }}<br>
+                            <strong>Autor:</strong> {{ relatorio.autor.nome_completo if relatorio.autor else '-' }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Data:</strong> {{ relatorio.data_relatorio.strftime('%d/%m/%Y') if relatorio.data_relatorio else '-' }}<br>
+                            <strong>Status:</strong> {{ relatorio.status }}<br>
+                            {% if relatorio.aprovador %}
+                                <strong>Aprovador:</strong> {{ relatorio.aprovador.nome_completo }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if relatorio.conteudo %}
+                        <div class="mb-4">
+                            <h5>Conteúdo do Relatório</h5>
+                            <div class="bg-light p-3 rounded">
+                                {{ relatorio.conteudo|nl2br }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if relatorio.checklist_data %}
+                        <div class="mb-4">
+                            <h5>Checklist da Obra</h5>
+                            <div id="checklistDisplay">
+                                <!-- Checklist será carregado via JavaScript -->
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if relatorio.fotos %}
+                        <div class="mb-4">
+                            <h5>Fotos do Relatório ({{ relatorio.fotos|length }})</h5>
+                            <div class="row">
+                                {% for foto in relatorio.fotos %}
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card">
+                                            <img src="{{ url_for('uploaded_file', filename=foto.filename) }}" 
+                                                 class="card-img-top" style="height: 200px; object-fit: cover;" 
+                                                 alt="{{ foto.legenda }}">
+                                            <div class="card-body p-2">
+                                                <small class="card-title">{{ foto.legenda }}</small>
+                                                {% if foto.tipo_servico %}
+                                                    <br><span class="badge bg-info">{{ foto.tipo_servico }}</span>
+                                                {% endif %}
+                                                {% if foto.descricao %}
+                                                    <p class="card-text small">{{ foto.descricao }}</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-12">
+                            <a href="{{ url_for('reports_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </a>
+                            {% if current_user.is_master or relatorio.autor_id == current_user.id %}
+                                <a href="#" class="btn btn-primary ms-2">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                            {% endif %}
+                            {% if relatorio.status in ['Aprovado', 'Finalizado'] %}
+                                <a href="#" class="btn btn-success ms-2">
+                                    <i class="fas fa-file-pdf"></i> Gerar PDF
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Carregar e exibir checklist
+document.addEventListener('DOMContentLoaded', function() {
+    const checklistData = {{ relatorio.checklist_data|safe if relatorio.checklist_data else '[]' }};
+    const checklistDisplay = document.getElementById('checklistDisplay');
+    
+    if (checklistData && checklistData.length > 0) {
+        let html = '<div class="list-group">';
+        checklistData.forEach(item => {
+            const status = item.completed ? 'list-group-item-success' : 'list-group-item-light';
+            const icon = item.completed ? 'fa-check-circle text-success' : 'fa-circle text-muted';
+            
+            html += `
+                <div class="list-group-item ${status}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">
+                            <i class="fas ${icon}"></i> ${item.item}
+                        </h6>
+                        <small>${item.completed ? 'Concluído' : 'Pendente'}</small>
+                    </div>
+                    ${item.observations ? `<p class="mb-1">${item.observations}</p>` : ''}
+                </div>
+            `;
+        });
+        html += '</div>';
+        checklistDisplay.innerHTML = html;
+    } else {
+        checklistDisplay.innerHTML = '<p class="text-muted">Nenhum checklist disponível.</p>';
+    }
+});
+</script>
+{% endblock %}
