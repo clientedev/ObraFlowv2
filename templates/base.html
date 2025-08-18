@@ -71,8 +71,8 @@
                             <li><a class="dropdown-item" href="{{ url_for('create_report') }}">Novo Relatório</a></li>
                             {% if current_user.is_master %}
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('reports_approval_dashboard') }}">
-                                <i class="fas fa-check-circle me-2"></i>Painel de Aprovação
+                            <li><a class="dropdown-item" href="{{ url_for('pending_reports') }}">
+                                <i class="fas fa-clock me-1"></i>Aguardando Aprovação
                             </a></li>
                             {% endif %}
                         </ul>

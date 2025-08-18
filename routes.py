@@ -229,7 +229,7 @@ def create_report():
             
             relatorio.conteudo = final_content
             relatorio.data_relatorio = data_relatorio
-            relatorio.status = 'Finalizado'
+            relatorio.status = 'Aguardando Aprovação'
             relatorio.created_at = datetime.utcnow()
             
             db.session.add(relatorio)
@@ -307,7 +307,7 @@ def create_report():
             
             db.session.commit()
             
-            flash(f'Relatório {relatorio.numero} criado com sucesso! {photo_count} fotos adicionadas.', 'success')
+            flash(f'Relatório {relatorio.numero} criado com sucesso! {photo_count} fotos adicionadas. Status: Aguardando Aprovação.', 'success')
             return redirect(url_for('edit_report', id=relatorio.id))
             
         except Exception as e:
@@ -477,6 +477,54 @@ def update_report_status(id):
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/reports/<int:id>/approve')
+@login_required
+def approve_report(id):
+    """Aprovar relatório - apenas usuários master"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem aprovar relatórios.', 'error')
+        return redirect(url_for('reports'))
+    
+    relatorio = Relatorio.query.get_or_404(id)
+    relatorio.status = 'Aprovado'
+    relatorio.aprovado_por = current_user.id
+    relatorio.data_aprovacao = datetime.utcnow()
+    
+    db.session.commit()
+    flash(f'Relatório {relatorio.numero} aprovado com sucesso!', 'success')
+    return redirect(url_for('reports'))
+
+@app.route('/reports/<int:id>/reject')
+@login_required
+def reject_report(id):
+    """Rejeitar relatório - apenas usuários master"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem rejeitar relatórios.', 'error')
+        return redirect(url_for('reports'))
+    
+    relatorio = Relatorio.query.get_or_404(id)
+    relatorio.status = 'Rejeitado'
+    relatorio.aprovado_por = current_user.id
+    relatorio.data_aprovacao = datetime.utcnow()
+    
+    db.session.commit()
+    flash(f'Relatório {relatorio.numero} rejeitado.', 'warning')
+    return redirect(url_for('reports'))
+
+@app.route('/reports/pending')
+@login_required
+def pending_reports():
+    """Painel de relatórios pendentes de aprovação - apenas usuários master"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem ver relatórios pendentes.', 'error')
+        return redirect(url_for('reports'))
+    
+    page = request.args.get('page', 1, type=int)
+    relatorios = Relatorio.query.filter_by(status='Aguardando Aprovação').order_by(Relatorio.created_at.desc()).paginate(
+        page=page, per_page=10, error_out=False)
+    
+    return render_template('reports/pending.html', relatorios=relatorios)
 
 @app.route('/reports/<int:id>/pdf')
 @login_required
