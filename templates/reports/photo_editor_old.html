@@ -1,66 +1,61 @@
 {% extends "base.html" %}
 
-{% block title %}Editor de Fotos{% endblock %}
+{% block title %}Editor de Fotos - Relatório{% endblock %}
 
-{% block head %}
+{% block extra_css %}
 <style>
-#preview-container {
-    border: 2px solid #ddd;
+#photoCanvas {
+    border: 2px solid #dee2e6;
     border-radius: 8px;
-    padding: 10px;
-    background: #f8f9fa;
-    text-align: center;
-    min-height: 400px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: white;
+    cursor: crosshair;
 }
 
-#photoCanvas {
-    max-width: 100%;
-    max-height: 600px;
-    border: 1px solid #ccc;
-    cursor: crosshair;
-    background: white;
+.toolbar {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
 }
 
 .tool-group {
-    margin-bottom: 20px;
-    padding: 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    background: #f8f9fa;
+    margin-bottom: 15px;
 }
 
 .tool-btn {
-    margin: 5px;
-    min-width: 60px;
+    margin-right: 10px;
+    margin-bottom: 5px;
 }
 
 .tool-btn.active {
-    background-color: #007bff;
-    color: white;
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+
+.color-picker {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.size-slider {
+    width: 150px;
+}
+
+#preview-container {
+    max-height: 80vh;
+    overflow: auto;
+    text-align: center;
 }
 
 .annotation-info {
-    background: #e8f4f8;
+    background: #e3f2fd;
     padding: 15px;
     border-radius: 8px;
-    margin-top: 20px;
-}
-
-.color-preset {
-    width: 30px;
-    height: 30px;
-    border: 2px solid #ddd;
-    border-radius: 50%;
-    margin: 2px;
-    cursor: pointer;
-    display: inline-block;
-}
-
-.color-preset:hover {
-    border-color: #007bff;
+    margin-bottom: 20px;
 }
 </style>
 {% endblock %}
@@ -84,9 +79,11 @@
     </div>
 
     <div class="row">
-        <!-- Painel de Ferramentas -->
+        <!-- Barra de Ferramentas -->
         <div class="col-md-3">
-            <div class="tools-panel">
+            <div class="toolbar">
+                <h5><i class="fas fa-tools"></i> Ferramentas</h5>
+                
                 <!-- Ferramentas de Desenho -->
                 <div class="tool-group">
                     <label class="form-label fw-bold">Ferramentas:</label><br>
@@ -110,21 +107,21 @@
                 <!-- Cores -->
                 <div class="tool-group">
                     <label class="form-label fw-bold">Cor:</label><br>
-                    <input type="color" id="colorPicker" value="#ff0000" class="form-control mb-2">
-                    <div>
-                        <span class="color-preset" style="background-color: #ff0000;" onclick="setColor('#ff0000')"></span>
-                        <span class="color-preset" style="background-color: #00ff00;" onclick="setColor('#00ff00')"></span>
-                        <span class="color-preset" style="background-color: #0000ff;" onclick="setColor('#0000ff')"></span>
-                        <span class="color-preset" style="background-color: #ffff00;" onclick="setColor('#ffff00')"></span>
-                        <span class="color-preset" style="background-color: #000000;" onclick="setColor('#000000')"></span>
+                    <input type="color" id="colorPicker" class="color-picker" value="#ff0000">
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-danger me-1" onclick="setColor('#ff0000')">Vermelho</button>
+                        <button type="button" class="btn btn-sm btn-warning me-1" onclick="setColor('#ffc107')">Amarelo</button>
+                        <button type="button" class="btn btn-sm btn-success me-1" onclick="setColor('#28a745')">Verde</button>
+                        <button type="button" class="btn btn-sm btn-primary me-1" onclick="setColor('#007bff')">Azul</button>
+                        <button type="button" class="btn btn-sm btn-dark me-1" onclick="setColor('#000000')">Preto</button>
                     </div>
                 </div>
 
                 <!-- Tamanho -->
                 <div class="tool-group">
-                    <label class="form-label fw-bold">Tamanho:</label>
-                    <input type="range" id="brushSize" min="1" max="20" value="3" class="form-control">
-                    <small class="text-muted">Tamanho: <span id="sizeDisplay">3px</span></small>
+                    <label class="form-label fw-bold">Tamanho:</label><br>
+                    <input type="range" id="sizeSlider" class="size-slider" min="1" max="20" value="3">
+                    <span id="sizeDisplay">3px</span>
                 </div>
 
                 <!-- Ações -->
@@ -214,6 +211,8 @@ let isDrawing = false;
 let currentTool = 'pen';
 let currentColor = '#ff0000';
 let currentSize = 3;
+let lastX = 0;
+let lastY = 0;
 let startX = 0;
 let startY = 0;
 let originalImageData;
@@ -226,13 +225,6 @@ document.addEventListener('DOMContentLoaded', function() {
     loadImageFromUrlOrStorage();
     setupEventListeners();
 });
-
-function initializeCanvas() {
-    canvas = document.getElementById('photoCanvas');
-    ctx = canvas.getContext('2d');
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-}
 
 function loadImageFromUrlOrStorage() {
     // Primeiro tentar obter do sessionStorage
@@ -257,7 +249,7 @@ function loadImageFromUrlOrStorage() {
         }
     }
     
-    // Fallback para URL params
+    // Fallback para URL params (método antigo)
     loadImageFromUrl();
 }
 
@@ -306,19 +298,56 @@ function loadImageToCanvas(imageSrc) {
     img.src = imageSrc;
 }
 
+function initializeCanvas() {
+    canvas = document.getElementById('photoCanvas');
+    ctx = canvas.getContext('2d');
+    
+    // Configurações do canvas
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+}
+
 function loadImageFromUrl() {
+    // Obter URL da imagem dos parâmetros
     const urlParams = new URLSearchParams(window.location.search);
     const imageUrl = urlParams.get('image');
     const caption = urlParams.get('caption');
     const category = urlParams.get('category');
+    const description = urlParams.get('description');
     
     if (imageUrl) {
-        loadImageToCanvas(decodeURIComponent(imageUrl));
+        const img = new Image();
+        img.onload = function() {
+            // Ajustar tamanho do canvas
+            const maxWidth = 800;
+            const maxHeight = 600;
+            let { width, height } = img;
+            
+            if (width > maxWidth) {
+                height = (height * maxWidth) / width;
+                width = maxWidth;
+            }
+            if (height > maxHeight) {
+                width = (width * maxHeight) / height;
+                height = maxHeight;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Desenhar imagem no canvas
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Salvar estado original
+            originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        };
+        img.src = imageUrl;
     }
     
     // Preencher informações se disponíveis
     if (caption) document.getElementById('photoCaption').value = decodeURIComponent(caption);
     if (category) document.getElementById('photoCategory').value = decodeURIComponent(category);
+    if (description) document.getElementById('photoDescription').value = decodeURIComponent(description);
 }
 
 function setupEventListeners() {
@@ -329,7 +358,12 @@ function setupEventListeners() {
             this.classList.add('active');
             currentTool = this.dataset.tool;
             
-            canvas.style.cursor = currentTool === 'text' ? 'text' : 'crosshair';
+            if (currentTool === 'text') {
+                canvas.style.cursor = 'text';
+            } else {
+                canvas.style.cursor = 'crosshair';
+            }
+            
             console.log('Ferramenta selecionada:', currentTool);
         });
     });
@@ -337,12 +371,13 @@ function setupEventListeners() {
     // Cor
     document.getElementById('colorPicker').addEventListener('change', function() {
         currentColor = this.value;
+        console.log('Cor alterada para:', currentColor);
     });
     
     // Tamanho
     document.getElementById('brushSize').addEventListener('input', function() {
         currentSize = parseInt(this.value);
-        document.getElementById('sizeDisplay').textContent = this.value + 'px';
+        console.log('Tamanho alterado para:', currentSize);
     });
     
     // Canvas Events
@@ -351,10 +386,26 @@ function setupEventListeners() {
     canvas.addEventListener('mouseup', stopDrawing);
     canvas.addEventListener('mouseout', stopDrawing);
     
-    // Touch events
+    // Touch events para dispositivos móveis
     canvas.addEventListener('touchstart', handleTouch);
     canvas.addEventListener('touchmove', handleTouch);
     canvas.addEventListener('touchend', handleTouch);
+    
+    // Inicializar com primeira ferramenta selecionada
+    document.querySelector('.tool-btn[data-tool="pen"]').classList.add('active');
+    
+    // Canvas Events
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+    
+    // Touch events para dispositivos móveis
+    canvas.addEventListener('touchstart', handleTouch);
+    canvas.addEventListener('touchmove', handleTouch);
+    canvas.addEventListener('touchend', handleTouch);
+    
+
 }
 
 function startDrawing(e) {
@@ -365,6 +416,8 @@ function startDrawing(e) {
     
     isDrawing = true;
     const [x, y] = getMousePos(e);
+    lastX = x;
+    lastY = y;
     startX = x;
     startY = y;
     
@@ -395,17 +448,18 @@ function draw(e) {
             color: currentColor,
             size: currentSize
         });
-    } else {
-        // Para outras ferramentas, redesenhar canvas com preview
+    } else if (currentTool === 'arrow') {
+        // Redesenhar canvas e mostrar preview da seta
         redrawCanvas();
-        
-        if (currentTool === 'arrow') {
-            drawArrow(startX, startY, x, y);
-        } else if (currentTool === 'circle') {
-            drawCircle(startX, startY, x, y);
-        } else if (currentTool === 'rectangle') {
-            drawRectangle(startX, startY, x, y);
-        }
+        drawArrow(startX, startY, x, y);
+    } else if (currentTool === 'circle') {
+        // Redesenhar canvas e mostrar preview do círculo
+        redrawCanvas();
+        drawCircle(startX, startY, x, y);
+    } else if (currentTool === 'rectangle') {
+        // Redesenhar canvas e mostrar preview do retângulo
+        redrawCanvas();
+        drawRectangle(startX, startY, x, y);
     }
 }
 
@@ -416,7 +470,7 @@ function stopDrawing(e) {
     const [x, y] = getMousePos(e);
     
     if (currentTool === 'pen' && currentAction.length > 0) {
-        actions.push([...currentAction]);
+        actions.push(currentAction);
     } else if (currentTool === 'arrow') {
         actions.push([{
             tool: 'arrow',
@@ -432,7 +486,8 @@ function stopDrawing(e) {
             tool: 'circle',
             centerX: startX,
             centerY: startY,
-            radius: Math.sqrt(Math.pow(x - startX, 2) + Math.pow(y - startY, 2)),
+            edgeX: x,
+            edgeY: y,
             color: currentColor,
             size: currentSize
         }]);
@@ -449,6 +504,174 @@ function stopDrawing(e) {
     }
     
     console.log('Finalizando desenho. Total de ações:', actions.length);
+}
+
+function oldStartDrawing(e) {
+    if (currentTool === 'pen') {
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+    }
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    
+    const [currentX, currentY] = getMousePos(e);
+    
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = currentSize;
+    
+    if (currentTool === 'pen') {
+        ctx.lineTo(currentX, currentY);
+        ctx.stroke();
+        currentAction.push({
+            tool: 'pen',
+            x: currentX,
+            y: currentY,
+            color: currentColor,
+            size: currentSize
+        });
+    }
+    
+    [lastX, lastY] = [currentX, currentY];
+}
+
+function stopDrawing(e) {
+    if (!isDrawing) return;
+    isDrawing = false;
+    
+    const [currentX, currentY] = getMousePos(e);
+    
+    if (currentTool === 'arrow') {
+        drawArrow(lastX, lastY, currentX, currentY);
+    } else if (currentTool === 'circle') {
+        drawCircle(lastX, lastY, currentX, currentY);
+    } else if (currentTool === 'rectangle') {
+        drawRectangle(lastX, lastY, currentX, currentY);
+    }
+    
+    if (currentAction.length > 0) {
+        actions.push(currentAction);
+        currentAction = [];
+    }
+}
+
+function drawArrow(fromX, fromY, toX, toY) {
+    const headLength = 15;
+    const angle = Math.atan2(toY - fromY, toX - fromX);
+    
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = currentSize;
+    ctx.fillStyle = currentColor;
+    
+    // Linha principal
+    ctx.beginPath();
+    ctx.moveTo(fromX, fromY);
+    ctx.lineTo(toX, toY);
+    ctx.stroke();
+    
+    // Ponta da seta
+    ctx.beginPath();
+    ctx.moveTo(toX, toY);
+    ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), toY - headLength * Math.sin(angle - Math.PI / 6));
+    ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), toY - headLength * Math.sin(angle + Math.PI / 6));
+    ctx.closePath();
+    ctx.fill();
+}
+
+function startDrawing(e) {
+    if (currentTool === 'text') {
+        handleTextTool(e);
+        return;
+    }
+    
+    isDrawing = true;
+    const [x, y] = getMousePos(e);
+    lastX = x;
+    lastY = y;
+    
+    if (currentTool === 'pen') {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        currentAction = [];
+    }
+    
+    startX = x;
+    startY = y;
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    
+    const [x, y] = getMousePos(e);
+    
+    if (currentTool === 'pen') {
+        ctx.strokeStyle = currentColor;
+        ctx.lineWidth = currentSize;
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        
+        currentAction.push({
+            tool: 'pen',
+            x: x,
+            y: y,
+            color: currentColor,
+            size: currentSize
+        });
+    } else if (currentTool === 'arrow') {
+        // Redesenhar canvas e mostrar preview da seta
+        redrawCanvas();
+        drawArrow(startX, startY, x, y);
+    } else if (currentTool === 'circle') {
+        // Redesenhar canvas e mostrar preview do círculo
+        redrawCanvas();
+        drawCircle(startX, startY, x, y);
+    } else if (currentTool === 'rectangle') {
+        // Redesenhar canvas e mostrar preview do retângulo
+        redrawCanvas();
+        drawRectangle(startX, startY, x, y);
+    }
+}
+
+function stopDrawing(e) {
+    if (!isDrawing) return;
+    isDrawing = false;
+    
+    const [x, y] = getMousePos(e);
+    
+    if (currentTool === 'pen' && currentAction.length > 0) {
+        actions.push(currentAction);
+    } else if (currentTool === 'arrow') {
+        actions.push([{
+            tool: 'arrow',
+            startX: startX,
+            startY: startY,
+            endX: x,
+            endY: y,
+            color: currentColor,
+            size: currentSize
+        }]);
+    } else if (currentTool === 'circle') {
+        actions.push([{
+            tool: 'circle',
+            centerX: startX,
+            centerY: startY,
+            edgeX: x,
+            edgeY: y,
+            color: currentColor,
+            size: currentSize
+        }]);
+    } else if (currentTool === 'rectangle') {
+        actions.push([{
+            tool: 'rectangle',
+            startX: startX,
+            startY: startY,
+            endX: x,
+            endY: y,
+            color: currentColor,
+            size: currentSize
+        }]);
+    }
 }
 
 function drawArrow(fromX, fromY, toX, toY) {
@@ -491,9 +714,10 @@ function drawRectangle(startX, startY, endX, endY) {
 
 function handleTextTool(e) {
     const [x, y] = getMousePos(e);
-    window.textPosition = { x, y };
-    
     const modal = new bootstrap.Modal(document.getElementById('textModal'));
+    
+    // Armazenar posição para uso posterior
+    window.textPosition = { x, y };
     modal.show();
 }
 
@@ -539,14 +763,11 @@ function getMousePos(e) {
 function handleTouch(e) {
     e.preventDefault();
     const touch = e.touches[0];
-    const mouseEvent = new MouseEvent(
-        e.type === 'touchstart' ? 'mousedown' : 
-        e.type === 'touchmove' ? 'mousemove' : 'mouseup', 
-        {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        }
-    );
+    const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
+                                    e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
     canvas.dispatchEvent(mouseEvent);
 }
 
@@ -559,7 +780,9 @@ function undoLastAction() {
     if (actions.length > 0) {
         actions.pop();
         redrawCanvas();
-        console.log('Última ação desfeita');
+        console.log('Última ação desfeita. Ações restantes:', actions.length);
+    } else {
+        console.log('Nenhuma ação para desfazer');
     }
 }
 
@@ -571,8 +794,6 @@ function clearCanvas() {
 }
 
 function redrawCanvas() {
-    if (!originalImageData) return;
-    
     // Restaurar imagem original
     ctx.putImageData(originalImageData, 0, 0);
     
@@ -593,27 +814,25 @@ function redrawCanvas() {
                 ctx.stroke();
                 
             } else if (firstStep.tool === 'arrow') {
+                drawArrow(firstStep.startX, firstStep.startY, firstStep.endX, firstStep.endY);
+                
+            } else if (firstStep.tool === 'circle') {
                 const oldColor = currentColor;
                 const oldSize = currentSize;
                 currentColor = firstStep.color;
                 currentSize = firstStep.size;
-                drawArrow(firstStep.startX, firstStep.startY, firstStep.endX, firstStep.endY);
+                drawCircle(firstStep.centerX, firstStep.centerY, firstStep.edgeX, firstStep.edgeY);
                 currentColor = oldColor;
                 currentSize = oldSize;
                 
-            } else if (firstStep.tool === 'circle') {
-                ctx.strokeStyle = firstStep.color;
-                ctx.lineWidth = firstStep.size;
-                ctx.beginPath();
-                ctx.arc(firstStep.centerX, firstStep.centerY, firstStep.radius, 0, 2 * Math.PI);
-                ctx.stroke();
-                
             } else if (firstStep.tool === 'rectangle') {
-                ctx.strokeStyle = firstStep.color;
-                ctx.lineWidth = firstStep.size;
-                ctx.beginPath();
-                ctx.rect(firstStep.startX, firstStep.startY, firstStep.endX - firstStep.startX, firstStep.endY - firstStep.startY);
-                ctx.stroke();
+                const oldColor = currentColor;
+                const oldSize = currentSize;
+                currentColor = firstStep.color;
+                currentSize = firstStep.size;
+                drawRectangle(firstStep.startX, firstStep.startY, firstStep.endX, firstStep.endY);
+                currentColor = oldColor;
+                currentSize = oldSize;
                 
             } else if (firstStep.tool === 'text') {
                 ctx.fillStyle = firstStep.color;
@@ -626,7 +845,7 @@ function redrawCanvas() {
 
 function saveAnnotatedPhoto() {
     // Capturar dados da imagem anotada com compressão
-    const imageData = canvas.toDataURL('image/jpeg', 0.7);
+    const imageData = canvas.toDataURL('image/jpeg', 0.7); // Comprimir para reduzir tamanho
     const caption = document.getElementById('photoCaption').value;
     const category = document.getElementById('photoCategory').value;
     const description = document.getElementById('photoDescription').value;
