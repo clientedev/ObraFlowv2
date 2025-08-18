@@ -865,7 +865,7 @@ def report_generate_pdf(report_id):
     # Check permissions
     if relatorio.autor_id != current_user.id and not current_user.is_master:
         flash('Acesso negado.', 'error')
-        return redirect(url_for('reports_list'))
+        return redirect(url_for('reports'))
     
     try:
         pdf_path, filename = generate_visit_report_pdf(relatorio)
@@ -889,7 +889,7 @@ def report_photo_editor(report_id):
     # Check permissions
     if relatorio.autor_id != current_user.id and not current_user.is_master:
         flash('Acesso negado.', 'error')
-        return redirect(url_for('reports_list'))
+        return redirect(url_for('reports'))
     
     return render_template('reports/photo_editor.html', relatorio=relatorio)
 
@@ -939,7 +939,7 @@ def report_submit_for_approval(report_id):
     # Check permissions
     if relatorio.autor_id != current_user.id:
         flash('Acesso negado.', 'error')
-        return redirect(url_for('reports_list'))
+        return redirect(url_for('reports'))
     
     if relatorio.status != 'Rascunho':
         flash('Apenas relatórios em rascunho podem ser enviados para aprovação.', 'error')
