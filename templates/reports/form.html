@@ -75,7 +75,7 @@
                                     {% for visita in visitas %}
                                     <option value="{{ visita.id }}" 
                                             {% if relatorio and relatorio.visita_id == visita.id %}selected{% endif %}>
-                                        {{ visita.numero }} - {{ visita.data_agendada.strftime('%d/%m/%Y') }}
+                                        {{ visita.numero or 'VIS-' + visita.id|string }} - {{ visita.data_agendada.strftime('%d/%m/%Y') }}
                                     </option>
                                     {% endfor %}
                                 </select>

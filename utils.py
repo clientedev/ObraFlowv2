@@ -27,6 +27,18 @@ def generate_report_number():
     else:
         return f"REL-{current_year}-0001"
 
+def generate_visit_number():
+    """Generate sequential visit number"""
+    from models import Visita
+    last_visit = Visita.query.order_by(Visita.id.desc()).first()
+    if last_visit and last_visit.numero:
+        try:
+            last_number = int(last_visit.numero.split('-')[-1])
+            return f"VIS-{last_number + 1:04d}"
+        except:
+            pass
+    return "VIS-0001"
+
 def send_report_email(relatorio, email_destinatario, nome_destinatario=None):
     """Send report via email"""
     try:

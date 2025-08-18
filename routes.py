@@ -11,7 +11,7 @@ from flask_mail import Message
 from app import app, db, mail
 from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm
-from utils import generate_project_number, generate_report_number, send_report_email, calculate_reimbursement_total
+from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
 from pdf_generator import generate_visit_report_pdf
 
 # Authentication routes
@@ -571,6 +571,7 @@ def visit_new():
     
     if form.validate_on_submit():
         visita = Visita(
+            numero=generate_visit_number(),
             projeto_id=form.projeto_id.data,
             usuario_id=current_user.id,
             data_agendada=form.data_agendada.data,
