@@ -169,23 +169,37 @@ def reports():
 @app.route('/reports/new', methods=['GET', 'POST'])
 @login_required
 def create_report():
-    from forms import RelatorioForm
-    form = RelatorioForm()
-    
-    if form.validate_on_submit():
+    if request.method == 'POST':
+        # Processar dados do formulário diretamente
+        titulo = request.form.get('titulo')
+        projeto_id = request.form.get('projeto_id')
+        conteudo = request.form.get('conteudo', '')
+        aprovador_nome = request.form.get('aprovador_nome', '')
+        data_relatorio_str = request.form.get('data_relatorio')
+        
+        # Validações básicas
+        if not titulo or not projeto_id:
+            flash('Título e Projeto são obrigatórios.', 'error')
+            return redirect(url_for('create_report'))
+        
+        try:
+            projeto_id = int(projeto_id)
+            data_relatorio = datetime.strptime(data_relatorio_str, '%Y-%m-%d').date() if data_relatorio_str else date.today()
+        except (ValueError, TypeError):
+            flash('Dados inválidos no formulário.', 'error')
+            return redirect(url_for('create_report'))
         try:
             # Create report
-            relatorio = Relatorio(
-                numero=generate_report_number(),
-                titulo=form.titulo.data,
-                projeto_id=form.projeto_id.data,
-                visita_id=form.visita_id.data,
-                conteudo=form.conteudo.data,
-                aprovador_nome=form.aprovador_nome.data,
-                data_relatorio=form.data_relatorio.data,
-                autor_id=current_user.id,
-                status='Rascunho'
-            )
+            # Criar o relatório
+            relatorio = Relatorio()
+            relatorio.numero = generate_report_number()
+            relatorio.titulo = titulo
+            relatorio.projeto_id = projeto_id
+            relatorio.conteudo = conteudo
+            relatorio.aprovador_nome = aprovador_nome
+            relatorio.data_relatorio = data_relatorio
+            relatorio.autor_id = current_user.id
+            relatorio.status = 'Rascunho'
             
             db.session.add(relatorio)
             db.session.flush()  # Get the ID
@@ -210,13 +224,12 @@ def create_report():
                         photo_category = request.form.get(f'photo_category_{key}', 'Geral')
                         
                         # Create photo record
-                        foto = FotoRelatorio(
-                            relatorio_id=relatorio.id,
-                            filename=filename,
-                            legenda=photo_caption,
-                            tipo_servico=photo_category,
-                            ordem=photo_count + 1
-                        )
+                        foto = FotoRelatorio()
+                        foto.relatorio_id = relatorio.id
+                        foto.filename = filename
+                        foto.legenda = photo_caption
+                        foto.tipo_servico = photo_category
+                        foto.ordem = photo_count + 1
                         
                         db.session.add(foto)
                         photo_count += 1
@@ -230,7 +243,8 @@ def create_report():
             db.session.rollback()
             flash(f'Erro ao criar relatório: {str(e)}', 'error')
     
-    return render_template('reports/form.html', form=form)
+    projetos = Projeto.query.filter_by(status='Ativo').all()
+    return render_template('reports/form.html', projetos=projetos, today=date.today().isoformat())
 
 @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])
 @login_required

@@ -35,20 +35,39 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" enctype="multipart/form-data" id="reportForm">
-                        {{ form.hidden_tag() }}
-                        
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <!-- Informações Básicas -->
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    {{ form.titulo.label(class="form-label") }}
-                                    {{ form.titulo(class="form-control") }}
+                                    <label class="form-label" for="titulo">Título do Relatório</label>
+                                    <input type="text" name="titulo" id="titulo" class="form-control" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    {{ form.projeto_id.label(class="form-label") }}
-                                    {{ form.projeto_id(class="form-control") }}
+                                    <label class="form-label" for="projeto_id">Projeto</label>
+                                    <select name="projeto_id" id="projeto_id" class="form-control" required>
+                                        <option value="">Selecione um projeto</option>
+                                        {% for projeto in projetos %}
+                                        <option value="{{ projeto.id }}">{{ projeto.numero }} - {{ projeto.nome }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label" for="aprovador_nome">Nome do Aprovador</label>
+                                    <input type="text" name="aprovador_nome" id="aprovador_nome" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label" for="data_relatorio">Data do Relatório</label>
+                                    <input type="date" name="data_relatorio" id="data_relatorio" class="form-control" value="{{ today }}">
                                 </div>
                             </div>
                         </div>
@@ -193,8 +212,8 @@
                         <!-- Conteúdo do Relatório -->
                         <div class="mb-4">
                             <div class="form-group">
-                                {{ form.conteudo.label(class="form-label") }}
-                                {{ form.conteudo(class="form-control", rows="6", placeholder="Descreva detalhadamente as atividades realizadas, progresso da obra, problemas encontrados e próximos passos...") }}
+                                <label class="form-label" for="conteudo">Conteúdo do Relatório</label>
+                                <textarea name="conteudo" id="conteudo" class="form-control" rows="6" placeholder="Descreva detalhadamente as atividades realizadas, progresso da obra, problemas encontrados e próximos passos..."></textarea>
                             </div>
                         </div>
 
