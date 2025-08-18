@@ -9,8 +9,8 @@ from werkzeug.utils import secure_filename
 from flask_mail import Message
 
 from app import app, db, mail
-from models import *
-from forms import *
+from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio
+from forms import LoginForm, RegisterForm, UserForm, ProjetoForm
 from utils import generate_project_number, generate_report_number, send_report_email, calculate_reimbursement_total
 from pdf_generator import generate_visit_report_pdf
 
@@ -152,6 +152,265 @@ def user_edit(user_id):
 def projects_list():
     projects = Projeto.query.all()
     return render_template('projects/list.html', projects=projects)
+
+# Reports routes
+@app.route('/reports')
+@login_required
+def reports():
+    page = request.args.get('page', 1, type=int)
+    relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).paginate(
+        page=page, per_page=10, error_out=False
+    )
+    return render_template('reports/list.html', relatorios=relatorios)
+
+@app.route('/reports/new', methods=['GET', 'POST'])
+@login_required
+def create_report():
+    if request.method == 'POST':
+        try:
+            # Get form data
+            titulo = request.form.get('titulo', '').strip()
+            projeto_id = request.form.get('projeto_id', type=int)
+            visita_id = request.form.get('visita_id', type=int) if request.form.get('visita_id') else None
+            conteudo = request.form.get('conteudo', '').strip()
+            
+            if not titulo or not projeto_id:
+                flash('Título e projeto são obrigatórios.', 'error')
+                return redirect(request.url)
+            
+            # Create report
+            relatorio = Relatorio(
+                numero=generate_report_number(),
+                titulo=titulo,
+                projeto_id=projeto_id,
+                visita_id=visita_id,
+                autor_id=current_user.id,
+                conteudo=conteudo,
+                status='Rascunho'
+            )
+            
+            db.session.add(relatorio)
+            db.session.commit()
+            
+            flash(f'Relatório {relatorio.numero} criado com sucesso!', 'success')
+            return redirect(url_for('edit_report', id=relatorio.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar relatório: {str(e)}', 'error')
+    
+    # Get projects and visits for form
+    projetos = Projeto.query.filter_by(status='Ativo').all()
+    visitas = Visita.query.filter_by(status='Realizada').all()
+    
+    return render_template('reports/form.html', projetos=projetos, visitas=visitas)
+
+@app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_report(id):
+    relatorio = Relatorio.query.get_or_404(id)
+    
+    # Check permissions
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        flash('Acesso negado. Você só pode editar seus próprios relatórios.', 'error')
+        return redirect(url_for('reports'))
+    
+    if request.method == 'POST':
+        try:
+            action = request.form.get('action')
+            
+            if action == 'update':
+                relatorio.titulo = request.form.get('titulo', '').strip()
+                relatorio.conteudo = request.form.get('conteudo', '').strip()
+                relatorio.projeto_id = request.form.get('projeto_id', type=int)
+                relatorio.visita_id = request.form.get('visita_id', type=int) if request.form.get('visita_id') else None
+                
+                db.session.commit()
+                flash('Relatório atualizado com sucesso!', 'success')
+                
+            elif action == 'submit_approval':
+                if relatorio.status == 'Rascunho':
+                    relatorio.status = 'Aguardando Aprovacao'
+                    db.session.commit()
+                    flash('Relatório enviado para aprovação!', 'success')
+                else:
+                    flash('Relatório já foi enviado para aprovação.', 'warning')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar relatório: {str(e)}', 'error')
+    
+    # Get projects and visits for form
+    projetos = Projeto.query.filter_by(status='Ativo').all()
+    visitas = Visita.query.filter_by(status='Realizada').all()
+    fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
+    
+    return render_template('reports/edit.html', relatorio=relatorio, projetos=projetos, 
+                         visitas=visitas, fotos=fotos)
+
+# Photo annotation system routes
+@app.route('/photo-annotation')
+@login_required
+def photo_annotation():
+    photo_path = request.args.get('photo')
+    report_id = request.args.get('report_id')
+    photo_id = request.args.get('photo_id')
+    
+    if not photo_path:
+        flash('Foto não especificada.', 'error')
+        return redirect(url_for('reports'))
+    
+    return render_template('reports/photo_annotation.html')
+
+@app.route('/api/save-annotated-photo', methods=['POST'])
+@login_required
+def save_annotated_photo():
+    try:
+        # Get form data
+        photo_id = request.form.get('photo_id')
+        report_id = request.form.get('report_id')
+        original_filename = request.form.get('original_filename')
+        legenda = request.form.get('legenda', '').strip()
+        descricao = request.form.get('descricao', '').strip()
+        tipo_servico = request.form.get('tipo_servico', '').strip()
+        annotations_data = request.form.get('annotations_data', '{}')
+        
+        # Get the annotated image file
+        annotated_file = request.files.get('annotated_image')
+        
+        if not legenda:
+            return jsonify({'success': False, 'error': 'Legenda é obrigatória'}), 400
+        
+        # Save annotated image
+        annotated_filename = None
+        if annotated_file:
+            annotated_filename = f"annotated_{uuid.uuid4().hex}.png"
+            annotated_filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], annotated_filename)
+            annotated_file.save(annotated_filepath)
+        
+        if photo_id:
+            # Update existing photo
+            foto = FotoRelatorio.query.get_or_404(photo_id)
+            
+            # Check permissions
+            if not current_user.is_master and foto.relatorio.autor_id != current_user.id:
+                return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+            
+            foto.legenda = legenda
+            foto.descricao = descricao
+            foto.tipo_servico = tipo_servico
+            foto.coordenadas_anotacao = annotations_data
+            
+            if annotated_filename:
+                foto.filename_anotada = annotated_filename
+                
+        else:
+            # Create new photo record
+            if not report_id or not original_filename:
+                return jsonify({'success': False, 'error': 'Dados insuficientes'}), 400
+            
+            relatorio = Relatorio.query.get_or_404(report_id)
+            
+            # Check permissions
+            if not current_user.is_master and relatorio.autor_id != current_user.id:
+                return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+            
+            foto = FotoRelatorio(
+                relatorio_id=report_id,
+                filename=original_filename,
+                filename_anotada=annotated_filename,
+                legenda=legenda,
+                descricao=descricao,
+                tipo_servico=tipo_servico,
+                coordenadas_anotacao=annotations_data,
+                ordem=len(relatorio.fotos) + 1
+            )
+            
+            db.session.add(foto)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'photo_id': foto.id,
+            'message': 'Foto anotada salva com sucesso!'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/reports/<int:id>/photos/upload', methods=['POST'])
+@login_required
+def upload_report_photos(id):
+    relatorio = Relatorio.query.get_or_404(id)
+    
+    # Check permissions
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+    
+    try:
+        files = request.files.getlist('photos')
+        uploaded_count = 0
+        
+        for file in files:
+            if file.filename and file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                # Generate unique filename
+                filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
+                filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+                
+                # Save file
+                file.save(filepath)
+                
+                # Create photo record
+                foto = FotoRelatorio(
+                    relatorio_id=relatorio.id,
+                    filename=filename,
+                    legenda=f'Foto {len(relatorio.fotos) + uploaded_count + 1}',
+                    ordem=len(relatorio.fotos) + uploaded_count + 1
+                )
+                
+                db.session.add(foto)
+                uploaded_count += 1
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'{uploaded_count} foto(s) enviada(s) com sucesso!'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/reports/<int:id>/generate-pdf')
+@login_required
+def generate_report_pdf(id):
+    relatorio = Relatorio.query.get_or_404(id)
+    
+    try:
+        from pdf_generator import ReportPDFGenerator
+        
+        # Generate PDF
+        pdf_generator = ReportPDFGenerator()
+        output_path = os.path.join('static', 'reports', f'relatorio_{relatorio.numero}.pdf')
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        pdf_path = pdf_generator.generate_visit_report_pdf(relatorio, output_path)
+        
+        return send_from_directory(
+            os.path.dirname(output_path),
+            os.path.basename(output_path),
+            as_attachment=True,
+            download_name=f'relatorio_{relatorio.numero}.pdf'
+        )
+        
+    except Exception as e:
+        flash(f'Erro ao gerar PDF: {str(e)}', 'error')
+        return redirect(url_for('edit_report', id=id))
 
 @app.route('/projects/new', methods=['GET', 'POST'])
 @login_required

@@ -1,158 +1,169 @@
 {% extends "base.html" %}
 
-{% block title %}Relatórios - Sistema de Acompanhamento de Visitas em Obras{% endblock %}
+{% block title %}Relatórios{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>
-                <i class="fas fa-file-alt me-2"></i>
-                Relatórios
-            </h1>
-            <a href="{{ url_for('report_new') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Novo Relatório
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-file-alt"></i> Relatórios</h2>
+    <a href="{{ url_for('create_report') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Novo Relatório
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if relatorios.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Número</th>
+                        <th>Título</th>
+                        <th>Projeto</th>
+                        <th>Autor</th>
+                        <th>Data</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for relatorio in relatorios.items %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-secondary">{{ relatorio.numero }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ relatorio.titulo }}</strong>
+                        </td>
+                        <td>
+                            {% if relatorio.projeto %}
+                                {{ relatorio.projeto.nome }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ relatorio.autor.nome_completo }}</td>
+                        <td>{{ relatorio.data_relatorio.strftime('%d/%m/%Y') if relatorio.data_relatorio else 'N/A' }}</td>
+                        <td>
+                            {% if relatorio.status == 'Rascunho' %}
+                                <span class="badge bg-secondary">{{ relatorio.status }}</span>
+                            {% elif relatorio.status == 'Aguardando Aprovacao' %}
+                                <span class="badge bg-warning">Aguardando Aprovação</span>
+                            {% elif relatorio.status == 'Aprovado' %}
+                                <span class="badge bg-success">{{ relatorio.status }}</span>
+                            {% elif relatorio.status == 'Rejeitado' %}
+                                <span class="badge bg-danger">{{ relatorio.status }}</span>
+                            {% else %}
+                                <span class="badge bg-info">{{ relatorio.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('edit_report', id=relatorio.id) }}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% if relatorio.status in ['Aprovado'] %}
+                                <a href="{{ url_for('generate_report_pdf', id=relatorio.id) }}" class="btn btn-sm btn-outline-success" title="Gerar PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
+                                {% endif %}
+                                {% if current_user.is_master and relatorio.status == 'Aguardando Aprovacao' %}
+                                <button type="button" class="btn btn-sm btn-outline-warning" onclick="openApprovalModal({{ relatorio.id }})" title="Aprovar/Rejeitar">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if relatorios.pages > 1 %}
+        <nav aria-label="Navegação de relatórios">
+            <ul class="pagination justify-content-center">
+                {% if relatorios.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('reports', page=relatorios.prev_num) }}">Anterior</a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in relatorios.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != relatorios.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('reports', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">…</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if relatorios.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('reports', page=relatorios.next_num) }}">Próximo</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Nenhum relatório encontrado</h5>
+            <p class="text-muted">Comece criando seu primeiro relatório de obra.</p>
+            <a href="{{ url_for('create_report') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Criar Relatório
             </a>
         </div>
+        {% endif %}
     </div>
 </div>
 
-<!-- Status Filter -->
-<div class="row mb-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body py-2">
-                <div class="btn-group" role="group" aria-label="Status Filter">
-                    <input type="radio" class="btn-check" name="statusFilter" id="filterAll" autocomplete="off" checked>
-                    <label class="btn btn-outline-secondary" for="filterAll">Todos</label>
-                    
-                    <input type="radio" class="btn-check" name="statusFilter" id="filterRascunho" autocomplete="off">
-                    <label class="btn btn-outline-secondary" for="filterRascunho">Rascunhos</label>
-                    
-                    <input type="radio" class="btn-check" name="statusFilter" id="filterFinalizado" autocomplete="off">
-                    <label class="btn btn-outline-primary" for="filterFinalizado">Finalizados</label>
-                    
-                    <input type="radio" class="btn-check" name="statusFilter" id="filterEnviado" autocomplete="off">
-                    <label class="btn btn-outline-success" for="filterEnviado">Enviados</label>
+<!-- Approval Modal -->
+<div class="modal fade" id="approvalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Aprovar Relatório</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="approvalForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="comentario_aprovacao" class="form-label">Comentário (opcional):</label>
+                        <textarea class="form-control" id="comentario_aprovacao" name="comentario_aprovacao" rows="3"></textarea>
+                    </div>
                 </div>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" name="action" value="reject" class="btn btn-danger">
+                        <i class="fas fa-times"></i> Rejeitar
+                    </button>
+                    <button type="submit" name="action" value="approve" class="btn btn-success">
+                        <i class="fas fa-check"></i> Aprovar
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                {% if reports %}
-                    <div class="table-responsive">
-                        <table class="table table-striped" id="reportsTable">
-                            <thead>
-                                <tr>
-                                    <th>Número</th>
-                                    <th>Título</th>
-                                    <th>Projeto</th>
-                                    <th>Autor</th>
-                                    <th>Data</th>
-                                    <th>Status</th>
-                                    <th>Aprovador</th>
-                                    <th>Fotos</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for report in reports %}
-                                <tr data-status="{{ report.status }}">
-                                    <td><strong>{{ report.numero }}</strong></td>
-                                    <td>{{ report.titulo }}</td>
-                                    <td>
-                                        <strong>{{ report.projeto.numero }}</strong><br>
-                                        <small class="text-muted">{{ report.projeto.nome }}</small>
-                                    </td>
-                                    <td>{{ report.autor.nome_completo }}</td>
-                                    <td>{{ report.data_relatorio.strftime('%d/%m/%Y') }}</td>
-                                    <td>
-                                        {% if report.status == 'Enviado' %}
-                                            <span class="badge bg-success">{{ report.status }}</span>
-                                        {% elif report.status == 'Finalizado' %}
-                                            <span class="badge bg-primary">{{ report.status }}</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">{{ report.status }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ report.aprovador_nome or '-' }}</td>
-                                    <td>
-                                        <span class="badge bg-info">{{ report.fotos|length }}</span>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <a href="{{ url_for('report_view', report_id=report.id) }}" class="btn btn-sm btn-outline-info" title="Visualizar">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            {% if report.status != 'Finalizado' or current_user.is_master %}
-                                                <a href="{{ url_for('report_edit', report_id=report.id) }}" class="btn btn-sm btn-outline-primary" title="Editar">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                            {% endif %}
-                                            {% if report.status == 'Rascunho' %}
-                                                <form method="POST" action="{{ url_for('report_finalize', report_id=report.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja finalizar este relatório?')">
-                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Finalizar">
-                                                        <i class="fas fa-check"></i>
-                                                    </button>
-                                                </form>
-                                            {% endif %}
-                                            {% if report.status == 'Finalizado' %}
-                                                <form method="POST" action="{{ url_for('report_send', report_id=report.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja enviar este relatório?')">
-                                                    <button type="submit" class="btn btn-sm btn-outline-warning" title="Enviar">
-                                                        <i class="fas fa-paper-plane"></i>
-                                                    </button>
-                                                </form>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">Nenhum relatório criado</h5>
-                        <p class="text-muted">Comece criando o primeiro relatório.</p>
-                        <a href="{{ url_for('report_new') }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>Criar Primeiro Relatório
-                        </a>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_scripts %}
 <script>
-// Filter reports by status
-document.addEventListener('DOMContentLoaded', function() {
-    const filterButtons = document.querySelectorAll('input[name="statusFilter"]');
-    const tableRows = document.querySelectorAll('#reportsTable tbody tr');
-    
-    filterButtons.forEach(button => {
-        button.addEventListener('change', function() {
-            const filterValue = this.id.replace('filter', '');
-            
-            tableRows.forEach(row => {
-                const status = row.getAttribute('data-status');
-                
-                if (filterValue === 'All' || status === filterValue) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
-    });
-});
+function openApprovalModal(reportId) {
+    document.getElementById('approvalForm').action = `/reports/${reportId}/approve`;
+    const modal = new bootstrap.Modal(document.getElementById('approvalModal'));
+    modal.show();
+}
 </script>
 {% endblock %}

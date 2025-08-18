@@ -3,7 +3,7 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, TextAreaField, PasswordField, BooleanField, SelectField, DateField, FloatField, IntegerField, DateTimeField, HiddenField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange, Optional
 from wtforms.widgets import TextArea
-from models import User, TipoObra, Contato, ChecklistTemplate
+from models import User, TipoObra, Contato
 
 class LoginForm(FlaskForm):
     username = StringField('Usuário', validators=[DataRequired()])

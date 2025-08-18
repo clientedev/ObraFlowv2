@@ -4,10 +4,10 @@ from datetime import datetime
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, cm, mm
-from reportlab.lib.colors import black, blue, orange
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
+from reportlab.lib.colors import black, blue, orange, white, gray
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak, KeepTogether
 from reportlab.platypus.flowables import HRFlowable
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY, TA_RIGHT
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from flask import current_app, Flask
@@ -19,25 +19,38 @@ class ReportPDFGenerator:
         self.setup_custom_styles()
     
     def setup_custom_styles(self):
-        """Setup custom styles for the PDF"""
-        # Title style
+        """Setup custom styles for the PDF following exact template format"""
+        # Main title style
         self.styles.add(ParagraphStyle(
-            name='CustomTitle',
+            name='MainTitle',
             parent=self.styles['Title'],
-            fontSize=18,
+            fontSize=16,
             spaceAfter=30,
-            textColor=blue,
-            alignment=TA_CENTER
+            textColor=black,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
         ))
         
-        # Header style
+        # Date in header style
         self.styles.add(ParagraphStyle(
-            name='Header',
+            name='HeaderDate',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            textColor=black,
+            alignment=TA_RIGHT,
+            fontName='Helvetica'
+        ))
+        
+        # Section header style
+        self.styles.add(ParagraphStyle(
+            name='SectionHeader',
             parent=self.styles['Heading1'],
-            fontSize=14,
-            spaceAfter=12,
-            textColor=orange,
-            leftIndent=0
+            fontSize=12,
+            spaceAfter=6,
+            spaceBefore=12,
+            textColor=black,
+            leftIndent=0,
+            fontName='Helvetica-Bold'
         ))
         
         # Info style
@@ -45,8 +58,9 @@ class ReportPDFGenerator:
             name='Info',
             parent=self.styles['Normal'],
             fontSize=10,
-            spaceAfter=6,
-            leftIndent=20
+            spaceAfter=3,
+            leftIndent=0,
+            fontName='Helvetica'
         ))
         
         # Photo caption style
@@ -54,83 +68,151 @@ class ReportPDFGenerator:
             name='PhotoCaption',
             parent=self.styles['Normal'],
             fontSize=9,
-            spaceAfter=12,
+            spaceAfter=6,
             alignment=TA_CENTER,
             textColor=black,
+            fontName='Helvetica'
+        ))
+        
+        # Footer company style
+        self.styles.add(ParagraphStyle(
+            name='FooterCompany',
+            parent=self.styles['Normal'],
+            fontSize=9,
+            textColor=black,
+            alignment=TA_LEFT,
             fontName='Helvetica-Bold'
+        ))
+        
+        # Footer info style
+        self.styles.add(ParagraphStyle(
+            name='FooterInfo',
+            parent=self.styles['Normal'],
+            fontSize=8,
+            textColor=black,
+            alignment=TA_LEFT,
+            fontName='Helvetica'
+        ))
+        
+        # Footer right style
+        self.styles.add(ParagraphStyle(
+            name='FooterRight',
+            parent=self.styles['Normal'],
+            fontSize=8,
+            textColor=black,
+            alignment=TA_RIGHT,
+            fontName='Helvetica'
         ))
     
     def generate_visit_report_pdf(self, relatorio, output_path=None):
-        """Generate a comprehensive PDF report for a visit"""
+        """Generate PDF report following exact template format"""
         if not output_path:
             output_path = f"relatorio_{relatorio.numero}.pdf"
         
-        # Create PDF document
+        # Create PDF document with exact margins from template
         doc = SimpleDocTemplate(
             output_path,
             pagesize=A4,
-            rightMargin=72,
-            leftMargin=72,
-            topMargin=72,
-            bottomMargin=18
+            rightMargin=40,
+            leftMargin=40,
+            topMargin=40,
+            bottomMargin=80  # Space for footer
         )
         
         # Build PDF content
         story = []
         
-        # Header
-        self._add_header(story, relatorio)
+        # Header section (title and date)
+        self._add_template_header(story, relatorio)
         
-        # Project information
-        self._add_project_info(story, relatorio)
+        # Report section
+        self._add_template_report_section(story, relatorio)
         
-        # Visit information
-        if relatorio.visita:
-            self._add_visit_info(story, relatorio.visita)
+        # Company and project info
+        self._add_template_company_info(story, relatorio)
         
-        # Report content
-        self._add_report_content(story, relatorio)
+        # Items observados section
+        self._add_template_items_section(story, relatorio)
         
-        # Photos with captions and annotations
+        # Photos grid (2x2 per page)
         if relatorio.fotos:
-            self._add_photos_section(story, relatorio.fotos)
+            self._add_template_photos_grid(story, relatorio.fotos)
         
-        # Footer information
-        self._add_footer_info(story, relatorio)
+        # Signatures section
+        self._add_template_signatures(story, relatorio)
         
-        # Build PDF
-        doc.build(story, onFirstPage=self._add_page_number, onLaterPages=self._add_page_number)
+        # Build PDF with custom footer
+        doc.build(story, onFirstPage=self._add_template_footer, onLaterPages=self._add_template_footer)
         
         return output_path
     
-    def _add_header(self, story, relatorio):
-        """Add report header"""
-        story.append(Paragraph("RELATÓRIO DE ACOMPANHAMENTO DE OBRA", self.styles['CustomTitle']))
-        story.append(Spacer(1, 20))
+    def _add_template_header(self, story, relatorio):
+        """Add header following exact template format"""
+        # Title
+        story.append(Paragraph("Relatório de Visita", self.styles['MainTitle']))
+        story.append(Spacer(1, 40))
         
-        # Report number and date
-        info_data = [
-            ['Número do Relatório:', relatorio.numero],
-            ['Título:', relatorio.titulo],
-            ['Data do Relatório:', relatorio.data_relatorio.strftime('%d/%m/%Y')],
-            ['Status:', relatorio.status],
-            ['Autor:', relatorio.autor.nome_completo if relatorio.autor else 'N/A']
-        ]
+        # Date in right corner format
+        data_formatada = relatorio.data_relatorio.strftime('%d/%m/%Y %H:%M') if relatorio.data_relatorio else datetime.now().strftime('%d/%m/%Y %H:%M')
+        date_table = Table([['', f'Em: {data_formatada}']], colWidths=[15*cm, 4*cm])
+        date_table.setStyle(TableStyle([
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+            ('FONTNAME', (1, 0), (1, 0), 'Helvetica'),
+            ('FONTSIZE', (1, 0), (1, 0), 10),
+        ]))
+        story.append(date_table)
+        story.append(Spacer(1, 30))
+    
+    def _add_template_report_section(self, story, relatorio):
+        """Add report info section following template"""
+        story.append(Paragraph("Relatório", self.styles['SectionHeader']))
+        story.append(Spacer(1, 10))
         
-        if relatorio.aprovador:
-            info_data.append(['Aprovador:', relatorio.aprovador.nome_completo])
-            if relatorio.data_aprovacao:
-                info_data.append(['Data de Aprovação:', relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M')])
+        data_formatada = relatorio.data_relatorio.strftime('%d/%m/%Y %H:%M:%S') if relatorio.data_relatorio else datetime.now().strftime('%d/%m/%Y %H:%M:%S')
         
-        info_table = Table(info_data, colWidths=[4*cm, 12*cm])
-        info_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        report_table = Table([
+            ['Data', ''],
+            [data_formatada, '']
+        ], colWidths=[8*cm, 11*cm])
+        
+        report_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
         ]))
         
-        story.append(info_table)
+        story.append(report_table)
+        story.append(Spacer(1, 20))
+    
+    def _add_template_company_info(self, story, relatorio):
+        """Add company and project info following template"""
+        story.append(Paragraph("Dados gerais", self.styles['SectionHeader']))
+        story.append(Spacer(1, 10))
+        
+        # Get project info
+        projeto = relatorio.projeto if relatorio.projeto else None
+        empresa = projeto.responsavel.nome_completo if projeto and projeto.responsavel else 'Não informado'
+        empreendimento = projeto.nome if projeto else 'Não informado'
+        
+        company_table = Table([
+            ['Empresa', 'Empreendimento'],
+            [empresa, empreendimento]
+        ], colWidths=[9.5*cm, 9.5*cm])
+        
+        company_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        
+        story.append(company_table)
+        story.append(Spacer(1, 20))
+    
+    def _add_template_items_section(self, story, relatorio):
+        """Add items observados section following template"""
+        story.append(Paragraph("Itens observados", self.styles['SectionHeader']))
         story.append(Spacer(1, 20))
     
     def _add_project_info(self, story, relatorio):
@@ -214,51 +296,78 @@ class ReportPDFGenerator:
             
             story.append(Spacer(1, 20))
     
-    def _add_photos_section(self, story, fotos):
-        """Add photos section with captions and annotations"""
-        story.append(PageBreak())
-        story.append(Paragraph("REGISTRO FOTOGRÁFICO", self.styles['Header']))
+    def _add_template_photos_grid(self, story, fotos):
+        """Add photos in 2x2 grid format following template"""
+        fotos_ordenadas = sorted(fotos, key=lambda x: x.ordem if hasattr(x, 'ordem') else 0)
         
-        for foto in sorted(fotos, key=lambda x: x.ordem):
-            try:
-                # Use annotated photo if available, otherwise use original
-                photo_path = foto.filename_anotada if foto.filename_anotada else foto.filename
-                full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], photo_path)
+        # Process photos in groups of 4 (2x2 grid)
+        for i in range(0, len(fotos_ordenadas), 4):
+            batch = fotos_ordenadas[i:i+4]
+            
+            # Create 2x2 grid
+            row1_data = []
+            row2_data = []
+            
+            # First row (first 2 photos)
+            for j in range(2):
+                if j < len(batch):
+                    foto = batch[j]
+                    photo_cell = self._create_photo_cell(foto)
+                    row1_data.append(photo_cell)
+                else:
+                    row1_data.append('.')  # Empty cell placeholder
+            
+            # Second row (next 2 photos)
+            for j in range(2, 4):
+                if j < len(batch):
+                    foto = batch[j]
+                    photo_cell = self._create_photo_cell(foto)
+                    row2_data.append(photo_cell)
+                else:
+                    row2_data.append('.')  # Empty cell placeholder
+            
+            # Create table with 2x2 grid
+            photo_table = Table([row1_data, row2_data], colWidths=[9.5*cm, 9.5*cm], rowHeights=[7*cm, 7*cm])
+            photo_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 10),
+                ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ]))
+            
+            story.append(photo_table)
+            
+            # Add page break if not last batch
+            if i + 4 < len(fotos_ordenadas):
+                story.append(PageBreak())
+    
+    def _create_photo_cell(self, foto):
+        """Create a photo cell with image and caption"""
+        try:
+            # Use annotated photo if available, otherwise use original
+            photo_path = foto.filename_anotada if hasattr(foto, 'filename_anotada') and foto.filename_anotada else foto.filename
+            full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], photo_path)
+            
+            if os.path.exists(full_path):
+                # Create image
+                img = Image(full_path)
+                img_width, img_height = self._calculate_image_size(full_path, max_width=8*cm, max_height=5*cm)
+                img.drawWidth = img_width
+                img.drawHeight = img_height
                 
-                if os.path.exists(full_path):
-                    # Add photo title if available
-                    if foto.titulo:
-                        story.append(Paragraph(foto.titulo, self.styles['Header']))
-                        story.append(Spacer(1, 10))
-                    
-                    # Add photo
-                    img = Image(full_path)
-                    # Calculate size to fit page width
-                    img_width, img_height = self._calculate_image_size(full_path, max_width=15*cm)
-                    img.drawWidth = img_width
-                    img.drawHeight = img_height
-                    
-                    story.append(img)
-                    story.append(Spacer(1, 10))
-                    
-                    # Add caption/legend
-                    if foto.legenda:
-                        story.append(Paragraph(f"<b>Legenda:</b> {foto.legenda}", self.styles['PhotoCaption']))
-                    
-                    # Add description
-                    if foto.descricao:
-                        story.append(Paragraph(f"<b>Descrição:</b> {foto.descricao}", self.styles['Normal']))
-                    
-                    # Add service type
-                    if foto.tipo_servico:
-                        story.append(Paragraph(f"<b>Tipo de Serviço:</b> {foto.tipo_servico}", self.styles['Normal']))
-                    
-                    story.append(Spacer(1, 20))
-                    
-            except Exception as e:
-                current_app.logger.error(f"Error adding photo {foto.filename}: {e}")
-                story.append(Paragraph(f"[Erro ao carregar foto: {foto.filename}]", self.styles['Normal']))
-                story.append(Spacer(1, 10))
+                # Create caption
+                caption_text = foto.legenda if hasattr(foto, 'legenda') and foto.legenda else ''
+                caption = Paragraph(caption_text, self.styles['PhotoCaption'])
+                
+                # Return as list for table cell
+                return [img, Spacer(1, 5), caption]
+            else:
+                return '[Foto não encontrada]'
+        except Exception as e:
+            current_app.logger.error(f"Error creating photo cell for {foto.filename}: {e}")
+            return '[Erro ao carregar foto]'
     
     def _calculate_image_size(self, image_path, max_width=15*cm, max_height=20*cm):
         """Calculate image size maintaining aspect ratio"""
@@ -275,27 +384,47 @@ class ReportPDFGenerator:
         except:
             return max_width, max_width * 0.75  # Default aspect ratio
     
-    def _add_footer_info(self, story, relatorio):
-        """Add footer information"""
-        story.append(HRFlowable(width="100%"))
-        story.append(Spacer(1, 10))
+    def _add_template_signatures(self, story, relatorio):
+        """Add signatures section following template"""
+        story.append(PageBreak())
+        story.append(Spacer(1, 50))
         
-        footer_text = f"""
-        Este relatório foi gerado automaticamente pelo Sistema de Acompanhamento de Visitas em Obras em {datetime.now().strftime('%d/%m/%Y às %H:%M')}.
-        """
+        story.append(Paragraph("Assinaturas", self.styles['SectionHeader']))
+        story.append(Spacer(1, 20))
         
-        story.append(Paragraph(footer_text, self.styles['Normal']))
+        # Get signature info
+        preenchido_por = relatorio.autor.nome_completo if relatorio.autor else 'Não informado'
+        liberado_por = relatorio.aprovador.nome_completo if relatorio.aprovador else 'Não informado'
+        responsavel = relatorio.projeto.responsavel.nome_completo if relatorio.projeto and relatorio.projeto.responsavel else 'Não informado'
         
-        if relatorio.comentario_aprovacao:
-            story.append(Spacer(1, 10))
-            story.append(Paragraph("COMENTÁRIOS DE APROVAÇÃO", self.styles['Header']))
-            story.append(Paragraph(relatorio.comentario_aprovacao, self.styles['Normal']))
+        signatures_table = Table([
+            ['Preenchido por:', 'Liberado por:', 'Responsável pelo acompanhamento'],
+            [preenchido_por, liberado_por, responsavel]
+        ], colWidths=[6.3*cm, 6.3*cm, 6.3*cm])
+        
+        signatures_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+        ]))
+        
+        story.append(signatures_table)
     
-    def _add_page_number(self, canvas, doc):
-        """Add page number to each page"""
-        page_num = canvas.getPageNumber()
-        text = f"Página {page_num}"
-        canvas.drawRightString(200*mm, 20*mm, text)
+    def _add_template_footer(self, canvas, doc):
+        """Add footer following exact template format"""
+        # Company info on left
+        canvas.setFont('Helvetica-Bold', 9)
+        canvas.drawString(40, 60, 'ELP Consultoria')
+        
+        canvas.setFont('Helvetica', 8)
+        canvas.drawString(40, 45, 'Rua Jaboticabal, 530 apto. 31 - São Paulo - SP - CEP: 03188-000')
+        canvas.drawString(40, 32, 'leopoldo@elpconsultoria.eng.br')
+        canvas.drawString(40, 19, 'Telefone: (11) 99138-4517')
+        
+        # Generated info on right
+        canvas.setFont('Helvetica', 8)
+        canvas.drawRightString(555, 19, 'Relatório gerado no Produttivo')
 
 def generate_visit_report_pdf(relatorio):
     """Generate PDF report for a visit"""

@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import current_app
 from flask_mail import Message
 from app import mail, db
-from models import Projeto, Relatorio, Reembolso
+from models import Projeto, Relatorio
 
 def generate_project_number():
     """Generate sequential project number"""
@@ -116,24 +116,15 @@ def send_report_email(relatorio, email_destinatario, nome_destinatario=None):
         current_app.logger.error(f"Error sending email: {str(e)}")
         raise e
 
-def calculate_reimbursement_total(reembolso):
-    """Calculate total reimbursement amount"""
+def calculate_reimbursement_total(data):
+    """Calculate total reimbursement amount from data dict"""
     total = 0
-    
-    # Calculate mileage reimbursement
-    if reembolso.quilometragem and reembolso.valor_km:
-        total += reembolso.quilometragem * reembolso.valor_km
-    
-    # Add other expenses
-    if reembolso.alimentacao:
-        total += reembolso.alimentacao
-    
-    if reembolso.hospedagem:
-        total += reembolso.hospedagem
-    
-    if reembolso.outros_gastos:
-        total += reembolso.outros_gastos
-    
+    quilometragem = data.get('quilometragem', 0) or 0
+    valor_km = data.get('valor_km', 0) or 0
+    total += quilometragem * valor_km
+    total += data.get('alimentacao', 0) or 0
+    total += data.get('hospedagem', 0) or 0
+    total += data.get('outros_gastos', 0) or 0
     return round(total, 2)
 
 def allowed_file(filename, allowed_extensions):
