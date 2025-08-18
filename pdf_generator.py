@@ -580,3 +580,102 @@ def generate_visit_report_pdf(relatorio):
     pdf_path = generator.generate_visit_report_pdf(relatorio, output_path)
     
     return pdf_path, safe_filename
+
+    def generate_reimbursement_pdf(self, reembolso, output_path):
+        """Generate PDF for approved reimbursement"""
+        try:
+            doc = SimpleDocTemplate(output_path, pagesize=letter)
+            story = []
+            
+            # Header
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=18,
+                spaceAfter=20,
+                alignment=1,  # Center
+                textColor=colors.HexColor('#1f5582')
+            )
+            
+            story.append(Paragraph("COMPROVANTE DE REEMBOLSO APROVADO", title_style))
+            story.append(Spacer(1, 20))
+            
+            # Reembolso info
+            info_data = [
+                ['ID do Reembolso:', f'#{reembolso.id}'],
+                ['Solicitante:', reembolso.usuario.nome_completo if reembolso.usuario else '-'],
+                ['Projeto:', reembolso.projeto.nome if reembolso.projeto else '-'],
+                ['Período:', reembolso.periodo or '-'],
+                ['Data da Solicitação:', reembolso.created_at.strftime('%d/%m/%Y %H:%M') if reembolso.created_at else '-'],
+                ['Data da Aprovação:', reembolso.data_aprovacao.strftime('%d/%m/%Y %H:%M') if reembolso.data_aprovacao else '-'],
+                ['Status:', reembolso.status]
+            ]
+            
+            info_table = Table(info_data, colWidths=[2*inch, 4*inch])
+            info_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ]))
+            
+            story.append(info_table)
+            story.append(Spacer(1, 20))
+            
+            # Motivo
+            if reembolso.motivo:
+                story.append(Paragraph("<b>Motivo da Solicitação:</b>", styles['Normal']))
+                story.append(Paragraph(reembolso.motivo, styles['Normal']))
+                story.append(Spacer(1, 15))
+            
+            # Detalhamento dos gastos
+            story.append(Paragraph("<b>DETALHAMENTO DOS GASTOS</b>", styles['Heading2']))
+            story.append(Spacer(1, 10))
+            
+            # Calculate combustible total
+            total_combustivel = (reembolso.quilometragem or 0) * (reembolso.valor_km or 0)
+            
+            gastos_data = [
+                ['Descrição', 'Quantidade', 'Valor Unitário', 'Total'],
+                ['Combustível (km percorrida)', f'{reembolso.quilometragem or 0:.1f} km', 
+                 f'R$ {reembolso.valor_km or 0:.2f}', f'R$ {total_combustivel:.2f}'],
+                ['Alimentação', '-', '-', f'R$ {reembolso.alimentacao or 0:.2f}'],
+                ['Hospedagem', '-', '-', f'R$ {reembolso.hospedagem or 0:.2f}'],
+                ['Outros gastos', '-', '-', f'R$ {reembolso.outros_gastos or 0:.2f}'],
+                ['', '', 'TOTAL GERAL:', f'R$ {reembolso.total:.2f}']
+            ]
+            
+            gastos_table = Table(gastos_data, colWidths=[2.5*inch, 1*inch, 1.2*inch, 1.3*inch])
+            gastos_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('FONTNAME', (2, -1), (-1, -1), 'Helvetica-Bold'),
+                ('BACKGROUND', (2, -1), (-1, -1), colors.lightgrey),
+            ]))
+            
+            story.append(gastos_table)
+            story.append(Spacer(1, 20))
+            
+            # Build PDF
+            doc.build(story)
+            return output_path
+            
+        except Exception as e:
+            print(f"Error generating reimbursement PDF: {e}")
+            raise

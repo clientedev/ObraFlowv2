@@ -49,15 +49,21 @@
                                             <a href="{{ url_for('edit_report', id=report.id) }}" class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-eye"></i> Ver
                                             </a>
-                                            {% if current_user.is_master and report.status == 'Aguardando Aprovação' %}
-                                            <div class="btn-group ms-1">
-                                                <a href="{{ url_for('approve_report', id=report.id) }}" class="btn btn-sm btn-success">
-                                                    <i class="fas fa-check"></i> Aprovar
+                                            {% if current_user.is_master %}
+                                                {% if report.status == 'Aguardando Aprovação' %}
+                                                <div class="btn-group ms-1">
+                                                    <a href="{{ url_for('approve_report', id=report.id) }}" class="btn btn-sm btn-success">
+                                                        <i class="fas fa-check"></i> Aprovar
+                                                    </a>
+                                                    <a href="{{ url_for('reject_report', id=report.id) }}" class="btn btn-sm btn-danger">
+                                                        <i class="fas fa-times"></i> Rejeitar
+                                                    </a>
+                                                </div>
+                                                {% endif %}
+                                                <a href="{{ url_for('delete_report', id=report.id) }}" class="btn btn-sm btn-outline-danger ms-1"
+                                                   onclick="return confirm('Excluir relatório {{ report.numero }}? Esta ação não pode ser desfeita.')">
+                                                    <i class="fas fa-trash"></i> Excluir
                                                 </a>
-                                                <a href="{{ url_for('reject_report', id=report.id) }}" class="btn btn-sm btn-danger">
-                                                    <i class="fas fa-times"></i> Rejeitar
-                                                </a>
-                                            </div>
                                             {% endif %}
                                         </td>
                                     </tr>

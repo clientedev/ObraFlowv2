@@ -44,15 +44,7 @@
                             <li><a class="dropdown-item" href="{{ url_for('project_new') }}">Novo Projeto</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-users me-1"></i>Contatos
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('contacts_list') }}">Listar Contatos</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('contact_new') }}">Novo Contato</a></li>
-                        </ul>
-                    </li>
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-calendar-check me-1"></i>Visitas
@@ -77,10 +69,20 @@
                             {% endif %}
                         </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('reimbursements_list') }}">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-money-bill-wave me-1"></i>Reembolsos
                         </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('reimbursements_list') }}">Meus Reembolsos</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('request_reimbursement') }}">Solicitar Reembolso</a></li>
+                            {% if current_user.is_master %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('reimbursements_admin') }}">
+                                <i class="fas fa-cog me-1"></i>Painel Administrativo
+                            </a></li>
+                            {% endif %}
+                        </ul>
                     </li>
                     {% if current_user.is_master %}
                     <li class="nav-item dropdown">

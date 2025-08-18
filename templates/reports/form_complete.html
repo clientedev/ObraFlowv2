@@ -160,6 +160,24 @@
                                     placeholder="Descreva detalhes gerais da visita, pontos importantes, etc."></textarea>
                         </div>
 
+                        <!-- Captura de Localização -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-map-marker-alt"></i> Localização</h5>
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <button type="button" class="btn btn-outline-primary" onclick="capturarLocalizacao()">
+                                        <i class="fas fa-crosshairs"></i> Capturar Localização Atual
+                                    </button>
+                                    <div id="localizacao-info" class="mt-2"></div>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="hidden" id="latitude" name="latitude">
+                                    <input type="hidden" id="longitude" name="longitude">
+                                    <small class="text-muted">A localização será anexada ao relatório para confirmar presença no local.</small>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Sistema de Fotos -->
                         <div class="mb-4">
                             <h5><i class="fas fa-camera"></i> Fotos (Até 5 fotos)</h5>
@@ -683,5 +701,55 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
     // Submeter formulário tradicional
     return true;
 });
+
+// Função para capturar localização
+function capturarLocalizacao() {
+    const infoDiv = document.getElementById('localizacao-info');
+    
+    if (!navigator.geolocation) {
+        infoDiv.innerHTML = '<div class="alert alert-danger">Geolocalização não é suportada pelo navegador.</div>';
+        return;
+    }
+    
+    infoDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Capturando localização...</div>';
+    
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+            
+            infoDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> Localização capturada com sucesso!<br>
+                    <small>Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)} (precisão: ${Math.round(accuracy)}m)</small>
+                </div>
+            `;
+        },
+        function(error) {
+            let errorMsg = 'Erro ao capturar localização.';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg = 'Permissão negada para acessar localização.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMsg = 'Localização indisponível.';
+                    break;
+                case error.TIMEOUT:
+                    errorMsg = 'Tempo limite para capturar localização.';
+                    break;
+            }
+            infoDiv.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> ${errorMsg}</div>`;
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000
+        }
+    );
+}
 </script>
 {% endblock %}

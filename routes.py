@@ -217,7 +217,14 @@ def create_report():
                 except Exception as e:
                     print(f"Error parsing checklist data: {e}")
             
-            # Combine content with checklist
+            # Process location data
+            latitude = request.form.get('latitude')
+            longitude = request.form.get('longitude')
+            location_text = ""
+            if latitude and longitude:
+                location_text = f"\n\nLOCALIZAÇÃO DO RELATÓRIO:\nLatitude: {latitude}\nLongitude: {longitude}\nCoordenadas GPS capturadas durante a visita."
+            
+            # Combine content with checklist and location
             final_content = ""
             if conteudo:
                 final_content += conteudo
@@ -226,6 +233,8 @@ def create_report():
                     final_content += "\n\n" + checklist_text
                 else:
                     final_content = checklist_text
+            if location_text:
+                final_content += location_text
             
             relatorio.conteudo = final_content
             relatorio.data_relatorio = data_relatorio
@@ -525,6 +534,37 @@ def pending_reports():
         page=page, per_page=10, error_out=False)
     
     return render_template('reports/pending.html', relatorios=relatorios)
+
+@app.route('/reports/<int:id>/delete')
+@login_required
+def delete_report(id):
+    """Excluir relatório - apenas usuários master"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem excluir relatórios.', 'error')
+        return redirect(url_for('reports'))
+    
+    relatorio = Relatorio.query.get_or_404(id)
+    
+    # Delete associated photos first
+    fotos = FotoRelatorio.query.filter_by(relatorio_id=id).all()
+    for foto in fotos:
+        try:
+            # Delete physical file
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            filepath = os.path.join(upload_folder, foto.filename)
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        except Exception as e:
+            print(f"Erro ao deletar arquivo {foto.filename}: {e}")
+        db.session.delete(foto)
+    
+    # Delete report
+    numero = relatorio.numero
+    db.session.delete(relatorio)
+    db.session.commit()
+    
+    flash(f'Relatório {numero} excluído com sucesso.', 'success')
+    return redirect(url_for('reports'))
 
 @app.route('/reports/<int:id>/pdf')
 @login_required
@@ -1107,7 +1147,172 @@ def report_send(report_id):
 @login_required
 def reimbursements_list():
     reembolsos = Reembolso.query.filter_by(usuario_id=current_user.id).order_by(Reembolso.created_at.desc()).all()
-    return render_template('reimbursement/list.html', reembolsos=reembolsos)
+    return render_template('reimbursements/list.html', reembolsos=reembolsos)
+
+@app.route('/reimbursements/request', methods=['GET', 'POST'])
+@login_required
+def request_reimbursement():
+    """Solicitar novo reembolso"""
+    if request.method == 'POST':
+        try:
+            # Create reimbursement record
+            reembolso = Reembolso()
+            reembolso.usuario_id = current_user.id
+            reembolso.projeto_id = int(request.form.get('projeto_id'))
+            reembolso.periodo = request.form.get('periodo', '')
+            reembolso.motivo = request.form.get('motivo', '')
+            
+            # Parse numeric values
+            distancia = float(request.form.get('distancia_km', 0))
+            valor_km = float(request.form.get('valor_km', 0.75))
+            alimentacao = float(request.form.get('alimentacao', 0))
+            hospedagem = float(request.form.get('hospedagem', 0))
+            outros_gastos = float(request.form.get('outros_gastos', 0))
+            
+            reembolso.quilometragem = distancia
+            reembolso.valor_km = valor_km
+            reembolso.alimentacao = alimentacao
+            reembolso.hospedagem = hospedagem
+            reembolso.outros_gastos = outros_gastos
+            reembolso.descricao_outros = request.form.get('descricao_outros', '')
+            
+            # Calculate total
+            total_combustivel = distancia * valor_km
+            reembolso.total = total_combustivel + alimentacao + hospedagem + outros_gastos
+            
+            reembolso.status = 'Aguardando Aprovação'
+            reembolso.created_at = datetime.utcnow()
+            
+            db.session.add(reembolso)
+            db.session.flush()  # Get the ID
+            
+            # Handle file uploads (comprovantes)
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            if not os.path.exists(upload_folder):
+                os.makedirs(upload_folder)
+            
+            comprovantes_count = 0
+            comprovantes_info = []
+            
+            for i in range(4):  # Support up to 4 receipts
+                comprovante_key = f'comprovante_{i}'
+                desc_key = f'desc_comprovante_{i}'
+                
+                if comprovante_key in request.files:
+                    file = request.files[comprovante_key]
+                    if file and file.filename:
+                        try:
+                            filename = secure_filename(f"reembolso_{reembolso.id}_{uuid.uuid4().hex}_{file.filename}")
+                            filepath = os.path.join(upload_folder, filename)
+                            file.save(filepath)
+                            
+                            desc = request.form.get(desc_key, f'Comprovante {i+1}')
+                            comprovantes_info.append({
+                                'filename': filename,
+                                'description': desc
+                            })
+                            comprovantes_count += 1
+                        except Exception as e:
+                            print(f"Erro ao salvar comprovante {i}: {e}")
+            
+            # Store comprovantes info as JSON in observacoes
+            if comprovantes_info:
+                import json
+                reembolso.observacoes = json.dumps(comprovantes_info)
+            
+            db.session.commit()
+            
+            flash(f'Solicitação de reembolso criada com sucesso! {comprovantes_count} comprovantes anexados. Status: Aguardando Aprovação.', 'success')
+            return redirect(url_for('reimbursements_list'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar solicitação: {str(e)}', 'error')
+    
+    projetos = Projeto.query.filter_by(status='Ativo').all()
+    return render_template('reimbursements/request.html', projetos=projetos)
+
+@app.route('/reimbursements/<int:id>/approve')
+@login_required
+def approve_reimbursement(id):
+    """Aprovar solicitação de reembolso - apenas usuários master"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem aprovar reembolsos.', 'error')
+        return redirect(url_for('reimbursements_list'))
+    
+    reembolso = Reembolso.query.get_or_404(id)
+    reembolso.status = 'Aprovado'
+    reembolso.aprovado_por = current_user.id
+    reembolso.data_aprovacao = datetime.utcnow()
+    
+    db.session.commit()
+    flash(f'Reembolso aprovado com sucesso! PDF disponível para download.', 'success')
+    return redirect(url_for('reimbursements_admin'))
+
+@app.route('/reimbursements/<int:id>/reject')
+@login_required
+def reject_reimbursement(id):
+    """Rejeitar solicitação de reembolso - apenas usuários master"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem rejeitar reembolsos.', 'error')
+        return redirect(url_for('reimbursements_list'))
+    
+    reembolso = Reembolso.query.get_or_404(id)
+    reembolso.status = 'Rejeitado'
+    reembolso.aprovado_por = current_user.id
+    reembolso.data_aprovacao = datetime.utcnow()
+    
+    db.session.commit()
+    flash(f'Reembolso rejeitado.', 'warning')
+    return redirect(url_for('reimbursements_admin'))
+
+@app.route('/reimbursements/admin')
+@login_required
+def reimbursements_admin():
+    """Painel administrativo de reembolsos - apenas usuários master"""
+    if not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('reimbursements_list'))
+    
+    reembolsos = Reembolso.query.order_by(Reembolso.created_at.desc()).all()
+    return render_template('reimbursements/admin.html', reembolsos=reembolsos)
+
+@app.route('/reimbursements/<int:id>/pdf')
+@login_required
+def generate_reimbursement_pdf(id):
+    """Gerar PDF do reembolso aprovado"""
+    reembolso = Reembolso.query.get_or_404(id)
+    
+    # Check permissions
+    if not current_user.is_master and reembolso.usuario_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('reimbursements_list'))
+    
+    if reembolso.status != 'Aprovado':
+        flash('PDF só pode ser gerado para reembolsos aprovados.', 'error')
+        return redirect(url_for('reimbursements_list'))
+    
+    try:
+        from pdf_generator import ReportPDFGenerator
+        
+        pdf_generator = ReportPDFGenerator()
+        output_path = os.path.join('static', 'reimbursements', f'reembolso_{reembolso.id}.pdf')
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        pdf_path = pdf_generator.generate_reimbursement_pdf(reembolso, output_path)
+        
+        return send_from_directory(
+            os.path.dirname(output_path),
+            os.path.basename(output_path),
+            as_attachment=True,
+            download_name=f'reembolso_{reembolso.id}_aprovado.pdf'
+        )
+        
+    except Exception as e:
+        flash(f'Erro ao gerar PDF: {str(e)}', 'error')
+        return redirect(url_for('reimbursements_list'))
 
 @app.route('/reimbursements/new', methods=['GET', 'POST'])
 @login_required

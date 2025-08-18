@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Meus Reembolsos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3><i class="fas fa-money-bill-wave"></i> Meus Reembolsos</h3>
+                    <div>
+                        {% if current_user.is_master %}
+                        <a href="{{ url_for('reimbursements_admin') }}" class="btn btn-warning me-2">
+                            <i class="fas fa-cog"></i> Painel Administrativo
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('request_reimbursement') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Solicitar Reembolso
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if reembolsos %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Projeto</th>
+                                        <th>Período</th>
+                                        <th>Motivo</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Data Solicitação</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for reembolso in reembolsos %}
+                                    <tr>
+                                        <td>#{{ reembolso.id }}</td>
+                                        <td>{{ reembolso.projeto.nome if reembolso.projeto else '-' }}</td>
+                                        <td>{{ reembolso.periodo or '-' }}</td>
+                                        <td>
+                                            <small>{{ (reembolso.motivo[:50] + '...') if reembolso.motivo and reembolso.motivo|length > 50 else reembolso.motivo or '-' }}</small>
+                                        </td>
+                                        <td><strong>R$ {{ "%.2f"|format(reembolso.total) }}</strong></td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if reembolso.status == 'Aprovado' %}bg-success
+                                                {% elif reembolso.status == 'Rejeitado' %}bg-danger
+                                                {% elif reembolso.status == 'Aguardando Aprovação' %}bg-warning
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ reembolso.status }}
+                                            </span>
+                                        </td>
+                                        <td>{{ reembolso.created_at.strftime('%d/%m/%Y') if reembolso.created_at else '-' }}</td>
+                                        <td>
+                                            {% if reembolso.status == 'Aprovado' %}
+                                            <a href="{{ url_for('generate_reimbursement_pdf', id=reembolso.id) }}" class="btn btn-sm btn-success">
+                                                <i class="fas fa-download"></i> PDF
+                                            </a>
+                                            {% else %}
+                                            <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                <i class="fas fa-clock"></i> Pendente
+                                            </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-money-bill-wave fa-4x text-muted mb-3"></i>
+                            <h4>Nenhum reembolso encontrado</h4>
+                            <p class="text-muted">Clique no botão acima para solicitar seu primeiro reembolso.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

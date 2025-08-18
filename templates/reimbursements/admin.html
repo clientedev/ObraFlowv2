@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Administração de Reembolsos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3><i class="fas fa-cog"></i> Administração de Reembolsos</h3>
+                    <a href="{{ url_for('reimbursements_list') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if reembolsos %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Solicitante</th>
+                                        <th>Projeto</th>
+                                        <th>Período</th>
+                                        <th>Motivo</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Data</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for reembolso in reembolsos %}
+                                    <tr>
+                                        <td><strong>#{{ reembolso.id }}</strong></td>
+                                        <td>{{ reembolso.usuario.nome_completo if reembolso.usuario else '-' }}</td>
+                                        <td>{{ reembolso.projeto.nome if reembolso.projeto else '-' }}</td>
+                                        <td>{{ reembolso.periodo or '-' }}</td>
+                                        <td>
+                                            <small>{{ (reembolso.motivo[:40] + '...') if reembolso.motivo and reembolso.motivo|length > 40 else reembolso.motivo or '-' }}</small>
+                                        </td>
+                                        <td><strong>R$ {{ "%.2f"|format(reembolso.total) }}</strong></td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if reembolso.status == 'Aprovado' %}bg-success
+                                                {% elif reembolso.status == 'Rejeitado' %}bg-danger
+                                                {% elif reembolso.status == 'Aguardando Aprovação' %}bg-warning
+                                                {% else %}bg-secondary{% endif %}">
+                                                {% if reembolso.status == 'Aguardando Aprovação' %}
+                                                    <i class="fas fa-clock"></i>
+                                                {% elif reembolso.status == 'Aprovado' %}
+                                                    <i class="fas fa-check"></i>
+                                                {% elif reembolso.status == 'Rejeitado' %}
+                                                    <i class="fas fa-times"></i>
+                                                {% endif %}
+                                                {{ reembolso.status }}
+                                            </span>
+                                        </td>
+                                        <td>{{ reembolso.created_at.strftime('%d/%m/%Y') if reembolso.created_at else '-' }}</td>
+                                        <td>
+                                            {% if reembolso.status == 'Aguardando Aprovação' %}
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-sm btn-outline-info" 
+                                                        data-bs-toggle="modal" data-bs-target="#detailModal{{ reembolso.id }}">
+                                                    <i class="fas fa-eye"></i> Ver
+                                                </button>
+                                                <a href="{{ url_for('approve_reimbursement', id=reembolso.id) }}" 
+                                                   class="btn btn-sm btn-success"
+                                                   onclick="return confirm('Aprovar reembolso #{{ reembolso.id }}?')">
+                                                    <i class="fas fa-check"></i> Aprovar
+                                                </a>
+                                                <a href="{{ url_for('reject_reimbursement', id=reembolso.id) }}" 
+                                                   class="btn btn-sm btn-danger"
+                                                   onclick="return confirm('Rejeitar reembolso #{{ reembolso.id }}?')">
+                                                    <i class="fas fa-times"></i> Rejeitar
+                                                </a>
+                                            </div>
+                                            {% elif reembolso.status == 'Aprovado' %}
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-sm btn-outline-info" 
+                                                        data-bs-toggle="modal" data-bs-target="#detailModal{{ reembolso.id }}">
+                                                    <i class="fas fa-eye"></i> Ver
+                                                </button>
+                                                <a href="{{ url_for('generate_reimbursement_pdf', id=reembolso.id) }}" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-download"></i> PDF
+                                                </a>
+                                            </div>
+                                            {% else %}
+                                            <button type="button" class="btn btn-sm btn-outline-info" 
+                                                    data-bs-toggle="modal" data-bs-target="#detailModal{{ reembolso.id }}">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Modals para detalhes -->
+                        {% for reembolso in reembolsos %}
+                        <div class="modal fade" id="detailModal{{ reembolso.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Detalhes do Reembolso #{{ reembolso.id }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <strong>Solicitante:</strong> {{ reembolso.usuario.nome_completo if reembolso.usuario else '-' }}
+                                            </div>
+                                            <div class="col-md-6">
+                                                <strong>Projeto:</strong> {{ reembolso.projeto.nome if reembolso.projeto else '-' }}
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <strong>Período:</strong> {{ reembolso.periodo or '-' }}
+                                            </div>
+                                            <div class="col-md-6">
+                                                <strong>Status:</strong> 
+                                                <span class="badge bg-{{ 'success' if reembolso.status == 'Aprovado' else 'danger' if reembolso.status == 'Rejeitado' else 'warning' }}">
+                                                    {{ reembolso.status }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <strong>Motivo:</strong><br>
+                                            {{ reembolso.motivo or '-' }}
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-3">
+                                                <strong>Distância:</strong> {{ reembolso.quilometragem or 0 }} km
+                                            </div>
+                                            <div class="col-md-3">
+                                                <strong>Valor/km:</strong> R$ {{ "%.2f"|format(reembolso.valor_km or 0) }}
+                                            </div>
+                                            <div class="col-md-3">
+                                                <strong>Combustível:</strong> R$ {{ "%.2f"|format((reembolso.quilometragem or 0) * (reembolso.valor_km or 0)) }}
+                                            </div>
+                                            <div class="col-md-3">
+                                                <strong>Alimentação:</strong> R$ {{ "%.2f"|format(reembolso.alimentacao or 0) }}
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <strong>Hospedagem:</strong> R$ {{ "%.2f"|format(reembolso.hospedagem or 0) }}
+                                            </div>
+                                            <div class="col-md-4">
+                                                <strong>Outros:</strong> R$ {{ "%.2f"|format(reembolso.outros_gastos or 0) }}
+                                            </div>
+                                            <div class="col-md-4">
+                                                <strong class="text-success">Total:</strong> <strong class="text-success">R$ {{ "%.2f"|format(reembolso.total) }}</strong>
+                                            </div>
+                                        </div>
+                                        {% if reembolso.descricao_outros %}
+                                        <div class="mb-3">
+                                            <strong>Descrição outros gastos:</strong><br>
+                                            {{ reembolso.descricao_outros }}
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Comprovantes -->
+                                        {% if reembolso.observacoes %}
+                                        {% set comprovantes = reembolso.observacoes | from_json %}
+                                        {% if comprovantes %}
+                                        <div class="mb-3">
+                                            <strong>Comprovantes anexados:</strong>
+                                            <ul class="list-unstyled mt-2">
+                                                {% for comprovante in comprovantes %}
+                                                <li class="mb-2">
+                                                    <i class="fas fa-paperclip"></i> 
+                                                    {{ comprovante.description }}
+                                                    <small class="text-muted">({{ comprovante.filename }})</small>
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                        {% endif %}
+                                        {% endif %}
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-money-bill-wave fa-4x text-muted mb-3"></i>
+                            <h4>Nenhum reembolso encontrado</h4>
+                            <p class="text-muted">As solicitações de reembolso aparecerão aqui quando criadas.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
