@@ -166,44 +166,66 @@ def reports():
 @app.route('/reports/new', methods=['GET', 'POST'])
 @login_required
 def create_report():
-    if request.method == 'POST':
+    from forms import RelatorioForm
+    form = RelatorioForm()
+    
+    if form.validate_on_submit():
         try:
-            # Get form data
-            titulo = request.form.get('titulo', '').strip()
-            projeto_id = request.form.get('projeto_id', type=int)
-            visita_id = request.form.get('visita_id', type=int) if request.form.get('visita_id') else None
-            conteudo = request.form.get('conteudo', '').strip()
-            
-            if not titulo or not projeto_id:
-                flash('Título e projeto são obrigatórios.', 'error')
-                return redirect(request.url)
-            
             # Create report
             relatorio = Relatorio(
                 numero=generate_report_number(),
-                titulo=titulo,
-                projeto_id=projeto_id,
-                visita_id=visita_id,
+                titulo=form.titulo.data,
+                conteudo=form.conteudo.data,
+                aprovador_nome=form.aprovador_nome.data,
+                data_relatorio=form.data_relatorio.data,
                 autor_id=current_user.id,
-                conteudo=conteudo,
                 status='Rascunho'
             )
             
             db.session.add(relatorio)
+            db.session.flush()  # Get the ID
+            
+            # Handle photo uploads if any
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            if not os.path.exists(upload_folder):
+                os.makedirs(upload_folder)
+            
+            photo_count = 0
+            for key in request.files:
+                if key.startswith('photo_'):
+                    file = request.files[key]
+                    if file and file.filename:
+                        # Secure filename
+                        filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
+                        filepath = os.path.join(upload_folder, filename)
+                        file.save(filepath)
+                        
+                        # Get photo metadata from form
+                        photo_caption = request.form.get(f'photo_caption_{key}', f'Foto {photo_count + 1}')
+                        photo_category = request.form.get(f'photo_category_{key}', 'Geral')
+                        
+                        # Create photo record
+                        foto = FotoRelatorio(
+                            relatorio_id=relatorio.id,
+                            filename=filename,
+                            legenda=photo_caption,
+                            tipo_servico=photo_category,
+                            ordem=photo_count + 1
+                        )
+                        
+                        db.session.add(foto)
+                        photo_count += 1
+            
             db.session.commit()
             
             flash(f'Relatório {relatorio.numero} criado com sucesso!', 'success')
-            return redirect(url_for('edit_report', id=relatorio.id))
+            return redirect(url_for('report_view', report_id=relatorio.id))
             
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao criar relatório: {str(e)}', 'error')
     
-    # Get projects and visits for form
-    projetos = Projeto.query.filter_by(status='Ativo').all()
-    visitas = Visita.query.filter_by(status='Realizada').all()
-    
-    return render_template('reports/new.html', projetos=projetos, visitas=visitas)
+    return render_template('reports/form.html', form=form)
 
 @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])
 @login_required

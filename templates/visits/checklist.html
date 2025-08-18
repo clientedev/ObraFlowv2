@@ -190,7 +190,7 @@
                     <i class="fas fa-bolt me-2"></i>Ações Rápidas
                 </h6>
                 <div class="d-flex gap-2 flex-wrap">
-                    <a href="{{ url_for('report_create') }}?visita_id={{ visit.id }}" class="btn btn-success btn-sm">
+                    <a href="{{ url_for('create_report') }}?visita_id={{ visit.id }}" class="btn btn-success btn-sm">
                         <i class="fas fa-file-plus me-1"></i>Criar Relatório desta Visita
                     </a>
                     <a href="{{ url_for('project_view', project_id=visit.projeto.id) }}" class="btn btn-info btn-sm">
