@@ -143,6 +143,150 @@ class ReportPDFGenerator:
         
         # Build PDF with custom footer
         doc.build(story, onFirstPage=self._add_template_footer, onLaterPages=self._add_template_footer)
+    
+    def generate_report_pdf(self, relatorio, fotos=None):
+        """Generate professional PDF report matching the template format"""
+        buffer = io.BytesIO()
+        
+        # Create document with A4 page size
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=2*cm,
+            leftMargin=2*cm,
+            topMargin=2*cm,
+            bottomMargin=2*cm
+        )
+        
+        # Build story (content)
+        story = []
+        
+        # Header with date
+        header_table = Table([
+            ['Relatório de Visita', f'Em: {datetime.now().strftime("%d/%m/%Y %H:%M")}']
+        ], colWidths=[12*cm, 6*cm])
+        
+        header_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+            ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (0, 0), 16),
+            ('FONTSIZE', (1, 0), (1, 0), 10),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        
+        story.append(header_table)
+        story.append(Spacer(1, 20))
+        
+        # Report section
+        story.append(Paragraph("Relatório", self.styles['SectionHeader']))
+        
+        # Date info
+        date_info = f"Data<br/>{relatorio.data_relatorio.strftime('%d/%m/%Y %H:%M:%S') if relatorio.data_relatorio else 'Não informada'}"
+        story.append(Paragraph(date_info, self.styles['Info']))
+        story.append(Spacer(1, 15))
+        
+        # General data section
+        story.append(Paragraph("Dados gerais", self.styles['SectionHeader']))
+        
+        # Company and project info
+        projeto_nome = relatorio.projeto.nome if relatorio.projeto else "Não informado"
+        autor_nome = relatorio.autor.nome_completo if relatorio.autor else "Não informado"
+        
+        general_data = Table([
+            ['Empresa', 'Empreendimento'],
+            [autor_nome, projeto_nome]
+        ], colWidths=[9*cm, 9*cm])
+        
+        general_data.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('GRID', (0, 0), (-1, -1), 0.5, black),
+        ]))
+        
+        story.append(general_data)
+        story.append(Spacer(1, 20))
+        
+        # Content section
+        if relatorio.conteudo:
+            story.append(Paragraph("Observações", self.styles['SectionHeader']))
+            story.append(Paragraph(relatorio.conteudo, self.styles['Info']))
+            story.append(Spacer(1, 15))
+        
+        # Photos section
+        if fotos:
+            story.append(Paragraph("Itens observados", self.styles['SectionHeader']))
+            story.append(Spacer(1, 10))
+            
+            # Process photos in pairs (2 per row)
+            photo_pairs = [fotos[i:i+2] for i in range(0, len(fotos), 2)]
+            
+            for pair in photo_pairs:
+                photo_row = []
+                caption_row = []
+                
+                for foto in pair:
+                    # Try to load image
+                    try:
+                        from flask import current_app
+                        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads') if current_app else 'uploads'
+                        image_path = os.path.join(upload_folder, foto.filename)
+                        
+                        if os.path.exists(image_path):
+                            # Resize image to fit in PDF
+                            img = Image(image_path, width=8*cm, height=6*cm)
+                            photo_row.append(img)
+                        else:
+                            # Placeholder for missing image
+                            photo_row.append(Paragraph("Imagem não encontrada", self.styles['PhotoCaption']))
+                        
+                        # Add caption
+                        caption_row.append(Paragraph(foto.legenda or "Sem legenda", self.styles['PhotoCaption']))
+                        
+                    except Exception:
+                        photo_row.append(Paragraph("Erro ao carregar imagem", self.styles['PhotoCaption']))
+                        caption_row.append(Paragraph(foto.legenda or "Sem legenda", self.styles['PhotoCaption']))
+                
+                # Fill remaining cells if odd number of photos
+                while len(photo_row) < 2:
+                    photo_row.append('')
+                    caption_row.append('')
+                
+                # Create photo table
+                photo_table = Table([photo_row, caption_row], colWidths=[9*cm, 9*cm])
+                photo_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('FONTSIZE', (0, 1), (-1, 1), 9),
+                ]))
+                
+                story.append(photo_table)
+                story.append(Spacer(1, 15))
+        
+        # Footer section
+        story.append(Spacer(1, 30))
+        story.append(Paragraph("Assinaturas", self.styles['SectionHeader']))
+        
+        # Signature table
+        signature_table = Table([
+            ['Preenchido por:', 'Liberado por:', 'Responsável pelo acompanhamento'],
+            [autor_nome, 'Engenheiro Responsável', 'Responsável Técnico']
+        ], colWidths=[6*cm, 6*cm, 6*cm])
+        
+        signature_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('GRID', (0, 0), (-1, -1), 0.5, black),
+        ]))
+        
+        story.append(signature_table)
+        
+        # Build PDF
+        doc.build(story)
+        buffer.seek(0)
+        return buffer.getvalue()
         
         return output_path
     

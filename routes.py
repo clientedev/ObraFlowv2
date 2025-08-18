@@ -339,10 +339,197 @@ def photo_editor():
     photo_id = request.args.get('photoId') or request.form.get('photoId')
     return render_template('reports/photo_editor.html', photo_id=photo_id)
 
+@app.route('/reports/photos/<int:photo_id>/annotate', methods=['POST'])
+@login_required
+def annotate_photo(photo_id):
+    """Salvar anotações em uma foto"""
+    try:
+        foto = FotoRelatorio.query.get_or_404(photo_id)
+        data = request.get_json()
+        
+        if 'image_data' not in data:
+            return jsonify({'success': False, 'error': 'Dados da imagem não encontrados'})
+        
+        # Process base64 image data
+        image_data = data['image_data']
+        if ',' in image_data:
+            image_data = image_data.split(',')[1]
+        
+        # Save annotated image
+        import base64
+        image_binary = base64.b64decode(image_data)
+        
+        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+        
+        # Generate new filename for annotated version
+        filename_parts = foto.filename.rsplit('.', 1)
+        annotated_filename = f"{filename_parts[0]}_annotated.{filename_parts[1] if len(filename_parts) > 1 else 'jpg'}"
+        
+        filepath = os.path.join(upload_folder, annotated_filename)
+        with open(filepath, 'wb') as f:
+            f.write(image_binary)
+        
+        # Update photo record
+        foto.filename = annotated_filename
+        foto.coordenadas_anotacao = data.get('annotations', '')
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/reports/photos/<int:photo_id>/delete', methods=['POST'])
+@login_required
+def delete_photo(photo_id):
+    """Excluir uma foto"""
+    try:
+        foto = FotoRelatorio.query.get_or_404(photo_id)
+        
+        # Check permissions
+        if not current_user.is_master and foto.relatorio.autor_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Permissão negada'})
+        
+        # Delete file
+        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+        filepath = os.path.join(upload_folder, foto.filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        
+        # Delete record
+        db.session.delete(foto)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/reports/<int:id>/status', methods=['POST'])
+@login_required
+def update_report_status(id):
+    """Atualizar status do relatório"""
+    try:
+        relatorio = Relatorio.query.get_or_404(id)
+        data = request.get_json()
+        
+        # Check permissions
+        if not current_user.is_master and relatorio.autor_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Permissão negada'})
+        
+        new_status = data.get('status')
+        valid_statuses = ['Rascunho', 'Aguardando Aprovacao', 'Aprovado', 'Rejeitado']
+        
+        if new_status not in valid_statuses:
+            return jsonify({'success': False, 'error': 'Status inválido'})
+        
+        relatorio.status = new_status
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/reports/<int:id>/pdf')
+@login_required
+def generate_pdf_report(id):
+    """Gerar PDF do relatório"""
+    try:
+        relatorio = Relatorio.query.get_or_404(id)
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
+        
+        from pdf_generator import ReportPDFGenerator
+        generator = ReportPDFGenerator()
+        
+        # Generate PDF
+        pdf_data = generator.generate_report_pdf(relatorio, fotos)
+        
+        # Create response
+        from flask import Response
+        filename = f"relatorio_{relatorio.numero}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        
+        response = Response(
+            pdf_data,
+            mimetype='application/pdf',
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"'
+            }
+        )
+        
+        return response
+        
+    except Exception as e:
+        flash(f'Erro ao gerar PDF: {str(e)}', 'error')
+        return redirect(url_for('edit_report', id=id))
+
+@app.route('/api/nearby-projects')
+@login_required
+def get_nearby_projects():
+    """Get projects near user location"""
+    try:
+        lat = request.args.get('lat', type=float)
+        lon = request.args.get('lon', type=float)
+        radius = request.args.get('radius', 50, type=float)  # radius in km
+        
+        if not lat or not lon:
+            return jsonify({'success': False, 'error': 'Coordenadas não fornecidas'})
+        
+        # Get all projects with coordinates
+        projects = Projeto.query.filter(
+            Projeto.latitude.isnot(None),
+            Projeto.longitude.isnot(None)
+        ).all()
+        
+        nearby_projects = []
+        for project in projects:
+            if project.latitude and project.longitude:
+                # Calculate distance using Haversine formula
+                distance = calculate_distance(lat, lon, project.latitude, project.longitude)
+                if distance <= radius:
+                    nearby_projects.append({
+                        'id': project.id,
+                        'nome': project.nome,
+                        'endereco': project.endereco,
+                        'status': project.status,
+                        'tipo_obra': project.tipo_obra,
+                        'distance': round(distance, 2),
+                        'latitude': project.latitude,
+                        'longitude': project.longitude
+                    })
+        
+        # Sort by distance
+        nearby_projects.sort(key=lambda x: x['distance'])
+        
+        return jsonify({'success': True, 'projects': nearby_projects})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """Calculate distance between two points using Haversine formula"""
+    import math
+    
+    # Convert to radians
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+    
+    # Haversine formula
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a))
+    
+    # Radius of earth in kilometers
+    r = 6371
+    
+    return r * c
+
 @app.route('/api/save-annotated-photo', methods=['POST'])
 @login_required  
 def save_annotated_photo():
-    """API para salvar foto anotada"""
+    """API para salvar foto anotada (legacy)"""
     try:
         image_data = request.form.get('annotated_image_data')
         caption = request.form.get('caption', '')

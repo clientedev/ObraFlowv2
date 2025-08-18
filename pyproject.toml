@@ -22,4 +22,5 @@ dependencies = [
     "pillow>=11.3.0",
     "pdfkit>=1.0.0",
     "wkhtmltopdf>=0.2",
+    "openai>=1.100.1",
 ]
