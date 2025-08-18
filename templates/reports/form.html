@@ -259,14 +259,19 @@ function addPhotoPreview(file, src, category) {
     photoDiv.id = photoId;
     photoDiv.innerHTML = `
         <div class="card">
-            <img src="${src}" class="card-img-top photo-preview" alt="Preview">
+            <img src="${src}" class="card-img-top photo-preview" alt="Preview" style="cursor: pointer;" onclick="editPhoto('${photoId}', '${src}', '${category}')">
             <div class="card-body p-2">
                 <input type="text" class="form-control form-control-sm mb-2" 
                        name="photo_caption_${photoId}" placeholder="Legenda da foto...">
                 <small class="text-muted d-block">Categoria: ${category}</small>
-                <button type="button" class="btn btn-sm btn-danger float-end" onclick="removePhoto('${photoId}')">
-                    <i class="fas fa-trash"></i>
-                </button>
+                <div class="btn-group w-100 mt-2">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="editPhoto('${photoId}', '${src}', '${category}')">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removePhoto('${photoId}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
         </div>
     `;
@@ -278,7 +283,8 @@ function addPhotoPreview(file, src, category) {
         id: photoId,
         file: file,
         category: category,
-        element: photoDiv
+        element: photoDiv,
+        originalSrc: src
     });
 }
 
@@ -390,6 +396,61 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
         alert('Erro ao salvar relatório.');
     });
 });
+
+// Função para editar foto
+function editPhoto(photoId, imageSrc, category) {
+    const photo = selectedPhotos.find(p => p.id === photoId);
+    if (!photo) return;
+    
+    const captionElement = document.querySelector(`input[name="photo_caption_${photoId}"]`);
+    const caption = captionElement ? captionElement.value : '';
+    
+    // Abrir editor de fotos em nova janela/aba
+    const editorUrl = `/photo-editor?image=${encodeURIComponent(imageSrc)}&category=${encodeURIComponent(category)}&caption=${encodeURIComponent(caption)}&photoId=${photoId}`;
+    
+    const editorWindow = window.open(editorUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+    
+    // Listener para receber dados da foto editada
+    window.addEventListener('message', function(event) {
+        if (event.data.type === 'photo-edited' && event.data.photoId === photoId) {
+            updatePhotoFromEditor(photoId, event.data);
+            editorWindow.close();
+        }
+    });
+}
+
+function updatePhotoFromEditor(photoId, data) {
+    const photo = selectedPhotos.find(p => p.id === photoId);
+    if (!photo) return;
+    
+    // Atualizar imagem no preview
+    const img = photo.element.querySelector('.photo-preview');
+    if (img && data.imageData) {
+        img.src = data.imageData;
+        photo.annotatedSrc = data.imageData;
+        photo.annotationsData = data.annotations;
+    }
+    
+    // Atualizar campos
+    if (data.caption) {
+        const captionInput = photo.element.querySelector(`input[name="photo_caption_${photoId}"]`);
+        if (captionInput) captionInput.value = data.caption;
+    }
+    
+    if (data.description) {
+        photo.description = data.description;
+    }
+    
+    // Adicionar indicador visual de foto editada
+    const card = photo.element.querySelector('.card');
+    if (card && !card.classList.contains('border-success')) {
+        card.classList.add('border-success', 'border-2');
+        const indicator = document.createElement('small');
+        indicator.className = 'text-success fw-bold';
+        indicator.innerHTML = '<i class="fas fa-check-circle"></i> Editada';
+        photo.element.querySelector('.card-body').appendChild(indicator);
+    }
+}
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', function() {

@@ -262,83 +262,51 @@ def photo_annotation():
     
     return render_template('reports/photo_annotation.html')
 
-@app.route('/api/save-annotated-photo', methods=['POST'])
+@app.route('/photo-editor')
 @login_required
+def photo_editor():
+    """Página do editor de fotos"""
+    return render_template('reports/photo_editor.html')
+
+@app.route('/api/save-annotated-photo', methods=['POST'])
+@login_required  
 def save_annotated_photo():
+    """API para salvar foto anotada"""
     try:
-        # Get form data
-        photo_id = request.form.get('photo_id')
-        report_id = request.form.get('report_id')
-        original_filename = request.form.get('original_filename')
-        legenda = request.form.get('legenda', '').strip()
-        descricao = request.form.get('descricao', '').strip()
-        tipo_servico = request.form.get('tipo_servico', '').strip()
+        image_data = request.form.get('annotated_image_data')
+        caption = request.form.get('caption', '')
+        category = request.form.get('category', '')
+        description = request.form.get('description', '')
         annotations_data = request.form.get('annotations_data', '{}')
         
-        # Get the annotated image file
-        annotated_file = request.files.get('annotated_image')
-        
-        if not legenda:
-            return jsonify({'success': False, 'error': 'Legenda é obrigatória'}), 400
-        
-        # Save annotated image
-        annotated_filename = None
-        if annotated_file:
-            annotated_filename = f"annotated_{uuid.uuid4().hex}.png"
-            annotated_filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], annotated_filename)
-            annotated_file.save(annotated_filepath)
-        
-        if photo_id:
-            # Update existing photo
-            foto = FotoRelatorio.query.get_or_404(photo_id)
-            
-            # Check permissions
-            if not current_user.is_master and foto.relatorio.autor_id != current_user.id:
-                return jsonify({'success': False, 'error': 'Acesso negado'}), 403
-            
-            foto.legenda = legenda
-            foto.descricao = descricao
-            foto.tipo_servico = tipo_servico
-            foto.coordenadas_anotacao = annotations_data
-            
-            if annotated_filename:
-                foto.filename_anotada = annotated_filename
-                
-        else:
-            # Create new photo record
-            if not report_id or not original_filename:
-                return jsonify({'success': False, 'error': 'Dados insuficientes'}), 400
-            
-            relatorio = Relatorio.query.get_or_404(report_id)
-            
-            # Check permissions
-            if not current_user.is_master and relatorio.autor_id != current_user.id:
-                return jsonify({'success': False, 'error': 'Acesso negado'}), 403
-            
-            foto = FotoRelatorio(
-                relatorio_id=report_id,
-                filename=original_filename,
-                filename_anotada=annotated_filename,
-                legenda=legenda,
-                descricao=descricao,
-                tipo_servico=tipo_servico,
-                coordenadas_anotacao=annotations_data,
-                ordem=len(relatorio.fotos) + 1
-            )
-            
-            db.session.add(foto)
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True, 
-            'photo_id': foto.id,
-            'message': 'Foto anotada salva com sucesso!'
-        })
+        # Para retornar via postMessage para a janela pai
+        return f"""
+        <script>
+            if (window.opener) {{
+                window.opener.postMessage({{
+                    type: 'photo-edited',
+                    photoId: new URLSearchParams(window.location.search).get('photoId'),
+                    imageData: '{image_data}',
+                    caption: '{caption}',
+                    category: '{category}',
+                    description: '{description}',
+                    annotations: {annotations_data}
+                }}, '*');
+                window.close();
+            }} else {{
+                alert('Foto salva com sucesso!');
+                window.history.back();
+            }}
+        </script>
+        """
         
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return f"""
+        <script>
+            alert('Erro ao salvar foto: {str(e)}');
+            window.history.back();
+        </script>
+        """
 
 @app.route('/reports/<int:id>/photos/upload', methods=['POST'])
 @login_required
