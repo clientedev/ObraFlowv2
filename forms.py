@@ -35,7 +35,9 @@ class ProjetoForm(FlaskForm):
     nome = StringField('Nome do Projeto', validators=[DataRequired(), Length(max=200)])
     descricao = TextAreaField('Descrição')
     endereco = TextAreaField('Endereço')
-    tipo_obra_id = SelectField('Tipo de Obra', coerce=int, validators=[DataRequired()])
+    latitude = HiddenField()
+    longitude = HiddenField()
+    tipo_obra = StringField('Tipo de Obra', validators=[DataRequired(), Length(max=100)])
     responsavel_id = SelectField('Responsável', coerce=int, validators=[DataRequired()])
     data_inicio = DateField('Data de Início', validators=[Optional()])
     data_previsao_fim = DateField('Previsão de Término', validators=[Optional()])
@@ -48,7 +50,6 @@ class ProjetoForm(FlaskForm):
     
     def __init__(self, *args, **kwargs):
         super(ProjetoForm, self).__init__(*args, **kwargs)
-        self.tipo_obra_id.choices = [(t.id, t.nome) for t in TipoObra.query.filter_by(ativo=True).all()]
         self.responsavel_id.choices = [(u.id, u.nome_completo) for u in User.query.filter_by(ativo=True).all()]
 
 class ContatoForm(FlaskForm):

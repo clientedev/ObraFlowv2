@@ -53,15 +53,28 @@
                     
                     <div class="mb-3">
                         {{ form.endereco.label(class="form-label") }}
-                        {{ form.endereco(class="form-control", rows="2") }}
+                        <div class="input-group">
+                            {{ form.endereco(class="form-control", rows="2", id="endereco") }}
+                            <button type="button" class="btn btn-outline-secondary" onclick="getGPSLocation()" title="Capturar localização via GPS">
+                                <i class="fas fa-location-crosshairs"></i> GPS
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="openMapModal()" title="Escolher localização no mapa">
+                                <i class="fas fa-map-marked-alt"></i> Mapa
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            <span id="locationStatus"></span>
+                        </small>
+                        {{ form.latitude() }}
+                        {{ form.longitude() }}
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                {{ form.tipo_obra_id.label(class="form-label") }}
-                                {{ form.tipo_obra_id(class="form-select" + (" is-invalid" if form.tipo_obra_id.errors else "")) }}
-                                {% for error in form.tipo_obra_id.errors %}
+                                {{ form.tipo_obra.label(class="form-label") }}
+                                {{ form.tipo_obra(class="form-control" + (" is-invalid" if form.tipo_obra.errors else ""), placeholder="Ex: Residencial, Comercial, Industrial...") }}
+                                {% for error in form.tipo_obra.errors %}
                                     <div class="invalid-feedback">{{ error }}</div>
                                 {% endfor %}
                             </div>
@@ -114,4 +127,186 @@
         </div>
     </div>
 </div>
+
+<!-- Map Modal -->
+<div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mapModalLabel">Escolher Localização no Mapa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="map" style="height: 400px; width: 100%;"></div>
+                <div class="mt-3">
+                    <small class="text-muted">Clique no mapa para selecionar a localização do projeto</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="confirmMapLocation()">Confirmar Localização</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let map;
+let marker;
+let selectedLat = null;
+let selectedLng = null;
+
+// GPS Location capture
+function getGPSLocation() {
+    const statusElement = document.getElementById('locationStatus');
+    
+    if (!navigator.geolocation) {
+        statusElement.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i> GPS não suportado neste navegador';
+        return;
+    }
+    
+    statusElement.innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i> Capturando localização...';
+    
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            // Set coordinates in hidden fields
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+            
+            // Try to get address from coordinates
+            reverseGeocode(lat, lng);
+            
+            statusElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> Localização capturada via GPS';
+        },
+        function(error) {
+            let errorMsg = 'Erro ao capturar localização';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg = 'Permissão negada para acessar localização';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMsg = 'Localização não disponível';
+                    break;
+                case error.TIMEOUT:
+                    errorMsg = 'Tempo limite excedido';
+                    break;
+            }
+            statusElement.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i> ' + errorMsg;
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 600000
+        }
+    );
+}
+
+// Reverse geocoding to get address from coordinates
+function reverseGeocode(lat, lng) {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=pt-BR`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.display_name) {
+                const endereco = document.getElementById('endereco');
+                if (!endereco.value.trim()) {
+                    endereco.value = data.display_name;
+                }
+            }
+        })
+        .catch(error => {
+            console.log('Erro ao obter endereço:', error);
+        });
+}
+
+// Initialize map
+function initMap() {
+    // Default center (São Paulo)
+    const defaultLat = -23.5505;
+    const defaultLng = -46.6333;
+    
+    map = L.map('map').setView([defaultLat, defaultLng], 13);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // Click handler
+    map.on('click', function(e) {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+        
+        // Remove existing marker
+        if (marker) {
+            map.removeLayer(marker);
+        }
+        
+        // Add new marker
+        marker = L.marker([lat, lng]).addTo(map);
+        
+        selectedLat = lat;
+        selectedLng = lng;
+        
+        // Get address for this location
+        reverseGeocode(lat, lng);
+    });
+}
+
+// Open map modal
+function openMapModal() {
+    const mapModal = new bootstrap.Modal(document.getElementById('mapModal'));
+    mapModal.show();
+    
+    // Initialize map when modal is shown
+    document.getElementById('mapModal').addEventListener('shown.bs.modal', function () {
+        if (!map) {
+            initMap();
+        } else {
+            map.invalidateSize();
+        }
+        
+        // If we have existing coordinates, show them on map
+        const lat = document.getElementById('latitude').value;
+        const lng = document.getElementById('longitude').value;
+        
+        if (lat && lng) {
+            const latFloat = parseFloat(lat);
+            const lngFloat = parseFloat(lng);
+            
+            map.setView([latFloat, lngFloat], 15);
+            
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            marker = L.marker([latFloat, lngFloat]).addTo(map);
+            selectedLat = latFloat;
+            selectedLng = lngFloat;
+        }
+    });
+}
+
+// Confirm map location
+function confirmMapLocation() {
+    if (selectedLat && selectedLng) {
+        document.getElementById('latitude').value = selectedLat;
+        document.getElementById('longitude').value = selectedLng;
+        
+        const statusElement = document.getElementById('locationStatus');
+        statusElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> Localização selecionada no mapa';
+        
+        // Close modal
+        const mapModal = bootstrap.Modal.getInstance(document.getElementById('mapModal'));
+        mapModal.hide();
+    }
+}
+</script>
+
+<!-- Load Leaflet CSS and JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 {% endblock %}

@@ -2,6 +2,15 @@
 
 This is a comprehensive construction site visit tracking system built with Flask. The system provides advanced project management capabilities including user authentication, project creation, visit scheduling and communication, professional report generation with photo annotation tools, approval workflows, and expense tracking. Enhanced with PDF generation, photo editing capabilities, and admin approval processes for complete construction project oversight.
 
+## Recent Changes (2025-08-18)
+- Successfully migrated from Replit Agent to standard Replit environment
+- Enhanced project creation form with text input for project type instead of dropdown selection
+- Added GPS location capture functionality for project addresses
+- Implemented interactive map selection for project locations using Leaflet.js
+- Updated database schema to support GPS coordinates (latitude/longitude) for projects
+- Configured PostgreSQL database for production use
+- Application fully functional with admin user (admin/admin123)
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.

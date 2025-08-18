@@ -159,17 +159,18 @@ def project_new():
     form = ProjetoForm()
     
     if form.validate_on_submit():
-        projeto = Projeto(
-            numero=generate_project_number(),
-            nome=form.nome.data,
-            descricao=form.descricao.data,
-            endereco=form.endereco.data,
-            tipo_obra_id=form.tipo_obra_id.data,
-            responsavel_id=form.responsavel_id.data,
-            data_inicio=form.data_inicio.data,
-            data_previsao_fim=form.data_previsao_fim.data,
-            status=form.status.data
-        )
+        projeto = Projeto()
+        projeto.numero = generate_project_number()
+        projeto.nome = form.nome.data
+        projeto.descricao = form.descricao.data
+        projeto.endereco = form.endereco.data
+        projeto.latitude = float(form.latitude.data) if form.latitude.data else None
+        projeto.longitude = float(form.longitude.data) if form.longitude.data else None
+        projeto.tipo_obra = form.tipo_obra.data
+        projeto.responsavel_id = form.responsavel_id.data
+        projeto.data_inicio = form.data_inicio.data
+        projeto.data_previsao_fim = form.data_previsao_fim.data
+        projeto.status = form.status.data
         
         db.session.add(projeto)
         db.session.commit()
@@ -202,7 +203,9 @@ def project_edit(project_id):
         project.nome = form.nome.data
         project.descricao = form.descricao.data
         project.endereco = form.endereco.data
-        project.tipo_obra_id = form.tipo_obra_id.data
+        project.latitude = float(form.latitude.data) if form.latitude.data else None
+        project.longitude = float(form.longitude.data) if form.longitude.data else None
+        project.tipo_obra = form.tipo_obra.data
         project.responsavel_id = form.responsavel_id.data
         project.data_inicio = form.data_inicio.data
         project.data_previsao_fim = form.data_previsao_fim.data

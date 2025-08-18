@@ -26,9 +26,6 @@ class TipoObra(db.Model):
     nome = db.Column(db.String(100), nullable=False)
     descricao = db.Column(db.Text)
     ativo = db.Column(db.Boolean, default=True)
-    
-    # Relationships
-    projetos = db.relationship('Projeto', backref='tipo_obra', lazy=True)
 
 class Projeto(db.Model):
     __tablename__ = 'projetos'
@@ -38,7 +35,9 @@ class Projeto(db.Model):
     nome = db.Column(db.String(200), nullable=False)
     descricao = db.Column(db.Text)
     endereco = db.Column(db.Text)
-    tipo_obra_id = db.Column(db.Integer, db.ForeignKey('tipos_obra.id'), nullable=False)
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    tipo_obra = db.Column(db.String(100), nullable=False)
     responsavel_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     data_inicio = db.Column(db.Date)
     data_previsao_fim = db.Column(db.Date)
