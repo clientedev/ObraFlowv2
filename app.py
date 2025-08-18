@@ -24,7 +24,15 @@ def create_app():
     
     # Configuration
     app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+    
+    # Session configuration
+    app.config['SESSION_COOKIE_SECURE'] = False  # Allow HTTP for development
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    
+    # Apply ProxyFix only in production
+    if os.environ.get('DEPLOYMENT_ENV') == 'production':
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     
     # Database configuration
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///construction_tracker.db")
@@ -50,7 +58,11 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
+    
+    # Configure CSRF protection with proper settings
     csrf.init_app(app)
+    app.config['WTF_CSRF_TIME_LIMIT'] = None  # No time limit for CSRF tokens
+    app.config['WTF_CSRF_CHECK_DEFAULT'] = True
     
     # Login manager configuration
     login_manager.login_view = 'login'
