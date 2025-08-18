@@ -200,7 +200,34 @@ def create_report():
             relatorio.titulo = titulo
             relatorio.projeto_id = projeto_id
             relatorio.autor_id = current_user.id
-            relatorio.conteudo = conteudo if conteudo else ""
+            # Process checklist data if provided
+            checklist_data = request.form.get('checklist_data')
+            checklist_text = ""
+            if checklist_data:
+                try:
+                    import json
+                    checklist_items = json.loads(checklist_data)
+                    checklist_text = "CHECKLIST DA OBRA:\n\n"
+                    for item_data in checklist_items:
+                        status = "✓" if item_data.get('completed') else "○"
+                        checklist_text += f"{status} {item_data.get('item', '')}\n"
+                        if item_data.get('observations'):
+                            checklist_text += f"   Observações: {item_data.get('observations')}\n"
+                        checklist_text += "\n"
+                except Exception as e:
+                    print(f"Error parsing checklist data: {e}")
+            
+            # Combine content with checklist
+            final_content = ""
+            if conteudo:
+                final_content += conteudo
+            if checklist_text:
+                if final_content:
+                    final_content += "\n\n" + checklist_text
+                else:
+                    final_content = checklist_text
+            
+            relatorio.conteudo = final_content
             relatorio.data_relatorio = data_relatorio
             relatorio.status = 'Finalizado'
             relatorio.created_at = datetime.utcnow()
@@ -235,36 +262,48 @@ def create_report():
                 except Exception as e:
                     pass  # Ignore session storage errors
             
-            # Process traditional file uploads (photo_0, photo_1, etc.)
-            for i in range(10):  # Support up to 10 photos
-                photo_key = f'photo_{i}'
-                if photo_key in request.files:
-                    file = request.files[photo_key]
-                    if file and file.filename:
-                        try:
-                            # Secure filename
-                            filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
-                            filepath = os.path.join(upload_folder, filename)
-                            file.save(filepath)
-                            
-                            # Get photo metadata from form
-                            photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
-                            photo_category = request.form.get(f'photo_category_{i}', 'Geral')
-                            
-                            # Create photo record
-                            foto = FotoRelatorio()
-                            foto.relatorio_id = relatorio.id
-                            foto.filename = filename
-                            foto.legenda = photo_caption or f'Foto {photo_count + 1}'
-                            foto.tipo_servico = photo_category or 'Geral'
-                            foto.ordem = photo_count + 1
-                            
-                            db.session.add(foto)
-                            photo_count += 1
-                            print(f"Foto {photo_count} salva: {filename}")
-                        except Exception as e:
-                            print(f"Erro ao processar foto {i}: {e}")
-                            continue
+            # Process photos from JavaScript form data
+            for i in range(5):  # Support up to 5 photos
+                # Check for edited photos
+                edited_photo_key = f'edited_photo_{i}'
+                if edited_photo_key in request.form:
+                    try:
+                        # Decode base64 image
+                        import base64
+                        from io import BytesIO
+                        from PIL import Image
+                        
+                        edited_data = request.form[edited_photo_key]
+                        # Remove data:image/jpeg;base64, prefix
+                        if ',' in edited_data:
+                            edited_data = edited_data.split(',')[1]
+                        
+                        image_data = base64.b64decode(edited_data)
+                        image = Image.open(BytesIO(image_data))
+                        
+                        # Save edited image
+                        filename = f"{uuid.uuid4().hex}_edited.jpg"
+                        filepath = os.path.join(upload_folder, filename)
+                        image.save(filepath, 'JPEG', quality=85)
+                        
+                        # Get metadata
+                        photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
+                        photo_category = request.form.get(f'photo_category_{i}', 'Geral')
+                        
+                        # Create photo record
+                        foto = FotoRelatorio()
+                        foto.relatorio_id = relatorio.id
+                        foto.filename = filename
+                        foto.legenda = photo_caption or f'Foto {photo_count + 1}'
+                        foto.tipo_servico = photo_category or 'Geral'
+                        foto.ordem = photo_count + 1
+                        
+                        db.session.add(foto)
+                        photo_count += 1
+                        print(f"Foto editada {photo_count} salva: {filename}")
+                    except Exception as e:
+                        print(f"Erro ao processar foto editada {i}: {e}")
+                        continue
             
             db.session.commit()
             
@@ -279,7 +318,7 @@ def create_report():
             flash(f'Erro ao criar relatório: {str(e)}', 'error')
     
     projetos = Projeto.query.filter_by(status='Ativo').all()
-    return render_template('reports/form_simple.html', projetos=projetos, today=date.today().isoformat())
+    return render_template('reports/form_complete.html', projetos=projetos, today=date.today().isoformat())
 
 @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])
 @login_required

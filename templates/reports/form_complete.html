@@ -1,0 +1,624 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório de Obra{% endblock %}
+
+{% block extra_css %}
+<style>
+.checklist-item {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #ffc107;
+}
+
+.checklist-item.completed {
+    border-left-color: #28a745;
+    background-color: #d4edda;
+}
+
+.photo-preview {
+    max-width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.photo-category {
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.photo-category.selected {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+}
+
+.photo-category:hover {
+    border-color: #007bff;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-file-alt"></i> Relatório de Obra</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" id="reportForm">
+                        <!-- Informações Básicas -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label" for="titulo">Título do Relatório *</label>
+                                    <input type="text" name="titulo" id="titulo" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label" for="projeto_id">Projeto *</label>
+                                    <select name="projeto_id" id="projeto_id" class="form-control" required>
+                                        <option value="">Selecione um projeto</option>
+                                        {% for projeto in projetos %}
+                                        <option value="{{ projeto.id }}">{{ projeto.numero }} - {{ projeto.nome }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label" for="aprovador_nome">Nome do Aprovador</label>
+                                    <input type="text" name="aprovador_nome" id="aprovador_nome" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label" for="data_relatorio">Data do Relatório</label>
+                                    <input type="date" name="data_relatorio" id="data_relatorio" class="form-control" value="{{ today }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Checklist da Obra -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-tasks"></i> Checklist da Obra</h5>
+                            <div id="checklistItems">
+                                <!-- Itens predefinidos -->
+                                <div class="checklist-item mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="estrutura">
+                                        <label class="form-check-label fw-bold" for="estrutura">
+                                            Estrutura / Fundação
+                                        </label>
+                                    </div>
+                                    <textarea class="form-control mt-2" name="obs_estrutura" placeholder="Observações sobre estrutura..."></textarea>
+                                </div>
+
+                                <div class="checklist-item mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="alvenaria">
+                                        <label class="form-check-label fw-bold" for="alvenaria">
+                                            Alvenaria / Vedação
+                                        </label>
+                                    </div>
+                                    <textarea class="form-control mt-2" name="obs_alvenaria" placeholder="Observações sobre alvenaria..."></textarea>
+                                </div>
+
+                                <div class="checklist-item mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="instalacoes">
+                                        <label class="form-check-label fw-bold" for="instalacoes">
+                                            Instalações (Elétrica/Hidráulica)
+                                        </label>
+                                    </div>
+                                    <textarea class="form-control mt-2" name="obs_instalacoes" placeholder="Observações sobre instalações..."></textarea>
+                                </div>
+
+                                <div class="checklist-item mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="acabamento">
+                                        <label class="form-check-label fw-bold" for="acabamento">
+                                            Acabamentos
+                                        </label>
+                                    </div>
+                                    <textarea class="form-control mt-2" name="obs_acabamento" placeholder="Observações sobre acabamentos..."></textarea>
+                                </div>
+
+                                <div class="checklist-item mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="limpeza">
+                                        <label class="form-check-label fw-bold" for="limpeza">
+                                            Limpeza / Organização
+                                        </label>
+                                    </div>
+                                    <textarea class="form-control mt-2" name="obs_limpeza" placeholder="Observações sobre limpeza..."></textarea>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-3">
+                                <button type="button" class="btn btn-outline-primary" onclick="addCustomChecklistItem()">
+                                    <i class="fas fa-plus"></i> Adicionar Item Personalizado
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Observações Gerais -->
+                        <div class="mb-4">
+                            <label class="form-label" for="conteudo">Observações Gerais</label>
+                            <textarea class="form-control" name="conteudo" id="conteudo" rows="4" 
+                                    placeholder="Descreva detalhes gerais da visita, pontos importantes, etc."></textarea>
+                        </div>
+
+                        <!-- Sistema de Fotos -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-camera"></i> Fotos (Até 5 fotos)</h5>
+                            
+                            <!-- Seleção de Categoria -->
+                            <div class="mb-3">
+                                <label class="form-label">Selecione a categoria antes de adicionar a foto:</label>
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <div class="photo-category text-center" data-category="Geral">
+                                            <i class="fas fa-camera fa-2x mb-2"></i>
+                                            <div>Geral</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="photo-category text-center" data-category="Estrutura">
+                                            <i class="fas fa-building fa-2x mb-2"></i>
+                                            <div>Estrutura</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="photo-category text-center" data-category="Acabamento">
+                                            <i class="fas fa-paint-brush fa-2x mb-2"></i>
+                                            <div>Acabamento</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="photo-category text-center" data-category="Instalações">
+                                            <i class="fas fa-tools fa-2x mb-2"></i>
+                                            <div>Instalações</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="photo-category text-center" data-category="Problema">
+                                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                                            <div>Problema</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Upload de Fotos -->
+                            <div class="mb-3">
+                                <input type="file" id="photoInput" class="form-control" multiple accept="image/*" disabled style="opacity: 0.5;">
+                                <small class="text-muted">Selecione uma categoria antes de escolher as fotos. Máximo 5 fotos.</small>
+                            </div>
+
+                            <!-- Preview das Fotos -->
+                            <div id="photoPreview" class="row"></div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Salvar Relatório
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal do Editor de Fotos -->
+<div class="modal fade" id="photoEditorModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editor de Foto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-9">
+                        <canvas id="photoCanvas" style="border: 1px solid #ddd; max-width: 100%;"></canvas>
+                    </div>
+                    <div class="col-md-3">
+                        <h6>Ferramentas</h6>
+                        <div class="btn-group-vertical w-100 mb-3">
+                            <button type="button" class="btn btn-outline-primary tool-btn" data-tool="pen">
+                                <i class="fas fa-pen"></i> Caneta
+                            </button>
+                            <button type="button" class="btn btn-outline-primary tool-btn" data-tool="arrow">
+                                <i class="fas fa-arrow-right"></i> Seta
+                            </button>
+                            <button type="button" class="btn btn-outline-primary tool-btn" data-tool="rectangle">
+                                <i class="fas fa-square"></i> Retângulo
+                            </button>
+                            <button type="button" class="btn btn-outline-primary tool-btn" data-tool="circle">
+                                <i class="fas fa-circle"></i> Círculo
+                            </button>
+                            <button type="button" class="btn btn-outline-primary tool-btn" data-tool="text">
+                                <i class="fas fa-font"></i> Texto
+                            </button>
+                        </div>
+                        
+                        <h6>Cores</h6>
+                        <div class="mb-3">
+                            <input type="color" id="colorPicker" value="#ff0000" class="form-control">
+                        </div>
+                        
+                        <h6>Espessura</h6>
+                        <div class="mb-3">
+                            <input type="range" id="lineWidth" min="1" max="10" value="3" class="form-range">
+                        </div>
+                        
+                        <button type="button" class="btn btn-warning w-100 mb-2" onclick="clearCanvas()">
+                            <i class="fas fa-eraser"></i> Limpar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveEditedPhoto()">Salvar Edição</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variáveis globais
+let selectedCategory = '';
+let selectedPhotos = [];
+let currentEditingPhoto = null;
+let canvas, ctx;
+let isDrawing = false;
+let currentTool = 'pen';
+let startX, startY;
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    canvas = document.getElementById('photoCanvas');
+    ctx = canvas.getContext('2d');
+    
+    // Event listeners para categorias
+    document.querySelectorAll('.photo-category').forEach(category => {
+        category.addEventListener('click', function() {
+            document.querySelectorAll('.photo-category').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedCategory = this.dataset.category;
+            updatePhotoInput();
+        });
+    });
+    
+    // Event listener para upload de fotos
+    document.getElementById('photoInput').addEventListener('change', handlePhotoUpload);
+    
+    // Event listeners para ferramentas
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentTool = this.dataset.tool;
+        });
+    });
+    
+    // Canvas events
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+});
+
+function handlePhotoUpload(event) {
+    const files = event.target.files;
+    if (files.length + selectedPhotos.length > 5) {
+        alert('Máximo de 5 fotos permitido.');
+        return;
+    }
+    
+    for (let file of files) {
+        if (selectedPhotos.length >= 5) break;
+        addPhotoPreview(file, selectedCategory);
+    }
+    
+    event.target.value = ''; // Reset input
+}
+
+function addPhotoPreview(file, category) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        const src = e.target.result;
+        
+        const photoDiv = document.createElement('div');
+        photoDiv.className = 'col-md-4 mb-3';
+        photoDiv.id = photoId;
+        photoDiv.innerHTML = `
+            <div class="card">
+                <img src="${src}" class="card-img-top photo-preview" alt="Preview" style="cursor: pointer;" onclick="editPhoto('${photoId}', '${src}', '${category}')">
+                <div class="card-body p-2">
+                    <input type="text" class="form-control form-control-sm mb-2" 
+                           name="photo_caption_${photoId}" placeholder="Legenda da foto...">
+                    <small class="text-muted d-block">Categoria: ${category}</small>
+                    <div class="btn-group w-100 mt-2">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="editPhoto('${photoId}', '${src}', '${category}')">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removePhoto('${photoId}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('photoPreview').appendChild(photoDiv);
+        
+        selectedPhotos.push({
+            id: photoId,
+            file: file,
+            category: category,
+            element: photoDiv,
+            originalSrc: src
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
+function removePhoto(photoId) {
+    const photo = selectedPhotos.find(p => p.id === photoId);
+    if (photo) {
+        photo.element.remove();
+        selectedPhotos = selectedPhotos.filter(p => p.id !== photoId);
+    }
+}
+
+function updatePhotoInput() {
+    const input = document.getElementById('photoInput');
+    if (selectedCategory) {
+        input.disabled = false;
+        input.style.opacity = '1';
+    } else {
+        input.disabled = true;
+        input.style.opacity = '0.5';
+    }
+}
+
+// Checklist functionality
+function addCustomChecklistItem() {
+    const checklistItems = document.getElementById('checklistItems');
+    const itemId = 'custom_' + Date.now();
+    
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'checklist-item mb-3';
+    itemDiv.innerHTML = `
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="${itemId}">
+            <input type="text" class="form-control d-inline-block fw-bold" style="width: 70%;" 
+                   name="custom_item_${itemId}" placeholder="Digite o item do checklist..." required>
+            <button type="button" class="btn btn-sm btn-outline-danger float-end" 
+                    onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <textarea class="form-control mt-2" name="custom_obs_${itemId}" placeholder="Observações..." rows="2"></textarea>
+    `;
+    
+    checklistItems.appendChild(itemDiv);
+}
+
+// Marcar checklist como concluído
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('form-check-input') && e.target.type === 'checkbox') {
+        const item = e.target.closest('.checklist-item');
+        if (e.target.checked) {
+            item.classList.add('completed');
+        } else {
+            item.classList.remove('completed');
+        }
+    }
+});
+
+// Editor de fotos
+function editPhoto(photoId, imageSrc, category) {
+    currentEditingPhoto = selectedPhotos.find(p => p.id === photoId);
+    if (!currentEditingPhoto) return;
+    
+    const img = new Image();
+    img.onload = function() {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+    };
+    img.src = imageSrc;
+    
+    const modal = new bootstrap.Modal(document.getElementById('photoEditorModal'));
+    modal.show();
+}
+
+// Canvas drawing functions
+function startDrawing(e) {
+    isDrawing = true;
+    const rect = canvas.getBoundingClientRect();
+    startX = e.clientX - rect.left;
+    startY = e.clientY - rect.top;
+    
+    if (currentTool === 'text') {
+        const text = prompt('Digite o texto:');
+        if (text) {
+            ctx.fillStyle = document.getElementById('colorPicker').value;
+            ctx.font = '20px Arial';
+            ctx.fillText(text, startX, startY);
+        }
+        isDrawing = false;
+    }
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+    
+    ctx.strokeStyle = document.getElementById('colorPicker').value;
+    ctx.lineWidth = document.getElementById('lineWidth').value;
+    ctx.lineCap = 'round';
+    
+    if (currentTool === 'pen') {
+        ctx.lineTo(currentX, currentY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(currentX, currentY);
+    }
+}
+
+function stopDrawing(e) {
+    if (!isDrawing) return;
+    isDrawing = false;
+    
+    const rect = canvas.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+    
+    ctx.strokeStyle = document.getElementById('colorPicker').value;
+    ctx.lineWidth = document.getElementById('lineWidth').value;
+    
+    if (currentTool === 'arrow') {
+        drawArrow(startX, startY, currentX, currentY);
+    } else if (currentTool === 'rectangle') {
+        ctx.strokeRect(startX, startY, currentX - startX, currentY - startY);
+    } else if (currentTool === 'circle') {
+        const radius = Math.sqrt(Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2));
+        ctx.beginPath();
+        ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+    
+    ctx.beginPath();
+}
+
+function drawArrow(fromX, fromY, toX, toY) {
+    const headlen = 15;
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const angle = Math.atan2(dy, dx);
+    
+    ctx.beginPath();
+    ctx.moveTo(fromX, fromY);
+    ctx.lineTo(toX, toY);
+    ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+    ctx.moveTo(toX, toY);
+    ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+    ctx.stroke();
+}
+
+function clearCanvas() {
+    if (currentEditingPhoto) {
+        const img = new Image();
+        img.onload = function() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        };
+        img.src = currentEditingPhoto.originalSrc;
+    }
+}
+
+function saveEditedPhoto() {
+    if (currentEditingPhoto) {
+        const editedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const img = currentEditingPhoto.element.querySelector('img');
+        img.src = editedDataUrl;
+        
+        // Update the photo object
+        currentEditingPhoto.editedSrc = editedDataUrl;
+    }
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('photoEditorModal'));
+    modal.hide();
+}
+
+// Submissão do formulário
+document.getElementById('reportForm').addEventListener('submit', function(e) {
+    // Coletar dados do checklist
+    const checklistData = [];
+    document.querySelectorAll('.checklist-item').forEach(item => {
+        const checkbox = item.querySelector('.form-check-input[type="checkbox"]');
+        const label = item.querySelector('.form-check-label');
+        const customInput = item.querySelector('input[type="text"]');
+        const textarea = item.querySelector('textarea');
+        
+        if (checkbox) {
+            const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
+            if (itemText) {
+                checklistData.push({
+                    item: itemText,
+                    completed: checkbox.checked,
+                    observations: textarea ? textarea.value : ''
+                });
+            }
+        }
+    });
+    
+    // Adicionar dados do checklist ao formulário
+    const checklistInput = document.createElement('input');
+    checklistInput.type = 'hidden';
+    checklistInput.name = 'checklist_data';
+    checklistInput.value = JSON.stringify(checklistData);
+    this.appendChild(checklistInput);
+    
+    // Adicionar fotos editadas como campos hidden
+    selectedPhotos.forEach((photo, index) => {
+        if (photo.editedSrc) {
+            const photoInput = document.createElement('input');
+            photoInput.type = 'hidden';
+            photoInput.name = `edited_photo_${index}`;
+            photoInput.value = photo.editedSrc;
+            this.appendChild(photoInput);
+        }
+        
+        const photoFileInput = document.createElement('input');
+        photoFileInput.type = 'hidden';
+        photoFileInput.name = `photo_file_${index}`;
+        photoFileInput.value = photo.file.name;
+        this.appendChild(photoFileInput);
+        
+        const photoCategoryInput = document.createElement('input');
+        photoCategoryInput.type = 'hidden';
+        photoCategoryInput.name = `photo_category_${index}`;
+        photoCategoryInput.value = photo.category;
+        this.appendChild(photoCategoryInput);
+        
+        const caption = document.querySelector(`input[name="photo_caption_${photo.id}"]`);
+        if (caption) {
+            const photoCaptionInput = document.createElement('input');
+            photoCaptionInput.type = 'hidden';
+            photoCaptionInput.name = `photo_caption_${index}`;
+            photoCaptionInput.value = caption.value;
+            this.appendChild(photoCaptionInput);
+        }
+    });
+    
+    // Submeter formulário tradicional
+    return true;
+});
+</script>
+{% endblock %}
