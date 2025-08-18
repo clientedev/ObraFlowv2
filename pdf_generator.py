@@ -287,8 +287,6 @@ class ReportPDFGenerator:
         doc.build(story)
         buffer.seek(0)
         return buffer.getvalue()
-        
-        return output_path
     
     def _add_template_header(self, story, relatorio):
         """Add header following exact template format"""

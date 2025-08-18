@@ -202,7 +202,7 @@ def create_report():
             relatorio.autor_id = current_user.id
             relatorio.conteudo = conteudo if conteudo else ""
             relatorio.data_relatorio = data_relatorio
-            relatorio.status = 'Rascunho'
+            relatorio.status = 'Finalizado'
             relatorio.created_at = datetime.utcnow()
             
             db.session.add(relatorio)
@@ -265,11 +265,14 @@ def create_report():
             
             db.session.commit()
             
-            flash(f'Relatório {relatorio.numero} criado com sucesso!', 'success')
-            return redirect(url_for('reports'))
+            flash(f'Relatório {relatorio.numero} criado com sucesso! {photo_count} fotos adicionadas.', 'success')
+            return redirect(url_for('edit_report', id=relatorio.id))
             
         except Exception as e:
             db.session.rollback()
+            print(f"Erro detalhado ao criar relatório: {str(e)}")
+            import traceback
+            traceback.print_exc()
             flash(f'Erro ao criar relatório: {str(e)}', 'error')
     
     projetos = Projeto.query.filter_by(status='Ativo').all()
@@ -449,13 +452,14 @@ def generate_pdf_report(id):
         
         # Create response
         from flask import Response
-        filename = f"relatorio_{relatorio.numero}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
         
         response = Response(
             pdf_data,
             mimetype='application/pdf',
             headers={
-                'Content-Disposition': f'attachment; filename="{filename}"'
+                'Content-Disposition': f'inline; filename="{filename}"',
+                'Content-Type': 'application/pdf'
             }
         )
         
