@@ -573,7 +573,7 @@ def visit_new():
         visita = Visita(
             numero=generate_visit_number(),
             projeto_id=form.projeto_id.data,
-            usuario_id=current_user.id,
+            responsavel_id=current_user.id,
             data_agendada=form.data_agendada.data,
             objetivo=form.objetivo.data
         )
