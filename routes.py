@@ -175,6 +175,8 @@ def create_report():
             relatorio = Relatorio(
                 numero=generate_report_number(),
                 titulo=form.titulo.data,
+                projeto_id=form.projeto_id.data,
+                visita_id=form.visita_id.data if form.visita_id.data else None,
                 conteudo=form.conteudo.data,
                 aprovador_nome=form.aprovador_nome.data,
                 data_relatorio=form.data_relatorio.data,

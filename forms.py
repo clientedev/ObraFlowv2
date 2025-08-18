@@ -1,3 +1,4 @@
+import datetime
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, TextAreaField, PasswordField, BooleanField, SelectField, DateField, FloatField, IntegerField, DateTimeField, HiddenField
@@ -105,9 +106,17 @@ class ChecklistItemForm(FlaskForm):
 
 class RelatorioForm(FlaskForm):
     titulo = StringField('Título do Relatório', validators=[DataRequired(), Length(max=300)])
+    projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
+    visita_id = SelectField('Visita (Opcional)', coerce=int, validators=[Optional()])
     conteudo = TextAreaField('Conteúdo', widget=TextArea())
     aprovador_nome = StringField('Nome do Aprovador', validators=[Length(max=200)])
     data_relatorio = DateField('Data do Relatório', validators=[DataRequired()])
+    
+    def __init__(self, *args, **kwargs):
+        super(RelatorioForm, self).__init__(*args, **kwargs)
+        from models import Projeto, Visita
+        self.projeto_id.choices = [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
+        self.visita_id.choices = [('', 'Selecione uma visita (opcional)')] + [(v.id, f"Visita {v.id} - {v.data_visita.strftime('%d/%m/%Y')}") for v in Visita.query.filter_by(status='Realizada').all()]
 
 class FotoRelatorioForm(FlaskForm):
     foto = FileField('Foto', validators=[
