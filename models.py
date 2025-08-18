@@ -141,3 +141,36 @@ class FotoRelatorio(db.Model):
     ordem = db.Column(db.Integer, default=1)
     coordenadas_anotacao = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class EnvioRelatorio(db.Model):
+    __tablename__ = 'envios_relatorios'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=False)
+    email_destinatario = db.Column(db.String(120), nullable=False)
+    nome_destinatario = db.Column(db.String(200))
+    data_envio = db.Column(db.DateTime, default=datetime.utcnow)
+    status_entrega = db.Column(db.String(50), default='Enviado')
+    tentativas = db.Column(db.Integer, default=1)
+    erro_envio = db.Column(db.Text)
+
+class Reembolso(db.Model):
+    __tablename__ = 'reembolsos'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'))
+    periodo_inicio = db.Column(db.Date, nullable=False)
+    periodo_fim = db.Column(db.Date, nullable=False)
+    quilometragem = db.Column(db.Float, default=0)
+    valor_km = db.Column(db.Float, default=0)
+    alimentacao = db.Column(db.Float, default=0)
+    hospedagem = db.Column(db.Float, default=0)
+    outros_gastos = db.Column(db.Float, default=0)
+    descricao_outros = db.Column(db.Text)
+    observacoes = db.Column(db.Text)
+    total = db.Column(db.Float, default=0)
+    status = db.Column(db.String(50), default='Pendente')
+    aprovado_por = db.Column(db.Integer, db.ForeignKey('users.id'))
+    data_aprovacao = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

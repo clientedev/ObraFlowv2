@@ -89,11 +89,6 @@ class ReportForm(FlaskForm):
         super(ReportForm, self).__init__(*args, **kwargs)
         from models import Projeto
         self.projeto_id.choices = [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
-    
-    def __init__(self, *args, **kwargs):
-        super(VisitaForm, self).__init__(*args, **kwargs)
-        from models import Projeto
-        self.projeto_id.choices = [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
 
 class VisitaRealizadaForm(FlaskForm):
     atividades_realizadas = TextAreaField('Atividades Realizadas', validators=[DataRequired()])
