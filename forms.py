@@ -104,10 +104,18 @@ class ChecklistItemForm(FlaskForm):
     concluido = BooleanField('Concluído')
     obrigatorio = BooleanField('Obrigatório')
 
+def coerce_int_or_none(value):
+    if value == '' or value is None:
+        return None
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return None
+
 class RelatorioForm(FlaskForm):
     titulo = StringField('Título do Relatório', validators=[DataRequired(), Length(max=300)])
     projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
-    visita_id = SelectField('Visita (Opcional)', coerce=int, validators=[Optional()])
+    visita_id = SelectField('Visita (Opcional)', coerce=coerce_int_or_none, validators=[Optional()])
     conteudo = TextAreaField('Conteúdo', widget=TextArea())
     aprovador_nome = StringField('Nome do Aprovador', validators=[Length(max=200)])
     data_relatorio = DateField('Data do Relatório', validators=[DataRequired()])
