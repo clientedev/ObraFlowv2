@@ -286,11 +286,12 @@ def photo_annotation():
     
     return render_template('reports/photo_annotation.html')
 
-@app.route('/photo-editor')
+@app.route('/photo-editor', methods=['GET', 'POST'])
 @login_required
 def photo_editor():
     """Página do editor de fotos"""
-    return render_template('reports/photo_editor.html')
+    photo_id = request.args.get('photoId') or request.form.get('photoId')
+    return render_template('reports/photo_editor.html', photo_id=photo_id)
 
 @app.route('/api/save-annotated-photo', methods=['POST'])
 @login_required  

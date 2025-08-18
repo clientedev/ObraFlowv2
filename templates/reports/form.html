@@ -405,18 +405,36 @@ function editPhoto(photoId, imageSrc, category) {
     const captionElement = document.querySelector(`input[name="photo_caption_${photoId}"]`);
     const caption = captionElement ? captionElement.value : '';
     
-    // Abrir editor de fotos em nova janela/aba
-    const editorUrl = `/photo-editor?image=${encodeURIComponent(imageSrc)}&category=${encodeURIComponent(category)}&caption=${encodeURIComponent(caption)}&photoId=${photoId}`;
+    // Converter arquivo para base64 e armazenar no sessionStorage
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const imageData = e.target.result;
+        
+        // Armazenar dados no sessionStorage para evitar URL longa
+        const photoData = {
+            photoId: photoId,
+            imageData: imageData,
+            category: category,
+            caption: caption,
+            timestamp: Date.now()
+        };
+        
+        sessionStorage.setItem('photoEditorData', JSON.stringify(photoData));
+        
+        // Abrir editor com apenas o ID
+        const editorUrl = `/photo-editor?photoId=${photoId}`;
+        const editorWindow = window.open(editorUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+        
+        // Listener para receber dados da foto editada
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'photo-edited' && event.data.photoId === photoId) {
+                updatePhotoFromEditor(photoId, event.data);
+                sessionStorage.removeItem('photoEditorData');
+            }
+        });
+    };
     
-    const editorWindow = window.open(editorUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-    
-    // Listener para receber dados da foto editada
-    window.addEventListener('message', function(event) {
-        if (event.data.type === 'photo-edited' && event.data.photoId === photoId) {
-            updatePhotoFromEditor(photoId, event.data);
-            editorWindow.close();
-        }
-    });
+    reader.readAsDataURL(photo.file);
 }
 
 function updatePhotoFromEditor(photoId, data) {

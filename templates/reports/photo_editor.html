@@ -70,7 +70,7 @@
                     <button onclick="saveAnnotatedPhoto()" class="btn btn-success me-2">
                         <i class="fas fa-save"></i> Salvar Anotações
                     </button>
-                    <button onclick="window.history.back()" class="btn btn-secondary">
+                    <button onclick="window.close()" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Cancelar
                     </button>
                 </div>
@@ -220,9 +220,36 @@ let currentAction = [];
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     initializeCanvas();
-    loadImageFromUrl();
+    loadImageFromUrlOrStorage();
     setupEventListeners();
 });
+
+function loadImageFromUrlOrStorage() {
+    // Primeiro tentar obter do sessionStorage
+    const storedData = sessionStorage.getItem('photoEditorData');
+    if (storedData) {
+        try {
+            const photoData = JSON.parse(storedData);
+            if (photoData.imageData) {
+                loadImageToCanvas(photoData.imageData);
+                
+                // Preencher campos se disponíveis
+                if (photoData.caption) {
+                    document.getElementById('photoCaption').value = photoData.caption;
+                }
+                if (photoData.category) {
+                    document.getElementById('photoCategory').value = photoData.category;
+                }
+                return;
+            }
+        } catch (e) {
+            console.warn('Erro ao carregar dados do sessionStorage:', e);
+        }
+    }
+    
+    // Fallback para URL params (método antigo)
+    loadImageFromUrl();
+}
 
 function initializeCanvas() {
     canvas = document.getElementById('photoCanvas');
