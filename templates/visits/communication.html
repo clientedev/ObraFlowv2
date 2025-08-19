@@ -23,7 +23,7 @@
                     <div class="alert alert-info mb-4">
                         <h6 class="alert-heading">Informações da Visita</h6>
                         <p class="mb-1"><strong>Objetivo:</strong> {{ visita.objetivo or 'N/A' }}</p>
-                        <p class="mb-1"><strong>Responsável:</strong> {{ visita.usuario.nome_completo if visita.usuario else 'N/A' }}</p>
+                        <p class="mb-1"><strong>Responsável:</strong> {{ visita.responsavel.nome_completo if visita.responsavel else 'N/A' }}</p>
                         <p class="mb-0"><strong>Status:</strong> 
                             <span class="badge bg-{{ 'success' if visita.status == 'Realizada' else 'warning' if visita.status == 'Agendada' else 'danger' }}">
                                 {{ visita.status }}
@@ -35,7 +35,7 @@
                     <div class="row mb-4">
                         <div class="col-md-8">
                             <form method="POST">
-                                {{ csrf_token() }}
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <div class="mb-3">
                                     <label for="tipo" class="form-label">Tipo de Comunicação:</label>
                                     <select class="form-select" id="tipo" name="tipo" required>
