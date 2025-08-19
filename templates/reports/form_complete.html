@@ -78,8 +78,13 @@
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label class="form-label" for="aprovador_nome">Nome do Aprovador</label>
-                                    <input type="text" name="aprovador_nome" id="aprovador_nome" class="form-control">
+                                    <label class="form-label" for="aprovador_id">Aprovador do Relatório</label>
+                                    <select name="aprovador_id" id="aprovador_id" class="form-control">
+                                        <option value="">Selecione o aprovador</option>
+                                        {% for admin in admin_users %}
+                                        <option value="{{ admin.id }}">{{ admin.nome_completo }}</option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-6">

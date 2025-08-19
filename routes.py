@@ -217,12 +217,14 @@ def create_report():
                 except Exception as e:
                     print(f"Error parsing checklist data: {e}")
             
-            # Process location data
+            # Process location data with address conversion
             latitude = request.form.get('latitude')
             longitude = request.form.get('longitude')
             location_text = ""
             if latitude and longitude:
-                location_text = f"\n\nLOCALIZAÇÃO DO RELATÓRIO:\nLatitude: {latitude}\nLongitude: {longitude}\nCoordenadas GPS capturadas durante a visita."
+                from utils import format_coordinates_display
+                location_display = format_coordinates_display(latitude, longitude)
+                location_text = f"\n\nLOCALIZAÇÃO DO RELATÓRIO:\n{location_display}\nCoordenadas GPS capturadas durante a visita."
             
             # Combine content with checklist and location
             final_content = ""
@@ -240,6 +242,18 @@ def create_report():
             relatorio.data_relatorio = data_relatorio
             relatorio.status = 'Aguardando Aprovação'
             relatorio.created_at = datetime.utcnow()
+            
+            # Set approver if provided
+            aprovador_id = request.form.get('aprovador_id')
+            if aprovador_id:
+                try:
+                    relatorio.aprovador_id = int(aprovador_id)
+                    # Get approver name for compatibility
+                    aprovador = User.query.get(int(aprovador_id))
+                    if aprovador:
+                        relatorio.aprovador_nome = aprovador.nome_completo
+                except (ValueError, TypeError):
+                    pass
             
             db.session.add(relatorio)
             db.session.flush()  # Get the ID
@@ -327,7 +341,9 @@ def create_report():
             flash(f'Erro ao criar relatório: {str(e)}', 'error')
     
     projetos = Projeto.query.filter_by(status='Ativo').all()
-    return render_template('reports/form_complete.html', projetos=projetos, today=date.today().isoformat())
+    # Get admin users for approver selection
+    admin_users = User.query.filter_by(is_master=True).all()
+    return render_template('reports/form_complete.html', projetos=projetos, admin_users=admin_users, today=date.today().isoformat())
 
 @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])
 @login_required

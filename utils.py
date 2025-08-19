@@ -1,182 +1,212 @@
-import os
-import uuid
-from datetime import datetime, timedelta
-from flask import current_app, render_template
-from flask_mail import Message
-from werkzeug.utils import secure_filename as werkzeug_secure_filename
-from app import mail, db
-from models import Projeto, Relatorio
+import requests
+import json
 
-def secure_filename(filename):
-    """Secure filename wrapper"""
-    return werkzeug_secure_filename(filename)
+def get_address_from_coordinates(latitude, longitude):
+    """Convert GPS coordinates to readable address using OpenStreetMap Nominatim API"""
+    try:
+        if not latitude or not longitude:
+            return None
+            
+        # Use OpenStreetMap Nominatim API (free, no API key required)
+        url = f"https://nominatim.openstreetmap.org/reverse"
+        params = {
+            'format': 'json',
+            'lat': float(latitude),
+            'lon': float(longitude),
+            'addressdetails': 1,
+            'language': 'pt-BR'
+        }
+        
+        headers = {
+            'User-Agent': 'ConstructionSiteReporting/1.0'
+        }
+        
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            if 'display_name' in data:
+                # Extract key address components
+                address_parts = []
+                
+                if 'address' in data:
+                    addr = data['address']
+                    
+                    # Street number and name
+                    street_parts = []
+                    if 'house_number' in addr:
+                        street_parts.append(addr['house_number'])
+                    if 'road' in addr:
+                        street_parts.append(addr['road'])
+                    elif 'pedestrian' in addr:
+                        street_parts.append(addr['pedestrian'])
+                    
+                    if street_parts:
+                        address_parts.append(' '.join(street_parts))
+                    
+                    # Neighborhood
+                    if 'neighbourhood' in addr:
+                        address_parts.append(addr['neighbourhood'])
+                    elif 'suburb' in addr:
+                        address_parts.append(addr['suburb'])
+                    
+                    # City
+                    if 'city' in addr:
+                        address_parts.append(addr['city'])
+                    elif 'town' in addr:
+                        address_parts.append(addr['town'])
+                    elif 'municipality' in addr:
+                        address_parts.append(addr['municipality'])
+                    
+                    # State
+                    if 'state' in addr:
+                        address_parts.append(addr['state'])
+                    
+                    # Country
+                    if 'country' in addr:
+                        address_parts.append(addr['country'])
+                
+                if address_parts:
+                    return ', '.join(address_parts)
+                else:
+                    return data['display_name']
+        
+        return None
+        
+    except Exception as e:
+        print(f"Error converting coordinates to address: {e}")
+        return None
 
+def format_coordinates_display(latitude, longitude):
+    """Format coordinates for display with address lookup"""
+    try:
+        if not latitude or not longitude:
+            return "Localização não capturada"
+        
+        # Try to get readable address
+        address = get_address_from_coordinates(latitude, longitude)
+        
+        if address:
+            return f"{address}\n(Coordenadas: {latitude}, {longitude})"
+        else:
+            return f"Latitude: {latitude}, Longitude: {longitude}"
+            
+    except Exception as e:
+        print(f"Error formatting coordinates: {e}")
+        return f"Latitude: {latitude}, Longitude: {longitude}"
+
+# Utility functions for number generation
 def generate_project_number():
     """Generate sequential project number"""
-    last_project = Projeto.query.order_by(Projeto.id.desc()).first()
-    if last_project:
-        last_number = int(last_project.numero.split('-')[-1])
-        return f"PROJ-{last_number + 1:04d}"
-    else:
+    from models import Projeto
+    from app import db
+    
+    try:
+        last_project = Projeto.query.order_by(Projeto.id.desc()).first()
+        if last_project:
+            # Extract number from existing format like "PROJ-0001"
+            if last_project.numero and 'PROJ-' in last_project.numero:
+                try:
+                    last_num = int(last_project.numero.split('-')[1])
+                    return f"PROJ-{last_num + 1:04d}"
+                except:
+                    pass
+        
+        # Default start
+        return "PROJ-0001"
+    except:
         return "PROJ-0001"
 
 def generate_report_number():
     """Generate sequential report number"""
-    current_year = datetime.now().year
-    last_report = Relatorio.query.filter(
-        Relatorio.numero.like(f"REL-{current_year}-%")
-    ).order_by(Relatorio.id.desc()).first()
+    from models import Relatorio
+    from app import db
     
-    if last_report:
-        last_number = int(last_report.numero.split('-')[-1])
-        return f"REL-{current_year}-{last_number + 1:04d}"
-    else:
-        return f"REL-{current_year}-0001"
+    try:
+        last_report = Relatorio.query.order_by(Relatorio.id.desc()).first()
+        if last_report:
+            # Extract number from existing format like "REL-0001"
+            if last_report.numero and 'REL-' in last_report.numero:
+                try:
+                    last_num = int(last_report.numero.split('-')[1])
+                    return f"REL-{last_num + 1:04d}"
+                except:
+                    pass
+        
+        # Default start
+        return "REL-0001"
+    except:
+        return "REL-0001"
 
 def generate_visit_number():
     """Generate sequential visit number"""
     from models import Visita
-    last_visit = Visita.query.order_by(Visita.id.desc()).first()
-    if last_visit and last_visit.numero:
-        try:
-            last_number = int(last_visit.numero.split('-')[-1])
-            return f"VIS-{last_number + 1:04d}"
-        except:
-            pass
-    return "VIS-0001"
-
-def send_report_email(relatorio, email_destinatario, nome_destinatario=None):
-    """Send report via email"""
+    from app import db
+    
     try:
-        subject = f"Relatório de Obra - {relatorio.numero} - {relatorio.titulo}"
+        last_visit = Visita.query.order_by(Visita.id.desc()).first()
+        if last_visit:
+            # Extract number from existing format like "VIS-0001"
+            if last_visit.numero and 'VIS-' in last_visit.numero:
+                try:
+                    last_num = int(last_visit.numero.split('-')[1])
+                    return f"VIS-{last_num + 1:04d}"
+                except:
+                    pass
         
-        # Prepare content with line breaks
-        conteudo_html = relatorio.conteudo.replace('\n', '<br>') if relatorio.conteudo else 'Sem conteúdo adicional.'
-        
-        # Prepare visit info if available
-        visit_info_html = ""
-        visit_info_text = ""
-        if relatorio.visita:
-            date_format = "%d/%m/%Y às %H:%M"
-            visit_date = relatorio.visita.data_realizada.strftime(date_format)
-            visit_info_html = f'<p><strong>Visita relacionada:</strong> Visita realizada em {visit_date}</p>'
-            visit_info_text = f'Visita relacionada: Visita realizada em {visit_date}'
-        
-        # Prepare approver info if available
-        approver_html = f'<li><strong>Aprovador:</strong> {relatorio.aprovador_nome}</li>' if relatorio.aprovador_nome else ''
-        approver_text = f'Aprovador: {relatorio.aprovador_nome}' if relatorio.aprovador_nome else ''
-        
-        html_body = f"""
-        <html>
-        <body>
-            <h2>Relatório de Acompanhamento de Obra</h2>
-            
-            <p><strong>Caro(a) {nome_destinatario or 'Cliente'},</strong></p>
-            
-            <p>Segue em anexo o relatório de acompanhamento da obra:</p>
-            
-            <ul>
-                <li><strong>Número do Relatório:</strong> {relatorio.numero}</li>
-                <li><strong>Título:</strong> {relatorio.titulo}</li>
-                <li><strong>Projeto:</strong> {relatorio.projeto.nome}</li>
-                <li><strong>Data:</strong> {relatorio.data_relatorio.strftime('%d/%m/%Y')}</li>
-                <li><strong>Autor:</strong> {relatorio.autor.nome_completo}</li>
-                {approver_html}
-            </ul>
-            
-            <h3>Conteúdo:</h3>
-            <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
-                {conteudo_html}
-            </div>
-            
-            {visit_info_html}
-            
-            <hr>
-            <p><small>Este é um email automático do Sistema de Acompanhamento de Visitas em Obras.</small></p>
-        </body>
-        </html>
-        """
-        
-        text_body = f"""
-        Relatório de Acompanhamento de Obra
-        
-        Caro(a) {nome_destinatario or 'Cliente'},
-        
-        Segue relatório de acompanhamento da obra:
-        
-        Número do Relatório: {relatorio.numero}
-        Título: {relatorio.titulo}
-        Projeto: {relatorio.projeto.nome}
-        Data: {relatorio.data_relatorio.strftime('%d/%m/%Y')}
-        Autor: {relatorio.autor.nome_completo}
-        {approver_text}
-        
-        Conteúdo:
-        {relatorio.conteudo or 'Sem conteúdo adicional.'}
-        
-        {visit_info_text}
-        
-        ---
-        Este é um email automático do Sistema de Acompanhamento de Visitas em Obras.
-        """
+        # Default start
+        return "VIS-0001"
+    except:
+        return "VIS-0001"
+
+def send_report_email(report, email, name):
+    """Send report via email"""
+    from flask import current_app
+    from flask_mail import Message, Mail
+    
+    try:
+        mail = Mail(current_app)
         
         msg = Message(
-            subject=subject,
-            recipients=[email_destinatario],
-            html=html_body,
-            body=text_body
+            subject=f'Relatório {report.numero} - {report.projeto.nome if report.projeto else "Projeto"}',
+            recipients=[email],
+            body=f"""
+Olá {name},
+
+Segue em anexo o relatório {report.numero}.
+
+Projeto: {report.projeto.nome if report.projeto else "Não informado"}
+Data: {report.data_relatorio.strftime('%d/%m/%Y') if report.data_relatorio else "Não informada"}
+
+Atenciosamente,
+Sistema de Relatórios
+"""
         )
         
         mail.send(msg)
         return True
-        
     except Exception as e:
-        current_app.logger.error(f"Error sending email: {str(e)}")
-        raise e
+        print(f"Error sending email: {e}")
+        return False
 
-def calculate_reimbursement_total(data):
-    """Calculate total reimbursement amount from data dict"""
-    total = 0
-    quilometragem = data.get('quilometragem', 0) or 0
-    valor_km = data.get('valor_km', 0) or 0
-    total += quilometragem * valor_km
-    total += data.get('alimentacao', 0) or 0
-    total += data.get('hospedagem', 0) or 0
-    total += data.get('outros_gastos', 0) or 0
-    return round(total, 2)
-
-def allowed_file(filename, allowed_extensions):
-    """Check if file extension is allowed"""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in allowed_extensions
-
-def format_currency(value):
-    """Format currency for Brazilian Real"""
-    if value is None:
-        return "R$ 0,00"
-    return f"R$ {value:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-
-def format_date_br(date_obj):
-    """Format date in Brazilian format"""
-    if date_obj is None:
-        return ""
-    return date_obj.strftime('%d/%m/%Y')
-
-def format_datetime_br(datetime_obj):
-    """Format datetime in Brazilian format"""
-    if datetime_obj is None:
-        return ""
-    return datetime_obj.strftime('%d/%m/%Y às %H:%M')
-
-# Template filters
-def register_template_filters(app):
-    """Register custom template filters"""
-    app.jinja_env.filters['currency'] = format_currency
-    app.jinja_env.filters['date_br'] = format_date_br
-    app.jinja_env.filters['datetime_br'] = format_datetime_br
-
-# Initialize default data on first run
-def init_app_data():
-    """Initialize application with default data"""
-    from models import init_default_data
-    init_default_data()
+def calculate_reimbursement_total(reembolso):
+    """Calculate total reimbursement amount"""
+    try:
+        total = 0
+        
+        # Kilometragem
+        if reembolso.quilometragem and reembolso.valor_km:
+            total += reembolso.quilometragem * reembolso.valor_km
+        
+        # Other expenses
+        if reembolso.alimentacao:
+            total += reembolso.alimentacao
+        if reembolso.hospedagem:
+            total += reembolso.hospedagem
+        if reembolso.outros_gastos:
+            total += reembolso.outros_gastos
+        
+        return total
+    except:
+        return 0

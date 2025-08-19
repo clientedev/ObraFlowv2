@@ -353,9 +353,35 @@ class ReportPDFGenerator:
         story.append(Spacer(1, 20))
     
     def _add_template_items_section(self, story, relatorio):
-        """Add items observados section following template"""
-        story.append(Paragraph("Itens observados", self.styles['SectionHeader']))
-        story.append(Spacer(1, 20))
+        """Add items observados section following template with improved formatting"""
+        if relatorio.conteudo:
+            story.append(Paragraph("Itens observados", self.styles['SectionHeader']))
+            story.append(Spacer(1, 10))
+            
+            # Process content to handle line breaks properly and format location
+            content_lines = relatorio.conteudo.split('\n')
+            for line in content_lines:
+                if line.strip():
+                    # Check if this is location information
+                    if 'LOCALIZAÇÃO DO RELATÓRIO:' in line:
+                        story.append(Spacer(1, 10))
+                        story.append(Paragraph("<b>Localização do Relatório:</b>", self.styles['SectionHeader']))
+                        story.append(Spacer(1, 5))
+                    elif line.startswith('Latitude:') or line.startswith('Longitude:') or '(Coordenadas:' in line:
+                        # Format GPS coordinates in smaller text
+                        story.append(Paragraph(f"<i>{line.strip()}</i>", self.styles['Normal']))
+                    elif any(keyword in line for keyword in ['Rua', 'Avenida', 'Estrada', 'Brasil', 'São Paulo', 'Rodovia']):
+                        # Format address in bold
+                        story.append(Paragraph(f"<b>{line.strip()}</b>", self.styles['Normal']))
+                    else:
+                        story.append(Paragraph(line.strip(), self.styles['Normal']))
+                else:
+                    story.append(Spacer(1, 6))
+            
+            story.append(Spacer(1, 20))
+        else:
+            story.append(Paragraph("Itens observados", self.styles['SectionHeader']))
+            story.append(Spacer(1, 20))
     
     def _add_project_info(self, story, relatorio):
         """Add project information section"""
