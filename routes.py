@@ -917,11 +917,24 @@ def project_view(project_id):
     visitas = Visita.query.filter_by(projeto_id=project_id).order_by(Visita.data_agendada.desc()).all()
     relatorios = Relatorio.query.filter_by(projeto_id=project_id).order_by(Relatorio.created_at.desc()).all()
     
+    # Get communications from all visits of this project
+    comunicacoes = []
+    for visita in visitas:
+        visit_comunicacoes = ComunicacaoVisita.query.filter_by(visita_id=visita.id).order_by(ComunicacaoVisita.created_at.desc()).all()
+        for com in visit_comunicacoes:
+            comunicacoes.append({
+                'comunicacao': com,
+                'visita': visita
+            })
+    
+    # Sort all communications by date
+    comunicacoes.sort(key=lambda x: x['comunicacao'].created_at, reverse=True)
+    
     return render_template('projects/view.html', 
                          project=project, 
-                         contatos=contatos, 
                          visitas=visitas, 
-                         relatorios=relatorios)
+                         relatorios=relatorios,
+                         comunicacoes=comunicacoes[:10])  # Show last 10 communications
 
 @app.route('/projects/<int:project_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -996,37 +1009,7 @@ def contact_edit(contact_id):
     
     return render_template('contacts/form.html', form=form, contact=contact)
 
-@app.route('/projects/<int:project_id>/contacts/add', methods=['GET', 'POST'])
-@login_required
-def project_add_contact(project_id):
-    project = Projeto.query.get_or_404(project_id)
-    form = ContatoProjetoForm()
-    
-    if form.validate_on_submit():
-        # Check if contact is already linked to this project
-        existing = ContatoProjeto.query.filter_by(
-            projeto_id=project_id,
-            contato_id=form.contato_id.data
-        ).first()
-        
-        if existing:
-            flash('Este contato já está vinculado ao projeto.', 'error')
-            return render_template('contacts/form.html', form=form, project=project)
-        
-        contato_projeto = ContatoProjeto(
-            projeto_id=project_id,
-            contato_id=form.contato_id.data,
-            tipo_relacionamento=form.tipo_relacionamento.data,
-            is_aprovador=form.is_aprovador.data,
-            receber_relatorios=form.receber_relatorios.data
-        )
-        
-        db.session.add(contato_projeto)
-        db.session.commit()
-        flash('Contato vinculado ao projeto com sucesso!', 'success')
-        return redirect(url_for('project_view', project_id=project_id))
-    
-    return render_template('contacts/form.html', form=form, project=project)
+# Contact functionality removed as requested
 
 # Visit management routes
 @app.route('/visits')

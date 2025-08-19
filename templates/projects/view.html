@@ -94,8 +94,8 @@
                     <span class="badge bg-info">{{ relatorios|length }}</span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
-                    <span>Contatos:</span>
-                    <span class="badge bg-secondary">{{ contatos|length }}</span>
+                    <span>Comunicações:</span>
+                    <span class="badge bg-secondary">{{ comunicacoes|length }}</span>
                 </div>
             </div>
         </div>
@@ -107,8 +107,8 @@
     <div class="col-12">
         <ul class="nav nav-tabs" id="projectTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="contatos-tab" data-bs-toggle="tab" data-bs-target="#contatos" type="button" role="tab">
-                    <i class="fas fa-users me-2"></i>Contatos ({{ contatos|length }})
+                <button class="nav-link active" id="comunicacoes-tab" data-bs-toggle="tab" data-bs-target="#comunicacoes" type="button" role="tab">
+                    <i class="fas fa-comments me-2"></i>Comunicações ({{ comunicacoes|length }})
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -124,59 +124,53 @@
         </ul>
         
         <div class="tab-content" id="projectTabsContent">
-            <!-- Contatos Tab -->
-            <div class="tab-pane fade show active" id="contatos" role="tabpanel">
+            <!-- Comunicações Tab -->
+            <div class="tab-pane fade show active" id="comunicacoes" role="tabpanel">
                 <div class="card border-top-0">
                     <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">Contatos do Projeto</h6>
-                            <a href="{{ url_for('project_add_contact', project_id=project.id) }}" class="btn btn-sm btn-primary">
-                                <i class="fas fa-plus me-1"></i>Adicionar Contato
-                            </a>
+                            <h6 class="mb-0">Comunicações das Visitas</h6>
+                            <small class="text-muted">Últimas 10 comunicações</small>
                         </div>
                     </div>
                     <div class="card-body">
-                        {% if contatos %}
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Nome</th>
-                                            <th>Empresa</th>
-                                            <th>Email</th>
-                                            <th>Tipo</th>
-                                            <th>Aprovador</th>
-                                            <th>Recebe Relatórios</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for contato_projeto in contatos %}
-                                        <tr>
-                                            <td>{{ contato_projeto.contato.nome }}</td>
-                                            <td>{{ contato_projeto.contato.empresa or '-' }}</td>
-                                            <td>{{ contato_projeto.contato.email or '-' }}</td>
-                                            <td>{{ contato_projeto.tipo_relacionamento or '-' }}</td>
-                                            <td>
-                                                {% if contato_projeto.is_aprovador %}
-                                                    <i class="fas fa-check text-success"></i>
-                                                {% else %}
-                                                    <i class="fas fa-times text-muted"></i>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if contato_projeto.receber_relatorios %}
-                                                    <i class="fas fa-check text-success"></i>
-                                                {% else %}
-                                                    <i class="fas fa-times text-muted"></i>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                        {% if comunicacoes %}
+                            <div class="timeline">
+                                {% for item in comunicacoes %}
+                                <div class="timeline-item mb-3">
+                                    <div class="card border-left-{{ 'danger' if item.comunicacao.tipo == 'Alerta' else 'info' if item.comunicacao.tipo == 'Observacao' else 'primary' }}">
+                                        <div class="card-body py-2">
+                                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                                <div>
+                                                    <h6 class="card-title mb-0">
+                                                        {{ item.comunicacao.usuario.nome_completo if item.comunicacao.usuario else 'Usuário Desconhecido' }}
+                                                        <span class="badge bg-{{ 'danger' if item.comunicacao.tipo == 'Alerta' else 'info' if item.comunicacao.tipo == 'Observacao' else 'primary' }} ms-1">
+                                                            {{ item.comunicacao.tipo }}
+                                                        </span>
+                                                    </h6>
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-calendar-check me-1"></i>
+                                                        Visita {{ item.visita.numero }} - {{ item.comunicacao.created_at.strftime('%d/%m/%Y às %H:%M') }}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            <p class="card-text mb-1">{{ item.comunicacao.mensagem }}</p>
+                                            <small class="text-muted">
+                                                <i class="fas fa-eye me-1"></i>
+                                                <a href="{{ url_for('visit_communication', visit_id=item.visita.id) }}" class="text-decoration-none">
+                                                    Ver todas comunicações da visita
+                                                </a>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
                         {% else %}
-                            <p class="text-muted text-center">Nenhum contato vinculado a este projeto.</p>
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-comments-slash fa-2x mb-2"></i>
+                                <p class="mb-0">Nenhuma comunicação registrada nas visitas deste projeto.</p>
+                            </div>
                         {% endif %}
                     </div>
                 </div>
