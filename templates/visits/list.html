@@ -73,7 +73,7 @@
                                     </td>
                                     <td>{{ visit.data_agendada.strftime('%d/%m/%Y às %H:%M') }}</td>
                                     <td>{{ visit.data_realizada.strftime('%d/%m/%Y às %H:%M') if visit.data_realizada else '-' }}</td>
-                                    <td>{{ visit.usuario.nome_completo }}</td>
+                                    <td>{{ visit.responsavel.nome_completo }}</td>
                                     <td>
                                         {% if visit.status == 'Realizada' %}
                                             <span class="badge bg-success">{{ visit.status }}</span>
