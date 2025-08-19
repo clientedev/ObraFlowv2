@@ -288,7 +288,7 @@ def create_report():
                     pass  # Ignore session storage errors
             
             # Process photos from JavaScript form data
-            for i in range(5):  # Support up to 5 photos
+            for i in range(50):  # Support up to 50 photos
                 # Check for edited photos
                 edited_photo_key = f'edited_photo_{i}'
                 if edited_photo_key in request.form:

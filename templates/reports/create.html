@@ -222,6 +222,7 @@
                             <div class="photo-upload-area" id="photoUploadArea">
                                 <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
                                 <p>Arraste e solte as fotos aqui ou clique para selecionar</p>
+                                <small class="text-muted">Suporta até 50 fotos - JPG, PNG (máx. 10MB cada)</small>
                                 <input type="file" id="photoInput" multiple accept="image/*" style="display: none;">
                                 <button type="button" class="btn btn-primary" onclick="document.getElementById('photoInput').click()">
                                     <i class="fas fa-camera"></i> Selecionar Fotos
@@ -307,6 +308,11 @@ photoInput.addEventListener('change', function(e) {
 function handleFiles(files) {
     if (!selectedServiceType) {
         alert('Por favor, selecione o tipo de serviço antes de fazer upload das fotos.');
+        return;
+    }
+    
+    if (uploadedPhotos.length + files.length > 50) {
+        alert(`Limite máximo de 50 fotos. Você pode adicionar apenas ${50 - uploadedPhotos.length} fotos adicionais.`);
         return;
     }
 

@@ -324,11 +324,17 @@ function loadNearbyProjects() {
     })
     .then(response => response.json())
     .then(projects => {
-        displayProjectsOnMap(projects);
-        displayProjectsList(projects);
+        if (projects && Array.isArray(projects)) {
+            displayProjectsOnMap(projects);
+            displayProjectsList(projects);
+        } else {
+            console.error('Resposta inválida do servidor:', projects);
+        }
     })
     .catch(error => {
         console.error('Erro ao carregar projetos:', error);
+        const projectsList = document.getElementById('projectsList');
+        projectsList.innerHTML = '<div class="alert alert-danger">Erro ao carregar obras próximas</div>';
     });
 }
 

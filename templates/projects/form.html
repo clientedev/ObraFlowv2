@@ -65,6 +65,12 @@
                         <small class="text-muted">
                             <span id="locationStatus"></span>
                         </small>
+                        <div id="addressPreview" class="mt-2" style="display: none;">
+                            <div class="alert alert-info">
+                                <strong>Endereço capturado:</strong>
+                                <div id="capturedAddress"></div>
+                            </div>
+                        </div>
                         {{ form.latitude() }}
                         {{ form.longitude() }}
                     </div>
@@ -181,7 +187,7 @@ function getGPSLocationAndAddress() {
             // Get address from coordinates and fill address field
             reverseGeocodeAndFillAddress(lat, lng);
             
-            statusElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> Localização e endereço capturados via GPS';
+            statusElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> Localização capturada! Obtendo endereço...';
         },
         function(error) {
             let errorMsg = 'Erro ao capturar localização';
@@ -259,6 +265,14 @@ function reverseGeocodeAndFillAddress(lat, lng) {
                     
                     // Use formatted address or fallback to display_name
                     endereco.value = formattedAddress.trim() || data.display_name;
+                    
+                    // Show address preview
+                    document.getElementById('addressPreview').style.display = 'block';
+                    document.getElementById('capturedAddress').textContent = formattedAddress.trim() || data.display_name;
+                    
+                    // Update status to show completion
+                    const statusElement = document.getElementById('locationStatus');
+                    statusElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> Localização e endereço capturados com sucesso!';
                 }
             }
         })
