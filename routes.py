@@ -1499,6 +1499,7 @@ def api_nearby_projects():
         # Sort by distance
         projects_with_distance.sort(key=lambda x: x['distance_km'])
         
+        print(f"Returning {len(projects_with_distance)} projects with distances")
         return jsonify(projects_with_distance)
         
     except Exception as e:

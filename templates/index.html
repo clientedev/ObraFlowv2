@@ -2,9 +2,8 @@
 
 {% block title %}Dashboard - Sistema de Acompanhamento de Visitas em Obras{% endblock %}
 
-{% block head %}
+{% block extra_head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -324,11 +323,14 @@ function loadNearbyProjects() {
     })
     .then(response => response.json())
     .then(projects => {
+        console.log('Projetos recebidos:', projects);
         if (projects && Array.isArray(projects)) {
             displayProjectsOnMap(projects);
             displayProjectsList(projects);
         } else {
             console.error('Resposta inválida do servidor:', projects);
+            const projectsList = document.getElementById('projectsList');
+            projectsList.innerHTML = '<div class="alert alert-warning">Formato de resposta inválido</div>';
         }
     })
     .catch(error => {
@@ -337,6 +339,16 @@ function loadNearbyProjects() {
         projectsList.innerHTML = '<div class="alert alert-danger">Erro ao carregar obras próximas</div>';
     });
 }
+
+// Initialize after Leaflet loads
+function waitForLeaflet() {
+    if (typeof L !== 'undefined') {
+        initMap();
+    } else {
+        setTimeout(waitForLeaflet, 100);
+    }
+}
+waitForLeaflet();
 
 function displayProjectsOnMap(projects) {
     // Clear existing project markers
@@ -394,7 +406,13 @@ function displayProjectsList(projects) {
 
 // Initialize map when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    initMap();
+    // Remove duplicate initialization since we already handle it above
+    if (typeof L !== 'undefined' && !window.map) {
+        initMap();
+    }
 });
 </script>
+
+<!-- Load Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 {% endblock %}

@@ -222,7 +222,7 @@
                             <div class="photo-upload-area" id="photoUploadArea">
                                 <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
                                 <p>Arraste e solte as fotos aqui ou clique para selecionar</p>
-                                <small class="text-muted">Suporta até 50 fotos - JPG, PNG (máx. 10MB cada)</small>
+                                <small class="text-muted"><strong>Suporta até 50 fotos</strong> - JPG, PNG (máx. 10MB cada)</small>
                                 <input type="file" id="photoInput" multiple accept="image/*" style="display: none;">
                                 <button type="button" class="btn btn-primary" onclick="document.getElementById('photoInput').click()">
                                     <i class="fas fa-camera"></i> Selecionar Fotos
@@ -263,9 +263,10 @@
 </div>
 
 <script>
-// Estado do formulário
+// Estado do formulário  
 let selectedServiceType = null;
 let uploadedPhotos = [];
+let maxPhotos = 50;
 
 // Seleção do tipo de serviço
 document.getElementById('serviceTypeSelector').addEventListener('click', function(e) {
@@ -311,8 +312,8 @@ function handleFiles(files) {
         return;
     }
     
-    if (uploadedPhotos.length + files.length > 50) {
-        alert(`Limite máximo de 50 fotos. Você pode adicionar apenas ${50 - uploadedPhotos.length} fotos adicionais.`);
+    if (uploadedPhotos.length + files.length > maxPhotos) {
+        alert(`Limite máximo de ${maxPhotos} fotos. Você pode adicionar apenas ${maxPhotos - uploadedPhotos.length} fotos adicionais.`);
         return;
     }
 
@@ -358,6 +359,19 @@ function addPhotoPreview(file, src) {
         serviceType: selectedServiceType,
         element: photoDiv
     });
+    
+    // Atualizar contador de fotos
+    const photoCount = uploadedPhotos.length;
+    const photoUploadArea = document.getElementById('photoUploadArea');
+    const existingCounter = photoUploadArea.querySelector('.photo-counter');
+    if (existingCounter) {
+        existingCounter.remove();
+    }
+    
+    const counter = document.createElement('div');
+    counter.className = 'photo-counter mt-2';
+    counter.innerHTML = `<small class="text-info"><strong>Fotos adicionadas: ${photoCount}/50</strong></small>`;
+    photoUploadArea.appendChild(counter);
 }
 
 function removePhoto(photoId) {
