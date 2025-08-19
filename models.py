@@ -162,6 +162,7 @@ class ComunicacaoVisita(db.Model):
     usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     mensagem = db.Column(db.Text, nullable=False)
     tipo = db.Column(db.String(50), default='Comunicacao')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     @property
     def visita(self):

@@ -1974,6 +1974,42 @@ END:VEVENT
             'error': str(e)
         }), 500
 
+@app.route('/visits/<int:visit_id>/export/outlook')
+@login_required
+def visit_export_outlook(visit_id):
+    """Export single visit to Outlook (.ics file)"""
+    try:
+        visit = Visita.query.get_or_404(visit_id)
+        
+        # Calculate end time (2 hours after start)
+        end_time = visit.data_agendada + timedelta(hours=2)
+        
+        # Create ICS content for Outlook
+        ics_content = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//ELP Consultoria//Visit Scheduler//PT
+BEGIN:VEVENT
+UID:visit-{visit.id}@elp.com.br
+DTSTART:{visit.data_agendada.strftime('%Y%m%dT%H%M%S')}
+DTEND:{end_time.strftime('%Y%m%dT%H%M%S')}
+SUMMARY:Visita Técnica - {visit.projeto.nome}
+DESCRIPTION:Objetivo: {visit.objetivo or 'N/A'}\\nProjeto: {visit.projeto.numero} - {visit.projeto.nome}\\nResponsável: {visit.responsavel.nome_completo}
+LOCATION:{visit.endereco_gps or visit.projeto.endereco or ''}
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR"""
+        
+        response = make_response(ics_content)
+        response.headers["Content-Disposition"] = f"attachment; filename=visita_{visit.numero}.ics"
+        response.headers["Content-Type"] = "text/calendar"
+        
+        return response
+        
+    except Exception as e:
+        print(f"Outlook export error: {e}")
+        flash('Erro ao exportar para Outlook. Tente novamente.', 'error')
+        return redirect(url_for('visits_list'))
+
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):
