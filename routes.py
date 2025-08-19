@@ -92,7 +92,7 @@ def index():
     if not current_user.is_authenticated:
         return redirect(url_for('login'))
     
-    return render_template('index.html',
+    return render_template('dashboard_simple.html',
                          total_projetos=total_projetos,
                          projetos_ativos=projetos_ativos,
                          visitas_pendentes=visitas_pendentes,

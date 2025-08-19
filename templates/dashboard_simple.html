@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistema de Obras{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Projetos</h5>
+                            <h2>{{ total_projetos }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-project-diagram fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Visitas</h5>
+                            <h2>{{ visitas_pendentes }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Relatórios</h5>
+                            <h2>{{ relatorios_rascunho }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-file-alt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Ativos</h5>
+                            <h2>{{ projetos_ativos }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-plus-circle me-2"></i>Ações Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('project_new') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-plus me-2"></i>Novo Projeto
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('visit_new') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-calendar-plus me-2"></i>Agendar Visita
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('create_report') }}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-file-plus me-2"></i>Novo Relatório
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('contact_new') }}" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-user-plus me-2"></i>Novo Contato
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Obras Próximas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-map-marker-alt me-2"></i>Obras Próximas</h5>
+                    <button class="btn btn-sm btn-primary" onclick="getCurrentLocation()">
+                        <i class="fas fa-crosshairs me-1"></i>Atualizar Localização
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="locationStatus" class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Clique em "Atualizar Localização" para ver obras próximas ordenadas por distância
+                    </div>
+                    <div id="nearbyProjects">
+                        <div id="projectsList" class="list-group">
+                            <div class="text-center text-muted p-3">
+                                <i class="fas fa-map-marker-alt"></i><br>
+                                Capture sua localização para ver obras próximas
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let userLocation = null;
+
+function getCurrentLocation() {
+    const statusEl = document.getElementById('locationStatus');
+    
+    if (!navigator.geolocation) {
+        statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Geolocalização não suportada neste navegador';
+        statusEl.className = 'alert alert-danger';
+        return;
+    }
+    
+    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Obtendo localização...';
+    statusEl.className = 'alert alert-warning';
+    
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            userLocation = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude
+            };
+            
+            statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Localização obtida! Carregando obras próximas...';
+            statusEl.className = 'alert alert-info';
+            
+            // Load nearby projects
+            loadNearbyProjects();
+        },
+        function(error) {
+            let errorMsg = 'Erro ao obter localização.';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg = 'Permissão negada para acessar localização.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMsg = 'Localização indisponível.';
+                    break;
+                case error.TIMEOUT:
+                    errorMsg = 'Tempo limite para obter localização.';
+                    break;
+            }
+            statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${errorMsg}`;
+            statusEl.className = 'alert alert-danger';
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+        }
+    );
+}
+
+function loadNearbyProjects() {
+    if (!userLocation) {
+        console.error('Location not available');
+        return;
+    }
+    
+    const statusEl = document.getElementById('locationStatus');
+    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando obras próximas...';
+    statusEl.className = 'alert alert-info';
+    
+    fetch('/nearby_projects', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            latitude: userLocation.lat,
+            longitude: userLocation.lon
+        })
+    })
+    .then(response => response.json())
+    .then(projects => {
+        console.log('Projetos recebidos:', projects);
+        if (projects && Array.isArray(projects)) {
+            displayProjectsList(projects);
+        } else if (projects && projects.error) {
+            console.error('Erro do servidor:', projects.error);
+            const projectsList = document.getElementById('projectsList');
+            projectsList.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> ${projects.error}</div>`;
+        } else {
+            console.error('Resposta inválida:', projects);
+            const projectsList = document.getElementById('projectsList');
+            projectsList.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Nenhuma obra encontrada nas proximidades.</div>';
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao carregar projetos:', error);
+        const projectsList = document.getElementById('projectsList');
+        projectsList.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar obras próximas.</div>';
+        
+        const statusEl = document.getElementById('locationStatus');
+        statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro ao carregar obras próximas.';
+        statusEl.className = 'alert alert-danger';
+    });
+}
+
+function displayProjectsList(projects) {
+    const projectsList = document.getElementById('projectsList');
+    
+    if (!projects || projects.length === 0) {
+        projectsList.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Nenhuma obra encontrada nas proximidades.</div>';
+        return;
+    }
+    
+    // Sort by distance
+    projects.sort((a, b) => a.distance_km - b.distance_km);
+    
+    let html = '';
+    projects.forEach((project, index) => {
+        const badgeClass = index < 3 ? 'bg-success' : index < 5 ? 'bg-warning' : 'bg-secondary';
+        const distanceText = project.distance_km < 1 ? 
+            `${Math.round(project.distance_km * 1000)} metros` : 
+            `${project.distance_km} km`;
+        
+        // Get ranking emoji
+        const rankingEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}°`;
+            
+        html += `
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="me-2" style="font-size: 1.2em;">${rankingEmoji}</span>
+                            <h6 class="mb-0">${project.nome}</h6>
+                            <span class="badge ${badgeClass} ms-2">${distanceText}</span>
+                        </div>
+                        <p class="mb-1 text-muted">${project.endereco || 'Endereço não informado'}</p>
+                        <small class="text-info">Projeto: ${project.numero} | Tipo: ${project.tipo_obra || 'Não especificado'}</small>
+                    </div>
+                    <div class="ms-3">
+                        <a href="/projects/${project.id}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i> Ver Detalhes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    projectsList.innerHTML = html;
+    
+    // Update location status
+    const locationStatus = document.getElementById('locationStatus');
+    locationStatus.className = 'alert alert-success';
+    locationStatus.innerHTML = `<i class="fas fa-check-circle"></i> Encontradas ${projects.length} obras próximas ordenadas por distância`;
+}
+</script>
+{% endblock %}
