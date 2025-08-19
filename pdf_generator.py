@@ -176,7 +176,7 @@ class ReportPDFGenerator:
         doc.build(story, onFirstPage=self._add_template_footer, onLaterPages=self._add_template_footer)
     
     def generate_report_pdf(self, relatorio, fotos=None):
-        """Generate COMPLETE PDF report with ALL data and professional ELP formatting"""
+        """Generate clean professional PDF with only filled data"""
         buffer = io.BytesIO()
         
         # Create document with A4 page size
@@ -192,24 +192,18 @@ class ReportPDFGenerator:
         # Build story (content)
         story = []
         
-        # 1. PROFESSIONAL ELP HEADER WITH LOGO
-        self._add_complete_elp_header(story, relatorio)
+        # 1. PROFESSIONAL ELP HEADER
+        self._add_professional_elp_header(story, relatorio)
         
-        # 2. COMPLETE REPORT INFORMATION
-        self._add_all_report_details(story, relatorio)
+        # 2. ONLY FILLED REPORT DATA
+        self._add_filled_report_info(story, relatorio)
         
-        # 3. PROJECT AND VISIT DATA
-        self._add_complete_project_visit_data(story, relatorio)
+        # 3. CLEAN CHECKLIST - ONLY CHECKED ITEMS WITH OBSERVATIONS
+        self._add_clean_checklist(story, relatorio)
         
-        # 4. AUTHOR AND APPROVAL INFO
-        self._add_complete_author_approval_info(story, relatorio)
-        
-        # 5. ALL REPORT CONTENT WITH PROPER FORMATTING
-        self._add_all_content_sections(story, relatorio)
-        
-        # 6. PROFESSIONAL PHOTOS WITH DESCRIPTIONS
+        # 4. PHOTOS IF ANY
         if fotos:
-            self._add_complete_photos_section(story, fotos)
+            self._add_clean_photos(story, fotos)
         
         # Report section
         story.append(Paragraph("Relatório", self.styles['SectionHeader']))
@@ -318,13 +312,273 @@ class ReportPDFGenerator:
         ]))
         story.append(footer_info)
         
-        # 7. COMPANY FOOTER
-        self._add_elp_footer(story)
+        # 5. PROFESSIONAL FOOTER
+        self._add_professional_footer(story)
         
         # Build PDF
         doc.build(story)
         buffer.seek(0)
         return buffer.getvalue()
+    
+    def _add_professional_elp_header(self, story, relatorio):
+        """Professional ELP header with logo and company info"""
+        try:
+            # Company header with logo
+            logo_path = 'static/logo_elp_final.jpg'
+            if os.path.exists(logo_path):
+                logo_img = Image(logo_path, width=3.5*cm, height=1.8*cm)
+                
+                # Create header table with logo and company info
+                header_data = [
+                    [logo_img, 
+                     Paragraph("<b>ELP CONSULTORIA E ENGENHARIA</b><br/>Especializada em Fachadas e Estruturas<br/>📞 (11) 9999-9999 | 📧 contato@elp.com.br", self.styles['Normal']),
+                     f"<b>Relatório: {relatorio.numero}</b><br/>{relatorio.data_relatorio.strftime('%d/%m/%Y') if relatorio.data_relatorio else ''}"
+                    ]
+                ]
+                
+                header_table = Table(header_data, colWidths=[4*cm, 10*cm, 4*cm])
+                header_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                    ('ALIGN', (1, 0), (1, 0), 'LEFT'), 
+                    ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+                    ('FONTSIZE', (1, 0), (1, 0), 10),
+                    ('FONTSIZE', (2, 0), (2, 0), 9),
+                    ('BACKGROUND', (0, 0), (-1, -1), '#f8f9fa'),
+                    ('BORDER', (0, 0), (-1, -1), 2, '#20c1e8'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 12),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                
+                story.append(header_table)
+                story.append(Spacer(1, 20))
+                
+        except Exception as e:
+            print(f"Header error: {e}")
+            # Fallback simple header
+            story.append(Paragraph(f"<b>ELP CONSULTORIA E ENGENHARIA - RELATÓRIO {relatorio.numero}</b>", self.styles['Title']))
+            story.append(Spacer(1, 20))
+    
+    def _add_filled_report_info(self, story, relatorio):
+        """Add only filled report information"""
+        story.append(Paragraph("INFORMAÇÕES DO RELATÓRIO", self.styles['SectionHeader']))
+        
+        # Only show filled data
+        filled_data = []
+        
+        if relatorio.numero:
+            filled_data.append(['Número:', relatorio.numero])
+        if relatorio.titulo:
+            filled_data.append(['Título:', relatorio.titulo])
+        if relatorio.data_relatorio:
+            filled_data.append(['Data:', relatorio.data_relatorio.strftime('%d/%m/%Y às %H:%M')])
+        if relatorio.status:
+            filled_data.append(['Status:', relatorio.status])
+        if relatorio.projeto and relatorio.projeto.nome:
+            filled_data.append(['Projeto:', relatorio.projeto.nome])
+        if relatorio.projeto and relatorio.projeto.endereco:
+            filled_data.append(['Endereço:', relatorio.projeto.endereco])
+        if relatorio.autor and relatorio.autor.nome_completo:
+            filled_data.append(['Responsável:', relatorio.autor.nome_completo])
+        
+        if filled_data:
+            info_table = Table(filled_data, colWidths=[4*cm, 14*cm])
+            info_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), '#20c1e8'),
+                ('BACKGROUND', (1, 0), (1, -1), '#f0f9ff'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('TEXTCOLOR', (0, 0), (0, -1), white),
+                ('TEXTCOLOR', (1, 0), (1, -1), '#343a40'),
+                ('FONTSIZE', (0, 0), (-1, -1), 11),
+                ('GRID', (0, 0), (-1, -1), 1, '#20c1e8'),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            story.append(info_table)
+        
+        story.append(Spacer(1, 20))
+    
+    def _add_clean_checklist(self, story, relatorio):
+        """Add only checked checklist items with observations"""
+        if not relatorio.conteudo:
+            return
+            
+        story.append(Paragraph("ITENS VERIFICADOS", self.styles['SectionHeader']))
+        
+        # Parse content for checklist items
+        content_lines = relatorio.conteudo.split('\n')
+        checklist_items = []
+        current_observation = ""
+        
+        for line in content_lines:
+            line = line.strip()
+            if line.startswith('✓') or line.startswith('○'):
+                # Process previous item observation
+                if current_observation:
+                    if checklist_items:
+                        checklist_items[-1]['observation'] = current_observation.strip()
+                    current_observation = ""
+                
+                # Add new checklist item
+                status = "CONFORME" if line.startswith('✓') else "NÃO CONFORME"
+                item_text = line[1:].strip()
+                
+                # Only add if item has actual content
+                if item_text and item_text != "":
+                    checklist_items.append({
+                        'status': status,
+                        'text': item_text,
+                        'observation': ""
+                    })
+                    
+            elif line.startswith('Observações:') or line.startswith('Obs:'):
+                current_observation = line.replace('Observações:', '').replace('Obs:', '').strip()
+            elif current_observation and line:
+                current_observation += " " + line
+        
+        # Add final observation
+        if current_observation and checklist_items:
+            checklist_items[-1]['observation'] = current_observation.strip()
+        
+        # Render only items with content
+        for item in checklist_items:
+            if item['text']:  # Only show items with actual content
+                
+                # Status color
+                status_color = '#28a745' if item['status'] == 'CONFORME' else '#dc3545'
+                bg_color = '#d4edda' if item['status'] == 'CONFORME' else '#f8d7da'
+                
+                # Item table
+                item_data = [
+                    ['ITEM', item['text']],
+                    ['STATUS', f"{'✅' if item['status'] == 'CONFORME' else '❌'} {item['status']}"]
+                ]
+                
+                # Add observation if exists
+                if item['observation']:
+                    item_data.append(['OBSERVAÇÃO', item['observation']])
+                
+                item_table = Table(item_data, colWidths=[3*cm, 15*cm])
+                item_table.setStyle(TableStyle([
+                    # Header row
+                    ('BACKGROUND', (0, 0), (0, 0), '#343a40'),
+                    ('BACKGROUND', (1, 0), (1, 0), '#f8f9fa'),
+                    ('TEXTCOLOR', (0, 0), (0, 0), white),
+                    # Status row
+                    ('BACKGROUND', (0, 1), (0, 1), status_color),
+                    ('BACKGROUND', (1, 1), (1, 1), bg_color),
+                    ('TEXTCOLOR', (0, 1), (0, 1), white),
+                    ('TEXTCOLOR', (1, 1), (1, 1), status_color),
+                    # Observation row if exists
+                    ('BACKGROUND', (0, 2), (0, 2), '#20c1e8') if item['observation'] else ('BACKGROUND', (0, 2), (0, 2), white),
+                    ('BACKGROUND', (1, 2), (1, 2), '#f0f9ff') if item['observation'] else ('BACKGROUND', (1, 2), (1, 2), white),
+                    ('TEXTCOLOR', (0, 2), (0, 2), white) if item['observation'] else ('TEXTCOLOR', (0, 2), (0, 2), black),
+                    # General styling
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('GRID', (0, 0), (-1, -1), 1, '#343a40'),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                
+                story.append(item_table)
+                story.append(Spacer(1, 10))
+        
+        # If no checklist items found, show message
+        if not checklist_items:
+            no_items = Table([['Nenhum item de checklist foi preenchido neste relatório.']], colWidths=[18*cm])
+            no_items.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), '#f8f9fa'),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Oblique'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('TOPPADDING', (0, 0), (-1, -1), 15),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+            ]))
+            story.append(no_items)
+        
+        story.append(Spacer(1, 20))
+    
+    def _add_clean_photos(self, story, fotos):
+        """Add photos in clean professional format"""
+        story.append(Paragraph(f"REGISTRO FOTOGRÁFICO ({len(fotos)} fotos)", self.styles['SectionHeader']))
+        
+        # Process photos in 2x2 grid
+        for i in range(0, len(fotos), 4):
+            photo_batch = fotos[i:i+4]
+            
+            # Create 2x2 layout
+            row1 = []
+            row2 = []
+            
+            for idx, foto in enumerate(photo_batch):
+                try:
+                    foto_path = os.path.join('uploads', foto.filename)
+                    if os.path.exists(foto_path):
+                        img = Image(foto_path, width=7*cm, height=5*cm)
+                        
+                        # Photo with clean caption
+                        photo_content = [
+                            img,
+                            Paragraph(f"<b>#{foto.ordem}</b>", self.styles['Normal']),
+                            Paragraph(foto.legenda or '', self.styles['Normal']) if foto.legenda else ""
+                        ]
+                        
+                        if idx < 2:
+                            row1.append(photo_content)
+                        else:
+                            row2.append(photo_content)
+                            
+                except Exception as e:
+                    print(f"Photo error: {e}")
+            
+            # Fill empty cells
+            while len(row1) < 2:
+                row1.append('')
+            while len(row2) < 2:
+                row2.append('')
+            
+            # Create photo table
+            if any(row1) or any(row2):
+                photos_table = Table([row1, row2], colWidths=[9*cm, 9*cm])
+                photos_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                ]))
+                
+                story.append(photos_table)
+                story.append(Spacer(1, 15))
+    
+    def _add_professional_footer(self, story):
+        """Clean professional footer"""
+        story.append(Spacer(1, 30))
+        
+        footer_table = Table([[
+            f"ELP Consultoria e Engenharia | Fachadas e Estruturas\n"
+            f"Telefone: (11) 9999-9999 | E-mail: contato@elp.com.br\n"
+            f"Relatório gerado em {datetime.now().strftime('%d/%m/%Y às %H:%M')}"
+        ]], colWidths=[18*cm])
+        
+        footer_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), '#f8f9fa'),
+            ('BORDER', (0, 0), (-1, -1), 1, '#20c1e8'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('TEXTCOLOR', (0, 0), (-1, -1), '#343a40'),
+        ]))
+        
+        story.append(footer_table)
     
     def _add_complete_elp_header(self, story, relatorio):
         """Add professional ELP header with logo and company info"""
