@@ -1161,6 +1161,16 @@ def visit_checklist(visit_id):
     
     return render_template('visits/checklist.html', visit=visit, checklist_items=checklist_items)
 
+@app.route('/visits/<int:visit_id>')
+@login_required
+def visit_view(visit_id):
+    """View visit details"""
+    visit = Visita.query.get_or_404(visit_id)
+    checklist_items = ChecklistItem.query.filter_by(visita_id=visit_id).order_by(ChecklistItem.ordem).all()
+    comunicacoes = ComunicacaoVisita.query.filter_by(visita_id=visit_id).order_by(ComunicacaoVisita.created_at.desc()).limit(5).all()
+    
+    return render_template('visits/view.html', visit=visit, checklist_items=checklist_items, comunicacoes=comunicacoes)
+
 # Report management routes - movido para routes_reports.py
 
 # Rota removida - usando nova implementação em routes_reports.py
