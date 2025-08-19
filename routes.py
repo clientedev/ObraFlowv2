@@ -8,7 +8,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from flask_mail import Message
 
-from app import app, db, mail
+from app import app, db, mail, csrf
 from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm
 from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
@@ -1428,8 +1428,8 @@ def uploaded_file(filename):
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
 
 # GPS location endpoint
-@app.route('/get_location', methods=['POST'])
-@login_required  
+@app.route('/get_location', methods=['POST', 'GET'])
+@csrf.exempt
 def get_location():
     import requests
     from urllib.parse import quote
@@ -1492,8 +1492,8 @@ def get_location():
     return jsonify({'success': False})
 
 # API routes for nearby projects
-@app.route('/api/projects/nearby', methods=['POST'])
-@login_required
+@app.route('/api/projects/nearby', methods=['POST', 'GET'])
+@csrf.exempt
 def api_nearby_projects():
     """Get projects ordered by distance from user location"""
     try:

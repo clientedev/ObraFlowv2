@@ -222,7 +222,7 @@
                             <div class="photo-upload-area" id="photoUploadArea">
                                 <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
                                 <p>Arraste e solte as fotos aqui ou clique para selecionar</p>
-                                <small class="text-muted"><strong>Suporta até 50 fotos</strong> - JPG, PNG (máx. 10MB cada)</small>
+                                <small class="text-muted"><strong style="color: red;">LIMITE: 50 FOTOS</strong> - JPG, PNG (máx. 10MB cada)</small>
                                 <input type="file" id="photoInput" multiple accept="image/*" style="display: none;">
                                 <button type="button" class="btn btn-primary" onclick="document.getElementById('photoInput').click()">
                                     <i class="fas fa-camera"></i> Selecionar Fotos
@@ -594,12 +594,19 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
     const formData = new FormData(this);
     formData.append('checklist_data', JSON.stringify(checklistData));
     
-    // Adicionar fotos
+    // Adicionar fotos (até 50)
+    console.log(`📸 PROCESSANDO ${photoData.length} FOTOS (limite 50)`);
     photoData.forEach((photo, index) => {
-        formData.append(`photo_${index}`, photo.file);
-        formData.append(`photo_${index}_caption`, photo.caption);
-        formData.append(`photo_${index}_service_type`, photo.serviceType);
+        if (index < 50) {  // Garantir limite de 50
+            formData.append(`photo_${index}`, photo.file);
+            formData.append(`photo_caption_${index}`, photo.caption || `Foto ${index + 1}`);
+            formData.append(`photo_category_${index}`, photo.serviceType || 'Geral');
+            console.log(`✓ Foto ${index + 1}: ${photo.file.name} (${photo.serviceType})`);
+        } else {
+            console.log(`⚠️ Foto ${index + 1} ignorada: excede limite de 50`);
+        }
     });
+    formData.append('total_photos', photoData.length);
     
     fetch(this.action, {
         method: 'POST',
