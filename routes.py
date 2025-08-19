@@ -1,15 +1,15 @@
 import os
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from urllib.parse import urlparse
-from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify
+from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from flask_mail import Message
 
 from app import app, db, mail, csrf
-from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio
+from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm
 from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
 from pdf_generator import generate_visit_report_pdf

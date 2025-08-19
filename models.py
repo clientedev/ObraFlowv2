@@ -127,6 +127,49 @@ class Relatorio(db.Model):
     @property
     def visita(self):
         return Visita.query.get(self.visita_id) if self.visita_id else None
+
+class ChecklistTemplate(db.Model):
+    __tablename__ = 'checklist_templates'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(200), nullable=False)
+    descricao = db.Column(db.Text)
+    obrigatorio = db.Column(db.Boolean, default=False)
+    ordem = db.Column(db.Integer, default=0)
+    ativo = db.Column(db.Boolean, default=True)
+
+class ChecklistItem(db.Model):
+    __tablename__ = 'checklist_items'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    visita_id = db.Column(db.Integer, db.ForeignKey('visitas.id'), nullable=False)
+    template_id = db.Column(db.Integer, db.ForeignKey('checklist_templates.id'), nullable=True)
+    pergunta = db.Column(db.Text, nullable=False)
+    resposta = db.Column(db.Text)
+    concluido = db.Column(db.Boolean, default=False)
+    obrigatorio = db.Column(db.Boolean, default=False)
+    ordem = db.Column(db.Integer, default=0)
+    
+    @property
+    def visita(self):
+        return Visita.query.get(self.visita_id)
+
+class ComunicacaoVisita(db.Model):
+    __tablename__ = 'comunicacoes_visitas'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    visita_id = db.Column(db.Integer, db.ForeignKey('visitas.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    mensagem = db.Column(db.Text, nullable=False)
+    tipo = db.Column(db.String(50), default='Comunicacao')
+    
+    @property
+    def visita(self):
+        return Visita.query.get(self.visita_id)
+    
+    @property
+    def usuario(self):
+        return User.query.get(self.usuario_id)
     
     @property
     def fotos(self):
