@@ -98,7 +98,8 @@ def index():
                          visitas_pendentes=visitas_pendentes,
                          relatorios_rascunho=relatorios_rascunho,
                          recent_visitas=recent_visitas,
-                         recent_relatorios=recent_relatorios)
+                         recent_relatorios=recent_relatorios,
+                         relatorios_recentes=recent_relatorios)
 
 # User management routes
 @app.route('/users')
@@ -714,7 +715,6 @@ def generate_pdf_report(id):
         return redirect(url_for('edit_report', id=id))
 
 @app.route('/api/nearby-projects')
-@login_required
 def get_nearby_projects():
     """Get projects near user location"""
     try:

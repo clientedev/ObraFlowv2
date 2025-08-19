@@ -37,6 +37,15 @@ This is a comprehensive construction site visit tracking system built with Flask
 - ✅ **PDF Branding**: Enhanced PDFs with ELP header, signatures, and footer branding
 - ✅ **Company Information**: Updated all references to reflect ELP's specialization in civil engineering and facades
 
+### Final Updates (2025-08-19 Night)
+- ✅ **New Logo Implemented**: Updated to new ELP logo (elp_1755609978629.jpg) with transparent background
+- ✅ **Dashboard Enhanced**: Added "Relatórios Recentes" section showing last 5 reports with status and quick access
+- ✅ **Contact Functions Removed**: Eliminated all contact-related buttons and functionality per user request
+- ✅ **Nearby Projects Fixed**: GPS-based project discovery fully functional with distance ranking (🥇🥈🥉)
+- ✅ **PDF Improvements**: Enhanced checklist formatting with colored icons (✅❌), professional photo grids
+- ✅ **API Corrections**: Fixed nearby projects API to work without authentication requirements
+- ✅ **Reimbursement Routes**: Corrected template references to prevent application errors
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.

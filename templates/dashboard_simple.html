@@ -93,8 +93,8 @@
                             </a>
                         </div>
                         <div class="col-md-3 mb-2">
-                            <a href="{{ url_for('contact_new') }}" class="btn btn-outline-warning w-100">
-                                <i class="fas fa-user-plus me-2"></i>Novo Contato
+                            <a href="{{ url_for('visit_list') }}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-list me-2"></i>Listar Visitas
                             </a>
                         </div>
                     </div>
@@ -103,25 +103,58 @@
         </div>
     </div>
 
-    <!-- Obras Próximas -->
+    <!-- Atividades Recentes -->
     <div class="row mb-4">
-        <div class="col-12">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-clock me-2"></i>Relatórios Recentes</h5>
+                </div>
+                <div class="card-body">
+                    {% if relatorios_recentes %}
+                        <div class="list-group">
+                            {% for rel in relatorios_recentes %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ rel.numero }}</h6>
+                                    <p class="mb-1 text-muted small">{{ rel.projeto.nome if rel.projeto else 'Projeto não informado' }}</p>
+                                    <small class="badge bg-{{ 'success' if rel.status == 'aprovado' else 'warning' if rel.status == 'rascunho' else 'primary' }}">{{ rel.status }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted">{{ rel.data_relatorio.strftime('%d/%m') if rel.data_relatorio else 'Sem data' }}</small>
+                                    <br>
+                                    <a href="{{ url_for('edit_report', id=rel.id) }}" class="btn btn-sm btn-outline-primary">Ver</a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted p-3">
+                            <i class="fas fa-file-alt"></i><br>
+                            Nenhum relatório recente
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-map-marker-alt me-2"></i>Obras Próximas</h5>
                     <button class="btn btn-sm btn-primary" onclick="getCurrentLocation()">
-                        <i class="fas fa-crosshairs me-1"></i>Atualizar Localização
+                        <i class="fas fa-crosshairs me-1"></i>Localizar
                     </button>
                 </div>
                 <div class="card-body">
                     <div id="locationStatus" class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> Clique em "Atualizar Localização" para ver obras próximas ordenadas por distância
+                        <i class="fas fa-info-circle"></i> Clique em "Localizar" para ver obras próximas
                     </div>
                     <div id="nearbyProjects">
                         <div id="projectsList" class="list-group">
                             <div class="text-center text-muted p-3">
                                 <i class="fas fa-map-marker-alt"></i><br>
-                                Capture sua localização para ver obras próximas
+                                Capture sua localização
                             </div>
                         </div>
                     </div>
