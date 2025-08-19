@@ -219,66 +219,58 @@ function getGPSLocation() {
 
 // Reverse geocoding to get address from coordinates and fill address field
 function reverseGeocodeAndFillAddress(lat, lng) {
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=pt-BR&addressdetails=1`;
-    
-    fetch(url, {
+    // Use backend endpoint for consistent geocoding
+    fetch('/get_location', {
+        method: 'POST',
         headers: {
-            'User-Agent': 'ConstructionSiteReporting/1.0'
-        }
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+        },
+        body: JSON.stringify({
+            latitude: lat,
+            longitude: lng
+        })
     })
-        .then(response => response.json())
-        .then(data => {
-            if (data && data.display_name) {
-                const endereco = document.querySelector('textarea[name="endereco"]') || document.getElementById('endereco');
-                if (endereco) {
-                    // Format a cleaner address
-                    let formattedAddress = '';
-                    if (data.address) {
-                        const addr = data.address;
-                        
-                        // Street info
-                        let street = '';
-                        if (addr.house_number) street += addr.house_number + ' ';
-                        if (addr.road) street += addr.road;
-                        if (street) formattedAddress += street + '\n';
-                        
-                        // Neighborhood/District
-                        if (addr.neighbourhood || addr.suburb) {
-                            formattedAddress += (addr.neighbourhood || addr.suburb) + '\n';
-                        }
-                        
-                        // City, State
-                        let cityState = '';
-                        if (addr.city || addr.town || addr.municipality) {
-                            cityState += (addr.city || addr.town || addr.municipality);
-                        }
-                        if (addr.state) {
-                            cityState += (cityState ? ', ' : '') + addr.state;
-                        }
-                        if (cityState) formattedAddress += cityState + '\n';
-                        
-                        // Country
-                        if (addr.country) {
-                            formattedAddress += addr.country;
-                        }
-                    }
-                    
-                    // Use formatted address or fallback to display_name
-                    endereco.value = formattedAddress.trim() || data.display_name;
-                    
-                    // Show address preview
-                    document.getElementById('addressPreview').style.display = 'block';
-                    document.getElementById('capturedAddress').textContent = formattedAddress.trim() || data.display_name;
-                    
-                    // Update status to show completion
-                    const statusElement = document.getElementById('locationStatus');
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const endereco = document.querySelector('textarea[name="endereco"]') || document.getElementById('endereco');
+            if (endereco) {
+                endereco.value = data.endereco;
+                
+                // Show address preview
+                const addressPreview = document.getElementById('addressPreview');
+                const capturedAddress = document.getElementById('capturedAddress');
+                if (addressPreview && capturedAddress) {
+                    addressPreview.style.display = 'block';
+                    capturedAddress.textContent = data.endereco;
+                }
+                
+                // Update status to show completion
+                const statusElement = document.getElementById('locationStatus');
+                if (statusElement) {
                     statusElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> Localização e endereço capturados com sucesso!';
                 }
             }
-        })
-        .catch(error => {
-            console.log('Erro ao obter endereço:', error);
-        });
+        } else {
+            console.log('Erro ao obter endereço do servidor');
+            
+            // Fallback to coordinates
+            const endereco = document.querySelector('textarea[name="endereco"]') || document.getElementById('endereco');
+            if (endereco) {
+                endereco.value = `Lat: ${lat}, Lng: ${lng}`;
+            }
+        }
+    })
+    .catch(error => {
+        console.log('Erro ao obter endereço:', error);
+        
+        // Fallback to coordinates
+        const endereco = document.querySelector('textarea[name="endereco"]') || document.getElementById('endereco');
+        if (endereco) {
+            endereco.value = `Lat: ${lat}, Lng: ${lng}`;
+        }
+    });
 }
 
 // Legacy function for compatibility

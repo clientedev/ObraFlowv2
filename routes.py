@@ -287,8 +287,36 @@ def create_report():
                 except Exception as e:
                     pass  # Ignore session storage errors
             
-            # Process photos from JavaScript form data
+            # Process regular file uploads
             for i in range(50):  # Support up to 50 photos
+                photo_key = f'photo_{i}'
+                if photo_key in request.files:
+                    file = request.files[photo_key]
+                    if file and file.filename and allowed_file(file.filename):
+                        try:
+                            filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
+                            filepath = os.path.join(upload_folder, filename)
+                            file.save(filepath)
+                            
+                            # Get metadata
+                            photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
+                            photo_category = request.form.get(f'photo_category_{i}', 'Geral')
+                            
+                            # Create photo record
+                            foto = FotoRelatorio()
+                            foto.relatorio_id = relatorio.id
+                            foto.filename = filename
+                            foto.legenda = photo_caption or f'Foto {photo_count + 1}'
+                            foto.tipo_servico = photo_category or 'Geral'
+                            foto.ordem = photo_count + 1
+                            
+                            db.session.add(foto)
+                            photo_count += 1
+                            print(f"Foto {photo_count} salva: {filename}")
+                        except Exception as e:
+                            print(f"Erro ao processar foto {i}: {e}")
+                            continue
+                
                 # Check for edited photos
                 edited_photo_key = f'edited_photo_{i}'
                 if edited_photo_key in request.form:
@@ -1369,18 +1397,64 @@ def uploaded_file(filename):
 
 # GPS location endpoint
 @app.route('/get_location', methods=['POST'])
-@login_required
+@login_required  
 def get_location():
+    import requests
+    from urllib.parse import quote
+    
     data = request.get_json()
     latitude = data.get('latitude')
     longitude = data.get('longitude')
     
     if latitude and longitude:
-        # Here you could use a reverse geocoding service to get the address
-        endereco = f"Lat: {latitude}, Lng: {longitude}"
+        try:
+            # Use Nominatim reverse geocoding to get formatted address
+            url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={latitude}&lon={longitude}&addressdetails=1&language=pt-BR"
+            headers = {'User-Agent': 'SistemaObras/1.0'}
+            response = requests.get(url, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Extract address components
+                addr = data.get('address', {})
+                
+                # Build formatted address
+                address_parts = []
+                
+                # Street name and number
+                if addr.get('house_number'):
+                    address_parts.append(f"{addr.get('road', '')} {addr['house_number']}")
+                elif addr.get('road'):
+                    address_parts.append(addr['road'])
+                    
+                # Neighborhood
+                if addr.get('suburb') or addr.get('neighbourhood'):
+                    address_parts.append(addr.get('suburb') or addr.get('neighbourhood'))
+                    
+                # City and state
+                city = addr.get('city') or addr.get('town') or addr.get('village')
+                if city:
+                    state = addr.get('state')
+                    if state:
+                        address_parts.append(f"{city} - {state}")
+                    else:
+                        address_parts.append(city)
+                
+                formatted_address = ', '.join(filter(None, address_parts))
+                
+                return jsonify({
+                    'success': True,
+                    'endereco': formatted_address or data.get('display_name', f"Lat: {latitude}, Lng: {longitude}")
+                })
+                
+        except Exception as e:
+            print(f"Erro ao obter endereço: {e}")
+            
+        # Fallback to coordinates if geocoding fails
         return jsonify({
             'success': True,
-            'endereco': endereco
+            'endereco': f"Lat: {latitude}, Lng: {longitude}"
         })
     
     return jsonify({'success': False})
