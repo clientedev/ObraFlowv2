@@ -21,6 +21,13 @@ This is a comprehensive construction site visit tracking system built with Flask
 - ✅ **Database Configuration**: Upload folder configured, file handling improved
 - ✅ **Complete Workflow**: Full report creation, editing, photo annotation, and PDF generation working
 
+### Critical Fixes (2025-08-19 Morning)
+- ✅ **50 Photo Limit**: Successfully increased from 5 to 50 photos per report in form_complete.html
+- ✅ **GPS Address Formatting**: GPS now returns formatted addresses instead of raw coordinates
+- ✅ **Dashboard Proximity**: Works showing projects ordered by distance with proper API endpoints
+- ✅ **CSRF Issues Resolved**: API endpoints exempted from CSRF for proper functionality
+- ✅ **Visual Indicators**: Added clear UI markers showing "50 fotos" and "NOVO" features
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
