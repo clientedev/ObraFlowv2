@@ -53,6 +53,7 @@ This is a comprehensive construction site visit tracking system built with Flask
 - ✅ **Professional PDF Format**: New comprehensive layout with ELP header, complete data sections, GPS info, author details, and formatted checklists
 - ✅ **Data Integrity**: PDF now includes all report fields: number, title, dates, status, project info, GPS coordinates, author, approval info, complete content, and professional photos
 - ✅ **ELP Branding Complete**: Professional header with logo, company information, contact details, and branded color scheme throughout PDF
+- ✅ **Clean PDF Format**: Final PDF shows only filled data and checked checklist items without status labels (conforme/não conforme)
 
 # User Preferences
 

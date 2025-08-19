@@ -444,18 +444,13 @@ class ReportPDFGenerator:
         if current_observation and checklist_items:
             checklist_items[-1]['observation'] = current_observation.strip()
         
-        # Render only items with content
+        # Render only items that were checked (with ✓)
         for item in checklist_items:
-            if item['text']:  # Only show items with actual content
+            if item['text'] and item['status'] == 'CONFORME':  # Only show checked items
                 
-                # Status color
-                status_color = '#28a745' if item['status'] == 'CONFORME' else '#dc3545'
-                bg_color = '#d4edda' if item['status'] == 'CONFORME' else '#f8d7da'
-                
-                # Item table
+                # Create simple item table without status
                 item_data = [
-                    ['ITEM', item['text']],
-                    ['STATUS', f"{'✅' if item['status'] == 'CONFORME' else '❌'} {item['status']}"]
+                    ['ITEM VERIFICADO', item['text']]
                 ]
                 
                 # Add observation if exists
@@ -465,23 +460,20 @@ class ReportPDFGenerator:
                 item_table = Table(item_data, colWidths=[3*cm, 15*cm])
                 item_table.setStyle(TableStyle([
                     # Header row
-                    ('BACKGROUND', (0, 0), (0, 0), '#343a40'),
-                    ('BACKGROUND', (1, 0), (1, 0), '#f8f9fa'),
+                    ('BACKGROUND', (0, 0), (0, 0), '#20c1e8'),
+                    ('BACKGROUND', (1, 0), (1, 0), '#f0f9ff'),
                     ('TEXTCOLOR', (0, 0), (0, 0), white),
-                    # Status row
-                    ('BACKGROUND', (0, 1), (0, 1), status_color),
-                    ('BACKGROUND', (1, 1), (1, 1), bg_color),
-                    ('TEXTCOLOR', (0, 1), (0, 1), white),
-                    ('TEXTCOLOR', (1, 1), (1, 1), status_color),
+                    ('TEXTCOLOR', (1, 0), (1, 0), '#343a40'),
                     # Observation row if exists
-                    ('BACKGROUND', (0, 2), (0, 2), '#20c1e8') if item['observation'] else ('BACKGROUND', (0, 2), (0, 2), white),
-                    ('BACKGROUND', (1, 2), (1, 2), '#f0f9ff') if item['observation'] else ('BACKGROUND', (1, 2), (1, 2), white),
-                    ('TEXTCOLOR', (0, 2), (0, 2), white) if item['observation'] else ('TEXTCOLOR', (0, 2), (0, 2), black),
+                    ('BACKGROUND', (0, 1), (0, 1), '#343a40') if item['observation'] else ('BACKGROUND', (0, 1), (0, 1), white),
+                    ('BACKGROUND', (1, 1), (1, 1), '#f8f9fa') if item['observation'] else ('BACKGROUND', (1, 1), (1, 1), white),
+                    ('TEXTCOLOR', (0, 1), (0, 1), white) if item['observation'] else ('TEXTCOLOR', (0, 1), (0, 1), black),
+                    ('TEXTCOLOR', (1, 1), (1, 1), '#343a40') if item['observation'] else ('TEXTCOLOR', (1, 1), (1, 1), black),
                     # General styling
                     ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
                     ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
                     ('FONTSIZE', (0, 0), (-1, -1), 10),
-                    ('GRID', (0, 0), (-1, -1), 1, '#343a40'),
+                    ('GRID', (0, 0), (-1, -1), 1, '#20c1e8'),
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                     ('TOPPADDING', (0, 0), (-1, -1), 8),
