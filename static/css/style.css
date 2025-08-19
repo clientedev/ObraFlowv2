@@ -1,13 +1,16 @@
 /* Custom CSS for Construction Site Visit Tracking System */
 
-/* Main theme colors */
+/* ELP Consultoria e Engenharia brand colors */
 :root {
-    --primary-color: #0d6efd;
-    --secondary-color: #6c757d;
+    --primary-color: #343a40;     /* Dark gray like logo */
+    --secondary-color: #20c1e8;   /* Cyan blue like logo */
     --success-color: #198754;
     --warning-color: #ffc107;
     --danger-color: #dc3545;
-    --info-color: #0dcaf0;
+    --info-color: #20c1e8;       /* ELP cyan for info */
+    --elp-cyan: #20c1e8;         /* ELP brand cyan */
+    --elp-dark: #343a40;         /* ELP brand dark */
+    --elp-light: #f8f9fa;        /* Light background */
     --construction-orange: #ff6b35;
     --construction-yellow: #f7931e;
     --construction-blue: #003f7f;
@@ -32,7 +35,7 @@ body {
 }
 
 .navbar-dark .navbar-nav .nav-link:hover {
-    color: var(--construction-yellow);
+    color: var(--elp-cyan);
 }
 
 /* Cards */
@@ -69,6 +72,23 @@ body {
     background-color: #0b5ed7;
     border-color: #0a58ca;
     transform: translateY(-1px);
+}
+
+/* ELP brand colors for elements */
+.text-elp-cyan {
+    color: var(--elp-cyan) !important;
+}
+
+.bg-elp-cyan {
+    background-color: var(--elp-cyan) !important;
+}
+
+.text-elp-dark {
+    color: var(--elp-dark) !important;
+}
+
+.bg-elp-dark {
+    background-color: var(--elp-dark) !important;
 }
 
 /* Construction-themed accent colors */

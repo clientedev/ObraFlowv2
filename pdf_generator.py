@@ -320,10 +320,37 @@ class ReportPDFGenerator:
         return buffer.getvalue()
     
     def _add_template_header(self, story, relatorio):
-        """Add header following exact template format"""
+        """Add header following exact template format with ELP branding"""
+        # Company header with logo
+        try:
+            from flask import current_app
+            logo_path = os.path.join('static', 'logo_elp.jpg')
+            if os.path.exists(logo_path):
+                logo_img = Image(logo_path, width=3*cm, height=1.5*cm)
+                
+                # Create header table with logo and company info
+                header_data = [
+                    [logo_img, 'ELP CONSULTORIA E ENGENHARIA\nServiços de Engenharia\nEspecializada em Fachadas de Obras e Empreendimentos Verticais', '']
+                ]
+                
+                header_table = Table(header_data, colWidths=[4*cm, 12*cm, 3*cm])
+                header_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+                    ('FONTNAME', (1, 0), (1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (1, 0), (1, 0), 10),
+                    ('TEXTCOLOR', (1, 0), (1, 0), '#343a40'),
+                ]))
+                
+                story.append(header_table)
+                story.append(Spacer(1, 20))
+            
+        except Exception as e:
+            print(f"Error loading logo: {e}")
+        
         # Title
         story.append(Paragraph("Relatório de Visita", self.styles['MainTitle']))
-        story.append(Spacer(1, 40))
+        story.append(Spacer(1, 20))
         
         # Date in right corner format
         data_formatada = relatorio.data_relatorio.strftime('%d/%m/%Y %H:%M') if relatorio.data_relatorio else datetime.now().strftime('%d/%m/%Y %H:%M')
@@ -334,7 +361,7 @@ class ReportPDFGenerator:
             ('FONTSIZE', (1, 0), (1, 0), 10),
         ]))
         story.append(date_table)
-        story.append(Spacer(1, 30))
+        story.append(Spacer(1, 20))
     
     def _add_template_report_section(self, story, relatorio):
         """Add report info section following template"""
@@ -703,17 +730,16 @@ class ReportPDFGenerator:
             return max_width, max_width * 0.75  # Default aspect ratio
     
     def _add_template_signatures(self, story, relatorio):
-        """Add signatures section following template"""
-        story.append(PageBreak())
-        story.append(Spacer(1, 50))
+        """Add signatures section following template with ELP branding"""
+        story.append(Spacer(1, 30))
         
         story.append(Paragraph("Assinaturas", self.styles['SectionHeader']))
         story.append(Spacer(1, 20))
         
         # Get signature info
         preenchido_por = relatorio.autor.nome_completo if relatorio.autor else 'Não informado'
-        liberado_por = relatorio.aprovador.nome_completo if relatorio.aprovador else 'Não informado'
-        responsavel = relatorio.projeto.responsavel.nome_completo if relatorio.projeto and relatorio.projeto.responsavel else 'Não informado'
+        liberado_por = 'Engenheiro Civil\nELP Consultoria e Engenharia'
+        responsavel = 'ELP Consultoria e Engenharia\nEspecialista em Fachadas'
         
         signatures_table = Table([
             ['Preenchido por:', 'Liberado por:', 'Responsável pelo acompanhamento'],
@@ -724,25 +750,28 @@ class ReportPDFGenerator:
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 30),
+            ('GRID', (0, 0), (-1, -1), 0.5, black),
+            ('TEXTCOLOR', (0, 1), (-1, 1), '#343a40'),
         ]))
         
         story.append(signatures_table)
     
     def _add_template_footer(self, canvas, doc):
-        """Add footer following exact template format"""
+        """Add footer following exact template format with ELP branding"""
         # Company info on left
         canvas.setFont('Helvetica-Bold', 9)
-        canvas.drawString(40, 60, 'ELP Consultoria')
+        canvas.drawString(40, 60, 'ELP CONSULTORIA E ENGENHARIA')
         
         canvas.setFont('Helvetica', 8)
-        canvas.drawString(40, 45, 'Rua Jaboticabal, 530 apto. 31 - São Paulo - SP - CEP: 03188-000')
-        canvas.drawString(40, 32, 'leopoldo@elpconsultoria.eng.br')
-        canvas.drawString(40, 19, 'Telefone: (11) 99138-4517')
+        canvas.drawString(40, 45, 'Serviços de Engenharia - Especializada em Fachadas')
+        canvas.drawString(40, 32, 'Consultoria voltada para Engenharia Civil')
+        canvas.drawString(40, 19, 'Sistema de Relatórios de Obras e Empreendimentos Verticais')
         
         # Generated info on right
         canvas.setFont('Helvetica', 8)
-        canvas.drawRightString(555, 19, 'Relatório gerado no Produttivo')
+        canvas.drawRightString(555, 32, 'ELP Consultoria e Engenharia')
+        canvas.drawRightString(555, 19, f'Relatório gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}')
 
 def generate_visit_report_pdf(relatorio):
     """Generate PDF report for a visit"""

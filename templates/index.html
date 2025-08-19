@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Sistema de Acompanhamento de Visitas em Obras{% endblock %}
+{% block title %}Dashboard - ELP Consultoria e Engenharia{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -10,16 +10,17 @@
 <div class="row">
     <div class="col-12">
         <h1 class="mb-4">
-            <i class="fas fa-tachometer-alt me-2"></i>
-            Dashboard
+            <i class="fas fa-tachometer-alt me-2" style="color: var(--elp-cyan);"></i>
+            Dashboard - ELP Consultoria
         </h1>
+        <p class="text-muted mb-4">Especializada em Fachadas de Obras e Empreendimentos Verticais</p>
     </div>
 </div>
 
 <!-- Statistics Cards -->
 <div class="row mb-4">
     <div class="col-md-3">
-        <div class="card bg-primary text-white">
+        <div class="card bg-elp-dark text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -67,7 +68,7 @@
     </div>
     
     <div class="col-md-3">
-        <div class="card bg-info text-white">
+        <div class="card bg-elp-cyan text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
