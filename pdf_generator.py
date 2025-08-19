@@ -472,39 +472,42 @@ class ReportPDFGenerator:
                         
                         # Create a table for each checklist item with status and description
                         if status_symbol == "✓":
-                            # Completed item - green background
-                            item_table = Table([['✓', item_text]], colWidths=[1*cm, 17*cm])
+                            # Completed item - green background with ELP colors
+                            item_table = Table([['✅', item_text]], colWidths=[1*cm, 17*cm])
                             item_table.setStyle(TableStyle([
-                                ('BACKGROUND', (0, 0), (0, 0), '#90ee90'),  # Light green for checkmark
+                                ('BACKGROUND', (0, 0), (0, 0), '#20c1e8'),  # ELP cyan for checkmark
                                 ('BACKGROUND', (1, 0), (1, 0), '#f0fff0'),  # Very light green for text
-                                ('BORDER', (0, 0), (-1, -1), 0.5, black),
+                                ('BORDER', (0, 0), (-1, -1), 0.5, '#343a40'),  # ELP dark border
                                 ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-                                ('FONTNAME', (1, 0), (1, 0), 'Helvetica-Bold'),
+                                ('FONTNAME', (1, 0), (1, 0), 'Helvetica'),
                                 ('FONTSIZE', (0, 0), (-1, -1), 10),
                                 ('ALIGN', (0, 0), (0, 0), 'CENTER'),
                                 ('ALIGN', (1, 0), (1, 0), 'LEFT'),
                                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                                ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                                ('TEXTCOLOR', (1, 0), (1, 0), '#343a40'),  # ELP dark text
                             ]))
                         else:
-                            # Incomplete item - light orange background
-                            item_table = Table([['○', item_text]], colWidths=[1*cm, 17*cm])
+                            # Incomplete item - orange background with ELP colors
+                            item_table = Table([['❌', item_text]], colWidths=[1*cm, 17*cm])
                             item_table.setStyle(TableStyle([
-                                ('BACKGROUND', (0, 0), (0, 0), '#ffd4aa'),  # Light orange for circle
-                                ('BACKGROUND', (1, 0), (1, 0), '#fff8f0'),  # Very light orange for text
-                                ('BORDER', (0, 0), (-1, -1), 0.5, black),
-                                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                                ('BACKGROUND', (0, 0), (0, 0), '#ff6b6b'),  # Light red for incomplete
+                                ('BACKGROUND', (1, 0), (1, 0), '#fff0f0'),  # Very light red for text
+                                ('BORDER', (0, 0), (-1, -1), 0.5, '#343a40'),  # ELP dark border
+                                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                                ('FONTNAME', (1, 0), (1, 0), 'Helvetica'),
                                 ('FONTSIZE', (0, 0), (-1, -1), 10),
                                 ('ALIGN', (0, 0), (0, 0), 'CENTER'),
                                 ('ALIGN', (1, 0), (1, 0), 'LEFT'),
                                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                                ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                                ('TEXTCOLOR', (1, 0), (1, 0), '#343a40'),  # ELP dark text
                             ]))
                         
                         story.append(item_table)
@@ -642,7 +645,7 @@ class ReportPDFGenerator:
             story.append(Spacer(1, 20))
     
     def _add_template_photos_grid(self, story, fotos):
-        """Add photos in 2x2 grid format following template"""
+        """Add photos in 2x2 grid format following template with ELP branding"""
         fotos_ordenadas = sorted(fotos, key=lambda x: x.ordem if hasattr(x, 'ordem') else 0)
         
         # Process photos in groups of 4 (2x2 grid)
@@ -688,31 +691,71 @@ class ReportPDFGenerator:
             if i + 4 < len(fotos_ordenadas):
                 story.append(PageBreak())
     
-    def _create_photo_cell(self, foto):
-        """Create a photo cell with image and caption"""
+    def _create_photo_cell(self, foto, single=False):
+        """Create a photo cell with image and caption with ELP branding"""
         try:
             # Use annotated photo if available, otherwise use original
             photo_path = foto.filename_anotada if hasattr(foto, 'filename_anotada') and foto.filename_anotada else foto.filename
             full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], photo_path)
             
             if os.path.exists(full_path):
-                # Create image
+                # Create image with appropriate size
+                max_width = 12*cm if single else 8*cm
+                max_height = 8*cm if single else 5*cm
+                
                 img = Image(full_path)
-                img_width, img_height = self._calculate_image_size(full_path, max_width=8*cm, max_height=5*cm)
+                img_width, img_height = self._calculate_image_size(full_path, max_width=max_width, max_height=max_height)
                 img.drawWidth = img_width
                 img.drawHeight = img_height
                 
-                # Create caption
-                caption_text = foto.legenda if hasattr(foto, 'legenda') and foto.legenda else ''
-                caption = Paragraph(caption_text, self.styles['PhotoCaption'])
+                # Create enhanced caption with ELP styling
+                caption_text = foto.legenda if hasattr(foto, 'legenda') and foto.legenda else 'Foto da obra'
+                
+                # Create a styled caption table
+                caption_table = Table([[caption_text]], colWidths=[max_width])
+                caption_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), '#f8f9fa'),
+                    ('BORDER', (0, 0), (-1, -1), 0.5, '#343a40'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), '#343a40'),
+                ]))
                 
                 # Return as list for table cell
-                return [img, Spacer(1, 5), caption]
+                return [img, Spacer(1, 3), caption_table]
             else:
-                return '[Foto não encontrada]'
+                # Create error cell with ELP styling
+                error_table = Table([['📷 Foto não encontrada']], colWidths=[8*cm])
+                error_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), '#fff3cd'),
+                    ('BORDER', (0, 0), (-1, -1), 1, '#856404'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 20),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+                ]))
+                return error_table
         except Exception as e:
             current_app.logger.error(f"Error creating photo cell for {foto.filename}: {e}")
-            return '[Erro ao carregar foto]'
+            # Create error cell with ELP styling
+            error_table = Table([['❌ Erro ao carregar foto']], colWidths=[8*cm])
+            error_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), '#f8d7da'),
+                ('BORDER', (0, 0), (-1, -1), 1, '#721c24'),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 20),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+            ]))
+            return error_table
     
     def _calculate_image_size(self, image_path, max_width=15*cm, max_height=20*cm):
         """Calculate image size maintaining aspect ratio"""
