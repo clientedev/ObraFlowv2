@@ -53,8 +53,10 @@
                             <i class="fas fa-calendar-check me-1"></i>Visitas
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('visits_list') }}">Listar Visitas</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('visit_new') }}">Agendar Visita</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('visits_list') }}"><i class="fas fa-list me-2"></i>Lista</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('visits_calendar') }}"><i class="fas fa-calendar-alt me-2"></i>Calendário</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('visit_new') }}"><i class="fas fa-plus me-2"></i>Agendar Visita</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">

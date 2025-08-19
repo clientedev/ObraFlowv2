@@ -1032,8 +1032,21 @@ def project_add_contact(project_id):
 @app.route('/visits')
 @login_required
 def visits_list():
+    # Check if user wants calendar view
+    view_type = request.args.get('view', 'list')
+    
+    if view_type == 'calendar':
+        return render_template('visits/calendar.html')
+    
+    # Default list view
     visits = Visita.query.order_by(Visita.data_agendada.desc()).all()
     return render_template('visits/list.html', visits=visits)
+
+@app.route('/visits/calendar')
+@login_required
+def visits_calendar():
+    """Calendar view for visits"""
+    return render_template('visits/calendar.html')
 
 @app.route('/visits/new', methods=['GET', 'POST'])
 @login_required
@@ -1752,6 +1765,193 @@ def visit_communication(visit_id):
     comunicacoes = ComunicacaoVisita.query.filter_by(visita_id=visit_id).order_by(ComunicacaoVisita.created_at.desc()).all()
     
     return render_template('visits/communication.html', visita=visita, comunicacoes=comunicacoes)
+
+# Calendar API routes
+@app.route('/api/visits/calendar')
+@login_required
+def api_visits_calendar():
+    """API endpoint for calendar data"""
+    try:
+        visits = Visita.query.join(Projeto).join(User).all()
+        
+        visits_data = []
+        for visit in visits:
+            visits_data.append({
+                'id': visit.id,
+                'numero': visit.numero,
+                'data_agendada': visit.data_agendada.isoformat() if visit.data_agendada else None,
+                'data_realizada': visit.data_realizada.isoformat() if visit.data_realizada else None,
+                'status': visit.status,
+                'projeto_nome': visit.projeto.nome,
+                'projeto_numero': visit.projeto.numero,
+                'responsavel_nome': visit.responsavel.nome_completo,
+                'objetivo': visit.objetivo or '',
+                'atividades_realizadas': visit.atividades_realizadas or '',
+                'observacoes': visit.observacoes or ''
+            })
+        
+        return jsonify({
+            'success': True,
+            'visits': visits_data
+        })
+    
+    except Exception as e:
+        print(f"Calendar API error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/visits/<int:visit_id>/details')
+@login_required  
+def api_visit_details(visit_id):
+    """API endpoint for visit details"""
+    try:
+        visit = Visita.query.get_or_404(visit_id)
+        
+        visit_data = {
+            'id': visit.id,
+            'numero': visit.numero,
+            'data_agendada': visit.data_agendada.isoformat() if visit.data_agendada else None,
+            'data_realizada': visit.data_realizada.isoformat() if visit.data_realizada else None,
+            'status': visit.status,
+            'projeto_nome': visit.projeto.nome,
+            'projeto_numero': visit.projeto.numero,
+            'responsavel_nome': visit.responsavel.nome_completo,
+            'objetivo': visit.objetivo or '',
+            'atividades_realizadas': visit.atividades_realizadas or '',
+            'observacoes': visit.observacoes or ''
+        }
+        
+        return jsonify({
+            'success': True,
+            'visit': visit_data
+        })
+    
+    except Exception as e:
+        print(f"Visit details API error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/visits/export/google')
+@login_required
+def api_export_google_calendar():
+    """Export all visits to Google Calendar"""
+    try:
+        visits = Visita.query.filter_by(status='Agendada').all()
+        
+        # Generate Google Calendar URL for all visits
+        base_url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
+        
+        if visits:
+            first_visit = visits[0]
+            # Format for Google Calendar
+            start_time = first_visit.data_agendada.strftime('%Y%m%dT%H%M%S')
+            end_time = (first_visit.data_agendada + timedelta(hours=2)).strftime('%Y%m%dT%H%M%S')
+            
+            params = {
+                'text': f'Visita {first_visit.numero} - {first_visit.projeto.nome}',
+                'dates': f'{start_time}/{end_time}',
+                'details': f'Objetivo: {first_visit.objetivo}\\nProjeto: {first_visit.projeto.nome}\\nResponsável: {first_visit.responsavel.nome_completo}',
+                'location': first_visit.projeto.endereco or 'Localização do projeto'
+            }
+            
+            google_url = base_url + '&' + '&'.join([f'{k}={v}' for k, v in params.items()])
+            
+            return jsonify({
+                'success': True,
+                'url': google_url,
+                'message': f'Link gerado para {len(visits)} visitas agendadas'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Nenhuma visita agendada encontrada'
+            })
+    
+    except Exception as e:
+        print(f"Google export error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/visits/<int:visit_id>/export/google')
+@login_required
+def api_export_single_visit_google(visit_id):
+    """Export single visit to Google Calendar"""
+    try:
+        visit = Visita.query.get_or_404(visit_id)
+        
+        # Format for Google Calendar
+        start_time = visit.data_agendada.strftime('%Y%m%dT%H%M%S')
+        end_time = (visit.data_agendada + timedelta(hours=2)).strftime('%Y%m%dT%H%M%S')
+        
+        base_url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
+        params = {
+            'text': f'Visita {visit.numero} - {visit.projeto.nome}',
+            'dates': f'{start_time}/{end_time}',
+            'details': f'Objetivo: {visit.objetivo}\\nProjeto: {visit.projeto.nome}\\nResponsável: {visit.responsavel.nome_completo}',
+            'location': visit.projeto.endereco or 'Localização do projeto'
+        }
+        
+        google_url = base_url + '&' + '&'.join([f'{k}={v}' for k, v in params.items()])
+        
+        return jsonify({
+            'success': True,
+            'url': google_url
+        })
+    
+    except Exception as e:
+        print(f"Single visit Google export error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/visits/export/ics')
+@login_required  
+def api_export_ics():
+    """Export visits as ICS file"""
+    try:
+        from datetime import datetime, timedelta
+        
+        visits = Visita.query.filter_by(status='Agendada').all()
+        
+        # Generate ICS content
+        ics_content = "BEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:ELP-Sistema\\nCALSCALE:GREGORIAN\\n"
+        
+        for visit in visits:
+            start_time = visit.data_agendada.strftime('%Y%m%dT%H%M%S')
+            end_time = (visit.data_agendada + timedelta(hours=2)).strftime('%Y%m%dT%H%M%S')
+            
+            ics_content += f"""BEGIN:VEVENT
+DTSTART:{start_time}
+DTEND:{end_time}
+SUMMARY:Visita {visit.numero} - {visit.projeto.nome}
+DESCRIPTION:Objetivo: {visit.objetivo}\\nProjeto: {visit.projeto.nome}\\nResponsável: {visit.responsavel.nome_completo}
+LOCATION:{visit.projeto.endereco or 'Localização do projeto'}
+UID:{visit.id}@elp-sistema.com
+END:VEVENT
+"""
+        
+        ics_content += "END:VCALENDAR"
+        
+        # Create response with ICS file
+        response = make_response(ics_content)
+        response.headers['Content-Type'] = 'text/calendar'
+        response.headers['Content-Disposition'] = 'attachment; filename=visitas_elp.ics'
+        
+        return response
+    
+    except Exception as e:
+        print(f"ICS export error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 # Error handlers
 @app.errorhandler(404)

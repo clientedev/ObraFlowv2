@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}Calendário de Visitas - Sistema ELP{% endblock %}
+
+{% block extra_head %}
+<!-- FullCalendar CSS -->
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.css' rel='stylesheet' />
+<style>
+    .fc-event {
+        border-radius: 3px;
+        border: none;
+    }
+    .fc-event-agendada {
+        background-color: #007bff;
+        color: white;
+    }
+    .fc-event-realizada {
+        background-color: #28a745;
+        color: white;
+    }
+    .fc-event-cancelada {
+        background-color: #dc3545;
+        color: white;
+    }
+    .calendar-controls {
+        margin-bottom: 20px;
+    }
+    .export-buttons {
+        margin-top: 15px;
+    }
+    .visit-tooltip {
+        max-width: 300px;
+        z-index: 9999;
+    }
+    .calendar-legend {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+    }
+    .fc-toolbar {
+        margin-bottom: 20px !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-calendar-alt me-2 text-primary"></i>Calendário de Visitas</h1>
+            <div>
+                <a href="{{ url_for('visit_new') }}" class="btn btn-primary me-2">
+                    <i class="fas fa-plus me-2"></i>Nova Visita
+                </a>
+                <a href="{{ url_for('visits_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-list me-2"></i>Lista
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <!-- Legenda -->
+                <div class="calendar-legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #007bff;"></div>
+                        <span>Agendada</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #28a745;"></div>
+                        <span>Realizada</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #dc3545;"></div>
+                        <span>Cancelada</span>
+                    </div>
+                </div>
+
+                <!-- Calendário -->
+                <div id='calendar'></div>
+
+                <!-- Botões de Export -->
+                <div class="export-buttons">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-download me-2"></i>Exportar Calendário</h6>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-success" onclick="exportToGoogleCalendar()">
+                                    <i class="fab fa-google me-2"></i>Google Calendar
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="exportToOutlook()">
+                                    <i class="fab fa-microsoft me-2"></i>Outlook
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="exportToICS()">
+                                    <i class="fas fa-calendar-download me-2"></i>Arquivo ICS
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-filter me-2"></i>Filtros</h6>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="filterAgendada" checked>
+                                <label class="form-check-label" for="filterAgendada">Agendadas</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="filterRealizada" checked>
+                                <label class="form-check-label" for="filterRealizada">Realizadas</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="filterCancelada" checked>
+                                <label class="form-check-label" for="filterCancelada">Canceladas</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para detalhes da visita -->
+<div class="modal fade" id="visitModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="visitModalTitle">Detalhes da Visita</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="visitModalBody">
+                <!-- Conteúdo carregado via AJAX -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <div id="visitModalActions">
+                    <!-- Ações específicas da visita -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- FullCalendar JS -->
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js'></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+    let calendar;
+    let allEvents = [];
+
+    // Inicializar calendário
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'pt-br',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        height: 'auto',
+        eventClick: function(info) {
+            showVisitDetails(info.event.extendedProps.visitId);
+        },
+        eventDidMount: function(info) {
+            // Adicionar tooltip
+            info.el.setAttribute('title', info.event.extendedProps.tooltip);
+            info.el.setAttribute('data-bs-toggle', 'tooltip');
+        },
+        eventClassNames: function(info) {
+            return 'fc-event-' + info.event.extendedProps.status.toLowerCase();
+        }
+    });
+
+    // Carregar eventos
+    loadVisits();
+
+    // Configurar filtros
+    document.querySelectorAll('input[id^="filter"]').forEach(checkbox => {
+        checkbox.addEventListener('change', applyFilters);
+    });
+
+    function loadVisits() {
+        fetch('/api/visits/calendar')
+            .then(response => response.json())
+            .then(data => {
+                allEvents = data.visits.map(visit => ({
+                    id: visit.id,
+                    title: visit.numero + ' - ' + visit.projeto_nome,
+                    start: visit.data_agendada,
+                    end: visit.data_realizada || visit.data_agendada,
+                    extendedProps: {
+                        visitId: visit.id,
+                        status: visit.status,
+                        projeto: visit.projeto_nome,
+                        responsavel: visit.responsavel_nome,
+                        objetivo: visit.objetivo,
+                        tooltip: `${visit.numero}\nProjeto: ${visit.projeto_nome}\nResponsável: ${visit.responsavel_nome}\nStatus: ${visit.status}`
+                    }
+                }));
+                
+                applyFilters();
+            })
+            .catch(error => {
+                console.error('Erro ao carregar visitas:', error);
+                alert('Erro ao carregar o calendário de visitas.');
+            });
+    }
+
+    function applyFilters() {
+        const showAgendada = document.getElementById('filterAgendada').checked;
+        const showRealizada = document.getElementById('filterRealizada').checked;
+        const showCancelada = document.getElementById('filterCancelada').checked;
+
+        const filteredEvents = allEvents.filter(event => {
+            const status = event.extendedProps.status.toLowerCase();
+            return (showAgendada && status === 'agendada') ||
+                   (showRealizada && status === 'realizada') ||
+                   (showCancelada && status === 'cancelada');
+        });
+
+        calendar.removeAllEvents();
+        calendar.addEventSource(filteredEvents);
+    }
+
+    function showVisitDetails(visitId) {
+        fetch(`/api/visits/${visitId}/details`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const visit = data.visit;
+                    const modalTitle = document.getElementById('visitModalTitle');
+                    const modalBody = document.getElementById('visitModalBody');
+                    const modalActions = document.getElementById('visitModalActions');
+
+                    modalTitle.textContent = `Visita ${visit.numero}`;
+                    
+                    modalBody.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-project-diagram me-2"></i>Projeto</h6>
+                                <p>${visit.projeto_nome} (${visit.projeto_numero})</p>
+                                
+                                <h6><i class="fas fa-user me-2"></i>Responsável</h6>
+                                <p>${visit.responsavel_nome}</p>
+                                
+                                <h6><i class="fas fa-calendar me-2"></i>Data Agendada</h6>
+                                <p>${new Date(visit.data_agendada).toLocaleString('pt-BR')}</p>
+                                
+                                ${visit.data_realizada ? `
+                                <h6><i class="fas fa-check me-2"></i>Data Realizada</h6>
+                                <p>${new Date(visit.data_realizada).toLocaleString('pt-BR')}</p>
+                                ` : ''}
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-flag me-2"></i>Status</h6>
+                                <p><span class="badge bg-${visit.status === 'Realizada' ? 'success' : visit.status === 'Agendada' ? 'primary' : 'danger'}">${visit.status}</span></p>
+                                
+                                <h6><i class="fas fa-target me-2"></i>Objetivo</h6>
+                                <p>${visit.objetivo}</p>
+                                
+                                ${visit.atividades_realizadas ? `
+                                <h6><i class="fas fa-tasks me-2"></i>Atividades Realizadas</h6>
+                                <p>${visit.atividades_realizadas}</p>
+                                ` : ''}
+                                
+                                ${visit.observacoes ? `
+                                <h6><i class="fas fa-sticky-note me-2"></i>Observações</h6>
+                                <p>${visit.observacoes}</p>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+
+                    // Ações do modal
+                    let actions = '';
+                    if (visit.status === 'Agendada') {
+                        actions += `<a href="/visits/${visit.id}/realize" class="btn btn-success me-2"><i class="fas fa-check me-2"></i>Realizar</a>`;
+                    }
+                    actions += `<a href="/visits/${visit.id}/checklist" class="btn btn-primary me-2"><i class="fas fa-list-check me-2"></i>Checklist</a>`;
+                    actions += `<button onclick="exportSingleVisit(${visit.id})" class="btn btn-outline-success"><i class="fab fa-google me-2"></i>Exportar</button>`;
+                    
+                    modalActions.innerHTML = actions;
+
+                    // Mostrar modal
+                    const modal = new bootstrap.Modal(document.getElementById('visitModal'));
+                    modal.show();
+                } else {
+                    alert('Erro ao carregar detalhes da visita.');
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao carregar detalhes:', error);
+                alert('Erro ao carregar detalhes da visita.');
+            });
+    }
+
+    // Inicializar tooltips
+    calendar.render();
+    
+    // Inicializar tooltips do Bootstrap após renderizar o calendário
+    setTimeout(() => {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }, 100);
+});
+
+// Funções de exportação
+function exportToGoogleCalendar() {
+    fetch('/api/visits/export/google')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.open(data.url, '_blank');
+            } else {
+                alert('Erro ao gerar link do Google Calendar.');
+            }
+        })
+        .catch(error => {
+            console.error('Erro na exportação:', error);
+            alert('Erro ao exportar para Google Calendar.');
+        });
+}
+
+function exportToOutlook() {
+    window.open('/api/visits/export/outlook', '_blank');
+}
+
+function exportToICS() {
+    window.location.href = '/api/visits/export/ics';
+}
+
+function exportSingleVisit(visitId) {
+    fetch(`/api/visits/${visitId}/export/google`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.open(data.url, '_blank');
+            } else {
+                alert('Erro ao gerar link do Google Calendar.');
+            }
+        })
+        .catch(error => {
+            console.error('Erro na exportação:', error);
+            alert('Erro ao exportar visita.');
+        });
+}
+</script>
+{% endblock %}
