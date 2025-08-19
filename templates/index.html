@@ -105,7 +105,10 @@
                         <div id="nearbyProjects">
                             <h6>Obras Próximas:</h6>
                             <div id="projectsList" class="list-group">
-                                <!-- Projects list will be loaded here -->
+                                <div class="text-center text-muted p-3">
+                                    <i class="fas fa-map-marker-alt"></i><br>
+                                    Capture sua localização para ver obras próximas
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -378,22 +381,34 @@ function displayProjectsOnMap(projects) {
 function displayProjectsList(projects) {
     const projectsList = document.getElementById('projectsList');
     
-    if (projects.length === 0) {
-        projectsList.innerHTML = '<div class="alert alert-info">Nenhuma obra encontrada nas proximidades.</div>';
+    console.log('Exibindo lista de projetos:', projects);
+    
+    if (!projects || projects.length === 0) {
+        projectsList.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Nenhuma obra encontrada nas proximidades.</div>';
         return;
     }
+    
+    // Sort by distance (already sorted by backend, but ensuring)
+    projects.sort((a, b) => a.distance_km - b.distance_km);
     
     let html = '';
     projects.forEach((project, index) => {
         const badgeClass = index < 3 ? 'bg-success' : index < 5 ? 'bg-warning' : 'bg-secondary';
+        const distanceText = project.distance_km < 1 ? 
+            `${Math.round(project.distance_km * 1000)}m` : 
+            `${project.distance_km}km`;
+            
         html += `
             <div class="list-group-item d-flex justify-content-between align-items-start">
                 <div class="ms-2 me-auto">
                     <div class="fw-bold">${project.nome}</div>
                     <small class="text-muted">${project.endereco || 'Endereço não informado'}</small>
+                    <div class="mt-1">
+                        <small class="text-info">Tipo: ${project.tipo_obra || 'Não especificado'}</small>
+                    </div>
                 </div>
                 <div class="text-end">
-                    <span class="badge ${badgeClass} rounded-pill mb-1">${project.distance_km} km</span>
+                    <span class="badge ${badgeClass} rounded-pill mb-1">${distanceText}</span>
                     <br>
                     <a href="/projects/${project.id}" class="btn btn-sm btn-outline-primary">Ver</a>
                 </div>
@@ -402,6 +417,11 @@ function displayProjectsList(projects) {
     });
     
     projectsList.innerHTML = html;
+    
+    // Update location status
+    const locationStatus = document.getElementById('locationStatus');
+    locationStatus.className = 'alert alert-success';
+    locationStatus.innerHTML = `<i class="fas fa-check-circle"></i> Encontradas ${projects.length} obras próximas (ordenadas por distância)`;
 }
 
 // Initialize map when page loads

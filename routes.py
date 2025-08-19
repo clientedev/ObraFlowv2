@@ -224,8 +224,40 @@ def create_report():
             longitude = request.form.get('longitude')
             location_text = ""
             if latitude and longitude:
-                from utils import format_coordinates_display
-                location_display = format_coordinates_display(latitude, longitude)
+                try:
+                    # Use the same geocoding service to get formatted address
+                    import requests
+                    url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={latitude}&lon={longitude}&addressdetails=1&language=pt-BR"
+                    headers = {'User-Agent': 'SistemaObras/1.0'}
+                    response = requests.get(url, headers=headers, timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        addr = data.get('address', {})
+                        
+                        # Build formatted address
+                        address_parts = []
+                        if addr.get('house_number'):
+                            address_parts.append(f"{addr.get('road', '')} {addr['house_number']}")
+                        elif addr.get('road'):
+                            address_parts.append(addr['road'])
+                        if addr.get('suburb') or addr.get('neighbourhood'):
+                            address_parts.append(addr.get('suburb') or addr.get('neighbourhood'))
+                        city = addr.get('city') or addr.get('town') or addr.get('village')
+                        if city:
+                            state = addr.get('state')
+                            if state:
+                                address_parts.append(f"{city} - {state}")
+                            else:
+                                address_parts.append(city)
+                        
+                        formatted_address = ', '.join(filter(None, address_parts))
+                        location_display = formatted_address or data.get('display_name', f"Lat: {latitude}, Lng: {longitude}")
+                    else:
+                        location_display = f"Lat: {latitude}, Lng: {longitude}"
+                except:
+                    location_display = f"Lat: {latitude}, Lng: {longitude}"
+                    
                 location_text = f"\n\nLOCALIZAÇÃO DO RELATÓRIO:\n{location_display}\nCoordenadas GPS capturadas durante a visita."
             
             # Combine content with checklist and location

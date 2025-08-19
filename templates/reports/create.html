@@ -465,7 +465,9 @@ function submitFormWithPhotos() {
     const form = document.querySelector('form');
     const formData = new FormData(form);
     
-    // Adicionar fotos ao FormData
+    console.log(`Enviando relatório com ${uploadedPhotos.length} fotos`);
+    
+    // Adicionar todas as fotos ao FormData (até 50)
     uploadedPhotos.forEach((photo, index) => {
         if (photo.editedData) {
             formData.append(`edited_photo_${index}`, photo.editedData);
@@ -478,6 +480,9 @@ function submitFormWithPhotos() {
         formData.append(`photo_category_${index}`, photo.serviceType);
     });
     
+    // Adicionar informação sobre o número total de fotos
+    formData.append('total_photos', uploadedPhotos.length);
+    
     // Enviar formulário
     fetch(form.action, {
         method: 'POST',
@@ -485,14 +490,30 @@ function submitFormWithPhotos() {
     })
     .then(response => {
         if (response.ok) {
-            window.location.href = response.url;
+            return response.text();
         } else {
-            alert('Erro ao salvar relatório');
+            throw new Error('Erro no servidor');
+        }
+    })
+    .then(html => {
+        // Check if it's a redirect or success page
+        if (html.includes('Relatórios') || html.includes('success')) {
+            window.location.href = '/reports';
+        } else {
+            // Parse response to check for errors
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const alerts = doc.querySelectorAll('.alert-danger');
+            if (alerts.length > 0) {
+                alert('Erro: ' + alerts[0].textContent);
+            } else {
+                window.location.href = '/reports';
+            }
         }
     })
     .catch(error => {
         console.error('Erro:', error);
-        alert('Erro ao salvar relatório');
+        alert('Erro ao salvar relatório: ' + error.message);
     });
 }
 
