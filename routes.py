@@ -202,22 +202,58 @@ def create_report():
             relatorio.titulo = titulo
             relatorio.projeto_id = projeto_id
             relatorio.autor_id = current_user.id
-            # Process checklist data if provided
-            checklist_data = request.form.get('checklist_data')
+            # Process checklist data from form
             checklist_text = ""
-            if checklist_data:
+            checklist_items = []
+            
+            # Check for standard checklist items from form_complete.html
+            checklist_fields = [
+                ('estrutura', 'Estrutura / Fundação', 'obs_estrutura'),
+                ('alvenaria', 'Alvenaria / Vedação', 'obs_alvenaria'), 
+                ('instalacoes', 'Instalações (Elétrica/Hidráulica)', 'obs_instalacoes'),
+                ('acabamento', 'Acabamentos', 'obs_acabamento'),
+                ('limpeza', 'Limpeza / Organização', 'obs_limpeza')
+            ]
+            
+            checklist_has_items = False
+            for field_name, field_label, obs_field in checklist_fields:
+                is_checked = request.form.get(field_name) == 'on'
+                observation = request.form.get(obs_field, '').strip()
+                
+                if is_checked or observation:
+                    checklist_has_items = True
+                    status = "✓" if is_checked else "○"
+                    checklist_items.append({
+                        'status': status,
+                        'item': field_label,
+                        'observation': observation
+                    })
+            
+            # Also check for JSON checklist data (legacy support)
+            json_checklist = request.form.get('checklist_data')
+            if json_checklist and not checklist_has_items:
                 try:
                     import json
-                    checklist_items = json.loads(checklist_data)
-                    checklist_text = "CHECKLIST DA OBRA:\n\n"
-                    for item_data in checklist_items:
+                    legacy_items = json.loads(json_checklist)
+                    for item_data in legacy_items:
                         status = "✓" if item_data.get('completed') else "○"
-                        checklist_text += f"{status} {item_data.get('item', '')}\n"
-                        if item_data.get('observations'):
-                            checklist_text += f"   Observações: {item_data.get('observations')}\n"
-                        checklist_text += "\n"
+                        checklist_items.append({
+                            'status': status,
+                            'item': item_data.get('item', ''),
+                            'observation': item_data.get('observations', '')
+                        })
+                    checklist_has_items = True
                 except Exception as e:
-                    print(f"Error parsing checklist data: {e}")
+                    print(f"Error parsing JSON checklist data: {e}")
+            
+            # Format checklist text for PDF
+            if checklist_has_items:
+                checklist_text = "CHECKLIST DA OBRA:\n\n"
+                for item in checklist_items:
+                    checklist_text += f"{item['status']} {item['item']}\n"
+                    if item['observation']:
+                        checklist_text += f"   Observações: {item['observation']}\n"
+                    checklist_text += "\n"
             
             # Process location data with address conversion
             latitude = request.form.get('latitude')

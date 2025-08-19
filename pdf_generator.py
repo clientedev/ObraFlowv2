@@ -74,6 +74,37 @@ class ReportPDFGenerator:
             fontName='Helvetica'
         ))
         
+        # Checklist styles
+        self.styles.add(ParagraphStyle(
+            name='ChecklistHeader',
+            parent=self.styles['Heading2'],
+            fontSize=11,
+            spaceAfter=8,
+            spaceBefore=15,
+            textColor=black,
+            fontName='Helvetica-Bold',
+            leftIndent=0
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='ChecklistItem',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            spaceAfter=4,
+            leftIndent=20,
+            fontName='Helvetica'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='ChecklistObservation',
+            parent=self.styles['Normal'],
+            fontSize=9,
+            spaceAfter=6,
+            leftIndent=40,
+            textColor=gray,
+            fontName='Helvetica-Oblique'
+        ))
+        
         # Footer company style
         self.styles.add(ParagraphStyle(
             name='FooterCompany',
@@ -353,34 +384,153 @@ class ReportPDFGenerator:
         story.append(Spacer(1, 20))
     
     def _add_template_items_section(self, story, relatorio):
-        """Add items observados section following template with improved formatting"""
+        """Add items observados section following template with improved checklist formatting"""
+        story.append(Paragraph("Itens observados", self.styles['SectionHeader']))
+        story.append(Spacer(1, 10))
+        
         if relatorio.conteudo:
-            story.append(Paragraph("Itens observados", self.styles['SectionHeader']))
-            story.append(Spacer(1, 10))
-            
-            # Process content to handle line breaks properly and format location
+            # Process content to handle line breaks properly and format different sections
             content_lines = relatorio.conteudo.split('\n')
+            in_checklist = False
+            in_location = False
+            
             for line in content_lines:
                 if line.strip():
-                    # Check if this is location information
-                    if 'LOCALIZAÇÃO DO RELATÓRIO:' in line:
+                    # Check if this is checklist section
+                    if 'CHECKLIST DA OBRA:' in line:
+                        in_checklist = True
+                        in_location = False
                         story.append(Spacer(1, 10))
-                        story.append(Paragraph("<b>Localização do Relatório:</b>", self.styles['SectionHeader']))
-                        story.append(Spacer(1, 5))
+                        
+                        # Create beautiful checklist header with border
+                        checklist_table = Table([['📋 CHECKLIST DA OBRA']], colWidths=[18*cm])
+                        checklist_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, -1), '#f0f8ff'),
+                            ('BORDER', (0, 0), (-1, -1), 1, '#4169e1'),
+                            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                            ('FONTSIZE', (0, 0), (-1, -1), 12),
+                            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                            ('TOPPADDING', (0, 0), (-1, -1), 8),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                        ]))
+                        story.append(checklist_table)
+                        story.append(Spacer(1, 8))
+                        
+                    # Check if this is location information
+                    elif 'LOCALIZAÇÃO DO RELATÓRIO:' in line:
+                        in_checklist = False
+                        in_location = True
+                        story.append(Spacer(1, 10))
+                        
+                        # Create beautiful location header with border
+                        location_table = Table([['📍 LOCALIZAÇÃO DO RELATÓRIO']], colWidths=[18*cm])
+                        location_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, -1), '#f0fff0'),
+                            ('BORDER', (0, 0), (-1, -1), 1, '#228b22'),
+                            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                            ('FONTSIZE', (0, 0), (-1, -1), 12),
+                            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                            ('TOPPADDING', (0, 0), (-1, -1), 8),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                        ]))
+                        story.append(location_table)
+                        story.append(Spacer(1, 8))
+                        
+                    # Format checklist items with improved design
+                    elif in_checklist and (line.startswith('✓') or line.startswith('○')):
+                        status_symbol = "✓" if line.startswith('✓') else "○"
+                        item_text = line[1:].strip()  # Remove status symbol
+                        
+                        # Create a table for each checklist item with status and description
+                        if status_symbol == "✓":
+                            # Completed item - green background
+                            item_table = Table([['✓', item_text]], colWidths=[1*cm, 17*cm])
+                            item_table.setStyle(TableStyle([
+                                ('BACKGROUND', (0, 0), (0, 0), '#90ee90'),  # Light green for checkmark
+                                ('BACKGROUND', (1, 0), (1, 0), '#f0fff0'),  # Very light green for text
+                                ('BORDER', (0, 0), (-1, -1), 0.5, black),
+                                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                                ('FONTNAME', (1, 0), (1, 0), 'Helvetica-Bold'),
+                                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                                ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+                                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                            ]))
+                        else:
+                            # Incomplete item - light orange background
+                            item_table = Table([['○', item_text]], colWidths=[1*cm, 17*cm])
+                            item_table.setStyle(TableStyle([
+                                ('BACKGROUND', (0, 0), (0, 0), '#ffd4aa'),  # Light orange for circle
+                                ('BACKGROUND', (1, 0), (1, 0), '#fff8f0'),  # Very light orange for text
+                                ('BORDER', (0, 0), (-1, -1), 0.5, black),
+                                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                                ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+                                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                            ]))
+                        
+                        story.append(item_table)
+                        story.append(Spacer(1, 4))
+                        
+                    # Format checklist observations with indentation
+                    elif in_checklist and line.strip().startswith('Observações:'):
+                        obs_text = line.replace('Observações:', '').strip()
+                        if obs_text:
+                            obs_table = Table([['💬', f"Observações: {obs_text}"]], colWidths=[1*cm, 17*cm])
+                            obs_table.setStyle(TableStyle([
+                                ('BACKGROUND', (0, 0), (-1, -1), '#f8f8f8'),
+                                ('BORDER', (0, 0), (-1, -1), 0.5, gray),
+                                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Oblique'),
+                                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                                ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+                                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                            ]))
+                            story.append(obs_table)
+                            story.append(Spacer(1, 8))
+                            
+                    # Format GPS coordinates
                     elif line.startswith('Latitude:') or line.startswith('Longitude:') or '(Coordenadas:' in line:
-                        # Format GPS coordinates in smaller text
-                        story.append(Paragraph(f"<i>{line.strip()}</i>", self.styles['Normal']))
+                        story.append(Paragraph(f"<i>{line.strip()}</i>", self.styles['Info']))
+                    # Format addresses in bold
                     elif any(keyword in line for keyword in ['Rua', 'Avenida', 'Estrada', 'Brasil', 'São Paulo', 'Rodovia']):
-                        # Format address in bold
-                        story.append(Paragraph(f"<b>{line.strip()}</b>", self.styles['Normal']))
+                        story.append(Paragraph(f"<b>{line.strip()}</b>", self.styles['Info']))
+                    # Regular content
                     else:
-                        story.append(Paragraph(line.strip(), self.styles['Normal']))
+                        story.append(Paragraph(line.strip(), self.styles['Info']))
                 else:
                     story.append(Spacer(1, 6))
             
             story.append(Spacer(1, 20))
         else:
-            story.append(Paragraph("Itens observados", self.styles['SectionHeader']))
+            # No content - show empty state
+            empty_table = Table([['📝 Nenhum item observado foi registrado neste relatório.']], colWidths=[18*cm])
+            empty_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), '#f5f5f5'),
+                ('BORDER', (0, 0), (-1, -1), 1, gray),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Oblique'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 20),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+            ]))
+            story.append(empty_table)
             story.append(Spacer(1, 20))
     
     def _add_project_info(self, story, relatorio):

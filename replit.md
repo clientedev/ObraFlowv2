@@ -27,6 +27,8 @@ This is a comprehensive construction site visit tracking system built with Flask
 - ✅ **Dashboard Proximity**: Works showing projects ordered by distance with proper API endpoints
 - ✅ **CSRF Issues Resolved**: API endpoints exempted from CSRF for proper functionality
 - ✅ **Visual Indicators**: Added clear UI markers showing "50 fotos" and "NOVO" features
+- ✅ **Dashboard Simplification**: Removed map interface, created simple list view of nearby projects
+- ✅ **Enhanced PDF Checklist**: Improved checklist formatting with colored tables, icons, and professional layout
 
 # User Preferences
 
