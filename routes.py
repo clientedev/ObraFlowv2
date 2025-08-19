@@ -78,28 +78,24 @@ def register():
 # Main routes
 @app.route('/')
 def index():
-    # Dashboard statistics
-    total_projetos = Projeto.query.count()
-    projetos_ativos = Projeto.query.filter_by(status='Ativo').count()
-    visitas_pendentes = Visita.query.filter_by(status='Agendada').count()
-    relatorios_rascunho = Relatorio.query.filter_by(status='Rascunho').count()
-    
-    # Recent activities
-    recent_visitas = Visita.query.order_by(Visita.created_at.desc()).limit(5).all()
-    recent_relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(5).all()
-    
     # Se não estiver logado, redirecionar para login
     if not current_user.is_authenticated:
         return redirect(url_for('login'))
     
+    # Dashboard statistics with proper model queries
+    stats = {
+        'projetos_ativos': Projeto.query.filter(Projeto.status.in_(['ativo', 'Ativo'])).count(),
+        'visitas_agendadas': Visita.query.filter(Visita.status.in_(['agendada', 'Agendada'])).count(),
+        'relatorios_pendentes': Relatorio.query.filter(Relatorio.status.in_(['rascunho', 'Rascunho'])).count(),
+        'reembolsos_pendentes': Reembolso.query.filter(Reembolso.status.in_(['pendente', 'Pendente'])).count() if 'Reembolso' in globals() else 0
+    }
+    
+    # Get recent reports
+    relatorios_recentes = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(5).all()
+    
     return render_template('dashboard_simple.html',
-                         total_projetos=total_projetos,
-                         projetos_ativos=projetos_ativos,
-                         visitas_pendentes=visitas_pendentes,
-                         relatorios_rascunho=relatorios_rascunho,
-                         recent_visitas=recent_visitas,
-                         recent_relatorios=recent_relatorios,
-                         relatorios_recentes=recent_relatorios)
+                         stats=stats,
+                         relatorios_recentes=relatorios_recentes)
 
 # User management routes
 @app.route('/users')

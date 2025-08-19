@@ -1,91 +1,66 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - ELP Consultoria{% endblock %}
-
-{% block header %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2"><i class="fas fa-tachometer-alt me-2 text-primary"></i>Dashboard ELP</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <span class="badge bg-primary fs-6 me-2">
-            <i class="fas fa-user me-1"></i>{{ current_user.nome_completo }}
-        </span>
-        <span class="badge bg-info fs-6">
-            <i class="fas fa-building me-1"></i>{{ current_user.empresa or 'ELP Consultoria' }}
-        </span>
-    </div>
-</div>
-{% endblock %}
+{% block title %}Dashboard - Sistema de Obras{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Statistics Cards -->
+    <!-- Header Stats -->
     <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2" style="border-left: 0.25rem solid #4e73df;">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Projetos Ativos
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.projetos_ativos }}</div>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Projetos</h5>
+                            <h2>{{ total_projetos }}</h2>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-project-diagram fa-2x text-gray-300"></i>
+                        <div class="align-self-center">
+                            <i class="fas fa-project-diagram fa-2x"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2" style="border-left: 0.25rem solid #1cc88a;">
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Visitas Agendadas
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.visitas_agendadas }}</div>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Visitas</h5>
+                            <h2>{{ visitas_pendentes }}</h2>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-check fa-2x"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2" style="border-left: 0.25rem solid #36b9cc;">
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Relatórios Pendentes
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.relatorios_pendentes }}</div>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Relatórios</h5>
+                            <h2>{{ relatorios_rascunho }}</h2>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        <div class="align-self-center">
+                            <i class="fas fa-file-alt fa-2x"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2" style="border-left: 0.25rem solid #f6c23e;">
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Reembolsos Pendentes
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.reembolsos_pendentes }}</div>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Ativos</h5>
+                            <h2>{{ projetos_ativos }}</h2>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -93,12 +68,47 @@
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="row">
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-plus-circle me-2"></i>Ações Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('project_new') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-plus me-2"></i>Novo Projeto
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('visit_new') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-calendar-plus me-2"></i>Agendar Visita
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('create_report') }}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-file-plus me-2"></i>Novo Relatório
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('visits_list') }}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-list me-2"></i>Listar Visitas
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Atividades Recentes -->
+    <div class="row mb-4">
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5><i class="fas fa-file-alt me-2"></i>Relatórios Recentes</h5>
+                <div class="card-header">
+                    <h5><i class="fas fa-clock me-2"></i>Relatórios Recentes</h5>
                 </div>
                 <div class="card-body">
                     {% if relatorios_recentes %}
@@ -132,7 +142,7 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-map-marker-alt me-2"></i>Obras Próximas</h5>
-                    <button class="btn btn-sm btn-primary" id="locateBtn" onclick="findNearbyProjects()">
+                    <button class="btn btn-sm btn-primary" id="locateBtn" onclick="getCurrentLocation()">
                         <i class="fas fa-crosshairs me-1"></i>Localizar
                     </button>
                 </div>
@@ -157,7 +167,7 @@
 <script>
 let userLocation = null;
 
-function findNearbyProjects() {
+function getCurrentLocation() {
     const statusEl = document.getElementById('locationStatus');
     const locateBtn = document.getElementById('locateBtn');
     
@@ -235,23 +245,48 @@ function findNearbyProjects() {
             maximumAge: 60000
         }
     );
+        return;
+    }
+    
+    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Obtendo localização...';
+    statusEl.className = 'alert alert-warning';
+    
+    navigator.geolocation.getCurrentPosition(
+
+        function(error) {
+            let errorMsg = 'Erro ao obter localização.';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg = 'Permissão negada para acessar localização.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMsg = 'Localização indisponível.';
+                    break;
+                case error.TIMEOUT:
+                    errorMsg = 'Tempo limite para obter localização.';
+                    break;
+            }
+            statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${errorMsg}`;
+            statusEl.className = 'alert alert-danger';
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+        }
+    );
 }
 
 function loadNearbyProjects() {
     if (!userLocation) {
-        const statusEl = document.getElementById('locationStatus');
-        if (statusEl) {
-            statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Localização não disponível';
-            statusEl.className = 'alert alert-danger';
-        }
+        document.getElementById('locationStatus').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Localização não disponível';
+        document.getElementById('locationStatus').className = 'alert alert-danger';
         return;
     }
     
     const statusEl = document.getElementById('locationStatus');
-    if (statusEl) {
-        statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando obras próximas...';
-        statusEl.className = 'alert alert-info';
-    }
+    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando obras próximas...';
+    statusEl.className = 'alert alert-info';
     
     // Use GET request with query parameters
     const url = `/api/nearby-projects?lat=${userLocation.lat}&lon=${userLocation.lon}&radius=50`;
@@ -267,26 +302,16 @@ function loadNearbyProjects() {
         const projectsList = document.getElementById('projectsList');
         
         if (data.success && data.projects) {
-            if (statusEl) {
-                statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Encontradas ${data.projects.length} obras próximas`;
-                statusEl.className = 'alert alert-success';
-            }
+            statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Encontradas ${data.projects.length} obras próximas`;
+            statusEl.className = 'alert alert-success';
             
             if (data.projects.length === 0) {
-                if (projectsList) {
-                    projectsList.innerHTML = '<div class="text-center text-muted p-3"><i class="fas fa-info-circle"></i><br>Nenhuma obra encontrada próxima à sua localização (raio de 50km)</div>';
-                }
+                projectsList.innerHTML = '<div class="text-center text-muted p-3"><i class="fas fa-info-circle"></i><br>Nenhuma obra encontrada próxima à sua localização (raio de 50km)</div>';
             } else {
                 let projectsHtml = '';
                 data.projects.forEach((project, index) => {
-                    let rankingEmoji = '';
-                    if (index === 0) rankingEmoji = '🥇';
-                    else if (index === 1) rankingEmoji = '🥈';
-                    else if (index === 2) rankingEmoji = '🥉';
-                    else rankingEmoji = '📍';
-                    
-                    const statusBadge = project.status === 'ativo' ? 'bg-success' : 
-                                      project.status === 'concluido' ? 'bg-primary' : 'bg-warning';
+                    const statusBadge = project.status === 'Ativo' ? 'bg-success' : 'bg-secondary';
+                    const rankingEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}°`;
                     
                     projectsHtml += `
                         <div class="list-group-item d-flex justify-content-between align-items-center">
@@ -305,30 +330,19 @@ function loadNearbyProjects() {
                         </div>
                     `;
                 });
-                if (projectsList) {
-                    projectsList.innerHTML = projectsHtml;
-                }
+                projectsList.innerHTML = projectsHtml;
             }
         } else {
-            if (statusEl) {
-                statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erro: ${data.error || 'Erro desconhecido'}`;
-                statusEl.className = 'alert alert-danger';
-            }
-            if (projectsList) {
-                projectsList.innerHTML = '<div class="text-center text-muted p-3"><i class="fas fa-exclamation-triangle"></i><br>Erro ao carregar obras</div>';
-            }
+            statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erro: ${data.error || 'Erro desconhecido'}`;
+            statusEl.className = 'alert alert-danger';
+            projectsList.innerHTML = '<div class="text-center text-muted p-3"><i class="fas fa-exclamation-triangle"></i><br>Erro ao carregar obras</div>';
         }
     })
     .catch(error => {
         console.error('Error loading nearby projects:', error);
-        if (statusEl) {
-            statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro de conexão';
-            statusEl.className = 'alert alert-danger';
-        }
-        const projectsList = document.getElementById('projectsList');
-        if (projectsList) {
-            projectsList.innerHTML = '<div class="text-center text-muted p-3"><i class="fas fa-exclamation-triangle"></i><br>Erro de conexão</div>';
-        }
+        statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro de conexão';
+        statusEl.className = 'alert alert-danger';
+        document.getElementById('projectsList').innerHTML = '<div class="text-center text-muted p-3"><i class="fas fa-exclamation-triangle"></i><br>Erro de conexão</div>';
     });
 }
 </script>
