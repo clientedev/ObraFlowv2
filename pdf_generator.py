@@ -328,10 +328,10 @@ class ReportPDFGenerator:
             from flask import current_app
             # Try multiple logo paths to ensure we find the correct one
             possible_logos = [
+                'static/logo_elp_final.jpg',  # New ELP logo from user
                 'static/logo_elp_current.jpg',
-                'static/logo_elp_new.jpg', 
-                'attached_assets/elp_1755609978629.jpg',
-                'static/logo_elp.jpg'
+                'attached_assets/elp_1755611724757.jpg',  # User's new logo
+                'static/logo_elp_new.jpg'
             ]
             logo_path = None
             for path in possible_logos:
@@ -629,7 +629,7 @@ class ReportPDFGenerator:
         story.append(Spacer(1, 20))
     
     def _add_visit_info(self, story, visita):
-        """Add visit information section"""
+        """Add visit information section with enhanced GPS formatting"""
         story.append(Paragraph("INFORMAÇÕES DA VISITA", self.styles['Header']))
         
         visit_data = [
@@ -649,8 +649,14 @@ class ReportPDFGenerator:
         if visita.observacoes:
             visit_data.append(['Observações:', visita.observacoes])
         
+        # Enhanced GPS location formatting
+        # Enhanced GPS location formatting
         if visita.endereco_gps:
-            visit_data.append(['Localização GPS:', visita.endereco_gps])
+            visit_data.append(['📍 Localização GPS:', visita.endereco_gps])
+        
+        if hasattr(visita, 'latitude') and hasattr(visita, 'longitude') and visita.latitude and visita.longitude:
+            coords_text = f"Coordenadas: {visita.latitude:.6f}, {visita.longitude:.6f}"
+            visit_data.append(['🗺️ Coordenadas Exatas:', coords_text])
         
         visit_table = Table(visit_data, colWidths=[4*cm, 12*cm])
         visit_table.setStyle(TableStyle([

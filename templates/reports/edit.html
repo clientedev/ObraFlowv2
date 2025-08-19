@@ -97,10 +97,11 @@
                                     <div class="col-md-4 col-lg-3 mb-4">
                                         <div class="card h-100">
                                             <div class="position-relative">
-                                                <img src="{{ url_for('static', filename='uploads/' + foto.filename) }}" 
-                                                     class="card-img-top" 
-                                                     style="height: 200px; object-fit: cover;"
-                                                     alt="{{ foto.legenda }}"
+                                                <img src="/uploads/{{ foto.filename }}" 
+                                                     class="card-img-top img-fluid" 
+                                                     style="height: 200px; object-fit: cover; cursor: pointer;"
+                                                     alt="{{ foto.legenda or 'Foto' }}"
+                                                     onclick="showPhotoModal('/uploads/{{ foto.filename }}', '{{ foto.legenda or 'Sem descrição' }}', {{ foto.ordem }})"
                                                      onerror="this.src='/static/img/no-image.png'">
                                                 <div class="position-absolute top-0 end-0 p-2">
                                                     <button class="btn btn-sm btn-warning me-1" 
@@ -116,11 +117,14 @@
                                                 </div>
                                             </div>
                                             <div class="card-body p-2">
-                                                <h6 class="card-title small">{{ foto.legenda }}</h6>
+                                                <h6 class="card-title small">{{ foto.legenda or 'Sem título' }}</h6>
                                                 <p class="card-text small text-muted">
-                                                    Categoria: {{ foto.tipo_servico }}<br>
-                                                    Ordem: {{ foto.ordem }}
+                                                    <i class="fas fa-tag me-1"></i>{{ foto.tipo_servico or 'Geral' }}<br>
+                                                    <i class="fas fa-sort-numeric-up me-1"></i>Ordem: {{ foto.ordem }}
                                                 </p>
+                                                <small class="text-primary">
+                                                    <i class="fas fa-expand-arrows-alt me-1"></i>Clique para ampliar
+                                                </small>
                                             </div>
                                         </div>
                                     </div>
