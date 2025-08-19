@@ -87,6 +87,10 @@ class Visita(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     @property
+    def projeto(self):
+        return Projeto.query.get(self.projeto_id)
+    
+    @property 
     def responsavel(self):
         return User.query.get(self.responsavel_id)
 

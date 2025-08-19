@@ -1049,39 +1049,60 @@ def visits_calendar():
     return render_template('visits/calendar.html')
 
 @app.route('/visits/new', methods=['GET', 'POST'])
-@login_required
+@login_required  
 def visit_new():
-    form = VisitaForm()
-    
-    if form.validate_on_submit():
-        visita = Visita(
-            numero=generate_visit_number(),
-            projeto_id=form.projeto_id.data,
-            responsavel_id=current_user.id,
-            data_agendada=form.data_agendada.data,
-            objetivo=form.objetivo.data
-        )
-        
-        db.session.add(visita)
-        db.session.flush()  # Get the ID
-        
-        # Add default checklist items from templates
-        templates = ChecklistTemplate.query.filter_by(ativo=True).order_by(ChecklistTemplate.ordem).all()
-        for template in templates:
-            checklist_item = ChecklistItem(
-                visita_id=visita.id,
-                template_id=template.id,
-                pergunta=template.descricao,
-                obrigatorio=template.obrigatorio,
-                ordem=template.ordem
+    if request.method == 'POST' and 'data_agendada' in request.form:
+        # Handle datetime-local input manually
+        try:
+            from datetime import datetime
+            data_str = request.form['data_agendada']
+            projeto_id = int(request.form['projeto_id'])
+            objetivo = request.form['objetivo']
+            
+            if not data_str or not projeto_id or not objetivo:
+                flash('Por favor, preencha todos os campos obrigatórios.', 'error')
+                form = VisitaForm()
+                return render_template('visits/form.html', form=form)
+            
+            # Parse datetime
+            data_agendada = datetime.fromisoformat(data_str.replace('T', ' '))
+            
+            visita = Visita(
+                numero=generate_visit_number(),
+                projeto_id=projeto_id,
+                responsavel_id=current_user.id,
+                data_agendada=data_agendada,
+                objetivo=objetivo
             )
-            db.session.add(checklist_item)
-        
-        db.session.commit()
-        flash('Visita agendada com sucesso!', 'success')
-        return redirect(url_for('visits_list'))
+            
+            db.session.add(visita)
+            db.session.flush()  # Get the ID
+            
+            # Add default checklist items from templates
+            templates = ChecklistTemplate.query.filter_by(ativo=True).order_by(ChecklistTemplate.ordem).all()
+            for template in templates:
+                checklist_item = ChecklistItem(
+                    visita_id=visita.id,
+                    template_id=template.id,
+                    pergunta=template.descricao,
+                    obrigatorio=template.obrigatorio,
+                    ordem=template.ordem
+                )
+                db.session.add(checklist_item)
+            
+            db.session.commit()
+            flash('Visita agendada com sucesso!', 'success')
+            return redirect(url_for('visits_list'))
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error creating visit: {e}")
+            flash('Erro ao agendar visita. Verifique os dados e tente novamente.', 'error')
     
+    # GET request or form validation failed
+    form = VisitaForm()
     return render_template('visits/form.html', form=form)
+
 
 @app.route('/visits/<int:visit_id>/realize', methods=['GET', 'POST'])
 @login_required
