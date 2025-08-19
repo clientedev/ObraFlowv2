@@ -644,6 +644,11 @@ function saveEditedPhoto() {
 
 // Submissão do formulário
 document.getElementById('reportForm').addEventListener('submit', function(e) {
+    e.preventDefault(); // Prevent default form submission
+    
+    // Create FormData object for proper file handling
+    const formData = new FormData(this);
+    
     // Coletar dados do checklist
     const checklistData = [];
     document.querySelectorAll('.checklist-item').forEach(item => {
@@ -664,47 +669,62 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
         }
     });
     
-    // Adicionar dados do checklist ao formulário
-    const checklistInput = document.createElement('input');
-    checklistInput.type = 'hidden';
-    checklistInput.name = 'checklist_data';
-    checklistInput.value = JSON.stringify(checklistData);
-    this.appendChild(checklistInput);
+    // Add checklist data
+    formData.append('checklist_data', JSON.stringify(checklistData));
     
-    // Adicionar fotos editadas como campos hidden
+    // Add photo files and metadata
     selectedPhotos.forEach((photo, index) => {
-        if (photo.editedSrc) {
-            const photoInput = document.createElement('input');
-            photoInput.type = 'hidden';
-            photoInput.name = `edited_photo_${index}`;
-            photoInput.value = photo.editedSrc;
-            this.appendChild(photoInput);
-        }
+        // Add the actual file
+        formData.append(`photo_${index}`, photo.file);
         
-        const photoFileInput = document.createElement('input');
-        photoFileInput.type = 'hidden';
-        photoFileInput.name = `photo_file_${index}`;
-        photoFileInput.value = photo.file.name;
-        this.appendChild(photoFileInput);
-        
-        const photoCategoryInput = document.createElement('input');
-        photoCategoryInput.type = 'hidden';
-        photoCategoryInput.name = `photo_category_${index}`;
-        photoCategoryInput.value = photo.category;
-        this.appendChild(photoCategoryInput);
+        // Add photo metadata
+        formData.append(`photo_category_${index}`, photo.category);
         
         const caption = document.querySelector(`input[name="photo_caption_${photo.id}"]`);
-        if (caption) {
-            const photoCaptionInput = document.createElement('input');
-            photoCaptionInput.type = 'hidden';
-            photoCaptionInput.name = `photo_caption_${index}`;
-            photoCaptionInput.value = caption.value;
-            this.appendChild(photoCaptionInput);
+        if (caption && caption.value) {
+            formData.append(`photo_caption_${index}`, caption.value);
+        }
+        
+        // Add edited photo data if exists
+        if (photo.editedSrc) {
+            formData.append(`edited_photo_${index}`, photo.editedSrc);
         }
     });
     
-    // Submeter formulário tradicional
-    return true;
+    // Show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    submitBtn.disabled = true;
+    
+    // Submit via fetch
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.text();
+        } else {
+            throw new Error('Erro ao salvar relatório');
+        }
+    })
+    .then(html => {
+        // Check if response is a redirect (success)
+        if (html.includes('Relatório') || html.includes('reports')) {
+            window.location.href = '/reports';
+        } else {
+            // Show success message and redirect
+            alert('Relatório salvo com sucesso!');
+            window.location.href = '/reports';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao salvar relatório. Tente novamente.');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
 });
 
 // Função para capturar localização
