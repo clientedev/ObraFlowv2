@@ -295,76 +295,24 @@ class ReportPDFGenerator:
                 story.append(photo_table)
                 story.append(Spacer(1, 15))
         
-        # PROFESSIONAL ELP FOOTER WITH SIGNATURES
-        story.append(Spacer(1, 40))
-        
-        # ELP signature section header
-        signature_header = Table([['✍️ ASSINATURAS E RESPONSABILIDADES - ELP CONSULTORIA']], colWidths=[18*cm])
-        signature_header.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), '#343a40'),  # ELP dark gray
-            ('BORDER', (0, 0), (-1, -1), 2, '#20c1e8'),  # ELP cyan border
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 14),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-            ('TEXTCOLOR', (0, 0), (-1, -1), white),
-        ]))
-        story.append(signature_header)
-        story.append(Spacer(1, 20))
-        
-        # Professional signature table with ELP styling
-        signature_table = Table([
-            ['👷 PREENCHIDO POR:', '⚙️ LIBERADO POR:', '📋 RESPONSÁVEL TÉCNICO'],
-            [f'{autor_nome}\n\n_________________\nData: ___/___/___', 
-             'Engenheiro Responsável ELP\n\n_________________\nData: ___/___/___', 
-             'Responsável pelo Acompanhamento\n\n_________________\nData: ___/___/___']
-        ], colWidths=[6*cm, 6*cm, 6*cm], rowHeights=[1.5*cm, 4*cm])
-        
-        signature_table.setStyle(TableStyle([
-            # Header row styling
-            ('BACKGROUND', (0, 0), (-1, 0), '#20c1e8'),  # ELP cyan header
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
-            
-            # Content row styling
-            ('BACKGROUND', (0, 1), (-1, -1), '#f8f9fa'),  # Light background
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('TEXTCOLOR', (0, 1), (-1, -1), '#343a40'),  # ELP dark text
-            ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 1), (-1, -1), 'TOP'),
-            
-            # Border and padding
-            ('GRID', (0, 0), (-1, -1), 2, '#343a40'),  # ELP dark grid
-            ('TOPPADDING', (0, 0), (-1, -1), 15),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-        ]))
-        
-        story.append(signature_table)
+        # Simple ELP footer (removed signatures as requested)
         story.append(Spacer(1, 30))
         
-        # ELP footer with contact information
+        # ELP contact footer
         footer_info = Table([[
-            'ELP CONSULTORIA E ENGENHARIA - Serviços Especializados em Fachadas\n'
-            '📞 (11) 9999-9999 | 📧 contato@elpconsultoria.com.br | 🌐 www.elpconsultoria.com.br'
+            'ELP CONSULTORIA E ENGENHARIA - Especializada em Fachadas de Obras e Empreendimentos Verticais\n'
+            '📞 (11) 9999-9999 | 📧 contato@elpconsultoria.com.br'
         ]], colWidths=[18*cm])
         footer_info.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), '#f8f9fa'),
-            ('BORDER', (0, 0), (-1, -1), 1, '#dee2e6'),
+            ('BORDER', (0, 0), (-1, -1), 1, '#20c1e8'),  # ELP cyan border
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('TEXTCOLOR', (0, 0), (-1, -1), '#6c757d'),
+            ('TOPPADDING', (0, 0), (-1, -1), 15),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+            ('TEXTCOLOR', (0, 0), (-1, -1), '#343a40'),  # ELP dark text
         ]))
         story.append(footer_info)
         
@@ -584,23 +532,28 @@ class ReportPDFGenerator:
                         story.append(item_table)
                         story.append(Spacer(1, 8))
                         
-                    # Format checklist observations with indentation
+                    # Format checklist observations with improved styling
                     elif in_checklist and line.strip().startswith('Observações:'):
                         obs_text = line.replace('Observações:', '').strip()
                         if obs_text:
-                            obs_table = Table([['💬', f"Observações: {obs_text}"]], colWidths=[1*cm, 17*cm])
+                            obs_table = Table([['💬 OBSERVAÇÕES', obs_text]], colWidths=[4*cm, 14*cm])
                             obs_table.setStyle(TableStyle([
-                                ('BACKGROUND', (0, 0), (-1, -1), '#f8f8f8'),
-                                ('BORDER', (0, 0), (-1, -1), 0.5, gray),
-                                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Oblique'),
-                                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                                ('BACKGROUND', (0, 0), (0, 0), '#20c1e8'),  # ELP cyan header
+                                ('BACKGROUND', (1, 0), (1, 0), '#f0f9ff'),  # Light blue background
+                                ('BORDER', (0, 0), (-1, -1), 2, '#343a40'),  # ELP dark border
+                                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                                ('FONTNAME', (1, 0), (1, 0), 'Helvetica'),
+                                ('FONTSIZE', (0, 0), (0, 0), 10),
+                                ('FONTSIZE', (1, 0), (1, 0), 11),
                                 ('ALIGN', (0, 0), (0, 0), 'CENTER'),
                                 ('ALIGN', (1, 0), (1, 0), 'LEFT'),
                                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                ('TOPPADDING', (0, 0), (-1, -1), 4),
-                                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                                ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                                ('TOPPADDING', (0, 0), (-1, -1), 10),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                                ('TEXTCOLOR', (0, 0), (0, 0), white),  # White text on cyan
+                                ('TEXTCOLOR', (1, 0), (1, 0), '#343a40'),  # Dark text
                             ]))
                             story.append(obs_table)
                             story.append(Spacer(1, 8))
