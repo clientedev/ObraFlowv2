@@ -295,24 +295,78 @@ class ReportPDFGenerator:
                 story.append(photo_table)
                 story.append(Spacer(1, 15))
         
-        # Footer section
-        story.append(Spacer(1, 30))
-        story.append(Paragraph("Assinaturas", self.styles['SectionHeader']))
+        # PROFESSIONAL ELP FOOTER WITH SIGNATURES
+        story.append(Spacer(1, 40))
         
-        # Signature table
+        # ELP signature section header
+        signature_header = Table([['✍️ ASSINATURAS E RESPONSABILIDADES - ELP CONSULTORIA']], colWidths=[18*cm])
+        signature_header.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), '#343a40'),  # ELP dark gray
+            ('BORDER', (0, 0), (-1, -1), 2, '#20c1e8'),  # ELP cyan border
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 14),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('TEXTCOLOR', (0, 0), (-1, -1), white),
+        ]))
+        story.append(signature_header)
+        story.append(Spacer(1, 20))
+        
+        # Professional signature table with ELP styling
         signature_table = Table([
-            ['Preenchido por:', 'Liberado por:', 'Responsável pelo acompanhamento'],
-            [autor_nome, 'Engenheiro Responsável', 'Responsável Técnico']
-        ], colWidths=[6*cm, 6*cm, 6*cm])
+            ['👷 PREENCHIDO POR:', '⚙️ LIBERADO POR:', '📋 RESPONSÁVEL TÉCNICO'],
+            [f'{autor_nome}\n\n_________________\nData: ___/___/___', 
+             'Engenheiro Responsável ELP\n\n_________________\nData: ___/___/___', 
+             'Responsável pelo Acompanhamento\n\n_________________\nData: ___/___/___']
+        ], colWidths=[6*cm, 6*cm, 6*cm], rowHeights=[1.5*cm, 4*cm])
         
         signature_table.setStyle(TableStyle([
+            # Header row styling
+            ('BACKGROUND', (0, 0), (-1, 0), '#20c1e8'),  # ELP cyan header
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('GRID', (0, 0), (-1, -1), 0.5, black),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+            
+            # Content row styling
+            ('BACKGROUND', (0, 1), (-1, -1), '#f8f9fa'),  # Light background
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('TEXTCOLOR', (0, 1), (-1, -1), '#343a40'),  # ELP dark text
+            ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 1), (-1, -1), 'TOP'),
+            
+            # Border and padding
+            ('GRID', (0, 0), (-1, -1), 2, '#343a40'),  # ELP dark grid
+            ('TOPPADDING', (0, 0), (-1, -1), 15),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
         ]))
         
         story.append(signature_table)
+        story.append(Spacer(1, 30))
+        
+        # ELP footer with contact information
+        footer_info = Table([[
+            'ELP CONSULTORIA E ENGENHARIA - Serviços Especializados em Fachadas\n'
+            '📞 (11) 9999-9999 | 📧 contato@elpconsultoria.com.br | 🌐 www.elpconsultoria.com.br'
+        ]], colWidths=[18*cm])
+        footer_info.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), '#f8f9fa'),
+            ('BORDER', (0, 0), (-1, -1), 1, '#dee2e6'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TEXTCOLOR', (0, 0), (-1, -1), '#6c757d'),
+        ]))
+        story.append(footer_info)
         
         # Build PDF
         doc.build(story)
@@ -324,22 +378,33 @@ class ReportPDFGenerator:
         # Company header with logo
         try:
             from flask import current_app
-            logo_path = os.path.join('static', 'logo_elp_transparent.png')
+            logo_path = os.path.join('static', 'logo_elp_new.jpg')  # Use JPG for PDF compatibility
             if os.path.exists(logo_path):
-                logo_img = Image(logo_path, width=3*cm, height=1.5*cm)
+                logo_img = Image(logo_path, width=4*cm, height=2*cm)
                 
-                # Create header table with logo and company info
-                header_data = [
-                    [logo_img, 'ELP CONSULTORIA E ENGENHARIA\nServiços de Engenharia\nEspecializada em Fachadas de Obras e Empreendimentos Verticais', '']
+                # Create professional ELP header
+                company_info = [
+                    Paragraph("<b>ELP CONSULTORIA E ENGENHARIA</b>", self.styles['CompanyHeader']),
+                    Paragraph("Serviços de Engenharia Especializada em Fachadas", self.styles['CompanySubheader']),
+                    Paragraph("de Obras e Empreendimentos Verticais", self.styles['CompanySubheader']),
+                    Spacer(1, 8),
+                    Paragraph("📞 (11) 9999-9999 | 📧 contato@elpconsultoria.com.br", self.styles['CompanyContact'])
                 ]
                 
-                header_table = Table(header_data, colWidths=[4*cm, 12*cm, 3*cm])
+                header_table = Table([
+                    [logo_img, company_info]
+                ], colWidths=[5*cm, 13*cm])
+                
                 header_table.setStyle(TableStyle([
                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('ALIGN', (0, 0), (0, 0), 'CENTER'),
                     ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-                    ('FONTNAME', (1, 0), (1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (1, 0), (1, 0), 10),
-                    ('TEXTCOLOR', (1, 0), (1, 0), '#343a40'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 15),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 15),
+                    ('TOPPADDING', (0, 0), (-1, -1), 20),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+                    ('BACKGROUND', (0, 0), (-1, -1), '#f8f9fa'),
+                    ('BORDER', (0, 0), (-1, -1), 3, '#20c1e8'),
                 ]))
                 
                 story.append(header_table)
@@ -465,53 +530,59 @@ class ReportPDFGenerator:
                         story.append(location_table)
                         story.append(Spacer(1, 8))
                         
-                    # Format checklist items with improved design
+                    # Format checklist items with PROFESSIONAL ELP design
                     elif in_checklist and (line.startswith('✓') or line.startswith('○')):
                         status_symbol = "✓" if line.startswith('✓') else "○"
                         item_text = line[1:].strip()  # Remove status symbol
                         
-                        # Create a table for each checklist item with status and description
+                        # Create ENHANCED checklist item with ELP branding
                         if status_symbol == "✓":
-                            # Completed item - green background with ELP colors
-                            item_table = Table([['✅', item_text]], colWidths=[1*cm, 17*cm])
+                            # APPROVED item - Professional green with ELP styling
+                            status_icon = "✅ CONFORME"
+                            item_table = Table([[status_icon, item_text]], colWidths=[3*cm, 15*cm])
                             item_table.setStyle(TableStyle([
-                                ('BACKGROUND', (0, 0), (0, 0), '#20c1e8'),  # ELP cyan for checkmark
-                                ('BACKGROUND', (1, 0), (1, 0), '#f0fff0'),  # Very light green for text
-                                ('BORDER', (0, 0), (-1, -1), 0.5, '#343a40'),  # ELP dark border
+                                ('BACKGROUND', (0, 0), (0, 0), '#28a745'),  # Professional green
+                                ('BACKGROUND', (1, 0), (1, 0), '#d4edda'),  # Light green background
+                                ('BORDER', (0, 0), (-1, -1), 2, '#20c1e8'),  # ELP cyan border
                                 ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-                                ('FONTNAME', (1, 0), (1, 0), 'Helvetica'),
-                                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                                ('FONTNAME', (1, 0), (1, 0), 'Helvetica-Bold'),
+                                ('FONTSIZE', (0, 0), (0, 0), 9),
+                                ('FONTSIZE', (1, 0), (1, 0), 11),
                                 ('ALIGN', (0, 0), (0, 0), 'CENTER'),
                                 ('ALIGN', (1, 0), (1, 0), 'LEFT'),
                                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                ('TOPPADDING', (0, 0), (-1, -1), 8),
-                                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-                                ('TEXTCOLOR', (1, 0), (1, 0), '#343a40'),  # ELP dark text
+                                ('TOPPADDING', (0, 0), (-1, -1), 12),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                                ('TEXTCOLOR', (0, 0), (0, 0), white),  # White text on green
+                                ('TEXTCOLOR', (1, 0), (1, 0), '#155724'),  # Dark green text
                             ]))
                         else:
-                            # Incomplete item - orange background with ELP colors
-                            item_table = Table([['❌', item_text]], colWidths=[1*cm, 17*cm])
+                            # NON-COMPLIANT item - Professional red with ELP styling  
+                            status_icon = "❌ NÃO CONFORME"
+                            item_table = Table([[status_icon, item_text]], colWidths=[3*cm, 15*cm])
                             item_table.setStyle(TableStyle([
-                                ('BACKGROUND', (0, 0), (0, 0), '#ff6b6b'),  # Light red for incomplete
-                                ('BACKGROUND', (1, 0), (1, 0), '#fff0f0'),  # Very light red for text
-                                ('BORDER', (0, 0), (-1, -1), 0.5, '#343a40'),  # ELP dark border
+                                ('BACKGROUND', (0, 0), (0, 0), '#dc3545'),  # Professional red
+                                ('BACKGROUND', (1, 0), (1, 0), '#f8d7da'),  # Light red background
+                                ('BORDER', (0, 0), (-1, -1), 2, '#343a40'),  # ELP dark border
                                 ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-                                ('FONTNAME', (1, 0), (1, 0), 'Helvetica'),
-                                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                                ('FONTNAME', (1, 0), (1, 0), 'Helvetica-Bold'),
+                                ('FONTSIZE', (0, 0), (0, 0), 9),
+                                ('FONTSIZE', (1, 0), (1, 0), 11),
                                 ('ALIGN', (0, 0), (0, 0), 'CENTER'),
                                 ('ALIGN', (1, 0), (1, 0), 'LEFT'),
                                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                ('TOPPADDING', (0, 0), (-1, -1), 8),
-                                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-                                ('TEXTCOLOR', (1, 0), (1, 0), '#343a40'),  # ELP dark text
+                                ('TOPPADDING', (0, 0), (-1, -1), 12),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                                ('TEXTCOLOR', (0, 0), (0, 0), white),  # White text on red
+                                ('TEXTCOLOR', (1, 0), (1, 0), '#721c24'),  # Dark red text
                             ]))
                         
                         story.append(item_table)
-                        story.append(Spacer(1, 4))
+                        story.append(Spacer(1, 8))
                         
                     # Format checklist observations with indentation
                     elif in_checklist and line.strip().startswith('Observações:'):
@@ -648,11 +719,27 @@ class ReportPDFGenerator:
         """Add photos in 2x2 grid format following template with ELP branding"""
         fotos_ordenadas = sorted(fotos, key=lambda x: x.ordem if hasattr(x, 'ordem') else 0)
         
-        # Process photos in groups of 4 (2x2 grid)
+        # PROFESSIONAL ELP PHOTO SECTION HEADER
+        photos_header = Table([['📸 REGISTRO FOTOGRÁFICO - ELP CONSULTORIA E ENGENHARIA']], colWidths=[18*cm])
+        photos_header.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), '#20c1e8'),  # ELP cyan
+            ('BORDER', (0, 0), (-1, -1), 3, '#343a40'),  # ELP dark border
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 16),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 15),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+            ('TEXTCOLOR', (0, 0), (-1, -1), white),
+        ]))
+        story.append(photos_header)
+        story.append(Spacer(1, 20))
+        
+        # Process photos in professional 2x2 grid layout
         for i in range(0, len(fotos_ordenadas), 4):
             batch = fotos_ordenadas[i:i+4]
             
-            # Create 2x2 grid
+            # Create professional 2x2 grid with ELP styling
             row1_data = []
             row2_data = []
             
@@ -663,7 +750,20 @@ class ReportPDFGenerator:
                     photo_cell = self._create_photo_cell(foto)
                     row1_data.append(photo_cell)
                 else:
-                    row1_data.append('.')  # Empty cell placeholder
+                    # Create empty placeholder with ELP styling
+                    empty_cell = Table([['📷 Posição Reservada']], colWidths=[9*cm])
+                    empty_cell.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), '#f8f9fa'),
+                        ('BORDER', (0, 0), (-1, -1), 1, '#dee2e6'),
+                        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 10),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 30),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 30),
+                        ('TEXTCOLOR', (0, 0), (-1, -1), '#6c757d'),
+                    ]))
+                    row1_data.append(empty_cell)
             
             # Second row (next 2 photos)
             for j in range(2, 4):
@@ -672,22 +772,37 @@ class ReportPDFGenerator:
                     photo_cell = self._create_photo_cell(foto)
                     row2_data.append(photo_cell)
                 else:
-                    row2_data.append('.')  # Empty cell placeholder
+                    # Create empty placeholder with ELP styling
+                    empty_cell = Table([['📷 Posição Reservada']], colWidths=[9*cm])
+                    empty_cell.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), '#f8f9fa'),
+                        ('BORDER', (0, 0), (-1, -1), 1, '#dee2e6'),
+                        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 10),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 30),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 30),
+                        ('TEXTCOLOR', (0, 0), (-1, -1), '#6c757d'),
+                    ]))
+                    row2_data.append(empty_cell)
             
-            # Create table with 2x2 grid
-            photo_table = Table([row1_data, row2_data], colWidths=[9.5*cm, 9.5*cm], rowHeights=[7*cm, 7*cm])
+            # Create professional table with ELP grid styling
+            photo_table = Table([row1_data, row2_data], colWidths=[9*cm, 9*cm], rowHeights=[8*cm, 8*cm])
             photo_table.setStyle(TableStyle([
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-                ('TOPPADDING', (0, 0), (-1, -1), 10),
-                ('LEFTPADDING', (0, 0), (-1, -1), 5),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                ('GRID', (0, 0), (-1, -1), 2, '#20c1e8'),  # ELP cyan grid
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+                ('TOPPADDING', (0, 0), (-1, -1), 15),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
             ]))
             
             story.append(photo_table)
+            story.append(Spacer(1, 25))
             
-            # Add page break if not last batch
+            # Add page break if not last batch and there are more photos
             if i + 4 < len(fotos_ordenadas):
                 story.append(PageBreak())
     
