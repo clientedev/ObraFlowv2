@@ -324,7 +324,7 @@ class ReportPDFGenerator:
         # Company header with logo
         try:
             from flask import current_app
-            logo_path = os.path.join('static', 'logo_elp_new.jpg')
+            logo_path = os.path.join('static', 'logo_elp_transparent.png')
             if os.path.exists(logo_path):
                 logo_img = Image(logo_path, width=3*cm, height=1.5*cm)
                 
