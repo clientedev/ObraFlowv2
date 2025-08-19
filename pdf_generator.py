@@ -380,6 +380,13 @@ class ReportPDFGenerator:
             filled_data.append(['Projeto:', relatorio.projeto.nome])
         if relatorio.projeto and relatorio.projeto.endereco:
             filled_data.append(['Endereço:', relatorio.projeto.endereco])
+        
+        # Show full address instead of GPS coordinates
+        if relatorio.projeto and hasattr(relatorio.projeto, 'latitude') and hasattr(relatorio.projeto, 'longitude'):
+            if relatorio.projeto.latitude and relatorio.projeto.longitude and not relatorio.projeto.endereco:
+                # Use formatted address from GPS
+                endereco_gps = self._get_address_from_coordinates(relatorio.projeto.latitude, relatorio.projeto.longitude)
+                filled_data.append(['Localização:', endereco_gps])
         if relatorio.autor and relatorio.autor.nome_completo:
             filled_data.append(['Responsável:', relatorio.autor.nome_completo])
         
@@ -499,56 +506,65 @@ class ReportPDFGenerator:
         story.append(Spacer(1, 20))
     
     def _add_clean_photos(self, story, fotos):
-        """Add photos in clean professional format"""
+        """Add photos in professional format - one per row with proper spacing"""
+        if not fotos:
+            return
+            
         story.append(Paragraph(f"REGISTRO FOTOGRÁFICO ({len(fotos)} fotos)", self.styles['SectionHeader']))
+        story.append(Spacer(1, 10))
         
-        # Process photos in 2x2 grid
-        for i in range(0, len(fotos), 4):
-            photo_batch = fotos[i:i+4]
-            
-            # Create 2x2 layout
-            row1 = []
-            row2 = []
-            
-            for idx, foto in enumerate(photo_batch):
-                try:
-                    foto_path = os.path.join('uploads', foto.filename)
-                    if os.path.exists(foto_path):
-                        img = Image(foto_path, width=7*cm, height=5*cm)
-                        
-                        # Photo with clean caption
-                        photo_content = [
-                            img,
-                            Paragraph(f"<b>#{foto.ordem}</b>", self.styles['Normal']),
-                            Paragraph(foto.legenda or '', self.styles['Normal']) if foto.legenda else ""
-                        ]
-                        
-                        if idx < 2:
-                            row1.append(photo_content)
-                        else:
-                            row2.append(photo_content)
-                            
-                except Exception as e:
-                    print(f"Photo error: {e}")
-            
-            # Fill empty cells
-            while len(row1) < 2:
-                row1.append('')
-            while len(row2) < 2:
-                row2.append('')
-            
-            # Create photo table
-            if any(row1) or any(row2):
-                photos_table = Table([row1, row2], colWidths=[9*cm, 9*cm])
-                photos_table.setStyle(TableStyle([
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('TOPPADDING', (0, 0), (-1, -1), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-                ]))
-                
-                story.append(photos_table)
-                story.append(Spacer(1, 15))
+        # Process photos individually for better formatting
+        for foto in fotos:
+            try:
+                foto_path = os.path.join('uploads', foto.filename)
+                if os.path.exists(foto_path):
+                    # Create image with proper size
+                    img = Image(foto_path, width=8*cm, height=6*cm)
+                    
+                    # Create photo info table
+                    photo_info = [
+                        [f"Foto #{foto.ordem}", foto.legenda or 'Sem legenda']
+                    ]
+                    
+                    # Photo table with image and caption
+                    photo_table = Table([
+                        [img, ''],  # Image in left column, empty right
+                        ['', '']    # Empty row for spacing
+                    ], colWidths=[8.5*cm, 9.5*cm], rowHeights=[6.5*cm, 0.5*cm])
+                    
+                    photo_table.setStyle(TableStyle([
+                        ('VALIGN', (0, 0), (0, 0), 'TOP'),
+                        ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                        ('TOPPADDING', (0, 0), (-1, -1), 0),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                    ]))
+                    
+                    # Caption table
+                    caption_table = Table(photo_info, colWidths=[3*cm, 15*cm])
+                    caption_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (0, 0), '#20c1e8'),
+                        ('BACKGROUND', (1, 0), (1, 0), '#f0f9ff'),
+                        ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                        ('FONTNAME', (1, 0), (1, 0), 'Helvetica'),
+                        ('TEXTCOLOR', (0, 0), (0, 0), white),
+                        ('TEXTCOLOR', (1, 0), (1, 0), '#343a40'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 10),
+                        ('GRID', (0, 0), (-1, -1), 1, '#20c1e8'),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                    ]))
+                    
+                    story.append(photo_table)
+                    story.append(caption_table)
+                    story.append(Spacer(1, 20))
+                    
+            except Exception as e:
+                print(f"Photo error: {e}")
+                continue
     
     def _add_professional_footer(self, story):
         """Clean professional footer"""
@@ -571,6 +587,43 @@ class ReportPDFGenerator:
         ]))
         
         story.append(footer_table)
+    
+    def _get_address_from_coordinates(self, lat, lng):
+        """Convert GPS coordinates to formatted address"""
+        try:
+            import requests
+            import json
+            
+            # Use Nominatim (free) for reverse geocoding
+            url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lng}&addressdetails=1"
+            headers = {'User-Agent': 'ELP-Sistema-Relatorios/1.0'}
+            
+            response = requests.get(url, headers=headers, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                address = data.get('address', {})
+                
+                # Build formatted address
+                parts = []
+                if address.get('road'):
+                    parts.append(address['road'])
+                if address.get('house_number'):
+                    parts[-1] += f", {address['house_number']}"
+                if address.get('suburb') or address.get('neighbourhood'):
+                    parts.append(address.get('suburb') or address.get('neighbourhood'))
+                if address.get('city'):
+                    parts.append(address['city'])
+                if address.get('state'):
+                    parts.append(address['state'])
+                
+                if parts:
+                    return " - ".join(parts)
+            
+        except Exception as e:
+            print(f"Geocoding error: {e}")
+        
+        # Fallback to coordinates if geocoding fails
+        return f"Lat: {lat:.6f}, Lng: {lng:.6f}"
     
     def _add_complete_elp_header(self, story, relatorio):
         """Add professional ELP header with logo and company info"""
