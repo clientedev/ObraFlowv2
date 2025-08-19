@@ -55,8 +55,8 @@
                         {{ form.endereco.label(class="form-label") }}
                         {{ form.endereco(class="form-control", rows="2", id="endereco") }}
                         <div class="mt-2">
-                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="getGPSLocation()" title="Capturar localização via GPS">
-                                <i class="fas fa-location-crosshairs"></i> Capturar GPS
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="getGPSLocationAndAddress()" title="Capturar localização via GPS e preencher endereço">
+                                <i class="fas fa-location-crosshairs"></i> Capturar GPS + Endereço
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openMapModal()" title="Escolher localização no mapa">
                                 <i class="fas fa-map-marked-alt"></i> Escolher no Mapa
@@ -156,8 +156,8 @@ let marker;
 let selectedLat = null;
 let selectedLng = null;
 
-// GPS Location capture
-function getGPSLocation() {
+// GPS Location capture with automatic address filling
+function getGPSLocationAndAddress() {
     const statusElement = document.getElementById('locationStatus');
     
     if (!navigator.geolocation) {
@@ -165,7 +165,7 @@ function getGPSLocation() {
         return;
     }
     
-    statusElement.innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i> Capturando localização...';
+    statusElement.innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i> Capturando localização e endereço...';
     
     navigator.geolocation.getCurrentPosition(
         function(position) {
@@ -178,10 +178,10 @@ function getGPSLocation() {
             if (latField) latField.value = lat;
             if (lngField) lngField.value = lng;
             
-            // Try to get address from coordinates
-            reverseGeocode(lat, lng);
+            // Get address from coordinates and fill address field
+            reverseGeocodeAndFillAddress(lat, lng);
             
-            statusElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> Localização capturada via GPS';
+            statusElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> Localização e endereço capturados via GPS';
         },
         function(error) {
             let errorMsg = 'Erro ao capturar localização';
@@ -206,23 +206,70 @@ function getGPSLocation() {
     );
 }
 
-// Reverse geocoding to get address from coordinates
-function reverseGeocode(lat, lng) {
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=pt-BR`;
+// Legacy function for compatibility
+function getGPSLocation() {
+    getGPSLocationAndAddress();
+}
+
+// Reverse geocoding to get address from coordinates and fill address field
+function reverseGeocodeAndFillAddress(lat, lng) {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=pt-BR&addressdetails=1`;
     
-    fetch(url)
+    fetch(url, {
+        headers: {
+            'User-Agent': 'ConstructionSiteReporting/1.0'
+        }
+    })
         .then(response => response.json())
         .then(data => {
             if (data && data.display_name) {
                 const endereco = document.querySelector('textarea[name="endereco"]') || document.getElementById('endereco');
-                if (endereco && !endereco.value.trim()) {
-                    endereco.value = data.display_name;
+                if (endereco) {
+                    // Format a cleaner address
+                    let formattedAddress = '';
+                    if (data.address) {
+                        const addr = data.address;
+                        
+                        // Street info
+                        let street = '';
+                        if (addr.house_number) street += addr.house_number + ' ';
+                        if (addr.road) street += addr.road;
+                        if (street) formattedAddress += street + '\n';
+                        
+                        // Neighborhood/District
+                        if (addr.neighbourhood || addr.suburb) {
+                            formattedAddress += (addr.neighbourhood || addr.suburb) + '\n';
+                        }
+                        
+                        // City, State
+                        let cityState = '';
+                        if (addr.city || addr.town || addr.municipality) {
+                            cityState += (addr.city || addr.town || addr.municipality);
+                        }
+                        if (addr.state) {
+                            cityState += (cityState ? ', ' : '') + addr.state;
+                        }
+                        if (cityState) formattedAddress += cityState + '\n';
+                        
+                        // Country
+                        if (addr.country) {
+                            formattedAddress += addr.country;
+                        }
+                    }
+                    
+                    // Use formatted address or fallback to display_name
+                    endereco.value = formattedAddress.trim() || data.display_name;
                 }
             }
         })
         .catch(error => {
             console.log('Erro ao obter endereço:', error);
         });
+}
+
+// Legacy function for compatibility
+function reverseGeocode(lat, lng) {
+    reverseGeocodeAndFillAddress(lat, lng);
 }
 
 // Initialize map

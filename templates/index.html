@@ -104,7 +104,10 @@
                             <i class="fas fa-info-circle"></i> Clique em "Atualizar Localização" para ver obras próximas
                         </div>
                         <div id="nearbyProjects">
-                            <!-- Projects list will be loaded here -->
+                            <h6>Obras Próximas:</h6>
+                            <div id="projectsList" class="list-group">
+                                <!-- Projects list will be loaded here -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -272,7 +275,123 @@ function getCurrentLocation() {
                 .bindPopup('Sua localização')
                 .openPopup();
             
-            // Update status
+            // Load and display projects on map and list
+            loadNearbyProjects();
+            
+            statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Localização atualizada! Veja as obras próximas ao lado.';
+            statusEl.className = 'alert alert-success';
+        },
+        function(error) {
+            statusEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erro ao obter localização: ' + getLocationErrorMessage(error);
+            statusEl.className = 'alert alert-danger';
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000
+        }
+    );
+}
+
+function getLocationErrorMessage(error) {
+    switch(error.code) {
+        case error.PERMISSION_DENIED:
+            return 'Permissão negada para acessar localização';
+        case error.POSITION_UNAVAILABLE:
+            return 'Localização não disponível';
+        case error.TIMEOUT:
+            return 'Tempo limite excedido';
+        default:
+            return 'Erro desconhecido';
+    }
+}
+
+function loadNearbyProjects() {
+    if (!userLocation) {
+        return;
+    }
+    
+    // Fetch projects with coordinates from the server
+    fetch('/api/projects/nearby', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            lat: userLocation.lat,
+            lon: userLocation.lon
+        })
+    })
+    .then(response => response.json())
+    .then(projects => {
+        displayProjectsOnMap(projects);
+        displayProjectsList(projects);
+    })
+    .catch(error => {
+        console.error('Erro ao carregar projetos:', error);
+    });
+}
+
+function displayProjectsOnMap(projects) {
+    // Clear existing project markers
+    map.eachLayer(function(layer) {
+        if (layer instanceof L.Marker && layer !== userMarker) {
+            map.removeLayer(layer);
+        }
+    });
+    
+    // Add project markers
+    projects.forEach(project => {
+        if (project.latitude && project.longitude) {
+            const projectMarker = L.marker([project.latitude, project.longitude])
+                .addTo(map)
+                .bindPopup(`
+                    <div>
+                        <h6>${project.nome}</h6>
+                        <p><small>${project.endereco || 'Endereço não informado'}</small></p>
+                        <p><strong>Distância: ${project.distance_km} km</strong></p>
+                        <a href="/projects/${project.id}" class="btn btn-sm btn-primary">Ver Projeto</a>
+                    </div>
+                `);
+        }
+    });
+}
+
+function displayProjectsList(projects) {
+    const projectsList = document.getElementById('projectsList');
+    
+    if (projects.length === 0) {
+        projectsList.innerHTML = '<div class="alert alert-info">Nenhuma obra encontrada nas proximidades.</div>';
+        return;
+    }
+    
+    let html = '';
+    projects.forEach((project, index) => {
+        const badgeClass = index < 3 ? 'bg-success' : index < 5 ? 'bg-warning' : 'bg-secondary';
+        html += `
+            <div class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold">${project.nome}</div>
+                    <small class="text-muted">${project.endereco || 'Endereço não informado'}</small>
+                </div>
+                <div class="text-end">
+                    <span class="badge ${badgeClass} rounded-pill mb-1">${project.distance_km} km</span>
+                    <br>
+                    <a href="/projects/${project.id}" class="btn btn-sm btn-outline-primary">Ver</a>
+                </div>
+            </div>
+        `;
+    });
+    
+    projectsList.innerHTML = html;
+}
+
+// Initialize map when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initMap();
+});
+</script>
+{% endblock %}
             statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Localização obtida com sucesso!';
             statusEl.className = 'alert alert-success';
             
