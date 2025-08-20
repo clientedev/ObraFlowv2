@@ -704,19 +704,17 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
     })
     .then(response => {
         if (response.ok) {
-            return response.text();
+            return response.json();
         } else {
-            throw new Error('Erro ao salvar relatório');
+            return response.json().then(err => Promise.reject(err));
         }
     })
-    .then(html => {
-        // Check if response is a redirect (success)
-        if (html.includes('Relatório') || html.includes('reports')) {
-            window.location.href = '/reports';
-        } else {
-            // Show success message and redirect
+    .then(data => {
+        if (data.success) {
             alert('Relatório salvo com sucesso!');
-            window.location.href = '/reports';
+            window.location.href = data.redirect || '/reports';
+        } else {
+            throw new Error(data.error || 'Erro ao salvar relatório');
         }
     })
     .catch(error => {

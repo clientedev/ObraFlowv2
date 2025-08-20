@@ -357,7 +357,7 @@ def create_report():
                 photo_key = f'photo_{i}'
                 if photo_key in request.files:
                     file = request.files[photo_key]
-                    if file and file.filename and allowed_file(file.filename):
+                    if file and file.filename and file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
                         try:
                             filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
                             filepath = os.path.join(upload_folder, filename)
@@ -423,17 +423,29 @@ def create_report():
                         print(f"Erro ao processar foto editada {i}: {e}")
                         continue
             
-            db.session.commit()
+            print(f"Total de {photo_count} fotos processadas para o relatório {relatorio.numero}")
             
-            flash(f'Relatório {relatorio.numero} criado com sucesso! {photo_count} fotos adicionadas. Status: Aguardando Aprovação.', 'success')
-            return redirect(url_for('edit_report', id=relatorio.id))
+            db.session.commit()
+            flash('Relatório criado com sucesso!', 'success')
+            
+            # Return JSON response for AJAX submission
+            if request.content_type and 'multipart/form-data' in request.content_type:
+                return jsonify({'success': True, 'redirect': '/reports'})
+            else:
+                return redirect(url_for('reports'))
             
         except Exception as e:
             db.session.rollback()
-            print(f"Erro detalhado ao criar relatório: {str(e)}")
+            print(f"Erro detalhado ao criar relatório: {e}")
             import traceback
             traceback.print_exc()
             flash(f'Erro ao criar relatório: {str(e)}', 'error')
+            
+            # Return JSON error response for AJAX submission  
+            if request.content_type and 'multipart/form-data' in request.content_type:
+                return jsonify({'success': False, 'error': str(e)}), 400
+            else:
+                return redirect(url_for('create_report'))
     
     projetos = Projeto.query.filter_by(status='Ativo').all()
     # Get admin users for approver selection
