@@ -2002,18 +2002,27 @@ def visit_export_outlook(visit_id):
         # Calculate end time (2 hours after start)
         end_time = visit.data_agendada + timedelta(hours=2)
         
-        # Create proper ICS content for Outlook
-        ics_content = f"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//ELP Consultoria//Visit Scheduler//PT\r\n"
-        ics_content += f"BEGIN:VEVENT\r\n"
-        ics_content += f"UID:visit-{visit.id}@elp.com.br\r\n"
-        ics_content += f"DTSTART:{visit.data_agendada.strftime('%Y%m%dT%H%M%S')}\r\n"
-        ics_content += f"DTEND:{end_time.strftime('%Y%m%dT%H%M%S')}\r\n"
-        ics_content += f"SUMMARY:Visita Técnica - {visit.projeto.nome}\r\n"
-        ics_content += f"DESCRIPTION:Objetivo: {visit.objetivo or 'N/A'}\\nProjeto: {visit.projeto.numero} - {visit.projeto.nome}\\nResponsável: {visit.responsavel.nome_completo}\r\n"
-        ics_content += f"LOCATION:{visit.endereco_gps or visit.projeto.endereco or ''}\r\n"
-        ics_content += f"STATUS:CONFIRMED\r\n"
-        ics_content += f"END:VEVENT\r\n"
-        ics_content += f"END:VCALENDAR\r\n"
+        # Create ICS content with proper line breaks for Outlook compatibility
+        ics_lines = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//ELP Consultoria//Visit Scheduler//EN",
+            "METHOD:PUBLISH",
+            "BEGIN:VEVENT",
+            f"UID:visit-{visit.id}@elp.com.br",
+            f"DTSTART:{visit.data_agendada.strftime('%Y%m%dT%H%M%S')}",
+            f"DTEND:{end_time.strftime('%Y%m%dT%H%M%S')}",
+            f"SUMMARY:Visita Tecnica - {visit.projeto.nome}",
+            f"DESCRIPTION:Objetivo: {visit.objetivo or 'N/A'}. Projeto: {visit.projeto.numero} - {visit.projeto.nome}. Responsavel: {visit.responsavel.nome_completo}",
+            f"LOCATION:{visit.endereco_gps or visit.projeto.endereco or ''}",
+            "STATUS:CONFIRMED",
+            "SEQUENCE:0",
+            "PRIORITY:5",
+            "END:VEVENT",
+            "END:VCALENDAR"
+        ]
+        
+        ics_content = "\r\n".join(ics_lines)
         
         response = make_response(ics_content)
         response.headers["Content-Disposition"] = f"attachment; filename=visita_{visit.numero}.ics"

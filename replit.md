@@ -73,6 +73,14 @@ This is a comprehensive construction site visit tracking system built with Flask
 - ✅ **Visual Editing Feedback**: UI shows when photos have been edited with status indicators
 - ✅ **50 Photo Support**: System supports up to 50 photos per report with proper file handling
 
+### System Fixes (2025-08-20 Final)
+- ✅ **Map Address Capture**: Project creation map now properly fills address field when location is selected
+- ✅ **Outlook Calendar Export**: Fixed ICS file format with proper line breaks and headers for Outlook compatibility
+- ✅ **Reimbursement Form**: Updated to use separate date picker fields for start and end dates
+- ✅ **CSRF Token Issues**: Resolved reimbursement form submission errors by adding proper CSRF exemption
+- ✅ **Template Routing**: Fixed URL routing errors in reimbursement list template
+- ✅ **Data Field Mapping**: Corrected reimbursement display fields to match database schema
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.

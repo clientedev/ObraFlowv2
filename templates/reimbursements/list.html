@@ -31,9 +31,15 @@
                             <tbody>
                                 {% for reembolso in reembolsos %}
                                 <tr>
-                                    <td><strong>{{ reembolso.numero }}</strong></td>
+                                    <td><strong>REIMB-{{ reembolso.id }}</strong></td>
                                     <td>{{ reembolso.projeto.nome if reembolso.projeto else 'N/A' }}</td>
-                                    <td>{{ reembolso.periodo or 'N/A' }}</td>
+                                    <td>
+                                        {% if reembolso.periodo_inicio and reembolso.periodo_fim %}
+                                            {{ reembolso.periodo_inicio.strftime('%d/%m/%Y') }} - {{ reembolso.periodo_fim.strftime('%d/%m/%Y') }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% if reembolso.status == 'Pendente' %}
                                             <span class="badge bg-warning">{{ reembolso.status }}</span>
@@ -46,17 +52,17 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <strong>R$ {{ "%.2f"|format(reembolso.valor_total or 0) }}</strong>
+                                        <strong>R$ {{ "%.2f"|format(reembolso.total or 0) }}</strong>
                                     </td>
-                                    <td>{{ reembolso.data_solicitacao.strftime('%d/%m/%Y') if reembolso.data_solicitacao else 'N/A' }}</td>
+                                    <td>{{ reembolso.created_at.strftime('%d/%m/%Y') if reembolso.created_at else 'N/A' }}</td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <a href="{{ url_for('reimbursement_view', reembolso_id=reembolso.id) }}" 
+                                            <a href="#" onclick="alert('Visualizar reembolso em desenvolvimento')" 
                                                class="btn btn-sm btn-outline-primary" title="Visualizar">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             {% if reembolso.status == 'Pendente' %}
-                                            <a href="{{ url_for('reimbursement_edit', reembolso_id=reembolso.id) }}" 
+                                            <a href="#" onclick="alert('Editar reembolso em desenvolvimento')" 
                                                class="btn btn-sm btn-outline-secondary" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </a>
@@ -72,7 +78,7 @@
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i>
                         Você ainda não possui solicitações de reembolso.
-                        <a href="{{ url_for('reimbursement_request') }}" class="btn btn-primary btn-sm ms-2">
+                        <a href="{{ url_for('request_reimbursement') }}" class="btn btn-primary btn-sm ms-2">
                             <i class="fas fa-plus"></i> Criar primeira solicitação
                         </a>
                     </div>
