@@ -65,6 +65,14 @@ This is a comprehensive construction site visit tracking system built with Flask
 - ✅ **ELP Branding Complete**: Professional header with logo, company information, contact details, and branded color scheme throughout PDF
 - ✅ **Clean PDF Format**: Final PDF shows only filled data and checked checklist items without status labels (conforme/não conforme)
 
+### Photo System Enhancement (2025-08-20)
+- ✅ **Photo Upload System Fixed**: Resolved "allowed_file not defined" error preventing report saves
+- ✅ **FormData Implementation**: JavaScript now properly sends photo files with FormData instead of just metadata
+- ✅ **AJAX Response Handling**: Server returns JSON responses for proper AJAX form submission feedback
+- ✅ **Smart Photo Processing**: When photos are edited, only the edited version is saved and original is discarded
+- ✅ **Visual Editing Feedback**: UI shows when photos have been edited with status indicators
+- ✅ **50 Photo Support**: System supports up to 50 photos per report with proper file handling
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.

@@ -355,38 +355,14 @@ def create_report():
             # Process regular file uploads
             for i in range(50):  # Support up to 50 photos
                 photo_key = f'photo_{i}'
-                if photo_key in request.files:
-                    file = request.files[photo_key]
-                    if file and file.filename and file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                        try:
-                            filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
-                            filepath = os.path.join(upload_folder, filename)
-                            file.save(filepath)
-                            
-                            # Get metadata
-                            photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
-                            photo_category = request.form.get(f'photo_category_{i}', 'Geral')
-                            
-                            # Create photo record
-                            foto = FotoRelatorio()
-                            foto.relatorio_id = relatorio.id
-                            foto.filename = filename
-                            foto.legenda = photo_caption or f'Foto {photo_count + 1}'
-                            foto.tipo_servico = photo_category or 'Geral'
-                            foto.ordem = photo_count + 1
-                            
-                            db.session.add(foto)
-                            photo_count += 1
-                            print(f"Foto {photo_count} salva: {filename}")
-                        except Exception as e:
-                            print(f"Erro ao processar foto {i}: {e}")
-                            continue
-                
-                # Check for edited photos
                 edited_photo_key = f'edited_photo_{i}'
-                if edited_photo_key in request.form:
+                
+                # Check if this photo was edited
+                has_edited_version = edited_photo_key in request.form
+                
+                if has_edited_version:
+                    # Process only the edited version, ignore the original
                     try:
-                        # Decode base64 image
                         import base64
                         from io import BytesIO
                         from PIL import Image
@@ -408,20 +384,50 @@ def create_report():
                         photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
                         photo_category = request.form.get(f'photo_category_{i}', 'Geral')
                         
-                        # Create photo record
+                        # Create photo record for edited version only
                         foto = FotoRelatorio()
                         foto.relatorio_id = relatorio.id
                         foto.filename = filename
+                        foto.filename_anotada = filename  # Mark as annotated version
                         foto.legenda = photo_caption or f'Foto {photo_count + 1}'
                         foto.tipo_servico = photo_category or 'Geral'
                         foto.ordem = photo_count + 1
                         
                         db.session.add(foto)
                         photo_count += 1
-                        print(f"Foto editada {photo_count} salva: {filename}")
+                        print(f"Foto editada {photo_count} salva (original descartada): {filename}")
                     except Exception as e:
                         print(f"Erro ao processar foto editada {i}: {e}")
                         continue
+                        
+                elif photo_key in request.files:
+                    # Process original photo only if no edited version exists
+                    file = request.files[photo_key]
+                    if file and file.filename and file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                        try:
+                            filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
+                            filepath = os.path.join(upload_folder, filename)
+                            file.save(filepath)
+                            
+                            # Get metadata
+                            photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
+                            photo_category = request.form.get(f'photo_category_{i}', 'Geral')
+                            
+                            # Create photo record for original
+                            foto = FotoRelatorio()
+                            foto.relatorio_id = relatorio.id
+                            foto.filename = filename
+                            foto.filename_original = filename  # Mark as original version
+                            foto.legenda = photo_caption or f'Foto {photo_count + 1}'
+                            foto.tipo_servico = photo_category or 'Geral'
+                            foto.ordem = photo_count + 1
+                            
+                            db.session.add(foto)
+                            photo_count += 1
+                            print(f"Foto original {photo_count} salva: {filename}")
+                        except Exception as e:
+                            print(f"Erro ao processar foto {i}: {e}")
+                            continue
             
             print(f"Total de {photo_count} fotos processadas para o relatório {relatorio.numero}")
             

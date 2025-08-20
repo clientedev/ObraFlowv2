@@ -634,8 +634,15 @@ function saveEditedPhoto() {
         const img = currentEditingPhoto.element.querySelector('img');
         img.src = editedDataUrl;
         
-        // Update the photo object
+        // Update the photo object - mark as edited and remove original file reference
         currentEditingPhoto.editedSrc = editedDataUrl;
+        currentEditingPhoto.file = null; // Remove original file since we'll use only the edited version
+        
+        // Add visual indicator that photo was edited
+        const editButton = currentEditingPhoto.element.querySelector('.btn-primary');
+        editButton.innerHTML = '<i class="fas fa-check"></i> Editada';
+        editButton.classList.remove('btn-primary');
+        editButton.classList.add('btn-success');
     }
     
     const modal = bootstrap.Modal.getInstance(document.getElementById('photoEditorModal'));
