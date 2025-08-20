@@ -16,7 +16,7 @@
     <div class="col-md-10">
         <div class="card">
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" action="{{ url_for('project_edit', project_id=project.id) if project else url_for('project_new') }}" id="projectForm">
                     {{ form.hidden_tag() }}
                     
                     {% if project %}

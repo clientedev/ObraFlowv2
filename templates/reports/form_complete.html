@@ -52,7 +52,7 @@
                     <h3><i class="fas fa-file-alt"></i> Relatório de Obra</h3>
                 </div>
                 <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data" id="reportForm">
+                    <form method="POST" action="{{ url_for('report_create') }}" enctype="multipart/form-data" id="reportForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <!-- Informações Básicas -->
                         <div class="row mb-4">
