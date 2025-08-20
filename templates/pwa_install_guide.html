@@ -21,6 +21,113 @@
                         funcionando offline e com acesso direto da tela inicial.
                     </div>
                     
+                    <!-- Botões de Instalação por Sistema Operacional -->
+                    <div class="row mb-5" id="os-specific-install">
+                        <div class="col-12">
+                            <h3 class="text-center mb-4">
+                                <i class="fas fa-download me-2"></i>
+                                Instalar para o seu Sistema
+                            </h3>
+                        </div>
+                        
+                        <!-- Android -->
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-success h-100" id="android-card" style="display: none;">
+                                <div class="card-body text-center">
+                                    <i class="fab fa-android text-success" style="font-size: 3rem;"></i>
+                                    <h5 class="card-title mt-3">Android</h5>
+                                    <p class="card-text">Instale via Chrome ou Firefox</p>
+                                    <button class="btn btn-success" onclick="window.pwaInstaller.installApp()">
+                                        <i class="fab fa-google-play me-2"></i>
+                                        Instalar Agora
+                                    </button>
+                                    <button class="btn btn-outline-success btn-sm mt-2" onclick="window.pwaInstaller.showAndroidInstructions()">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Ver Instruções
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- iOS -->
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-primary h-100" id="ios-card" style="display: none;">
+                                <div class="card-body text-center">
+                                    <i class="fab fa-apple text-primary" style="font-size: 3rem;"></i>
+                                    <h5 class="card-title mt-3">iPhone/iPad</h5>
+                                    <p class="card-text">Adicionar à Tela Inicial via Safari</p>
+                                    <button class="btn btn-primary" onclick="window.pwaInstaller.showIosInstructions()">
+                                        <i class="fas fa-share me-2"></i>
+                                        Como Instalar
+                                    </button>
+                                    <div class="mt-2">
+                                        <small class="text-muted">Funciona apenas no Safari</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Desktop -->
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-info h-100" id="desktop-card" style="display: none;">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-desktop text-info" style="font-size: 3rem;"></i>
+                                    <h5 class="card-title mt-3" id="desktop-title">Desktop</h5>
+                                    <p class="card-text">Instale como programa no computador</p>
+                                    <button class="btn btn-info" onclick="window.pwaInstaller.installApp()">
+                                        <i class="fas fa-download me-2"></i>
+                                        Instalar Agora
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm mt-2" onclick="window.pwaInstaller.showDesktopInstructions()">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Ver Instruções
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <script>
+                    // Detectar sistema operacional e mostrar cards relevantes
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const userAgent = navigator.userAgent.toLowerCase();
+                        const androidCard = document.getElementById('android-card');
+                        const iosCard = document.getElementById('ios-card');
+                        const desktopCard = document.getElementById('desktop-card');
+                        const desktopTitle = document.getElementById('desktop-title');
+                        
+                        if (userAgent.includes('android')) {
+                            androidCard.style.display = 'block';
+                            desktopCard.style.display = 'block';
+                            desktopTitle.textContent = 'Desktop/Computador';
+                        } else if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+                            iosCard.style.display = 'block';
+                            desktopCard.style.display = 'block';
+                            desktopTitle.textContent = 'Desktop/Computador';
+                        } else if (userAgent.includes('windows')) {
+                            desktopCard.style.display = 'block';
+                            desktopTitle.innerHTML = '<i class="fab fa-windows me-2"></i>Windows';
+                            androidCard.style.display = 'block';
+                            iosCard.style.display = 'block';
+                        } else if (userAgent.includes('mac')) {
+                            desktopCard.style.display = 'block';
+                            desktopTitle.innerHTML = '<i class="fab fa-apple me-2"></i>macOS';
+                            androidCard.style.display = 'block';
+                            iosCard.style.display = 'block';
+                        } else if (userAgent.includes('linux')) {
+                            desktopCard.style.display = 'block';
+                            desktopTitle.innerHTML = '<i class="fab fa-linux me-2"></i>Linux';
+                            androidCard.style.display = 'block';
+                            iosCard.style.display = 'block';
+                        } else {
+                            // Mostrar todos se não conseguir detectar
+                            androidCard.style.display = 'block';
+                            iosCard.style.display = 'block';
+                            desktopCard.style.display = 'block';
+                        }
+                    });
+                    </script>
+                    
                     <!-- Instruções para Android -->
                     <div class="mb-5">
                         <h3 class="text-success">

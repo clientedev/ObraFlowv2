@@ -63,33 +63,30 @@ class PWAInstaller {
         const existingButton = document.getElementById('pwa-install-button');
         if (existingButton) existingButton.remove();
 
+        // Detectar sistema operacional
+        const platform = this.detectPlatform();
+        const installContent = this.getInstallContent(platform);
+        
         // Criar botão de instalação
         const installButton = document.createElement('div');
         installButton.id = 'pwa-install-button';
         installButton.className = 'pwa-install-prompt';
         installButton.innerHTML = `
-            <div class="card border-primary" style="position: fixed; bottom: 20px; left: 20px; z-index: 9999; max-width: 350px;">
+            <div class="card border-primary" style="position: fixed; bottom: 20px; left: 20px; z-index: 9999; max-width: 380px;">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <div>
-                        <i class="fas fa-mobile-alt me-2"></i>
-                        <strong>Instalar App</strong>
+                        ${installContent.icon}
+                        <strong>Instalar App - ${installContent.platformName}</strong>
                     </div>
                     <button type="button" class="btn-close btn-close-white" onclick="this.closest('.pwa-install-prompt').remove()"></button>
                 </div>
                 <div class="card-body">
                     <p class="mb-3">
                         <i class="fas fa-download text-primary me-2"></i>
-                        Instale o app ELP Relatórios no seu dispositivo para acesso rápido e funcionalidades offline!
+                        Instale o app ELP Relatórios no seu ${installContent.deviceName} para acesso rápido e funcionalidades offline!
                     </p>
                     <div class="d-grid gap-2">
-                        <button class="btn btn-primary" onclick="window.pwaInstaller.installApp()">
-                            <i class="fas fa-download me-2"></i>
-                            Instalar Agora
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm" onclick="window.pwaInstaller.showManualInstructions()">
-                            <i class="fas fa-question-circle me-2"></i>
-                            Como instalar manualmente?
-                        </button>
+                        ${installContent.buttons}
                     </div>
                 </div>
             </div>
@@ -284,6 +281,276 @@ class PWAInstaller {
             currentPath.startsWith(page + '/') ||
             (page === '/' && currentPath === '')
         );
+    }
+    
+    // Detectar plataforma do usuário
+    detectPlatform() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        
+        if (userAgent.includes('android')) {
+            return 'android';
+        } else if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+            return 'ios';
+        } else if (userAgent.includes('windows')) {
+            return 'windows';
+        } else if (userAgent.includes('mac')) {
+            return 'mac';
+        } else if (userAgent.includes('linux')) {
+            return 'linux';
+        } else {
+            return 'desktop';
+        }
+    }
+    
+    // Obter conteúdo específico para cada plataforma
+    getInstallContent(platform) {
+        const contents = {
+            android: {
+                platformName: 'Android',
+                deviceName: 'dispositivo Android',
+                icon: '<i class="fab fa-android me-2"></i>',
+                buttons: `
+                    <button class="btn btn-success" onclick="window.pwaInstaller.installApp()">
+                        <i class="fab fa-google-play me-2"></i>
+                        Instalar via Chrome
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="window.pwaInstaller.showAndroidInstructions()">
+                        <i class="fas fa-mobile-alt me-2"></i>
+                        Instruções Android
+                    </button>
+                `
+            },
+            ios: {
+                platformName: 'iOS',
+                deviceName: 'iPhone/iPad',
+                icon: '<i class="fab fa-apple me-2"></i>',
+                buttons: `
+                    <button class="btn btn-primary" onclick="window.pwaInstaller.showIosInstructions()">
+                        <i class="fas fa-share me-2"></i>
+                        Adicionar à Tela Inicial
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="window.pwaInstaller.showManualInstructions()">
+                        <i class="fas fa-question-circle me-2"></i>
+                        Ver Instruções Detalhadas
+                    </button>
+                `
+            },
+            windows: {
+                platformName: 'Windows',
+                deviceName: 'computador Windows',
+                icon: '<i class="fab fa-windows me-2"></i>',
+                buttons: `
+                    <button class="btn btn-info" onclick="window.pwaInstaller.installApp()">
+                        <i class="fas fa-desktop me-2"></i>
+                        Instalar no Windows
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="window.pwaInstaller.showDesktopInstructions()">
+                        <i class="fas fa-question-circle me-2"></i>
+                        Instruções Windows
+                    </button>
+                `
+            },
+            mac: {
+                platformName: 'macOS',
+                deviceName: 'Mac',
+                icon: '<i class="fab fa-apple me-2"></i>',
+                buttons: `
+                    <button class="btn btn-secondary" onclick="window.pwaInstaller.installApp()">
+                        <i class="fas fa-laptop me-2"></i>
+                        Instalar no Mac
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="window.pwaInstaller.showDesktopInstructions()">
+                        <i class="fas fa-question-circle me-2"></i>
+                        Instruções macOS
+                    </button>
+                `
+            },
+            linux: {
+                platformName: 'Linux',
+                deviceName: 'computador Linux',
+                icon: '<i class="fab fa-linux me-2"></i>',
+                buttons: `
+                    <button class="btn btn-warning" onclick="window.pwaInstaller.installApp()">
+                        <i class="fas fa-terminal me-2"></i>
+                        Instalar no Linux
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="window.pwaInstaller.showDesktopInstructions()">
+                        <i class="fas fa-question-circle me-2"></i>
+                        Instruções Linux
+                    </button>
+                `
+            },
+            desktop: {
+                platformName: 'Desktop',
+                deviceName: 'computador',
+                icon: '<i class="fas fa-desktop me-2"></i>',
+                buttons: `
+                    <button class="btn btn-primary" onclick="window.pwaInstaller.installApp()">
+                        <i class="fas fa-download me-2"></i>
+                        Instalar Agora
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="window.pwaInstaller.showManualInstructions()">
+                        <i class="fas fa-question-circle me-2"></i>
+                        Como instalar?
+                    </button>
+                `
+            }
+        };
+        
+        return contents[platform] || contents.desktop;
+    }
+    
+    // Instruções específicas para Android
+    showAndroidInstructions() {
+        const instructions = `
+            <div class="text-center mb-3">
+                <i class="fab fa-android fa-3x text-success"></i>
+                <h4 class="mt-2">Instalação no Android</h4>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fab fa-chrome me-2"></i>Chrome</h5>
+                    <ol>
+                        <li>Toque no menu <strong>(⋮)</strong> no canto superior direito</li>
+                        <li>Selecione <strong>"Instalar app"</strong> ou <strong>"Adicionar à tela inicial"</strong></li>
+                        <li>Confirme tocando em <strong>"Instalar"</strong></li>
+                        <li>O app aparecerá na sua tela inicial</li>
+                    </ol>
+                </div>
+                <div class="col-md-6">
+                    <h5><i class="fab fa-firefox me-2"></i>Firefox</h5>
+                    <ol>
+                        <li>Toque no menu <strong>(⋯)</strong> no canto superior direito</li>
+                        <li>Selecione <strong>"Instalar"</strong></li>
+                        <li>Confirme a instalação</li>
+                        <li>Acesse pelo ícone na tela inicial</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-lightbulb me-2"></i>
+                <strong>Dica:</strong> Procure também por uma barra de notificação no topo da página oferecendo a instalação!
+            </div>
+        `;
+        
+        this.showModal('Instalar no Android', instructions);
+    }
+    
+    // Instruções específicas para iOS
+    showIosInstructions() {
+        const instructions = `
+            <div class="text-center mb-3">
+                <i class="fab fa-apple fa-3x text-primary"></i>
+                <h4 class="mt-2">Instalação no iPhone/iPad</h4>
+            </div>
+            
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Importante:</strong> Funciona apenas no Safari, não em outros navegadores iOS.
+            </div>
+            
+            <h5><i class="fab fa-safari me-2"></i>Passos no Safari:</h5>
+            <ol class="fs-6">
+                <li class="mb-2">
+                    <strong>Toque no botão de compartilhar</strong><br>
+                    <span class="text-muted">Ícone 📤 na parte inferior da tela</span>
+                </li>
+                <li class="mb-2">
+                    <strong>Role para baixo</strong><br>
+                    <span class="text-muted">Procure por "Adicionar à Tela de Início"</span>
+                </li>
+                <li class="mb-2">
+                    <strong>Toque em "Adicionar à Tela de Início"</strong><br>
+                    <span class="text-muted">Pode estar na segunda linha de opções</span>
+                </li>
+                <li class="mb-2">
+                    <strong>Confirme tocando em "Adicionar"</strong><br>
+                    <span class="text-muted">No canto superior direito</span>
+                </li>
+                <li>
+                    <strong>Pronto!</strong><br>
+                    <span class="text-muted">O app aparecerá na sua tela inicial</span>
+                </li>
+            </ol>
+            
+            <div class="alert alert-success mt-3">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>Funcionalidades:</strong> Trabalha offline, notificações push, interface nativa
+            </div>
+        `;
+        
+        this.showModal('Instalar no iPhone/iPad', instructions);
+    }
+    
+    // Instruções específicas para Desktop
+    showDesktopInstructions() {
+        const platform = this.detectPlatform();
+        let browserInstructions = '';
+        
+        if (navigator.userAgent.includes('Chrome')) {
+            browserInstructions = `
+                <h5><i class="fab fa-chrome me-2"></i>Google Chrome</h5>
+                <ol>
+                    <li>Procure pelo ícone <strong>⊕</strong> ou <strong>🖥️</strong> na barra de endereços</li>
+                    <li>Ou vá no menu <strong>(⋮)</strong> → <strong>"Instalar ELP Relatórios..."</strong></li>
+                    <li>Clique em <strong>"Instalar"</strong></li>
+                    <li>O app aparecerá como programa instalado</li>
+                </ol>
+            `;
+        } else if (navigator.userAgent.includes('Firefox')) {
+            browserInstructions = `
+                <h5><i class="fab fa-firefox me-2"></i>Mozilla Firefox</h5>
+                <ol>
+                    <li>Procure pelo ícone na barra de endereços</li>
+                    <li>Ou vá no menu <strong>(☰)</strong> → <strong>"Instalar esta página como app"</strong></li>
+                    <li>Confirme a instalação</li>
+                    <li>Acesse pelo menu de aplicativos</li>
+                </ol>
+            `;
+        } else if (navigator.userAgent.includes('Safari')) {
+            browserInstructions = `
+                <h5><i class="fab fa-safari me-2"></i>Safari</h5>
+                <ol>
+                    <li>Vá no menu <strong>Safari</strong> → <strong>"Adicionar à Dock"</strong></li>
+                    <li>Ou use <strong>Arquivo</strong> → <strong>"Adicionar à Dock"</strong></li>
+                    <li>O app ficará disponível na Dock</li>
+                </ol>
+            `;
+        } else {
+            browserInstructions = `
+                <h5><i class="fas fa-browser me-2"></i>Navegador</h5>
+                <ol>
+                    <li>Procure por um ícone de instalação na barra de endereços</li>
+                    <li>Ou vá no menu do navegador</li>
+                    <li>Procure por "Instalar app" ou "Adicionar à área de trabalho"</li>
+                    <li>Confirme a instalação</li>
+                </ol>
+            `;
+        }
+        
+        const instructions = `
+            <div class="text-center mb-3">
+                <i class="fas fa-desktop fa-3x text-info"></i>
+                <h4 class="mt-2">Instalação no Desktop - ${platform.toUpperCase()}</h4>
+            </div>
+            
+            ${browserInstructions}
+            
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-lightbulb me-2"></i>
+                <strong>Vantagens:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>Acesso direto pela área de trabalho</li>
+                    <li>Funciona offline</li>
+                    <li>Interface como aplicativo nativo</li>
+                    <li>Atualizações automáticas</li>
+                </ul>
+            </div>
+        `;
+        
+        this.showModal('Instalar no Desktop', instructions);
     }
 }
 
