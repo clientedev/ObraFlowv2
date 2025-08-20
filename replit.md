@@ -72,4 +72,10 @@ Preferred communication style: Simple, everyday language.
 ## PDF and Media Processing
 - **ReportLab**: Employed for professional PDF generation with custom styling.
 - **Pillow**: Used for image processing, including photo annotations and resizing.
-- **Canvas API**: JavaScript-based tool for photo annotation and drawing.
+- **Canvas API**: JavaScript-based tool for photo annotation and drawing.### Mobile Photo Editor Enhancement (2025-08-20)
+- ✅ **Touch Events Optimization**: Melhorado manuseio de eventos touch para ferramentas além do pincel
+- ✅ **Gesture Prevention**: Prevenção de zoom e gestos indesejados durante edição
+- ✅ **Coordinate Mapping**: Correção do mapeamento de coordenadas touch para canvas
+- ✅ **Mobile CSS**: Estilos otimizados com áreas de toque maiores e responsividade
+- ✅ **Tool Preview**: Sistema de preview em tempo real para setas, círculos e retângulos
+- ✅ **iOS Compatibility**: Otimizações específicas para Safari iOS e prevenção de zoom duplo-toque

@@ -22,6 +22,15 @@
     border: 1px solid #ccc;
     cursor: crosshair;
     background: white;
+    /* Otimizações para mobile */
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .tool-group {
@@ -35,6 +44,10 @@
 .tool-btn {
     margin: 5px;
     min-width: 60px;
+    /* Melhorias para mobile */
+    min-height: 48px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .tool-btn.active {
@@ -57,10 +70,63 @@
     margin: 2px;
     cursor: pointer;
     display: inline-block;
+    /* Melhorias para mobile */
+    min-width: 40px;
+    min-height: 40px;
+    touch-action: manipulation;
 }
 
-.color-preset:hover {
+.color-preset:hover,
+.color-preset:focus {
     border-color: #007bff;
+    transform: scale(1.1);
+}
+
+/* Media queries para mobile */
+@media (max-width: 768px) {
+    .tool-btn {
+        min-width: 50px;
+        min-height: 50px;
+        margin: 3px;
+        font-size: 14px;
+    }
+    
+    .color-preset {
+        min-width: 45px;
+        min-height: 45px;
+        margin: 3px;
+    }
+    
+    #preview-container {
+        min-height: 300px;
+        padding: 5px;
+    }
+    
+    .tool-group {
+        margin-bottom: 15px;
+        padding: 10px;
+    }
+    
+    /* Aumentar area de toque no mobile */
+    .btn {
+        min-height: 44px;
+        padding: 12px 16px;
+    }
+}
+
+/* Prevenir zoom duplo-toque no iOS */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+    .tool-btn,
+    .color-preset,
+    .btn {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
 }
 </style>
 {% endblock %}
@@ -345,16 +411,22 @@ function setupEventListeners() {
         document.getElementById('sizeDisplay').textContent = this.value + 'px';
     });
     
-    // Canvas Events
+    // Canvas Events para Desktop
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', stopDrawing);
     canvas.addEventListener('mouseout', stopDrawing);
     
-    // Touch events
-    canvas.addEventListener('touchstart', handleTouch);
-    canvas.addEventListener('touchmove', handleTouch);
-    canvas.addEventListener('touchend', handleTouch);
+    // Touch events para Mobile (com configurações otimizadas)
+    canvas.addEventListener('touchstart', handleTouch, { passive: false });
+    canvas.addEventListener('touchmove', handleTouch, { passive: false });
+    canvas.addEventListener('touchend', handleTouch, { passive: false });
+    canvas.addEventListener('touchcancel', handleTouch, { passive: false });
+    
+    // Prevenir zoom e scroll no mobile durante edição
+    canvas.addEventListener('gesturestart', e => e.preventDefault());
+    canvas.addEventListener('gesturechange', e => e.preventDefault());
+    canvas.addEventListener('gestureend', e => e.preventDefault());
 }
 
 function startDrawing(e) {
@@ -399,14 +471,30 @@ function draw(e) {
         // Para outras ferramentas, redesenhar canvas com preview
         redrawCanvas();
         
-        if (currentTool === 'arrow') {
-            drawArrow(startX, startY, x, y);
-        } else if (currentTool === 'circle') {
-            drawCircle(startX, startY, x, y);
-        } else if (currentTool === 'rectangle') {
-            drawRectangle(startX, startY, x, y);
-        }
+        // Desenhar preview da ferramenta atual
+        drawToolPreview(startX, startY, x, y);
     }
+}
+
+function drawToolPreview(startX, startY, endX, endY) {
+    // Salvar contexto atual
+    ctx.save();
+    
+    // Configurar estilo para preview (mais transparente)
+    ctx.globalAlpha = 0.8;
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = currentSize;
+    
+    if (currentTool === 'arrow') {
+        drawArrow(startX, startY, endX, endY);
+    } else if (currentTool === 'circle') {
+        drawCircle(startX, startY, endX, endY);
+    } else if (currentTool === 'rectangle') {
+        drawRectangle(startX, startY, endX, endY);
+    }
+    
+    // Restaurar contexto
+    ctx.restore();
 }
 
 function stopDrawing(e) {
@@ -530,24 +618,50 @@ function getMousePos(e) {
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     
+    // Para eventos touch, usar coordenadas do touch
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
     return [
-        (e.clientX - rect.left) * scaleX,
-        (e.clientY - rect.top) * scaleY
+        (clientX - rect.left) * scaleX,
+        (clientY - rect.top) * scaleY
     ];
 }
 
 function handleTouch(e) {
     e.preventDefault();
-    const touch = e.touches[0];
-    const mouseEvent = new MouseEvent(
-        e.type === 'touchstart' ? 'mousedown' : 
-        e.type === 'touchmove' ? 'mousemove' : 'mouseup', 
-        {
-            clientX: touch.clientX,
-            clientY: touch.clientY
+    e.stopPropagation();
+    
+    if (!e.touches || e.touches.length === 0) {
+        // TouchEnd event
+        if (isDrawing) {
+            stopDrawing(e);
         }
-    );
-    canvas.dispatchEvent(mouseEvent);
+        return;
+    }
+    
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    // Criar evento personalizado com coordenadas corretas para mobile
+    const customEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        touches: e.touches,
+        preventDefault: () => {},
+        stopPropagation: () => {}
+    };
+    
+    // Mapear eventos touch para mouse
+    if (e.type === 'touchstart') {
+        startDrawing(customEvent);
+    } else if (e.type === 'touchmove') {
+        draw(customEvent);
+    } else if (e.type === 'touchend') {
+        stopDrawing(customEvent);
+    }
 }
 
 function setColor(color) {
