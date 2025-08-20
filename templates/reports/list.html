@@ -13,6 +13,50 @@
                         <i class="fas fa-plus"></i> Novo Relatório
                     </a>
                 </div>
+                
+                <!-- Filtros de Relatórios -->
+                <div class="card-body border-bottom">
+                    <div class="row g-3">
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label small fw-bold">Status:</label>
+                            <select class="form-select form-select-sm" id="filterStatus">
+                                <option value="">Todos os Status</option>
+                                <option value="Aprovado">Aprovado</option>
+                                <option value="Rejeitado">Rejeitado</option>
+                                <option value="Aguardando Aprovação">Aguardando Aprovação</option>
+                                <option value="Rascunho">Rascunho</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label small fw-bold">Projeto:</label>
+                            <select class="form-select form-select-sm" id="filterProjeto">
+                                <option value="">Todos os Projetos</option>
+                                <!-- Será preenchido dinamicamente -->
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label small fw-bold">Autor:</label>
+                            <select class="form-select form-select-sm" id="filterAutor">
+                                <option value="">Todos Autores</option>
+                                <!-- Será preenchido dinamicamente -->
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label small fw-bold">Pesquisar:</label>
+                            <input type="text" class="form-control form-control-sm" id="searchReport" placeholder="Número ou título">
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearReportFilters()">
+                                <i class="fas fa-times"></i> Limpar Filtros
+                            </button>
+                            <small class="text-muted">
+                                <span id="reportFilteredCount">{{ relatorios.items|length if relatorios and relatorios.items else 0 }}</span> relatório(s) encontrado(s)
+                            </small>
+                        </div>
+                    </div>
+                </div>
                 <div class="card-body">
                     {% if relatorios and relatorios.items %}
                         <div class="table-responsive">
@@ -83,4 +127,127 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.querySelector('table');
+    if (!table) return;
+    
+    const rows = table.querySelectorAll('tbody tr');
+    
+    // Adicionar atributos data para filtros
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 6) {
+            row.setAttribute('data-status', cells[5].textContent.trim());
+            row.setAttribute('data-projeto', cells[2].textContent.trim());
+            row.setAttribute('data-autor', cells[3].textContent.trim());
+            row.setAttribute('data-search', (cells[0].textContent + ' ' + cells[1].textContent).toLowerCase());
+        }
+    });
+    
+    // Preencher filtros dinamicamente
+    fillReportFilterOptions();
+    
+    // Configurar eventos dos filtros
+    setupReportFilters();
+    
+    function fillReportFilterOptions() {
+        const projetoSet = new Set();
+        const autorSet = new Set();
+        
+        rows.forEach(row => {
+            const projeto = row.getAttribute('data-projeto');
+            const autor = row.getAttribute('data-autor');
+            
+            if (projeto && projeto !== '-') projetoSet.add(projeto);
+            if (autor && autor !== '-') autorSet.add(autor);
+        });
+        
+        // Preencher select de projetos
+        const projetoSelect = document.getElementById('filterProjeto');
+        if (projetoSelect) {
+            projetoSet.forEach(projeto => {
+                const option = document.createElement('option');
+                option.value = projeto;
+                option.textContent = projeto;
+                projetoSelect.appendChild(option);
+            });
+        }
+        
+        // Preencher select de autores
+        const autorSelect = document.getElementById('filterAutor');
+        if (autorSelect) {
+            autorSet.forEach(autor => {
+                const option = document.createElement('option');
+                option.value = autor;
+                option.textContent = autor;
+                autorSelect.appendChild(option);
+            });
+        }
+    }
+    
+    function setupReportFilters() {
+        const filterStatus = document.getElementById('filterStatus');
+        const filterProjeto = document.getElementById('filterProjeto');
+        const filterAutor = document.getElementById('filterAutor');
+        const searchInput = document.getElementById('searchReport');
+        
+        [filterStatus, filterProjeto, filterAutor].forEach(filter => {
+            if (filter) filter.addEventListener('change', applyReportFilters);
+        });
+        
+        if (searchInput) searchInput.addEventListener('input', applyReportFilters);
+    }
+    
+    function applyReportFilters() {
+        const statusFilter = document.getElementById('filterStatus')?.value || '';
+        const projetoFilter = document.getElementById('filterProjeto')?.value || '';
+        const autorFilter = document.getElementById('filterAutor')?.value || '';
+        const searchText = (document.getElementById('searchReport')?.value || '').toLowerCase();
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const status = row.getAttribute('data-status') || '';
+            const projeto = row.getAttribute('data-projeto') || '';
+            const autor = row.getAttribute('data-autor') || '';
+            const searchData = row.getAttribute('data-search') || '';
+            
+            const statusMatch = !statusFilter || status.includes(statusFilter);
+            const projetoMatch = !projetoFilter || projeto === projetoFilter;
+            const autorMatch = !autorFilter || autor === autorFilter;
+            const searchMatch = !searchText || searchData.includes(searchText);
+            
+            if (statusMatch && projetoMatch && autorMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        const countElement = document.getElementById('reportFilteredCount');
+        if (countElement) countElement.textContent = visibleCount;
+    }
+    
+    // Expor função global para o botão de limpar
+    window.clearReportFilters = function() {
+        const filters = ['filterStatus', 'filterProjeto', 'filterAutor', 'searchReport'];
+        filters.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.value = '';
+        });
+        
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        
+        const countElement = document.getElementById('reportFilteredCount');
+        if (countElement) countElement.textContent = rows.length;
+    };
+});
+</script>
 {% endblock %}

@@ -22,23 +22,64 @@
     </div>
 </div>
 
-<!-- Status Filter -->
-<div class="row mb-3">
+<!-- Filtros Melhorados -->
+<div class="row mb-4">
     <div class="col-12">
         <div class="card">
-            <div class="card-body py-2">
-                <div class="btn-group" role="group" aria-label="Status Filter">
-                    <input type="radio" class="btn-check" name="statusFilter" id="filterAll" autocomplete="off" checked>
-                    <label class="btn btn-outline-secondary" for="filterAll">Todas</label>
-                    
-                    <input type="radio" class="btn-check" name="statusFilter" id="filterAgendada" autocomplete="off">
-                    <label class="btn btn-outline-warning" for="filterAgendada">Agendadas</label>
-                    
-                    <input type="radio" class="btn-check" name="statusFilter" id="filterRealizada" autocomplete="off">
-                    <label class="btn btn-outline-success" for="filterRealizada">Realizadas</label>
-                    
-                    <input type="radio" class="btn-check" name="statusFilter" id="filterCancelada" autocomplete="off">
-                    <label class="btn btn-outline-danger" for="filterCancelada">Canceladas</label>
+            <div class="card-body py-3">
+                <div class="row g-3">
+                    <div class="col-md-3 col-sm-6">
+                        <label class="form-label small fw-bold">Status:</label>
+                        <select class="form-select form-select-sm" id="filterStatusVisit">
+                            <option value="">Todos os Status</option>
+                            <option value="Agendada">Agendadas</option>
+                            <option value="Realizada">Realizadas</option>
+                            <option value="Cancelada">Canceladas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <label class="form-label small fw-bold">Projeto:</label>
+                        <select class="form-select form-select-sm" id="filterProjetoVisit">
+                            <option value="">Todos os Projetos</option>
+                            <!-- Será preenchido dinamicamente -->
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <label class="form-label small fw-bold">Responsável:</label>
+                        <select class="form-select form-select-sm" id="filterResponsavelVisit">
+                            <option value="">Todos Responsáveis</option>
+                            <!-- Será preenchido dinamicamente -->
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <label class="form-label small fw-bold">Pesquisar:</label>
+                        <input type="text" class="form-control form-control-sm" id="searchVisit" placeholder="Projeto ou objetivo">
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <!-- Status buttons for mobile -->
+                        <div class="btn-group d-md-none mb-2" role="group" aria-label="Status Filter Mobile">
+                            <input type="radio" class="btn-check" name="statusFilterMobile" id="filterAllMobile" autocomplete="off" checked>
+                            <label class="btn btn-outline-secondary btn-sm" for="filterAllMobile">Todas</label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilterMobile" id="filterAgendadaMobile" autocomplete="off">
+                            <label class="btn btn-outline-warning btn-sm" for="filterAgendadaMobile">Agendadas</label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilterMobile" id="filterRealizadaMobile" autocomplete="off">
+                            <label class="btn btn-outline-success btn-sm" for="filterRealizadaMobile">Realizadas</label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilterMobile" id="filterCanceladaMobile" autocomplete="off">
+                            <label class="btn btn-outline-danger btn-sm" for="filterCanceladaMobile">Canceladas</label>
+                        </div>
+                        
+                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearVisitFilters()">
+                            <i class="fas fa-times"></i> Limpar Filtros
+                        </button>
+                        <small class="text-muted">
+                            <span id="visitFilteredCount">{{ visits|length if visits else 0 }}</span> visita(s) encontrada(s)
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -140,26 +181,145 @@
 
 {% block extra_scripts %}
 <script>
-// Filter visits by status
 document.addEventListener('DOMContentLoaded', function() {
-    const filterButtons = document.querySelectorAll('input[name="statusFilter"]');
-    const tableRows = document.querySelectorAll('#visitsTable tbody tr');
+    const table = document.getElementById('visitsTable');
+    if (!table) return;
     
-    filterButtons.forEach(button => {
-        button.addEventListener('change', function() {
-            const filterValue = this.id.replace('filter', '');
+    const rows = table.querySelectorAll('tbody tr');
+    
+    // Adicionar atributos de dados adicionais
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 4) {
+            const projetoText = cells[0].textContent.trim();
+            const responsavelText = cells[3].textContent.trim();
+            const objetivoText = cells[5] ? cells[5].textContent.trim() : '';
             
-            tableRows.forEach(row => {
-                const status = row.getAttribute('data-status');
-                
-                if (filterValue === 'All' || status === filterValue) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
+            row.setAttribute('data-projeto', projetoText);
+            row.setAttribute('data-responsavel', responsavelText);
+            row.setAttribute('data-search', (projetoText + ' ' + objetivoText).toLowerCase());
+        }
+    });
+    
+    // Preencher filtros dinamicamente
+    fillVisitFilterOptions();
+    setupVisitFilters();
+    
+    function fillVisitFilterOptions() {
+        const projetoSet = new Set();
+        const responsavelSet = new Set();
+        
+        rows.forEach(row => {
+            const projeto = row.getAttribute('data-projeto');
+            const responsavel = row.getAttribute('data-responsavel');
+            
+            if (projeto) projetoSet.add(projeto);
+            if (responsavel) responsavelSet.add(responsavel);
+        });
+        
+        // Preencher select de projetos
+        const projetoSelect = document.getElementById('filterProjetoVisit');
+        if (projetoSelect) {
+            projetoSet.forEach(projeto => {
+                const option = document.createElement('option');
+                option.value = projeto;
+                option.textContent = projeto;
+                projetoSelect.appendChild(option);
+            });
+        }
+        
+        // Preencher select de responsáveis
+        const responsavelSelect = document.getElementById('filterResponsavelVisit');
+        if (responsavelSelect) {
+            responsavelSet.forEach(responsavel => {
+                const option = document.createElement('option');
+                option.value = responsavel;
+                option.textContent = responsavel;
+                responsavelSelect.appendChild(option);
+            });
+        }
+    }
+    
+    function setupVisitFilters() {
+        // Filtros desktop
+        const filterStatus = document.getElementById('filterStatusVisit');
+        const filterProjeto = document.getElementById('filterProjetoVisit');
+        const filterResponsavel = document.getElementById('filterResponsavelVisit');
+        const searchInput = document.getElementById('searchVisit');
+        
+        [filterStatus, filterProjeto, filterResponsavel].forEach(filter => {
+            if (filter) filter.addEventListener('change', applyVisitFilters);
+        });
+        
+        if (searchInput) searchInput.addEventListener('input', applyVisitFilters);
+        
+        // Filtros mobile (botões de status)
+        const mobileButtons = document.querySelectorAll('input[name="statusFilterMobile"]');
+        mobileButtons.forEach(button => {
+            button.addEventListener('change', function() {
+                if (this.checked) {
+                    const statusValue = this.id.replace('filter', '').replace('Mobile', '');
+                    const statusSelect = document.getElementById('filterStatusVisit');
+                    if (statusSelect) {
+                        statusSelect.value = statusValue === 'All' ? '' : statusValue;
+                        applyVisitFilters();
+                    }
                 }
             });
         });
-    });
+    }
+    
+    function applyVisitFilters() {
+        const statusFilter = document.getElementById('filterStatusVisit')?.value || '';
+        const projetoFilter = document.getElementById('filterProjetoVisit')?.value || '';
+        const responsavelFilter = document.getElementById('filterResponsavelVisit')?.value || '';
+        const searchText = (document.getElementById('searchVisit')?.value || '').toLowerCase();
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const status = row.getAttribute('data-status') || '';
+            const projeto = row.getAttribute('data-projeto') || '';
+            const responsavel = row.getAttribute('data-responsavel') || '';
+            const searchData = row.getAttribute('data-search') || '';
+            
+            const statusMatch = !statusFilter || status === statusFilter;
+            const projetoMatch = !projetoFilter || projeto.includes(projetoFilter);
+            const responsavelMatch = !responsavelFilter || responsavel === responsavelFilter;
+            const searchMatch = !searchText || searchData.includes(searchText);
+            
+            if (statusMatch && projetoMatch && responsavelMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        const countElement = document.getElementById('visitFilteredCount');
+        if (countElement) countElement.textContent = visibleCount;
+    }
+    
+    // Expor função global para o botão de limpar
+    window.clearVisitFilters = function() {
+        // Limpar filtros desktop
+        const filters = ['filterStatusVisit', 'filterProjetoVisit', 'filterResponsavelVisit', 'searchVisit'];
+        filters.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.value = '';
+        });
+        
+        // Limpar filtros mobile
+        const allButton = document.getElementById('filterAllMobile');
+        if (allButton) allButton.checked = true;
+        
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        
+        const countElement = document.getElementById('visitFilteredCount');
+        if (countElement) countElement.textContent = rows.length;
+    };
 });
 </script>
 {% endblock %}

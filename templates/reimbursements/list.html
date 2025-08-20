@@ -13,6 +13,46 @@
                         <i class="fas fa-plus"></i> Nova Solicitação
                     </a>
                 </div>
+                
+                <!-- Filtros de Reembolsos -->
+                <div class="card-body border-bottom">
+                    <div class="row g-3">
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label small fw-bold">Status:</label>
+                            <select class="form-select form-select-sm" id="filterStatusReemb">
+                                <option value="">Todos os Status</option>
+                                <option value="Pendente">Pendente</option>
+                                <option value="Aprovado">Aprovado</option>
+                                <option value="Rejeitado">Rejeitado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label small fw-bold">Projeto:</label>
+                            <select class="form-select form-select-sm" id="filterProjetoReemb">
+                                <option value="">Todos os Projetos</option>
+                                <!-- Será preenchido dinamicamente -->
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label small fw-bold">Período:</label>
+                            <input type="month" class="form-control form-control-sm" id="filterPeriodo">
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label small fw-bold">Pesquisar:</label>
+                            <input type="text" class="form-control form-control-sm" id="searchReembolso" placeholder="Número ou projeto">
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearReembFilters()">
+                                <i class="fas fa-times"></i> Limpar Filtros
+                            </button>
+                            <small class="text-muted">
+                                <span id="reembFilteredCount">{{ reembolsos|length if reembolsos else 0 }}</span> reembolso(s) encontrado(s)
+                            </small>
+                        </div>
+                    </div>
+                </div>
                 <div class="card-body">
                     {% if reembolsos %}
                     <div class="table-responsive">
@@ -88,4 +128,116 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.querySelector('table');
+    if (!table) return;
+    
+    const rows = table.querySelectorAll('tbody tr');
+    
+    // Adicionar atributos data para filtros nos elementos existentes
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 4) {
+            row.setAttribute('data-status', cells[3].textContent.trim());
+            row.setAttribute('data-projeto', cells[1].textContent.trim());
+            const periodoText = cells[2].textContent.trim();
+            if (periodoText.includes('/')) {
+                // Extrair ano-mês do formato DD/MM/YYYY - DD/MM/YYYY
+                const dateParts = periodoText.split(' - ')[0].split('/');
+                if (dateParts.length === 3) {
+                    row.setAttribute('data-periodo', dateParts[2] + '-' + dateParts[1].padStart(2, '0'));
+                }
+            }
+            row.setAttribute('data-search', (cells[0].textContent + ' ' + cells[1].textContent).toLowerCase());
+        }
+    });
+    
+    // Preencher filtros dinamicamente
+    fillReembFilterOptions();
+    setupReembFilters();
+    
+    function fillReembFilterOptions() {
+        const projetoSet = new Set();
+        
+        rows.forEach(row => {
+            const projeto = row.getAttribute('data-projeto');
+            if (projeto && projeto !== 'N/A') projetoSet.add(projeto);
+        });
+        
+        const projetoSelect = document.getElementById('filterProjetoReemb');
+        if (projetoSelect) {
+            projetoSet.forEach(projeto => {
+                const option = document.createElement('option');
+                option.value = projeto;
+                option.textContent = projeto;
+                projetoSelect.appendChild(option);
+            });
+        }
+    }
+    
+    function setupReembFilters() {
+        const filterStatus = document.getElementById('filterStatusReemb');
+        const filterProjeto = document.getElementById('filterProjetoReemb');
+        const filterPeriodo = document.getElementById('filterPeriodo');
+        const searchInput = document.getElementById('searchReembolso');
+        
+        [filterStatus, filterProjeto, filterPeriodo].forEach(filter => {
+            if (filter) filter.addEventListener('change', applyReembFilters);
+        });
+        
+        if (searchInput) searchInput.addEventListener('input', applyReembFilters);
+    }
+    
+    function applyReembFilters() {
+        const statusFilter = document.getElementById('filterStatusReemb')?.value || '';
+        const projetoFilter = document.getElementById('filterProjetoReemb')?.value || '';
+        const periodoFilter = document.getElementById('filterPeriodo')?.value || '';
+        const searchText = (document.getElementById('searchReembolso')?.value || '').toLowerCase();
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const status = row.getAttribute('data-status') || '';
+            const projeto = row.getAttribute('data-projeto') || '';
+            const periodo = row.getAttribute('data-periodo') || '';
+            const searchData = row.getAttribute('data-search') || '';
+            
+            const statusMatch = !statusFilter || status.includes(statusFilter);
+            const projetoMatch = !projetoFilter || projeto === projetoFilter;
+            const periodoMatch = !periodoFilter || periodo.startsWith(periodoFilter);
+            const searchMatch = !searchText || searchData.includes(searchText);
+            
+            if (statusMatch && projetoMatch && periodoMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        const countElement = document.getElementById('reembFilteredCount');
+        if (countElement) countElement.textContent = visibleCount;
+    }
+    
+    // Expor função global para o botão de limpar
+    window.clearReembFilters = function() {
+        const filters = ['filterStatusReemb', 'filterProjetoReemb', 'filterPeriodo', 'searchReembolso'];
+        filters.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.value = '';
+        });
+        
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        
+        const countElement = document.getElementById('reembFilteredCount');
+        if (countElement) countElement.textContent = rows.length;
+    };
+});
+</script>
 {% endblock %}
