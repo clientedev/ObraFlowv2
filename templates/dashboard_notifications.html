@@ -1,64 +1,32 @@
-<!-- Painel de Controle de Notificações -->
-<div class="row mb-4">
+<!-- Sistema de Notificações (Discreto) -->
+<div class="row mb-3">
     <div class="col-md-12">
-        <div class="card">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-bell me-2"></i>
-                    Sistema de Notificações
-                </h5>
+        <div class="alert alert-light border" style="padding: 0.75rem 1rem;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <span id="notification-badge" class="badge bg-secondary me-2">
+                        <i class="fas fa-spinner fa-spin me-1"></i>
+                        Verificando...
+                    </span>
+                    <small class="text-muted">
+                        <i class="fas fa-bell me-1"></i>
+                        Notificações de proximidade e novidades
+                    </small>
+                </div>
+                <button class="btn btn-outline-primary btn-sm" id="notification-toggle" onclick="toggleNotifications()">
+                    <i class="fas fa-bell me-1"></i>
+                    <span id="toggle-text">Ativar</span>
+                </button>
             </div>
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <div id="notification-status" class="mb-3">
-                            <span class="badge bg-secondary" id="notification-badge">
-                                <i class="fas fa-spinner fa-spin me-1"></i>
-                                Verificando...
-                            </span>
-                        </div>
-                        
-                        <h6>Recursos de Notificação:</h6>
-                        <ul class="list-unstyled mb-0">
-                            <li><i class="fas fa-map-marker-alt text-success me-2"></i>Alerta quando próximo de obras (raio de 500m)</li>
-                            <li><i class="fas fa-file-alt text-info me-2"></i>Novidades e relatórios pendentes</li>
-                            <li><i class="fas fa-calendar text-warning me-2"></i>Lembretes de visitas agendadas</li>
-                            <li><i class="fas fa-mobile-alt text-primary me-2"></i>Funciona no app instalado</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-4 text-end">
-                        <button class="btn btn-primary btn-lg" id="notification-toggle" onclick="toggleNotifications()">
-                            <i class="fas fa-bell me-2"></i>
-                            <span id="toggle-text">Ativar Notificações</span>
-                        </button>
-                        
-                        <div class="mt-3">
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Requer permissão do navegador
-                            </small>
-                        </div>
-                    </div>
-                </div>
                 
-                <!-- Status de Localização -->
-                <div class="row mt-3" id="location-status" style="display: none;">
-                    <div class="col-12">
-                        <div class="alert alert-info">
-                            <i class="fas fa-map-marker-alt me-2"></i>
-                            <strong>Localização:</strong> <span id="location-text">Detectando...</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Obras Próximas -->
-                <div class="row mt-3" id="nearby-projects" style="display: none;">
-                    <div class="col-12">
-                        <h6><i class="fas fa-building me-2"></i>Obras Próximas (1km):</h6>
-                        <div id="nearby-list" class="list-group">
-                            <!-- Preenchido dinamicamente -->
-                        </div>
-                    </div>
+            <!-- Status Expandido (Opcional) -->
+            <div class="mt-2" id="notification-details" style="display: none;">
+                <small class="text-muted d-block mb-2">
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    <span id="location-text">Detectando localização...</span>
+                </small>
+                <div id="nearby-list" class="small">
+                    <!-- Lista de obras próximas -->
                 </div>
             </div>
         </div>
@@ -74,7 +42,7 @@ function updateNotificationStatus() {
     
     if (!window.notificationManager) {
         badge.innerHTML = '<i class="fas fa-times me-1"></i>Não Suportado';
-        badge.className = 'badge bg-danger';
+        badge.className = 'badge bg-danger me-2';
         toggleBtn.disabled = true;
         return;
     }
@@ -83,46 +51,44 @@ function updateNotificationStatus() {
     
     if (permission === 'granted') {
         badge.innerHTML = '<i class="fas fa-check me-1"></i>Ativo';
-        badge.className = 'badge bg-success';
-        toggleText.textContent = 'Desativar Notificações';
-        toggleBtn.className = 'btn btn-warning btn-lg';
+        badge.className = 'badge bg-success me-2';
+        toggleText.textContent = 'Desativar';
+        toggleBtn.className = 'btn btn-outline-warning btn-sm';
         
         // Mostrar status de localização
         showLocationStatus();
         
     } else if (permission === 'denied') {
         badge.innerHTML = '<i class="fas fa-times me-1"></i>Bloqueado';
-        badge.className = 'badge bg-danger';
-        toggleText.textContent = 'Reativar Notificações';
-        toggleBtn.className = 'btn btn-secondary btn-lg';
+        badge.className = 'badge bg-danger me-2';
+        toggleText.textContent = 'Reativar';
+        toggleBtn.className = 'btn btn-outline-secondary btn-sm';
         
     } else {
         badge.innerHTML = '<i class="fas fa-bell-slash me-1"></i>Inativo';
-        badge.className = 'badge bg-warning';
-        toggleText.textContent = 'Ativar Notificações';
-        toggleBtn.className = 'btn btn-primary btn-lg';
+        badge.className = 'badge bg-warning me-2';
+        toggleText.textContent = 'Ativar';
+        toggleBtn.className = 'btn btn-outline-primary btn-sm';
     }
 }
 
 function showLocationStatus() {
-    const locationStatus = document.getElementById('location-status');
+    const details = document.getElementById('notification-details');
     const locationText = document.getElementById('location-text');
     
     if (navigator.geolocation) {
-        locationStatus.style.display = 'block';
+        details.style.display = 'block';
         
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const lat = position.coords.latitude.toFixed(4);
-                const lon = position.coords.longitude.toFixed(4);
-                locationText.textContent = `Lat: ${lat}, Lon: ${lon} (Precisão: ${Math.round(position.coords.accuracy)}m)`;
+                const precision = Math.round(position.coords.accuracy);
+                locationText.textContent = `Localização ativa (precisão: ${precision}m)`;
                 
                 // Buscar obras próximas
                 loadNearbyProjects(position.coords.latitude, position.coords.longitude);
             },
             (error) => {
-                locationText.textContent = `Erro: ${error.message}`;
-                locationStatus.className = 'alert alert-warning';
+                locationText.textContent = `Erro de localização: ${error.message}`;
             }
         );
     }
@@ -147,28 +113,23 @@ async function loadNearbyProjects(lat, lon) {
 }
 
 function displayNearbyProjects(projects) {
-    const nearbyContainer = document.getElementById('nearby-projects');
     const nearbyList = document.getElementById('nearby-list');
     
     if (projects.length === 0) {
-        nearbyList.innerHTML = '<div class="list-group-item text-muted">Nenhuma obra encontrada num raio de 1km</div>';
+        nearbyList.innerHTML = '<span class="text-muted">Nenhuma obra num raio de 1km</span>';
     } else {
-        nearbyList.innerHTML = projects.map(project => `
-            <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="mb-1">${project.nome}</h6>
-                    <p class="mb-1 text-muted">${project.endereco}</p>
-                    <small class="text-muted">${project.tipo_obra} - ${project.status}</small>
-                </div>
-                <div class="text-end">
-                    <span class="badge bg-info">${Math.round(project.distance)}m</span>
-                    ${project.distance < 500 ? '<br><small class="text-success">Próximo!</small>' : ''}
-                </div>
-            </div>
-        `).join('');
+        const nearProjects = projects.filter(p => p.distance < 500);
+        if (nearProjects.length > 0) {
+            nearbyList.innerHTML = `<span class="text-success">
+                <i class="fas fa-map-marker-alt me-1"></i>
+                ${nearProjects.length} obra(s) próxima(s)
+            </span>`;
+        } else {
+            nearbyList.innerHTML = `<span class="text-info">
+                ${projects.length} obra(s) na região
+            </span>`;
+        }
     }
-    
-    nearbyContainer.style.display = 'block';
 }
 
 async function toggleNotifications() {
