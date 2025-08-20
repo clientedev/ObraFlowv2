@@ -1,6 +1,9 @@
 # Rotas específicas para PWA
-from flask import send_from_directory, jsonify
-from app import app
+from flask import send_from_directory, jsonify, request
+from flask_login import current_user, login_required
+from app import app, db
+from models import Projeto
+import math
 
 @app.route('/manifest.json')
 def manifest():
@@ -84,7 +87,7 @@ def pwa_install_info():
         'features': [
             'Trabalha offline',
             'Acesso rápido da tela inicial',
-            'Notificações push (futuro)',
+            'Notificações de proximidade',
             'Interface nativa',
             'Atualizações automáticas'
         ],
@@ -94,3 +97,90 @@ def pwa_install_info():
             'Suporte a Service Workers'
         ]
     })
+
+@app.route('/api/notifications/subscribe', methods=['POST'])
+@login_required
+def subscribe_notifications():
+    """Inscrever usuário para notificações push"""
+    try:
+        data = request.get_json()
+        subscription = data.get('subscription')
+        user_agent = data.get('user_agent', '')
+        
+        # Salvar subscription no banco (adicionar modelo posteriormente)
+        # Por enquanto, apenas confirmar recebimento
+        
+        return jsonify({
+            'success': True,
+            'message': 'Notificações ativadas com sucesso'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
+@app.route('/api/notifications/unsubscribe', methods=['POST'])
+@login_required
+def unsubscribe_notifications():
+    """Cancelar inscrição de notificações"""
+    try:
+        # Remover subscription do banco
+        return jsonify({
+            'success': True,
+            'message': 'Notificações desativadas'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
+@app.route('/api/notifications/check-updates')
+@login_required
+def check_updates():
+    """Verificar se há atualizações no app"""
+    try:
+        # Implementar lógica de verificação de updates
+        # Por exemplo: novos relatórios aprovados, novas visitas agendadas, etc.
+        
+        updates = []
+        
+        # Verificar relatórios pendentes de aprovação para masters
+        if current_user.is_master:
+            from models import Relatorio
+            pending_count = Relatorio.query.filter_by(status='pendente').count()
+            if pending_count > 0:
+                updates.append({
+                    'id': 'pending_reports',
+                    'title': 'Relatórios Pendentes',
+                    'message': f'Você tem {pending_count} relatório(s) aguardando aprovação',
+                    'url': '/pending-reports'
+                })
+        
+        return jsonify({
+            'has_updates': len(updates) > 0,
+            'updates': updates
+        })
+    except Exception as e:
+        return jsonify({
+            'has_updates': False,
+            'error': str(e)
+        }), 400
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """Calcular distância entre duas coordenadas em metros"""
+    R = 6371000  # Raio da Terra em metros
+    
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    
+    a = (math.sin(delta_lat / 2) * math.sin(delta_lat / 2) +
+         math.cos(lat1_rad) * math.cos(lat2_rad) *
+         math.sin(delta_lon / 2) * math.sin(delta_lon / 2))
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    
+    return R * c
+

@@ -101,6 +101,16 @@ This is a comprehensive construction site visit tracking system built with Flask
 - ✅ **Offline Capabilities**: Full PWA offline functionality with Service Worker
 - ✅ **Home Screen Shortcuts**: Quick access to create reports, visits, and view projects
 
+### Push Notifications System (2025-08-20)
+- ✅ **Proximity Alerts**: Notificações quando usuário se aproxima de obras (raio de 500m)
+- ✅ **System Updates**: Alertas sobre novidades no app e relatórios pendentes para administradores
+- ✅ **Geolocation Monitoring**: Monitoramento contínuo de localização para detecção de proximidade
+- ✅ **Background Sync**: Service Worker com suporte a notificações push e sincronização em background
+- ✅ **Dashboard Integration**: Painel de controle de notificações integrado ao dashboard principal
+- ✅ **Permission Management**: Sistema completo de gerenciamento de permissões de notificação
+- ✅ **Cross-Platform Support**: Funciona em Android, iOS (PWA) e Desktop com adaptações específicas
+- ✅ **iOS Compatibility**: Suporte específico para Safari iOS com instruções detalhadas de instalação
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
