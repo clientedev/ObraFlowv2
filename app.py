@@ -80,17 +80,20 @@ with app.app_context():
     db.create_all()
     
     # Create default admin user if none exists
-    from models import User
-    from werkzeug.security import generate_password_hash
-    
-    if not User.query.filter_by(is_master=True).first():
-        admin = User()
-        admin.username = 'admin'
-        admin.email = 'admin@exemplo.com'
-        admin.nome_completo = 'Administrador do Sistema'
-        admin.password_hash = generate_password_hash('admin123')
-        admin.is_master = True
-        admin.cargo = 'Administrador'
-        db.session.add(admin)
-        db.session.commit()
-        logging.info("Admin user created: admin/admin123")
+    try:
+        from models import User
+        from werkzeug.security import generate_password_hash
+        
+        if not User.query.filter_by(is_master=True).first():
+            admin = User()
+            admin.username = 'admin'
+            admin.email = 'admin@exemplo.com'
+            admin.nome_completo = 'Administrador do Sistema'
+            admin.password_hash = generate_password_hash('admin123')
+            admin.is_master = True
+            admin.cargo = 'Administrador'
+            db.session.add(admin)
+            db.session.commit()
+            logging.info("Admin user created: admin/admin123")
+    except Exception as e:
+        logging.error(f"Error creating admin user: {e}")
