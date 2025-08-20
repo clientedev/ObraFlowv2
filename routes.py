@@ -1306,7 +1306,6 @@ def reimbursements_list():
 
 @app.route('/reimbursements/request', methods=['GET', 'POST'])
 @login_required
-@csrf.exempt  # Add CSRF exemption to fix token issues
 def request_reimbursement():
     """Solicitar novo reembolso"""
     if request.method == 'POST':
@@ -1949,6 +1948,12 @@ def api_export_single_visit_google(visit_id):
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/visits/export/outlook')
+@login_required
+def api_export_outlook():
+    """Export all visits to Outlook (.ics file)"""
+    return api_export_ics()
 
 @app.route('/api/visits/export/ics')
 @login_required  
