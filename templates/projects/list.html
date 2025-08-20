@@ -144,7 +144,10 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const table = document.getElementById('projectsTable');
-    const rows = table ? table.querySelectorAll('tbody tr') : [];
+    if (!table) return;
+    
+    const rows = table.querySelectorAll('tbody tr');
+    console.log('Projetos: encontradas', rows.length, 'linhas');
     
     // Preencher filtros dinamicamente
     fillFilterOptions();
@@ -160,27 +163,34 @@ document.addEventListener('DOMContentLoaded', function() {
             const tipo = row.getAttribute('data-tipo');
             const responsavel = row.getAttribute('data-responsavel');
             
-            if (tipo && tipo !== '-') tipoSet.add(tipo);
-            if (responsavel && responsavel !== '-') responsavelSet.add(responsavel);
+            if (tipo && tipo !== '' && tipo !== '-') tipoSet.add(tipo);
+            if (responsavel && responsavel !== '' && responsavel !== '-') responsavelSet.add(responsavel);
         });
+        
+        console.log('Tipos encontrados:', Array.from(tipoSet));
+        console.log('Responsáveis encontrados:', Array.from(responsavelSet));
         
         // Preencher select de tipos
         const tipoSelect = document.getElementById('filterTipo');
-        tipoSet.forEach(tipo => {
-            const option = document.createElement('option');
-            option.value = tipo;
-            option.textContent = tipo;
-            tipoSelect.appendChild(option);
-        });
+        if (tipoSelect) {
+            tipoSet.forEach(tipo => {
+                const option = document.createElement('option');
+                option.value = tipo;
+                option.textContent = tipo;
+                tipoSelect.appendChild(option);
+            });
+        }
         
         // Preencher select de responsáveis
         const responsavelSelect = document.getElementById('filterResponsavel');
-        responsavelSet.forEach(responsavel => {
-            const option = document.createElement('option');
-            option.value = responsavel;
-            option.textContent = responsavel;
-            responsavelSelect.appendChild(option);
-        });
+        if (responsavelSelect) {
+            responsavelSet.forEach(responsavel => {
+                const option = document.createElement('option');
+                option.value = responsavel;
+                option.textContent = responsavel;
+                responsavelSelect.appendChild(option);
+            });
+        }
     }
     
     function setupFilters() {
@@ -190,25 +200,27 @@ document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('searchProject');
         
         [filterStatus, filterTipo, filterResponsavel].forEach(filter => {
-            filter.addEventListener('change', applyFilters);
+            if (filter) filter.addEventListener('change', applyFilters);
         });
         
-        searchInput.addEventListener('input', applyFilters);
+        if (searchInput) searchInput.addEventListener('input', applyFilters);
     }
     
     function applyFilters() {
-        const statusFilter = document.getElementById('filterStatus').value;
-        const tipoFilter = document.getElementById('filterTipo').value;
-        const responsavelFilter = document.getElementById('filterResponsavel').value;
-        const searchText = document.getElementById('searchProject').value.toLowerCase();
+        const statusFilter = document.getElementById('filterStatus')?.value || '';
+        const tipoFilter = document.getElementById('filterTipo')?.value || '';
+        const responsavelFilter = document.getElementById('filterResponsavel')?.value || '';
+        const searchText = (document.getElementById('searchProject')?.value || '').toLowerCase();
+        
+        console.log('Aplicando filtros:', { statusFilter, tipoFilter, responsavelFilter, searchText });
         
         let visibleCount = 0;
         
         rows.forEach(row => {
-            const status = row.getAttribute('data-status');
-            const tipo = row.getAttribute('data-tipo');
-            const responsavel = row.getAttribute('data-responsavel');
-            const searchData = row.getAttribute('data-search');
+            const status = row.getAttribute('data-status') || '';
+            const tipo = row.getAttribute('data-tipo') || '';
+            const responsavel = row.getAttribute('data-responsavel') || '';
+            const searchData = row.getAttribute('data-search') || '';
             
             const statusMatch = !statusFilter || status === statusFilter;
             const tipoMatch = !tipoFilter || tipo === tipoFilter;
@@ -223,23 +235,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        document.getElementById('filteredCount').textContent = visibleCount;
+        const countElement = document.getElementById('filteredCount');
+        if (countElement) countElement.textContent = visibleCount;
+        
+        console.log('Filtros aplicados. Visíveis:', visibleCount);
     }
+    
+    // Expor função global para o botão de limpar
+    window.clearFilters = function() {
+        console.log('Limpando filtros');
+        
+        const filters = ['filterStatus', 'filterTipo', 'filterResponsavel', 'searchProject'];
+        filters.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.value = '';
+        });
+        
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        
+        const countElement = document.getElementById('filteredCount');
+        if (countElement) countElement.textContent = rows.length;
+    };
 });
-
-function clearFilters() {
-    document.getElementById('filterStatus').value = '';
-    document.getElementById('filterTipo').value = '';
-    document.getElementById('filterResponsavel').value = '';
-    document.getElementById('searchProject').value = '';
-    
-    // Mostrar todas as linhas
-    const rows = document.querySelectorAll('#projectsTable tbody tr');
-    rows.forEach(row => {
-        row.style.display = '';
-    });
-    
-    document.getElementById('filteredCount').textContent = rows.length;
-}
 </script>
 {% endblock %}
