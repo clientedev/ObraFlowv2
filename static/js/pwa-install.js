@@ -52,6 +52,12 @@ class PWAInstaller {
 
     showInstallButton() {
         if (this.isInstalled) return;
+        
+        // Verificar se estamos nas páginas onde o popup deve aparecer
+        if (!this.shouldShowInstallPrompt()) {
+            console.log('PWA: Não mostrando popup - página não permitida');
+            return;
+        }
 
         // Remover botão anterior se existir
         const existingButton = document.getElementById('pwa-install-button');
@@ -261,6 +267,23 @@ class PWAInstaller {
     // Verificar suporte a PWA
     isPWASupported() {
         return 'serviceWorker' in navigator && 'PushManager' in window;
+    }
+    
+    // Verificar se deve mostrar o prompt de instalação baseado na página atual
+    shouldShowInstallPrompt() {
+        const currentPath = window.location.pathname;
+        const allowedPages = [
+            '/',              // Dashboard/Home
+            '/dashboard',     // Dashboard explícito
+            '/install-guide'  // Página de guia de instalação
+        ];
+        
+        // Verificar se a página atual está na lista de páginas permitidas
+        return allowedPages.some(page => 
+            currentPath === page || 
+            currentPath.startsWith(page + '/') ||
+            (page === '/' && currentPath === '')
+        );
     }
 }
 
