@@ -28,10 +28,13 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label for="periodo" class="form-label">Período</label>
-                                <input type="text" class="form-control" name="periodo" id="periodo" 
-                                       placeholder="Ex: Janeiro 2024, Semana 15/01 - 22/01">
+                            <div class="col-md-3">
+                                <label for="periodo_inicio" class="form-label">Data Início</label>
+                                <input type="date" class="form-control" name="periodo_inicio" id="periodo_inicio" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="periodo_fim" class="form-label">Data Fim</label>
+                                <input type="date" class="form-control" name="periodo_fim" id="periodo_fim" required>
                             </div>
                         </div>
                         

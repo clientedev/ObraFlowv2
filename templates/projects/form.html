@@ -306,8 +306,8 @@ function initMap() {
         selectedLat = lat;
         selectedLng = lng;
         
-        // Get address for this location
-        reverseGeocode(lat, lng);
+        // Get address for this location and fill the address field
+        reverseGeocodeAndFillAddress(lat, lng);
     });
 }
 
@@ -354,12 +354,17 @@ function confirmMapLocation() {
         if (latField) latField.value = selectedLat;
         if (lngField) lngField.value = selectedLng;
         
+        // Get address for this location and fill address field
+        reverseGeocodeAndFillAddress(selectedLat, selectedLng);
+        
         const statusElement = document.getElementById('locationStatus');
         statusElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> Localização selecionada no mapa';
         
         // Close modal
         const mapModal = bootstrap.Modal.getInstance(document.getElementById('mapModal'));
-        mapModal.hide();
+        if (mapModal) {
+            mapModal.hide();
+        }
     }
 }
 </script>

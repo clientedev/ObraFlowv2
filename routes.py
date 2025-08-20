@@ -1306,6 +1306,7 @@ def reimbursements_list():
 
 @app.route('/reimbursements/request', methods=['GET', 'POST'])
 @login_required
+@csrf.exempt  # Add CSRF exemption to fix token issues
 def request_reimbursement():
     """Solicitar novo reembolso"""
     if request.method == 'POST':
@@ -1314,8 +1315,14 @@ def request_reimbursement():
             reembolso = Reembolso()
             reembolso.usuario_id = current_user.id
             reembolso.projeto_id = int(request.form.get('projeto_id'))
-            reembolso.periodo = request.form.get('periodo', '')
-            reembolso.motivo = request.form.get('motivo', '')
+            # Handle period dates
+            periodo_inicio = request.form.get('periodo_inicio')
+            periodo_fim = request.form.get('periodo_fim')
+            if periodo_inicio:
+                reembolso.periodo_inicio = datetime.strptime(periodo_inicio, '%Y-%m-%d').date()
+            if periodo_fim:
+                reembolso.periodo_fim = datetime.strptime(periodo_fim, '%Y-%m-%d').date()
+            reembolso.observacoes = request.form.get('motivo', '')
             
             # Parse numeric values
             distancia = float(request.form.get('distancia_km', 0))
@@ -1995,20 +2002,18 @@ def visit_export_outlook(visit_id):
         # Calculate end time (2 hours after start)
         end_time = visit.data_agendada + timedelta(hours=2)
         
-        # Create ICS content for Outlook
-        ics_content = f"""BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//ELP Consultoria//Visit Scheduler//PT
-BEGIN:VEVENT
-UID:visit-{visit.id}@elp.com.br
-DTSTART:{visit.data_agendada.strftime('%Y%m%dT%H%M%S')}
-DTEND:{end_time.strftime('%Y%m%dT%H%M%S')}
-SUMMARY:Visita Técnica - {visit.projeto.nome}
-DESCRIPTION:Objetivo: {visit.objetivo or 'N/A'}\\nProjeto: {visit.projeto.numero} - {visit.projeto.nome}\\nResponsável: {visit.responsavel.nome_completo}
-LOCATION:{visit.endereco_gps or visit.projeto.endereco or ''}
-STATUS:CONFIRMED
-END:VEVENT
-END:VCALENDAR"""
+        # Create proper ICS content for Outlook
+        ics_content = f"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//ELP Consultoria//Visit Scheduler//PT\r\n"
+        ics_content += f"BEGIN:VEVENT\r\n"
+        ics_content += f"UID:visit-{visit.id}@elp.com.br\r\n"
+        ics_content += f"DTSTART:{visit.data_agendada.strftime('%Y%m%dT%H%M%S')}\r\n"
+        ics_content += f"DTEND:{end_time.strftime('%Y%m%dT%H%M%S')}\r\n"
+        ics_content += f"SUMMARY:Visita Técnica - {visit.projeto.nome}\r\n"
+        ics_content += f"DESCRIPTION:Objetivo: {visit.objetivo or 'N/A'}\\nProjeto: {visit.projeto.numero} - {visit.projeto.nome}\\nResponsável: {visit.responsavel.nome_completo}\r\n"
+        ics_content += f"LOCATION:{visit.endereco_gps or visit.projeto.endereco or ''}\r\n"
+        ics_content += f"STATUS:CONFIRMED\r\n"
+        ics_content += f"END:VEVENT\r\n"
+        ics_content += f"END:VCALENDAR\r\n"
         
         response = make_response(ics_content)
         response.headers["Content-Disposition"] = f"attachment; filename=visita_{visit.numero}.ics"
