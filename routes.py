@@ -1427,6 +1427,11 @@ def reject_reimbursement(id):
     flash(f'Reembolso rejeitado.', 'warning')
     return redirect(url_for('reimbursements_admin'))
 
+@app.route('/install-guide')
+def install_guide():
+    """Página com instruções de instalação do PWA"""
+    return render_template('pwa_install_guide.html')
+
 @app.route('/reimbursements/admin')
 @login_required
 def reimbursements_admin():
