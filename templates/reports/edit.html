@@ -9,9 +9,19 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3><i class="fas fa-edit"></i> Editar Relatório {{ relatorio.numero }}</h3>
                 <div>
-                    <a href="{{ url_for('generate_pdf_report', id=relatorio.id) }}" class="btn btn-danger me-2" target="_blank">
-                        <i class="fas fa-file-pdf"></i> Gerar PDF
-                    </a>
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-file-pdf"></i> PDF Relatório
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('generate_pdf_report', id=relatorio.id) }}" target="_blank">
+                                <i class="fas fa-eye me-2"></i>Visualizar PDF
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('generate_report_pdf_download', id=relatorio.id) }}">
+                                <i class="fas fa-download me-2"></i>Baixar PDF
+                            </a></li>
+                        </ul>
+                    </div>
                     <a href="{{ url_for('reports') }}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Voltar
                     </a>

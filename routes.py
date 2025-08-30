@@ -698,13 +698,13 @@ def delete_report(id):
 @app.route('/reports/<int:id>/pdf')
 @login_required
 def generate_pdf_report(id):
-    """Gerar PDF do relatório"""
+    """Gerar PDF do relatório seguindo modelo Artesano"""
     try:
         relatorio = Relatorio.query.get_or_404(id)
         fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
         
-        from pdf_generator import ReportPDFGenerator
-        generator = ReportPDFGenerator()
+        from pdf_generator_artesano import ArtesanoPDFGenerator
+        generator = ArtesanoPDFGenerator()
         
         # Generate PDF
         pdf_data = generator.generate_report_pdf(relatorio, fotos)
@@ -875,27 +875,32 @@ def upload_report_photos(id):
 
 @app.route('/reports/<int:id>/generate-pdf')
 @login_required
-def generate_report_pdf(id):
-    relatorio = Relatorio.query.get_or_404(id)
-    
+def generate_report_pdf_download(id):
+    """Download PDF do relatório seguindo modelo Artesano"""
     try:
-        from pdf_generator import ReportPDFGenerator
+        relatorio = Relatorio.query.get_or_404(id)
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
+        
+        from pdf_generator_artesano import ArtesanoPDFGenerator
+        generator = ArtesanoPDFGenerator()
         
         # Generate PDF
-        pdf_generator = ReportPDFGenerator()
-        output_path = os.path.join('static', 'reports', f'relatorio_{relatorio.numero}.pdf')
+        pdf_data = generator.generate_report_pdf(relatorio, fotos)
         
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        # Create response for download
+        from flask import Response
+        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
         
-        pdf_path = pdf_generator.generate_visit_report_pdf(relatorio, output_path)
-        
-        return send_from_directory(
-            os.path.dirname(output_path),
-            os.path.basename(output_path),
-            as_attachment=True,
-            download_name=f'relatorio_{relatorio.numero}.pdf'
+        response = Response(
+            pdf_data,
+            mimetype='application/pdf',
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"',
+                'Content-Type': 'application/pdf'
+            }
         )
+        
+        return response
         
     except Exception as e:
         flash(f'Erro ao gerar PDF: {str(e)}', 'error')
