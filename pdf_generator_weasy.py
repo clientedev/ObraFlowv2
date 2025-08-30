@@ -101,7 +101,7 @@ class WeasyPrintReportGenerator:
         return data
     
     def _create_html_template(self):
-        """Criar template HTML seguindo exatamente o modelo"""
+        """Criar template HTML seguindo exatamente o modelo Artesano PDF"""
         return """
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -111,115 +111,118 @@ class WeasyPrintReportGenerator:
     <title>{{ data.titulo }}</title>
 </head>
 <body>
-    <!-- Cabeçalho -->
-    <div class="header">
-        <div class="header-content">
-            <h1 class="main-title">{{ data.titulo }}</h1>
-            <div class="date-info">Em: {{ data.data_atual }}</div>
+    <!-- Logo superior direito -->
+    <div class="logo-header">
+        <div class="logo-placeholder">LOGO</div>
+    </div>
+    
+    <!-- Título centralizado -->
+    <div class="main-header">
+        <h1 class="main-title">{{ data.titulo }}</h1>
+    </div>
+    
+    <!-- Data no canto direito -->
+    <div class="date-header">
+        <div class="date-info">Em: {{ data.data_atual }}</div>
+    </div>
+    
+    <!-- Espaçamento grande -->
+    <div class="spacer-large"></div>
+    
+    <!-- Seção Relatório -->
+    <div class="section-report">
+        <h2 class="report-header">Relatório</h2>
+        <div class="report-number-section">
+            <div class="report-number-label">Relatório Número</div>
+            <div class="report-number">{{ data.numero_relatorio }}</div>
         </div>
     </div>
     
-    <!-- Conteúdo Principal -->
-    <div class="content">
-        <!-- Seção Relatório -->
-        <div class="section">
-            <h2 class="report-header">Relatório</h2>
-            <div class="report-number-section">
-                <div class="report-number-label">Relatório Número</div>
-                <div class="report-number">{{ data.numero_relatorio }}</div>
+    <!-- Dados Gerais com linhas de tabela -->
+    <div class="section-dados">
+        <h3 class="section-title">Dados gerais</h3>
+        <div class="data-table">
+            <div class="data-row-header">
+                <div class="data-cell-header">Empresa</div>
+                <div class="data-cell-header">Obra</div>
+                <div class="data-cell-header">Endereço</div>
+            </div>
+            <div class="data-row-values">
+                <div class="data-cell-value">{{ data.empresa }}</div>
+                <div class="data-cell-value">{{ data.obra }}</div>
+                <div class="data-cell-value">{{ data.endereco }}</div>
             </div>
         </div>
-        
-        <!-- Dados Gerais -->
-        <div class="section">
-            <h3 class="section-title">Dados gerais</h3>
-            <div class="data-row">
-                <div class="data-item">
-                    <div class="data-label">Empresa</div>
-                    <div class="data-value">{{ data.empresa }}</div>
-                </div>
-                <div class="data-item">
-                    <div class="data-label">Obra</div>
-                    <div class="data-value">{{ data.obra }}</div>
-                </div>
-                <div class="data-item">
-                    <div class="data-label">Endereço</div>
-                    <div class="data-value">{{ data.endereco }}</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Itens Observados -->
-        <div class="section">
-            <h3 class="section-title">Itens observados</h3>
-            <div class="observations">
-                {% if data.observacoes %}
-                    <p>{{ data.observacoes }}</p>
-                {% else %}
-                    <p>..</p>
-                    <p>Vide fotos.</p>
-                {% endif %}
-                <div class="dots-separator">.</div>
-            </div>
-            
-            <!-- Fotos -->
-            {% if data.fotos %}
-            <div class="photos-section">
-                {% for foto in data.fotos %}
-                    {% if loop.index0 % 2 == 0 %}
-                    <div class="photo-row">
-                    {% endif %}
-                        <div class="photo-container">
-                            {% if foto.base64 and not foto.not_found %}
-                                <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo">
-                            {% else %}
-                                <div class="photo-placeholder">Foto não disponível</div>
-                            {% endif %}
-                            <div class="photo-caption">{{ foto.legenda }}</div>
-                        </div>
-                    {% if loop.index0 % 2 == 1 or loop.last %}
-                    </div>
-                    {% endif %}
-                {% endfor %}
-            </div>
+    </div>
+    
+    <!-- Itens Observados -->
+    <div class="section-observacoes">
+        <h3 class="section-title">Itens observados</h3>
+        <div class="observations">
+            {% if data.observacoes %}
+                <p class="obs-text">{{ data.observacoes }}</p>
+            {% else %}
+                <p class="obs-text">..</p>
+                <p class="obs-text">Vide fotos.</p>
             {% endif %}
+            <div class="dots-separator">
+                <span class="dot-left">.</span>
+                <span class="dot-right">.</span>
+            </div>
         </div>
         
-        <!-- Assinaturas -->
-        <div class="section">
-            <h3 class="section-title">Assinaturas</h3>
-            <div class="signatures">
-                <div class="signature-row">
-                    <div class="signature-item">
-                        <div class="signature-label">Preenchido por:</div>
-                        <div class="signature-value">{{ data.preenchido_por }}</div>
+        <!-- Fotos lado a lado -->
+        {% if data.fotos %}
+        <div class="photos-section">
+            {% for foto in data.fotos %}
+                {% if loop.index0 % 2 == 0 %}
+                <div class="photo-row">
+                {% endif %}
+                    <div class="photo-container">
+                        {% if foto.base64 and not foto.not_found %}
+                            <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo">
+                        {% else %}
+                            <div class="photo-placeholder-box">Foto não disponível</div>
+                        {% endif %}
+                        <div class="photo-caption">{{ foto.legenda }}</div>
                     </div>
-                    <div class="signature-item">
-                        <div class="signature-label">Liberado por:</div>
-                        <div class="signature-value">{{ data.liberado_por }}</div>
-                    </div>
-                    <div class="signature-item">
-                        <div class="signature-label">Responsável pelo acompanhamento</div>
-                        <div class="signature-value">{{ data.responsavel }}</div>
-                    </div>
+                {% if loop.index0 % 2 == 1 or loop.last %}
                 </div>
-                <div class="signature-date">
-                    <strong>Em:</strong> {{ data.data_relatorio }}
-                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Assinaturas com linhas de tabela -->
+    <div class="section-assinaturas">
+        <h3 class="section-title">Assinaturas</h3>
+        <div class="signatures-table">
+            <div class="sig-row-header">
+                <div class="sig-cell-header">Preenchido por:</div>
+                <div class="sig-cell-header">Liberado por:</div>
+                <div class="sig-cell-header">Responsável pelo acompanhamento</div>
+            </div>
+            <div class="sig-row-values">
+                <div class="sig-cell-value">{{ data.preenchido_por }}</div>
+                <div class="sig-cell-value">{{ data.liberado_por }}</div>
+                <div class="sig-cell-value">{{ data.responsavel }}</div>
             </div>
         </div>
     </div>
     
-    <!-- Rodapé -->
+    <!-- Rodapé fixo -->
     <div class="footer">
-        <div class="footer-left">
-            <div class="company-name"><strong>ELP Consultoria</strong></div>
-            <div>Rua Jaboticabal, 530 apto. 31 - São Paulo - SP - CEP: 03188-000</div>
-            <div>leopoldo@elpconsultoria.eng.br</div>
-            <div>Telefone: (11) 99138-4517</div>
-        </div>
-        <div class="footer-right">
-            Relatório gerado no Produttivo
+        <div class="footer-content">
+            <div class="footer-left">
+                <div class="company-name"><strong>ELP Consultoria</strong></div>
+                <div>Rua Jaboticabal, 530 apto. 31 - São Paulo - SP - CEP: 03188-000</div>
+                <div>leopoldo@elpconsultoria.eng.br</div>
+                <div>Telefone: (11) 99138-4517</div>
+            </div>
+            <div class="footer-right">
+                <div>Relatório gerado no Produttivo</div>
+            </div>
         </div>
     </div>
 </body>
@@ -227,7 +230,7 @@ class WeasyPrintReportGenerator:
         """
     
     def _create_css_styles(self):
-        """Criar estilos CSS seguindo exatamente o modelo visual"""
+        """Criar estilos CSS seguindo pixel-perfect o modelo Artesano"""
         return """
 @page {
     size: A4;
@@ -244,203 +247,272 @@ class WeasyPrintReportGenerator:
 
 body {
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 11px;
-    line-height: 1.2;
+    font-size: 11pt;
+    line-height: 1.0;
     color: #000000;
     background-color: #ffffff;
     margin: 0;
     padding: 0;
 }
 
-/* Cabeçalho */
-.header {
+/* Logo no canto superior direito */
+.logo-header {
+    position: absolute;
+    top: 1cm;
+    right: 2cm;
+    width: 60px;
+    height: 40px;
+}
+
+.logo-placeholder {
+    background-color: #e0e0e0;
+    color: #666666;
+    font-size: 8pt;
     text-align: center;
-    margin-bottom: 60px;
+    line-height: 40px;
+    border: 1px solid #cccccc;
+}
+
+/* Título centralizado */
+.main-header {
+    text-align: center;
+    margin-top: 1.5cm;
+    margin-bottom: 0;
 }
 
 .main-title {
-    font-size: 12pt;
+    font-size: 14pt;
     font-weight: bold;
     color: #000000;
     margin: 0;
     padding: 0;
-    text-align: center;
+}
+
+/* Data no canto direito */
+.date-header {
+    text-align: right;
+    margin-top: 4cm;
+    margin-bottom: 0;
 }
 
 .date-info {
-    font-size: 10pt;
+    font-size: 11pt;
     color: #000000;
-    text-align: right;
-    margin-top: 40px;
-    margin-bottom: 20px;
 }
 
-/* Seções */
-.section {
-    margin-bottom: 25px;
+/* Espaçamento grande */
+.spacer-large {
+    height: 2.5cm;
+}
+
+/* Seção Relatório */
+.section-report {
+    margin-bottom: 1.5cm;
 }
 
 .report-header {
-    font-size: 16pt;
+    font-size: 14pt;
     font-weight: bold;
     color: #000000;
     margin: 0 0 8px 0;
 }
 
 .report-number-section {
-    margin-bottom: 20px;
+    margin-top: 8px;
 }
 
 .report-number-label {
-    font-size: 12pt;
+    font-size: 11pt;
     color: #000000;
     margin-bottom: 2px;
 }
 
 .report-number {
-    font-size: 16pt;
+    font-size: 18pt;
     font-weight: bold;
     color: #000000;
+    margin-top: 2px;
 }
 
+/* Títulos de seção */
 .section-title {
     font-size: 12pt;
     font-weight: bold;
     color: #000000;
-    margin: 0 0 8px 0;
+    margin: 0 0 10px 0;
 }
 
-/* Dados Gerais */
-.data-row {
+/* Seção Dados Gerais com tabela */
+.section-dados {
+    margin-bottom: 1.5cm;
+}
+
+.data-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.data-row-header,
+.data-row-values {
     display: flex;
-    gap: 40px;
-    margin-bottom: 15px;
+    width: 100%;
 }
 
-.data-item {
+.data-cell-header,
+.data-cell-value {
     flex: 1;
+    padding: 8px 5px;
+    border-bottom: 1px solid #cccccc;
+    text-align: left;
+    vertical-align: top;
 }
 
-.data-label {
+.data-cell-header {
     font-weight: bold;
     font-size: 11pt;
     color: #000000;
-    margin-bottom: 3px;
+    background-color: #f8f8f8;
 }
 
-.data-value {
+.data-cell-value {
     font-size: 11pt;
     color: #000000;
-    margin-bottom: 3px;
+    background-color: #ffffff;
 }
 
-/* Observações */
-.observations p {
+/* Seção Itens Observados */
+.section-observacoes {
+    margin-bottom: 1.5cm;
+}
+
+.observations {
+    margin-bottom: 15px;
+}
+
+.obs-text {
     font-size: 11pt;
     color: #000000;
-    margin: 0 0 3px 0;
+    margin: 0 0 5px 0;
+    line-height: 1.2;
 }
 
 .dots-separator {
-    font-size: 11pt;
-    color: #000000;
-    text-align: center;
-    margin: 15px 0;
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0;
+    height: 15px;
 }
 
-/* Fotos */
+.dot-left,
+.dot-right {
+    font-size: 11pt;
+    color: #000000;
+}
+
+/* Seção de Fotos */
 .photos-section {
-    margin-top: 20px;
+    margin-top: 25px;
+    margin-bottom: 20px;
 }
 
 .photo-row {
     display: flex;
-    gap: 20px;
-    margin-bottom: 15px;
-    justify-content: center;
+    gap: 40px;
+    margin-bottom: 20px;
+    justify-content: space-around;
 }
 
 .photo-container {
     text-align: center;
     flex: 1;
-    max-width: 300px;
+    max-width: 45%;
 }
 
 .photo {
     width: 100%;
-    max-width: 280px;
+    max-width: 250px;
     height: auto;
-    border: none;
+    border: 1px solid #e0e0e0;
 }
 
 .photo-caption {
     font-size: 10pt;
-    color: #555555;
+    color: #000000;
     text-align: center;
-    margin-top: 5px;
+    margin-top: 8px;
     line-height: 1.2;
+    font-weight: normal;
 }
 
-.photo-placeholder {
+.photo-placeholder-box {
     width: 100%;
-    max-width: 280px;
-    height: 200px;
+    max-width: 250px;
+    height: 180px;
     background-color: #f5f5f5;
-    border: 1px dashed #ccc;
+    border: 1px dashed #cccccc;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #666;
+    color: #666666;
     font-size: 10pt;
 }
 
-/* Assinaturas */
-.signatures {
-    margin-top: 10px;
+/* Seção Assinaturas com tabela */
+.section-assinaturas {
+    margin-bottom: 2cm;
+    break-inside: avoid;
 }
 
-.signature-row {
+.signatures-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.sig-row-header,
+.sig-row-values {
     display: flex;
-    gap: 30px;
-    margin-bottom: 15px;
+    width: 100%;
 }
 
-.signature-item {
+.sig-cell-header,
+.sig-cell-value {
     flex: 1;
+    padding: 8px 5px;
+    border-bottom: 1px solid #cccccc;
+    text-align: left;
+    vertical-align: top;
 }
 
-.signature-label {
+.sig-cell-header {
     font-weight: bold;
     font-size: 11pt;
     color: #000000;
-    margin-bottom: 3px;
+    background-color: #f8f8f8;
 }
 
-.signature-value {
+.sig-cell-value {
     font-size: 11pt;
     color: #000000;
+    background-color: #ffffff;
+    padding-top: 15px;
 }
 
-.signature-date {
-    font-size: 11pt;
-    color: #000000;
-    margin-top: 10px;
-}
-
-/* Rodapé */
+/* Rodapé fixo */
 .footer {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
+    padding: 0 2cm 1cm 2cm;
+}
+
+.footer-content {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
     font-size: 9pt;
     color: #000000;
     line-height: 1.1;
-    padding: 0 2cm;
-    margin-bottom: 1cm;
 }
 
 .footer-left {
@@ -449,15 +521,17 @@ body {
 
 .footer-right {
     text-align: right;
-    font-size: 9pt;
 }
 
 .company-name {
-    margin-bottom: 2px;
+    margin-bottom: 3px;
 }
 
 /* Quebras de página */
-.section {
+.section-report,
+.section-dados,
+.section-observacoes,
+.section-assinaturas {
     break-inside: avoid;
 }
 
