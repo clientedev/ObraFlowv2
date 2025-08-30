@@ -309,10 +309,7 @@ function addPhotoPreview(file, src, category) {
     });
     
     // Carregar legendas pré-definidas para esta categoria
-    loadPredefinedCaptionsForPhoto(photoId, category);
-    
-    // Carregar legendas pré-definidas para esta categoria
-    loadPredefinedCaptionsForPhoto(photoId, category);
+    setTimeout(() => loadPredefinedCaptionsForPhoto(photoId, category), 100);
 }
 
 function removePhoto(photoId) {

@@ -407,8 +407,10 @@ function addPhotoPreview(file, category) {
             <div class="card">
                 <img src="${src}" class="card-img-top photo-preview" alt="Preview" style="cursor: pointer;" onclick="editPhoto('${photoId}', '${src}', '${category}')">
                 <div class="card-body p-2">
-                    <input type="text" class="form-control form-control-sm mb-2" 
-                           name="photo_caption_${photoId}" placeholder="Legenda da foto...">
+                    <!-- Seletor de Legendas -->
+                    <select class="form-control form-control-sm mb-2" id="predefined_${photoId}" name="photo_caption_${photoId}" required>
+                        <option value="">Selecione uma legenda...</option>
+                    </select>
                     <small class="text-muted d-block">Categoria: ${category}</small>
                     <div class="btn-group w-100 mt-2">
                         <button type="button" class="btn btn-sm btn-primary" onclick="editPhoto('${photoId}', '${src}', '${category}')">
@@ -431,6 +433,9 @@ function addPhotoPreview(file, category) {
             element: photoDiv,
             originalSrc: src
         });
+        
+        // Carregar legendas pré-definidas para esta categoria
+        setTimeout(() => loadPredefinedCaptionsForPhoto(photoId, category), 100);
     };
     reader.readAsDataURL(file);
 }
@@ -441,6 +446,55 @@ function removePhoto(photoId) {
         photo.element.remove();
         selectedPhotos = selectedPhotos.filter(p => p.id !== photoId);
     }
+}
+
+// Carregar legendas pré-definidas para uma foto específica
+function loadPredefinedCaptionsForPhoto(photoId, category) {
+    console.log(`Carregando legendas para foto ${photoId}, categoria: ${category}`);
+    const mappedCategory = mapCategoryToLegenda(category);
+    console.log(`Categoria mapeada: ${mappedCategory}`);
+    
+    fetch(`/api/legendas?categoria=${mappedCategory}`)
+        .then(response => {
+            console.log('Resposta da API:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Dados recebidos:', data);
+            const select = document.getElementById(`predefined_${photoId}`);
+            console.log('Select element:', select);
+            
+            if (select && data.success) {
+                // Limpar opções existentes exceto a primeira
+                select.innerHTML = '<option value="">Selecione uma legenda...</option>';
+                
+                data.legendas.forEach(legenda => {
+                    const option = document.createElement('option');
+                    option.value = legenda.texto;
+                    option.textContent = legenda.texto;
+                    select.appendChild(option);
+                });
+                
+                console.log(`${data.legendas.length} legendas carregadas para categoria ${mappedCategory}`);
+            } else {
+                console.error('Elemento select não encontrado ou dados inválidos');
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar legendas:', error);
+        });
+}
+
+// Mapear categoria da foto para categoria da legenda
+function mapCategoryToLegenda(photoCategory) {
+    const mapping = {
+        'Geral': 'Geral',
+        'Estrutura': 'Estrutural', 
+        'Acabamento': 'Acabamentos',
+        'Instalações': 'Elétrica',
+        'Problema': 'Segurança'
+    };
+    return mapping[photoCategory] || 'Geral';
 }
 
 function updatePhotoInput() {
