@@ -1,0 +1,134 @@
+Estilo e Identidade
+
+Fonte utilizada: semelhante à Arial ou Helvetica (sans-serif, limpa e corporativa).
+
+Cor predominante: preto (#000000) para texto.
+
+Layout minimalista: fundo branco (#FFFFFF) com seções bem separadas.
+
+Cabeçalho e rodapé fixos em todas as páginas.
+
+📌 Estrutura do Relatório
+1. Cabeçalho
+
+Texto em destaque no topo: "Relatório"
+
+Fonte: Arial Bold, tamanho ~16pt, alinhado à esquerda.
+
+Cor: Preto (#000000).
+
+Logo da empresa (fixa) e logo do cliente (dinâmica, variando por projeto).
+
+Localização: canto superior direito.
+
+Tamanho proporcional, mantendo qualidade.
+
+2. Identificação do Relatório
+
+Campo: "Relatório Número 45"
+
+Fonte: Arial Regular, ~12pt.
+
+Localização: logo abaixo do cabeçalho.
+
+Alinhamento: à esquerda.
+
+3. Seção "Dados Gerais"
+
+Título: "Dados gerais"
+
+Fonte: Arial Bold, 12pt, preto.
+
+Conteúdo listado em formato de chave → valor, cada um em nova linha:
+
+Empresa: R. Yazbek
+
+Obra: Artesano Oscar Porto
+
+Endereço: Rua Coronel Oscar Porto 507 - Paraíso
+
+Estilo:
+
+Títulos (Empresa, Obra, Endereço) em negrito.
+
+Valores em fonte regular.
+
+Espaçamento simples entre linhas (~1.2x).
+
+4. Seção "Itens Observados"
+
+Título: "Itens observados"
+
+Fonte: Arial Bold, 12pt, preto.
+
+Conteúdo: lista de observações técnicas.
+
+Exemplo no modelo:
+
+"Vide fotos."
+
+"Piscina - Cheia executada, necessário utilizar tela metálica."
+
+"Piscina - Chapisco colante deve ser misturado fora."
+
+Formato: texto simples, em blocos separados por pontos ou quebras de linha.
+
+Imagens (quando anexadas) devem aparecer logo abaixo do texto relacionado, com legenda em fonte menor (~10pt, cinza escuro #555555).
+
+5. Seção "Assinaturas"
+
+Título: "Assinaturas"
+
+Fonte: Arial Bold, 12pt.
+
+Conteúdo em formato de lista com rótulos + valores:
+
+Preenchido por: Eng. Mateus Almeida
+
+Liberado por: Eng. José Leopoldo Pugliese
+
+Responsável pelo acompanhamento: Raphael
+
+Em: 12/03/2025 14:38
+
+Estilo: cada campo em negrito, valor em regular.
+
+6. Rodapé
+
+Título em destaque: "Relatório de Visita"
+
+Fonte: Arial Bold, 12pt.
+
+Dados da empresa exibidos em bloco, alinhados à esquerda:
+
+Empresa: ELP Consultoria
+
+Endereço: Rua Jaboticabal, 530 apto. 31 - São Paulo - SP - CEP: 03188-000
+
+E-mail: leopoldo@elpconsultoria.eng.br
+
+Telefone: (11) 99138-4517
+
+Texto auxiliar:
+
+"Relatório gerado no Produttivo"
+
+Links clicáveis:
+
+mailto:leopoldo@elpconsultoria.eng.br
+
+http://www.produttivo.com.br
+
+7. Sumário no rodapé
+
+Em algumas versões do modelo há uma mini barra de navegação com as seções:
+
+Relatório | Dados gerais | Itens observados | Assinaturas
+
+Estilo:
+
+Fonte pequena (~9pt).
+
+Cinza médio (#666666).
+
+Centralizado.
