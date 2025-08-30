@@ -101,128 +101,131 @@ class WeasyPrintReportGenerator:
         return data
     
     def _create_html_template(self):
-        """Criar template HTML seguindo exatamente o modelo Artesano PDF"""
+        """Template HTML seguindo exatamente o modelo das screenshots"""
         return """
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ data.titulo }}</title>
 </head>
 <body>
-    <!-- Logo superior direito -->
-    <div class="logo-header">
-        <div class="logo-placeholder">LOGO</div>
-    </div>
-    
-    <!-- Título centralizado -->
-    <div class="main-header">
+    <!-- Cabeçalho com logo ELP e título -->
+    <div class="header-section">
+        <div class="logo-container">
+            <svg class="elp-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40">
+                <!-- Logo ELP -->
+                <rect x="8" y="8" width="24" height="24" fill="none" stroke="#4A90E2" stroke-width="2"/>
+                <rect x="12" y="12" width="8" height="8" fill="#4A90E2"/>
+                <rect x="20" y="12" width="8" height="8" fill="none" stroke="#4A90E2" stroke-width="1"/>
+                <rect x="12" y="20" width="8" height="8" fill="none" stroke="#4A90E2" stroke-width="1"/>
+                <rect x="20" y="20" width="8" height="8" fill="#4A90E2"/>
+                
+                <!-- Texto ELP -->
+                <text x="38" y="20" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333">ELP</text>
+                <text x="38" y="30" font-family="Arial, sans-serif" font-size="8" fill="#666">CONSULTORIA</text>
+            </svg>
+        </div>
+        
         <h1 class="main-title">{{ data.titulo }}</h1>
-    </div>
-    
-    <!-- Data no canto direito -->
-    <div class="date-header">
+        
         <div class="date-info">Em: {{ data.data_atual }}</div>
     </div>
-    
-    <!-- Espaçamento grande -->
-    <div class="spacer-large"></div>
-    
-    <!-- Seção Relatório -->
-    <div class="section-report">
-        <h2 class="report-header">Relatório</h2>
-        <div class="report-number-section">
-            <div class="report-number-label">Relatório Número</div>
+
+    <!-- Seção Relatório com fundo cinza -->
+    <div class="report-section">
+        <div class="section-header">Relatório</div>
+        <div class="report-content">
+            <div class="report-label">Relatório Número</div>
             <div class="report-number">{{ data.numero_relatorio }}</div>
         </div>
     </div>
-    
-    <!-- Dados Gerais com linhas de tabela -->
-    <div class="section-dados">
-        <h3 class="section-title">Dados gerais</h3>
-        <div class="data-table">
-            <div class="data-row-header">
-                <div class="data-cell-header">Empresa</div>
-                <div class="data-cell-header">Obra</div>
-                <div class="data-cell-header">Endereço</div>
+
+    <!-- Dados Gerais com fundo cinza -->
+    <div class="dados-section">
+        <div class="section-header">Dados gerais</div>
+        <div class="dados-table">
+            <div class="dados-row header-row">
+                <div class="dados-cell">Empresa</div>
+                <div class="dados-cell">Obra</div>
+                <div class="dados-cell">Endereço</div>
             </div>
-            <div class="data-row-values">
-                <div class="data-cell-value">{{ data.empresa }}</div>
-                <div class="data-cell-value">{{ data.obra }}</div>
-                <div class="data-cell-value">{{ data.endereco }}</div>
+            <div class="dados-row value-row">
+                <div class="dados-cell">{{ data.empresa }}</div>
+                <div class="dados-cell">{{ data.obra }}</div>
+                <div class="dados-cell">{{ data.endereco }}</div>
             </div>
         </div>
     </div>
-    
-    <!-- Itens Observados -->
-    <div class="section-observacoes">
-        <h3 class="section-title">Itens observados</h3>
-        <div class="observations">
+
+    <!-- Itens Observados com fundo cinza -->
+    <div class="observacoes-section">
+        <div class="section-header">Itens observados</div>
+        <div class="observacoes-content">
             {% if data.observacoes %}
-                <p class="obs-text">{{ data.observacoes }}</p>
+                <div class="obs-text">{{ data.observacoes }}</div>
             {% else %}
-                <p class="obs-text">..</p>
-                <p class="obs-text">Vide fotos.</p>
+                <div class="obs-text">..</div>
+                <div class="obs-text">Vide fotos.</div>
             {% endif %}
-            <div class="dots-separator">
-                <span class="dot-left">.</span>
-                <span class="dot-right">.</span>
-            </div>
         </div>
         
-        <!-- Fotos lado a lado -->
+        <!-- Fotos em grade -->
         {% if data.fotos %}
-        <div class="photos-section">
+        <div class="photos-grid">
             {% for foto in data.fotos %}
-                {% if loop.index0 % 2 == 0 %}
-                <div class="photo-row">
-                {% endif %}
-                    <div class="photo-container">
-                        {% if foto.base64 and not foto.not_found %}
-                            <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo">
-                        {% else %}
-                            <div class="photo-placeholder-box">Foto não disponível</div>
-                        {% endif %}
-                        <div class="photo-caption">{{ foto.legenda }}</div>
+            <div class="photo-item">
+                {% if foto.base64 and not foto.not_found %}
+                    <div class="photo-wrapper">
+                        <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo-img">
                     </div>
-                {% if loop.index0 % 2 == 1 or loop.last %}
-                </div>
+                {% else %}
+                    <div class="photo-placeholder">Foto não disponível</div>
                 {% endif %}
+                <div class="photo-caption">{{ foto.legenda }}</div>
+            </div>
             {% endfor %}
         </div>
         {% endif %}
     </div>
-    
-    <!-- Assinaturas com linhas de tabela -->
-    <div class="section-assinaturas">
-        <h3 class="section-title">Assinaturas</h3>
-        <div class="signatures-table">
-            <div class="sig-row-header">
-                <div class="sig-cell-header">Preenchido por:</div>
-                <div class="sig-cell-header">Liberado por:</div>
-                <div class="sig-cell-header">Responsável pelo acompanhamento</div>
+
+    <!-- Assinaturas com fundo cinza -->
+    <div class="assinaturas-section">
+        <div class="section-header">Assinaturas</div>
+        <div class="assinaturas-table">
+            <div class="assin-row header-row">
+                <div class="assin-cell">Preenchido por:</div>
+                <div class="assin-cell">Liberado por:</div>
+                <div class="assin-cell">Responsável pelo acompanhamento</div>
             </div>
-            <div class="sig-row-values">
-                <div class="sig-cell-value">{{ data.preenchido_por }}</div>
-                <div class="sig-cell-value">{{ data.liberado_por }}</div>
-                <div class="sig-cell-value">{{ data.responsavel }}</div>
+            <div class="assin-row value-row">
+                <div class="assin-cell">{{ data.preenchido_por }}</div>
+                <div class="assin-cell">{{ data.liberado_por }}</div>
+                <div class="assin-cell">{{ data.responsavel }}</div>
             </div>
         </div>
     </div>
-    
-    <!-- Rodapé fixo -->
-    <div class="footer">
-        <div class="footer-content">
-            <div class="footer-left">
-                <div class="company-name"><strong>ELP Consultoria</strong></div>
+
+    <!-- Rodapé ELP -->
+    <div class="footer-section">
+        <div class="footer-left">
+            <svg class="footer-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 30">
+                <rect x="4" y="6" width="18" height="18" fill="none" stroke="#4A90E2" stroke-width="1.5"/>
+                <rect x="7" y="9" width="6" height="6" fill="#4A90E2"/>
+                <rect x="13" y="9" width="6" height="6" fill="none" stroke="#4A90E2" stroke-width="0.8"/>
+                <rect x="7" y="15" width="6" height="6" fill="none" stroke="#4A90E2" stroke-width="0.8"/>
+                <rect x="13" y="15" width="6" height="6" fill="#4A90E2"/>
+                <text x="26" y="17" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">ELP</text>
+            </svg>
+            <div class="company-info">
+                <div class="company-name">ELP Consultoria</div>
                 <div>Rua Jaboticabal, 530 apto. 31 - São Paulo - SP - CEP: 03188-000</div>
-                <div>leopoldo@elpconsultoria.eng.br</div>
+                <div><a href="mailto:leopoldo@elpconsultoria.eng.br">leopoldo@elpconsultoria.eng.br</a></div>
                 <div>Telefone: (11) 99138-4517</div>
             </div>
-            <div class="footer-right">
-                <div>Relatório gerado no Produttivo</div>
-            </div>
+        </div>
+        <div class="footer-right">
+            <div class="generated-info">Relatório gerado no <span class="produttivo">Produttivo</span></div>
         </div>
     </div>
 </body>
@@ -230,312 +233,327 @@ class WeasyPrintReportGenerator:
         """
     
     def _create_css_styles(self):
-        """Criar estilos CSS seguindo pixel-perfect o modelo Artesano"""
+        """CSS seguindo exatamente as screenshots do modelo"""
         return """
 @page {
     size: A4;
-    margin: 2cm 2cm 3cm 2cm;
-    
-    @top-center {
-        content: "";
-    }
-    
-    @bottom-center {
-        content: "";
-    }
+    margin: 1.5cm 2cm 2cm 2cm;
+}
+
+* {
+    box-sizing: border-box;
 }
 
 body {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 11pt;
-    line-height: 1.0;
-    color: #000000;
+    line-height: 1.2;
+    color: #333333;
     background-color: #ffffff;
     margin: 0;
     padding: 0;
 }
 
-/* Logo no canto superior direito */
-.logo-header {
-    position: absolute;
-    top: 1cm;
-    right: 2cm;
-    width: 60px;
+/* Cabeçalho */
+.header-section {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 2cm;
+    padding-bottom: 0.5cm;
+}
+
+.logo-container {
+    width: 120px;
     height: 40px;
 }
 
-.logo-placeholder {
-    background-color: #e0e0e0;
-    color: #666666;
-    font-size: 8pt;
-    text-align: center;
-    line-height: 40px;
-    border: 1px solid #cccccc;
-}
-
-/* Título centralizado */
-.main-header {
-    text-align: center;
-    margin-top: 1.5cm;
-    margin-bottom: 0;
+.elp-logo {
+    width: 100%;
+    height: 100%;
 }
 
 .main-title {
-    font-size: 14pt;
-    font-weight: bold;
-    color: #000000;
+    font-size: 24pt;
+    font-weight: normal;
+    color: #333333;
+    text-align: center;
     margin: 0;
-    padding: 0;
-}
-
-/* Data no canto direito */
-.date-header {
-    text-align: right;
-    margin-top: 4cm;
-    margin-bottom: 0;
+    flex: 1;
 }
 
 .date-info {
     font-size: 11pt;
-    color: #000000;
+    color: #333333;
+    white-space: nowrap;
 }
 
-/* Espaçamento grande */
-.spacer-large {
-    height: 2.5cm;
+/* Seções com fundo cinza */
+.report-section,
+.dados-section,
+.observacoes-section,
+.assinaturas-section {
+    background-color: #f5f5f5;
+    border: 1px solid #cccccc;
+    margin-bottom: 8px;
+    padding: 0;
+    break-inside: avoid;
+}
+
+.section-header {
+    background-color: #e8e8e8;
+    font-weight: bold;
+    font-size: 12pt;
+    color: #333333;
+    padding: 8px 12px;
+    border-bottom: 1px solid #cccccc;
+    margin: 0;
 }
 
 /* Seção Relatório */
-.section-report {
-    margin-bottom: 1.5cm;
+.report-content {
+    padding: 12px;
 }
 
-.report-header {
-    font-size: 14pt;
-    font-weight: bold;
-    color: #000000;
-    margin: 0 0 8px 0;
-}
-
-.report-number-section {
-    margin-top: 8px;
-}
-
-.report-number-label {
+.report-label {
     font-size: 11pt;
-    color: #000000;
-    margin-bottom: 2px;
+    color: #333333;
+    margin-bottom: 4px;
 }
 
 .report-number {
-    font-size: 18pt;
+    font-size: 14pt;
     font-weight: bold;
-    color: #000000;
-    margin-top: 2px;
+    color: #333333;
 }
 
-/* Títulos de seção */
-.section-title {
-    font-size: 12pt;
-    font-weight: bold;
-    color: #000000;
-    margin: 0 0 10px 0;
-}
-
-/* Seção Dados Gerais com tabela */
-.section-dados {
-    margin-bottom: 1.5cm;
-}
-
-.data-table {
-    border-collapse: collapse;
+/* Dados Gerais - Tabela */
+.dados-table {
     width: 100%;
+    border-collapse: collapse;
 }
 
-.data-row-header,
-.data-row-values {
+.dados-row {
     display: flex;
     width: 100%;
 }
 
-.data-cell-header,
-.data-cell-value {
+.dados-cell {
     flex: 1;
-    padding: 8px 5px;
-    border-bottom: 1px solid #cccccc;
-    text-align: left;
+    padding: 8px 12px;
+    border-right: 1px solid #cccccc;
     vertical-align: top;
 }
 
-.data-cell-header {
+.dados-cell:last-child {
+    border-right: none;
+}
+
+.header-row .dados-cell {
     font-weight: bold;
     font-size: 11pt;
-    color: #000000;
-    background-color: #f8f8f8;
+    background-color: #e8e8e8;
+    color: #333333;
 }
 
-.data-cell-value {
+.value-row .dados-cell {
     font-size: 11pt;
-    color: #000000;
-    background-color: #ffffff;
+    background-color: #f5f5f5;
+    color: #333333;
+    min-height: 40px;
 }
 
-/* Seção Itens Observados */
-.section-observacoes {
-    margin-bottom: 1.5cm;
-}
-
-.observations {
-    margin-bottom: 15px;
+/* Itens Observados */
+.observacoes-content {
+    padding: 12px;
 }
 
 .obs-text {
     font-size: 11pt;
-    color: #000000;
-    margin: 0 0 5px 0;
-    line-height: 1.2;
+    color: #333333;
+    margin: 0 0 6px 0;
 }
 
-.dots-separator {
-    display: flex;
-    justify-content: space-between;
-    margin: 20px 0;
-    height: 15px;
+/* Grid de Fotos - Responsivo */
+.photos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    padding: 15px;
+    margin-top: 10px;
 }
 
-.dot-left,
-.dot-right {
-    font-size: 11pt;
-    color: #000000;
-}
-
-/* Seção de Fotos */
-.photos-section {
-    margin-top: 25px;
-    margin-bottom: 20px;
-}
-
-.photo-row {
-    display: flex;
-    gap: 40px;
-    margin-bottom: 20px;
-    justify-content: space-around;
-}
-
-.photo-container {
+.photo-item {
     text-align: center;
-    flex: 1;
-    max-width: 45%;
 }
 
-.photo {
+.photo-wrapper {
+    border: 1px solid #ddd;
+    overflow: hidden;
+    background: white;
+    margin-bottom: 8px;
+}
+
+.photo-img {
     width: 100%;
-    max-width: 250px;
     height: auto;
-    border: 1px solid #e0e0e0;
+    max-height: 200px;
+    object-fit: cover;
+    display: block;
 }
 
-.photo-caption {
-    font-size: 10pt;
-    color: #000000;
-    text-align: center;
-    margin-top: 8px;
-    line-height: 1.2;
-    font-weight: normal;
-}
-
-.photo-placeholder-box {
+.photo-placeholder {
     width: 100%;
-    max-width: 250px;
-    height: 180px;
-    background-color: #f5f5f5;
-    border: 1px dashed #cccccc;
+    height: 120px;
+    background-color: #f0f0f0;
+    border: 1px dashed #ccc;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #666666;
+    color: #666;
     font-size: 10pt;
+    margin-bottom: 8px;
 }
 
-/* Seção Assinaturas com tabela */
-.section-assinaturas {
-    margin-bottom: 2cm;
-    break-inside: avoid;
+.photo-caption {
+    font-size: 9pt;
+    color: #333333;
+    line-height: 1.2;
+    margin: 0;
+    text-align: left;
+    font-weight: normal;
 }
 
-.signatures-table {
-    border-collapse: collapse;
+/* Mais de 2 fotos - ajustar grid */
+.photos-grid:has(.photo-item:nth-child(3)) {
+    grid-template-columns: 1fr 1fr;
+}
+
+.photos-grid:has(.photo-item:nth-child(5)) {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.photos-grid:has(.photo-item:nth-child(5)) .photo-img {
+    max-height: 150px;
+}
+
+.photos-grid:has(.photo-item:nth-child(5)) .photo-caption {
+    font-size: 8pt;
+}
+
+/* Assinaturas - Tabela */
+.assinaturas-table {
     width: 100%;
+    border-collapse: collapse;
 }
 
-.sig-row-header,
-.sig-row-values {
+.assin-row {
     display: flex;
     width: 100%;
 }
 
-.sig-cell-header,
-.sig-cell-value {
+.assin-cell {
     flex: 1;
-    padding: 8px 5px;
-    border-bottom: 1px solid #cccccc;
-    text-align: left;
+    padding: 8px 12px;
+    border-right: 1px solid #cccccc;
     vertical-align: top;
 }
 
-.sig-cell-header {
+.assin-cell:last-child {
+    border-right: none;
+}
+
+.header-row .assin-cell {
     font-weight: bold;
     font-size: 11pt;
-    color: #000000;
-    background-color: #f8f8f8;
+    background-color: #e8e8e8;
+    color: #333333;
 }
 
-.sig-cell-value {
+.value-row .assin-cell {
     font-size: 11pt;
-    color: #000000;
-    background-color: #ffffff;
-    padding-top: 15px;
+    background-color: #f5f5f5;
+    color: #333333;
+    min-height: 40px;
 }
 
-/* Rodapé fixo */
-.footer {
+/* Rodapé */
+.footer-section {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 0 2cm 1cm 2cm;
-}
-
-.footer-content {
+    padding: 1cm 2cm;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    font-size: 9pt;
-    color: #000000;
-    line-height: 1.1;
+    background: white;
+    border-top: 1px solid #ddd;
 }
 
 .footer-left {
-    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.footer-logo {
+    width: 60px;
+    height: 30px;
+    flex-shrink: 0;
+}
+
+.company-info {
+    font-size: 9pt;
+    color: #666666;
+    line-height: 1.2;
+}
+
+.company-name {
+    font-weight: bold;
+    color: #333333;
+    margin-bottom: 2px;
+}
+
+.company-info a {
+    color: #4A90E2;
+    text-decoration: none;
 }
 
 .footer-right {
     text-align: right;
 }
 
-.company-name {
-    margin-bottom: 3px;
+.generated-info {
+    font-size: 9pt;
+    color: #666666;
+}
+
+.produttivo {
+    color: #4A90E2;
+    font-weight: bold;
+}
+
+/* Ajustes para caber em uma página */
+@media print {
+    .photos-grid:has(.photo-item:nth-child(3)) .photo-img {
+        max-height: 160px;
+    }
+    
+    .photos-grid:has(.photo-item:nth-child(4)) .photo-img {
+        max-height: 140px;
+    }
+    
+    .photos-grid:has(.photo-item:nth-child(5)) .photo-img {
+        max-height: 120px;
+    }
 }
 
 /* Quebras de página */
-.section-report,
-.section-dados,
-.section-observacoes,
-.section-assinaturas {
-    break-inside: avoid;
-}
-
-.photo-row {
+.report-section,
+.dados-section,
+.observacoes-section,
+.assinaturas-section {
     break-inside: avoid;
 }
         """
