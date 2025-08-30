@@ -24,4 +24,5 @@ dependencies = [
     "wkhtmltopdf>=0.2",
     "openai>=1.100.1",
     "requests>=2.32.4",
+    "pymupdf>=1.26.4",
 ]

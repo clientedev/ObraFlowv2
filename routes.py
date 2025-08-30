@@ -698,20 +698,20 @@ def delete_report(id):
 @app.route('/reports/<int:id>/pdf')
 @login_required
 def generate_pdf_report(id):
-    """Gerar PDF do relatório seguindo modelo Artesano"""
+    """Gerar PDF do relatório usando PyMuPDF mantendo modelo exato"""
     try:
         relatorio = Relatorio.query.get_or_404(id)
         fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
         
-        from pdf_generator_artesano import ArtesanoPDFGenerator
-        generator = ArtesanoPDFGenerator()
+        from pdf_generator_fitz import ArtesanoPDFGeneratorFitz
+        generator = ArtesanoPDFGeneratorFitz()
         
         # Generate PDF
         pdf_data = generator.generate_report_pdf(relatorio, fotos)
         
         # Create response
         from flask import Response
-        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        filename = generator._criar_nome_arquivo(relatorio)
         
         response = Response(
             pdf_data,

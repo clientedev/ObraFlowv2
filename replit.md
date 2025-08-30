@@ -32,7 +32,7 @@ Preferred communication style: Simple, everyday language.
 - **Project Management**: Provides CRUD operations for projects, including automatic numbering and GPS location capture.
 - **Visit Tracking**: Enables GPS-enabled visit logging, custom checklists, and team communication.
 - **Enhanced Report System**: Generates professional PDF reports with integrated photo annotation tools and an approval workflow, complete with ELP branding.
-- **Professional PDF Generation**: Automated report generation following exact Artesano template format with company branding, dynamic data population, and responsive design for browser/download options.
+- **Professional PDF Generation**: Automated report generation using PyMuPDF (fitz) that preserves the exact Artesano template format, maintaining original colors, fonts, layout, and logos while dynamically filling only the necessary fields (report number, project data, signatures, dates, etc.).
 - **Client Email Management**: Complete CRUD system for managing client emails per project with mandatory primary email, duplicate prevention, and administrative panel.
 - **Photo Management**: Offers advanced photo editing capabilities including drawing tools, arrows, text annotations, and captions, supporting up to 50 photos per report.
 - **Communication System**: Incorporates visit-based messaging for team collaboration and progress tracking.
