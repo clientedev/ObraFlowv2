@@ -68,6 +68,24 @@ class ContatoProjeto(db.Model):
     is_aprovador = db.Column(db.Boolean, default=False)
     receber_relatorios = db.Column(db.Boolean, default=False)
 
+class EmailCliente(db.Model):
+    __tablename__ = 'emails_clientes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    nome_contato = db.Column(db.String(200))
+    receber_relatorio = db.Column(db.Boolean, default=True)
+    ativo = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relacionamento com projeto
+    projeto = db.relationship('Projeto', backref='emails_clientes')
+    
+    # Constraint para evitar duplicidade de e-mails no mesmo projeto
+    __table_args__ = (db.UniqueConstraint('projeto_id', 'email', name='unique_email_per_project'),)
+
 class Visita(db.Model):
     __tablename__ = 'visitas'
     

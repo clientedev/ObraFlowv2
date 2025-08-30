@@ -1,0 +1,128 @@
+/* CSS específico para o módulo de e-mails de clientes */
+
+.email-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid var(--elp-cyan);
+}
+
+.email-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.email-item {
+    border-bottom: 1px solid #eee;
+    padding: 1rem;
+    transition: background-color 0.2s ease;
+}
+
+.email-item:hover {
+    background-color: #f8f9fa;
+}
+
+.email-item:last-child {
+    border-bottom: none;
+}
+
+.email-status-badge {
+    font-size: 0.75rem;
+}
+
+.form-check-input:checked {
+    background-color: var(--elp-cyan);
+    border-color: var(--elp-cyan);
+}
+
+.btn-group .btn {
+    border-radius: 4px;
+    margin-left: 2px;
+}
+
+.btn-group .btn:first-child {
+    margin-left: 0;
+}
+
+.search-highlight {
+    background-color: yellow;
+    padding: 0 2px;
+}
+
+/* Responsividade para mobile */
+@media (max-width: 768px) {
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .btn-group .btn {
+        margin-left: 0;
+        font-size: 0.8rem;
+    }
+    
+    .table-responsive table {
+        font-size: 0.9rem;
+    }
+    
+    .card-body {
+        padding: 1rem 0.5rem;
+    }
+    
+    .email-form-section {
+        margin-bottom: 1.5rem;
+    }
+}
+
+/* Indicador de loading */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.loading-spinner {
+    width: 2rem;
+    height: 2rem;
+}
+
+/* Animações */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Estados de validação */
+.is-valid {
+    border-color: #28a745;
+}
+
+.is-invalid {
+    border-color: #dc3545;
+}
+
+.valid-feedback, .invalid-feedback {
+    font-size: 0.875rem;
+}
+
+/* Melhorias no design dos cards */
+.stats-card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+}
