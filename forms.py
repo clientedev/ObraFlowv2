@@ -174,3 +174,17 @@ class ChecklistTemplateForm(FlaskForm):
     obrigatorio = BooleanField('Obrigatório')
     ordem = IntegerField('Ordem', validators=[NumberRange(min=0)], default=0)
     ativo = BooleanField('Ativo', default=True)
+
+class LegendaPredefinidaForm(FlaskForm):
+    texto = TextAreaField('Texto da Legenda', validators=[DataRequired(), Length(max=500)], render_kw={'rows': 3})
+    categoria = SelectField('Categoria', choices=[
+        ('Geral', 'Geral'),
+        ('Estrutural', 'Estrutural'),
+        ('Hidráulica', 'Hidráulica'),
+        ('Elétrica', 'Elétrica'),
+        ('Acabamentos', 'Acabamentos'),
+        ('Segurança', 'Segurança'),
+        ('Fachada', 'Fachada'),
+        ('Impermeabilização', 'Impermeabilização')
+    ], default='Geral', validators=[DataRequired()])
+    ativo = BooleanField('Ativo', default=True)

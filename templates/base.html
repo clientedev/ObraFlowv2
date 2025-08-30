@@ -133,6 +133,19 @@
                         </ul>
                     </li>
                     {% endif %}
+                    
+                    {% if current_user.is_developer %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-code me-1"></i>Desenvolvedor
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('admin_legendas') }}">
+                                <i class="fas fa-tags me-2"></i>Gerenciar Legendas
+                            </a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
                 </ul>
                 
                 <ul class="navbar-nav">

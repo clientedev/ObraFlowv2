@@ -2240,6 +2240,131 @@ def admin_emails():
                          emails_principais=emails_principais,
                          projetos_sem_email=projetos_sem_email)
 
+# Rotas para Legendas Pré-definidas (exclusivo para Desenvolvedor)
+@app.route('/admin/legendas')
+@login_required
+def admin_legendas():
+    """Painel de administração de legendas - apenas Desenvolvedor"""
+    if not current_user.is_developer:
+        flash('Acesso negado. Apenas o usuário Desenvolvedor pode gerenciar legendas.', 'error')
+        return redirect(url_for('index'))
+    
+    from models import LegendaPredefinida
+    legendas = LegendaPredefinida.query.order_by(LegendaPredefinida.categoria, LegendaPredefinida.created_at.desc()).all()
+    return render_template('admin/legendas.html', legendas=legendas)
+
+@app.route('/admin/legendas/nova', methods=['GET', 'POST'])
+@login_required
+def admin_legenda_nova():
+    """Criar nova legenda predefinida - apenas Desenvolvedor"""
+    if not current_user.is_developer:
+        flash('Acesso negado. Apenas o usuário Desenvolvedor pode gerenciar legendas.', 'error')
+        return redirect(url_for('index'))
+    
+    from forms import LegendaPredefinidaForm
+    from models import LegendaPredefinida
+    form = LegendaPredefinidaForm()
+    
+    if form.validate_on_submit():
+        try:
+            legenda = LegendaPredefinida()
+            legenda.texto = form.texto.data
+            legenda.categoria = form.categoria.data
+            legenda.ativo = form.ativo.data
+            legenda.criado_por = current_user.id
+            
+            db.session.add(legenda)
+            db.session.commit()
+            
+            flash('Legenda criada com sucesso!', 'success')
+            return redirect(url_for('admin_legendas'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar legenda: {str(e)}', 'error')
+    
+    return render_template('admin/legenda_form.html', form=form, title='Nova Legenda')
+
+@app.route('/admin/legendas/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+def admin_legenda_editar(id):
+    """Editar legenda predefinida - apenas Desenvolvedor"""
+    if not current_user.is_developer:
+        flash('Acesso negado. Apenas o usuário Desenvolvedor pode gerenciar legendas.', 'error')
+        return redirect(url_for('index'))
+    
+    from models import LegendaPredefinida
+    from forms import LegendaPredefinidaForm
+    
+    legenda = LegendaPredefinida.query.get_or_404(id)
+    form = LegendaPredefinidaForm(obj=legenda)
+    
+    if form.validate_on_submit():
+        try:
+            legenda.texto = form.texto.data
+            legenda.categoria = form.categoria.data
+            legenda.ativo = form.ativo.data
+            
+            db.session.commit()
+            
+            flash('Legenda atualizada com sucesso!', 'success')
+            return redirect(url_for('admin_legendas'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar legenda: {str(e)}', 'error')
+    
+    return render_template('admin/legenda_form.html', form=form, legenda=legenda, title='Editar Legenda')
+
+@app.route('/admin/legendas/<int:id>/excluir', methods=['POST'])
+@login_required
+def admin_legenda_excluir(id):
+    """Excluir legenda predefinida - apenas Desenvolvedor"""
+    if not current_user.is_developer:
+        flash('Acesso negado. Apenas o usuário Desenvolvedor pode gerenciar legendas.', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        from models import LegendaPredefinida
+        legenda = LegendaPredefinida.query.get_or_404(id)
+        
+        db.session.delete(legenda)
+        db.session.commit()
+        
+        flash('Legenda excluída com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir legenda: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_legendas'))
+
+# API para buscar legendas predefinidas (para todos os usuários)
+@app.route('/api/legendas')
+@login_required
+def api_legendas():
+    """API para buscar legendas predefinidas por categoria"""
+    categoria = request.args.get('categoria', 'all')
+    
+    from models import LegendaPredefinida
+    query = LegendaPredefinida.query.filter_by(ativo=True)
+    
+    if categoria != 'all':
+        query = query.filter_by(categoria=categoria)
+    
+    legendas = query.order_by(LegendaPredefinida.categoria, LegendaPredefinida.texto).all()
+    
+    return jsonify({
+        'success': True,
+        'legendas': [
+            {
+                'id': l.id,
+                'texto': l.texto,
+                'categoria': l.categoria
+            } for l in legendas
+        ]
+    })
+
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):

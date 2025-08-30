@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Legendas Pré-definidas{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">Legendas Pré-definidas</h1>
+                    <p class="text-muted">Gerencie as legendas que aparecem nos relatórios</p>
+                </div>
+                <a href="{{ url_for('admin_legenda_nova') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Nova Legenda
+                </a>
+            </div>
+
+            <!-- Estatísticas -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="h4 mb-0">{{ legendas|length }}</div>
+                                    <div>Total de Legendas</div>
+                                </div>
+                                <i class="fas fa-tags fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="h4 mb-0">{{ legendas|selectattr('ativo')|list|length }}</div>
+                                    <div>Ativas</div>
+                                </div>
+                                <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="h4 mb-0">{{ legendas|rejectattr('ativo')|list|length }}</div>
+                                    <div>Inativas</div>
+                                </div>
+                                <i class="fas fa-pause-circle fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="h4 mb-0">{{ legendas|map(attribute='categoria')|unique|list|length }}</div>
+                                    <div>Categorias</div>
+                                </div>
+                                <i class="fas fa-layer-group fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Legendas por Categoria -->
+            {% set categorias = legendas|map(attribute='categoria')|unique|list %}
+            {% for categoria in categorias %}
+                {% set legendas_categoria = legendas|selectattr('categoria', 'equalto', categoria)|list %}
+                {% if legendas_categoria %}
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-folder"></i> {{ categoria }}
+                            <span class="badge bg-secondary ms-2">{{ legendas_categoria|length }}</span>
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Legenda</th>
+                                        <th width="120">Status</th>
+                                        <th width="150">Criado em</th>
+                                        <th width="120">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for legenda in legendas_categoria %}
+                                    <tr>
+                                        <td>
+                                            <div class="text-wrap" style="max-width: 400px;">
+                                                {{ legenda.texto }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if legenda.ativo %}
+                                                <span class="badge bg-success">Ativa</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inativa</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-muted">
+                                            {{ legenda.created_at.strftime('%d/%m/%Y') }}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('admin_legenda_editar', id=legenda.id) }}" 
+                                                   class="btn btn-outline-primary" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-outline-danger" 
+                                                        onclick="excluirLegenda({{ legenda.id }}, '{{ legenda.texto[:30] }}...')"
+                                                        title="Excluir">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+
+            {% if not legendas %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhuma legenda cadastrada</h5>
+                    <p class="text-muted">Clique no botão "Nova Legenda" para começar.</p>
+                    <a href="{{ url_for('admin_legenda_nova') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Criar Primeira Legenda
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="modalExcluir" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir a legenda:</p>
+                <p><strong id="legendaTexto"></strong></p>
+                <p class="text-warning">Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formExcluir" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function excluirLegenda(id, texto) {
+    document.getElementById('legendaTexto').textContent = texto;
+    document.getElementById('formExcluir').action = `/admin/legendas/${id}/excluir`;
+    new bootstrap.Modal(document.getElementById('modalExcluir')).show();
+}
+</script>
+{% endblock %}

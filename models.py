@@ -14,6 +14,7 @@ class User(UserMixin, db.Model):
     cargo = db.Column(db.String(100))
     telefone = db.Column(db.String(20))
     is_master = db.Column(db.Boolean, default=False)
+    is_developer = db.Column(db.Boolean, default=False)  # Novo tipo de usuário
     ativo = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -248,3 +249,17 @@ class Reembolso(db.Model):
     aprovado_por = db.Column(db.Integer, db.ForeignKey('users.id'))
     data_aprovacao = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class LegendaPredefinida(db.Model):
+    __tablename__ = 'legendas_predefinidas'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    texto = db.Column(db.String(500), nullable=False)
+    categoria = db.Column(db.String(100), nullable=False, default='Geral')
+    ativo = db.Column(db.Boolean, default=True)
+    criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relacionamento
+    criador = db.relationship('User', backref='legendas_criadas')
