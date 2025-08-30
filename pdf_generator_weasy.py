@@ -233,11 +233,11 @@ class WeasyPrintReportGenerator:
         """
     
     def _create_css_styles(self):
-        """CSS seguindo exatamente as screenshots do modelo"""
+        """CSS seguindo exatamente a imagem fornecida com proporções precisas"""
         return """
 @page {
     size: A4;
-    margin: 1.5cm 2cm 2cm 2cm;
+    margin: 1cm 1.5cm 2.5cm 1.5cm;
 }
 
 * {
@@ -246,26 +246,28 @@ class WeasyPrintReportGenerator:
 
 body {
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 11pt;
-    line-height: 1.2;
+    font-size: 10pt;
+    line-height: 1.1;
     color: #333333;
     background-color: #ffffff;
     margin: 0;
     padding: 0;
 }
 
-/* Cabeçalho */
+/* Cabeçalho - layout exato da imagem */
 .header-section {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: 2cm;
-    padding-bottom: 0.5cm;
+    margin-bottom: 1.2cm;
+    padding-bottom: 0.3cm;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .logo-container {
-    width: 120px;
-    height: 40px;
+    width: 100px;
+    height: 35px;
+    flex-shrink: 0;
 }
 
 .elp-logo {
@@ -274,55 +276,57 @@ body {
 }
 
 .main-title {
-    font-size: 24pt;
-    font-weight: normal;
+    font-size: 18pt;
+    font-weight: bold;
     color: #333333;
     text-align: center;
     margin: 0;
     flex: 1;
+    padding: 0 20px;
 }
 
 .date-info {
-    font-size: 11pt;
-    color: #333333;
+    font-size: 10pt;
+    color: #666666;
     white-space: nowrap;
+    align-self: flex-end;
 }
 
-/* Seções com fundo cinza */
+/* Seções com fundo cinza - proporções exatas da imagem */
 .report-section,
 .dados-section,
 .observacoes-section,
 .assinaturas-section {
-    background-color: #f5f5f5;
-    border: 1px solid #cccccc;
-    margin-bottom: 8px;
+    background-color: #f8f8f8;
+    border: 1px solid #d0d0d0;
+    margin-bottom: 6px;
     padding: 0;
     break-inside: avoid;
 }
 
 .section-header {
-    background-color: #e8e8e8;
+    background-color: #e0e0e0;
     font-weight: bold;
-    font-size: 12pt;
+    font-size: 10pt;
     color: #333333;
-    padding: 8px 12px;
-    border-bottom: 1px solid #cccccc;
+    padding: 6px 10px;
+    border-bottom: 1px solid #d0d0d0;
     margin: 0;
 }
 
 /* Seção Relatório */
 .report-content {
-    padding: 12px;
+    padding: 10px;
 }
 
 .report-label {
-    font-size: 11pt;
+    font-size: 10pt;
     color: #333333;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
 }
 
 .report-number {
-    font-size: 14pt;
+    font-size: 12pt;
     font-weight: bold;
     color: #333333;
 }
@@ -340,8 +344,8 @@ body {
 
 .dados-cell {
     flex: 1;
-    padding: 8px 12px;
-    border-right: 1px solid #cccccc;
+    padding: 6px 10px;
+    border-right: 1px solid #d0d0d0;
     vertical-align: top;
 }
 
@@ -351,82 +355,86 @@ body {
 
 .header-row .dados-cell {
     font-weight: bold;
-    font-size: 11pt;
-    background-color: #e8e8e8;
+    font-size: 9pt;
+    background-color: #e0e0e0;
     color: #333333;
 }
 
 .value-row .dados-cell {
-    font-size: 11pt;
-    background-color: #f5f5f5;
+    font-size: 9pt;
+    background-color: #f8f8f8;
     color: #333333;
-    min-height: 40px;
+    min-height: 32px;
 }
 
-/* Itens Observados */
+/* Itens Observados - proporções da imagem */
 .observacoes-content {
-    padding: 12px;
+    padding: 10px;
 }
 
 .obs-text {
-    font-size: 11pt;
+    font-size: 9pt;
     color: #333333;
-    margin: 0 0 6px 0;
+    margin: 0 0 4px 0;
 }
 
-/* Grid de Fotos - Responsivo */
+/* Grid de Fotos - exatamente como na imagem */
 .photos-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    padding: 15px;
-    margin-top: 10px;
+    gap: 12px;
+    padding: 12px;
+    margin-top: 8px;
 }
 
 .photo-item {
-    text-align: center;
+    text-align: left;
 }
 
 .photo-wrapper {
-    border: 1px solid #ddd;
+    border: 1px solid #ccc;
     overflow: hidden;
     background: white;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .photo-img {
     width: 100%;
     height: auto;
-    max-height: 200px;
+    max-height: 160px;
     object-fit: cover;
     display: block;
 }
 
 .photo-placeholder {
     width: 100%;
-    height: 120px;
+    height: 100px;
     background-color: #f0f0f0;
     border: 1px dashed #ccc;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #666;
-    font-size: 10pt;
-    margin-bottom: 8px;
+    font-size: 8pt;
+    margin-bottom: 6px;
 }
 
 .photo-caption {
-    font-size: 9pt;
+    font-size: 8pt;
     color: #333333;
-    line-height: 1.2;
+    line-height: 1.1;
     margin: 0;
     text-align: left;
     font-weight: normal;
 }
 
-/* Mais de 2 fotos - ajustar grid */
-.photos-grid:has(.photo-item:nth-child(3)) {
-    grid-template-columns: 1fr 1fr;
+/* Mais de 2 fotos - manter proporções */
+.photos-grid:has(.photo-item:nth-child(3)) .photo-img {
+    max-height: 140px;
+}
+
+.photos-grid:has(.photo-item:nth-child(4)) .photo-img {
+    max-height: 120px;
 }
 
 .photos-grid:has(.photo-item:nth-child(5)) {
@@ -434,11 +442,11 @@ body {
 }
 
 .photos-grid:has(.photo-item:nth-child(5)) .photo-img {
-    max-height: 150px;
+    max-height: 100px;
 }
 
 .photos-grid:has(.photo-item:nth-child(5)) .photo-caption {
-    font-size: 8pt;
+    font-size: 7pt;
 }
 
 /* Assinaturas - Tabela */
@@ -454,8 +462,8 @@ body {
 
 .assin-cell {
     flex: 1;
-    padding: 8px 12px;
-    border-right: 1px solid #cccccc;
+    padding: 6px 10px;
+    border-right: 1px solid #d0d0d0;
     vertical-align: top;
 }
 
@@ -465,54 +473,54 @@ body {
 
 .header-row .assin-cell {
     font-weight: bold;
-    font-size: 11pt;
-    background-color: #e8e8e8;
+    font-size: 9pt;
+    background-color: #e0e0e0;
     color: #333333;
 }
 
 .value-row .assin-cell {
-    font-size: 11pt;
-    background-color: #f5f5f5;
+    font-size: 9pt;
+    background-color: #f8f8f8;
     color: #333333;
-    min-height: 40px;
+    min-height: 32px;
 }
 
-/* Rodapé */
+/* Rodapé - proporções exatas da imagem */
 .footer-section {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 1cm 2cm;
+    padding: 0.8cm 1.5cm 0.5cm 1.5cm;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
     background: white;
-    border-top: 1px solid #ddd;
+    border-top: 1px solid #e0e0e0;
 }
 
 .footer-left {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 8px;
 }
 
 .footer-logo {
-    width: 60px;
-    height: 30px;
+    width: 50px;
+    height: 25px;
     flex-shrink: 0;
 }
 
 .company-info {
-    font-size: 9pt;
+    font-size: 8pt;
     color: #666666;
-    line-height: 1.2;
+    line-height: 1.1;
 }
 
 .company-name {
     font-weight: bold;
     color: #333333;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
 }
 
 .company-info a {
@@ -525,7 +533,7 @@ body {
 }
 
 .generated-info {
-    font-size: 9pt;
+    font-size: 8pt;
     color: #666666;
 }
 
