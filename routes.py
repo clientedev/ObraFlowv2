@@ -698,7 +698,40 @@ def delete_report(id):
 @app.route('/reports/<int:id>/pdf')
 @login_required
 def generate_pdf_report(id):
-    """Gerar PDF do relatório seguindo modelo Artesano"""
+    """Gerar PDF do relatório usando WeasyPrint (modelo Artesano)"""
+    try:
+        relatorio = Relatorio.query.get_or_404(id)
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
+        
+        from pdf_generator_weasy import WeasyPrintReportGenerator
+        generator = WeasyPrintReportGenerator()
+        
+        # Generate PDF
+        pdf_data = generator.generate_report_pdf(relatorio, fotos)
+        
+        # Create response
+        from flask import Response
+        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        
+        response = Response(
+            pdf_data,
+            mimetype='application/pdf',
+            headers={
+                'Content-Disposition': f'inline; filename="{filename}"',
+                'Content-Type': 'application/pdf'
+            }
+        )
+        
+        return response
+        
+    except Exception as e:
+        flash(f'Erro ao gerar PDF: {str(e)}', 'error')
+        return redirect(url_for('edit_report', id=id))
+
+@app.route('/reports/<int:id>/pdf/legacy')
+@login_required
+def generate_pdf_report_legacy(id):
+    """Gerar PDF do relatório usando ReportLab (versão legacy)"""
     try:
         relatorio = Relatorio.query.get_or_404(id)
         fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
@@ -711,7 +744,7 @@ def generate_pdf_report(id):
         
         # Create response
         from flask import Response
-        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        filename = f"relatorio_legacy_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
         
         response = Response(
             pdf_data,

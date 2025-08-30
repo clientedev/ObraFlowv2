@@ -32,7 +32,7 @@ Preferred communication style: Simple, everyday language.
 - **Project Management**: Provides CRUD operations for projects, including automatic numbering and GPS location capture.
 - **Visit Tracking**: Enables GPS-enabled visit logging, custom checklists, and team communication.
 - **Enhanced Report System**: Generates professional PDF reports with integrated photo annotation tools and an approval workflow, complete with ELP branding.
-- **Professional PDF Generation**: Automated report generation following exact Artesano template format with company branding, dynamic data population, and responsive design for browser/download options.
+- **Professional PDF Generation**: Dual PDF generation system with WeasyPrint (primary) for pixel-perfect HTML/CSS template replication and ReportLab (legacy) backup, following exact Artesano template format with company branding, dynamic data population, and responsive design for browser/download options.
 - **Client Email Management**: Complete CRUD system for managing client emails per project with mandatory primary email, duplicate prevention, and administrative panel.
 - **Photo Management**: Offers advanced photo editing capabilities including drawing tools, arrows, text annotations, and captions, supporting up to 50 photos per report.
 - **Communication System**: Incorporates visit-based messaging for team collaboration and progress tracking.
@@ -72,9 +72,20 @@ Preferred communication style: Simple, everyday language.
 - **SMTP**: Configurable mail server, defaulting to Gmail SMTP, with settings managed via environment variables (`MAIL_SERVER`, `MAIL_USERNAME`, `MAIL_PASSWORD`).
 
 ## PDF and Media Processing
-- **ReportLab**: Employed for professional PDF generation with custom styling.
+- **WeasyPrint**: Primary PDF generation engine using HTML/CSS templates for pixel-perfect visual fidelity and exact template replication.
+- **ReportLab**: Legacy PDF generation system maintained for backward compatibility.
 - **Pillow**: Used for image processing, including photo annotations and resizing.
-- **Canvas API**: JavaScript-based tool for photo annotation and drawing.### Mobile Photo Editor Enhancement (2025-08-20)
+- **Canvas API**: JavaScript-based tool for photo annotation and drawing.
+
+### WeasyPrint PDF System Implementation (2025-08-30)
+- ✅ **Complete HTML/CSS Template System**: Professional template matching exact Artesano visual specifications
+- ✅ **Dual Generator Architecture**: WeasyPrint primary, ReportLab legacy fallback
+- ✅ **Pixel-Perfect Rendering**: Exact font sizes, colors, spacing, and layout compliance
+- ✅ **Dynamic Data Integration**: JSON-based data population with Jinja2 templating
+- ✅ **Photo Embedding**: Base64 image embedding for self-contained PDFs
+- ✅ **Professional Styling**: Arial/Helvetica fonts, precise margins, header/footer positioning
+
+### Mobile Photo Editor Enhancement (2025-08-20)
 - ✅ **Touch Events Optimization**: Melhorado manuseio de eventos touch para ferramentas além do pincel
 - ✅ **Gesture Prevention**: Prevenção de zoom e gestos indesejados durante edição
 - ✅ **Coordinate Mapping**: Correção do mapeamento de coordenadas touch para canvas
