@@ -73,6 +73,63 @@
                         </div>
                         {{ form.latitude() }}
                         {{ form.longitude() }}
+                    
+                    <!-- Project Client Emails Display -->
+                    {% if project %}
+                    <hr>
+                    <div class="mt-4">
+                        <h5><i class="fas fa-envelope me-2"></i>E-mails de Clientes do Projeto</h5>
+                        
+                        {% set emails_clientes = project.emails_clientes %}
+                        {% set emails_relatorios = project.emails_receber_relatorios %}
+                        
+                        {% if emails_clientes %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card border-success">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="mb-0"><i class="fas fa-users me-2"></i>E-mails de Clientes</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        {% for email in emails_clientes %}
+                                        <div class="mb-1">
+                                            <i class="fas fa-envelope me-1"></i>
+                                            <a href="mailto:{{ email }}">{{ email }}</a>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card border-info">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="mb-0"><i class="fas fa-paper-plane me-2"></i>Recebem Relatórios</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        {% if emails_relatorios %}
+                                        {% for email in emails_relatorios %}
+                                        <div class="mb-1">
+                                            <i class="fas fa-envelope me-1"></i>
+                                            <a href="mailto:{{ email }}">{{ email }}</a>
+                                        </div>
+                                        {% endfor %}
+                                        {% else %}
+                                        <p class="text-muted mb-0">Nenhum e-mail configurado para receber relatórios.</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Atenção:</strong> Este projeto não possui clientes com e-mails cadastrados.
+                            Para enviar relatórios automaticamente, associe contatos do tipo "Cliente" ao projeto.
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                     </div>
                     
                     <div class="row">

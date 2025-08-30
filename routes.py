@@ -9,9 +9,9 @@ from werkzeug.utils import secure_filename
 from flask_mail import Message
 
 from app import app, db, mail, csrf
-from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita
-from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm
-from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
+from models import User, Projeto, Contato, ContatoProjeto, ContatoEmail, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita
+from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, ContatoForm, ContatoEmailForm
+from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total, validate_email_format, add_email_to_contact, remove_email_from_contact, update_email_status, migrate_legacy_emails
 from pdf_generator import generate_visit_report_pdf
 import math
 import json
@@ -1013,9 +1013,12 @@ def contact_edit(contact_id):
     contact = Contato.query.get_or_404(contact_id)
     form = ContatoForm(obj=contact)
     
+    # Buscar emails existentes
+    emails_existentes = ContatoEmail.query.filter_by(contato_id=contact_id).all()
+    
     if form.validate_on_submit():
         contact.nome = form.nome.data
-        contact.email = form.email.data
+        contact.email = form.email.data  # Campo legacy
         contact.telefone = form.telefone.data
         contact.empresa = form.empresa.data
         contact.cargo = form.cargo.data
@@ -1025,7 +1028,127 @@ def contact_edit(contact_id):
         flash('Contato atualizado com sucesso!', 'success')
         return redirect(url_for('contacts_list'))
     
-    return render_template('contacts/form.html', form=form, contact=contact)
+    return render_template('contacts/form.html', form=form, contact=contact, emails_existentes=emails_existentes)
+
+# Email management routes for contacts
+@app.route('/contacts/<int:contact_id>/emails/add', methods=['POST'])
+@login_required
+def contact_add_email(contact_id):
+    contact = Contato.query.get_or_404(contact_id)
+    
+    email = request.form.get('email', '').strip()
+    principal = request.form.get('principal') == 'on'
+    
+    if not email:
+        flash('Email é obrigatório', 'error')
+        return redirect(url_for('contact_edit', contact_id=contact_id))
+    
+    success, message = add_email_to_contact(contact_id, email, principal)
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'error')
+    
+    return redirect(url_for('contact_edit', contact_id=contact_id))
+
+@app.route('/contacts/<int:contact_id>/emails/<path:email>/remove', methods=['POST'])
+@login_required
+def contact_remove_email(contact_id, email):
+    contact = Contato.query.get_or_404(contact_id)
+    
+    success, message = remove_email_from_contact(contact_id, email)
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'error')
+    
+    return redirect(url_for('contact_edit', contact_id=contact_id))
+
+@app.route('/contacts/<int:contact_id>/emails/<path:email>/toggle-principal', methods=['POST'])
+@login_required
+def contact_toggle_principal_email(contact_id, email):
+    contact = Contato.query.get_or_404(contact_id)
+    
+    # Toggle principal status
+    email_obj = ContatoEmail.query.filter_by(contato_id=contact_id, email=email).first()
+    if email_obj:
+        new_principal = not email_obj.principal
+        success, message = update_email_status(contact_id, email, principal=new_principal)
+        
+        if success:
+            flash(message, 'success')
+        else:
+            flash(message, 'error')
+    else:
+        flash('Email não encontrado', 'error')
+    
+    return redirect(url_for('contact_edit', contact_id=contact_id))
+
+@app.route('/admin/migrate-emails', methods=['POST'])
+@login_required
+def migrate_emails():
+    if not current_user.is_master:
+        flash('Acesso negado', 'error')
+        return redirect(url_for('index'))
+    
+    success, count, message = migrate_legacy_emails()
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'error')
+    
+    return redirect(url_for('contacts_list'))
+
+# Email management dashboard
+@app.route('/admin/emails')
+@login_required
+def email_management():
+    if not current_user.is_master:
+        flash('Acesso negado', 'error')
+        return redirect(url_for('index'))
+    
+    from utils import get_contacts_without_emails
+    
+    # Statistics
+    total_contatos = Contato.query.count()
+    
+    # Contatos com emails na nova tabela
+    contatos_com_email_novos = db.session.query(Contato.id).join(ContatoEmail).filter(ContatoEmail.ativo == True).distinct().count()
+    
+    # Contatos com email legacy
+    contatos_com_email_legacy = Contato.query.filter(
+        Contato.email.isnot(None), 
+        Contato.email != ''
+    ).count()
+    
+    contatos_com_email = max(contatos_com_email_novos, contatos_com_email_legacy)
+    contatos_sem_email = total_contatos - contatos_com_email
+    
+    # Get contacts without emails
+    contatos_sem_email_lista = get_contacts_without_emails()
+    
+    # Count legacy emails that haven't been migrated
+    emails_legacy = Contato.query.filter(
+        Contato.email.isnot(None),
+        Contato.email != '',
+        ~Contato.id.in_(
+            db.session.query(ContatoEmail.contato_id).filter(ContatoEmail.ativo == True)
+        )
+    ).count()
+    
+    # Get all projects with their email info
+    projetos = Projeto.query.all()
+    
+    return render_template('admin/email_management.html',
+                         total_contatos=total_contatos,
+                         contatos_com_email=contatos_com_email,
+                         contatos_sem_email=contatos_sem_email,
+                         emails_legacy=emails_legacy,
+                         contatos_sem_email_lista=contatos_sem_email_lista,
+                         projetos=projetos)
 
 # Contact functionality removed as requested
 

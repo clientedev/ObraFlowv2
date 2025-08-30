@@ -10,9 +10,19 @@
                 <i class="fas fa-users me-2"></i>
                 Contatos
             </h1>
-            <a href="{{ url_for('contact_new') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Novo Contato
-            </a>
+            <div>
+                {% if current_user.is_master %}
+                <form method="POST" action="{{ url_for('migrate_emails') }}" style="display: inline;" class="me-2">
+                    {{ csrf_token() }}
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('Migrar emails antigos para o novo sistema?')">
+                        <i class="fas fa-sync me-2"></i>Migrar Emails
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{{ url_for('contact_new') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Novo Contato
+                </a>
+            </div>
         </div>
     </div>
 </div>
@@ -40,10 +50,22 @@
                                 <tr>
                                     <td><strong>{{ contact.nome }}</strong></td>
                                     <td>
-                                        {% if contact.email %}
+                                        {% set email_principal = contact.email_principal %}
+                                        {% set emails_ativos = contact.emails_ativos %}
+                                        
+                                        {% if email_principal %}
+                                            <a href="mailto:{{ email_principal }}">{{ email_principal }}</a>
+                                            {% if emails_ativos|length > 1 %}
+                                                <br><small class="text-muted">+{{ emails_ativos|length - 1 }} outros emails</small>
+                                            {% endif %}
+                                        {% elif contact.email %}
                                             <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                                            <br><small class="text-warning">Email legacy</small>
                                         {% else %}
-                                            <span class="text-muted">-</span>
+                                            <span class="text-danger">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                                Sem email
+                                            </span>
                                         {% endif %}
                                     </td>
                                     <td>
