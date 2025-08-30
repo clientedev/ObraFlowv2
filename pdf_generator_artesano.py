@@ -24,49 +24,64 @@ class ArtesanoPDFGenerator:
         self.elp_dark = HexColor('#2c3e50')
         
     def setup_custom_styles(self):
-        """Configurar estilos customizados seguindo o modelo exato"""
-        # Título principal
+        """Configurar estilos seguindo exatamente o modelo Artesano"""
+        
+        # Título principal - centralizado, tamanho médio
         self.styles.add(ParagraphStyle(
             name='MainTitle',
             parent=self.styles['Title'],
-            fontSize=18,
-            spaceAfter=20,
-            spaceBefore=40,
+            fontSize=14,
+            spaceAfter=0,
+            spaceBefore=0,
             textColor=colors.black,
             alignment=TA_CENTER,
-            fontName='Helvetica-Bold'
+            fontName='Helvetica-Bold',
+            leading=16
         ))
         
-        # Data no cabeçalho
+        # Data no cabeçalho - pequena, direita
         self.styles.add(ParagraphStyle(
             name='HeaderDate',
             parent=self.styles['Normal'],
-            fontSize=10,
+            fontSize=9,
             textColor=colors.black,
             alignment=TA_RIGHT,
             fontName='Helvetica',
-            spaceAfter=30
+            spaceAfter=0,
+            leading=12
         ))
         
-        # Número do relatório
+        # Seção "Relatório" - normal, esquerda
         self.styles.add(ParagraphStyle(
-            name='ReportNumber',
+            name='RelatórioHeader',
             parent=self.styles['Normal'],
-            fontSize=16,
+            fontSize=11,
             textColor=colors.black,
             alignment=TA_LEFT,
             fontName='Helvetica-Bold',
-            spaceAfter=20,
-            spaceBefore=20
+            spaceAfter=6,
+            spaceBefore=0
         ))
         
-        # Cabeçalho de seção
+        # Número do relatório - grande, negrito
+        self.styles.add(ParagraphStyle(
+            name='ReportNumber',
+            parent=self.styles['Normal'],
+            fontSize=18,
+            textColor=colors.black,
+            alignment=TA_LEFT,
+            fontName='Helvetica-Bold',
+            spaceAfter=0,
+            spaceBefore=0
+        ))
+        
+        # Cabeçalho de seção - médio, negrito
         self.styles.add(ParagraphStyle(
             name='SectionHeader',
             parent=self.styles['Heading1'],
-            fontSize=12,
-            spaceAfter=6,
-            spaceBefore=15,
+            fontSize=11,
+            spaceAfter=8,
+            spaceBefore=0,
             textColor=colors.black,
             alignment=TA_LEFT,
             fontName='Helvetica-Bold'
@@ -80,10 +95,33 @@ class ArtesanoPDFGenerator:
             textColor=colors.black,
             alignment=TA_LEFT,
             fontName='Helvetica',
-            spaceAfter=6
+            spaceAfter=3,
+            leading=12
         ))
         
-        # Legenda de foto
+        # Cabeçalho de tabela
+        self.styles.add(ParagraphStyle(
+            name='TableHeader',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            textColor=colors.black,
+            alignment=TA_LEFT,
+            fontName='Helvetica-Bold',
+            spaceAfter=2
+        ))
+        
+        # Dados de tabela
+        self.styles.add(ParagraphStyle(
+            name='TableData',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            textColor=colors.black,
+            alignment=TA_LEFT,
+            fontName='Helvetica',
+            spaceAfter=2
+        ))
+        
+        # Legenda de foto - pequena, centralizada
         self.styles.add(ParagraphStyle(
             name='PhotoCaption',
             parent=self.styles['Normal'],
@@ -91,10 +129,11 @@ class ArtesanoPDFGenerator:
             textColor=colors.black,
             alignment=TA_CENTER,
             fontName='Helvetica',
-            spaceAfter=10
+            spaceAfter=5,
+            leading=10
         ))
         
-        # Rodapé
+        # Rodapé - pequeno, esquerda
         self.styles.add(ParagraphStyle(
             name='Footer',
             parent=self.styles['Normal'],
@@ -102,18 +141,19 @@ class ArtesanoPDFGenerator:
             textColor=colors.black,
             alignment=TA_LEFT,
             fontName='Helvetica',
-            leading=11
+            leading=10,
+            spaceAfter=0
         ))
         
-        # Assinatura
+        # Rodapé direita
         self.styles.add(ParagraphStyle(
-            name='Signature',
+            name='FooterRight',
             parent=self.styles['Normal'],
-            fontSize=10,
+            fontSize=9,
             textColor=colors.black,
-            alignment=TA_LEFT,
+            alignment=TA_RIGHT,
             fontName='Helvetica',
-            spaceAfter=6
+            leading=10
         ))
 
     def generate_report_pdf(self, relatorio, fotos, output_path=None):
@@ -148,22 +188,27 @@ class ArtesanoPDFGenerator:
             # Cabeçalho com logos e título
             story.extend(self._create_header(relatorio))
             
-            # Número do relatório
-            story.append(Paragraph("Relatório", self.styles['SectionHeader']))
-            story.append(Paragraph(f"Relatório Número<br/><b>{relatorio.numero}</b>", self.styles['ReportNumber']))
-            story.append(Spacer(1, 20))
+            # Seção Relatório
+            story.append(Paragraph("Relatório", self.styles['RelatórioHeader']))
+            story.append(Spacer(1, 3))
+            
+            # Título "Relatório Número" 
+            story.append(Paragraph("Relatório Número", self.styles['NormalText']))
+            # Número do relatório grande
+            story.append(Paragraph(f"{relatorio.numero}", self.styles['ReportNumber']))
+            story.append(Spacer(1, 15*mm))
             
             # Dados gerais
             story.extend(self._create_dados_gerais(relatorio))
-            story.append(Spacer(1, 20))
+            story.append(Spacer(1, 15*mm))
             
             # Itens observados
             story.extend(self._create_itens_observados(relatorio, fotos))
-            story.append(Spacer(1, 30))
+            story.append(Spacer(1, 20*mm))
             
             # Assinaturas
             story.extend(self._create_assinaturas(relatorio))
-            story.append(Spacer(1, 30))
+            story.append(Spacer(1, 25*mm))
             
             # Rodapé
             story.append(self._create_footer())
@@ -187,12 +232,17 @@ class ArtesanoPDFGenerator:
         """Criar cabeçalho exatamente como no modelo"""
         elements = []
         
-        # Linha 1: Título centralizado
+        # Espaço inicial
+        elements.append(Spacer(1, 10*mm))
+        
+        # Título centralizado
         title = Paragraph("Relatório de Visita", self.styles['MainTitle'])
         elements.append(title)
-        elements.append(Spacer(1, 40))
         
-        # Linha 2: Data no canto direito
+        # Espaço grande após título
+        elements.append(Spacer(1, 50*mm))
+        
+        # Data no canto direito
         data_atual = datetime.now().strftime('%d/%m/%Y %H:%M')
         date_p = Paragraph(f"Em: {data_atual}", self.styles['HeaderDate'])
         
@@ -202,49 +252,64 @@ class ArtesanoPDFGenerator:
             ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
         
         elements.append(date_table)
-        elements.append(Spacer(1, 30))
+        
+        # Espaço após data
+        elements.append(Spacer(1, 20*mm))
         
         return elements
     
     def _create_dados_gerais(self, relatorio):
-        """Criar seção de dados gerais"""
+        """Criar seção de dados gerais exatamente como no modelo"""
         elements = []
         
         # Título da seção
         elements.append(Paragraph("Dados gerais", self.styles['SectionHeader']))
-        elements.append(Spacer(1, 10))
+        elements.append(Spacer(1, 8))
         
-        # Tabela com dados gerais
+        # Dados do projeto
         projeto = relatorio.projeto
+        empresa = projeto.responsavel.nome_completo if projeto.responsavel else "ELP Consultoria"
+        obra = projeto.nome
+        endereco = projeto.endereco or "Não informado"
         
-        # Dados da tabela
+        # Criar tabela de dados gerais sem bordas, seguindo modelo
         data = [
-            ["Empresa", "Obra", "Endereço"],
             [
-                projeto.responsavel.nome_completo if projeto.responsavel else "ELP Consultoria",
-                f"{projeto.nome}",
-                projeto.endereco or "Não informado"
+                Paragraph("Empresa", self.styles['TableHeader']),
+                Paragraph("Obra", self.styles['TableHeader']),
+                Paragraph("Endereço", self.styles['TableHeader'])
+            ],
+            [
+                Paragraph(empresa, self.styles['TableData']),
+                Paragraph(obra, self.styles['TableData']),
+                Paragraph(endereco, self.styles['TableData'])
             ]
         ]
         
-        # Criar tabela
-        table = Table(data, colWidths=[60*mm, 60*mm, 60*mm])
+        # Larguras das colunas seguindo o modelo
+        table = Table(data, colWidths=[55*mm, 55*mm, 65*mm])
         table.setStyle(TableStyle([
-            # Cabeçalho
+            # Sem bordas
+            ('GRID', (0, 0), (-1, -1), 0, colors.white),
+            
+            # Cabeçalho em negrito
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 3),
+            ('TOPPADDING', (0, 0), (-1, 0), 0),
             
-            # Dados
+            # Dados normais
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('TOPPADDING', (0, 1), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+            ('TOPPADDING', (0, 1), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 0),
             
-            # Alinhamento
+            # Alinhamento à esquerda
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
@@ -253,20 +318,25 @@ class ArtesanoPDFGenerator:
         return elements
     
     def _create_itens_observados(self, relatorio, fotos):
-        """Criar seção de itens observados com fotos"""
+        """Criar seção de itens observados exatamente como no modelo"""
         elements = []
         
         # Título da seção
         elements.append(Paragraph("Itens observados", self.styles['SectionHeader']))
-        elements.append(Spacer(1, 10))
+        elements.append(Spacer(1, 8))
         
-        # Texto de observações (usar campo conteudo se disponível, senão texto padrão)
+        # Texto de observações - seguir modelo exato
         if hasattr(relatorio, 'conteudo') and relatorio.conteudo:
             elements.append(Paragraph(relatorio.conteudo, self.styles['NormalText']))
         else:
-            elements.append(Paragraph("..<br/>Vide fotos.", self.styles['NormalText']))
+            # Texto exato do modelo
+            elements.append(Paragraph("..", self.styles['NormalText']))
+            elements.append(Paragraph("Vide fotos.", self.styles['NormalText']))
         
-        elements.append(Spacer(1, 20))
+        # Pontinhos para separação como no modelo
+        elements.append(Spacer(1, 6))
+        elements.append(Paragraph(".", self.styles['NormalText']))
+        elements.append(Spacer(1, 15))
         
         # Adicionar fotos em pares (2 por linha como no modelo)
         if fotos:
@@ -275,7 +345,7 @@ class ArtesanoPDFGenerator:
         return elements
     
     def _create_photos_section(self, fotos):
-        """Criar seção de fotos em pares"""
+        """Criar seção de fotos em pares seguindo modelo"""
         elements = []
         
         # Processar fotos em pares
@@ -283,116 +353,141 @@ class ArtesanoPDFGenerator:
             foto1 = fotos[i]
             foto2 = fotos[i + 1] if i + 1 < len(fotos) else None
             
-            # Criar linha com 1 ou 2 fotos
+            # Criar linha com fotos
             photo_row = self._create_photo_row(foto1, foto2)
             elements.extend(photo_row)
-            elements.append(Spacer(1, 15))
+            
+            # Espaço entre linhas de fotos
+            if i + 2 < len(fotos):
+                elements.append(Spacer(1, 10))
         
         return elements
     
     def _create_photo_row(self, foto1, foto2=None):
-        """Criar uma linha com 1 ou 2 fotos"""
+        """Criar uma linha com fotos seguindo o modelo exato"""
         elements = []
         
         try:
-            # Preparar dados da linha
-            photos_data = []
-            captions_data = []
+            # Preparar legendas primeiro
+            captions = []
+            photos = []
             
             # Primeira foto
             if foto1:
                 img1_path = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), foto1.filename)
                 if os.path.exists(img1_path):
-                    img1 = Image(img1_path, width=80*mm, height=60*mm)
-                    photos_data.append(img1)
-                    caption1 = foto1.descricao or f"Foto {foto1.ordem}"
-                    captions_data.append(caption1)
+                    # Tamanho das fotos conforme modelo
+                    img1 = Image(img1_path, width=75*mm, height=55*mm)
+                    photos.append(img1)
                 else:
-                    photos_data.append("Imagem não encontrada")
-                    captions_data.append(foto1.descricao or f"Foto {foto1.ordem}")
+                    photos.append(Paragraph("Foto não encontrada", self.styles['NormalText']))
+                
+                # Legenda da foto
+                caption1 = foto1.descricao or f"Foto {foto1.ordem}"
+                captions.append(caption1)
             
             # Segunda foto (se existir)
             if foto2:
                 img2_path = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), foto2.filename)
                 if os.path.exists(img2_path):
-                    img2 = Image(img2_path, width=80*mm, height=60*mm)
-                    photos_data.append(img2)
-                    caption2 = foto2.descricao or f"Foto {foto2.ordem}"
-                    captions_data.append(caption2)
+                    img2 = Image(img2_path, width=75*mm, height=55*mm)
+                    photos.append(img2)
                 else:
-                    photos_data.append("Imagem não encontrada")
-                    captions_data.append(foto2.descricao or f"Foto {foto2.ordem}")
+                    photos.append(Paragraph("Foto não encontrada", self.styles['NormalText']))
+                
+                caption2 = foto2.descricao or f"Foto {foto2.ordem}"
+                captions.append(caption2)
+            
+            # Se só tiver uma foto, centralizar
+            if len(photos) == 1:
+                # Tabela com uma foto centralizada
+                photo_table = Table([photos], colWidths=[75*mm])
+                photo_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                ]))
+                
+                caption_table = Table([captions], colWidths=[75*mm])
+                caption_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                ]))
+                
             else:
-                # Preencher espaço vazio se só houver uma foto
-                photos_data.append("")
-                captions_data.append("")
+                # Tabela com duas fotos lado a lado
+                photo_table = Table([photos], colWidths=[85*mm, 85*mm])
+                photo_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                ]))
+                
+                caption_table = Table([captions], colWidths=[85*mm, 85*mm])
+                caption_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                ]))
             
-            # Tabela de fotos
-            if len(photos_data) == 2:
-                photos_table = Table([photos_data], colWidths=[90*mm, 90*mm])
-                captions_table = Table([captions_data], colWidths=[90*mm, 90*mm])
-            else:
-                photos_table = Table([photos_data], colWidths=[90*mm])
-                captions_table = Table([captions_data], colWidths=[90*mm])
-            
-            # Estilo da tabela de fotos
-            photos_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('TOPPADDING', (0, 0), (-1, -1), 5),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-            ]))
-            
-            # Estilo da tabela de legendas
-            captions_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('TOPPADDING', (0, 0), (-1, -1), 3),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ]))
-            
-            elements.append(photos_table)
-            elements.append(captions_table)
+            elements.append(photo_table)
+            elements.append(caption_table)
             
         except Exception as e:
-            # Em caso de erro, adicionar texto informativo
             elements.append(Paragraph(f"Erro ao carregar fotos: {str(e)}", self.styles['NormalText']))
         
         return elements
     
     def _create_assinaturas(self, relatorio):
-        """Criar seção de assinaturas"""
+        """Criar seção de assinaturas exatamente como no modelo"""
         elements = []
         
         # Título da seção
         elements.append(Paragraph("Assinaturas", self.styles['SectionHeader']))
-        elements.append(Spacer(1, 10))
+        elements.append(Spacer(1, 8))
         
         # Dados das assinaturas
         preenchido_por = relatorio.autor.nome_completo if relatorio.autor else "Não informado"
         liberado_por = "Eng. José Leopoldo Pugliese"  # Valor fixo conforme modelo
         responsavel = relatorio.projeto.responsavel.nome_completo if relatorio.projeto and relatorio.projeto.responsavel else "Não informado"
         
-        # Tabela de assinaturas
+        # Tabela de assinaturas sem bordas
         sig_data = [
-            ["Preenchido por:", "Liberado por:", "Responsável pelo acompanhamento"],
-            [preenchido_por, liberado_por, responsavel]
+            [
+                Paragraph("Preenchido por:", self.styles['TableHeader']),
+                Paragraph("Liberado por:", self.styles['TableHeader']),
+                Paragraph("Responsável pelo acompanhamento", self.styles['TableHeader'])
+            ],
+            [
+                Paragraph(preenchido_por, self.styles['TableData']),
+                Paragraph(liberado_por, self.styles['TableData']),
+                Paragraph(responsavel, self.styles['TableData'])
+            ]
         ]
         
-        sig_table = Table(sig_data, colWidths=[60*mm, 60*mm, 60*mm])
+        sig_table = Table(sig_data, colWidths=[55*mm, 55*mm, 65*mm])
         sig_table.setStyle(TableStyle([
+            # Sem bordas
+            ('GRID', (0, 0), (-1, -1), 0, colors.white),
+            
             # Cabeçalho
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 3),
+            ('TOPPADDING', (0, 0), (-1, 0), 0),
             
-            # Dados
+            # Dados das assinaturas
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('TOPPADDING', (0, 1), (-1, -1), 15),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+            ('TOPPADDING', (0, 1), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 0),
             
             # Alinhamento
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
@@ -403,25 +498,38 @@ class ArtesanoPDFGenerator:
         return elements
     
     def _create_footer(self):
-        """Criar rodapé da empresa"""
-        footer_text = """<b>ELP Consultoria</b><br/>
+        """Criar rodapé exatamente como no modelo"""
+        # Texto do lado esquerdo (dados da empresa)
+        footer_left = """<b>ELP Consultoria</b><br/>
 Rua Jaboticabal, 530 apto. 31 - São Paulo - SP - CEP: 03188-000<br/>
 leopoldo@elpconsultoria.eng.br<br/>
 Telefone: (11) 99138-4517"""
         
-        # Adicionar texto no canto direito sobre geração do relatório
-        generated_text = "Relatório gerado no Sistema ELP"
+        # Texto do lado direito
+        footer_right = "Relatório gerado no Produttivo"
         
         footer_data = [
-            [Paragraph(footer_text, self.styles['Footer']), Paragraph(generated_text, self.styles['Footer'])]
+            [
+                Paragraph(footer_left, self.styles['Footer']),
+                Paragraph(footer_right, self.styles['FooterRight'])
+            ]
         ]
         
         footer_table = Table(footer_data, colWidths=[120*mm, 60*mm])
         footer_table.setStyle(TableStyle([
+            # Sem bordas
+            ('GRID', (0, 0), (-1, -1), 0, colors.white),
+            
+            # Alinhamento
             ('ALIGN', (0, 0), (0, 0), 'LEFT'),
             ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            
+            # Padding
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
         ]))
         
         return footer_table
