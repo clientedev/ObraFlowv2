@@ -85,6 +85,15 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Photo Embedding**: Base64 image embedding for self-contained PDFs
 - ✅ **Professional Styling**: Arial/Helvetica fonts, precise margins, header/footer positioning
 
+### Predefined Caption Management System (2025-08-30)
+- ✅ **Developer User Type**: Exclusive access with login "Desenvolvedor" / password "sen@i103"
+- ✅ **Caption Database Model**: LegendaPredefinida with categories, status control, and audit trail
+- ✅ **Administrative Interface**: Full CRUD operations with responsive design and category filtering
+- ✅ **Photo Editor Integration**: Real-time caption loading with category filters in photo annotation tool
+- ✅ **API Endpoint**: /api/legendas for dynamic caption retrieval by category
+- ✅ **Multi-Category Support**: 8 specialized categories (Geral, Estrutural, Hidráulica, Elétrica, Acabamentos, Segurança, Fachada, Impermeabilização)
+- ✅ **Dual Caption Mode**: Users can select predefined captions or write custom ones
+
 ### Mobile Photo Editor Enhancement (2025-08-20)
 - ✅ **Touch Events Optimization**: Melhorado manuseio de eventos touch para ferramentas além do pincel
 - ✅ **Gesture Prevention**: Prevenção de zoom e gestos indesejados durante edição
