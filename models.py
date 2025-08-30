@@ -45,86 +45,18 @@ class Projeto(db.Model):
     @property
     def responsavel(self):
         return User.query.get(self.responsavel_id)
-    
-    @property
-    def contatos(self):
-        """Retorna todos os contatos associados a este projeto"""
-        return db.session.query(Contato).join(ContatoProjeto).filter(
-            ContatoProjeto.projeto_id == self.id
-        ).all()
-    
-    @property
-    def emails_clientes(self):
-        """Retorna todos os emails de clientes associados ao projeto"""
-        emails = []
-        contatos = db.session.query(Contato).join(ContatoProjeto).filter(
-            ContatoProjeto.projeto_id == self.id,
-            ContatoProjeto.tipo_relacionamento.in_(['Cliente', 'cliente', 'CLIENTE'])
-        ).all()
-        
-        for contato in contatos:
-            emails.extend(contato.emails_ativos)
-        
-        return list(set(emails))  # Remove duplicates
-    
-    @property
-    def emails_receber_relatorios(self):
-        """Retorna emails de contatos que devem receber relatórios"""
-        emails = []
-        contatos_projetos = db.session.query(ContatoProjeto).join(Contato).filter(
-            ContatoProjeto.projeto_id == self.id,
-            ContatoProjeto.receber_relatorios == True
-        ).all()
-        
-        for cp in contatos_projetos:
-            contato = Contato.query.get(cp.contato_id)
-            if contato:
-                emails.extend(contato.emails_ativos)
-        
-        return list(set(emails))  # Remove duplicates
 
 class Contato(db.Model):
     __tablename__ = 'contatos'
     
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(200), nullable=False)
-    email = db.Column(db.String(120))  # Mantido por compatibilidade, será deprecated
+    email = db.Column(db.String(120))
     telefone = db.Column(db.String(20))
     empresa = db.Column(db.String(200))
     cargo = db.Column(db.String(100))
     observacoes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    @property
-    def emails_ativos(self):
-        """Retorna todos os emails ativos do contato"""
-        emails_obj = ContatoEmail.query.filter_by(contato_id=self.id, ativo=True).all()
-        return [email.email for email in emails_obj]
-    
-    @property
-    def email_principal(self):
-        """Retorna o email principal do contato"""
-        principal_obj = ContatoEmail.query.filter_by(contato_id=self.id, ativo=True, principal=True).first()
-        if principal_obj:
-            return principal_obj.email
-        # Fallback to legacy email field or first active email
-        if self.email:
-            return self.email
-        first_email = ContatoEmail.query.filter_by(contato_id=self.id, ativo=True).first()
-        return first_email.email if first_email else None
-    
-    @property
-    def projetos(self):
-        """Retorna todos os projetos associados a este contato"""
-        from sqlalchemy import text
-        return db.session.execute(
-            text("""
-                SELECT p.* FROM projetos p 
-                JOIN contatos_projetos cp ON p.id = cp.projeto_id 
-                WHERE cp.contato_id = :contato_id
-            """), 
-            {'contato_id': self.id}
-        ).fetchall()
 
 class ContatoProjeto(db.Model):
     __tablename__ = 'contatos_projetos'
@@ -272,22 +204,6 @@ class EnvioRelatorio(db.Model):
     status_entrega = db.Column(db.String(50), default='Enviado')
     tentativas = db.Column(db.Integer, default=1)
     erro_envio = db.Column(db.Text)
-
-class ContatoEmail(db.Model):
-    __tablename__ = 'contatos_emails'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    contato_id = db.Column(db.Integer, db.ForeignKey('contatos.id'), nullable=False)
-    email = db.Column(db.String(120), nullable=False)
-    principal = db.Column(db.Boolean, default=False)
-    ativo = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Unique constraint for email per contact
-    __table_args__ = (db.UniqueConstraint('contato_id', 'email', name='_contato_email_uc'),)
-
-# Add relationship to Contato after ContatoEmail is defined
-Contato.emails = db.relationship('ContatoEmail', backref='contato', lazy='dynamic', cascade='all, delete-orphan')
 
 class Reembolso(db.Model):
     __tablename__ = 'reembolsos'

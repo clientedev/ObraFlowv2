@@ -1,17 +1,6 @@
 # Overview
 This project is a comprehensive construction site visit tracking system built with Flask, providing advanced project management capabilities. It includes user authentication, project creation, visit scheduling and communication, professional report generation with photo annotation tools, approval workflows, and expense tracking. The system is enhanced with PDF generation, advanced photo editing, and robust admin approval processes, aiming to provide complete oversight for construction projects. The business vision is to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry, with market potential in civil engineering and facade specialization.
 
-## Recent Updates (2025-08-30)
-✅ **Complete Email Management System for Clients**: Implemented comprehensive email functionality for client contacts associated with projects, including:
-- Multiple email addresses per contact with principal email designation
-- Email validation and duplicate prevention
-- Normalized database structure with ContatoEmail table
-- Automatic client email inheritance by projects
-- Admin dashboard for email management and migration
-- Integration preparation for automated report distribution
-- User-friendly interface for adding/removing/managing emails
-- Migration system for legacy email data
-
 # User Preferences
 Preferred communication style: Simple, everyday language.
 

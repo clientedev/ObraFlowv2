@@ -40,22 +40,10 @@
                                 <tr>
                                     <td><strong>{{ contact.nome }}</strong></td>
                                     <td>
-                                        {% set email_principal = contact.email_principal %}
-                                        {% set emails_ativos = contact.emails_ativos %}
-                                        
-                                        {% if email_principal %}
-                                            <a href="mailto:{{ email_principal }}">{{ email_principal }}</a>
-                                            {% if emails_ativos|length > 1 %}
-                                                <br><small class="text-muted">+{{ emails_ativos|length - 1 }} outros emails</small>
-                                            {% endif %}
-                                        {% elif contact.email %}
+                                        {% if contact.email %}
                                             <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
-                                            <br><small class="text-warning">Email legacy</small>
                                         {% else %}
-                                            <span class="text-danger">
-                                                <i class="fas fa-exclamation-triangle me-1"></i>
-                                                Sem email
-                                            </span>
+                                            <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>

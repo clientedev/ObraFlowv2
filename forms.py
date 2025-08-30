@@ -1,10 +1,10 @@
 import datetime
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
-from wtforms import StringField, TextAreaField, PasswordField, BooleanField, SelectField, DateField, FloatField, IntegerField, DateTimeField, HiddenField, FieldList, FormField
-from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange, Optional, ValidationError
+from wtforms import StringField, TextAreaField, PasswordField, BooleanField, SelectField, DateField, FloatField, IntegerField, DateTimeField, HiddenField
+from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange, Optional
 from wtforms.widgets import TextArea
-from models import User, TipoObra, Contato, ContatoEmail
+from models import User, TipoObra, Contato
 
 class LoginForm(FlaskForm):
     username = StringField('Usuário', validators=[DataRequired()])
@@ -53,30 +53,13 @@ class ProjetoForm(FlaskForm):
         super(ProjetoForm, self).__init__(*args, **kwargs)
         self.responsavel_id.choices = [(u.id, u.nome_completo) for u in User.query.filter_by(ativo=True).all()]
 
-class ContatoEmailForm(FlaskForm):
-    """Formulário para um único email de contato"""
-    email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
-    principal = BooleanField('Email Principal')
-    ativo = BooleanField('Ativo', default=True)
-
 class ContatoForm(FlaskForm):
     nome = StringField('Nome', validators=[DataRequired(), Length(max=200)])
-    email = StringField('Email (legacy)', validators=[Optional(), Email()])  # Campo legacy mantido por compatibilidade
+    email = StringField('Email', validators=[Optional(), Email()])
     telefone = StringField('Telefone', validators=[Length(max=20)])
     empresa = StringField('Empresa', validators=[Length(max=200)])
     cargo = StringField('Cargo', validators=[Length(max=100)])
     observacoes = TextAreaField('Observações')
-    
-    def validate(self, extra_validators=None):
-        """Validação customizada para garantir pelo menos um email"""
-        rv = super().validate(extra_validators)
-        
-        # Se não há email legacy, deve haver pelo menos um email novo
-        if not self.email.data:
-            # Esta validação será complementada quando tivermos os emails dinâmicos
-            pass
-            
-        return rv
 
 class ContatoProjetoForm(FlaskForm):
     contato_id = SelectField('Contato', coerce=int, validators=[DataRequired()])
