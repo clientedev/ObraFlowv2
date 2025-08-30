@@ -280,16 +280,10 @@ function addPhotoPreview(file, src, category) {
         <div class="card">
             <img src="${src}" class="card-img-top photo-preview" alt="Preview" style="cursor: pointer;" onclick="editPhoto('${photoId}', '${src}', '${category}')">
             <div class="card-body p-2">
-                <!-- Seletor de Legendas Pré-definidas -->
-                <div class="mb-2">
-                    <select class="form-control form-control-sm mb-1" id="predefined_${photoId}" onchange="selectPredefinedCaption('${photoId}')">
-                        <option value="">Selecione uma legenda...</option>
-                    </select>
-                    <div class="form-text" style="font-size: 0.75rem;">Ou digite uma legenda personalizada:</div>
-                </div>
-                
-                <textarea class="form-control form-control-sm mb-2" rows="2"
-                       name="photo_caption_${photoId}" id="caption_${photoId}" placeholder="Legenda da foto..."></textarea>
+                <!-- Seletor de Legendas -->
+                <select class="form-control form-control-sm mb-2" id="predefined_${photoId}" name="photo_caption_${photoId}" required>
+                    <option value="">Selecione uma legenda...</option>
+                </select>
                 <small class="text-muted d-block">Categoria: ${category}</small>
                 <div class="btn-group w-100 mt-2">
                     <button type="button" class="btn btn-sm btn-primary" onclick="editPhoto('${photoId}', '${src}', '${category}')">
@@ -415,7 +409,7 @@ function editPhoto(photoId, imageSrc, category) {
     const photo = selectedPhotos.find(p => p.id === photoId);
     if (!photo) return;
     
-    const captionElement = document.querySelector(`input[name="photo_caption_${photoId}"]`);
+    const captionElement = document.querySelector(`select[name="photo_caption_${photoId}"]`);
     const caption = captionElement ? captionElement.value : '';
     
     // Converter arquivo para base64 e armazenar no sessionStorage
@@ -464,8 +458,8 @@ function updatePhotoFromEditor(photoId, data) {
     
     // Atualizar campos
     if (data.caption) {
-        const captionInput = photo.element.querySelector(`input[name="photo_caption_${photoId}"]`);
-        if (captionInput) captionInput.value = data.caption;
+        const captionSelect = photo.element.querySelector(`select[name="photo_caption_${photoId}"]`);
+        if (captionSelect) captionSelect.value = data.caption;
     }
     
     if (data.description) {
@@ -510,7 +504,7 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
                     select.appendChild(option);
                 });
                 
-                console.log(`${data.legendas.length} legendas carregadas`);
+                console.log(`${data.legendas.length} legendas carregadas para categoria ${mappedCategory}`);
             } else {
                 console.error('Elemento select não encontrado ou dados inválidos');
             }
@@ -535,15 +529,7 @@ function mapCategoryToLegenda(photoCategory) {
     return mapping[photoCategory] || 'Geral';
 }
 
-// Selecionar legenda pré-definida
-function selectPredefinedCaption(photoId) {
-    const select = document.getElementById(`predefined_${photoId}`);
-    const textarea = document.getElementById(`caption_${photoId}`);
-    
-    if (select && textarea && select.value) {
-        textarea.value = select.value;
-    }
-}
+// Função selectPredefinedCaption não é mais necessária pois o select é o campo final
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', function() {
