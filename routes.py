@@ -9,8 +9,8 @@ from werkzeug.utils import secure_filename
 from flask_mail import Message
 
 from app import app, db, mail, csrf
-from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita
-from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm
+from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente
+from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, EmailClienteForm
 from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
 from pdf_generator import generate_visit_report_pdf
 import math
@@ -916,6 +916,7 @@ def project_new():
         projeto.longitude = float(form.longitude.data) if form.longitude.data else None
         projeto.tipo_obra = form.tipo_obra.data
         projeto.responsavel_id = form.responsavel_id.data
+        projeto.email_principal = form.email_principal.data
         projeto.data_inicio = form.data_inicio.data
         projeto.data_previsao_fim = form.data_previsao_fim.data
         projeto.status = form.status.data
@@ -968,6 +969,7 @@ def project_edit(project_id):
         project.longitude = float(form.longitude.data) if form.longitude.data else None
         project.tipo_obra = form.tipo_obra.data
         project.responsavel_id = form.responsavel_id.data
+        project.email_principal = form.email_principal.data
         project.data_inicio = form.data_inicio.data
         project.data_previsao_fim = form.data_previsao_fim.data
         project.status = form.status.data
@@ -2044,6 +2046,159 @@ def visit_export_outlook(visit_id):
         print(f"Outlook export error: {e}")
         flash('Erro ao exportar para Outlook. Tente novamente.', 'error')
         return redirect(url_for('visits_list'))
+
+# =====================
+# ROTAS DE GERENCIAMENTO DE E-MAILS DE CLIENTES
+# =====================
+
+@app.route('/projetos/<int:projeto_id>/emails')
+@login_required
+def projeto_emails(projeto_id):
+    """Lista todos os e-mails de clientes de um projeto"""
+    projeto = Projeto.query.get_or_404(projeto_id)
+    emails = EmailCliente.query.filter_by(projeto_id=projeto_id, ativo=True).order_by(
+        EmailCliente.is_principal.desc(),
+        EmailCliente.nome_contato
+    ).all()
+    
+    return render_template('emails/list.html', projeto=projeto, emails=emails)
+
+@app.route('/projetos/<int:projeto_id>/emails/novo', methods=['GET', 'POST'])
+@login_required
+def novo_email_cliente(projeto_id):
+    """Adiciona novo e-mail de cliente ao projeto"""
+    projeto = Projeto.query.get_or_404(projeto_id)
+    form = EmailClienteForm()
+    
+    if form.validate_on_submit():
+        # Verificar se o e-mail já existe para este projeto
+        email_existente = EmailCliente.query.filter_by(
+            projeto_id=projeto_id,
+            email=form.email.data.lower().strip()
+        ).first()
+        
+        if email_existente:
+            flash('Este e-mail já está cadastrado para este projeto.', 'error')
+            return render_template('emails/form.html', form=form, projeto=projeto, titulo='Novo E-mail de Cliente')
+        
+        # Se marcou como principal, desmarcar outros como principal
+        if form.is_principal.data:
+            EmailCliente.query.filter_by(projeto_id=projeto_id, is_principal=True).update({
+                'is_principal': False
+            })
+        
+        # Criar novo e-mail
+        email_cliente = EmailCliente(
+            projeto_id=projeto_id,
+            email=form.email.data.lower().strip(),
+            nome_contato=form.nome_contato.data,
+            cargo=form.cargo.data,
+            empresa=form.empresa.data,
+            is_principal=form.is_principal.data,
+            receber_notificacoes=form.receber_notificacoes.data,
+            receber_relatorios=form.receber_relatorios.data,
+            ativo=form.ativo.data
+        )
+        
+        try:
+            db.session.add(email_cliente)
+            db.session.commit()
+            flash(f'E-mail {email_cliente.email} adicionado com sucesso!', 'success')
+            return redirect(url_for('projeto_emails', projeto_id=projeto_id))
+        except Exception as e:
+            db.session.rollback()
+            flash('Erro ao adicionar e-mail. Tente novamente.', 'error')
+    
+    return render_template('emails/form.html', form=form, projeto=projeto, titulo='Novo E-mail de Cliente')
+
+@app.route('/emails/<int:email_id>/editar', methods=['GET', 'POST'])
+@login_required
+def editar_email_cliente(email_id):
+    """Edita e-mail de cliente"""
+    email_cliente = EmailCliente.query.get_or_404(email_id)
+    projeto = email_cliente.projeto
+    form = EmailClienteForm(obj=email_cliente)
+    
+    if form.validate_on_submit():
+        # Verificar se mudou o e-mail e se já existe outro com o mesmo e-mail
+        if form.email.data.lower().strip() != email_cliente.email:
+            email_existente = EmailCliente.query.filter_by(
+                projeto_id=projeto.id,
+                email=form.email.data.lower().strip()
+            ).filter(EmailCliente.id != email_id).first()
+            
+            if email_existente:
+                flash('Este e-mail já está cadastrado para este projeto.', 'error')
+                return render_template('emails/form.html', form=form, projeto=projeto, titulo='Editar E-mail de Cliente')
+        
+        # Se marcou como principal, desmarcar outros como principal
+        if form.is_principal.data and not email_cliente.is_principal:
+            EmailCliente.query.filter_by(projeto_id=projeto.id, is_principal=True).update({
+                'is_principal': False
+            })
+        
+        # Atualizar dados
+        email_cliente.email = form.email.data.lower().strip()
+        email_cliente.nome_contato = form.nome_contato.data
+        email_cliente.cargo = form.cargo.data
+        email_cliente.empresa = form.empresa.data
+        email_cliente.is_principal = form.is_principal.data
+        email_cliente.receber_notificacoes = form.receber_notificacoes.data
+        email_cliente.receber_relatorios = form.receber_relatorios.data
+        email_cliente.ativo = form.ativo.data
+        email_cliente.updated_at = datetime.utcnow()
+        
+        try:
+            db.session.commit()
+            flash('E-mail atualizado com sucesso!', 'success')
+            return redirect(url_for('projeto_emails', projeto_id=projeto.id))
+        except Exception as e:
+            db.session.rollback()
+            flash('Erro ao atualizar e-mail. Tente novamente.', 'error')
+    
+    return render_template('emails/form.html', form=form, projeto=projeto, titulo='Editar E-mail de Cliente')
+
+@app.route('/emails/<int:email_id>/remover', methods=['POST'])
+@login_required
+def remover_email_cliente(email_id):
+    """Remove (desativa) e-mail de cliente"""
+    email_cliente = EmailCliente.query.get_or_404(email_id)
+    projeto_id = email_cliente.projeto_id
+    
+    try:
+        email_cliente.ativo = False
+        email_cliente.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash('E-mail removido com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Erro ao remover e-mail. Tente novamente.', 'error')
+    
+    return redirect(url_for('projeto_emails', projeto_id=projeto_id))
+
+@app.route('/admin/emails')
+@login_required
+def admin_emails():
+    """Painel administrativo para gerenciar todos os e-mails de clientes"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem acessar esta área.', 'error')
+        return redirect(url_for('index'))
+    
+    # Buscar todos os projetos com seus e-mails
+    projetos = Projeto.query.join(EmailCliente).filter(EmailCliente.ativo == True).distinct().all()
+    
+    # Contar estatísticas
+    total_emails = EmailCliente.query.filter_by(ativo=True).count()
+    emails_principais = EmailCliente.query.filter_by(ativo=True, is_principal=True).count()
+    projetos_sem_email = Projeto.query.filter(~Projeto.id.in_(
+        db.session.query(EmailCliente.projeto_id).filter_by(ativo=True).distinct()
+    )).count()
+    
+    return render_template('emails/admin.html', 
+                         projetos=projetos, 
+                         total_emails=total_emails,
+                         emails_principais=emails_principais,
+                         projetos_sem_email=projetos_sem_email)
 
 # Error handlers
 @app.errorhandler(404)

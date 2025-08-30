@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }} - ELP Consultoria e Engenharia{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-envelope me-2"></i>{{ titulo }}
+                </h5>
+                <small class="text-muted">
+                    Projeto: {{ projeto.numero }} - {{ projeto.nome }}
+                </small>
+            </div>
+            <div class="card-body">
+                <form method="POST" class="needs-validation" novalidate>
+                    {{ form.hidden_tag() }}
+                    
+                    <!-- E-mail -->
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label fw-bold") }}
+                        {{ form.email(class="form-control", placeholder="exemplo@empresa.com") }}
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Digite um e-mail válido para o cliente
+                        </div>
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.email.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Nome do Contato -->
+                    <div class="mb-3">
+                        {{ form.nome_contato.label(class="form-label fw-bold") }}
+                        {{ form.nome_contato(class="form-control", placeholder="Nome completo do contato") }}
+                        {% if form.nome_contato.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.nome_contato.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <!-- Cargo -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.cargo.label(class="form-label fw-bold") }}
+                                {{ form.cargo(class="form-control", placeholder="Ex: Gerente de Projetos") }}
+                                {% if form.cargo.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.cargo.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Empresa -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.empresa.label(class="form-label fw-bold") }}
+                                {{ form.empresa(class="form-control", placeholder="Nome da empresa") }}
+                                {% if form.empresa.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.empresa.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status e Configurações -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-cog me-2"></i>Configurações
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <!-- E-mail Principal -->
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            {{ form.is_principal(class="form-check-input") }}
+                                            {{ form.is_principal.label(class="form-check-label fw-bold") }}
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="fas fa-star me-1"></i>
+                                            Marque como e-mail principal do projeto
+                                        </div>
+                                    </div>
+
+                                    <!-- Status Ativo -->
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            {{ form.ativo(class="form-check-input", checked=True) }}
+                                            {{ form.ativo.label(class="form-check-label fw-bold") }}
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="fas fa-toggle-on me-1"></i>
+                                            E-mail ativo no sistema
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <!-- Receber Relatórios -->
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            {{ form.receber_relatorios(class="form-check-input", checked=True) }}
+                                            {{ form.receber_relatorios.label(class="form-check-label fw-bold") }}
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="fas fa-file-pdf me-1"></i>
+                                            Receber relatórios de visitas por e-mail
+                                        </div>
+                                    </div>
+
+                                    <!-- Receber Notificações -->
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            {{ form.receber_notificacoes(class="form-check-input", checked=True) }}
+                                            {{ form.receber_notificacoes.label(class="form-check-label fw-bold") }}
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="fas fa-bell me-1"></i>
+                                            Receber notificações do sistema
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botões de Ação -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('projeto_emails', projeto_id=projeto.id) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Salvar E-mail
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Validação do formulário
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.needs-validation');
+    const emailInput = document.querySelector('#email');
+    
+    // Validação em tempo real do e-mail
+    if (emailInput) {
+        emailInput.addEventListener('blur', function() {
+            const email = this.value.trim();
+            if (email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    this.setCustomValidity('Por favor, insira um e-mail válido');
+                } else {
+                    this.setCustomValidity('');
+                }
+            }
+        });
+    }
+    
+    // Validação no submit
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+});
+</script>
+{% endblock %}

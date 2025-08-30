@@ -37,6 +37,7 @@ class Projeto(db.Model):
     longitude = db.Column(db.Float)
     tipo_obra = db.Column(db.String(100), nullable=False)
     responsavel_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    email_principal = db.Column(db.String(255), nullable=False)  # E-mail principal obrigatório
     data_inicio = db.Column(db.Date)
     data_previsao_fim = db.Column(db.Date)
     status = db.Column(db.String(50), default='Ativo')
@@ -67,6 +68,28 @@ class ContatoProjeto(db.Model):
     tipo_relacionamento = db.Column(db.String(100))
     is_aprovador = db.Column(db.Boolean, default=False)
     receber_relatorios = db.Column(db.Boolean, default=False)
+
+class EmailCliente(db.Model):
+    __tablename__ = 'emails_clientes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
+    email = db.Column(db.String(255), nullable=False)
+    nome_contato = db.Column(db.String(200), nullable=False)
+    cargo = db.Column(db.String(100))
+    empresa = db.Column(db.String(200))
+    is_principal = db.Column(db.Boolean, default=False)  # Indica se é o e-mail principal
+    receber_notificacoes = db.Column(db.Boolean, default=True)
+    receber_relatorios = db.Column(db.Boolean, default=True)
+    ativo = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relacionamento com Projeto
+    projeto = db.relationship('Projeto', backref='emails_clientes')
+    
+    # Validação única para email + projeto
+    __table_args__ = (db.UniqueConstraint('projeto_id', 'email', name='unique_email_por_projeto'),)
 
 class Visita(db.Model):
     __tablename__ = 'visitas'

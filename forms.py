@@ -40,6 +40,7 @@ class ProjetoForm(FlaskForm):
     longitude = HiddenField()
     tipo_obra = StringField('Tipo de Obra', validators=[DataRequired(), Length(max=100)])
     responsavel_id = SelectField('Responsável', coerce=int, validators=[DataRequired()])
+    email_principal = StringField('E-mail Principal do Cliente', validators=[DataRequired(), Email(), Length(max=255)])
     data_inicio = DateField('Data de Início', validators=[Optional()])
     data_previsao_fim = DateField('Previsão de Término', validators=[Optional()])
     status = SelectField('Status', choices=[
@@ -70,6 +71,16 @@ class ContatoProjetoForm(FlaskForm):
     def __init__(self, *args, **kwargs):
         super(ContatoProjetoForm, self).__init__(*args, **kwargs)
         self.contato_id.choices = [(c.id, f"{c.nome} - {c.empresa or 'Sem empresa'}") for c in Contato.query.all()]
+
+class EmailClienteForm(FlaskForm):
+    email = StringField('E-mail', validators=[DataRequired(), Email(), Length(max=255)])
+    nome_contato = StringField('Nome do Contato', validators=[DataRequired(), Length(max=200)])
+    cargo = StringField('Cargo', validators=[Length(max=100)])
+    empresa = StringField('Empresa', validators=[Length(max=200)])
+    is_principal = BooleanField('E-mail Principal')
+    receber_notificacoes = BooleanField('Receber Notificações', default=True)
+    receber_relatorios = BooleanField('Receber Relatórios', default=True)
+    ativo = BooleanField('Ativo', default=True)
 
 class VisitaForm(FlaskForm):
     projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
