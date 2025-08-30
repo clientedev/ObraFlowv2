@@ -485,11 +485,20 @@ function updatePhotoFromEditor(photoId, data) {
 
 // Carregar legendas pré-definidas para uma foto específica
 function loadPredefinedCaptionsForPhoto(photoId, category) {
+    console.log(`Carregando legendas para foto ${photoId}, categoria: ${category}`);
     const mappedCategory = mapCategoryToLegenda(category);
+    console.log(`Categoria mapeada: ${mappedCategory}`);
+    
     fetch(`/api/legendas?categoria=${mappedCategory}`)
-        .then(response => response.json())
+        .then(response => {
+            console.log('Resposta da API:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('Dados recebidos:', data);
             const select = document.getElementById(`predefined_${photoId}`);
+            console.log('Select element:', select);
+            
             if (select && data.success) {
                 // Limpar opções existentes exceto a primeira
                 select.innerHTML = '<option value="">Selecione uma legenda...</option>';
@@ -500,6 +509,10 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
                     option.textContent = legenda.texto;
                     select.appendChild(option);
                 });
+                
+                console.log(`${data.legendas.length} legendas carregadas`);
+            } else {
+                console.error('Elemento select não encontrado ou dados inválidos');
             }
         })
         .catch(error => {
@@ -513,10 +526,10 @@ function mapCategoryToLegenda(photoCategory) {
         'Fundação': 'Estrutural',
         'Estrutura': 'Estrutural', 
         'Alvenaria': 'Estrutural',
-        'Instalações': 'Hidráulica',
+        'Instalações': 'Elétrica',
         'Cobertura': 'Impermeabilização',
         'Acabamento': 'Acabamentos',
-        'Problema': 'Geral',
+        'Problema': 'Segurança',
         'Geral': 'Geral'
     };
     return mapping[photoCategory] || 'Geral';
