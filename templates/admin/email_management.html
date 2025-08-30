@@ -10,12 +10,7 @@
                 <i class="fas fa-envelope-open-text me-2"></i>
                 Gerenciamento de E-mails
             </h1>
-            <form method="POST" action="{{ url_for('migrate_emails') }}" style="display: inline;">
-                {{ csrf_token() }}
-                <button type="submit" class="btn btn-warning" onclick="return confirm('Migrar todos os emails antigos para o novo sistema?')">
-                    <i class="fas fa-sync me-2"></i>Migrar Emails Legacy
-                </button>
-            </form>
+
         </div>
     </div>
 </div>
