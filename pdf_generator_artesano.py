@@ -118,6 +118,7 @@ class ArtesanoPDFGenerator:
 
     def generate_report_pdf(self, relatorio, fotos, output_path=None):
         """Gerar PDF seguindo exatamente o modelo Artesano"""
+        buffer = None
         try:
             if output_path:
                 # Para arquivos, usar caminho direto
@@ -145,8 +146,7 @@ class ArtesanoPDFGenerator:
             story = []
             
             # Cabeçalho com logos e título
-            story.append(self._create_header(relatorio))
-            story.append(Spacer(1, 20))
+            story.extend(self._create_header(relatorio))
             
             # Número do relatório
             story.append(Paragraph("Relatório", self.styles['SectionHeader']))
@@ -179,33 +179,35 @@ class ArtesanoPDFGenerator:
                 return pdf_data
                 
         except Exception as e:
+            if buffer:
+                buffer.close()
             raise Exception(f"Erro ao gerar PDF: {str(e)}")
     
     def _create_header(self, relatorio):
-        """Criar cabeçalho com logos e título"""
-        # Data no canto superior direito
-        data_atual = datetime.now().strftime('%d/%m/%Y %H:%M')
-        header_date = Paragraph(f"Em: {data_atual}", self.styles['HeaderDate'])
+        """Criar cabeçalho exatamente como no modelo"""
+        elements = []
         
-        # Título principal centralizado
+        # Linha 1: Título centralizado
         title = Paragraph("Relatório de Visita", self.styles['MainTitle'])
+        elements.append(title)
+        elements.append(Spacer(1, 40))
         
-        # Container para header
-        header_data = [
-            [header_date],
-            [""],  # Espaço
-            [title]
-        ]
+        # Linha 2: Data no canto direito
+        data_atual = datetime.now().strftime('%d/%m/%Y %H:%M')
+        date_p = Paragraph(f"Em: {data_atual}", self.styles['HeaderDate'])
         
-        header_table = Table(header_data, colWidths=[A4[0]-40*mm])
-        header_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        # Tabela para posicionar a data no canto direito
+        date_table = Table([[date_p]], colWidths=[A4[0]-40*mm])
+        date_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
         ]))
         
-        return header_table
+        elements.append(date_table)
+        elements.append(Spacer(1, 30))
+        
+        return elements
     
     def _create_dados_gerais(self, relatorio):
         """Criar seção de dados gerais"""
@@ -258,9 +260,9 @@ class ArtesanoPDFGenerator:
         elements.append(Paragraph("Itens observados", self.styles['SectionHeader']))
         elements.append(Spacer(1, 10))
         
-        # Texto de observações
-        if relatorio.observacoes:
-            elements.append(Paragraph(relatorio.observacoes, self.styles['NormalText']))
+        # Texto de observações (usar campo conteudo se disponível, senão texto padrão)
+        if hasattr(relatorio, 'conteudo') and relatorio.conteudo:
+            elements.append(Paragraph(relatorio.conteudo, self.styles['NormalText']))
         else:
             elements.append(Paragraph("..<br/>Vide fotos.", self.styles['NormalText']))
         
@@ -369,9 +371,9 @@ class ArtesanoPDFGenerator:
         elements.append(Spacer(1, 10))
         
         # Dados das assinaturas
-        preenchido_por = relatorio.usuario.nome_completo if relatorio.usuario else "Não informado"
+        preenchido_por = relatorio.autor.nome_completo if relatorio.autor else "Não informado"
         liberado_por = "Eng. José Leopoldo Pugliese"  # Valor fixo conforme modelo
-        responsavel = relatorio.projeto.responsavel.nome_completo if relatorio.projeto.responsavel else "Não informado"
+        responsavel = relatorio.projeto.responsavel.nome_completo if relatorio.projeto and relatorio.projeto.responsavel else "Não informado"
         
         # Tabela de assinaturas
         sig_data = [
