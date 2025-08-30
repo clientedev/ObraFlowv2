@@ -2341,7 +2341,6 @@ def admin_legenda_excluir(id):
 
 # API para buscar legendas predefinidas (para todos os usuários)
 @app.route('/api/legendas')
-@login_required
 def api_legendas():
     """API para buscar legendas predefinidas por categoria"""
     categoria = request.args.get('categoria', 'all')
