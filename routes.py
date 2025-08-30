@@ -698,7 +698,7 @@ def delete_report(id):
 @app.route('/reports/<int:id>/pdf')
 @login_required
 def generate_pdf_report(id):
-    """Gerar PDF do relatório usando WeasyPrint (modelo Artesano)"""
+    """Gerar PDF do relatório usando WeasyPrint (modelo Artesano) para visualização"""
     try:
         relatorio = Relatorio.query.get_or_404(id)
         fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
@@ -709,7 +709,7 @@ def generate_pdf_report(id):
         # Generate PDF
         pdf_data = generator.generate_report_pdf(relatorio, fotos)
         
-        # Create response
+        # Create response for inline viewing
         from flask import Response
         filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
         
@@ -718,6 +718,39 @@ def generate_pdf_report(id):
             mimetype='application/pdf',
             headers={
                 'Content-Disposition': f'inline; filename="{filename}"',
+                'Content-Type': 'application/pdf'
+            }
+        )
+        
+        return response
+        
+    except Exception as e:
+        flash(f'Erro ao gerar PDF: {str(e)}', 'error')
+        return redirect(url_for('edit_report', id=id))
+
+@app.route('/reports/<int:id>/pdf/download')
+@login_required
+def generate_report_pdf_download(id):
+    """Baixar PDF do relatório usando WeasyPrint (mesmo formato da visualização)"""
+    try:
+        relatorio = Relatorio.query.get_or_404(id)
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
+        
+        from pdf_generator_weasy import WeasyPrintReportGenerator
+        generator = WeasyPrintReportGenerator()
+        
+        # Generate PDF (mesmo conteúdo da visualização)
+        pdf_data = generator.generate_report_pdf(relatorio, fotos)
+        
+        # Create response for download
+        from flask import Response
+        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        
+        response = Response(
+            pdf_data,
+            mimetype='application/pdf',
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"',
                 'Content-Type': 'application/pdf'
             }
         )
@@ -906,38 +939,7 @@ def upload_report_photos(id):
 
 
 
-@app.route('/reports/<int:id>/generate-pdf')
-@login_required
-def generate_report_pdf_download(id):
-    """Download PDF do relatório seguindo modelo Artesano"""
-    try:
-        relatorio = Relatorio.query.get_or_404(id)
-        fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
-        
-        from pdf_generator_artesano import ArtesanoPDFGenerator
-        generator = ArtesanoPDFGenerator()
-        
-        # Generate PDF
-        pdf_data = generator.generate_report_pdf(relatorio, fotos)
-        
-        # Create response for download
-        from flask import Response
-        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
-        
-        response = Response(
-            pdf_data,
-            mimetype='application/pdf',
-            headers={
-                'Content-Disposition': f'attachment; filename="{filename}"',
-                'Content-Type': 'application/pdf'
-            }
-        )
-        
-        return response
-        
-    except Exception as e:
-        flash(f'Erro ao gerar PDF: {str(e)}', 'error')
-        return redirect(url_for('edit_report', id=id))
+
 
 @app.route('/projects/new', methods=['GET', 'POST'])
 @login_required
