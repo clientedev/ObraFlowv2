@@ -695,57 +695,23 @@ def delete_report(id):
     flash(f'Relatório {numero} excluído com sucesso.', 'success')
     return redirect(url_for('reports'))
 
-@app.route('/pdf-demo')
-def pdf_demo():
-    """Página de demonstração do novo sistema de PDF"""
-    return '''
-    <html>
-    <head><title>Demonstração PDF PyMuPDF</title></head>
-    <body style="font-family: Arial, sans-serif; margin: 40px;">
-        <h1>Sistema de PDF com PyMuPDF - Demonstração</h1>
-        <h2>✓ Implementado com sucesso!</h2>
-        
-        <h3>Características:</h3>
-        <ul>
-            <li>✓ Preserva exatamente o modelo original Artesano</li>
-            <li>✓ Mantém cores, fontes e layout originais</li>
-            <li>✓ Substitui apenas campos dinâmicos</li>
-            <li>✓ Coordenadas exatas do template</li>
-            <li>✓ Suporte a fotos em pares</li>
-        </ul>
-        
-        <h3>PDFs de Exemplo:</h3>
-        <p><a href="/static/relatorio_exemplo_fitz.pdf" target="_blank">📄 Ver PDF de Exemplo</a> (gerado com PyMuPDF)</p>
-        
-        <h3>Como usar:</h3>
-        <p>1. Faça login na aplicação</p>
-        <p>2. Vá para a lista de relatórios</p>
-        <p>3. Clique em "Visualizar PDF" ou "Baixar PDF" em qualquer relatório</p>
-        <p>4. O sistema agora usa PyMuPDF para preservar o modelo exato</p>
-        
-        <hr>
-        <p><a href="/">← Voltar para o sistema</a></p>
-    </body>
-    </html>
-    '''
-
 @app.route('/reports/<int:id>/pdf')
 @login_required
 def generate_pdf_report(id):
-    """Gerar PDF do relatório usando PyMuPDF mantendo modelo exato"""
+    """Gerar PDF do relatório seguindo modelo Artesano"""
     try:
         relatorio = Relatorio.query.get_or_404(id)
         fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
         
-        from pdf_generator_fitz import ArtesanoPDFGeneratorFitz
-        generator = ArtesanoPDFGeneratorFitz()
+        from pdf_generator_artesano import ArtesanoPDFGenerator
+        generator = ArtesanoPDFGenerator()
         
         # Generate PDF
         pdf_data = generator.generate_report_pdf(relatorio, fotos)
         
         # Create response
         from flask import Response
-        filename = generator._criar_nome_arquivo(relatorio)
+        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
         
         response = Response(
             pdf_data,
