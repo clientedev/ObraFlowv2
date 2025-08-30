@@ -280,8 +280,16 @@ function addPhotoPreview(file, src, category) {
         <div class="card">
             <img src="${src}" class="card-img-top photo-preview" alt="Preview" style="cursor: pointer;" onclick="editPhoto('${photoId}', '${src}', '${category}')">
             <div class="card-body p-2">
-                <input type="text" class="form-control form-control-sm mb-2" 
-                       name="photo_caption_${photoId}" placeholder="Legenda da foto...">
+                <!-- Seletor de Legendas Pré-definidas -->
+                <div class="mb-2">
+                    <select class="form-control form-control-sm mb-1" id="predefined_${photoId}" onchange="selectPredefinedCaption('${photoId}')">
+                        <option value="">Selecione uma legenda...</option>
+                    </select>
+                    <div class="form-text" style="font-size: 0.75rem;">Ou digite uma legenda personalizada:</div>
+                </div>
+                
+                <textarea class="form-control form-control-sm mb-2" rows="2"
+                       name="photo_caption_${photoId}" id="caption_${photoId}" placeholder="Legenda da foto..."></textarea>
                 <small class="text-muted d-block">Categoria: ${category}</small>
                 <div class="btn-group w-100 mt-2">
                     <button type="button" class="btn btn-sm btn-primary" onclick="editPhoto('${photoId}', '${src}', '${category}')">
@@ -305,6 +313,12 @@ function addPhotoPreview(file, src, category) {
         element: photoDiv,
         originalSrc: src
     });
+    
+    // Carregar legendas pré-definidas para esta categoria
+    loadPredefinedCaptionsForPhoto(photoId, category);
+    
+    // Carregar legendas pré-definidas para esta categoria
+    loadPredefinedCaptionsForPhoto(photoId, category);
 }
 
 function removePhoto(photoId) {
@@ -466,6 +480,55 @@ function updatePhotoFromEditor(photoId, data) {
         indicator.className = 'text-success fw-bold';
         indicator.innerHTML = '<i class="fas fa-check-circle"></i> Editada';
         photo.element.querySelector('.card-body').appendChild(indicator);
+    }
+}
+
+// Carregar legendas pré-definidas para uma foto específica
+function loadPredefinedCaptionsForPhoto(photoId, category) {
+    const mappedCategory = mapCategoryToLegenda(category);
+    fetch(`/api/legendas?categoria=${mappedCategory}`)
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById(`predefined_${photoId}`);
+            if (select && data.success) {
+                // Limpar opções existentes exceto a primeira
+                select.innerHTML = '<option value="">Selecione uma legenda...</option>';
+                
+                data.legendas.forEach(legenda => {
+                    const option = document.createElement('option');
+                    option.value = legenda.texto;
+                    option.textContent = legenda.texto;
+                    select.appendChild(option);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar legendas:', error);
+        });
+}
+
+// Mapear categoria da foto para categoria da legenda
+function mapCategoryToLegenda(photoCategory) {
+    const mapping = {
+        'Fundação': 'Estrutural',
+        'Estrutura': 'Estrutural', 
+        'Alvenaria': 'Estrutural',
+        'Instalações': 'Hidráulica',
+        'Cobertura': 'Impermeabilização',
+        'Acabamento': 'Acabamentos',
+        'Problema': 'Geral',
+        'Geral': 'Geral'
+    };
+    return mapping[photoCategory] || 'Geral';
+}
+
+// Selecionar legenda pré-definida
+function selectPredefinedCaption(photoId) {
+    const select = document.getElementById(`predefined_${photoId}`);
+    const textarea = document.getElementById(`caption_${photoId}`);
+    
+    if (select && textarea && select.value) {
+        textarea.value = select.value;
     }
 }
 
