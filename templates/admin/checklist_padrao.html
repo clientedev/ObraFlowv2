@@ -28,9 +28,11 @@
 .toast-container {
     position: fixed;
     top: 20px;
-    right: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 9999;
-    max-width: 350px;
+    max-width: 400px;
+    width: auto;
 }
 
 .toast-custom {
@@ -41,7 +43,7 @@
     backdrop-filter: blur(10px);
     color: white;
     margin-bottom: 10px;
-    animation: slideInRight 0.3s ease-out;
+    animation: slideInDown 0.3s ease-out;
 }
 
 .toast-custom.toast-success {
@@ -67,24 +69,24 @@
     font-weight: 500;
 }
 
-@keyframes slideInRight {
+@keyframes slideInDown {
     from {
-        transform: translateX(100%);
+        transform: translate(-50%, -100%);
         opacity: 0;
     }
     to {
-        transform: translateX(0);
+        transform: translate(-50%, 0);
         opacity: 1;
     }
 }
 
-@keyframes slideOutRight {
+@keyframes slideOutUp {
     from {
-        transform: translateX(0);
+        transform: translate(-50%, 0);
         opacity: 1;
     }
     to {
-        transform: translateX(100%);
+        transform: translate(-50%, -100%);
         opacity: 0;
     }
 }
@@ -101,9 +103,10 @@
     
     .toast-container {
         top: 10px;
-        right: 10px;
-        left: 10px;
-        max-width: none;
+        left: 50%;
+        transform: translateX(-50%);
+        max-width: 90%;
+        width: auto;
     }
     
     .toast-custom {
@@ -486,7 +489,7 @@ function removerItem(itemId) {
         if (data.success) {
             const element = document.querySelector('[data-id="' + itemId + '"]');
             if (element) {
-                element.style.animation = 'slideOutRight 0.3s ease-out';
+                element.style.animation = 'slideOutUp 0.3s ease-out';
                 setTimeout(() => {
                     element.remove();
                     if (document.querySelectorAll('.checklist-item').length === 0) {
