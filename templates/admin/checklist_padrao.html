@@ -181,6 +181,12 @@ document.addEventListener('DOMContentLoaded', function() {
         editar: typeof editarItemChecklist,
         remover: typeof confirmarRemocaoChecklist
     });
+    
+    // Declarar funções no escopo global para acesso via onclick
+    window.editarItemChecklist = editarItemChecklist;
+    window.confirmarRemocaoChecklist = confirmarRemocaoChecklist;
+    window.adicionarItem = adicionarItem;
+    window.salvarNovoItemChecklist = salvarNovoItemChecklist;
 });
 
 // Adicionar novo item
