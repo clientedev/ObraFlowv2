@@ -23,6 +23,73 @@
     border: 2px solid #28a745;
     background-color: #f0fff4;
 }
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 350px;
+}
+
+.toast-custom {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    backdrop-filter: blur(10px);
+    color: white;
+    margin-bottom: 10px;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.toast-custom.toast-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.toast-custom.toast-error {
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+}
+
+.toast-custom.toast-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+}
+
+.toast-custom .toast-header {
+    background: rgba(255,255,255,0.15);
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px 12px 0 0;
+}
+
+.toast-custom .toast-body {
+    padding: 15px;
+    font-weight: 500;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Mobile responsivity */
 @media (max-width: 768px) {
     .btn-group .btn {
         padding: 0.375rem 0.5rem;
@@ -30,6 +97,78 @@
     }
     .checklist-item {
         margin-bottom: 1rem;
+    }
+    
+    .toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .toast-custom {
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+    
+    .toast-custom .toast-body {
+        padding: 12px;
+    }
+    
+    /* Adjust card layout for mobile */
+    .checklist-item .row {
+        margin: 0;
+    }
+    
+    .checklist-item .col-1 {
+        padding: 0 8px;
+        flex: 0 0 auto;
+        width: auto;
+    }
+    
+    .checklist-item .col-md-7 {
+        flex: 1;
+        padding: 0 8px;
+    }
+    
+    .checklist-item .col-md-2 {
+        flex: 0 0 auto;
+        width: auto;
+        padding: 0 4px;
+    }
+    
+    .card-header .btn-lg {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .card-header h3 {
+        font-size: 1.25rem;
+    }
+    
+    .card-header p {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .checklist-item .row {
+        flex-wrap: wrap;
+    }
+    
+    .checklist-item .col-md-2.col-sm-2 {
+        width: 100%;
+        margin-top: 10px;
+        text-align: center;
+    }
+    
+    .btn-group {
+        justify-content: center;
     }
 }
 </style>
@@ -158,6 +297,9 @@
         </div>
     </div>
 </div>
+
+<!-- Toast Container -->
+<div class="toast-container"></div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -165,24 +307,72 @@
 <script>/* Cache Buster: 1756604106 */
 let itemToDeleteId = null;
 
+// Sistema de Toast Notifications
+function showToast(message, type = 'success', duration = 4000) {
+    const toastContainer = document.querySelector('.toast-container');
+    const toastId = 'toast-' + Date.now();
+    
+    const iconMap = {
+        success: 'fas fa-check-circle',
+        error: 'fas fa-exclamation-triangle', 
+        warning: 'fas fa-exclamation-circle',
+        info: 'fas fa-info-circle'
+    };
+    
+    const titleMap = {
+        success: 'Sucesso',
+        error: 'Erro',
+        warning: 'Atenção',
+        info: 'Informação'
+    };
+    
+    const toastHtml = `
+        <div class="toast toast-custom toast-${type}" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="${iconMap[type]} me-2"></i>
+                <strong class="me-auto">${titleMap[type]}</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toastElement = document.getElementById(toastId);
+    const bsToast = new bootstrap.Toast(toastElement, {
+        autohide: true,
+        delay: duration
+    });
+    
+    bsToast.show();
+    
+    // Remove element after hiding
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        toastElement.remove();
+    });
+}
+
 function adicionarNovoItem() {
-    console.log('Abrindo modal adicionar');
+    // console.log('Abrindo modal adicionar');
     document.getElementById('newItemText').value = '';
     const modal = new bootstrap.Modal(document.getElementById('addItemModal'));
     modal.show();
 }
 
 function salvarNovoItem() {
-    console.log('Salvando novo item');
+    // console.log('Salvando novo item');
     const texto = document.getElementById('newItemText').value.trim();
     
     if (!texto) {
-        alert('Digite o texto do item.');
+        showToast('Digite o texto do item.', 'warning');
         return;
     }
     
     if (texto.length > 500) {
-        alert('Máximo 500 caracteres.');
+        showToast('Máximo 500 caracteres.', 'warning');
         return;
     }
     
@@ -196,26 +386,27 @@ function salvarNovoItem() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.reload();
+            showToast('Item adicionado com sucesso!', 'success');
+            setTimeout(() => location.reload(), 1500);
         } else {
-            alert(data.error || 'Erro ao adicionar');
+            showToast(data.error || 'Erro ao adicionar item', 'error');
         }
     })
     .catch(error => {
         console.error('Erro:', error);
-        alert('Erro ao adicionar item');
+        showToast('Erro ao adicionar item', 'error');
     });
 }
 
 function editarItem(itemId) {
-    console.log('Editando item:', itemId);
+    // console.log('Editando item:', itemId);
     
     const textSpan = document.getElementById('text-' + itemId);
     const editInput = document.getElementById('edit-' + itemId);
     
     if (!textSpan || !editInput) {
         console.error('Elementos não encontrados para item:', itemId);
-        alert('Erro: elementos não encontrados');
+        showToast('Erro: elementos não encontrados', 'error');
         return;
     }
     
@@ -225,22 +416,22 @@ function editarItem(itemId) {
         editInput.classList.remove('d-none');
         editInput.focus();
         editInput.select();
-        console.log('Modo de edição ativado para item:', itemId);
+        // console.log('Modo de edição ativado para item:', itemId);
     } else {
         // Salvar edição
         const novoTexto = editInput.value.trim();
         
         if (!novoTexto) {
-            alert('Texto não pode estar vazio.');
+            showToast('Texto não pode estar vazio.', 'warning');
             return;
         }
         
         if (novoTexto.length > 500) {
-            alert('Máximo 500 caracteres.');
+            showToast('Máximo 500 caracteres.', 'warning');
             return;
         }
         
-        console.log('Salvando edição para item:', itemId, 'novo texto:', novoTexto);
+        // console.log('Salvando edição para item:', itemId, 'novo texto:', novoTexto);
         
         fetch('/admin/checklist-padrao/edit/' + itemId, {
             method: 'PUT',
@@ -256,14 +447,14 @@ function editarItem(itemId) {
                 textSpan.classList.remove('d-none');
                 editInput.classList.add('d-none');
                 console.log('Item editado com sucesso');
-                alert('Item editado com sucesso!');
+                showToast('Item editado com sucesso!', 'success');
             } else {
-                alert(data.error || 'Erro ao editar');
+                showToast(data.error || 'Erro ao editar item', 'error');
             }
         })
         .catch(error => {
             console.error('Erro:', error);
-            alert('Erro ao editar item');
+            showToast('Erro ao editar item', 'error');
         });
     }
 }
@@ -295,21 +486,23 @@ function removerItem(itemId) {
         if (data.success) {
             const element = document.querySelector('[data-id="' + itemId + '"]');
             if (element) {
-                element.remove();
+                element.style.animation = 'slideOutRight 0.3s ease-out';
+                setTimeout(() => {
+                    element.remove();
+                    if (document.querySelectorAll('.checklist-item').length === 0) {
+                        setTimeout(() => location.reload(), 500);
+                    }
+                }, 300);
                 console.log('Item removido com sucesso');
-                alert('Item removido com sucesso!');
-            }
-            
-            if (document.querySelectorAll('.checklist-item').length === 0) {
-                location.reload();
+                showToast('Item removido com sucesso!', 'success');
             }
         } else {
-            alert(data.error || 'Erro ao remover');
+            showToast(data.error || 'Erro ao remover item', 'error');
         }
     })
     .catch(error => {
         console.error('Erro:', error);
-        alert('Erro ao remover item');
+        showToast('Erro ao remover item', 'error');
     });
 }
 
@@ -345,7 +538,7 @@ function salvarOrdem() {
 
 // Inicializar quando a página carregar
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Página carregada. Inicializando sistema...');
+    console.log('Sistema administrativo inicializado');
     
     const container = document.getElementById('checklist-container');
     if (container) {
