@@ -2261,6 +2261,8 @@ def admin_configuracoes():
         flash('Acesso negado. Apenas administradores podem acessar esta área.', 'error')
         return redirect(url_for('dashboard'))
     
+    from models import ChecklistTemplate, LegendaPredefinida
+    
     # Buscar templates de checklist
     checklist_templates = ChecklistTemplate.query.order_by(ChecklistTemplate.ordem, ChecklistTemplate.id).all()
     
@@ -2286,6 +2288,7 @@ def admin_create_checklist():
         return jsonify({'success': False, 'error': 'Acesso negado'}), 403
     
     try:
+        from models import ChecklistTemplate
         data = request.get_json()
         
         # Verificar se já existe um checklist com o mesmo nome
@@ -2325,6 +2328,7 @@ def admin_get_checklist(id):
     if not current_user.is_master:
         return jsonify({'success': False, 'error': 'Acesso negado'}), 403
     
+    from models import ChecklistTemplate
     checklist = ChecklistTemplate.query.get_or_404(id)
     return jsonify({'success': True, 'checklist': {
         'id': checklist.id,
@@ -2342,6 +2346,7 @@ def admin_update_checklist(id):
         return jsonify({'success': False, 'error': 'Acesso negado'}), 403
     
     try:
+        from models import ChecklistTemplate
         checklist = ChecklistTemplate.query.get_or_404(id)
         data = request.get_json()
         
@@ -2378,6 +2383,7 @@ def admin_delete_checklist(id):
         return jsonify({'success': False, 'error': 'Acesso negado'}), 403
     
     try:
+        from models import ChecklistTemplate
         checklist = ChecklistTemplate.query.get_or_404(id)
         
         # Marcar como inativo em vez de excluir fisicamente
@@ -2399,6 +2405,7 @@ def admin_create_legenda():
         return jsonify({'success': False, 'error': 'Acesso negado'}), 403
     
     try:
+        from models import LegendaPredefinida
         data = request.get_json()
         
         # Verificar duplicação de texto na mesma categoria
@@ -2438,6 +2445,7 @@ def admin_get_legenda(id):
     if not current_user.is_master:
         return jsonify({'success': False, 'error': 'Acesso negado'}), 403
     
+    from models import LegendaPredefinida
     legenda = LegendaPredefinida.query.get_or_404(id)
     return jsonify({'success': True, 'legenda': {
         'id': legenda.id,
@@ -2454,6 +2462,7 @@ def admin_update_legenda(id):
         return jsonify({'success': False, 'error': 'Acesso negado'}), 403
     
     try:
+        from models import LegendaPredefinida
         legenda = LegendaPredefinida.query.get_or_404(id)
         data = request.get_json()
         
@@ -2492,6 +2501,7 @@ def admin_delete_legenda(id):
         return jsonify({'success': False, 'error': 'Acesso negado'}), 403
     
     try:
+        from models import LegendaPredefinida
         legenda = LegendaPredefinida.query.get_or_404(id)
         
         # Marcar como inativa em vez de excluir fisicamente
