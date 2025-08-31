@@ -2267,11 +2267,11 @@ def admin_configuracoes():
     checklist_templates = ChecklistTemplate.query.order_by(ChecklistTemplate.ordem, ChecklistTemplate.id).all()
     
     # Buscar legendas ativas
-    legendas = LegendaPredefinida.query.filter_by(ativa=True).order_by(LegendaPredefinida.categoria, LegendaPredefinida.id).all()
+    legendas = LegendaPredefinida.query.filter_by(ativo=True).order_by(LegendaPredefinida.categoria, LegendaPredefinida.id).all()
     
     # Estatísticas
     total_checklists = ChecklistTemplate.query.count()
-    total_legendas = LegendaPredefinida.query.filter_by(ativa=True).count()
+    total_legendas = LegendaPredefinida.query.filter_by(ativo=True).count()
     
     return render_template('admin/configuracoes.html', 
                          checklist_templates=checklist_templates,
@@ -2412,7 +2412,7 @@ def admin_create_legenda():
         existing = LegendaPredefinida.query.filter_by(
             texto=data['texto'], 
             categoria=data['categoria'],
-            ativa=True
+            ativo=True
         ).first()
         if existing:
             return jsonify({'success': False, 'error': 'Já existe uma legenda com este texto nesta categoria'}), 400
@@ -2420,8 +2420,8 @@ def admin_create_legenda():
         legenda = LegendaPredefinida(
             texto=data['texto'],
             categoria=data['categoria'],
-            ativa=data.get('ativa', True),
-            created_by=current_user.id
+            ativo=data.get('ativo', True),
+            criado_por=current_user.id
         )
         
         db.session.add(legenda)
@@ -2431,7 +2431,7 @@ def admin_create_legenda():
             'id': legenda.id,
             'texto': legenda.texto,
             'categoria': legenda.categoria,
-            'ativa': legenda.ativa
+            'ativo': legenda.ativo
         }})
         
     except Exception as e:
@@ -2451,7 +2451,7 @@ def admin_get_legenda(id):
         'id': legenda.id,
         'texto': legenda.texto,
         'categoria': legenda.categoria,
-        'ativa': legenda.ativa
+        'ativo': legenda.ativo
     }})
 
 @app.route('/admin/legenda/<int:id>', methods=['PUT'])
@@ -2471,14 +2471,14 @@ def admin_update_legenda(id):
             LegendaPredefinida.texto == data['texto'],
             LegendaPredefinida.categoria == data['categoria'],
             LegendaPredefinida.id != id,
-            LegendaPredefinida.ativa == True
+            LegendaPredefinida.ativo == True
         ).first()
         if existing:
             return jsonify({'success': False, 'error': 'Já existe uma legenda com este texto nesta categoria'}), 400
         
         legenda.texto = data['texto']
         legenda.categoria = data['categoria']
-        legenda.ativa = data.get('ativa', True)
+        legenda.ativo = data.get('ativo', True)
         
         db.session.commit()
         
@@ -2486,7 +2486,7 @@ def admin_update_legenda(id):
             'id': legenda.id,
             'texto': legenda.texto,
             'categoria': legenda.categoria,
-            'ativa': legenda.ativa
+            'ativo': legenda.ativo
         }})
         
     except Exception as e:
@@ -2505,7 +2505,7 @@ def admin_delete_legenda(id):
         legenda = LegendaPredefinida.query.get_or_404(id)
         
         # Marcar como inativa em vez de excluir fisicamente
-        legenda.ativa = False
+        legenda.ativo = False
         db.session.commit()
         
         return jsonify({'success': True})
