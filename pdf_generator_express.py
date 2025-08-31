@@ -72,7 +72,7 @@ def gerar_pdf_relatorio_express(relatorio_express_id, salvar_arquivo=True):
             'fotos': fotos_data,
             'data_atual': datetime.now().strftime('%d/%m/%Y'),
             'hora_atual': datetime.now().strftime('%H:%M'),
-            'autor': relatorio.autor.nome_completo
+            'autor': relatorio.autor.nome_completo if hasattr(relatorio.autor, 'nome_completo') else relatorio.autor.username if hasattr(relatorio.autor, 'nome_completo') else relatorio.autor.username
         }
         
         # Template HTML do relatório express
