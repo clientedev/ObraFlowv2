@@ -2378,6 +2378,7 @@ def admin_checklist_padrao():
 
 @app.route('/admin/checklist-padrao/add', methods=['POST'])
 @login_required
+@csrf.exempt
 def admin_checklist_add():
     """Adicionar novo item ao checklist padrão"""
     if not current_user.is_master:
@@ -2419,6 +2420,7 @@ def admin_checklist_add():
 
 @app.route('/admin/checklist-padrao/edit/<int:item_id>', methods=['PUT'])
 @login_required
+@csrf.exempt
 def admin_checklist_edit(item_id):
     """Editar item do checklist padrão"""
     if not current_user.is_master:
@@ -2459,6 +2461,7 @@ def admin_checklist_edit(item_id):
 
 @app.route('/admin/checklist-padrao/delete/<int:item_id>', methods=['DELETE'])
 @login_required
+@csrf.exempt
 def admin_checklist_delete(item_id):
     """Remover item do checklist padrão"""
     if not current_user.is_master:
@@ -2482,6 +2485,7 @@ def admin_checklist_delete(item_id):
 
 @app.route('/admin/checklist-padrao/reorder', methods=['POST'])
 @login_required
+@csrf.exempt
 def admin_checklist_reorder():
     """Reordenar itens do checklist padrão"""
     if not current_user.is_master:

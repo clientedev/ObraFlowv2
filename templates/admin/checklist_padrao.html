@@ -23,16 +23,6 @@
     border: 2px solid #28a745;
     background-color: #f0fff4;
 }
-.btn-reorder {
-    background: none;
-    border: none;
-    color: #6c757d;
-    font-size: 1.2rem;
-    padding: 0.25rem;
-}
-.btn-reorder:hover {
-    color: #495057;
-}
 @media (max-width: 768px) {
     .btn-group .btn {
         padding: 0.375rem 0.5rem;
@@ -96,7 +86,7 @@
                                             <button type="button" class="btn btn-outline-primary" onclick="editarItem({{ item.id }})" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button type="button" class="btn btn-outline-danger" onclick="confirmarRemocao({{ item.id }}, '{{ item.texto }}')" title="Remover">
+                                            <button type="button" class="btn btn-outline-danger" onclick="confirmarRemocao({{ item.id }}, '{{ item.texto|e }}')" title="Remover">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -175,19 +165,14 @@
 <script>
 let itemToDeleteId = null;
 
-// Inicializar Sortable
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('checklist-container');
     if (container) {
-        const sortable = new Sortable(container, {
+        new Sortable(container, {
             handle: '.sortable-handle',
             animation: 150,
-            ghostClass: 'sortable-ghost',
-            onEnd: function() {
-                salvarOrdem();
-            }
+            onEnd: salvarOrdem
         });
-        console.log('Sortable initialized');
     }
 });
 
@@ -200,20 +185,19 @@ function salvarNovoItem() {
     const texto = document.getElementById('newItemText').value.trim();
     
     if (!texto) {
-        alert('Por favor, digite o texto do item.');
+        alert('Digite o texto do item.');
         return;
     }
     
     if (texto.length > 500) {
-        alert('O texto deve ter no máximo 500 caracteres.');
+        alert('Máximo 500 caracteres.');
         return;
     }
     
     fetch('/admin/checklist-padrao/add', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ texto: texto })
     })
@@ -222,44 +206,38 @@ function salvarNovoItem() {
         if (data.success) {
             location.reload();
         } else {
-            alert(data.error || 'Erro ao adicionar item');
+            alert(data.error || 'Erro ao adicionar');
         }
     })
-    .catch(error => {
-        console.error('Erro:', error);
-        alert('Erro ao adicionar item');
-    });
+    .catch(error => alert('Erro ao adicionar item'));
 }
 
 function editarItem(itemId) {
-    const textSpan = document.getElementById(`text-${itemId}`);
-    const editInput = document.getElementById(`edit-${itemId}`);
+    const textSpan = document.getElementById('text-' + itemId);
+    const editInput = document.getElementById('edit-' + itemId);
     
     if (editInput.classList.contains('d-none')) {
-        // Entrar em modo de edição
         textSpan.classList.add('d-none');
         editInput.classList.remove('d-none');
         editInput.focus();
         editInput.select();
     } else {
-        // Salvar edição
         const novoTexto = editInput.value.trim();
         
         if (!novoTexto) {
-            alert('O texto não pode estar vazio.');
+            alert('Texto não pode estar vazio.');
             return;
         }
         
         if (novoTexto.length > 500) {
-            alert('O texto deve ter no máximo 500 caracteres.');
+            alert('Máximo 500 caracteres.');
             return;
         }
         
-        fetch(`/admin/checklist-padrao/edit/${itemId}`, {
+        fetch('/admin/checklist-padrao/edit/' + itemId, {
             method: 'PUT',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ texto: novoTexto })
         })
@@ -270,13 +248,10 @@ function editarItem(itemId) {
                 textSpan.classList.remove('d-none');
                 editInput.classList.add('d-none');
             } else {
-                alert(data.error || 'Erro ao editar item');
+                alert(data.error || 'Erro ao editar');
             }
         })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Erro ao editar item');
-        });
+        .catch(error => alert('Erro ao editar item'));
     }
 }
 
@@ -294,29 +269,22 @@ function confirmarRemocao(itemId, itemText) {
 }
 
 function removerItem(itemId) {
-    fetch(`/admin/checklist-padrao/delete/${itemId}`, {
-        method: 'DELETE',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token() }}'
-        }
+    fetch('/admin/checklist-padrao/delete/' + itemId, {
+        method: 'DELETE'
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            document.querySelector(`[data-id="${itemId}"]`).remove();
+            document.querySelector('[data-id="' + itemId + '"]').remove();
             
-            // Se não há mais itens, recarregar para mostrar mensagem
             if (document.querySelectorAll('.checklist-item').length === 0) {
                 location.reload();
             }
         } else {
-            alert(data.error || 'Erro ao remover item');
+            alert(data.error || 'Erro ao remover');
         }
     })
-    .catch(error => {
-        console.error('Erro:', error);
-        alert('Erro ao remover item');
-    });
+    .catch(error => alert('Erro ao remover item'));
 }
 
 function salvarOrdem() {
@@ -328,32 +296,24 @@ function salvarOrdem() {
     fetch('/admin/checklist-padrao/reorder', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ items: items })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            console.log('Ordem atualizada com sucesso');
-            // Atualizar visualmente os números de ordem
             items.forEach((item, index) => {
-                const orderSpan = document.querySelector(`[data-id="${item.id}"] .text-muted`);
+                const orderSpan = document.querySelector('[data-id="' + item.id + '"] .text-muted');
                 if (orderSpan) {
-                    orderSpan.textContent = `Ordem: ${index + 1}`;
+                    orderSpan.textContent = 'Ordem: ' + (index + 1);
                 }
             });
-        } else {
-            console.error('Erro ao salvar ordem:', data.error);
         }
     })
-    .catch(error => {
-        console.error('Erro ao salvar ordem:', error);
-    });
+    .catch(error => console.error('Erro ao salvar ordem:', error));
 }
 
-// Permitir edição com Enter e Escape
 document.addEventListener('keydown', function(e) {
     if (e.target.classList.contains('edit-field')) {
         if (e.key === 'Enter') {
@@ -361,7 +321,7 @@ document.addEventListener('keydown', function(e) {
             editarItem(itemId);
         } else if (e.key === 'Escape') {
             const itemId = e.target.id.replace('edit-', '');
-            const textSpan = document.getElementById(`text-${itemId}`);
+            const textSpan = document.getElementById('text-' + itemId);
             e.target.classList.add('d-none');
             textSpan.classList.remove('d-none');
         }
