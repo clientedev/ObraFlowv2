@@ -169,7 +169,7 @@ window.abrirModalAdicionar = function() {
     document.getElementById('newItemText').value = '';
     const modal = new bootstrap.Modal(document.getElementById('addItemModal'));
     modal.show();
-}
+};
 
 window.salvarNovoItemFunc = function() {
     console.log('Salvando novo item');
@@ -204,7 +204,7 @@ window.salvarNovoItemFunc = function() {
         console.error('Erro:', error);
         alert('Erro ao adicionar item');
     });
-}
+};
 
 window.editarItemFunc = function(itemId) {
     console.log('Editando item:', itemId);
@@ -265,7 +265,7 @@ window.editarItemFunc = function(itemId) {
             alert('Erro ao editar item');
         });
     }
-}
+};
 
 window.removerItemFunc = function(itemId, itemText) {
     console.log('Iniciando remoção do item:', itemId, itemText);
@@ -306,7 +306,7 @@ window.removerItemFunc = function(itemId, itemText) {
         
         modal.hide();
     };
-}
+};
 
 window.salvarOrdemFunc = function() {
     console.log('Salvando nova ordem');
@@ -336,7 +336,7 @@ window.salvarOrdemFunc = function() {
         }
     })
     .catch(error => console.error('Erro ao salvar ordem:', error));
-}
+};
 
 // Inicializar quando a página carregar
 document.addEventListener('DOMContentLoaded', function() {
