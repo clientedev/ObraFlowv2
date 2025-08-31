@@ -2,7 +2,7 @@ import os
 import uuid
 from datetime import datetime, date, timedelta
 from urllib.parse import urlparse
-from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response, send_file
+from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -11,7 +11,6 @@ from flask_mail import Message
 from app import app, db, mail, csrf
 from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, EmailClienteForm
-
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
 from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
 from email_service import email_service
@@ -92,22 +91,15 @@ def index():
         'projetos_ativos': Projeto.query.filter(Projeto.status.in_(['ativo', 'Ativo'])).count(),
         'visitas_agendadas': Visita.query.filter(Visita.status.in_(['agendada', 'Agendada'])).count(),
         'relatorios_pendentes': Relatorio.query.filter(Relatorio.status.in_(['rascunho', 'Rascunho'])).count(),
-        'reembolsos_pendentes': Reembolso.query.filter(Reembolso.status.in_(['pendente', 'Pendente'])).count() if 'Reembolso' in globals() else 0,
-        'relatorios_express': RelatorioExpress.query.count()
+        'reembolsos_pendentes': Reembolso.query.filter(Reembolso.status.in_(['pendente', 'Pendente'])).count() if 'Reembolso' in globals() else 0
     }
     
     # Get recent reports
     relatorios_recentes = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(5).all()
     
-    # Get recent projects for Express Report shortcut
-    projetos_ativos_recentes = Projeto.query.filter(
-        Projeto.status.in_(['ativo', 'Ativo'])
-    ).order_by(Projeto.created_at.desc()).limit(10).all()
-    
     return render_template('dashboard_simple.html',
                          stats=stats,
-                         relatorios_recentes=relatorios_recentes,
-                         projetos_ativos=projetos_ativos_recentes)
+                         relatorios_recentes=relatorios_recentes)
 
 # User management routes
 @app.route('/users')
