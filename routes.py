@@ -9,8 +9,10 @@ from werkzeug.utils import secure_filename
 from flask_mail import Message
 
 from app import app, db, mail, csrf
-from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao
+from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, EmailClienteForm
+from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
+from email_service import email_service
 from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
 from pdf_generator import generate_visit_report_pdf
 import math
@@ -2537,6 +2539,182 @@ def api_checklist_padrao():
     except Exception as e:
         print(f"Erro ao carregar checklist padrão: {e}")
         return jsonify({'error': str(e)}), 500
+
+# =============================================================================
+# SISTEMA DE E-MAIL - ROTAS PARA ENVIO DE RELATÓRIOS POR E-MAIL
+# =============================================================================
+
+@app.route('/admin/configuracao-email')
+@login_required
+def configuracao_email_list():
+    """Lista as configurações de e-mail"""
+    if not (current_user.is_master or current_user.is_developer):
+        flash('Acesso negado. Apenas administradores podem configurar e-mails.', 'error')
+        return redirect(url_for('index'))
+    
+    configs = ConfiguracaoEmail.query.order_by(ConfiguracaoEmail.nome_configuracao).all()
+    return render_template('admin/configuracao_email_list.html', configs=configs)
+
+@app.route('/admin/configuracao-email/nova', methods=['GET', 'POST'])
+@login_required
+def configuracao_email_nova():
+    """Criar nova configuração de e-mail"""
+    if not (current_user.is_master or current_user.is_developer):
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    form = ConfiguracaoEmailForm()
+    if form.validate_on_submit():
+        try:
+            # Se marcar como ativo, desativar outras configurações
+            if form.ativo.data:
+                ConfiguracaoEmail.query.filter_by(ativo=True).update({'ativo': False})
+            
+            config = ConfiguracaoEmail(
+                nome_configuracao=form.nome_configuracao.data,
+                servidor_smtp=form.servidor_smtp.data,
+                porta_smtp=form.porta_smtp.data,
+                use_tls=form.use_tls.data,
+                use_ssl=form.use_ssl.data,
+                email_remetente=form.email_remetente.data,
+                nome_remetente=form.nome_remetente.data,
+                template_assunto=form.template_assunto.data or "Relatório do Projeto {projeto_nome} - {data}",
+                template_corpo=form.template_corpo.data or """<p>Prezado(a) {nome_cliente},</p><p>Segue em anexo o relatório da obra/projeto conforme visita realizada em {data_visita}.</p><p>Em caso de dúvidas, favor entrar em contato conosco.</p><p>Atenciosamente,<br>Equipe ELP Consultoria e Engenharia<br>Engenharia Civil & Fachadas</p>""",
+                ativo=form.ativo.data
+            )
+            
+            db.session.add(config)
+            db.session.commit()
+            flash('Configuração de e-mail criada com sucesso!', 'success')
+            return redirect(url_for('configuracao_email_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar configuração: {str(e)}', 'error')
+    
+    return render_template('admin/configuracao_email_form.html', form=form, title='Nova Configuração de E-mail')
+
+@app.route('/relatorio/<int:relatorio_id>/enviar-email', methods=['GET', 'POST'])
+@login_required
+def relatorio_enviar_email(relatorio_id):
+    """Enviar relatório por e-mail"""
+    relatorio = Relatorio.query.get_or_404(relatorio_id)
+    
+    # Verificar se o usuário tem acesso ao projeto
+    if not current_user.is_master and relatorio.projeto.responsavel_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    # Buscar e-mails do projeto
+    emails_projeto = email_service.buscar_emails_projeto(relatorio.projeto.id)
+    
+    if not emails_projeto:
+        flash('Nenhum e-mail cadastrado para este projeto. Cadastre e-mails na seção de clientes.', 'warning')
+        return redirect(url_for('report_view', report_id=relatorio_id))
+    
+    # Configurar escolhas do formulário
+    form = EnvioEmailForm()
+    form.destinatarios.choices = [
+        (email.email, f"{email.nome_contato} ({email.email}) - {email.cargo or 'N/A'}")
+        for email in emails_projeto
+    ]
+    
+    # Buscar configuração ativa
+    config_ativa = email_service.get_configuracao_ativa()
+    if not config_ativa:
+        flash('Nenhuma configuração de e-mail ativa. Configure o sistema de e-mail primeiro.', 'error')
+        return redirect(url_for('report_view', report_id=relatorio_id))
+    
+    if request.method == 'POST' and form.validate_on_submit():
+        try:
+            # Processar e-mails CC e BCC
+            def processar_emails(texto_emails):
+                if not texto_emails:
+                    return []
+                emails = []
+                for linha in texto_emails.split('\n'):
+                    for email in linha.split(','):
+                        email = email.strip()
+                        if email:
+                            emails.append(email)
+                return emails
+            
+            cc_emails = processar_emails(form.cc_emails.data)
+            bcc_emails = processar_emails(form.bcc_emails.data)
+            
+            # Validar e-mails
+            todos_emails = form.destinatarios.data + cc_emails + bcc_emails
+            emails_validos, emails_invalidos = email_service.validar_emails(todos_emails)
+            
+            if emails_invalidos:
+                flash(f'E-mails inválidos encontrados: {", ".join(emails_invalidos)}', 'error')
+                return render_template('email/enviar_relatorio.html', 
+                                     form=form, relatorio=relatorio, config=config_ativa)
+            
+            # Preparar dados para envio
+            destinatarios_data = {
+                'destinatarios': form.destinatarios.data,
+                'cc': cc_emails,
+                'bcc': bcc_emails,
+                'assunto_custom': form.assunto_personalizado.data,
+                'corpo_custom': form.corpo_personalizado.data
+            }
+            
+            # Enviar e-mails
+            resultado = email_service.enviar_relatorio_por_email(
+                relatorio, destinatarios_data, current_user.id
+            )
+            
+            if resultado['success']:
+                if resultado['falhas'] > 0:
+                    flash(f'E-mails enviados parcialmente: {resultado["sucessos"]} sucessos, {resultado["falhas"]} falhas.', 'warning')
+                else:
+                    flash(f'E-mails enviados com sucesso para {resultado["sucessos"]} destinatários!', 'success')
+            else:
+                flash(f'Erro ao enviar e-mails: {resultado.get("error", "Erro desconhecido")}', 'error')
+            
+            return redirect(url_for('report_view', report_id=relatorio_id))
+            
+        except Exception as e:
+            flash(f'Erro ao enviar e-mails: {str(e)}', 'error')
+    
+    return render_template('email/enviar_relatorio.html', 
+                         form=form, relatorio=relatorio, config=config_ativa)
+
+@app.route('/relatorio/<int:relatorio_id>/preview-email')
+@login_required
+def relatorio_preview_email(relatorio_id):
+    """Preview do e-mail antes de enviar"""
+    relatorio = Relatorio.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.projeto.responsavel_id != current_user.id:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    # Buscar configuração ativa
+    config = email_service.get_configuracao_ativa()
+    if not config:
+        return jsonify({'error': 'Nenhuma configuração de e-mail ativa'}), 400
+    
+    # Preparar dados do preview
+    projeto = relatorio.projeto
+    data_visita = relatorio.data_visita.strftime('%d/%m/%Y') if relatorio.data_visita else 'N/A'
+    data_atual = datetime.now().strftime('%d/%m/%Y')
+    
+    assunto = config.template_assunto.format(
+        projeto_nome=projeto.nome,
+        data=data_atual
+    )
+    
+    corpo_html = config.template_corpo.format(
+        nome_cliente="[Nome do Cliente]",
+        data_visita=data_visita,
+        projeto_nome=projeto.nome
+    )
+    
+    return jsonify({
+        'assunto': assunto,
+        'corpo_html': corpo_html
+    })
 
 # Error handlers
 @app.errorhandler(404)

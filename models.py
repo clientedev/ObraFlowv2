@@ -276,3 +276,49 @@ class ChecklistPadrao(db.Model):
     
     def __repr__(self):
         return f'<ChecklistPadrao {self.texto}>'
+
+class LogEnvioEmail(db.Model):
+    __tablename__ = 'log_envio_emails'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
+    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    destinatarios = db.Column(db.Text, nullable=False)  # JSON com lista de emails
+    cc = db.Column(db.Text)  # JSON com lista de emails CC
+    bcc = db.Column(db.Text)  # JSON com lista de emails BCC
+    assunto = db.Column(db.String(500), nullable=False)
+    status = db.Column(db.String(50), nullable=False)  # 'enviado', 'falhou', 'pendente'
+    erro_detalhes = db.Column(db.Text)  # Detalhes do erro se houver
+    data_envio = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relacionamentos
+    projeto = db.relationship('Projeto', backref='logs_envio_email')
+    relatorio = db.relationship('Relatorio', backref='logs_envio_email')
+    usuario = db.relationship('User', backref='logs_envio_email')
+
+class ConfiguracaoEmail(db.Model):
+    __tablename__ = 'configuracao_email'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome_configuracao = db.Column(db.String(100), nullable=False, unique=True)
+    servidor_smtp = db.Column(db.String(255), nullable=False)
+    porta_smtp = db.Column(db.Integer, nullable=False)
+    use_tls = db.Column(db.Boolean, default=True)
+    use_ssl = db.Column(db.Boolean, default=False)
+    email_remetente = db.Column(db.String(255), nullable=False)
+    nome_remetente = db.Column(db.String(200), nullable=False)
+    ativo = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Template padrão para e-mails
+    template_assunto = db.Column(db.String(500), default="Relatório do Projeto {projeto_nome} - {data}")
+    template_corpo = db.Column(db.Text, default="""<p>Prezado(a) {nome_cliente},</p>
+
+<p>Segue em anexo o relatório da obra/projeto conforme visita realizada em {data_visita}.</p>
+
+<p>Em caso de dúvidas, favor entrar em contato conosco.</p>
+
+<p>Atenciosamente,<br>
+Equipe ELP Consultoria e Engenharia<br>
+Engenharia Civil & Fachadas</p>""")

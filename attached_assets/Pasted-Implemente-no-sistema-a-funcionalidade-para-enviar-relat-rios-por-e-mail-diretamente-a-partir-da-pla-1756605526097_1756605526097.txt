@@ -1,0 +1,69 @@
+Implemente no sistema a funcionalidade para enviar relatórios por e-mail diretamente a partir da plataforma.
+
+Especificações principais:
+
+Integração com serviço de e-mail:
+
+Permitir integração via SMTP (ex.: Gmail, Outlook) ou via API (ex.: SendGrid, Amazon SES, etc.).
+
+Criar configuração flexível para alterar facilmente as credenciais e parâmetros do servidor de e-mail.
+
+Destinatários:
+
+Utilizar os e-mails dos clientes cadastrados nos projetos (do passo anterior).
+
+Permitir selecionar múltiplos destinatários vinculados ao projeto.
+
+Campo opcional para adicionar CC ou BCC.
+
+Conteúdo do e-mail:
+
+Assunto: "Relatório do Projeto [Nome do Projeto] - [Data]".
+
+Corpo do e-mail em formato HTML simples, contendo:
+
+Saudação personalizada com nome do cliente.
+
+Mensagem padrão configurável (ex.: “Segue em anexo o relatório da obra/projeto conforme visita realizada em [data].”).
+
+Assinatura da empresa.
+
+Anexos:
+
+Anexar automaticamente o PDF do relatório já formatado (criado anteriormente).
+
+Garantir que o PDF seja gerado no momento do envio, para evitar versões desatualizadas.
+
+Interface do sistema:
+
+Criar botão “Enviar por e-mail” na tela de relatórios.
+
+Ao clicar, abrir modal com:
+
+Lista de e-mails vinculados ao projeto (checkbox para selecionar).
+
+Campo para CC/BCC.
+
+Pré-visualização do assunto e corpo do e-mail (com opção de editar antes de enviar).
+
+Validações:
+
+Verificar se os e-mails são válidos.
+
+Impedir envio sem destinatário.
+
+Confirmar envio antes de disparar.
+
+Feedback ao usuário:
+
+Exibir status do envio (sucesso ou erro).
+
+Salvar registro de todos os e-mails enviados em um log vinculado ao projeto (quem enviou, quando, para quem).
+
+Responsividade e testes:
+
+Garantir que a interface funcione perfeitamente em desktop, tablet e dispositivos mobile.
+
+Testar envio com Gmail, Outlook e pelo menos uma API (SendGrid).
+
+🚀 O objetivo é ter uma solução profissional, estável e segura para enviar relatórios em PDF por e-mail diretamente do sistema, utilizando os e-mails já cadastrados no projeto.
