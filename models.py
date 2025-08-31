@@ -322,3 +322,36 @@ class ConfiguracaoEmail(db.Model):
 <p>Atenciosamente,<br>
 Equipe ELP Consultoria e Engenharia<br>
 Engenharia Civil & Fachadas</p>""")
+
+class RelatorioExpress(db.Model):
+    __tablename__ = 'relatorios_express'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    numero = db.Column(db.String(20), unique=True, nullable=False)
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
+    autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    observacoes = db.Column(db.Text, nullable=False)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relacionamentos
+    projeto = db.relationship('Projeto', backref='relatorios_express')
+    autor = db.relationship('User', backref='relatorios_express_criados')
+    
+    def __repr__(self):
+        return f'<RelatorioExpress {self.numero}>'
+
+class FotoRelatorioExpress(db.Model):
+    __tablename__ = 'fotos_relatorios_express'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    relatorio_express_id = db.Column(db.Integer, db.ForeignKey('relatorios_express.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    legenda = db.Column(db.String(500), nullable=False)
+    ordem = db.Column(db.Integer, default=1)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relacionamento
+    relatorio_express = db.relationship('RelatorioExpress', backref='fotos')
+    
+    def __repr__(self):
+        return f'<FotoRelatorioExpress {self.filename}>'

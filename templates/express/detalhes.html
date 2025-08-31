@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório Express {{ relatorio.numero }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.express-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+.info-card {
+    border-left: 4px solid #28a745;
+    transition: all 0.3s ease;
+}
+.info-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.observacoes-box {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+.foto-thumbnail {
+    width: 200px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+.foto-thumbnail:hover {
+    transform: scale(1.05);
+}
+.foto-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background-color: white;
+}
+.btn-group-mobile {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+@media (max-width: 768px) {
+    .express-header {
+        padding: 1.5rem;
+        text-align: center;
+    }
+    .btn-group-mobile {
+        flex-direction: column;
+    }
+    .btn-group-mobile .btn {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    .foto-thumbnail {
+        width: 100%;
+        height: auto;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="express-header">
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <h2><i class="fas fa-bolt me-2"></i>Relatório Express {{ relatorio.numero }}</h2>
+            <p class="mb-1">Projeto: <strong>{{ relatorio.projeto.nome }}</strong></p>
+            <small>Criado em {{ relatorio.data_criacao.strftime('%d/%m/%Y às %H:%M') }} por {{ relatorio.autor.nome_completo }}</small>
+        </div>
+        <div class="btn-group-mobile">
+            <a href="{{ url_for('relatorio_express_gerar_pdf', relatorio_id=relatorio.id) }}" 
+               class="btn btn-light">
+                <i class="fas fa-file-pdf me-2"></i>Gerar PDF
+            </a>
+            <a href="{{ url_for('relatorio_express_enviar_email', relatorio_id=relatorio.id) }}" 
+               class="btn btn-info">
+                <i class="fas fa-paper-plane me-2"></i>Enviar E-mail
+            </a>
+            <a href="{{ url_for('project_detail', project_id=relatorio.projeto.id) }}" 
+               class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Informações do Projeto -->
+        <div class="card info-card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-building me-2"></i>Dados do Projeto</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Nome:</strong> {{ relatorio.projeto.nome }}</p>
+                        <p><strong>Número:</strong> {{ relatorio.projeto.numero }}</p>
+                        <p><strong>Cliente:</strong> {{ relatorio.projeto.cliente or 'N/A' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Endereço:</strong><br>{{ relatorio.projeto.endereco or 'N/A' }}</p>
+                        <p><strong>Responsável:</strong> {{ relatorio.projeto.responsavel.nome_completo if relatorio.projeto.responsavel else 'N/A' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Observações -->
+        <div class="card info-card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-edit me-2"></i>Observações Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="observacoes-box">{{ relatorio.observacoes }}</div>
+            </div>
+        </div>
+
+        <!-- Fotos -->
+        <div class="card info-card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-camera me-2"></i>Fotos ({{ fotos|length }})</h5>
+                <a href="{{ url_for('relatorio_express_adicionar_foto', relatorio_id=relatorio.id) }}" 
+                   class="btn btn-sm btn-success">
+                    <i class="fas fa-plus me-2"></i>Adicionar Foto
+                </a>
+            </div>
+            <div class="card-body">
+                {% if fotos %}
+                    <div class="row">
+                        {% for foto in fotos %}
+                        <div class="col-lg-6 col-md-12 mb-4">
+                            <div class="foto-card">
+                                <img src="{{ url_for('static', filename='uploads/' + foto.filename) }}" 
+                                     alt="Foto do relatório" 
+                                     class="foto-thumbnail w-100 mb-3"
+                                     onclick="ampliarImagem('{{ url_for('static', filename='uploads/' + foto.filename) }}', '{{ foto.legenda }}')">
+                                
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <p class="mb-1"><strong>Legenda:</strong></p>
+                                        <p class="text-muted small">{{ foto.legenda }}</p>
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ foto.created_at.strftime('%d/%m/%Y às %H:%M') }}
+                                        </small>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2"
+                                            onclick="removerFoto({{ foto.id }}, '{{ foto.legenda[:30] }}...')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-camera fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Nenhuma foto adicionada ainda.</p>
+                        <a href="{{ url_for('relatorio_express_adicionar_foto', relatorio_id=relatorio.id) }}" 
+                           class="btn btn-success">
+                            <i class="fas fa-plus me-2"></i>Adicionar Primeira Foto
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar com Ações -->
+    <div class="col-lg-4">
+        <!-- Ações Principais -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6><i class="fas fa-cogs me-2"></i>Ações</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('relatorio_express_gerar_pdf', relatorio_id=relatorio.id) }}" 
+                       class="btn btn-primary">
+                        <i class="fas fa-file-pdf me-2"></i>Gerar PDF
+                    </a>
+                    <a href="{{ url_for('relatorio_express_enviar_email', relatorio_id=relatorio.id) }}" 
+                       class="btn btn-success">
+                        <i class="fas fa-paper-plane me-2"></i>Enviar por E-mail
+                    </a>
+                    <a href="{{ url_for('relatorio_express_adicionar_foto', relatorio_id=relatorio.id) }}" 
+                       class="btn btn-info">
+                        <i class="fas fa-camera me-2"></i>Adicionar Foto
+                    </a>
+                    <hr>
+                    <a href="{{ url_for('project_detail', project_id=relatorio.projeto.id) }}" 
+                       class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Voltar ao Projeto
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informações -->
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-info-circle me-2"></i>Informações</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Número:</strong> {{ relatorio.numero }}</p>
+                <p><strong>Autor:</strong> {{ relatorio.autor.nome_completo }}</p>
+                <p><strong>Criado em:</strong><br>{{ relatorio.data_criacao.strftime('%d/%m/%Y às %H:%M') }}</p>
+                <p><strong>Total de Fotos:</strong> {{ fotos|length }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ampliação de imagem -->
+<div class="modal fade" id="imagemModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Foto do Relatório</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="imagemAmpliada" src="" alt="Foto ampliada" class="img-fluid">
+                <p id="legendaAmpliada" class="mt-3 text-muted"></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function ampliarImagem(src, legenda) {
+    document.getElementById('imagemAmpliada').src = src;
+    document.getElementById('legendaAmpliada').textContent = legenda;
+    new bootstrap.Modal(document.getElementById('imagemModal')).show();
+}
+
+function removerFoto(fotoId, legenda) {
+    if (confirm(`Tem certeza que deseja remover a foto "${legenda}"?\nEsta ação não pode ser desfeita.`)) {
+        fetch(`/relatorio-express/{{ relatorio.id }}/remover-foto/${fotoId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao remover foto: ' + (data.error || 'Erro desconhecido'));
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao remover foto. Tente novamente.');
+        });
+    }
+}
+
+// Toast de sucesso se houver
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            {% if category == 'success' %}
+                // Mostrar toast de sucesso
+                console.log('{{ message }}');
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+</script>
+{% endblock %}

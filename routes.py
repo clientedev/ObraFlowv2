@@ -9,10 +9,12 @@ from werkzeug.utils import secure_filename
 from flask_mail import Message
 
 from app import app, db, mail, csrf
-from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail
+from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, EmailClienteForm
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
+from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
 from email_service import email_service
+from pdf_generator_express import gerar_pdf_relatorio_express, gerar_numero_relatorio_express
 from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
 from pdf_generator import generate_visit_report_pdf
 import math
@@ -977,6 +979,7 @@ def project_view(project_id):
     contatos = ContatoProjeto.query.filter_by(projeto_id=project_id).all()
     visitas = Visita.query.filter_by(projeto_id=project_id).order_by(Visita.data_agendada.desc()).all()
     relatorios = Relatorio.query.filter_by(projeto_id=project_id).order_by(Relatorio.created_at.desc()).all()
+    relatorios_express = RelatorioExpress.query.filter_by(projeto_id=project_id).order_by(RelatorioExpress.data_criacao.desc()).all()
     
     # Get communications from all visits of this project
     comunicacoes = []
@@ -995,6 +998,7 @@ def project_view(project_id):
                          project=project, 
                          visitas=visitas, 
                          relatorios=relatorios,
+                         relatorios_express=relatorios_express,
                          comunicacoes=comunicacoes[:10])  # Show last 10 communications
 
 @app.route('/projects/<int:project_id>/edit', methods=['GET', 'POST'])
@@ -2715,6 +2719,328 @@ def relatorio_preview_email(relatorio_id):
         'assunto': assunto,
         'corpo_html': corpo_html
     })
+
+# =============================================================================
+# SISTEMA DE RELATÓRIO EXPRESS
+# =============================================================================
+
+@app.route('/projeto/<int:projeto_id>/relatorio-express', methods=['GET', 'POST'])
+@login_required
+def relatorio_express_novo(projeto_id):
+    """Criar novo relatório express"""
+    projeto = Projeto.query.get_or_404(projeto_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and projeto.responsavel_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    form = RelatorioExpressForm()
+    
+    if form.validate_on_submit():
+        try:
+            # Gerar número único
+            numero = gerar_numero_relatorio_express()
+            
+            # Criar relatório express
+            relatorio_express = RelatorioExpress(
+                numero=numero,
+                projeto_id=projeto_id,
+                autor_id=current_user.id,
+                observacoes=form.observacoes.data
+            )
+            
+            db.session.add(relatorio_express)
+            db.session.commit()
+            
+            flash('Relatório Express criado com sucesso!', 'success')
+            return redirect(url_for('relatorio_express_detalhes', relatorio_id=relatorio_express.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar relatório express: {str(e)}', 'error')
+    
+    return render_template('express/novo.html', form=form, projeto=projeto)
+
+@app.route('/relatorio-express/<int:relatorio_id>')
+@login_required
+def relatorio_express_detalhes(relatorio_id):
+    """Ver detalhes do relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.projeto.responsavel_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    fotos = FotoRelatorioExpress.query.filter_by(
+        relatorio_express_id=relatorio_id
+    ).order_by(FotoRelatorioExpress.ordem).all()
+    
+    return render_template('express/detalhes.html', relatorio=relatorio, fotos=fotos)
+
+@app.route('/relatorio-express/<int:relatorio_id>/adicionar-foto', methods=['GET', 'POST'])
+@login_required
+def relatorio_express_adicionar_foto(relatorio_id):
+    """Adicionar foto ao relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.projeto.responsavel_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    form = FotoExpressForm()
+    
+    if form.validate_on_submit():
+        try:
+            foto_file = form.foto.data
+            if foto_file:
+                # Salvar arquivo
+                filename = secure_filename(foto_file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"express_{timestamp}_{filename}"
+                
+                upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                if not os.path.exists(upload_folder):
+                    os.makedirs(upload_folder)
+                
+                foto_path = os.path.join(upload_folder, filename)
+                foto_file.save(foto_path)
+                
+                # Definir ordem (próxima disponível)
+                max_ordem = db.session.query(db.func.max(FotoRelatorioExpress.ordem)).filter_by(
+                    relatorio_express_id=relatorio_id
+                ).scalar() or 0
+                
+                # Criar registro da foto
+                foto = FotoRelatorioExpress(
+                    relatorio_express_id=relatorio_id,
+                    filename=filename,
+                    legenda=form.legenda.data,
+                    ordem=max_ordem + 1
+                )
+                
+                db.session.add(foto)
+                db.session.commit()
+                
+                flash('Foto adicionada com sucesso!', 'success')
+                return redirect(url_for('relatorio_express_detalhes', relatorio_id=relatorio_id))
+                
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao adicionar foto: {str(e)}', 'error')
+    
+    return render_template('express/adicionar_foto.html', form=form, relatorio=relatorio)
+
+@app.route('/relatorio-express/<int:relatorio_id>/remover-foto/<int:foto_id>', methods=['POST'])
+@login_required
+@csrf.exempt
+def relatorio_express_remover_foto(relatorio_id, foto_id):
+    """Remover foto do relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.projeto.responsavel_id != current_user.id:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        foto = FotoRelatorioExpress.query.get_or_404(foto_id)
+        
+        # Verificar se a foto pertence ao relatório
+        if foto.relatorio_express_id != relatorio_id:
+            return jsonify({'error': 'Foto não pertence a este relatório'}), 400
+        
+        # Remover arquivo do disco
+        foto_path = os.path.join(app.config.get('UPLOAD_FOLDER', 'uploads'), foto.filename)
+        if os.path.exists(foto_path):
+            os.remove(foto_path)
+        
+        # Remover registro
+        db.session.delete(foto)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Erro ao remover foto: {str(e)}'}), 500
+
+@app.route('/relatorio-express/<int:relatorio_id>/gerar-pdf')
+@login_required
+def relatorio_express_gerar_pdf(relatorio_id):
+    """Gerar PDF do relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.projeto.responsavel_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        # Gerar PDF
+        pdf_path = gerar_pdf_relatorio_express(relatorio_id)
+        
+        # Retornar arquivo para download
+        return send_file(pdf_path, as_attachment=True, 
+                        download_name=f"relatorio_express_{relatorio.numero}.pdf")
+        
+    except Exception as e:
+        flash(f'Erro ao gerar PDF: {str(e)}', 'error')
+        return redirect(url_for('relatorio_express_detalhes', relatorio_id=relatorio_id))
+
+@app.route('/relatorio-express/<int:relatorio_id>/enviar-email', methods=['GET', 'POST'])
+@login_required  
+def relatorio_express_enviar_email(relatorio_id):
+    """Enviar relatório express por e-mail"""
+    relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.projeto.responsavel_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    # Buscar e-mails do projeto
+    emails_projeto = email_service.buscar_emails_projeto(relatorio.projeto.id)
+    
+    if not emails_projeto:
+        flash('Nenhum e-mail cadastrado para este projeto. Cadastre e-mails na seção de clientes.', 'warning')
+        return redirect(url_for('relatorio_express_detalhes', relatorio_id=relatorio_id))
+    
+    # Configurar formulário
+    form = EnvioEmailForm()
+    form.destinatarios.choices = [
+        (email.email, f"{email.nome_contato} ({email.email}) - {email.cargo or 'N/A'}")
+        for email in emails_projeto
+    ]
+    
+    # Buscar configuração ativa
+    config_ativa = email_service.get_configuracao_ativa()
+    if not config_ativa:
+        flash('Nenhuma configuração de e-mail ativa. Configure o sistema primeiro.', 'error')
+        return redirect(url_for('relatorio_express_detalhes', relatorio_id=relatorio_id))
+    
+    if request.method == 'POST' and form.validate_on_submit():
+        try:
+            # Processar e-mails (mesmo processo do relatório normal)
+            def processar_emails(texto_emails):
+                if not texto_emails:
+                    return []
+                emails = []
+                for linha in texto_emails.split('\n'):
+                    for email in linha.split(','):
+                        email = email.strip()
+                        if email:
+                            emails.append(email)
+                return emails
+            
+            cc_emails = processar_emails(form.cc_emails.data)
+            bcc_emails = processar_emails(form.bcc_emails.data)
+            
+            # Validar e-mails
+            todos_emails = form.destinatarios.data + cc_emails + bcc_emails
+            emails_validos, emails_invalidos = email_service.validar_emails(todos_emails)
+            
+            if emails_invalidos:
+                flash(f'E-mails inválidos: {", ".join(emails_invalidos)}', 'error')
+                return render_template('express/enviar_email.html', 
+                                     form=form, relatorio=relatorio, config=config_ativa)
+            
+            # Enviar e-mails (adaptado para relatório express)
+            resultado = enviar_relatorio_express_por_email(
+                relatorio, form.destinatarios.data, cc_emails, bcc_emails,
+                form.assunto_personalizado.data, form.corpo_personalizado.data,
+                current_user.id, config_ativa
+            )
+            
+            if resultado['success']:
+                flash(f'E-mails enviados com sucesso para {resultado["sucessos"]} destinatários!', 'success')
+            else:
+                flash(f'Erro ao enviar e-mails: {resultado.get("error")}', 'error')
+            
+            return redirect(url_for('relatorio_express_detalhes', relatorio_id=relatorio_id))
+            
+        except Exception as e:
+            flash(f'Erro ao enviar e-mails: {str(e)}', 'error')
+    
+    return render_template('express/enviar_email.html', 
+                         form=form, relatorio=relatorio, config=config_ativa)
+
+def enviar_relatorio_express_por_email(relatorio, destinatarios, cc_emails, bcc_emails, 
+                                     assunto_custom, corpo_custom, usuario_id, config):
+    """Função auxiliar para enviar relatório express por e-mail"""
+    try:
+        # Gerar PDF
+        pdf_bytes = gerar_pdf_relatorio_express(relatorio.id, salvar_arquivo=False)
+        
+        projeto = relatorio.projeto
+        data_atual = datetime.now().strftime('%d/%m/%Y')
+        
+        # Preparar assunto e corpo
+        assunto = assunto_custom or f"Relatório Express - {projeto.nome} - {data_atual}"
+        
+        if corpo_custom:
+            corpo_html = corpo_custom
+        else:
+            corpo_html = f"""
+            <p>Prezado(a) Cliente,</p>
+            
+            <p>Segue em anexo o Relatório Express do projeto <strong>{projeto.nome}</strong>.</p>
+            
+            <p>Este relatório contém observações rápidas e fotos da visita realizada.</p>
+            
+            <p>Em caso de dúvidas, favor entrar em contato conosco.</p>
+            
+            <p>Atenciosamente,<br>
+            Equipe ELP Consultoria e Engenharia<br>
+            Engenharia Civil & Fachadas</p>
+            """
+        
+        sucessos = 0
+        falhas = 0
+        
+        # Configurar Flask-Mail
+        email_service.configure_smtp(config)
+        
+        # Enviar para cada destinatário
+        for email_dest in destinatarios:
+            try:
+                msg = Message(
+                    subject=assunto,
+                    recipients=[email_dest],
+                    cc=cc_emails,
+                    bcc=bcc_emails,
+                    html=corpo_html
+                )
+                
+                # Anexar PDF
+                pdf_bytes.seek(0)
+                msg.attach(
+                    filename=f"relatorio_express_{relatorio.numero}.pdf",
+                    content_type='application/pdf',
+                    data=pdf_bytes.read()
+                )
+                
+                email_service.mail.send(msg)
+                sucessos += 1
+                
+            except Exception as e:
+                current_app.logger.error(f"Erro ao enviar email para {email_dest}: {e}")
+                falhas += 1
+        
+        return {
+            'success': sucessos > 0,
+            'sucessos': sucessos,
+            'falhas': falhas
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'sucessos': 0,
+            'falhas': len(destinatarios)
+        }
 
 # Error handlers
 @app.errorhandler(404)

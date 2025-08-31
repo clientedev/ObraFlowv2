@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Relatório Express{% endblock %}
+
+{% block extra_css %}
+<style>
+.express-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+.express-form {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 2rem;
+}
+.form-section {
+    margin-bottom: 2rem;
+}
+.form-section h5 {
+    color: #28a745;
+    border-bottom: 2px solid #28a745;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+@media (max-width: 768px) {
+    .express-header {
+        padding: 1.5rem;
+        text-align: center;
+    }
+    .express-form {
+        padding: 1.5rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-12">
+        <!-- Header -->
+        <div class="express-header">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <h2><i class="fas fa-bolt me-2"></i>Novo Relatório Express</h2>
+                    <p class="mb-0">Projeto: <strong>{{ projeto.nome }}</strong> ({{ projeto.numero }})</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('project_detail', project_id=projeto.id) }}" class="btn btn-light">
+                        <i class="fas fa-arrow-left me-2"></i>Voltar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulário -->
+        <div class="express-form">
+            <form method="POST" id="expressForm">
+                {{ form.hidden_tag() }}
+                
+                <div class="form-section">
+                    <h5><i class="fas fa-edit me-2"></i>Observações Rápidas</h5>
+                    <p class="text-muted">
+                        Registre informações importantes sobre a visita ou obra de forma direta e objetiva.
+                    </p>
+                    
+                    {{ form.observacoes.label(class="form-label") }}
+                    {{ form.observacoes(class="form-control") }}
+                    
+                    {% if form.observacoes.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.observacoes.errors %}
+                                <small>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <small class="form-text text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Após criar o relatório, você poderá adicionar fotos com legendas.
+                    </small>
+                </div>
+
+                <!-- Informações do Projeto -->
+                <div class="form-section">
+                    <h5><i class="fas fa-building me-2"></i>Dados do Projeto</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="bg-white p-3 rounded border">
+                                <strong>Nome:</strong> {{ projeto.nome }}<br>
+                                <strong>Número:</strong> {{ projeto.numero }}<br>
+                                <strong>Cliente:</strong> {{ projeto.cliente or 'N/A' }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-white p-3 rounded border">
+                                <strong>Endereço:</strong><br>
+                                {{ projeto.endereco or 'N/A' }}<br>
+                                <strong>Responsável:</strong> {{ projeto.responsavel.nome_completo if projeto.responsavel else 'N/A' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('project_detail', project_id=projeto.id) }}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-check me-2"></i>Criar Relatório Express
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Informações -->
+        <div class="mt-4">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-lightbulb me-2"></i>Sobre o Relatório Express:</h6>
+                <ul class="mb-0">
+                    <li>Versão simplificada e rápida do relatório completo</li>
+                    <li>Ideal para observações pontuais e comunicações ágeis</li>
+                    <li>Após criar, você pode adicionar fotos com legendas</li>
+                    <li>PDF gerado automaticamente com layout profissional</li>
+                    <li>Pode ser enviado por e-mail diretamente aos clientes</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Contador de caracteres para as observações
+document.addEventListener('DOMContentLoaded', function() {
+    const observacoesField = document.getElementById('observacoes');
+    const maxLength = 2000;
+    
+    if (observacoesField) {
+        // Criar contador
+        const counter = document.createElement('small');
+        counter.className = 'form-text text-muted float-end';
+        observacoesField.parentNode.appendChild(counter);
+        
+        function updateCounter() {
+            const remaining = maxLength - observacoesField.value.length;
+            counter.textContent = `${observacoesField.value.length}/${maxLength} caracteres`;
+            
+            if (remaining < 100) {
+                counter.className = 'form-text text-warning float-end';
+            } else if (remaining < 0) {
+                counter.className = 'form-text text-danger float-end';
+            } else {
+                counter.className = 'form-text text-muted float-end';
+            }
+        }
+        
+        observacoesField.addEventListener('input', updateCounter);
+        updateCounter(); // Executar na primeira vez
+    }
+});
+
+// Validação do formulário
+document.getElementById('expressForm').addEventListener('submit', function(e) {
+    const observacoes = document.getElementById('observacoes').value.trim();
+    
+    if (!observacoes) {
+        e.preventDefault();
+        alert('Por favor, preencha as observações antes de continuar.');
+        return false;
+    }
+    
+    if (observacoes.length < 10) {
+        e.preventDefault();
+        alert('As observações devem ter pelo menos 10 caracteres.');
+        return false;
+    }
+});
+</script>
+{% endblock %}
