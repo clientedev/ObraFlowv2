@@ -263,3 +263,16 @@ class LegendaPredefinida(db.Model):
     
     # Relacionamento
     criador = db.relationship('User', backref='legendas_criadas')
+
+class ChecklistPadrao(db.Model):
+    __tablename__ = 'checklist_padrao'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    texto = db.Column(db.String(500), nullable=False)
+    ordem = db.Column(db.Integer, default=0)
+    ativo = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<ChecklistPadrao {self.texto}>'

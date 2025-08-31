@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 from flask_mail import Message
 
 from app import app, db, mail, csrf
-from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente
+from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, EmailClienteForm
 from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
 from pdf_generator import generate_visit_report_pdf
@@ -2363,6 +2363,176 @@ def api_legendas():
             } for l in legendas
         ]
     })
+
+# Rotas administrativas para Checklist Padrão
+@app.route('/admin/checklist-padrao')
+@login_required
+def admin_checklist_padrao():
+    """Página administrativa para gerenciar checklist padrão"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas administradores podem acessar esta página.', 'error')
+        return redirect(url_for('index'))
+    
+    checklist_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+    return render_template('admin/checklist_padrao.html', checklist_items=checklist_items)
+
+@app.route('/admin/checklist-padrao/add', methods=['POST'])
+@login_required
+def admin_checklist_add():
+    """Adicionar novo item ao checklist padrão"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        data = request.get_json()
+        texto = data.get('texto', '').strip()
+        
+        if not texto:
+            return jsonify({'error': 'Texto é obrigatório'}), 400
+        
+        if len(texto) > 500:
+            return jsonify({'error': 'Texto deve ter no máximo 500 caracteres'}), 400
+        
+        # Verificar se já existe
+        existing = ChecklistPadrao.query.filter_by(texto=texto, ativo=True).first()
+        if existing:
+            return jsonify({'error': 'Item já existe no checklist'}), 400
+        
+        # Obter próximo número de ordem
+        max_ordem = db.session.query(db.func.max(ChecklistPadrao.ordem)).scalar() or 0
+        
+        # Criar novo item
+        novo_item = ChecklistPadrao(
+            texto=texto,
+            ordem=max_ordem + 1
+        )
+        
+        db.session.add(novo_item)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'item_id': novo_item.id})
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erro ao adicionar item checklist: {e}")
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
+@app.route('/admin/checklist-padrao/edit/<int:item_id>', methods=['PUT'])
+@login_required
+def admin_checklist_edit(item_id):
+    """Editar item do checklist padrão"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        item = ChecklistPadrao.query.get_or_404(item_id)
+        data = request.get_json()
+        novo_texto = data.get('texto', '').strip()
+        
+        if not novo_texto:
+            return jsonify({'error': 'Texto é obrigatório'}), 400
+        
+        if len(novo_texto) > 500:
+            return jsonify({'error': 'Texto deve ter no máximo 500 caracteres'}), 400
+        
+        # Verificar duplicatas (exceto o item atual)
+        existing = ChecklistPadrao.query.filter(
+            ChecklistPadrao.texto == novo_texto,
+            ChecklistPadrao.ativo == True,
+            ChecklistPadrao.id != item_id
+        ).first()
+        
+        if existing:
+            return jsonify({'error': 'Já existe um item com este texto'}), 400
+        
+        item.texto = novo_texto
+        item.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erro ao editar item checklist: {e}")
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
+@app.route('/admin/checklist-padrao/delete/<int:item_id>', methods=['DELETE'])
+@login_required
+def admin_checklist_delete(item_id):
+    """Remover item do checklist padrão"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        item = ChecklistPadrao.query.get_or_404(item_id)
+        
+        # Marcar como inativo em vez de deletar fisicamente
+        item.ativo = False
+        item.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erro ao remover item checklist: {e}")
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
+@app.route('/admin/checklist-padrao/reorder', methods=['POST'])
+@login_required
+def admin_checklist_reorder():
+    """Reordenar itens do checklist padrão"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        data = request.get_json()
+        items = data.get('items', [])
+        
+        for item_data in items:
+            item_id = item_data.get('id')
+            nova_ordem = item_data.get('ordem')
+            
+            if item_id and nova_ordem:
+                item = ChecklistPadrao.query.get(item_id)
+                if item:
+                    item.ordem = nova_ordem
+                    item.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erro ao reordenar checklist: {e}")
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
+@app.route('/api/checklist-padrao')
+@login_required
+def api_checklist_padrao():
+    """API para obter itens do checklist padrão"""
+    try:
+        items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+        
+        checklist_data = []
+        for item in items:
+            checklist_data.append({
+                'id': item.id,
+                'texto': item.texto,
+                'ordem': item.ordem
+            })
+        
+        return jsonify({
+            'success': True,
+            'checklist': checklist_data
+        })
+        
+    except Exception as e:
+        print(f"Erro ao carregar checklist padrão: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # Error handlers
 @app.errorhandler(404)
