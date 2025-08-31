@@ -48,7 +48,7 @@
                             </h3>
                             <p class="mb-0 mt-1 opacity-75">Gerencie os itens do checklist que aparecerão automaticamente nos relatórios</p>
                         </div>
-                        <button class="btn btn-light btn-lg" onclick="adicionarNovoItem()">
+                        <button class="btn btn-light btn-lg" onclick="window.abrirModalAdicionar()">
                             <i class="fas fa-plus me-2"></i>Adicionar Item
                         </button>
                     </div>
@@ -83,10 +83,10 @@
                                     </div>
                                     <div class="col-md-2 col-sm-2">
                                         <div class="btn-group btn-group-sm" role="group">
-                                            <button type="button" class="btn btn-outline-primary" onclick="editarItem({{ item.id }})" title="Editar">
+                                            <button type="button" class="btn btn-outline-primary" onclick="window.editarItemFunc({{ item.id }})" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button type="button" class="btn btn-outline-danger" onclick="confirmarRemocao({{ item.id }}, '{{ item.texto|replace("'", "\\'") }}')" title="Remover">
+                                            <button type="button" class="btn btn-outline-danger" onclick="window.removerItemFunc({{ item.id }}, '{{ item.texto|replace("'", "\\'") }}')" title="Remover">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -124,7 +124,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="salvarNovoItem()">
+                <button type="button" class="btn btn-primary" onclick="window.salvarNovoItemFunc()">
                     <i class="fas fa-save me-2"></i>Salvar
                 </button>
             </div>
@@ -163,16 +163,15 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
-let itemToDeleteId = null;
-
-function adicionarNovoItem() {
+// Definir TODAS as funções no escopo global imediatamente - VERSÃO CORRIGIDA
+window.abrirModalAdicionar = function() {
     console.log('Abrindo modal adicionar');
     document.getElementById('newItemText').value = '';
     const modal = new bootstrap.Modal(document.getElementById('addItemModal'));
     modal.show();
-}
+};
 
-function salvarNovoItem() {
+window.salvarNovoItemFunc = function() {
     console.log('Salvando novo item');
     const texto = document.getElementById('newItemText').value.trim();
     
@@ -205,9 +204,9 @@ function salvarNovoItem() {
         console.error('Erro:', error);
         alert('Erro ao adicionar item');
     });
-}
+};
 
-function editarItem(itemId) {
+window.editarItemFunc = function(itemId) {
     console.log('Editando item:', itemId);
     
     const textSpan = document.getElementById('text-' + itemId);
@@ -266,12 +265,11 @@ function editarItem(itemId) {
             alert('Erro ao editar item');
         });
     }
-}
+};
 
-function confirmarRemocao(itemId, itemText) {
-    console.log('Confirmando remoção do item:', itemId, itemText);
+window.removerItemFunc = function(itemId, itemText) {
+    console.log('Iniciando remoção do item:', itemId, itemText);
     
-    itemToDeleteId = itemId;
     document.getElementById('itemToDelete').textContent = itemText;
     
     const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
@@ -279,41 +277,38 @@ function confirmarRemocao(itemId, itemText) {
     
     // Configurar botão de confirmação
     document.getElementById('confirmDeleteBtn').onclick = function() {
-        removerItem(itemId);
+        console.log('Confirmando remoção do item:', itemId);
+        
+        fetch('/admin/checklist-padrao/delete/' + itemId, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const element = document.querySelector('[data-id="' + itemId + '"]');
+                if (element) {
+                    element.remove();
+                    console.log('Item removido com sucesso');
+                    alert('Item removido com sucesso!');
+                }
+                
+                if (document.querySelectorAll('.checklist-item').length === 0) {
+                    location.reload();
+                }
+            } else {
+                alert(data.error || 'Erro ao remover');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao remover item');
+        });
+        
         modal.hide();
     };
-}
+};
 
-function removerItem(itemId) {
-    console.log('Removendo item:', itemId);
-    
-    fetch('/admin/checklist-padrao/delete/' + itemId, {
-        method: 'DELETE'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const element = document.querySelector('[data-id="' + itemId + '"]');
-            if (element) {
-                element.remove();
-                console.log('Item removido com sucesso');
-                alert('Item removido com sucesso!');
-            }
-            
-            if (document.querySelectorAll('.checklist-item').length === 0) {
-                location.reload();
-            }
-        } else {
-            alert(data.error || 'Erro ao remover');
-        }
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        alert('Erro ao remover item');
-    });
-}
-
-function salvarOrdem() {
+window.salvarOrdemFunc = function() {
     console.log('Salvando nova ordem');
     
     const items = Array.from(document.querySelectorAll('.checklist-item')).map((item, index) => ({
@@ -341,7 +336,7 @@ function salvarOrdem() {
         }
     })
     .catch(error => console.error('Erro ao salvar ordem:', error));
-}
+};
 
 // Inicializar quando a página carregar
 document.addEventListener('DOMContentLoaded', function() {
@@ -352,19 +347,18 @@ document.addEventListener('DOMContentLoaded', function() {
         new Sortable(container, {
             handle: '.sortable-handle',
             animation: 150,
-            onEnd: salvarOrdem
+            onEnd: window.salvarOrdemFunc
         });
         console.log('Sortable inicializado');
     }
     
     // Verificar se funções estão disponíveis
     console.log('Funções JavaScript verificadas:', {
-        adicionarNovoItem: typeof adicionarNovoItem,
-        salvarNovoItem: typeof salvarNovoItem,
-        editarItem: typeof editarItem,
-        confirmarRemocao: typeof confirmarRemocao,
-        removerItem: typeof removerItem,
-        salvarOrdem: typeof salvarOrdem
+        abrirModalAdicionar: typeof window.abrirModalAdicionar,
+        salvarNovoItemFunc: typeof window.salvarNovoItemFunc,
+        editarItemFunc: typeof window.editarItemFunc,
+        removerItemFunc: typeof window.removerItemFunc,
+        salvarOrdemFunc: typeof window.salvarOrdemFunc
     });
 });
 
@@ -373,7 +367,7 @@ document.addEventListener('keydown', function(e) {
     if (e.target.classList.contains('edit-field')) {
         if (e.key === 'Enter') {
             const itemId = e.target.id.replace('edit-', '');
-            editarItem(itemId);
+            window.editarItemFunc(itemId);
         } else if (e.key === 'Escape') {
             const itemId = e.target.id.replace('edit-', '');
             const textSpan = document.getElementById('text-' + itemId);
