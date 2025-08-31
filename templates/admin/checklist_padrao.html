@@ -48,7 +48,7 @@
                             </h3>
                             <p class="mb-0 mt-1 opacity-75">Gerencie os itens do checklist que aparecerão automaticamente nos relatórios</p>
                         </div>
-                        <button class="btn btn-light btn-lg" onclick="adicionarItem()">
+                        <button class="btn btn-light btn-lg" onclick="window.adicionarItem()">
                             <i class="fas fa-plus me-2"></i>Adicionar Item
                         </button>
                     </div>
@@ -83,10 +83,10 @@
                                     </div>
                                     <div class="col-md-2 col-sm-2">
                                         <div class="btn-group btn-group-sm" role="group">
-                                            <button type="button" class="btn btn-outline-primary" onclick="editarItem({{ item.id }})" title="Editar">
+                                            <button type="button" class="btn btn-outline-primary" onclick="window.editarItem({{ item.id }})" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button type="button" class="btn btn-outline-danger" onclick="confirmarRemocao({{ item.id }}, '{{ item.texto|e }}')" title="Remover">
+                                            <button type="button" class="btn btn-outline-danger" onclick="window.confirmarRemocao({{ item.id }}, '{{ item.texto|replace("'", "\\'") }}')" title="Remover">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -124,7 +124,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="salvarNovoItem()">
+                <button type="button" class="btn btn-primary" onclick="window.salvarNovoItem()">
                     <i class="fas fa-save me-2"></i>Salvar
                 </button>
             </div>
@@ -171,17 +171,17 @@ document.addEventListener('DOMContentLoaded', function() {
         new Sortable(container, {
             handle: '.sortable-handle',
             animation: 150,
-            onEnd: salvarOrdem
+            onEnd: window.salvarOrdem
         });
     }
 });
 
-function adicionarItem() {
+window.adicionarItem = function() {
     document.getElementById('newItemText').value = '';
     new bootstrap.Modal(document.getElementById('addItemModal')).show();
 }
 
-function salvarNovoItem() {
+window.salvarNovoItem = function() {
     const texto = document.getElementById('newItemText').value.trim();
     
     if (!texto) {
@@ -212,7 +212,7 @@ function salvarNovoItem() {
     .catch(error => alert('Erro ao adicionar item'));
 }
 
-function editarItem(itemId) {
+window.editarItem = function(itemId) {
     const textSpan = document.getElementById('text-' + itemId);
     const editInput = document.getElementById('edit-' + itemId);
     
@@ -255,7 +255,7 @@ function editarItem(itemId) {
     }
 }
 
-function confirmarRemocao(itemId, itemText) {
+window.confirmarRemocao = function(itemId, itemText) {
     itemToDeleteId = itemId;
     document.getElementById('itemToDelete').textContent = itemText;
     
@@ -268,7 +268,7 @@ function confirmarRemocao(itemId, itemText) {
     };
 }
 
-function removerItem(itemId) {
+window.removerItem = function(itemId) {
     fetch('/admin/checklist-padrao/delete/' + itemId, {
         method: 'DELETE'
     })
@@ -287,7 +287,7 @@ function removerItem(itemId) {
     .catch(error => alert('Erro ao remover item'));
 }
 
-function salvarOrdem() {
+window.salvarOrdem = function() {
     const items = Array.from(document.querySelectorAll('.checklist-item')).map((item, index) => ({
         id: parseInt(item.dataset.id),
         ordem: index + 1
@@ -318,7 +318,7 @@ document.addEventListener('keydown', function(e) {
     if (e.target.classList.contains('edit-field')) {
         if (e.key === 'Enter') {
             const itemId = e.target.id.replace('edit-', '');
-            editarItem(itemId);
+            window.editarItem(itemId);
         } else if (e.key === 'Escape') {
             const itemId = e.target.id.replace('edit-', '');
             const textSpan = document.getElementById('text-' + itemId);
@@ -326,6 +326,15 @@ document.addEventListener('keydown', function(e) {
             textSpan.classList.remove('d-none');
         }
     }
+});
+
+// Log para debug
+console.log('JavaScript do checklist carregado. Funções disponíveis:', {
+    adicionarItem: typeof window.adicionarItem,
+    editarItem: typeof window.editarItem,
+    confirmarRemocao: typeof window.confirmarRemocao,
+    removerItem: typeof window.removerItem,
+    salvarOrdem: typeof window.salvarOrdem
 });
 </script>
 {% endblock %}
