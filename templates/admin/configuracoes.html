@@ -1,0 +1,628 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações Administrativas{% endblock %}
+
+{% block extra_css %}
+<style>
+.admin-card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    transition: transform 0.2s;
+}
+
+.admin-card:hover {
+    transform: translateY(-2px);
+}
+
+.config-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.item-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    background: #fff;
+    transition: all 0.2s;
+}
+
+.item-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+}
+
+.drag-handle {
+    cursor: grab;
+    color: #6c757d;
+    margin-right: 0.5rem;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.category-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+}
+
+.form-floating > label {
+    color: #6c757d;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.modal-header .btn-close {
+    filter: invert(1);
+}
+
+@media (max-width: 768px) {
+    .config-section {
+        padding: 1rem;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.125rem 0.25rem;
+        font-size: 0.7rem;
+    }
+    
+    .item-card {
+        padding: 0.75rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="config-section">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2"><i class="fas fa-cogs me-2"></i>Configurações Administrativas</h1>
+                <p class="mb-0">Gerencie checklists e legendas padrões para relatórios</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="stats-card p-3 rounded">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="mb-0" id="totalChecklists">{{ total_checklists }}</h4>
+                            <small>Checklists</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="mb-0" id="totalLegendas">{{ total_legendas }}</h4>
+                            <small>Legendas</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-pills nav-fill mb-4" id="configTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="checklists-tab" data-bs-toggle="pill" data-bs-target="#checklists" type="button" role="tab">
+                <i class="fas fa-check-square me-2"></i>Checklists
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="legendas-tab" data-bs-toggle="pill" data-bs-target="#legendas" type="button" role="tab">
+                <i class="fas fa-image me-2"></i>Legendas
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="configTabsContent">
+        <!-- Checklists Tab -->
+        <div class="tab-pane fade show active" id="checklists" role="tabpanel">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="admin-card card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Itens de Checklist</h5>
+                            <button class="btn btn-primary btn-sm" onclick="openChecklistModal()">
+                                <i class="fas fa-plus me-1"></i>Adicionar Item
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="checklistItems">
+                                {% for template in checklist_templates %}
+                                <div class="item-card" data-id="{{ template.id }}">
+                                    <div class="row align-items-center">
+                                        <div class="col-1 text-center">
+                                            <i class="fas fa-grip-vertical drag-handle"></i>
+                                        </div>
+                                        <div class="col-8">
+                                            <h6 class="mb-1">{{ template.nome }}</h6>
+                                            <small class="text-muted">{{ template.descricao or 'Sem descrição' }}</small>
+                                        </div>
+                                        <div class="col-3 text-end">
+                                            <span class="badge bg-primary category-badge">{{ template.categoria or 'Geral' }}</span>
+                                            <div class="btn-group btn-group-sm mt-1">
+                                                <button class="btn btn-outline-primary" onclick="editChecklist({{ template.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="deleteChecklist({{ template.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="admin-card card">
+                        <div class="card-body">
+                            <h6><i class="fas fa-info-circle me-2"></i>Sobre Checklists</h6>
+                            <p class="text-muted small">
+                                Os itens de checklist são utilizados durante as visitas de obra para garantir 
+                                que todos os aspectos importantes sejam verificados e documentados.
+                            </p>
+                            <hr>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-info btn-sm" onclick="exportChecklists()">
+                                    <i class="fas fa-download me-1"></i>Exportar Lista
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm" onclick="reorderChecklists()">
+                                    <i class="fas fa-sort me-1"></i>Reordenar Itens
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legendas Tab -->
+        <div class="tab-pane fade" id="legendas" role="tabpanel">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="admin-card card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-tags me-2"></i>Legendas Padrões</h5>
+                            <div>
+                                <select class="form-select form-select-sm d-inline-block w-auto me-2" id="filterCategoria" onchange="filterLegendas()">
+                                    <option value="">Todas as categorias</option>
+                                    <option value="Geral">Geral</option>
+                                    <option value="Estrutural">Estrutural</option>
+                                    <option value="Hidráulica">Hidráulica</option>
+                                    <option value="Elétrica">Elétrica</option>
+                                    <option value="Acabamentos">Acabamentos</option>
+                                    <option value="Segurança">Segurança</option>
+                                    <option value="Fachada">Fachada</option>
+                                    <option value="Impermeabilização">Impermeabilização</option>
+                                </select>
+                                <button class="btn btn-primary btn-sm" onclick="openLegendaModal()">
+                                    <i class="fas fa-plus me-1"></i>Adicionar Legenda
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="legendaItems">
+                                {% for legenda in legendas %}
+                                <div class="item-card legenda-item" data-id="{{ legenda.id }}" data-categoria="{{ legenda.categoria }}">
+                                    <div class="row align-items-center">
+                                        <div class="col-1 text-center">
+                                            <i class="fas fa-grip-vertical drag-handle"></i>
+                                        </div>
+                                        <div class="col-8">
+                                            <h6 class="mb-1">{{ legenda.texto }}</h6>
+                                            <small class="text-muted">Categoria: {{ legenda.categoria }}</small>
+                                        </div>
+                                        <div class="col-3 text-end">
+                                            <span class="badge bg-info category-badge">{{ legenda.categoria }}</span>
+                                            <div class="btn-group btn-group-sm mt-1">
+                                                <button class="btn btn-outline-primary" onclick="editLegenda({{ legenda.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="deleteLegenda({{ legenda.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="admin-card card">
+                        <div class="card-body">
+                            <h6><i class="fas fa-info-circle me-2"></i>Sobre Legendas</h6>
+                            <p class="text-muted small">
+                                As legendas padrões são utilizadas automaticamente em fotos dos relatórios, 
+                                organizadas por categoria para facilitar a seleção.
+                            </p>
+                            <hr>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-info btn-sm" onclick="exportLegendas()">
+                                    <i class="fas fa-download me-1"></i>Exportar Lista
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" onclick="duplicateLegenda()">
+                                    <i class="fas fa-copy me-1"></i>Duplicar Selecionada
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Checklist -->
+<div class="modal fade" id="checklistModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="checklistModalTitle">Adicionar Item de Checklist</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="checklistForm">
+                    <input type="hidden" id="checklistId" name="id">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="checklistNome" name="nome" placeholder="Nome" required>
+                        <label for="checklistNome">Nome do Item</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <textarea class="form-control" id="checklistDescricao" name="descricao" placeholder="Descrição" style="height: 80px"></textarea>
+                        <label for="checklistDescricao">Descrição (opcional)</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <select class="form-select" id="checklistCategoria" name="categoria">
+                            <option value="Geral">Geral</option>
+                            <option value="Estrutural">Estrutural</option>
+                            <option value="Segurança">Segurança</option>
+                            <option value="Elétrica">Elétrica</option>
+                            <option value="Hidráulica">Hidráulica</option>
+                            <option value="Acabamentos">Acabamentos</option>
+                        </select>
+                        <label for="checklistCategoria">Categoria</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveChecklist()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Legenda -->
+<div class="modal fade" id="legendaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="legendaModalTitle">Adicionar Legenda</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="legendaForm">
+                    <input type="hidden" id="legendaId" name="id">
+                    <div class="form-floating mb-3">
+                        <textarea class="form-control" id="legendaTexto" name="texto" placeholder="Texto" required style="height: 80px"></textarea>
+                        <label for="legendaTexto">Texto da Legenda</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <select class="form-select" id="legendaCategoria" name="categoria" required>
+                            <option value="Geral">Geral</option>
+                            <option value="Estrutural">Estrutural</option>
+                            <option value="Hidráulica">Hidráulica</option>
+                            <option value="Elétrica">Elétrica</option>
+                            <option value="Acabamentos">Acabamentos</option>
+                            <option value="Segurança">Segurança</option>
+                            <option value="Fachada">Fachada</option>
+                            <option value="Impermeabilização">Impermeabilização</option>
+                        </select>
+                        <label for="legendaCategoria">Categoria</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="legendaAtiva" name="ativa" checked>
+                        <label class="form-check-label" for="legendaAtiva">
+                            Legenda ativa (disponível para uso)
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveLegenda()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variáveis globais
+let checklistModal, legendaModal;
+let selectedLegendaId = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    checklistModal = new bootstrap.Modal(document.getElementById('checklistModal'));
+    legendaModal = new bootstrap.Modal(document.getElementById('legendaModal'));
+    
+    // Inicializar drag and drop
+    initializeSortable();
+});
+
+// Funções para Checklist
+function openChecklistModal(id = null) {
+    const form = document.getElementById('checklistForm');
+    form.reset();
+    
+    if (id) {
+        document.getElementById('checklistModalTitle').textContent = 'Editar Item de Checklist';
+        loadChecklistData(id);
+    } else {
+        document.getElementById('checklistModalTitle').textContent = 'Adicionar Item de Checklist';
+        document.getElementById('checklistId').value = '';
+    }
+    
+    checklistModal.show();
+}
+
+function loadChecklistData(id) {
+    fetch(`/admin/checklist/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('checklistId').value = data.checklist.id;
+                document.getElementById('checklistNome').value = data.checklist.nome;
+                document.getElementById('checklistDescricao').value = data.checklist.descricao || '';
+                document.getElementById('checklistCategoria').value = data.checklist.categoria || 'Geral';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar checklist:', error);
+            showAlert('Erro ao carregar dados do checklist', 'danger');
+        });
+}
+
+function saveChecklist() {
+    const form = document.getElementById('checklistForm');
+    const formData = new FormData(form);
+    
+    const url = formData.get('id') ? `/admin/checklist/${formData.get('id')}` : '/admin/checklist';
+    const method = formData.get('id') ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            nome: formData.get('nome'),
+            descricao: formData.get('descricao'),
+            categoria: formData.get('categoria')
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            checklistModal.hide();
+            showAlert('Checklist salvo com sucesso!', 'success');
+            location.reload();
+        } else {
+            showAlert(data.error || 'Erro ao salvar checklist', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        showAlert('Erro ao salvar checklist', 'danger');
+    });
+}
+
+function editChecklist(id) {
+    openChecklistModal(id);
+}
+
+function deleteChecklist(id) {
+    if (confirm('Tem certeza que deseja excluir este item de checklist?')) {
+        fetch(`/admin/checklist/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Checklist excluído com sucesso!', 'success');
+                location.reload();
+            } else {
+                showAlert(data.error || 'Erro ao excluir checklist', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            showAlert('Erro ao excluir checklist', 'danger');
+        });
+    }
+}
+
+// Funções para Legendas
+function openLegendaModal(id = null) {
+    const form = document.getElementById('legendaForm');
+    form.reset();
+    
+    if (id) {
+        document.getElementById('legendaModalTitle').textContent = 'Editar Legenda';
+        loadLegendaData(id);
+    } else {
+        document.getElementById('legendaModalTitle').textContent = 'Adicionar Legenda';
+        document.getElementById('legendaId').value = '';
+        document.getElementById('legendaAtiva').checked = true;
+    }
+    
+    legendaModal.show();
+}
+
+function loadLegendaData(id) {
+    fetch(`/admin/legenda/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('legendaId').value = data.legenda.id;
+                document.getElementById('legendaTexto').value = data.legenda.texto;
+                document.getElementById('legendaCategoria').value = data.legenda.categoria;
+                document.getElementById('legendaAtiva').checked = data.legenda.ativa;
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar legenda:', error);
+            showAlert('Erro ao carregar dados da legenda', 'danger');
+        });
+}
+
+function saveLegenda() {
+    const form = document.getElementById('legendaForm');
+    const formData = new FormData(form);
+    
+    const url = formData.get('id') ? `/admin/legenda/${formData.get('id')}` : '/admin/legenda';
+    const method = formData.get('id') ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            texto: formData.get('texto'),
+            categoria: formData.get('categoria'),
+            ativa: document.getElementById('legendaAtiva').checked
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            legendaModal.hide();
+            showAlert('Legenda salva com sucesso!', 'success');
+            location.reload();
+        } else {
+            showAlert(data.error || 'Erro ao salvar legenda', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        showAlert('Erro ao salvar legenda', 'danger');
+    });
+}
+
+function editLegenda(id) {
+    openLegendaModal(id);
+}
+
+function deleteLegenda(id) {
+    if (confirm('Tem certeza que deseja excluir esta legenda?')) {
+        fetch(`/admin/legenda/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Legenda excluída com sucesso!', 'success');
+                location.reload();
+            } else {
+                showAlert(data.error || 'Erro ao excluir legenda', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            showAlert('Erro ao excluir legenda', 'danger');
+        });
+    }
+}
+
+// Filtrar legendas por categoria
+function filterLegendas() {
+    const filter = document.getElementById('filterCategoria').value;
+    const items = document.querySelectorAll('.legenda-item');
+    
+    items.forEach(item => {
+        if (!filter || item.dataset.categoria === filter) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Funções utilitárias
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.config-section'));
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+function initializeSortable() {
+    // Implementar ordenação drag & drop se necessário
+    console.log('Sortable initialized');
+}
+
+// Funções de exportação
+function exportChecklists() {
+    window.open('/admin/export/checklists', '_blank');
+}
+
+function exportLegendas() {
+    window.open('/admin/export/legendas', '_blank');
+}
+
+function reorderChecklists() {
+    showAlert('Funcionalidade de reordenação em desenvolvimento', 'info');
+}
+
+function duplicateLegenda() {
+    if (selectedLegendaId) {
+        // Implementar duplicação
+        showAlert('Funcionalidade de duplicação em desenvolvimento', 'info');
+    } else {
+        showAlert('Selecione uma legenda para duplicar', 'warning');
+    }
+}
+</script>
+{% endblock %}
