@@ -1,455 +1,353 @@
+"""
+Gerador de PDF para Relatórios Express
+Sistema simplificado baseado no WeasyPrint para relatórios rápidos
+"""
+
 import os
 import base64
 from datetime import datetime
 from weasyprint import HTML, CSS
-from jinja2 import Template
-from models import ChecklistPadrao
+from io import BytesIO
+from flask import current_app, render_template_string
 
 def gerar_numero_relatorio_express():
-    """Gera número sequencial para relatório express"""
+    """Gerar número único para relatório express"""
     from models import RelatorioExpress
-    from app import db
     
     # Buscar o último número
-    ultimo = RelatorioExpress.query.order_by(RelatorioExpress.id.desc()).first()
-    if ultimo:
+    ultimo_relatorio = RelatorioExpress.query.order_by(RelatorioExpress.id.desc()).first()
+    
+    if ultimo_relatorio:
         try:
-            # Extrair número do formato "EXP-YYYY-NNNN"
-            partes = ultimo.numero.split('-')
-            if len(partes) >= 3:
-                ultimo_numero = int(partes[-1])
-                proximo_numero = ultimo_numero + 1
-            else:
-                proximo_numero = 1
-        except (ValueError, IndexError):
+            # Extrair número do último relatório (formato EXP001, EXP002, etc)
+            numero_str = ultimo_relatorio.numero.replace('EXP', '')
+            proximo_numero = int(numero_str) + 1
+        except:
             proximo_numero = 1
     else:
         proximo_numero = 1
     
-    ano_atual = datetime.now().year
-    return f"EXP-{ano_atual}-{proximo_numero:04d}"
+    return f"EXP{proximo_numero:03d}"
 
-def gerar_pdf_relatorio_express(relatorio_express, fotos, output_path):
+def gerar_pdf_relatorio_express(relatorio_express_id, salvar_arquivo=True):
     """
-    Gera PDF do relatório express usando o mesmo template dos relatórios padrão
+    Gerar PDF do relatório express usando WeasyPrint
+    
+    Args:
+        relatorio_express_id: ID do relatório express
+        salvar_arquivo: Se deve salvar o arquivo no disco
+    
+    Returns:
+        Caminho do arquivo gerado ou BytesIO se salvar_arquivo=False
     """
+    from models import RelatorioExpress, FotoRelatorioExpress
+    
     try:
-        # Template HTML idêntico ao relatório padrão, mas adaptado para dados express
-        template_html = """
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ relatorio.titulo_obra }}</title>
-    <style>
-        /* Estilos idênticos ao template Artesano */
-        @page {
-            size: A4;
-            margin: 2cm 1.5cm;
-            @top-center {
-                content: "{{ relatorio.nome_empresa }}";
-                font-family: Arial, sans-serif;
-                font-size: 10pt;
-                color: #666;
-            }
-            @bottom-center {
-                content: "Página " counter(page) " de " counter(pages);
-                font-family: Arial, sans-serif;
-                font-size: 9pt;
-                color: #666;
-            }
-        }
+        # Buscar o relatório express
+        relatorio = RelatorioExpress.query.get_or_404(relatorio_express_id)
+        projeto = relatorio.projeto
         
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 11pt;
-            line-height: 1.4;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
+        # Buscar fotos
+        fotos = FotoRelatorioExpress.query.filter_by(
+            relatorio_express_id=relatorio_express_id
+        ).order_by(FotoRelatorioExpress.ordem).all()
         
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #003f7f;
-            padding-bottom: 20px;
-        }
-        
-        .logo-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .logo {
-            max-height: 80px;
-            width: auto;
-        }
-        
-        .title {
-            font-size: 18pt;
-            font-weight: bold;
-            color: #003f7f;
-            margin: 15px 0;
-            text-transform: uppercase;
-        }
-        
-        .subtitle {
-            font-size: 14pt;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        
-        .info-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            font-size: 10pt;
-        }
-        
-        .info-table th, .info-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        
-        .info-table th {
-            background-color: #f5f5f5;
-            font-weight: bold;
-            width: 25%;
-        }
-        
-        .section {
-            margin: 25px 0;
-            page-break-inside: avoid;
-        }
-        
-        .section-title {
-            font-size: 14pt;
-            font-weight: bold;
-            color: #003f7f;
-            border-bottom: 1px solid #003f7f;
-            padding-bottom: 5px;
-            margin-bottom: 15px;
-        }
-        
-        .section-content {
-            text-align: justify;
-            margin-bottom: 15px;
-        }
-        
-        .photo-section {
-            margin: 20px 0;
-            text-align: center;
-        }
-        
-        .photo {
-            max-width: 100%;
-            max-height: 400px;
-            border: 1px solid #ddd;
-            margin: 10px 0;
-        }
-        
-        .photo-caption {
-            font-size: 10pt;
-            color: #666;
-            margin: 5px 0 15px 0;
-            font-style: italic;
-        }
-        
-        .checklist {
-            margin: 20px 0;
-        }
-        
-        .checklist-item {
-            margin: 8px 0;
-            padding: 5px;
-            font-size: 10pt;
-        }
-        
-        .checklist-item.ok {
-            background-color: #d4edda;
-            border-left: 4px solid #28a745;
-        }
-        
-        .checklist-item.nok {
-            background-color: #f8d7da;
-            border-left: 4px solid #dc3545;
-        }
-        
-        .checklist-item.na {
-            background-color: #f8f9fa;
-            border-left: 4px solid #6c757d;
-        }
-        
-        .signature-section {
-            margin-top: 40px;
-            page-break-inside: avoid;
-        }
-        
-        .signature-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        
-        .signature-table td {
-            border: 1px solid #333;
-            padding: 15px;
-            text-align: center;
-            vertical-align: bottom;
-            height: 80px;
-        }
-        
-        .signature-label {
-            font-weight: bold;
-            font-size: 10pt;
-        }
-        
-        .page-break {
-            page-break-before: always;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="logo-container">
-            {% if logo_elp %}
-            <img src="data:image/jpeg;base64,{{ logo_elp }}" alt="Logo ELP" class="logo">
-            {% endif %}
-            <div style="flex-grow: 1; text-align: center;">
-                <div class="title">RELATÓRIO TÉCNICO EXPRESS</div>
-                <div class="subtitle">{{ relatorio.titulo_obra }}</div>
-            </div>
-            {% if logo_cliente %}
-            <img src="data:image/jpeg;base64,{{ logo_cliente }}" alt="Logo Cliente" class="logo">
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Informações Gerais -->
-    <table class="info-table">
-        <tr>
-            <th>Cliente:</th>
-            <td>{{ relatorio.nome_empresa }}</td>
-            <th>CNPJ:</th>
-            <td>{{ relatorio.cnpj_empresa or 'N/A' }}</td>
-        </tr>
-        <tr>
-            <th>Relatório Nº:</th>
-            <td>{{ relatorio.numero }}</td>
-            <th>Data da Visita:</th>
-            <td>{{ relatorio.data_visita.strftime('%d/%m/%Y') if relatorio.data_visita else 'N/A' }}</td>
-        </tr>
-        <tr>
-            <th>Obra/Projeto:</th>
-            <td colspan="3">{{ relatorio.titulo_obra }}</td>
-        </tr>
-        {% if relatorio.endereco_obra %}
-        <tr>
-            <th>Endereço:</th>
-            <td colspan="3">{{ relatorio.endereco_obra }}</td>
-        </tr>
-        {% endif %}
-        {% if relatorio.tipo_servico %}
-        <tr>
-            <th>Tipo de Serviço:</th>
-            <td>{{ relatorio.tipo_servico }}</td>
-            <th>Responsável:</th>
-            <td>{{ relatorio.responsavel_obra or 'N/A' }}</td>
-        </tr>
-        {% endif %}
-    </table>
-
-    <!-- Introdução -->
-    {% if relatorio.introducao %}
-    <div class="section">
-        <h2 class="section-title">1. INTRODUÇÃO</h2>
-        <div class="section-content">
-            {{ relatorio.introducao|replace('\n', '<br>')|safe }}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Metodologia -->
-    {% if relatorio.metodologia %}
-    <div class="section">
-        <h2 class="section-title">2. METODOLOGIA</h2>
-        <div class="section-content">
-            {{ relatorio.metodologia|replace('\n', '<br>')|safe }}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Itens Observados -->
-    {% if relatorio.itens_observados %}
-    <div class="section">
-        <h2 class="section-title">3. ITENS OBSERVADOS</h2>
-        <div class="section-content">
-            {{ relatorio.itens_observados|replace('\n', '<br>')|safe }}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Checklist -->
-    {% if checklist_items %}
-    <div class="section">
-        <h2 class="section-title">4. CHECKLIST DE VERIFICAÇÃO</h2>
-        <div class="checklist">
-            {% for item in checklist_items %}
-            <div class="checklist-item {{ item.status }}">
-                <strong>{{ item.texto }}</strong>
-                {% if item.status == 'ok' %}
-                    <span style="float: right; color: #28a745;">✓ OK</span>
-                {% elif item.status == 'nok' %}
-                    <span style="float: right; color: #dc3545;">✗ NÃO OK</span>
-                {% else %}
-                    <span style="float: right; color: #6c757d;">- N/A</span>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Fotos -->
-    {% if fotos %}
-    <div class="section page-break">
-        <h2 class="section-title">{{ '5.' if checklist_items else '4.' }} REGISTRO FOTOGRÁFICO</h2>
-        {% for foto in fotos %}
-        <div class="photo-section">
-            {% if foto.imagem_base64 %}
-            <img src="data:image/jpeg;base64,{{ foto.imagem_base64 }}" alt="Foto {{ loop.index }}" class="photo">
-            {% endif %}
-            <div class="photo-caption">
-                <strong>Foto {{ loop.index }}</strong>
-                {% if foto.titulo %} - {{ foto.titulo }}{% endif %}
-                {% if foto.legenda %}<br>{{ foto.legenda }}{% endif %}
-                {% if foto.descricao %}<br><em>{{ foto.descricao }}</em>{% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Observações Gerais -->
-    {% if relatorio.observacoes_gerais %}
-    <div class="section">
-        <h2 class="section-title">{{ '6.' if checklist_items else '5.' }} OBSERVAÇÕES GERAIS</h2>
-        <div class="section-content">
-            {{ relatorio.observacoes_gerais|replace('\n', '<br>')|safe }}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Conclusões -->
-    {% if relatorio.conclusoes %}
-    <div class="section">
-        <h2 class="section-title">{{ '7.' if checklist_items else '6.' }} CONCLUSÕES</h2>
-        <div class="section-content">
-            {{ relatorio.conclusoes|replace('\n', '<br>')|safe }}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Recomendações -->
-    {% if relatorio.recomendacoes %}
-    <div class="section">
-        <h2 class="section-title">{{ '8.' if checklist_items else '7.' }} RECOMENDAÇÕES</h2>
-        <div class="section-content">
-            {{ relatorio.recomendacoes|replace('\n', '<br>')|safe }}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Rodapé -->
-    <div style="margin-top: 40px; font-size: 9pt; color: #666; text-align: center; page-break-inside: avoid;">
-        <div style="border-top: 1px solid #ddd; padding-top: 15px;">
-            Relatório gerado em {{ datetime.now().strftime('%d/%m/%Y às %H:%M') }}<br>
-            ELP Consultoria e Engenharia - Engenharia Civil & Fachadas
-        </div>
-    </div>
-</body>
-</html>
-        """
-
         # Preparar dados das fotos com base64
-        fotos_processadas = []
+        fotos_data = []
         for foto in fotos:
-            foto_data = {
-                'titulo': foto.titulo,
-                'legenda': foto.legenda,
-                'descricao': foto.descricao,
-                'imagem_base64': None
-            }
-            
-            # Usar imagem anotada se disponível, senão original
-            image_path = None
-            if foto.filename_anotada and os.path.exists(os.path.join('uploads', foto.filename_anotada)):
-                image_path = os.path.join('uploads', foto.filename_anotada)
-            elif foto.filename and os.path.exists(os.path.join('uploads', foto.filename)):
-                image_path = os.path.join('uploads', foto.filename)
-            
-            if image_path:
-                try:
-                    with open(image_path, 'rb') as img_file:
-                        foto_data['imagem_base64'] = base64.b64encode(img_file.read()).decode('utf-8')
-                except Exception as e:
-                    print(f"Erro ao processar foto {foto.filename}: {e}")
-            
-            fotos_processadas.append(foto_data)
-
-        # Processar checklist
-        checklist_items = []
-        if relatorio_express.checklist_dados:
-            try:
-                import json
-                checklist_data = json.loads(relatorio_express.checklist_dados)
-                checklist_items = checklist_data.get('items', [])
-            except:
-                pass
-
-        # Carregar logos
-        logo_elp_base64 = None
-        logo_cliente_base64 = None
+            foto_path = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), foto.filename)
+            if os.path.exists(foto_path):
+                with open(foto_path, 'rb') as f:
+                    foto_base64 = base64.b64encode(f.read()).decode('utf-8')
+                    fotos_data.append({
+                        'base64': foto_base64,
+                        'legenda': foto.legenda,
+                        'filename': foto.filename
+                    })
         
-        # Logo ELP
-        logo_elp_path = 'static/logo_elp_final.jpg'
-        if os.path.exists(logo_elp_path):
-            try:
-                with open(logo_elp_path, 'rb') as logo_file:
-                    logo_elp_base64 = base64.b64encode(logo_file.read()).decode('utf-8')
-            except Exception as e:
-                print(f"Erro ao carregar logo ELP: {e}")
-
+        # Preparar dados para o template
+        dados = {
+            'relatorio': relatorio,
+            'projeto': projeto,
+            'fotos': fotos_data,
+            'data_atual': datetime.now().strftime('%d/%m/%Y'),
+            'hora_atual': datetime.now().strftime('%H:%M'),
+            'autor': relatorio.autor.nome_completo
+        }
+        
+        # Template HTML do relatório express
+        html_template = """
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Relatório Express {{ relatorio.numero }}</title>
+            <style>
+                @page {
+                    size: A4;
+                    margin: 2cm 1.5cm;
+                    @bottom-center {
+                        content: "Página " counter(page) " de " counter(pages);
+                        font-size: 10px;
+                        color: #666;
+                    }
+                }
+                
+                body {
+                    font-family: 'Arial', 'Helvetica', sans-serif;
+                    font-size: 12px;
+                    line-height: 1.4;
+                    color: #333;
+                    margin: 0;
+                    padding: 0;
+                }
+                
+                /* Cabeçalho */
+                .header {
+                    border-bottom: 3px solid #4ECDC4;
+                    padding-bottom: 15px;
+                    margin-bottom: 20px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+                
+                .header-left {
+                    flex: 1;
+                }
+                
+                .header-right {
+                    text-align: right;
+                }
+                
+                .logo-empresa {
+                    font-size: 20px;
+                    font-weight: bold;
+                    color: #2C3E50;
+                    margin-bottom: 5px;
+                }
+                
+                .subtitulo-empresa {
+                    font-size: 11px;
+                    color: #666;
+                    font-style: italic;
+                }
+                
+                .titulo-relatorio {
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #4ECDC4;
+                    margin: 0;
+                }
+                
+                .numero-relatorio {
+                    font-size: 14px;
+                    color: #666;
+                    margin: 5px 0 0 0;
+                }
+                
+                /* Seções */
+                .secao {
+                    margin-bottom: 25px;
+                    break-inside: avoid;
+                }
+                
+                .secao-titulo {
+                    font-size: 14px;
+                    font-weight: bold;
+                    color: #2C3E50;
+                    background-color: #f8f9fa;
+                    padding: 8px 12px;
+                    border-left: 4px solid #4ECDC4;
+                    margin-bottom: 12px;
+                }
+                
+                .dados-projeto {
+                    background-color: #fafafa;
+                    padding: 15px;
+                    border-radius: 5px;
+                }
+                
+                .dados-linha {
+                    margin-bottom: 8px;
+                }
+                
+                .dados-label {
+                    font-weight: bold;
+                    color: #2C3E50;
+                    display: inline-block;
+                    width: 120px;
+                }
+                
+                .dados-valor {
+                    color: #333;
+                }
+                
+                /* Observações */
+                .observacoes-texto {
+                    background-color: #fff;
+                    border: 1px solid #e9ecef;
+                    border-radius: 5px;
+                    padding: 15px;
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                }
+                
+                /* Fotos */
+                .foto-container {
+                    margin-bottom: 20px;
+                    break-inside: avoid;
+                    text-align: center;
+                }
+                
+                .foto-imagem {
+                    max-width: 100%;
+                    max-height: 400px;
+                    border: 1px solid #ddd;
+                    border-radius: 5px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                
+                .foto-legenda {
+                    margin-top: 8px;
+                    font-size: 11px;
+                    color: #666;
+                    font-style: italic;
+                    max-width: 80%;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+                
+                /* Rodapé */
+                .rodape {
+                    margin-top: 30px;
+                    padding-top: 15px;
+                    border-top: 2px solid #4ECDC4;
+                    font-size: 10px;
+                    color: #666;
+                    text-align: center;
+                }
+                
+                .rodape-empresa {
+                    font-weight: bold;
+                    color: #2C3E50;
+                    margin-bottom: 5px;
+                }
+                
+                .rodape-info {
+                    margin-bottom: 3px;
+                }
+                
+                /* Assinatura */
+                .assinatura {
+                    margin-top: 25px;
+                    padding: 15px;
+                    background-color: #f8f9fa;
+                    border-radius: 5px;
+                    text-align: center;
+                    font-size: 11px;
+                    color: #666;
+                }
+                
+                .assinatura-linha {
+                    margin-bottom: 5px;
+                }
+            </style>
+        </head>
+        <body>
+            <!-- Cabeçalho -->
+            <div class="header">
+                <div class="header-left">
+                    <div class="logo-empresa">ELP Consultoria e Engenharia</div>
+                    <div class="subtitulo-empresa">Engenharia Civil & Fachadas</div>
+                </div>
+                <div class="header-right">
+                    <h1 class="titulo-relatorio">Relatório Express</h1>
+                    <p class="numero-relatorio">Nº {{ relatorio.numero }}</p>
+                </div>
+            </div>
+            
+            <!-- Dados do Projeto -->
+            <div class="secao">
+                <div class="secao-titulo">Dados do Projeto</div>
+                <div class="dados-projeto">
+                    <div class="dados-linha">
+                        <span class="dados-label">Empresa:</span>
+                        <span class="dados-valor">{{ projeto.cliente or 'N/A' }}</span>
+                    </div>
+                    <div class="dados-linha">
+                        <span class="dados-label">Projeto/Obra:</span>
+                        <span class="dados-valor">{{ projeto.nome }}</span>
+                    </div>
+                    <div class="dados-linha">
+                        <span class="dados-label">Número:</span>
+                        <span class="dados-valor">{{ projeto.numero }}</span>
+                    </div>
+                    <div class="dados-linha">
+                        <span class="dados-label">Endereço:</span>
+                        <span class="dados-valor">{{ projeto.endereco or 'N/A' }}</span>
+                    </div>
+                    <div class="dados-linha">
+                        <span class="dados-label">Responsável:</span>
+                        <span class="dados-valor">{{ projeto.responsavel.nome_completo if projeto.responsavel else 'N/A' }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Observações Rápidas -->
+            <div class="secao">
+                <div class="secao-titulo">Observações Rápidas</div>
+                <div class="observacoes-texto">{{ relatorio.observacoes }}</div>
+            </div>
+            
+            <!-- Fotos (se houver) -->
+            {% if fotos %}
+            <div class="secao">
+                <div class="secao-titulo">Fotos</div>
+                {% for foto in fotos %}
+                <div class="foto-container">
+                    <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto" class="foto-imagem">
+                    <div class="foto-legenda">{{ foto.legenda }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Assinatura -->
+            <div class="assinatura">
+                <div class="assinatura-linha"><strong>Emitido por:</strong> {{ autor }}</div>
+                <div class="assinatura-linha"><strong>Data/Hora:</strong> {{ data_atual }} às {{ hora_atual }}</div>
+            </div>
+            
+            <!-- Rodapé -->
+            <div class="rodape">
+                <div class="rodape-empresa">ELP Consultoria e Engenharia</div>
+                <div class="rodape-info">Engenharia Civil & Fachadas</div>
+                <div class="rodape-info">contato@elp.com.br | (11) 9999-9999</div>
+                <div class="rodape-info">www.elpconsultoria.com.br</div>
+            </div>
+        </body>
+        </html>
+        """
+        
         # Renderizar template
-        template = Template(template_html)
-        html_content = template.render(
-            relatorio=relatorio_express,
-            fotos=fotos_processadas,
-            checklist_items=checklist_items,
-            logo_elp=logo_elp_base64,
-            logo_cliente=logo_cliente_base64,
-            datetime=datetime
-        )
-
-        # Gerar PDF
-        html_doc = HTML(string=html_content)
-        html_doc.write_pdf(output_path)
-
-        return {
-            'success': True,
-            'pdf_path': output_path,
-            'message': 'PDF gerado com sucesso'
-        }
-
+        html_content = render_template_string(html_template, **dados)
+        
+        if salvar_arquivo:
+            # Salvar em arquivo
+            filename = f"relatorio_express_{relatorio.numero}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            pdf_path = os.path.join('uploads', filename)
+            
+            # Gerar PDF
+            HTML(string=html_content).write_pdf(pdf_path)
+            
+            return pdf_path
+        else:
+            # Retornar como BytesIO
+            pdf_bytes = HTML(string=html_content).write_pdf()
+            return BytesIO(pdf_bytes)
+            
     except Exception as e:
-        print(f"Erro ao gerar PDF: {str(e)}")
-        return {
-            'success': False,
-            'error': str(e),
-            'message': f'Erro ao gerar PDF: {str(e)}'
-        }
+        current_app.logger.error(f"Erro ao gerar PDF do relatório express: {e}")
+        raise e

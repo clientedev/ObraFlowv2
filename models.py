@@ -323,88 +323,35 @@ class ConfiguracaoEmail(db.Model):
 Equipe ELP Consultoria e Engenharia<br>
 Engenharia Civil & Fachadas</p>""")
 
-# Modelos para Relatório Express
 class RelatorioExpress(db.Model):
     __tablename__ = 'relatorios_express'
     
     id = db.Column(db.Integer, primary_key=True)
-    numero = db.Column(db.String(50), unique=True, nullable=False)
-    
-    # Dados da empresa/cliente
-    nome_empresa = db.Column(db.String(200), nullable=False)
-    cnpj_empresa = db.Column(db.String(18))
-    endereco_empresa = db.Column(db.Text)
-    cidade_empresa = db.Column(db.String(100))
-    estado_empresa = db.Column(db.String(2))
-    cep_empresa = db.Column(db.String(10))
-    contato_empresa = db.Column(db.String(200))
-    telefone_empresa = db.Column(db.String(20))
-    email_empresa = db.Column(db.String(255))
-    
-    # Dados do relatório
-    titulo_obra = db.Column(db.String(500), nullable=False)
-    endereco_obra = db.Column(db.Text)
-    latitude = db.Column(db.Float)
-    longitude = db.Column(db.Float)
-    data_visita = db.Column(db.Date, nullable=False)
-    responsavel_obra = db.Column(db.String(200))
-    tipo_servico = db.Column(db.String(100))
-    
-    # Campos do relatório
-    introducao = db.Column(db.Text)
-    metodologia = db.Column(db.Text)
-    itens_observados = db.Column(db.Text)
-    observacoes_gerais = db.Column(db.Text)
-    conclusoes = db.Column(db.Text)
-    recomendacoes = db.Column(db.Text)
-    
-    # Checklist (JSON)
-    checklist_dados = db.Column(db.Text)  # JSON
-    
-    # Assinaturas e responsabilidade técnica
-    responsavel_tecnico = db.Column(db.String(200))
-    crea_responsavel = db.Column(db.String(50))
-    assinatura_cliente = db.Column(db.Boolean, default=False)
-    nome_cliente_assinatura = db.Column(db.String(200))
-    cargo_cliente_assinatura = db.Column(db.String(100))
-    
-    # Controle do sistema
-    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    status = db.Column(db.String(50), default='rascunho')  # rascunho, finalizado
-    pdf_path = db.Column(db.String(500))
-    backup_drive_id = db.Column(db.String(255))
-    backup_drive_url = db.Column(db.String(500))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    numero = db.Column(db.String(20), unique=True, nullable=False)
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
+    autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    observacoes = db.Column(db.Text, nullable=False)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relacionamentos
-    usuario = db.relationship('User', backref='relatorios_express')
+    projeto = db.relationship('Projeto', backref='relatorios_express')
+    autor = db.relationship('User', backref='relatorios_express_criados')
     
-    @property
-    def fotos(self):
-        return FotoRelatorioExpress.query.filter_by(relatorio_express_id=self.id).order_by(FotoRelatorioExpress.ordem).all()
+    def __repr__(self):
+        return f'<RelatorioExpress {self.numero}>'
 
 class FotoRelatorioExpress(db.Model):
-    __tablename__ = 'fotos_relatorio_express'
+    __tablename__ = 'fotos_relatorios_express'
     
     id = db.Column(db.Integer, primary_key=True)
     relatorio_express_id = db.Column(db.Integer, db.ForeignKey('relatorios_express.id'), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
-    filename_original = db.Column(db.String(255))
-    filename_anotada = db.Column(db.String(255))
-    titulo = db.Column(db.String(500))
-    legenda = db.Column(db.String(500))
-    descricao = db.Column(db.Text)
-    tipo_servico = db.Column(db.String(100))
-    anotacoes_dados = db.Column(db.Text)
+    legenda = db.Column(db.String(500), nullable=False)
     ordem = db.Column(db.Integer, default=1)
-    coordenadas_anotacao = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relacionamento
-    relatorio_express = db.relationship('RelatorioExpress', backref='fotos_express')
-
-
+    relatorio_express = db.relationship('RelatorioExpress', backref='fotos')
     
     def __repr__(self):
         return f'<FotoRelatorioExpress {self.filename}>'
