@@ -131,3 +131,4 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Template Updates**: Template movido para templates/developer/ com rotas atualizadas
 - ✅ **Navigation Fix**: Menu de navegação corrigido para refletir nova estrutura de permissões
 - ✅ **JavaScript Updates**: Todas as chamadas AJAX atualizadas para usar rotas de desenvolvedor
+- ✅ **Developer Permissions Update**: Gabriel e Lucas agora têm permissão de desenvolvedor
