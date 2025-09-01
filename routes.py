@@ -2520,7 +2520,10 @@ def admin_backup_all():
         return jsonify({'success': False, 'message': 'Acesso negado'})
     
     try:
-        relatorios = Relatorio.query.filter(Relatorio.status.in_(['Aprovado', 'Finalizado'])).all()
+        # Buscar relatórios com status aprovado (considerando variações de capitalização)
+        relatorios = Relatorio.query.filter(
+            db.func.lower(Relatorio.status).in_(['aprovado', 'finalizado', 'aprovado final'])
+        ).all()
         
         total_reports = len(relatorios)
         successful_backups = 0
@@ -2532,6 +2535,7 @@ def admin_backup_all():
             try:
                 # Preparar dados do relatório
                 fotos_paths = []
+                # Usar o modelo correto de FotoRelatorio
                 fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).all()
                 
                 for foto in fotos:
@@ -2539,10 +2543,28 @@ def admin_backup_all():
                     if os.path.exists(foto_path):
                         fotos_paths.append(foto_path)
                 
+                # Tentar gerar PDF se não existir
+                pdf_path = None
+                try:
+                    # Usar o gerador WeasyPrint se disponível
+                    from pdf_generator_weasy import WeasyPrintReportGenerator
+                    generator = WeasyPrintReportGenerator()
+                    
+                    # Criar nome do arquivo PDF
+                    pdf_filename = f"relatorio_{relatorio.numero}_{relatorio.id}.pdf"
+                    pdf_path = os.path.join(upload_folder, pdf_filename)
+                    
+                    # Gerar PDF
+                    generator.generate_report_pdf(relatorio, fotos, pdf_path)
+                    print(f"PDF gerado: {pdf_path}")
+                    
+                except Exception as pdf_error:
+                    print(f"Erro ao gerar PDF para relatório {relatorio.numero}: {pdf_error}")
+
                 report_data = {
                     'id': relatorio.id,
                     'numero': relatorio.numero,
-                    'pdf_path': None,
+                    'pdf_path': pdf_path,
                     'images': fotos_paths
                 }
                 
