@@ -9,6 +9,7 @@ import os
 import json
 from datetime import datetime
 import base64
+from flask import current_app
 
 class ExpressReportGenerator(WeasyPrintReportGenerator):
     """
@@ -18,133 +19,98 @@ class ExpressReportGenerator(WeasyPrintReportGenerator):
     
     def generate_express_report_pdf(self, relatorio_express, fotos_list, output_path):
         """
-        Gera PDF do relatório express usando o mesmo template do WeasyPrint
+        Gera PDF do relatório express usando o mesmo método do WeasyPrint
         mas com dados da empresa ao invés de projeto
         """
         
         try:
-            # Preparar dados no mesmo formato do relatório padrão
-            report_data = self._prepare_express_data(relatorio_express, fotos_list)
+            # Criar um objeto mock que simula um relatório padrão
+            mock_relatorio = self._create_mock_report(relatorio_express)
             
-            # Usar o mesmo template HTML com dados adaptados
-            html_content = self._render_template('weasy_template.html', report_data)
+            # Processar fotos no formato esperado
+            fotos_processadas = self._process_express_photos(fotos_list)
             
-            # Gerar PDF usando WeasyPrint
-            result = self._generate_pdf_from_html(html_content, output_path)
-            
-            if result.get('success'):
-                print(f"✓ PDF do Relatório Express gerado: {output_path}")
-                return {
-                    'success': True,
-                    'file_path': output_path,
-                    'size': os.path.getsize(output_path) if os.path.exists(output_path) else 0
-                }
-            else:
-                return {'success': False, 'error': result.get('error', 'Erro desconhecido')}
+            # Usar o método generate_report_pdf da classe pai
+            return super().generate_report_pdf(mock_relatorio, fotos_processadas, output_path)
                 
         except Exception as e:
             error_msg = f"Erro ao gerar PDF Express: {str(e)}"
             print(error_msg)
             return {'success': False, 'error': error_msg}
     
-    def _prepare_express_data(self, relatorio_express, fotos_list):
+    def _create_mock_report(self, relatorio_express):
         """
-        Prepara dados do relatório express no formato esperado pelo template
-        Adaptação: dados da empresa ao invés de projeto
+        Cria um objeto mock que simula um relatório padrão
+        para usar com o gerador WeasyPrint existente
         """
         
-        # Dados da empresa (substitui dados do projeto)
-        empresa_data = {
-            'nome': relatorio_express.empresa_nome,
-            'endereco': relatorio_express.empresa_endereco or 'Não informado',
-            'telefone': relatorio_express.empresa_telefone or 'Não informado',
-            'email': relatorio_express.empresa_email or 'Não informado',
-            'responsavel': relatorio_express.empresa_responsavel or 'Não informado'
-        }
+        class MockProject:
+            def __init__(self, express_data):
+                self.nome = express_data.empresa_nome
+                self.endereco = express_data.empresa_endereco or "Não informado"
+                self.responsavel = express_data.autor  # Usar autor como responsável
         
-        # Dados do relatório (idênticos ao padrão)
-        relatorio_data = {
-            'numero': relatorio_express.numero,
-            'data_visita': relatorio_express.data_visita.strftime('%d/%m/%Y') if relatorio_express.data_visita else '',
-            'periodo_inicio': relatorio_express.periodo_inicio.strftime('%H:%M') if relatorio_express.periodo_inicio else '',
-            'periodo_fim': relatorio_express.periodo_fim.strftime('%H:%M') if relatorio_express.periodo_fim else '',
-            'condicoes_climaticas': relatorio_express.condicoes_climaticas or '',
-            'temperatura': relatorio_express.temperatura or '',
-            'endereco_visita': relatorio_express.endereco_visita or '',
-            'observacoes_gerais': relatorio_express.observacoes_gerais or '',
-            'pendencias': relatorio_express.pendencias or '',
-            'recomendacoes': relatorio_express.recomendacoes or '',
-            'status': relatorio_express.status,
-            'created_at': relatorio_express.created_at.strftime('%d/%m/%Y %H:%M')
-        }
+        class MockReport:
+            def __init__(self, express_data):
+                self.numero = express_data.numero
+                self.data_relatorio = express_data.created_at
+                self.projeto = MockProject(express_data)
+                self.autor = express_data.autor
+                # Criar conteúdo combinando todas as observações
+                conteudo_partes = []
+                if express_data.observacoes_gerais:
+                    conteudo_partes.append(f"OBSERVAÇÕES GERAIS:\n{express_data.observacoes_gerais}")
+                if express_data.pendencias:
+                    conteudo_partes.append(f"PENDÊNCIAS:\n{express_data.pendencias}")
+                if express_data.recomendacoes:
+                    conteudo_partes.append(f"RECOMENDAÇÕES:\n{express_data.recomendacoes}")
+                
+                self.conteudo = "\n\n".join(conteudo_partes) if conteudo_partes else "Relatório Express"
+                
+                # Dados específicos da visita
+                info_visita = []
+                if express_data.data_visita:
+                    info_visita.append(f"Data da Visita: {express_data.data_visita.strftime('%d/%m/%Y')}")
+                if express_data.periodo_inicio and express_data.periodo_fim:
+                    info_visita.append(f"Período: {express_data.periodo_inicio.strftime('%H:%M')} às {express_data.periodo_fim.strftime('%H:%M')}")
+                if express_data.condicoes_climaticas:
+                    info_visita.append(f"Condições Climáticas: {express_data.condicoes_climaticas}")
+                if express_data.temperatura:
+                    info_visita.append(f"Temperatura: {express_data.temperatura}")
+                if express_data.endereco_visita:
+                    info_visita.append(f"Local da Visita: {express_data.endereco_visita}")
+                
+                if info_visita:
+                    self.conteudo = "INFORMAÇÕES DA VISITA:\n" + "\n".join(info_visita) + "\n\n" + self.conteudo
+                
+        return MockReport(relatorio_express)
+    
+    def _process_express_photos(self, fotos_list):
+        """
+        Processa fotos do relatório express para formato esperado
+        """
+        fotos_processadas = []
         
-        # Dados do autor (idênticos ao padrão)
-        autor_data = {
-            'nome': relatorio_express.autor.nome_completo,
-            'cargo': relatorio_express.autor.cargo or 'Engenheiro',
-            'email': relatorio_express.autor.email
-        }
-        
-        # Processar fotos (idêntico ao padrão)
-        fotos_data = []
         for foto in fotos_list:
             try:
-                foto_path = os.path.join('uploads', foto.filename_anotada or foto.filename)
-                if os.path.exists(foto_path):
-                    with open(foto_path, 'rb') as f:
-                        foto_base64 = base64.b64encode(f.read()).decode('utf-8')
-                        fotos_data.append({
-                            'titulo': foto.titulo or f'Foto {foto.ordem}',
-                            'legenda': foto.legenda or '',
-                            'descricao': foto.descricao or '',
-                            'tipo_servico': foto.tipo_servico or '',
-                            'base64': foto_base64,
-                            'ordem': foto.ordem
-                        })
+                # Criar objeto mock foto
+                class MockFoto:
+                    def __init__(self, foto_express):
+                        self.filename = foto_express.filename
+                        self.filename_anotada = getattr(foto_express, 'filename_anotada', None)
+                        self.legenda = foto_express.legenda or f"Foto {foto_express.ordem}"
+                        self.titulo = getattr(foto_express, 'titulo', None) or self.legenda
+                        self.descricao = getattr(foto_express, 'descricao', None) or ""
+                        self.ordem = foto_express.ordem
+                
+                fotos_processadas.append(MockFoto(foto))
             except Exception as e:
-                print(f"Erro ao processar foto {foto.filename}: {e}")
+                print(f"Erro ao processar foto: {e}")
                 continue
         
-        # Checklist (se houver)
-        checklist_items = []
-        if relatorio_express.checklist_completo:
-            try:
-                checklist_data = json.loads(relatorio_express.checklist_completo)
-                checklist_items = checklist_data if isinstance(checklist_data, list) else []
-            except:
-                checklist_items = []
-        
-        # Retornar dados no formato do template padrão
-        return {
-            # ADAPTAÇÃO: empresa ao invés de projeto
-            'empresa': empresa_data,  # Novo campo para dados da empresa
-            
-            # Dados idênticos ao relatório padrão
-            'relatorio': relatorio_data,
-            'autor': autor_data,
-            'fotos': fotos_data,
-            'checklist_items': checklist_items,
-            
-            # Logos (idênticos)
-            'logo_elp': self._get_logo_base64('static/logo_elp_final.jpg'),
-            'logo_cliente': None,  # Express não tem logo de cliente específico
-            
-            # Data de geração
-            'data_geracao': datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
-            
-            # Flag para identificar como express
-            'is_express': True
-        }
+        return fotos_processadas
     
-    def _render_template(self, template_name, data):
-        """
-        Renderiza template HTML com dados do relatório express
-        Usa o mesmo template do WeasyPrint mas com adaptações para empresa
-        """
-        from flask import render_template
-        
-        # Usar template específico para express ou adaptar o padrão
-        return render_template('reports/express_template.html', **data)
+
 
 # Funções auxiliares para compatibilidade com routes existentes
 def gerar_pdf_relatorio_express(relatorio_express, output_path):
@@ -152,7 +118,19 @@ def gerar_pdf_relatorio_express(relatorio_express, output_path):
     try:
         generator = ExpressReportGenerator()
         fotos = relatorio_express.fotos
-        return generator.generate_express_report_pdf(relatorio_express, fotos, output_path)
+        
+        # Usar o método da classe pai que já funciona
+        result = generator.generate_express_report_pdf(relatorio_express, fotos, output_path)
+        
+        if isinstance(result, str):  # Se retornou path do arquivo
+            return {'success': True, 'file_path': result}
+        elif isinstance(result, bytes):  # Se retornou bytes
+            with open(output_path, 'wb') as f:
+                f.write(result)
+            return {'success': True, 'file_path': output_path}
+        else:
+            return {'success': False, 'error': 'Formato de retorno inválido'}
+            
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
