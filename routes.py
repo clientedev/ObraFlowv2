@@ -3044,8 +3044,47 @@ def express_new():
             db.session.add(relatorio_express)
             db.session.flush()  # Para obter o ID
             
-            # Processar fotos se houver
-            if form.fotos.data:
+            # Processar fotos configuradas do modal
+            foto_configs_str = request.form.get('foto_configuracoes')
+            if foto_configs_str:
+                try:
+                    foto_configs = json.loads(foto_configs_str)
+                    upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                    if not os.path.exists(upload_folder):
+                        os.makedirs(upload_folder)
+                    
+                    ordem = 1
+                    for config in foto_configs:
+                        if config.get('data') and config.get('legenda'):
+                            # Salvar imagem do base64
+                            import base64
+                            image_data = config['data'].split(',')[1]  # Remover prefixo data:image/...
+                            image_bytes = base64.b64decode(image_data)
+                            
+                            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                            filename = f"express_{relatorio_express.id}_{timestamp}_{ordem}.png"
+                            foto_path = os.path.join(upload_folder, filename)
+                            
+                            with open(foto_path, 'wb') as f:
+                                f.write(image_bytes)
+                            
+                            # Criar registro da foto
+                            foto_express = FotoRelatorioExpress()
+                            foto_express.relatorio_express_id = relatorio_express.id
+                            foto_express.filename = filename
+                            foto_express.filename_original = config.get('originalName', filename)
+                            foto_express.ordem = ordem
+                            foto_express.legenda = config['legenda']
+                            foto_express.tipo_servico = config.get('categoria', 'Geral')
+                            
+                            db.session.add(foto_express)
+                            ordem += 1
+                    
+                except Exception as e:
+                    current_app.logger.error(f"Erro ao processar fotos: {str(e)}")
+            
+            # Fallback: processar fotos básicas se não houver configurações
+            elif form.fotos.data:
                 upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
                 if not os.path.exists(upload_folder):
                     os.makedirs(upload_folder)

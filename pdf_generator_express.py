@@ -50,24 +50,27 @@ class ExpressReportGenerator(WeasyPrintReportGenerator):
                 self.endereco = express_data.empresa_endereco or "Não informado"
                 self.responsavel = express_data.autor  # Usar autor como responsável
         
+        class MockVisita:
+            def __init__(self, express_data):
+                self.data = express_data.data_visita
+                self.periodo_inicio = express_data.periodo_inicio
+                self.periodo_fim = express_data.periodo_fim
+                self.condicoes_climaticas = express_data.condicoes_climaticas
+                self.temperatura = express_data.temperatura
+                self.endereco = express_data.endereco_visita
+        
         class MockReport:
             def __init__(self, express_data):
                 self.numero = express_data.numero
                 self.data_relatorio = express_data.created_at
                 self.projeto = MockProject(express_data)
+                self.visita = MockVisita(express_data)
                 self.autor = express_data.autor
-                # Criar conteúdo combinando todas as observações
+                
+                # Criar conteúdo combinando todas as observações e dados da visita
                 conteudo_partes = []
-                if express_data.observacoes_gerais:
-                    conteudo_partes.append(f"OBSERVAÇÕES GERAIS:\n{express_data.observacoes_gerais}")
-                if express_data.pendencias:
-                    conteudo_partes.append(f"PENDÊNCIAS:\n{express_data.pendencias}")
-                if express_data.recomendacoes:
-                    conteudo_partes.append(f"RECOMENDAÇÕES:\n{express_data.recomendacoes}")
                 
-                self.conteudo = "\n\n".join(conteudo_partes) if conteudo_partes else "Relatório Express"
-                
-                # Dados específicos da visita
+                # Informações da visita primeiro
                 info_visita = []
                 if express_data.data_visita:
                     info_visita.append(f"Data da Visita: {express_data.data_visita.strftime('%d/%m/%Y')}")
@@ -81,12 +84,22 @@ class ExpressReportGenerator(WeasyPrintReportGenerator):
                     info_visita.append(f"Local da Visita: {express_data.endereco_visita}")
                 
                 if info_visita:
-                    self.conteudo = "INFORMAÇÕES DA VISITA:\n" + "\n".join(info_visita) + "\n\n" + self.conteudo
-                    
-                # Processar checklist se houver dados
+                    conteudo_partes.append("INFORMAÇÕES DA VISITA:\n" + "\n".join(info_visita))
+                
+                # Processar checklist
                 checklist_content = self._process_checklist(express_data)
                 if checklist_content:
-                    self.conteudo = self.conteudo + "\n\n" + checklist_content
+                    conteudo_partes.append(checklist_content)
+                
+                # Adicionar observações
+                if express_data.observacoes_gerais:
+                    conteudo_partes.append(f"OBSERVAÇÕES GERAIS:\n{express_data.observacoes_gerais}")
+                if express_data.pendencias:
+                    conteudo_partes.append(f"PENDÊNCIAS:\n{express_data.pendencias}")
+                if express_data.recomendacoes:
+                    conteudo_partes.append(f"RECOMENDAÇÕES:\n{express_data.recomendacoes}")
+                
+                self.conteudo = "\n\n".join(conteudo_partes) if conteudo_partes else "Relatório Express"
                     
             def _process_checklist(self, express_data):
                 """Processa dados do checklist para inclusão no PDF"""
@@ -105,11 +118,11 @@ class ExpressReportGenerator(WeasyPrintReportGenerator):
                     checklist_lines = ["ITENS OBSERVADOS:"]
                     
                     for item in checklist_data:
-                        status = "✓" if item.get('concluido', False) else "✗"
-                        titulo = item.get('titulo', '')
-                        checklist_lines.append(f"• {status} {titulo}")
+                        if item.get('concluido', False):
+                            titulo = item.get('titulo', '')
+                            checklist_lines.append(f"• {titulo}")
                     
-                    return "\n".join(checklist_lines)
+                    return "\n".join(checklist_lines) if len(checklist_lines) > 1 else ""
                     
                 except Exception as e:
                     print(f"Erro ao processar checklist: {e}")
@@ -130,9 +143,10 @@ class ExpressReportGenerator(WeasyPrintReportGenerator):
                     def __init__(self, foto_express):
                         self.filename = foto_express.filename
                         self.filename_anotada = getattr(foto_express, 'filename_anotada', None)
+                        # Usar a legenda configurada pelo usuário ou fallback
                         self.legenda = foto_express.legenda or f"Foto {foto_express.ordem}"
                         self.titulo = getattr(foto_express, 'titulo', None) or self.legenda
-                        self.descricao = getattr(foto_express, 'descricao', None) or ""
+                        self.descricao = self.legenda  # Usar legenda como descrição para o PDF
                         self.ordem = foto_express.ordem
                 
                 fotos_processadas.append(MockFoto(foto))

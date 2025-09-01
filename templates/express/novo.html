@@ -352,6 +352,9 @@
                         
                         <!-- Campo oculto para armazenar dados do checklist -->
                         <input type="hidden" id="checklistData" name="checklist_completo">
+                        
+                        <!-- Campo oculto para configurações das fotos -->
+                        <input type="hidden" id="fotoConfiguracoes" name="foto_configuracoes">
                     </div>
                 </div>
 
@@ -806,22 +809,34 @@ function removePhotoFromConfig(photoId) {
 function confirmPhotoConfiguration() {
     const photoCards = document.querySelectorAll('.photo-config-card');
     let validPhotos = 0;
+    let photoConfigurations = [];
     
     photoCards.forEach(card => {
         const legendSelect = card.querySelector('.legend-select');
         const legend = legendSelect.value;
+        const img = card.querySelector('img');
         
-        if (legend) {
+        if (legend && img) {
+            const photoConfig = {
+                data: img.src,  // Base64 da imagem (editada ou original)
+                legenda: legend,
+                categoria: card.dataset.category,
+                originalName: card.dataset.fileName
+            };
+            
+            photoConfigurations.push(photoConfig);
+            validPhotos++;
+            
+            // Manter compatibilidade com sistema existente
             const photoData = {
                 id: card.dataset.photoId,
                 fileName: card.dataset.fileName,
                 category: card.dataset.category,
                 legend: legend,
-                imageData: card.querySelector('img').src
+                imageData: img.src
             };
             
             configuredPhotos.push(photoData);
-            validPhotos++;
         }
     });
     
@@ -830,7 +845,11 @@ function confirmPhotoConfiguration() {
         return;
     }
     
-    // Limpar preview e mostrar fotos configuradas
+    // Salvar configurações no campo oculto para o backend
+    document.getElementById('fotoConfiguracoes').value = JSON.stringify(photoConfigurations);
+    console.log(`Configurações das fotos salvas: ${photoConfigurations.length} fotos`);
+    
+    // Limpar preview e mostrar fotos configuradas (compatibilidade)
     document.getElementById('selectedPhotosPreview').innerHTML = '';
     displayConfiguredPhotos();
     updatePhotoCounter();
