@@ -2371,23 +2371,23 @@ def api_legendas():
     })
 
 # Rotas administrativas para Checklist Padrão
-@app.route('/admin/checklist-padrao')
+@app.route('/developer/checklist-padrao')
 @login_required
-def admin_checklist_padrao():
-    """Página administrativa para gerenciar checklist padrão"""
-    if not current_user.is_master:
-        flash('Acesso negado. Apenas administradores podem acessar esta página.', 'error')
+def developer_checklist_padrao():
+    """Página para desenvolvedores gerenciarem checklist padrão"""
+    if not current_user.is_developer:
+        flash('Acesso negado. Apenas desenvolvedores podem acessar esta página.', 'error')
         return redirect(url_for('index'))
     
     checklist_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
-    return render_template('admin/checklist_padrao.html', checklist_items=checklist_items)
+    return render_template('developer/checklist_padrao.html', checklist_items=checklist_items)
 
-@app.route('/admin/checklist-padrao/add', methods=['POST'])
+@app.route('/developer/checklist-padrao/add', methods=['POST'])
 @login_required
 @csrf.exempt
-def admin_checklist_add():
+def developer_checklist_add():
     """Adicionar novo item ao checklist padrão"""
-    if not current_user.is_master:
+    if not current_user.is_developer:
         return jsonify({'error': 'Acesso negado'}), 403
     
     try:
@@ -2424,12 +2424,12 @@ def admin_checklist_add():
         print(f"Erro ao adicionar item checklist: {e}")
         return jsonify({'error': f'Erro interno: {str(e)}'}), 500
 
-@app.route('/admin/checklist-padrao/edit/<int:item_id>', methods=['PUT'])
+@app.route('/developer/checklist-padrao/edit/<int:item_id>', methods=['PUT'])
 @login_required
 @csrf.exempt
-def admin_checklist_edit(item_id):
+def developer_checklist_edit(item_id):
     """Editar item do checklist padrão"""
-    if not current_user.is_master:
+    if not current_user.is_developer:
         return jsonify({'error': 'Acesso negado'}), 403
     
     try:
@@ -2465,12 +2465,12 @@ def admin_checklist_edit(item_id):
         print(f"Erro ao editar item checklist: {e}")
         return jsonify({'error': f'Erro interno: {str(e)}'}), 500
 
-@app.route('/admin/checklist-padrao/delete/<int:item_id>', methods=['DELETE'])
+@app.route('/developer/checklist-padrao/delete/<int:item_id>', methods=['DELETE'])
 @login_required
 @csrf.exempt
-def admin_checklist_delete(item_id):
+def developer_checklist_delete(item_id):
     """Remover item do checklist padrão"""
-    if not current_user.is_master:
+    if not current_user.is_developer:
         return jsonify({'error': 'Acesso negado'}), 403
     
     try:
@@ -2489,12 +2489,12 @@ def admin_checklist_delete(item_id):
         print(f"Erro ao remover item checklist: {e}")
         return jsonify({'error': f'Erro interno: {str(e)}'}), 500
 
-@app.route('/admin/checklist-padrao/reorder', methods=['POST'])
+@app.route('/developer/checklist-padrao/reorder', methods=['POST'])
 @login_required
 @csrf.exempt
-def admin_checklist_reorder():
+def developer_checklist_reorder():
     """Reordenar itens do checklist padrão"""
-    if not current_user.is_master:
+    if not current_user.is_developer:
         return jsonify({'error': 'Acesso negado'}), 403
     
     try:
