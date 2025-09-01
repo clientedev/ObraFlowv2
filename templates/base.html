@@ -91,13 +91,6 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('reports') }}">Listar Relatórios</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('create_report') }}">Novo Relatório</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('express_standalone_list') }}">
-                                <i class="fas fa-bolt me-1 text-warning"></i>Relatórios Express
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('express_standalone_novo') }}">
-                                <i class="fas fa-plus me-1"></i>Novo Express
-                            </a></li>
                             {% if current_user.is_master %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('pending_reports') }}">
