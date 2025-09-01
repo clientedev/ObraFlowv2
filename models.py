@@ -392,6 +392,7 @@ class RelatorioExpressStandalone(db.Model):
     objetivo_visita = db.Column(db.Text)
     
     # Conteúdo do relatório (todas as seções)
+    titulo_relatorio = db.Column(db.String(200), nullable=False, default='Relatório de Visita Técnica')
     observacoes_preliminares = db.Column(db.Text)
     atividades_executadas = db.Column(db.Text)
     materiais_utilizados = db.Column(db.Text)

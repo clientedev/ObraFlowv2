@@ -3393,6 +3393,7 @@ def express_standalone_novo():
                 equipe_presentes=form.equipe_presentes.data,
                 objetivo_visita=form.objetivo_visita.data,
                 # Conteúdo do relatório
+                titulo_relatorio=form.titulo_relatorio.data or 'Relatório de Visita Técnica',
                 observacoes_preliminares=form.observacoes_preliminares.data,
                 atividades_executadas=form.atividades_executadas.data,
                 materiais_utilizados=form.materiais_utilizados.data,

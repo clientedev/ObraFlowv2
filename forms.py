@@ -257,6 +257,9 @@ class RelatorioExpressStandaloneForm(FlaskForm):
     especificacoes_tecnicas = TextAreaField('Especificações Técnicas')
     medicoes_realizadas = TextAreaField('Medições Realizadas')
     ensaios_realizados = TextAreaField('Ensaios Realizados')
+    
+    # Campo título gerado automaticamente
+    titulo_relatorio = StringField('Título do Relatório', default='Relatório de Visita Técnica')
 
 class FotoExpressStandaloneForm(FlaskForm):
     """Formulário para adicionar foto ao relatório express standalone"""

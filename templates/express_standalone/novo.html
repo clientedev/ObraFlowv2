@@ -236,6 +236,12 @@
                         </h5>
                     </div>
                     <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.titulo_relatorio.label(class="form-label") }}
+                            {{ form.titulo_relatorio(class="form-control", placeholder="Relatório de Visita Técnica") }}
+                            <div class="form-text">Título principal do relatório</div>
+                        </div>
+                        
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -343,7 +349,7 @@
                             {{ form.conclusoes(class="form-control" + (" is-invalid" if form.conclusoes.errors else ""), rows="4") }}
                             {% if form.conclusoes.errors %}
                                 <div class="invalid-feedback">
-                                    {% for error in form.conclusoes.errors %}{{ error %}{% endfor %}
+                                    {% for error in form.conclusoes.errors %}{{ error }}{% endfor %}
                                 </div>
                             {% endif %}
                             <div class="form-text">Conclusões finais do relatório</div>
