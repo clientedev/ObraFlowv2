@@ -64,19 +64,19 @@
                         </div>
                         
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="mb-3">
                                     {{ form.empresa_contato.label(class="form-label") }}
                                     {{ form.empresa_contato(class="form-control") }}
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="mb-3">
                                     {{ form.empresa_telefone.label(class="form-label") }}
                                     {{ form.empresa_telefone(class="form-control") }}
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="mb-3">
                                     {{ form.empresa_email.label(class="form-label") }}
                                     {{ form.empresa_email(class="form-control" + (" is-invalid" if form.empresa_email.errors else "")) }}
@@ -87,6 +87,32 @@
                                     {% endif %}
                                 </div>
                             </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    {{ form.empresa_cnpj.label(class="form-label") }}
+                                    {{ form.empresa_cnpj(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-map-marker-alt text-warning me-2"></i>
+                            Dados do Projeto
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.projeto_nome.label(class="form-label required") }}
+                            {{ form.projeto_nome(class="form-control" + (" is-invalid" if form.projeto_nome.errors else "")) }}
+                            {% if form.projeto_nome.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.projeto_nome.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -112,43 +138,121 @@
                         <div class="row">
                             <div class="col-md-8">
                                 <div class="mb-3">
-                                    {{ form.local_inspecao.label(class="form-label required") }}
-                                    {{ form.local_inspecao(class="form-control" + (" is-invalid" if form.local_inspecao.errors else ""), rows="2") }}
-                                    {% if form.local_inspecao.errors %}
+                                    {{ form.projeto_endereco.label(class="form-label required") }}
+                                    {{ form.projeto_endereco(class="form-control" + (" is-invalid" if form.projeto_endereco.errors else ""), rows="2") }}
+                                    {% if form.projeto_endereco.errors %}
                                         <div class="invalid-feedback">
-                                            {% for error in form.local_inspecao.errors %}{{ error }}{% endfor %}
+                                            {% for error in form.projeto_endereco.errors %}{{ error }}{% endfor %}
                                         </div>
                                     {% endif %}
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    {{ form.data_inspecao.label(class="form-label required") }}
-                                    {{ form.data_inspecao(class="form-control" + (" is-invalid" if form.data_inspecao.errors else "")) }}
-                                    {% if form.data_inspecao.errors %}
-                                        <div class="invalid-feedback">
-                                            {% for error in form.data_inspecao.errors %}{{ error }}{% endfor %}
-                                        </div>
-                                    {% endif %}
+                                    {{ form.tipo_obra.label(class="form-label") }}
+                                    {{ form.tipo_obra(class="form-control") }}
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="mb-3">
-                            {{ form.itens_observados.label(class="form-label required") }}
-                            {{ form.itens_observados(class="form-control" + (" is-invalid" if form.itens_observados.errors else ""), rows="5") }}
-                            {% if form.itens_observados.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.itens_observados.errors %}{{ error }}{% endfor %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.data_inicio.label(class="form-label") }}
+                                    {{ form.data_inicio(class="form-control") }}
                                 </div>
-                            {% endif %}
-                            <div class="form-text">Descreva os principais itens observados durante a inspeção</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.data_previsao_fim.label(class="form-label") }}
+                                    {{ form.data_previsao_fim(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-check text-success me-2"></i>
+                            Dados da Visita
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.data_visita.label(class="form-label required") }}
+                                    {{ form.data_visita(class="form-control" + (" is-invalid" if form.data_visita.errors else "")) }}
+                                    {% if form.data_visita.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.data_visita.errors %}{{ error }}{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.hora_inicio.label(class="form-label") }}
+                                    {{ form.hora_inicio(class="form-control", placeholder="08:00") }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.hora_fim.label(class="form-label") }}
+                                    {{ form.hora_fim(class="form-control", placeholder="17:00") }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.clima.label(class="form-label") }}
+                                    {{ form.clima(class="form-select") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.temperatura.label(class="form-label") }}
+                                    {{ form.temperatura(class="form-control", placeholder="25°C") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clipboard-list text-info me-2"></i>
+                            Conteúdo do Relatório
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.observacoes_gerais.label(class="form-label") }}
+                            {{ form.observacoes_gerais(class="form-control", rows="4") }}
+                            <div class="form-text">Observações gerais da visita</div>
                         </div>
                         
                         <div class="mb-3">
-                            {{ form.observacoes_gerais.label(class="form-label") }}
-                            {{ form.observacoes_gerais(class="form-control", rows="3") }}
-                            <div class="form-text">Observações adicionais (opcional)</div>
+                            {{ form.problemas_identificados.label(class="form-label") }}
+                            {{ form.problemas_identificados(class="form-control", rows="4") }}
+                            <div class="form-text">Liste os problemas encontrados</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.recomendacoes.label(class="form-label") }}
+                            {{ form.recomendacoes(class="form-control", rows="4") }}
+                            <div class="form-text">Recomendações para correção</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.conclusoes.label(class="form-label") }}
+                            {{ form.conclusoes(class="form-control", rows="3") }}
+                            <div class="form-text">Conclusões finais do relatório</div>
                         </div>
                     </div>
                 </div>

@@ -199,17 +199,39 @@ class RelatorioExpressStandaloneForm(FlaskForm):
     empresa_contato = StringField('Pessoa de Contato', validators=[Length(max=100)])
     empresa_telefone = StringField('Telefone', validators=[Length(max=20)])
     empresa_email = StringField('E-mail', validators=[Optional(), Email(), Length(max=120)])
+    empresa_cnpj = StringField('CNPJ', validators=[Length(max=20)])
     empresa_logo = FileField('Logo da Empresa', validators=[
         Optional(),
         FileAllowed(['jpg', 'jpeg', 'png'], 'Apenas arquivos JPG, JPEG e PNG!')
     ])
     
+    # Dados do projeto/local
+    projeto_nome = StringField('Nome do Projeto/Local', validators=[DataRequired(), Length(max=200)])
+    projeto_endereco = TextAreaField('Endereço do Projeto', validators=[DataRequired()])
+    tipo_obra = StringField('Tipo de Obra', validators=[Length(max=100)])
+    data_inicio = DateField('Data de Início', validators=[Optional()])
+    data_previsao_fim = DateField('Previsão de Término', validators=[Optional()])
+    
+    # Dados da visita
+    data_visita = DateField('Data da Visita', validators=[DataRequired()], default=datetime.date.today)
+    hora_inicio = StringField('Hora de Início', validators=[Optional()])
+    hora_fim = StringField('Hora de Término', validators=[Optional()])
+    clima = SelectField('Clima', choices=[
+        ('', 'Selecionar...'),
+        ('Ensolarado', 'Ensolarado'),
+        ('Parcialmente nublado', 'Parcialmente nublado'),
+        ('Nublado', 'Nublado'),
+        ('Chuvoso', 'Chuvoso'),
+        ('Garoa', 'Garoa')
+    ], default='')
+    temperatura = StringField('Temperatura', validators=[Length(max=20)])
+    
     # Dados do relatório
     titulo_relatorio = StringField('Título do Relatório', validators=[DataRequired(), Length(max=200)])
-    local_inspecao = TextAreaField('Local da Inspeção', validators=[DataRequired()])
-    data_inspecao = DateField('Data da Inspeção', validators=[DataRequired()], default=datetime.date.today)
     observacoes_gerais = TextAreaField('Observações Gerais')
-    itens_observados = TextAreaField('Itens Observados', validators=[DataRequired()])
+    problemas_identificados = TextAreaField('Problemas Identificados')
+    recomendacoes = TextAreaField('Recomendações')
+    conclusoes = TextAreaField('Conclusões')
 
 class FotoExpressStandaloneForm(FlaskForm):
     """Formulário para adicionar foto ao relatório express standalone"""

@@ -3374,12 +3374,23 @@ def express_standalone_novo():
                 empresa_contato=form.empresa_contato.data,
                 empresa_telefone=form.empresa_telefone.data,
                 empresa_email=form.empresa_email.data,
+                empresa_cnpj=form.empresa_cnpj.data,
                 empresa_logo_filename=logo_filename,
+                projeto_nome=form.projeto_nome.data,
+                projeto_endereco=form.projeto_endereco.data,
+                tipo_obra=form.tipo_obra.data,
+                data_inicio=form.data_inicio.data,
+                data_previsao_fim=form.data_previsao_fim.data,
+                data_visita=form.data_visita.data,
+                hora_inicio=datetime.strptime(form.hora_inicio.data, '%H:%M').time() if form.hora_inicio.data else None,
+                hora_fim=datetime.strptime(form.hora_fim.data, '%H:%M').time() if form.hora_fim.data else None,
+                clima=form.clima.data,
+                temperatura=form.temperatura.data,
                 titulo_relatorio=form.titulo_relatorio.data,
-                local_inspecao=form.local_inspecao.data,
-                data_inspecao=form.data_inspecao.data,
                 observacoes_gerais=form.observacoes_gerais.data,
-                itens_observados=form.itens_observados.data,
+                problemas_identificados=form.problemas_identificados.data,
+                recomendacoes=form.recomendacoes.data,
+                conclusoes=form.conclusoes.data,
                 autor_id=current_user.id
             )
             
@@ -3466,6 +3477,107 @@ def express_standalone_adicionar_foto(relatorio_id):
             flash(f'Erro ao adicionar foto: {str(e)}', 'error')
     
     return render_template('express_standalone/adicionar_foto.html', form=form, relatorio=relatorio)
+
+@app.route('/relatorio-express-standalone/<int:relatorio_id>/editar-foto/<int:foto_id>')
+@login_required
+def express_standalone_editar_foto(relatorio_id, foto_id):
+    """Editor de fotos para relatório express standalone"""
+    relatorio = RelatorioExpressStandalone.query.get_or_404(relatorio_id)
+    foto = FotoRelatorioExpressStandalone.query.get_or_404(foto_id)
+    
+    # Verificar acesso
+    if relatorio.autor_id != current_user.id and not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_standalone_list'))
+    
+    # Verificar se a foto pertence ao relatório
+    if foto.relatorio_id != relatorio_id:
+        flash('Foto não pertence a este relatório.', 'error')
+        return redirect(url_for('express_standalone_detalhes', relatorio_id=relatorio_id))
+    
+    return render_template('express_standalone/editar_foto.html', relatorio=relatorio, foto=foto)
+
+@app.route('/relatorio-express-standalone/<int:relatorio_id>/remover-foto/<int:foto_id>', methods=['POST'])
+@login_required
+@csrf.exempt
+def express_standalone_remover_foto(relatorio_id, foto_id):
+    """Remover foto do relatório express standalone"""
+    relatorio = RelatorioExpressStandalone.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if relatorio.autor_id != current_user.id and not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        foto = FotoRelatorioExpressStandalone.query.get_or_404(foto_id)
+        
+        # Verificar se a foto pertence ao relatório
+        if foto.relatorio_id != relatorio_id:
+            return jsonify({'error': 'Foto não pertence a este relatório'}), 400
+        
+        # Remover arquivo do disco
+        foto_path = os.path.join(app.config.get('UPLOAD_FOLDER', 'uploads'), foto.filename)
+        if os.path.exists(foto_path):
+            os.remove(foto_path)
+        
+        # Remover registro
+        db.session.delete(foto)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Erro ao remover foto: {str(e)}'}), 500
+
+@app.route('/relatorio-express-standalone/<int:relatorio_id>/salvar-foto-editada', methods=['POST'])
+@login_required
+@csrf.exempt
+def express_standalone_salvar_foto_editada(relatorio_id):
+    """Salvar foto editada do relatório express standalone"""
+    relatorio = RelatorioExpressStandalone.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if relatorio.autor_id != current_user.id and not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        data = request.get_json()
+        foto_id = data.get('foto_id')
+        image_data = data.get('image_data')
+        legenda = data.get('legenda', '')
+        categoria = data.get('categoria', 'Geral')
+        
+        foto = FotoRelatorioExpressStandalone.query.get_or_404(foto_id)
+        
+        # Verificar se a foto pertence ao relatório
+        if foto.relatorio_id != relatorio_id:
+            return jsonify({'error': 'Foto não pertence a este relatório'}), 400
+        
+        # Salvar imagem editada
+        if image_data:
+            import base64
+            # Remover o prefixo data:image/...;base64,
+            image_data = image_data.split(',')[1] if ',' in image_data else image_data
+            
+            # Decodificar base64
+            image_bytes = base64.b64decode(image_data)
+            
+            # Salvar sobre o arquivo existente
+            foto_path = os.path.join(app.config.get('UPLOAD_FOLDER', 'uploads'), foto.filename)
+            with open(foto_path, 'wb') as f:
+                f.write(image_bytes)
+        
+        # Atualizar legenda e categoria
+        foto.legenda = legenda
+        foto.categoria = categoria
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Foto salva com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Erro ao salvar foto: {str(e)}'}), 500
 
 # Error handlers
 @app.errorhandler(404)

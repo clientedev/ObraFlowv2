@@ -71,7 +71,8 @@ def gerar_pdf_relatorio_express_standalone(relatorio_id, salvar_arquivo=True):
             'hora_atual': datetime.now().strftime('%H:%M'),
             'autor': relatorio.autor.nome_completo,
             'empresa_logo_base64': empresa_logo_base64,
-            'elp_logo_base64': elp_logo_base64
+            'elp_logo_base64': elp_logo_base64,
+            'total_fotos': len(fotos_data)
         }
         
         # Template HTML do relatório express standalone
@@ -277,6 +278,12 @@ def gerar_pdf_relatorio_express_standalone(relatorio_id, salvar_arquivo=True):
                         <div class="campo-label">E-mail:</div>
                         <div class="campo-valor">{{ relatorio.empresa_email or '-' }}</div>
                     </div>
+                    {% if relatorio.empresa_cnpj %}
+                    <div class="campo">
+                        <div class="campo-label">CNPJ:</div>
+                        <div class="campo-valor">{{ relatorio.empresa_cnpj }}</div>
+                    </div>
+                    {% endif %}
                 </div>
                 {% if relatorio.empresa_endereco %}
                 <div class="campo">
@@ -286,33 +293,76 @@ def gerar_pdf_relatorio_express_standalone(relatorio_id, salvar_arquivo=True):
                 {% endif %}
             </div>
             
-            <!-- Dados da Inspeção -->
+            <!-- Dados do Projeto -->
             <div class="secao">
-                <div class="secao-titulo">DADOS DA INSPEÇÃO</div>
+                <div class="secao-titulo">DADOS DO PROJETO</div>
                 <div class="dados-grid">
                     <div class="campo">
-                        <div class="campo-label">Local da Inspeção:</div>
-                        <div class="campo-valor">{{ relatorio.local_inspecao }}</div>
+                        <div class="campo-label">Nome do Projeto:</div>
+                        <div class="campo-valor">{{ relatorio.projeto_nome }}</div>
                     </div>
                     <div class="campo">
-                        <div class="campo-label">Data da Inspeção:</div>
-                        <div class="campo-valor">{{ relatorio.data_inspecao.strftime('%d/%m/%Y') }}</div>
+                        <div class="campo-label">Endereço:</div>
+                        <div class="campo-valor">{{ relatorio.projeto_endereco }}</div>
                     </div>
+                    {% if relatorio.tipo_obra %}
+                    <div class="campo">
+                        <div class="campo-label">Tipo de Obra:</div>
+                        <div class="campo-valor">{{ relatorio.tipo_obra }}</div>
+                    </div>
+                    {% endif %}
+                    {% if relatorio.data_inicio %}
+                    <div class="campo">
+                        <div class="campo-label">Data de Início:</div>
+                        <div class="campo-valor">{{ relatorio.data_inicio.strftime('%d/%m/%Y') }}</div>
+                    </div>
+                    {% endif %}
+                    {% if relatorio.data_previsao_fim %}
+                    <div class="campo">
+                        <div class="campo-label">Previsão de Término:</div>
+                        <div class="campo-valor">{{ relatorio.data_previsao_fim.strftime('%d/%m/%Y') }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Dados da Visita -->
+            <div class="secao">
+                <div class="secao-titulo">DADOS DA VISITA</div>
+                <div class="dados-grid">
+                    <div class="campo">
+                        <div class="campo-label">Data da Visita:</div>
+                        <div class="campo-valor">{{ relatorio.data_visita.strftime('%d/%m/%Y') }}</div>
+                    </div>
+                    {% if relatorio.hora_inicio %}
+                    <div class="campo">
+                        <div class="campo-label">Hora de Início:</div>
+                        <div class="campo-valor">{{ relatorio.hora_inicio.strftime('%H:%M') }}</div>
+                    </div>
+                    {% endif %}
+                    {% if relatorio.hora_fim %}
+                    <div class="campo">
+                        <div class="campo-label">Hora de Término:</div>
+                        <div class="campo-valor">{{ relatorio.hora_fim.strftime('%H:%M') }}</div>
+                    </div>
+                    {% endif %}
                     <div class="campo">
                         <div class="campo-label">Responsável:</div>
                         <div class="campo-valor">{{ autor }}</div>
                     </div>
+                    {% if relatorio.clima %}
                     <div class="campo">
-                        <div class="campo-label">Data do Relatório:</div>
-                        <div class="campo-valor">{{ data_atual }}</div>
+                        <div class="campo-label">Clima:</div>
+                        <div class="campo-valor">{{ relatorio.clima }}</div>
                     </div>
+                    {% endif %}
+                    {% if relatorio.temperatura %}
+                    <div class="campo">
+                        <div class="campo-label">Temperatura:</div>
+                        <div class="campo-valor">{{ relatorio.temperatura }}</div>
+                    </div>
+                    {% endif %}
                 </div>
-            </div>
-            
-            <!-- Itens Observados -->
-            <div class="secao">
-                <div class="secao-titulo">ITENS OBSERVADOS</div>
-                <div class="campo-valor">{{ relatorio.itens_observados | replace('\n', '<br>') | safe }}</div>
             </div>
             
             <!-- Observações Gerais -->
@@ -320,6 +370,30 @@ def gerar_pdf_relatorio_express_standalone(relatorio_id, salvar_arquivo=True):
             <div class="secao">
                 <div class="secao-titulo">OBSERVAÇÕES GERAIS</div>
                 <div class="campo-valor">{{ relatorio.observacoes_gerais | replace('\n', '<br>') | safe }}</div>
+            </div>
+            {% endif %}
+            
+            <!-- Problemas Identificados -->
+            {% if relatorio.problemas_identificados %}
+            <div class="secao">
+                <div class="secao-titulo">PROBLEMAS IDENTIFICADOS</div>
+                <div class="campo-valor">{{ relatorio.problemas_identificados | replace('\n', '<br>') | safe }}</div>
+            </div>
+            {% endif %}
+            
+            <!-- Recomendações -->
+            {% if relatorio.recomendacoes %}
+            <div class="secao">
+                <div class="secao-titulo">RECOMENDAÇÕES</div>
+                <div class="campo-valor">{{ relatorio.recomendacoes | replace('\n', '<br>') | safe }}</div>
+            </div>
+            {% endif %}
+            
+            <!-- Conclusões -->
+            {% if relatorio.conclusoes %}
+            <div class="secao">
+                <div class="secao-titulo">CONCLUSÕES</div>
+                <div class="campo-valor">{{ relatorio.conclusoes | replace('\n', '<br>') | safe }}</div>
             </div>
             {% endif %}
             

@@ -79,38 +79,78 @@
                     </div>
                 </div>
 
-                <!-- Dados da Inspeção -->
+                <!-- Dados do Projeto -->
                 <div class="col-lg-6 mb-4">
                     <div class="card h-100">
                         <div class="card-header">
                             <h5 class="mb-0">
-                                <i class="fas fa-clipboard-list text-info me-2"></i>
-                                Dados da Inspeção
+                                <i class="fas fa-map-marker-alt text-warning me-2"></i>
+                                Dados do Projeto
                             </h5>
                         </div>
                         <div class="card-body">
-                            <p><strong>Local:</strong> {{ relatorio.local_inspecao }}</p>
-                            <p><strong>Data da Inspeção:</strong> {{ relatorio.data_inspecao.strftime('%d/%m/%Y') }}</p>
-                            <p><strong>Responsável:</strong> {{ relatorio.autor.nome_completo }}</p>
-                            <p><strong>Criado em:</strong> {{ relatorio.data_criacao.strftime('%d/%m/%Y às %H:%M') }}</p>
-                            {% if relatorio.data_finalizacao %}
-                            <p><strong>Finalizado em:</strong> {{ relatorio.data_finalizacao.strftime('%d/%m/%Y às %H:%M') }}</p>
+                            <p><strong>Projeto:</strong> {{ relatorio.projeto_nome }}</p>
+                            <p><strong>Endereço:</strong> {{ relatorio.projeto_endereco }}</p>
+                            {% if relatorio.tipo_obra %}
+                            <p><strong>Tipo de Obra:</strong> {{ relatorio.tipo_obra }}</p>
+                            {% endif %}
+                            {% if relatorio.data_inicio %}
+                            <p><strong>Data de Início:</strong> {{ relatorio.data_inicio.strftime('%d/%m/%Y') }}</p>
                             {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Itens Observados -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-list-ul text-success me-2"></i>
-                        Itens Observados
-                    </h5>
+            <div class="row">
+                <!-- Dados da Visita -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-calendar-check text-success me-2"></i>
+                                Dados da Visita
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Data da Visita:</strong> {{ relatorio.data_visita.strftime('%d/%m/%Y') }}</p>
+                            {% if relatorio.hora_inicio %}
+                            <p><strong>Horário:</strong> {{ relatorio.hora_inicio.strftime('%H:%M') }}{% if relatorio.hora_fim %} às {{ relatorio.hora_fim.strftime('%H:%M') }}{% endif %}</p>
+                            {% endif %}
+                            <p><strong>Responsável:</strong> {{ relatorio.autor.nome_completo }}</p>
+                            {% if relatorio.clima %}
+                            <p><strong>Clima:</strong> {{ relatorio.clima }}</p>
+                            {% endif %}
+                            {% if relatorio.temperatura %}
+                            <p><strong>Temperatura:</strong> {{ relatorio.temperatura }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <p class="mb-0">{{ relatorio.itens_observados | replace('\n', '<br>') | safe }}</p>
+
+                <!-- Metadados -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle text-info me-2"></i>
+                                Informações do Relatório
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Número:</strong> {{ relatorio.numero }}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="badge bg-{{ 'success' if relatorio.status == 'finalizado' else 'warning' }}">
+                                    {{ relatorio.status.title() }}
+                                </span>
+                            </p>
+                            <p><strong>Criado em:</strong> {{ relatorio.data_criacao.strftime('%d/%m/%Y às %H:%M') }}</p>
+                            {% if relatorio.data_finalizacao %}
+                            <p><strong>Finalizado em:</strong> {{ relatorio.data_finalizacao.strftime('%d/%m/%Y às %H:%M') }}</p>
+                            {% endif %}
+                            <p><strong>Total de Fotos:</strong> {{ fotos|length }}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -119,12 +159,57 @@
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-comment-alt text-warning me-2"></i>
+                        <i class="fas fa-comment-alt text-info me-2"></i>
                         Observações Gerais
                     </h5>
                 </div>
                 <div class="card-body">
                     <p class="mb-0">{{ relatorio.observacoes_gerais | replace('\n', '<br>') | safe }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Problemas Identificados -->
+            {% if relatorio.problemas_identificados %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        Problemas Identificados
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ relatorio.problemas_identificados | replace('\n', '<br>') | safe }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Recomendações -->
+            {% if relatorio.recomendacoes %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb text-success me-2"></i>
+                        Recomendações
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ relatorio.recomendacoes | replace('\n', '<br>') | safe }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Conclusões -->
+            {% if relatorio.conclusoes %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle text-primary me-2"></i>
+                        Conclusões
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ relatorio.conclusoes | replace('\n', '<br>') | safe }}</p>
                 </div>
             </div>
             {% endif %}
@@ -154,10 +239,16 @@
                                     <p class="card-text small">{{ foto.legenda }}</p>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <small class="text-muted">Ordem: {{ foto.ordem }}</small>
-                                        <button class="btn btn-sm btn-outline-danger" 
-                                                onclick="removerFoto({{ foto.id }})">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('express_standalone_editar_foto', relatorio_id=relatorio.id, foto_id=foto.id) }}" 
+                                               class="btn btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="removerFoto({{ foto.id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -247,8 +338,24 @@ function enviarEmail() {
 
 function removerFoto(fotoId) {
     if (confirm('Tem certeza que deseja remover esta foto?')) {
-        // Implementar remoção de foto
-        alert('Funcionalidade de remoção será implementada em breve.');
+        fetch(`/relatorio-express-standalone/{{ relatorio.id }}/remover-foto/${fotoId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao remover foto.');
+        });
     }
 }
 </script>
