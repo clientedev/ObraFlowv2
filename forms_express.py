@@ -73,6 +73,9 @@ class RelatorioExpressForm(FlaskForm):
                                 validators=[Optional()],
                                 render_kw={'rows': 3, 'placeholder': 'Recomendações técnicas'})
     
+    # Checklist (campo oculto para armazenar dados JSON)
+    checklist_completo = HiddenField('Checklist Completo')
+    
     # Upload de fotos (idêntico ao padrão)
     fotos = MultipleFileField('Fotos', 
                              validators=[FileAllowed(['jpg', 'jpeg', 'png'], 'Apenas imagens JPG e PNG são permitidas.')],

@@ -82,6 +82,38 @@ class ExpressReportGenerator(WeasyPrintReportGenerator):
                 
                 if info_visita:
                     self.conteudo = "INFORMAÇÕES DA VISITA:\n" + "\n".join(info_visita) + "\n\n" + self.conteudo
+                    
+                # Processar checklist se houver dados
+                checklist_content = self._process_checklist(express_data)
+                if checklist_content:
+                    self.conteudo = self.conteudo + "\n\n" + checklist_content
+                    
+            def _process_checklist(self, express_data):
+                """Processa dados do checklist para inclusão no PDF"""
+                try:
+                    import json
+                    checklist_json = express_data.checklist_dados or express_data.checklist_completo
+                    
+                    if not checklist_json:
+                        return ""
+                    
+                    checklist_data = json.loads(checklist_json)
+                    
+                    if not checklist_data or len(checklist_data) == 0:
+                        return ""
+                    
+                    checklist_lines = ["ITENS OBSERVADOS:"]
+                    
+                    for item in checklist_data:
+                        status = "✓" if item.get('concluido', False) else "✗"
+                        titulo = item.get('titulo', '')
+                        checklist_lines.append(f"• {status} {titulo}")
+                    
+                    return "\n".join(checklist_lines)
+                    
+                except Exception as e:
+                    print(f"Erro ao processar checklist: {e}")
+                    return ""
                 
         return MockReport(relatorio_express)
     

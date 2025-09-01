@@ -346,7 +346,8 @@ class RelatorioExpress(db.Model):
     temperatura = db.Column(db.String(50))
     
     # Checklist e observações
-    checklist_completo = db.Column(db.Text)  # JSON com itens do checklist
+    checklist_completo = db.Column(db.Text)  # JSON com itens do checklist (compatibilidade)
+    checklist_dados = db.Column(db.Text)      # JSON com dados do checklist
     observacoes_gerais = db.Column(db.Text)
     pendencias = db.Column(db.Text)
     recomendacoes = db.Column(db.Text)

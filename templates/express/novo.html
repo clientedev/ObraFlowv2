@@ -1197,10 +1197,6 @@ function displayChecklist() {
                         </label>
                     </div>
                     ${item.descricao ? `<small class="text-muted">${item.descricao}</small>` : ''}
-                    <div class="mt-2">
-                        <textarea class="form-control form-control-sm" placeholder="Observações sobre este item..." 
-                                  rows="2" onchange="updateChecklistData()" id="obs_${index}"></textarea>
-                    </div>
                 </div>
             </div>
         `;
@@ -1239,14 +1235,12 @@ function updateChecklistData() {
     
     checklistItems.forEach((item, index) => {
         const checkbox = document.getElementById(`check_${index}`);
-        const observation = document.getElementById(`obs_${index}`);
         
-        if (checkbox && observation) {
+        if (checkbox) {
             checklistData.push({
                 titulo: item.titulo,
                 descricao: item.descricao,
-                concluido: checkbox.checked,
-                observacoes: observation.value.trim()
+                concluido: checkbox.checked
             });
         }
     });

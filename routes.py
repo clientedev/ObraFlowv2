@@ -3030,6 +3030,10 @@ def express_new():
             relatorio_express.pendencias = form.pendencias.data
             relatorio_express.recomendacoes = form.recomendacoes.data
             
+            # Checklist (salvar dados JSON)
+            if form.checklist_completo.data:
+                relatorio_express.checklist_dados = form.checklist_completo.data
+            
             # Status baseado na ação
             if action == 'finalize':
                 relatorio_express.status = 'finalizado'
@@ -3144,6 +3148,10 @@ def express_edit(id):
             relatorio.observacoes_gerais = form.observacoes_gerais.data
             relatorio.pendencias = form.pendencias.data
             relatorio.recomendacoes = form.recomendacoes.data
+            
+            # Atualizar checklist
+            if form.checklist_completo.data:
+                relatorio.checklist_dados = form.checklist_completo.data
             
             # Atualizar status se finalizar
             if action == 'finalize':
