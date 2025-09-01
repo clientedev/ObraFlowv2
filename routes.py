@@ -2443,6 +2443,39 @@ def developer_checklist_padrao():
     checklist_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
     return render_template('developer/checklist_padrao.html', checklist_items=checklist_items)
 
+@app.route('/developer/api/checklist/default')
+@login_required
+def api_checklist_default():
+    """API para carregar itens de checklist padrão para Express Reports"""
+    try:
+        # Buscar itens de checklist padrão criados no perfil desenvolvedor
+        checklist_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem, ChecklistPadrao.id).all()
+        
+        items_data = []
+        for item in checklist_items:
+            items_data.append({
+                'id': item.id,
+                'titulo': item.titulo,
+                'descricao': item.descricao,
+                'categoria': item.categoria or 'Geral',
+                'ordem': item.ordem,
+                'obrigatorio': item.obrigatorio
+            })
+        
+        return jsonify({
+            'success': True,
+            'items': items_data,
+            'total': len(items_data)
+        })
+    
+    except Exception as e:
+        current_app.logger.error(f"Erro ao carregar checklist padrão: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro ao carregar checklist padrão',
+            'details': str(e)
+        })
+
 # Google Drive Backup Routes
 @app.route('/admin/drive/test')
 @login_required

@@ -147,6 +147,58 @@
 .alert-info {
     border-left-color: #17a2b8;
 }
+
+/* Estilos para checklist */
+.checklist-item-card {
+    border-left: 4px solid #ffc107;
+    transition: all 0.3s ease;
+}
+
+.checklist-item-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.checklist-item-card .form-check-input:checked ~ .form-check-label {
+    color: #28a745;
+    text-decoration: line-through;
+}
+
+.checklist-item-card .form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+/* Estilos adicionais para o editor de fotos */
+.tool-group {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.tool-group h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.tool-btn.active {
+    background-color: #007bff !important;
+    color: white !important;
+    border-color: #007bff !important;
+}
+
+.color-palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.color-preset.selected {
+    border: 3px solid #007bff !important;
+    transform: scale(1.1);
+}
 </style>
 {% endblock %}
 
@@ -254,6 +306,37 @@
                         </div>
                         {{ form.latitude() }}
                         {{ form.longitude() }}
+                    </div>
+                </div>
+
+                <!-- CHECKLIST PADRÃO -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-tasks"></i> Checklist de Verificação</h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="loadDefaultChecklist()">
+                                <i class="fas fa-list"></i> Carregar Padrão
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="clearChecklist()">
+                                <i class="fas fa-trash"></i> Limpar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Checklist automático:</strong> Itens padrão serão carregados automaticamente. 
+                            Você pode marcar os itens conforme a verificação da obra.
+                        </div>
+                        
+                        <div id="checklistContainer">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-spinner fa-spin"></i> Carregando checklist padrão...
+                            </div>
+                        </div>
+                        
+                        <!-- Campo oculto para armazenar dados do checklist -->
+                        <input type="hidden" id="checklistData" name="checklist_completo">
                     </div>
                 </div>
 
@@ -485,11 +568,9 @@ function showPhotoConfigurationModal(files, category) {
                         <div class="card-body p-3">
                             <div class="mb-2">
                                 <label class="form-label">Legenda:</label>
-                                <select class="form-control legend-select mb-2" onchange="updatePhotoConfig('${photoId}')">
-                                    <option value="">Carregando legendas...</option>
+                                <select class="form-control legend-select" onchange="updatePhotoConfig('${photoId}')" required>
+                                    <option value="">Selecione uma legenda</option>
                                 </select>
-                                <input type="text" class="form-control legend-input" placeholder="Ou digite uma legenda personalizada" 
-                                       onchange="updatePhotoConfig('${photoId}')">
                             </div>
                             <div class="d-flex justify-content-between">
                                 <button type="button" class="btn btn-outline-primary btn-sm" onclick="openPhotoEditor('${photoId}')">
@@ -567,17 +648,131 @@ function loadLegends(photoId, category) {
 function updatePhotoConfig(photoId) {
     const card = document.querySelector(`[data-photo-id="${photoId}"]`);
     const legendSelect = card.querySelector('.legend-select');
-    const legendInput = card.querySelector('.legend-input');
     
-    // Se selecionou uma legenda predefinida, limpar o input personalizado
+    // Apenas validar se foi selecionada uma legenda
     if (legendSelect.value) {
-        legendInput.value = '';
+        console.log(`Foto ${photoId} configurada com legenda: ${legendSelect.value}`);
     }
 }
 
 // Abrir editor de fotos
 function openPhotoEditor(photoId) {
-    alert('Editor de fotos será implementado. Por enquanto, use as legendas para configurar a foto.');
+    const card = document.querySelector(`[data-photo-id="${photoId}"]`);
+    const imgSrc = card.querySelector('img').src;
+    const fileName = card.dataset.fileName;
+    
+    // Criar modal do editor de fotos
+    const editorModal = document.createElement('div');
+    editorModal.className = 'modal fade';
+    editorModal.id = 'photoEditorModal';
+    editorModal.innerHTML = `
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit"></i> Editor de Fotos - ${fileName}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <!-- Canvas para edição -->
+                            <div class="text-center mb-3">
+                                <canvas id="photoCanvas" style="max-width: 100%; border: 1px solid #ddd; background: white;"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <!-- Ferramentas de edição -->
+                            <div class="tool-group">
+                                <h6><i class="fas fa-pencil-alt"></i> Ferramentas de Desenho</h6>
+                                <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-outline-primary tool-btn" onclick="selectTool('pen')" data-tool="pen">
+                                        <i class="fas fa-pen"></i> Pincel
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success tool-btn" onclick="selectTool('arrow')" data-tool="arrow">
+                                        <i class="fas fa-arrow-right"></i> Seta
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning tool-btn" onclick="selectTool('circle')" data-tool="circle">
+                                        <i class="fas fa-circle"></i> Círculo
+                                    </button>
+                                    <button type="button" class="btn btn-outline-info tool-btn" onclick="selectTool('rectangle')" data-tool="rectangle">
+                                        <i class="fas fa-square"></i> Retângulo
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary tool-btn" onclick="selectTool('text')" data-tool="text">
+                                        <i class="fas fa-font"></i> Texto
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Cores -->
+                            <div class="tool-group">
+                                <h6><i class="fas fa-palette"></i> Cores</h6>
+                                <div class="color-palette">
+                                    <div class="color-preset" style="background-color: #ff0000;" onclick="selectColor('#ff0000')"></div>
+                                    <div class="color-preset" style="background-color: #00ff00;" onclick="selectColor('#00ff00')"></div>
+                                    <div class="color-preset" style="background-color: #0000ff;" onclick="selectColor('#0000ff')"></div>
+                                    <div class="color-preset" style="background-color: #ffff00;" onclick="selectColor('#ffff00')"></div>
+                                    <div class="color-preset" style="background-color: #ff00ff;" onclick="selectColor('#ff00ff')"></div>
+                                    <div class="color-preset" style="background-color: #00ffff;" onclick="selectColor('#00ffff')"></div>
+                                    <div class="color-preset" style="background-color: #000000;" onclick="selectColor('#000000')"></div>
+                                    <div class="color-preset" style="background-color: #ffffff; border: 2px solid #ccc;" onclick="selectColor('#ffffff')"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Configurações -->
+                            <div class="tool-group">
+                                <h6><i class="fas fa-sliders-h"></i> Configurações</h6>
+                                <div class="mb-2">
+                                    <label class="form-label">Espessura da linha:</label>
+                                    <input type="range" class="form-range" id="lineWidth" min="1" max="10" value="3" onchange="updateLineWidth(this.value)">
+                                    <small class="text-muted">Valor: <span id="lineWidthValue">3</span>px</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Ações -->
+                            <div class="tool-group">
+                                <h6><i class="fas fa-cog"></i> Ações</h6>
+                                <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-outline-warning" onclick="undoLastAction()">
+                                        <i class="fas fa-undo"></i> Desfazer
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" onclick="clearCanvas()">
+                                        <i class="fas fa-eraser"></i> Limpar Tudo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="saveEditedPhoto('${photoId}')">
+                        <i class="fas fa-save"></i> Salvar Alterações
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Adicionar modal ao DOM
+    document.body.appendChild(editorModal);
+    
+    // Inicializar editor
+    const modal = new bootstrap.Modal(editorModal);
+    modal.show();
+    
+    // Configurar canvas após o modal ser exibido
+    setTimeout(() => {
+        initializePhotoEditor(imgSrc);
+    }, 500);
+    
+    // Limpar modal quando fechado
+    editorModal.addEventListener('hidden.bs.modal', () => {
+        editorModal.remove();
+    });
 }
 
 // Remover foto da configuração
@@ -595,8 +790,7 @@ function confirmPhotoConfiguration() {
     
     photoCards.forEach(card => {
         const legendSelect = card.querySelector('.legend-select');
-        const legendInput = card.querySelector('.legend-input');
-        const legend = legendSelect.value || legendInput.value.trim();
+        const legend = legendSelect.value;
         
         if (legend) {
             const photoData = {
@@ -707,9 +901,348 @@ function updatePhotoCounter() {
     }
 }
 
+// Variáveis do editor de fotos
+let photoEditor = {
+    canvas: null,
+    ctx: null,
+    currentTool: 'pen',
+    currentColor: '#ff0000',
+    lineWidth: 3,
+    isDrawing: false,
+    startX: 0,
+    startY: 0,
+    history: []
+};
+
+// Inicializar editor de fotos
+function initializePhotoEditor(imageSrc) {
+    photoEditor.canvas = document.getElementById('photoCanvas');
+    photoEditor.ctx = photoEditor.canvas.getContext('2d');
+    
+    const img = new Image();
+    img.onload = function() {
+        // Ajustar tamanho do canvas
+        const maxWidth = 600;
+        const maxHeight = 400;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth) {
+            height = height * (maxWidth / width);
+            width = maxWidth;
+        }
+        if (height > maxHeight) {
+            width = width * (maxHeight / height);
+            height = maxHeight;
+        }
+        
+        photoEditor.canvas.width = width;
+        photoEditor.canvas.height = height;
+        
+        // Desenhar imagem
+        photoEditor.ctx.drawImage(img, 0, 0, width, height);
+        saveCanvasState();
+        
+        // Configurar eventos
+        setupCanvasEvents();
+    };
+    img.src = imageSrc;
+}
+
+// Configurar eventos do canvas
+function setupCanvasEvents() {
+    const canvas = photoEditor.canvas;
+    
+    // Eventos de mouse
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+    
+    // Eventos de touch (mobile)
+    canvas.addEventListener('touchstart', handleTouch);
+    canvas.addEventListener('touchmove', handleTouch);
+    canvas.addEventListener('touchend', handleTouch);
+    
+    // Prevenir scroll no mobile
+    canvas.addEventListener('touchstart', e => e.preventDefault());
+    canvas.addEventListener('touchmove', e => e.preventDefault());
+}
+
+// Funções de desenho
+function startDrawing(e) {
+    photoEditor.isDrawing = true;
+    const rect = photoEditor.canvas.getBoundingClientRect();
+    photoEditor.startX = e.clientX - rect.left;
+    photoEditor.startY = e.clientY - rect.top;
+}
+
+function draw(e) {
+    if (!photoEditor.isDrawing) return;
+    
+    const rect = photoEditor.canvas.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+    
+    photoEditor.ctx.lineWidth = photoEditor.lineWidth;
+    photoEditor.ctx.strokeStyle = photoEditor.currentColor;
+    photoEditor.ctx.fillStyle = photoEditor.currentColor;
+    
+    if (photoEditor.currentTool === 'pen') {
+        photoEditor.ctx.lineCap = 'round';
+        photoEditor.ctx.beginPath();
+        photoEditor.ctx.moveTo(photoEditor.startX, photoEditor.startY);
+        photoEditor.ctx.lineTo(currentX, currentY);
+        photoEditor.ctx.stroke();
+        
+        photoEditor.startX = currentX;
+        photoEditor.startY = currentY;
+    }
+}
+
+function stopDrawing() {
+    if (photoEditor.isDrawing) {
+        photoEditor.isDrawing = false;
+        
+        if (photoEditor.currentTool !== 'pen') {
+            drawShape();
+        }
+        
+        saveCanvasState();
+    }
+}
+
+function drawShape() {
+    const rect = photoEditor.canvas.getBoundingClientRect();
+    const endX = event.clientX - rect.left;
+    const endY = event.clientY - rect.top;
+    
+    photoEditor.ctx.lineWidth = photoEditor.lineWidth;
+    photoEditor.ctx.strokeStyle = photoEditor.currentColor;
+    
+    switch (photoEditor.currentTool) {
+        case 'arrow':
+            drawArrow(photoEditor.startX, photoEditor.startY, endX, endY);
+            break;
+        case 'circle':
+            drawCircle(photoEditor.startX, photoEditor.startY, endX, endY);
+            break;
+        case 'rectangle':
+            drawRectangle(photoEditor.startX, photoEditor.startY, endX, endY);
+            break;
+    }
+}
+
+function drawArrow(fromX, fromY, toX, toY) {
+    const headlen = 15;
+    const angle = Math.atan2(toY - fromY, toX - fromX);
+    
+    photoEditor.ctx.beginPath();
+    photoEditor.ctx.moveTo(fromX, fromY);
+    photoEditor.ctx.lineTo(toX, toY);
+    photoEditor.ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+    photoEditor.ctx.moveTo(toX, toY);
+    photoEditor.ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+    photoEditor.ctx.stroke();
+}
+
+function drawCircle(x1, y1, x2, y2) {
+    const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    photoEditor.ctx.beginPath();
+    photoEditor.ctx.arc(x1, y1, radius, 0, 2 * Math.PI);
+    photoEditor.ctx.stroke();
+}
+
+function drawRectangle(x1, y1, x2, y2) {
+    photoEditor.ctx.beginPath();
+    photoEditor.ctx.rect(x1, y1, x2 - x1, y2 - y1);
+    photoEditor.ctx.stroke();
+}
+
+// Controles do editor
+function selectTool(tool) {
+    photoEditor.currentTool = tool;
+    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
+}
+
+function selectColor(color) {
+    photoEditor.currentColor = color;
+    document.querySelectorAll('.color-preset').forEach(preset => preset.classList.remove('selected'));
+    event.target.classList.add('selected');
+}
+
+function updateLineWidth(width) {
+    photoEditor.lineWidth = width;
+    document.getElementById('lineWidthValue').textContent = width;
+}
+
+function saveCanvasState() {
+    photoEditor.history.push(photoEditor.ctx.getImageData(0, 0, photoEditor.canvas.width, photoEditor.canvas.height));
+}
+
+function undoLastAction() {
+    if (photoEditor.history.length > 1) {
+        photoEditor.history.pop();
+        const lastState = photoEditor.history[photoEditor.history.length - 1];
+        photoEditor.ctx.putImageData(lastState, 0, 0);
+    }
+}
+
+function clearCanvas() {
+    if (confirm('Deseja limpar todas as anotações? Esta ação não pode ser desfeita.')) {
+        photoEditor.ctx.clearRect(0, 0, photoEditor.canvas.width, photoEditor.canvas.height);
+        // Redesenhar imagem original
+        const img = photoEditor.history[0];
+        if (img) {
+            photoEditor.ctx.putImageData(img, 0, 0);
+        }
+        saveCanvasState();
+    }
+}
+
+function saveEditedPhoto(photoId) {
+    // Converter canvas para base64
+    const editedImageData = photoEditor.canvas.toDataURL('image/png');
+    
+    // Atualizar preview da foto configurada
+    const card = document.querySelector(`[data-photo-id="${photoId}"]`);
+    const img = card.querySelector('img');
+    img.src = editedImageData;
+    
+    // Fechar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('photoEditorModal'));
+    modal.hide();
+    
+    alert('Foto editada com sucesso!');
+}
+
+// Funções do checklist
+let checklistItems = [];
+
+function loadDefaultChecklist() {
+    fetch('/developer/api/checklist/default')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                checklistItems = data.items;
+                displayChecklist();
+                console.log(`${checklistItems.length} itens do checklist padrão carregados`);
+            } else {
+                console.error('Erro ao carregar checklist:', data.error);
+                showChecklistError();
+            }
+        })
+        .catch(error => {
+            console.error('Erro na requisição do checklist:', error);
+            showChecklistError();
+        });
+}
+
+function displayChecklist() {
+    const container = document.getElementById('checklistContainer');
+    
+    if (checklistItems.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted">Nenhum item de checklist encontrado.</div>';
+        return;
+    }
+    
+    let html = '<div class="checklist-items">';
+    
+    checklistItems.forEach((item, index) => {
+        html += `
+            <div class="card checklist-item-card mb-3">
+                <div class="card-body">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="check_${index}" onchange="updateChecklistData()">
+                        <label class="form-check-label fw-bold" for="check_${index}">
+                            ${item.titulo}
+                        </label>
+                    </div>
+                    ${item.descricao ? `<small class="text-muted">${item.descricao}</small>` : ''}
+                    <div class="mt-2">
+                        <textarea class="form-control form-control-sm" placeholder="Observações sobre este item..." 
+                                  rows="2" onchange="updateChecklistData()" id="obs_${index}"></textarea>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+    
+    updateChecklistData();
+}
+
+function showChecklistError() {
+    const container = document.getElementById('checklistContainer');
+    container.innerHTML = `
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Erro ao carregar checklist:</strong> 
+            Não foi possível carregar os itens padrão. 
+            <button class="btn btn-sm btn-outline-primary ms-2" onclick="loadDefaultChecklist()">
+                Tentar Novamente
+            </button>
+        </div>
+    `;
+}
+
+function clearChecklist() {
+    if (confirm('Deseja limpar todo o checklist? Esta ação não pode ser desfeita.')) {
+        checklistItems = [];
+        document.getElementById('checklistContainer').innerHTML = '<div class="text-center text-muted">Checklist vazio.</div>';
+        updateChecklistData();
+    }
+}
+
+function updateChecklistData() {
+    const checklistData = [];
+    
+    checklistItems.forEach((item, index) => {
+        const checkbox = document.getElementById(`check_${index}`);
+        const observation = document.getElementById(`obs_${index}`);
+        
+        if (checkbox && observation) {
+            checklistData.push({
+                titulo: item.titulo,
+                descricao: item.descricao,
+                concluido: checkbox.checked,
+                observacoes: observation.value.trim()
+            });
+        }
+    });
+    
+    document.getElementById('checklistData').value = JSON.stringify(checklistData);
+}
+
+// Funções de touch para mobile
+function handleTouch(e) {
+    e.preventDefault();
+    const touch = e.touches[0] || e.changedTouches[0];
+    const mouseEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    };
+    
+    switch (e.type) {
+        case 'touchstart':
+            startDrawing(mouseEvent);
+            break;
+        case 'touchmove':
+            draw(mouseEvent);
+            break;
+        case 'touchend':
+            stopDrawing();
+            break;
+    }
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     updatePhotoCounter();
+    loadDefaultChecklist();
 });
 
 // Localização GPS
