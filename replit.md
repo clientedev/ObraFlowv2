@@ -101,3 +101,22 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Mobile CSS**: Estilos otimizados com áreas de toque maiores e responsividade
 - ✅ **Tool Preview**: Sistema de preview em tempo real para setas, círculos e retângulos
 - ✅ **iOS Compatibility**: Otimizações específicas para Safari iOS e prevenção de zoom duplo-toque
+
+### Google Drive Integration System (2025-09-01)
+- ✅ **Automatic Backup**: Sistema completo de backup automático para Google Drive usando API REST
+- ✅ **Shared Folder Integration**: Integração com pasta compartilhada (ID: 1DasfSDL0832tx6AQcQGMFMlOm4JMboAx)
+- ✅ **Project Organization**: Criação automática de subpastas por projeto para organização
+- ✅ **Multi-file Support**: Backup de PDFs, imagens anexadas e relatórios express
+- ✅ **Automatic Triggers**: Backup executado automaticamente na aprovação e finalização de relatórios
+- ✅ **Manual Backup Options**: Botões "Forçar Backup" individuais e em lote no painel administrativo
+- ✅ **Status Reporting**: Sistema de notificações de sucesso/erro com detalhes de uploads
+- ✅ **Express Report Integration**: Backup automático para relatórios express finalizados
+- ✅ **Admin Controls**: Painel administrativo com teste de conectividade e backup em lote
+- ✅ **Mobile Compatibility**: Interface responsiva para desktop e mobile
+
+### Developer Access Control Migration (2025-09-01)
+- ✅ **Route Migration**: Movidas todas as rotas de checklist de /admin/ para /developer/
+- ✅ **Access Control Fix**: Apenas usuários com is_developer=True podem gerenciar checklists
+- ✅ **Template Updates**: Template movido para templates/developer/ com rotas atualizadas
+- ✅ **Navigation Fix**: Menu de navegação corrigido para refletir nova estrutura de permissões
+- ✅ **JavaScript Updates**: Todas as chamadas AJAX atualizadas para usar rotas de desenvolvedor

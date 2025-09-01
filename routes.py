@@ -17,6 +17,7 @@ from email_service import email_service
 from pdf_generator_express import gerar_pdf_relatorio_express, gerar_numero_relatorio_express
 from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
 from pdf_generator import generate_visit_report_pdf
+from google_drive_backup import backup_to_drive, test_drive_connection
 import math
 import json
 
@@ -1297,7 +1298,36 @@ def report_finalize(report_id):
     report.status = 'Finalizado'
     db.session.commit()
     
-    flash('Relatório finalizado com sucesso!', 'success')
+    # Fazer backup automático no Google Drive
+    try:
+        # Preparar dados do relatório para backup
+        fotos_paths = []
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).all()
+        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+        
+        for foto in fotos:
+            foto_path = os.path.join(upload_folder, foto.filename)
+            if os.path.exists(foto_path):
+                fotos_paths.append(foto_path)
+        
+        report_data = {
+            'id': report.id,
+            'numero': report.numero,
+            'pdf_path': None,  # PDF será gerado se necessário
+            'images': fotos_paths
+        }
+        
+        project_name = f"{report.projeto.numero}_{report.projeto.nome}"
+        backup_result = backup_to_drive(report_data, project_name)
+        
+        if backup_result.get('success'):
+            flash(f'Relatório finalizado com sucesso! Backup: {backup_result.get("message")}', 'success')
+        else:
+            flash(f'Relatório finalizado com sucesso! Aviso de backup: {backup_result.get("message")}', 'warning')
+            
+    except Exception as e:
+        flash(f'Relatório finalizado com sucesso! Erro no backup: {str(e)}', 'warning')
+    
     return redirect(url_for('report_view', report_id=report_id))
 
 @app.route('/reports/<int:report_id>/send', methods=['POST'])
@@ -1719,6 +1749,37 @@ def report_approve(report_id):
     if action == 'approve':
         relatorio.status = 'Aprovado'
         flash_message = 'Relatório aprovado com sucesso.'
+        
+        # Fazer backup automático no Google Drive quando aprovado
+        try:
+            # Preparar dados do relatório para backup
+            fotos_paths = []
+            fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).all()
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            
+            for foto in fotos:
+                foto_path = os.path.join(upload_folder, foto.filename)
+                if os.path.exists(foto_path):
+                    fotos_paths.append(foto_path)
+            
+            report_data = {
+                'id': relatorio.id,
+                'numero': relatorio.numero,
+                'pdf_path': None,  # PDF será gerado se necessário
+                'images': fotos_paths
+            }
+            
+            project_name = f"{relatorio.projeto.numero}_{relatorio.projeto.nome}"
+            backup_result = backup_to_drive(report_data, project_name)
+            
+            if backup_result.get('success'):
+                flash_message += f' Backup realizado: {backup_result.get("successful_uploads", 0)} arquivo(s) enviado(s).'
+            else:
+                flash_message += f' Aviso de backup: {backup_result.get("message", "Erro no backup")}'
+                
+        except Exception as e:
+            flash_message += f' Erro no backup: {str(e)}'
+            
     elif action == 'reject':
         relatorio.status = 'Rejeitado'
         flash_message = 'Relatório rejeitado.'
@@ -2382,6 +2443,136 @@ def developer_checklist_padrao():
     checklist_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
     return render_template('developer/checklist_padrao.html', checklist_items=checklist_items)
 
+# Google Drive Backup Routes
+@app.route('/admin/drive/test')
+@login_required
+def admin_drive_test():
+    """Testar conexão com Google Drive - apenas administradores"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas administradores podem testar a conexão.', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        result = test_drive_connection()
+        if result['success']:
+            flash(f'Conexão OK: {result["message"]}', 'success')
+        else:
+            flash(f'Erro na conexão: {result["message"]}', 'error')
+    except Exception as e:
+        flash(f'Erro ao testar conexão: {str(e)}', 'error')
+    
+    return redirect(url_for('index'))
+
+@app.route('/admin/drive/force-backup/<int:report_id>')
+@login_required
+def admin_force_backup(report_id):
+    """Forçar backup de relatório específico - apenas administradores"""
+    if not current_user.is_master:
+        return jsonify({'success': False, 'message': 'Acesso negado'})
+    
+    try:
+        relatorio = Relatorio.query.get_or_404(report_id)
+        
+        # Preparar dados do relatório para backup
+        fotos_paths = []
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).all()
+        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+        
+        for foto in fotos:
+            foto_path = os.path.join(upload_folder, foto.filename)
+            if os.path.exists(foto_path):
+                fotos_paths.append(foto_path)
+        
+        report_data = {
+            'id': relatorio.id,
+            'numero': relatorio.numero,
+            'pdf_path': None,  # PDF será gerado se necessário
+            'images': fotos_paths
+        }
+        
+        project_name = f"{relatorio.projeto.numero}_{relatorio.projeto.nome}"
+        backup_result = backup_to_drive(report_data, project_name)
+        
+        if backup_result.get('success'):
+            return jsonify({
+                'success': True,
+                'message': f'Backup realizado: {backup_result.get("successful_uploads", 0)} arquivo(s) enviado(s)',
+                'details': backup_result
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': backup_result.get('message', 'Erro no backup'),
+                'error': backup_result.get('error')
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao forçar backup: {str(e)}'
+        })
+
+@app.route('/admin/drive/backup-all')
+@login_required
+def admin_backup_all():
+    """Forçar backup de todos os relatórios aprovados - apenas administradores"""
+    if not current_user.is_master:
+        return jsonify({'success': False, 'message': 'Acesso negado'})
+    
+    try:
+        relatorios = Relatorio.query.filter(Relatorio.status.in_(['Aprovado', 'Finalizado'])).all()
+        
+        total_reports = len(relatorios)
+        successful_backups = 0
+        failed_backups = 0
+        
+        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+        
+        for relatorio in relatorios:
+            try:
+                # Preparar dados do relatório
+                fotos_paths = []
+                fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).all()
+                
+                for foto in fotos:
+                    foto_path = os.path.join(upload_folder, foto.filename)
+                    if os.path.exists(foto_path):
+                        fotos_paths.append(foto_path)
+                
+                report_data = {
+                    'id': relatorio.id,
+                    'numero': relatorio.numero,
+                    'pdf_path': None,
+                    'images': fotos_paths
+                }
+                
+                project_name = f"{relatorio.projeto.numero}_{relatorio.projeto.nome}"
+                backup_result = backup_to_drive(report_data, project_name)
+                
+                if backup_result.get('success'):
+                    successful_backups += 1
+                else:
+                    failed_backups += 1
+                    print(f"Falha no backup do relatório {relatorio.numero}: {backup_result.get('message')}")
+                    
+            except Exception as e:
+                failed_backups += 1
+                print(f"Erro no backup do relatório {relatorio.numero}: {str(e)}")
+        
+        return jsonify({
+            'success': successful_backups > 0,
+            'message': f'Backup completo: {successful_backups}/{total_reports} relatórios processados com sucesso',
+            'successful': successful_backups,
+            'failed': failed_backups,
+            'total': total_reports
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro no backup em lote: {str(e)}'
+        })
+
 @app.route('/developer/checklist-padrao/add', methods=['POST'])
 @login_required
 @csrf.exempt
@@ -2778,6 +2969,61 @@ def relatorio_express_detalhes(relatorio_id):
     ).order_by(FotoRelatorioExpress.ordem).all()
     
     return render_template('express/detalhes.html', relatorio=relatorio, fotos=fotos)
+
+@app.route('/express/<int:relatorio_id>/finalize', methods=['POST'])
+@login_required
+def relatorio_express_finalize(relatorio_id):
+    """Finalizar relatório express com backup automático"""
+    relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.projeto.responsavel_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Acesso negado'})
+    
+    try:
+        # Fazer backup automático no Google Drive
+        fotos_paths = []
+        fotos = FotoRelatorioExpress.query.filter_by(relatorio_express_id=relatorio_id).all()
+        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+        
+        for foto in fotos:
+            foto_path = os.path.join(upload_folder, foto.filename)
+            if os.path.exists(foto_path):
+                fotos_paths.append(foto_path)
+        
+        # Gerar PDF do relatório express se necessário
+        pdf_path = None
+        try:
+            pdf_path = gerar_pdf_relatorio_express(relatorio_id)
+        except Exception as e:
+            print(f"Erro ao gerar PDF: {str(e)}")
+        
+        report_data = {
+            'id': relatorio.id,
+            'numero': relatorio.numero,
+            'pdf_path': pdf_path,
+            'images': fotos_paths
+        }
+        
+        project_name = f"{relatorio.projeto.numero}_{relatorio.projeto.nome}"
+        backup_result = backup_to_drive(report_data, project_name)
+        
+        if backup_result.get('success'):
+            return jsonify({
+                'success': True,
+                'message': f'Relatório Express finalizado! Backup: {backup_result.get("successful_uploads", 0)} arquivo(s) enviado(s)'
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'message': f'Relatório Express finalizado! Aviso de backup: {backup_result.get("message", "Erro no backup")}'
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': True,
+            'message': f'Relatório Express finalizado! Erro no backup: {str(e)}'
+        })
 
 @app.route('/relatorio-express/<int:relatorio_id>/adicionar-foto', methods=['GET', 'POST'])
 @login_required
