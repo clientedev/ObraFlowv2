@@ -114,7 +114,7 @@ def gerar_pdf_relatorio_express_novo(relatorio_express_id, salvar_arquivo=True):
             'autor': relatorio.autor.nome_completo
         }
         
-        # Template HTML do relatório express (idêntico ao template normal)
+        # Template HTML do relatório express (idêntico ao template normal com CSS profissional)
         html_template = """
         <!DOCTYPE html>
         <html lang="pt-BR">

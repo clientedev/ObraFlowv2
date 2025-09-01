@@ -3,26 +3,33 @@
 {% block title %}{{ relatorio.numero }} - {{ relatorio.nome_empresa }}{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* Estilização profissional idêntica aos relatórios normais */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #f8f9fa;
+}
+
 .express-header {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, #343a40 0%, #20c1e8 100%);
     color: white;
-    padding: 2rem;
-    border-radius: 15px;
+    padding: 3rem 2rem;
+    border-radius: 20px;
     margin-bottom: 2rem;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
 .express-header::before {
     content: '';
     position: absolute;
     top: -50%;
-    right: -50%;
-    width: 100%;
-    height: 100%;
-    background: rgba(255,255,255,0.1);
-    border-radius: 50%;
+    right: -30%;
+    width: 80%;
+    height: 150%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
     z-index: 1;
 }
 
@@ -33,19 +40,31 @@
 
 .info-card {
     background: white;
-    border-radius: 15px;
-    padding: 2rem;
+    border-radius: 20px;
+    padding: 3rem;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    border-left: 4px solid #28a745;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    border: none;
 }
 
 .section-title {
-    color: #28a745;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e9ecef;
-    font-weight: 600;
+    color: #343a40;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 3px solid #e9ecef;
+    font-weight: 700;
+    font-size: 1.5rem;
+    position: relative;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, #343a40, #20c1e8);
 }
 
 .info-grid {
@@ -102,44 +121,51 @@
 }
 
 .btn-express {
-    background: linear-gradient(45deg, #28a745, #20c997);
+    background: linear-gradient(45deg, #343a40, #20c1e8);
     border: none;
     color: white;
-    padding: 12px 24px;
+    padding: 15px 30px;
     border-radius: 25px;
     font-weight: 600;
+    font-size: 1rem;
     transition: all 0.3s ease;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    min-width: 160px;
+    justify-content: center;
 }
 
 .btn-express:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(52, 58, 64, 0.3);
     color: white;
     text-decoration: none;
 }
 
 .btn-outline-express {
-    border: 2px solid #28a745;
-    color: #28a745;
+    border: 2px solid #6c757d;
+    color: #6c757d;
     background: white;
-    padding: 10px 22px;
+    padding: 13px 28px;
     border-radius: 25px;
     font-weight: 600;
+    font-size: 1rem;
     transition: all 0.3s ease;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    min-width: 160px;
+    justify-content: center;
 }
 
 .btn-outline-express:hover {
-    background: #28a745;
+    background: #6c757d;
     color: white;
     text-decoration: none;
+    transform: translateY(-2px);
 }
 
 .photos-section {
