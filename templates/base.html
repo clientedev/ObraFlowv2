@@ -89,20 +89,12 @@
                             <i class="fas fa-file-alt me-1"></i>Relatórios
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('reports') }}">
-                                <i class="fas fa-list me-2"></i>Listar Relatórios
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('create_report') }}">
-                                <i class="fas fa-plus me-2"></i>Novo Relatório
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('relatorio_express_completo') }}">
-                                <i class="fas fa-bolt me-2"></i>Relatório Express
-                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('reports') }}">Listar Relatórios</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('create_report') }}">Novo Relatório</a></li>
                             {% if current_user.is_master %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('pending_reports') }}">
-                                <i class="fas fa-clock me-2"></i>Aguardando Aprovação
+                                <i class="fas fa-clock me-1"></i>Aguardando Aprovação
                             </a></li>
                             {% endif %}
                         </ul>

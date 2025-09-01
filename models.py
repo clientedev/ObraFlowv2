@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from app import db
@@ -328,56 +328,17 @@ class RelatorioExpress(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     numero = db.Column(db.String(20), unique=True, nullable=False)
-    
-    # Dados da empresa (completos como nos relatórios normais)
-    nome_empresa = db.Column(db.String(200))
-    cnpj_empresa = db.Column(db.String(20))
-    telefone_empresa = db.Column(db.String(20))
-    email_empresa = db.Column(db.String(120))
-    endereco_empresa = db.Column(db.Text)
-    
-    # Dados da obra/projeto (completos)
-    nome_obra = db.Column(db.String(200))
-    endereco_obra = db.Column(db.Text)
-    tipo_obra = db.Column(db.String(100))  # Residencial, Comercial, Industrial, etc.
-    coordenadas_gps = db.Column(db.String(100))  # latitude,longitude
-    
-    # Dados do relatório (completos como nos relatórios normais)
-    titulo_relatorio = db.Column(db.String(300))
-    objetivo_visita = db.Column(db.Text)
-    observacoes = db.Column(db.Text, nullable=False)
-    conclusoes = db.Column(db.Text)
-    recomendacoes = db.Column(db.Text)
-    
-    # Checklist e itens técnicos
-    itens_observados = db.Column(db.Text)
-    itens_conformes = db.Column(db.Text)
-    itens_nao_conformes = db.Column(db.Text)
-    
-    # Condições da visita
-    data_visita = db.Column(db.Date)
-    hora_inicio = db.Column(db.String(10))
-    hora_fim = db.Column(db.String(10))
-    condicoes_climaticas = db.Column(db.String(100))
-    
-    # Assinaturas e responsáveis
-    preenchido_por = db.Column(db.String(200))
-    liberado_por = db.Column(db.String(200))
-    responsavel_obra = db.Column(db.String(200))
-    cargo_responsavel_obra = db.Column(db.String(100))
-    data_relatorio = db.Column(db.Date, default=date.today)
-    
-    # Sistema
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
     autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    observacoes = db.Column(db.Text, nullable=False)
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
-    status = db.Column(db.String(50), default='Rascunho')  # Rascunho, Finalizado
-    pdf_path = db.Column(db.String(500))  # Caminho do PDF gerado
     
     # Relacionamentos
+    projeto = db.relationship('Projeto', backref='relatorios_express')
     autor = db.relationship('User', backref='relatorios_express_criados')
     
     def __repr__(self):
-        return f'<RelatorioExpress {self.numero} - {self.nome_empresa}>'
+        return f'<RelatorioExpress {self.numero}>'
 
 class FotoRelatorioExpress(db.Model):
     __tablename__ = 'fotos_relatorios_express'
@@ -385,10 +346,7 @@ class FotoRelatorioExpress(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     relatorio_express_id = db.Column(db.Integer, db.ForeignKey('relatorios_express.id'), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
-    filename_original = db.Column(db.String(255))
-    filename_anotada = db.Column(db.String(255))
     legenda = db.Column(db.String(500), nullable=False)
-    categoria = db.Column(db.String(100), default='Geral')
     ordem = db.Column(db.Integer, default=1)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -396,4 +354,4 @@ class FotoRelatorioExpress(db.Model):
     relatorio_express = db.relationship('RelatorioExpress', backref='fotos')
     
     def __repr__(self):
-        return f'<FotoRelatorioExpress {self.filename} - {self.legenda[:30]}>'
+        return f'<FotoRelatorioExpress {self.filename}>'
