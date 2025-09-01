@@ -42,7 +42,6 @@ Preferred communication style: Simple, everyday language.
 - **Calendar System**: Allows visit scheduling, Google Calendar export, and manages default checklist templates.
 - **Offline Functionality & PWA**: Features full offline support via Service Worker, local storage for form data, automatic sync, and a Progressive Web App (PWA) manifest for installability and native app experience.
 - **Push Notifications**: Provides proximity alerts for nearby construction sites (500m radius), system updates, and pending report notifications for administrators, leveraging geolocation monitoring.
-- **Google Drive Backup**: Automated cloud backup system with OAuth 2.0 authentication, automatic project folder organization, comprehensive file management for PDFs and images, manual backup triggers, and cross-device compatibility.
 
 ## Security Implementation
 - **CSRF Protection**: All forms are protected against cross-site request forgery.
@@ -94,18 +93,6 @@ Preferred communication style: Simple, everyday language.
 - ✅ **API Endpoint**: /api/legendas for dynamic caption retrieval by category
 - ✅ **Multi-Category Support**: 8 specialized categories (Geral, Estrutural, Hidráulica, Elétrica, Acabamentos, Segurança, Fachada, Impermeabilização)
 - ✅ **Dual Caption Mode**: Users can select predefined captions or write custom ones
-
-### Google Drive Backup System (2025-09-01)
-- ✅ **OAuth 2.0 Integration**: Secure authentication with Google Drive API using environment variables
-- ✅ **Automatic Project Folders**: Creates organized folders by project number and name in shared Drive folder
-- ✅ **Comprehensive File Support**: Backs up PDF reports, Express reports, and all attached photos
-- ✅ **Automatic Triggers**: Executes backup whenever reports are created or finalized
-- ✅ **Manual Backup**: One-click backup button available on project details page
-- ✅ **Admin Interface**: Configuration page for setting up and monitoring backup status
-- ✅ **Error Handling**: Robust error reporting and recovery mechanisms
-- ✅ **Cross-Platform**: Works on desktop, tablet, and mobile devices
-- ✅ **Security**: Uses secure credential storage via Replit environment variables
-- ✅ **Shared Folder Integration**: Links to predefined Google Drive shared folder (ID: 1DasfSDL0832tx6AQcQGMFMlOm4JMboAx)
 
 ### Mobile Photo Editor Enhancement (2025-08-20)
 - ✅ **Touch Events Optimization**: Melhorado manuseio de eventos touch para ferramentas além do pincel

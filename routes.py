@@ -17,8 +17,6 @@ from email_service import email_service
 from pdf_generator_express import gerar_pdf_relatorio_express, gerar_numero_relatorio_express
 from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
 from pdf_generator import generate_visit_report_pdf
-from google_drive_service import drive_service
-from backup_hooks import trigger_auto_backup, backup_single_report
 import math
 import json
 
@@ -438,13 +436,6 @@ def create_report():
             print(f"Total de {photo_count} fotos processadas para o relatório {relatorio.numero}")
             
             db.session.commit()
-            
-            # Trigger backup automático
-            try:
-                trigger_auto_backup(relatorio.projeto_id, 'relatorio', relatorio.id)
-            except Exception as e:
-                print(f"Erro no backup automático: {e}")
-            
             flash('Relatório criado com sucesso!', 'success')
             
             # Return JSON response for AJAX submission
@@ -976,14 +967,6 @@ def project_new():
         
         db.session.add(projeto)
         db.session.commit()
-        
-        # Criar pasta no Google Drive para o novo projeto
-        try:
-            drive_service.create_project_folder(projeto.nome, projeto.numero)
-            print(f"Pasta criada no Google Drive para projeto {projeto.numero}")
-        except Exception as e:
-            print(f"Erro ao criar pasta no Google Drive: {e}")
-        
         flash('Projeto cadastrado com sucesso!', 'success')
         return redirect(url_for('projects_list'))
     
@@ -2770,12 +2753,6 @@ def relatorio_express_novo(projeto_id):
             db.session.add(relatorio_express)
             db.session.commit()
             
-            # Trigger backup automático
-            try:
-                trigger_auto_backup(projeto_id, 'relatorio_express', relatorio_express.id)
-            except Exception as e:
-                print(f"Erro no backup automático: {e}")
-            
             flash('Relatório Express criado com sucesso!', 'success')
             return redirect(url_for('relatorio_express_detalhes', relatorio_id=relatorio_express.id))
             
@@ -3074,159 +3051,3 @@ def not_found_error(error):
 def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
-
-# =================== GOOGLE DRIVE BACKUP ROUTES ===================
-
-@app.route('/backup/config')
-@login_required
-def backup_config():
-    """Página de configuração do Google Drive"""
-    if not current_user.is_master and not current_user.is_developer:
-        flash('Acesso negado. Apenas administradores podem configurar backup.', 'error')
-        return redirect(url_for('index'))
-    
-    status = drive_service.get_backup_status()
-    return render_template('backup/config.html', status=status)
-
-@app.route('/backup/authorize')
-@login_required
-def backup_authorize():
-    """Inicia processo de autorização OAuth para Google Drive"""
-    if not current_user.is_master and not current_user.is_developer:
-        flash('Acesso negado.', 'error')
-        return redirect(url_for('index'))
-    
-    redirect_uri = url_for('backup_callback', _external=True)
-    auth_url = drive_service.get_authorization_url(redirect_uri)
-    
-    if not auth_url:
-        flash('Erro ao gerar URL de autorização. Verifique as credenciais do Google Drive.', 'error')
-        return redirect(url_for('backup_config'))
-    
-    return redirect(auth_url)
-
-@app.route('/backup/callback')
-@login_required
-def backup_callback():
-    """Callback OAuth do Google Drive"""
-    if not current_user.is_master and not current_user.is_developer:
-        flash('Acesso negado.', 'error')
-        return redirect(url_for('index'))
-    
-    authorization_code = request.args.get('code')
-    if not authorization_code:
-        flash('Código de autorização não recebido.', 'error')
-        return redirect(url_for('backup_config'))
-    
-    redirect_uri = url_for('backup_callback', _external=True)
-    success = drive_service.handle_oauth_callback(authorization_code, redirect_uri)
-    
-    if success:
-        flash('Google Drive conectado com sucesso!', 'success')
-    else:
-        flash('Erro ao conectar com Google Drive.', 'error')
-    
-    return redirect(url_for('backup_config'))
-
-@app.route('/backup/project/<int:project_id>')
-@login_required
-def backup_project_manual(project_id):
-    """Backup manual de um projeto específico"""
-    projeto = Projeto.query.get_or_404(project_id)
-    
-    # Verificar se o usuário tem acesso ao projeto
-    if not current_user.is_master and projeto.responsavel_id != current_user.id:
-        flash('Acesso negado a este projeto.', 'error')
-        return redirect(url_for('index'))
-    
-    if not drive_service.is_authenticated():
-        flash('Google Drive não está configurado. Configure primeiro nas configurações de backup.', 'warning')
-        return redirect(url_for('backup_config'))
-    
-    try:
-        result = drive_service.backup_project_files(project_id)
-        
-        if result['success']:
-            uploaded_count = len(result['uploaded_files'])
-            error_count = len(result['errors'])
-            
-            if uploaded_count > 0:
-                flash(f'Backup realizado com sucesso! {uploaded_count} arquivos enviados.', 'success')
-            
-            if error_count > 0:
-                flash(f'Alguns arquivos não puderam ser enviados ({error_count} erros).', 'warning')
-            
-        else:
-            flash(f'Erro no backup: {result.get("error", "Erro desconhecido")}', 'error')
-    
-    except Exception as e:
-        flash(f'Erro inesperado no backup: {str(e)}', 'error')
-    
-    return redirect(url_for('project_view', project_id=project_id))
-
-@app.route('/api/backup/status')
-@login_required
-def backup_status_api():
-    """API para verificar status do backup"""
-    if not current_user.is_master and not current_user.is_developer:
-        return jsonify({'error': 'Acesso negado'}), 403
-    
-    status = drive_service.get_backup_status()
-    return jsonify(status)
-
-@app.route('/api/backup/test')
-@login_required
-def backup_test():
-    """Endpoint para testar configuração do backup"""
-    if not current_user.is_master and not current_user.is_developer:
-        return jsonify({'error': 'Acesso negado'}), 403
-    
-    status = drive_service.get_backup_status()
-    
-    # Verificar se há projetos para testar
-    projeto_teste = Projeto.query.first()
-    test_results = {
-        'status': status,
-        'has_projects': projeto_teste is not None,
-        'project_test': None
-    }
-    
-    if projeto_teste and status['is_authenticated']:
-        try:
-            # Testar criação de pasta
-            folder_result = drive_service.create_project_folder(
-                f"Teste {projeto_teste.nome}", 
-                f"TEST-{projeto_teste.numero}"
-            )
-            
-            test_results['project_test'] = {
-                'success': folder_result is not None,
-                'folder_id': folder_result,
-                'project_name': projeto_teste.nome
-            }
-        except Exception as e:
-            test_results['project_test'] = {
-                'success': False,
-                'error': str(e)
-            }
-    
-    return jsonify(test_results)
-
-@app.route('/api/backup/project/<int:project_id>', methods=['POST'])
-@login_required
-def backup_project_api(project_id):
-    """API para backup de projeto via AJAX"""
-    projeto = Projeto.query.get_or_404(project_id)
-    
-    # Verificar acesso
-    if not current_user.is_master and projeto.responsavel_id != current_user.id:
-        return jsonify({'error': 'Acesso negado'}), 403
-    
-    if not drive_service.is_authenticated():
-        return jsonify({'error': 'Google Drive não configurado'}), 400
-    
-    try:
-        result = drive_service.backup_project_files(project_id)
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
