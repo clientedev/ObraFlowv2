@@ -976,6 +976,14 @@ def project_new():
         
         db.session.add(projeto)
         db.session.commit()
+        
+        # Criar pasta no Google Drive para o novo projeto
+        try:
+            drive_service.create_project_folder(projeto.nome, projeto.numero)
+            print(f"Pasta criada no Google Drive para projeto {projeto.numero}")
+        except Exception as e:
+            print(f"Erro ao criar pasta no Google Drive: {e}")
+        
         flash('Projeto cadastrado com sucesso!', 'success')
         return redirect(url_for('projects_list'))
     
@@ -3154,7 +3162,7 @@ def backup_project_manual(project_id):
     except Exception as e:
         flash(f'Erro inesperado no backup: {str(e)}', 'error')
     
-    return redirect(url_for('projeto_detalhes', id=project_id))
+    return redirect(url_for('project_view', project_id=project_id))
 
 @app.route('/api/backup/status')
 @login_required
@@ -3165,6 +3173,44 @@ def backup_status_api():
     
     status = drive_service.get_backup_status()
     return jsonify(status)
+
+@app.route('/api/backup/test')
+@login_required
+def backup_test():
+    """Endpoint para testar configuração do backup"""
+    if not current_user.is_master and not current_user.is_developer:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    status = drive_service.get_backup_status()
+    
+    # Verificar se há projetos para testar
+    projeto_teste = Projeto.query.first()
+    test_results = {
+        'status': status,
+        'has_projects': projeto_teste is not None,
+        'project_test': None
+    }
+    
+    if projeto_teste and status['is_authenticated']:
+        try:
+            # Testar criação de pasta
+            folder_result = drive_service.create_project_folder(
+                f"Teste {projeto_teste.nome}", 
+                f"TEST-{projeto_teste.numero}"
+            )
+            
+            test_results['project_test'] = {
+                'success': folder_result is not None,
+                'folder_id': folder_result,
+                'project_name': projeto_teste.nome
+            }
+        except Exception as e:
+            test_results['project_test'] = {
+                'success': False,
+                'error': str(e)
+            }
+    
+    return jsonify(test_results)
 
 @app.route('/api/backup/project/<int:project_id>', methods=['POST'])
 @login_required

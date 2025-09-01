@@ -203,6 +203,13 @@
                             <div class="alert alert-success">
                                 <i class="fas fa-check-circle me-2"></i>
                                 <strong>Configuração completa!</strong> O backup automático está ativo.
+                                
+                                <div class="mt-3">
+                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="testBackupSystem()" id="testBtn">
+                                        <i class="fas fa-flask me-1"></i>Testar Sistema
+                                    </button>
+                                    <div id="testResults" class="mt-2" style="display: none;"></div>
+                                </div>
                             </div>
                             <a href="{{ url_for('backup_authorize') }}" class="btn btn-outline-primary">
                                 <i class="fas fa-sync-alt me-2"></i>Reconectar
@@ -309,6 +316,58 @@ setInterval(function() {
         })
         .catch(error => console.log('Status check failed:', error));
 }, 30000); // Verificar a cada 30 segundos
+
+function testBackupSystem() {
+    const testBtn = document.getElementById('testBtn');
+    const testResults = document.getElementById('testResults');
+    
+    // Mostrar loading
+    testBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Testando...';
+    testBtn.disabled = true;
+    
+    fetch('/api/backup/test')
+        .then(response => response.json())
+        .then(data => {
+            testResults.style.display = 'block';
+            
+            let resultHtml = '<div class="border rounded p-3 bg-light">';
+            resultHtml += '<h6><i class="fas fa-flask me-2"></i>Resultados do Teste:</h6>';
+            
+            // Status geral
+            if (data.status.is_configured && data.status.is_authenticated) {
+                resultHtml += '<div class="text-success mb-2"><i class="fas fa-check-circle me-1"></i>Conexão: OK</div>';
+            } else {
+                resultHtml += '<div class="text-danger mb-2"><i class="fas fa-times-circle me-1"></i>Conexão: Falhou</div>';
+            }
+            
+            // Teste de pasta
+            if (data.project_test) {
+                if (data.project_test.success) {
+                    resultHtml += '<div class="text-success mb-2"><i class="fas fa-folder me-1"></i>Criação de pasta: OK</div>';
+                    resultHtml += '<small class="text-muted">Pasta ID: ' + data.project_test.folder_id + '</small>';
+                } else {
+                    resultHtml += '<div class="text-danger mb-2"><i class="fas fa-folder me-1"></i>Criação de pasta: Falhou</div>';
+                    if (data.project_test.error) {
+                        resultHtml += '<small class="text-danger">Erro: ' + data.project_test.error + '</small>';
+                    }
+                }
+            } else if (!data.has_projects) {
+                resultHtml += '<div class="text-warning mb-2"><i class="fas fa-info-circle me-1"></i>Nenhum projeto para testar</div>';
+            }
+            
+            resultHtml += '</div>';
+            testResults.innerHTML = resultHtml;
+        })
+        .catch(error => {
+            testResults.style.display = 'block';
+            testResults.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erro no teste: ' + error.message + '</div>';
+        })
+        .finally(() => {
+            // Restaurar botão
+            testBtn.innerHTML = '<i class="fas fa-flask me-1"></i>Testar Sistema';
+            testBtn.disabled = false;
+        });
+}
 </script>
 {% endif %}
 {% endblock %}
