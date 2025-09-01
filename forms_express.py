@@ -47,22 +47,12 @@ class RelatorioExpressForm(FlaskForm):
     ], validators=[Optional()])
     
     # Campos do relatório
-    introducao = TextAreaField('Introdução', validators=[Optional()], 
-                              default="Este relatório apresenta os resultados da visita técnica realizada na obra/empreendimento, com o objetivo de avaliar as condições construtivas e identificar eventuais patologias ou não conformidades.")
-    metodologia = TextAreaField('Metodologia', validators=[Optional()],
-                               default="A inspeção foi realizada através de análise visual detalhada, documentação fotográfica e aplicação de metodologias técnicas específicas conforme normas vigentes.")
+    introducao = TextAreaField('Introdução', validators=[Optional()])
+    metodologia = TextAreaField('Metodologia', validators=[Optional()])
     itens_observados = TextAreaField('Itens Observados', validators=[Optional()])
     observacoes_gerais = TextAreaField('Observações Gerais', validators=[Optional()])
     conclusoes = TextAreaField('Conclusões', validators=[Optional()])
     recomendacoes = TextAreaField('Recomendações', validators=[Optional()])
-    
-    # Assinaturas
-    responsavel_tecnico = StringField('Responsável Técnico', validators=[Optional(), Length(max=200)],
-                                     default="Eng. Civil - ELP Consultoria e Engenharia")
-    crea_responsavel = StringField('CREA/CAU', validators=[Optional(), Length(max=50)])
-    assinatura_cliente = BooleanField('Cliente assinou o relatório')
-    nome_cliente_assinatura = StringField('Nome do Cliente', validators=[Optional(), Length(max=200)])
-    cargo_cliente_assinatura = StringField('Cargo do Cliente', validators=[Optional(), Length(max=100)])
 
 class FotoExpressForm(FlaskForm):
     foto = FileField('Foto', validators=[

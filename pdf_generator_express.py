@@ -365,33 +365,9 @@ def gerar_pdf_relatorio_express(relatorio_express, fotos, output_path):
     </div>
     {% endif %}
 
-    <!-- Assinaturas -->
-    <div class="signature-section">
-        <h2 class="section-title">RESPONSABILIDADE TÉCNICA E ASSINATURAS</h2>
-        <table class="signature-table">
-            <tr>
-                <td style="width: 50%;">
-                    <div class="signature-label">RESPONSÁVEL TÉCNICO</div>
-                    <br><br>
-                    <div>{{ relatorio.responsavel_tecnico or 'ELP Consultoria e Engenharia' }}</div>
-                    {% if relatorio.crea_responsavel %}
-                    <div>{{ relatorio.crea_responsavel }}</div>
-                    {% endif %}
-                </td>
-                <td style="width: 50%;">
-                    <div class="signature-label">CLIENTE</div>
-                    <br><br>
-                    {% if relatorio.assinatura_cliente %}
-                    <div>{{ relatorio.nome_cliente_assinatura or '' }}</div>
-                    <div>{{ relatorio.cargo_cliente_assinatura or '' }}</div>
-                    {% else %}
-                    <div style="color: #666;">Assinatura Pendente</div>
-                    {% endif %}
-                </td>
-            </tr>
-        </table>
-        
-        <div style="margin-top: 20px; font-size: 9pt; color: #666; text-align: center;">
+    <!-- Rodapé -->
+    <div style="margin-top: 40px; font-size: 9pt; color: #666; text-align: center; page-break-inside: avoid;">
+        <div style="border-top: 1px solid #ddd; padding-top: 15px;">
             Relatório gerado em {{ datetime.now().strftime('%d/%m/%Y às %H:%M') }}<br>
             ELP Consultoria e Engenharia - Engenharia Civil & Fachadas
         </div>

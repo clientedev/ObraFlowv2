@@ -3371,11 +3371,6 @@ def express_novo():
                 observacoes_gerais=form.observacoes_gerais.data,
                 conclusoes=form.conclusoes.data,
                 recomendacoes=form.recomendacoes.data,
-                responsavel_tecnico=form.responsavel_tecnico.data,
-                crea_responsavel=form.crea_responsavel.data,
-                assinatura_cliente=form.assinatura_cliente.data,
-                nome_cliente_assinatura=form.nome_cliente_assinatura.data,
-                cargo_cliente_assinatura=form.cargo_cliente_assinatura.data,
                 usuario_id=current_user.id
             )
             
