@@ -13,8 +13,10 @@ from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, Fo
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, EmailClienteForm
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
 from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
+from forms_express_new import RelatorioExpressForm as RelatorioExpressNovoForm, FotoExpressForm as FotoExpressNovoForm, EditarFotoExpressForm as EditarFotoExpressNovoForm, EnvioEmailExpressForm
 from email_service import email_service
 from pdf_generator_express import gerar_pdf_relatorio_express, gerar_numero_relatorio_express
+from pdf_generator_express_new import gerar_pdf_relatorio_express_novo, gerar_numero_relatorio_express as gerar_numero_novo
 from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
 from pdf_generator import generate_visit_report_pdf
 from google_drive_backup import backup_to_drive, test_drive_connection
@@ -3156,6 +3158,191 @@ def relatorio_express_gerar_pdf(relatorio_id):
     except Exception as e:
         flash(f'Erro ao gerar PDF: {str(e)}', 'error')
         return redirect(url_for('relatorio_express_detalhes', relatorio_id=relatorio_id))
+
+# === NOVAS ROTAS DO RELATÓRIO EXPRESS COMPLETO ===
+
+# Rota principal do Relatório Express
+@app.route('/relatorio-express-novo', methods=['GET', 'POST'])
+@login_required
+def relatorio_express_completo():
+    """Criar novo relatório express independente (versão completa)"""
+    form = RelatorioExpressNovoForm()
+    
+    if form.validate_on_submit():
+        try:
+            # Gerar número único
+            numero = gerar_numero_novo()
+            
+            # Criar relatório express
+            relatorio_express = RelatorioExpress(
+                numero=numero,
+                nome_empresa=form.nome_empresa.data,
+                nome_obra=form.nome_obra.data,
+                endereco_obra=form.endereco_obra.data,
+                observacoes=form.observacoes.data,
+                itens_observados=form.itens_observados.data,
+                preenchido_por=form.preenchido_por.data,
+                liberado_por=form.liberado_por.data,
+                responsavel_obra=form.responsavel_obra.data,
+                data_relatorio=form.data_relatorio.data,
+                autor_id=current_user.id
+            )
+            
+            db.session.add(relatorio_express)
+            db.session.commit()
+            
+            flash('Relatório Express criado com sucesso! Agora você pode adicionar fotos.', 'success')
+            return redirect(url_for('relatorio_express_detalhes_novo', relatorio_id=relatorio_express.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar relatório express: {str(e)}', 'error')
+    
+    return render_template('express/novo_completo.html', form=form)
+
+@app.route('/relatorio-express-novo/<int:relatorio_id>')
+@login_required
+def relatorio_express_detalhes_novo(relatorio_id):
+    """Ver detalhes do relatório express (versão completa)"""
+    relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso (apenas o autor ou usuários master)
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    fotos = FotoRelatorioExpress.query.filter_by(
+        relatorio_express_id=relatorio_id
+    ).order_by(FotoRelatorioExpress.ordem).all()
+    
+    foto_form = FotoExpressNovoForm()
+    
+    return render_template('express/detalhes_completo.html', 
+                         relatorio=relatorio, 
+                         fotos=fotos, 
+                         foto_form=foto_form)
+
+@app.route('/relatorio-express-novo/<int:relatorio_id>/adicionar-foto', methods=['POST'])
+@login_required
+def relatorio_express_adicionar_foto_novo(relatorio_id):
+    """Adicionar foto ao relatório express (versão completa)"""
+    relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('relatorio_express_detalhes_novo', relatorio_id=relatorio_id))
+    
+    form = FotoExpressNovoForm()
+    
+    if form.validate_on_submit():
+        try:
+            # Upload da foto
+            foto_file = form.foto.data
+            if foto_file:
+                # Gerar nome único
+                filename = str(uuid.uuid4()) + '_' + secure_filename(foto_file.filename)
+                upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                
+                if not os.path.exists(upload_folder):
+                    os.makedirs(upload_folder)
+                
+                foto_path = os.path.join(upload_folder, filename)
+                foto_file.save(foto_path)
+                
+                # Determinar próxima ordem
+                ultima_foto = FotoRelatorioExpress.query.filter_by(
+                    relatorio_express_id=relatorio_id
+                ).order_by(FotoRelatorioExpress.ordem.desc()).first()
+                
+                nova_ordem = (ultima_foto.ordem + 1) if ultima_foto else 1
+                
+                # Criar registro da foto
+                foto = FotoRelatorioExpress(
+                    relatorio_express_id=relatorio_id,
+                    filename=filename,
+                    filename_original=foto_file.filename,
+                    legenda=form.legenda.data,
+                    categoria=form.categoria.data,
+                    ordem=nova_ordem
+                )
+                
+                db.session.add(foto)
+                db.session.commit()
+                
+                flash('Foto adicionada com sucesso!', 'success')
+                
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao adicionar foto: {str(e)}', 'error')
+    
+    # Se chegou aqui, houve erro no formulário
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(f'Erro no campo {field}: {error}', 'error')
+    
+    return redirect(url_for('relatorio_express_detalhes_novo', relatorio_id=relatorio_id))
+
+@app.route('/relatorio-express-novo/<int:relatorio_id>/gerar-pdf')
+@login_required
+def relatorio_express_gerar_pdf_novo(relatorio_id):
+    """Gerar PDF do relatório express (versão completa)"""
+    relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        # Gerar PDF
+        pdf_path = gerar_pdf_relatorio_express_novo(relatorio_id)
+        
+        if pdf_path and os.path.exists(pdf_path):
+            # Atualizar status e caminho do PDF no banco
+            relatorio.status = 'Finalizado'
+            relatorio.pdf_path = pdf_path
+            db.session.commit()
+            
+            # Preparar dados para backup automático
+            backup_data = {
+                'id': relatorio.id,
+                'numero': relatorio.numero,
+                'pdf_path': pdf_path,
+                'images': []
+            }
+            
+            # Adicionar fotos ao backup
+            fotos = FotoRelatorioExpress.query.filter_by(relatorio_express_id=relatorio_id).all()
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            
+            for foto in fotos:
+                foto_path = os.path.join(upload_folder, foto.filename)
+                if os.path.exists(foto_path):
+                    backup_data['images'].append({
+                        'path': foto_path,
+                        'filename': foto.filename,
+                        'legenda': foto.legenda
+                    })
+            
+            # Executar backup no Google Drive
+            backup_result = backup_to_drive(backup_data, f"Express_{relatorio.nome_empresa}")
+            
+            if backup_result.get('success'):
+                flash('PDF gerado e backup realizado com sucesso!', 'success')
+            else:
+                flash('PDF gerado com sucesso! (Erro no backup para Google Drive)', 'warning')
+            
+            return send_from_directory(upload_folder, os.path.basename(pdf_path), 
+                                     as_attachment=True, 
+                                     download_name=f'{relatorio.numero}_{relatorio.nome_empresa}.pdf')
+        else:
+            flash('Erro ao gerar PDF', 'error')
+            return redirect(url_for('relatorio_express_detalhes_novo', relatorio_id=relatorio_id))
+            
+    except Exception as e:
+        flash(f'Erro ao gerar PDF: {str(e)}', 'error')
+        return redirect(url_for('relatorio_express_detalhes_novo', relatorio_id=relatorio_id))
 
 @app.route('/relatorio-express/<int:relatorio_id>/enviar-email', methods=['GET', 'POST'])
 @login_required  

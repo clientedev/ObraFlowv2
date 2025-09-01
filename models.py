@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from app import db
@@ -328,17 +328,33 @@ class RelatorioExpress(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     numero = db.Column(db.String(20), unique=True, nullable=False)
-    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
-    autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Dados da empresa/projeto (não vinculados a cadastros permanentes)
+    nome_empresa = db.Column(db.String(200))
+    nome_obra = db.Column(db.String(200))
+    endereco_obra = db.Column(db.Text)
+    
+    # Dados do relatório
     observacoes = db.Column(db.Text, nullable=False)
+    itens_observados = db.Column(db.Text)  # Checklist/itens observados
+    
+    # Assinaturas
+    preenchido_por = db.Column(db.String(200))
+    liberado_por = db.Column(db.String(200))
+    responsavel_obra = db.Column(db.String(200))
+    data_relatorio = db.Column(db.Date, default=date.today)
+    
+    # Sistema
+    autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(50), default='Rascunho')  # Rascunho, Finalizado
+    pdf_path = db.Column(db.String(500))  # Caminho do PDF gerado
     
     # Relacionamentos
-    projeto = db.relationship('Projeto', backref='relatorios_express')
     autor = db.relationship('User', backref='relatorios_express_criados')
     
     def __repr__(self):
-        return f'<RelatorioExpress {self.numero}>'
+        return f'<RelatorioExpress {self.numero} - {self.nome_empresa}>'
 
 class FotoRelatorioExpress(db.Model):
     __tablename__ = 'fotos_relatorios_express'
@@ -346,7 +362,10 @@ class FotoRelatorioExpress(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     relatorio_express_id = db.Column(db.Integer, db.ForeignKey('relatorios_express.id'), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
+    filename_original = db.Column(db.String(255))
+    filename_anotada = db.Column(db.String(255))
     legenda = db.Column(db.String(500), nullable=False)
+    categoria = db.Column(db.String(100), default='Geral')
     ordem = db.Column(db.Integer, default=1)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -354,4 +373,4 @@ class FotoRelatorioExpress(db.Model):
     relatorio_express = db.relationship('RelatorioExpress', backref='fotos')
     
     def __repr__(self):
-        return f'<FotoRelatorioExpress {self.filename}>'
+        return f'<FotoRelatorioExpress {self.filename} - {self.legenda[:30]}>'

@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório Express{% endblock %}
+
+{% block extra_css %}
+<style>
+.express-container {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border-radius: 15px;
+    color: white;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.express-container::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    z-index: 1;
+}
+
+.express-content {
+    position: relative;
+    z-index: 2;
+}
+
+.form-step {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-left: 4px solid #28a745;
+}
+
+.step-header {
+    color: #28a745;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background: #28a745;
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.required-field::after {
+    content: " *";
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.btn-express {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    border: none;
+    color: white;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-express:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+    color: white;
+}
+
+.info-box {
+    background: #e8f4f8;
+    border: 1px solid #bee5eb;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-box .fa-info-circle {
+    color: #17a2b8;
+    margin-right: 8px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .express-container {
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .form-step {
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .step-header h4 {
+        font-size: 1.2rem;
+    }
+    
+    .btn-express {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
+
+/* Loading state */
+.btn-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn-loading::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    border: 2px solid transparent;
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: button-loading-spinner 1s ease infinite;
+}
+
+@keyframes button-loading-spinner {
+    from {
+        transform: rotate(0turn);
+    }
+    to {
+        transform: rotate(1turn);
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Express -->
+    <div class="express-container">
+        <div class="express-content">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-bolt me-2"></i>Relatório Express</h1>
+                    <p class="mb-0 lead">Crie relatórios rápidos sem vincular a cadastros permanentes de empresa ou projeto</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{{ url_for('index') }}" class="btn btn-light btn-lg">
+                        <i class="fas fa-arrow-left me-2"></i>Voltar ao Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" id="expressForm" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        
+        <!-- Informações Importantes -->
+        <div class="info-box">
+            <i class="fas fa-info-circle"></i>
+            <strong>Importante:</strong> O Relatório Express não cria cadastros permanentes de empresa ou projeto. 
+            Todas as informações são usadas apenas para gerar o PDF final.
+        </div>
+
+        <!-- Etapa 1: Dados da Empresa/Obra -->
+        <div class="form-step">
+            <div class="step-header">
+                <h4><span class="step-number">1</span>Dados da Empresa e Obra</h4>
+                <p class="text-muted mb-0">Informações básicas sobre o cliente e projeto</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {{ form.nome_empresa.label(class="form-label required-field") }}
+                        {{ form.nome_empresa(class="form-control") }}
+                        {% if form.nome_empresa.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.nome_empresa.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {{ form.nome_obra.label(class="form-label required-field") }}
+                        {{ form.nome_obra(class="form-control") }}
+                        {% if form.nome_obra.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.nome_obra.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                {{ form.endereco_obra.label(class="form-label required-field") }}
+                {{ form.endereco_obra(class="form-control") }}
+                {% if form.endereco_obra.errors %}
+                    <div class="text-danger mt-1">
+                        {% for error in form.endereco_obra.errors %}
+                            <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Etapa 2: Dados do Relatório -->
+        <div class="form-step">
+            <div class="step-header">
+                <h4><span class="step-number">2</span>Dados do Relatório</h4>
+                <p class="text-muted mb-0">Observações e itens verificados durante a visita</p>
+            </div>
+            
+            <div class="form-group">
+                {{ form.observacoes.label(class="form-label required-field") }}
+                {{ form.observacoes(class="form-control") }}
+                {% if form.observacoes.errors %}
+                    <div class="text-danger mt-1">
+                        {% for error in form.observacoes.errors %}
+                            <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <small class="form-text text-muted">
+                    Descreva detalhadamente os aspectos observados, estado atual da obra, recomendações, etc.
+                </small>
+            </div>
+            
+            <div class="form-group">
+                {{ form.itens_observados.label(class="form-label") }}
+                {{ form.itens_observados(class="form-control") }}
+                {% if form.itens_observados.errors %}
+                    <div class="text-danger mt-1">
+                        {% for error in form.itens_observados.errors %}
+                            <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <small class="form-text text-muted">
+                    Liste os principais itens verificados (opcional)
+                </small>
+            </div>
+        </div>
+
+        <!-- Etapa 3: Assinaturas e Data -->
+        <div class="form-step">
+            <div class="step-header">
+                <h4><span class="step-number">3</span>Assinaturas e Responsáveis</h4>
+                <p class="text-muted mb-0">Identificação dos responsáveis pelo relatório</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {{ form.preenchido_por.label(class="form-label required-field") }}
+                        {{ form.preenchido_por(class="form-control") }}
+                        {% if form.preenchido_por.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.preenchido_por.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {{ form.data_relatorio.label(class="form-label required-field") }}
+                        {{ form.data_relatorio(class="form-control") }}
+                        {% if form.data_relatorio.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.data_relatorio.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {{ form.liberado_por.label(class="form-label") }}
+                        {{ form.liberado_por(class="form-control") }}
+                        {% if form.liberado_por.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.liberado_por.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Opcional</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {{ form.responsavel_obra.label(class="form-label") }}
+                        {{ form.responsavel_obra(class="form-control") }}
+                        {% if form.responsavel_obra.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.responsavel_obra.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Opcional</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="text-center">
+            <button type="submit" class="btn btn-express btn-lg me-3" id="submitBtn">
+                <i class="fas fa-rocket me-2"></i>Criar Relatório Express
+            </button>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-times me-2"></i>Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('expressForm');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    form.addEventListener('submit', function() {
+        submitBtn.classList.add('btn-loading');
+        submitBtn.disabled = true;
+    });
+    
+    // Auto-fill current user name in "preenchido_por"
+    const preenchidoPorField = document.getElementById('preenchido_por');
+    if (preenchidoPorField && !preenchidoPorField.value) {
+        // You can set this from the backend or use current user info
+        preenchidoPorField.value = '{{ current_user.nome_completo if current_user.is_authenticated }}';
+    }
+});
+</script>
+{% endblock %}

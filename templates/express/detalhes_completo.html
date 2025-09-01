@@ -1,0 +1,517 @@
+{% extends "base.html" %}
+
+{% block title %}{{ relatorio.numero }} - {{ relatorio.nome_empresa }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.express-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.express-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    z-index: 1;
+}
+
+.express-content {
+    position: relative;
+    z-index: 2;
+}
+
+.info-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-left: 4px solid #28a745;
+}
+
+.section-title {
+    color: #28a745;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+    font-weight: 600;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-item {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #20c1e8;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.info-value {
+    color: #212529;
+    font-size: 1rem;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.status-rascunho {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.status-finalizado {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 2rem 0;
+}
+
+.btn-express {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-express:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.btn-outline-express {
+    border: 2px solid #28a745;
+    color: #28a745;
+    background: white;
+    padding: 10px 22px;
+    border-radius: 25px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-outline-express:hover {
+    background: #28a745;
+    color: white;
+    text-decoration: none;
+}
+
+.photos-section {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.photos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.photo-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    border: 1px solid #e9ecef;
+}
+
+.photo-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.photo-preview {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    cursor: pointer;
+}
+
+.photo-info {
+    padding: 1rem;
+}
+
+.photo-legend {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.photo-category {
+    display: inline-block;
+    background: #20c1e8;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.add-photo-card {
+    border: 2px dashed #28a745;
+    background: #f8fff9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.add-photo-card:hover {
+    background: #e8f5e8;
+    border-color: #20c997;
+}
+
+.add-photo-content {
+    text-align: center;
+    color: #28a745;
+}
+
+.add-photo-content i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+}
+
+/* Photo upload modal */
+.modal-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border-radius: 15px 15px 0 0;
+}
+
+.modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .express-header {
+        padding: 1.5rem;
+    }
+    
+    .info-card {
+        padding: 1.5rem;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+        justify-content: center;
+    }
+    
+    .btn-express,
+    .btn-outline-express {
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .photos-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Express -->
+    <div class="express-header">
+        <div class="express-content">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-bolt me-2"></i>{{ relatorio.numero }}</h1>
+                    <p class="mb-1 lead">{{ relatorio.nome_empresa }}</p>
+                    <p class="mb-0">{{ relatorio.nome_obra }}</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <span class="status-badge {{ 'status-finalizado' if relatorio.status == 'Finalizado' else 'status-rascunho' }}">
+                        <i class="fas {{ 'fa-check-circle' if relatorio.status == 'Finalizado' else 'fa-edit' }} me-1"></i>
+                        {{ relatorio.status }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações do Relatório -->
+    <div class="info-card">
+        <h3 class="section-title"><i class="fas fa-info-circle me-2"></i>Informações do Relatório</h3>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Empresa/Cliente</div>
+                <div class="info-value">{{ relatorio.nome_empresa }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Obra/Projeto</div>
+                <div class="info-value">{{ relatorio.nome_obra }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Data do Relatório</div>
+                <div class="info-value">{{ relatorio.data_relatorio.strftime('%d/%m/%Y') }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Criado em</div>
+                <div class="info-value">{{ relatorio.data_criacao.strftime('%d/%m/%Y às %H:%M') }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Preenchido por</div>
+                <div class="info-value">{{ relatorio.preenchido_por }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Autor do Sistema</div>
+                <div class="info-value">{{ relatorio.autor.nome_completo }}</div>
+            </div>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label">Endereço da Obra</div>
+            <div class="info-value">{{ relatorio.endereco_obra }}</div>
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+            <div class="info-label">Observações Gerais</div>
+            <div class="info-value" style="white-space: pre-wrap; background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-top: 0.5rem;">{{ relatorio.observacoes }}</div>
+        </div>
+
+        {% if relatorio.itens_observados %}
+        <div style="margin-top: 1.5rem;">
+            <div class="info-label">Itens Observados</div>
+            <div class="info-value" style="white-space: pre-wrap; background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-top: 0.5rem;">{{ relatorio.itens_observados }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Botões de Ação -->
+    <div class="action-buttons">
+        <a href="{{ url_for('relatorio_express_gerar_pdf_novo', relatorio_id=relatorio.id) }}" class="btn-express">
+            <i class="fas fa-file-pdf"></i>Gerar PDF
+        </a>
+        <button type="button" class="btn-express" data-bs-toggle="modal" data-bs-target="#emailModal">
+            <i class="fas fa-envelope"></i>Enviar por E-mail
+        </button>
+        <a href="{{ url_for('relatorio_express_completo') }}" class="btn-outline-express">
+            <i class="fas fa-plus"></i>Novo Relatório Express
+        </a>
+        <a href="{{ url_for('index') }}" class="btn-outline-express">
+            <i class="fas fa-home"></i>Dashboard
+        </a>
+    </div>
+
+    <!-- Seção de Fotos -->
+    <div class="photos-section">
+        <h3 class="section-title">
+            <i class="fas fa-camera me-2"></i>Registro Fotográfico 
+            <span class="badge bg-primary ms-2">{{ fotos|length }} foto{% if fotos|length != 1 %}s{% endif %}</span>
+        </h3>
+
+        <div class="photos-grid">
+            <!-- Card para adicionar nova foto -->
+            <div class="add-photo-card" data-bs-toggle="modal" data-bs-target="#addPhotoModal">
+                <div class="add-photo-content">
+                    <i class="fas fa-plus-circle"></i>
+                    <h5>Adicionar Foto</h5>
+                    <p class="mb-0">Clique para enviar uma nova imagem</p>
+                </div>
+            </div>
+
+            <!-- Cards das fotos existentes -->
+            {% for foto in fotos %}
+            <div class="photo-card">
+                <img src="{{ url_for('static', filename='uploads/' + foto.filename) }}" 
+                     alt="Foto {{ loop.index }}" 
+                     class="photo-preview"
+                     data-bs-toggle="modal" 
+                     data-bs-target="#photoModal{{ foto.id }}">
+                <div class="photo-info">
+                    <div class="photo-category">{{ foto.categoria }}</div>
+                    <div class="photo-legend">{{ foto.legenda }}</div>
+                    <small class="text-muted">
+                        <i class="fas fa-clock me-1"></i>{{ foto.created_at.strftime('%d/%m/%Y') }}
+                    </small>
+                </div>
+            </div>
+
+            <!-- Modal para visualizar foto -->
+            <div class="modal fade" id="photoModal{{ foto.id }}" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Foto {{ loop.index }} - {{ foto.categoria }}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img src="{{ url_for('static', filename='uploads/' + foto.filename) }}" 
+                                 alt="Foto {{ loop.index }}" 
+                                 class="img-fluid rounded">
+                            <div class="mt-3">
+                                <h6>Legenda:</h6>
+                                <p>{{ foto.legenda }}</p>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para adicionar foto -->
+<div class="modal fade" id="addPhotoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-camera me-2"></i>Adicionar Nova Foto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('relatorio_express_adicionar_foto_novo', relatorio_id=relatorio.id) }}" method="POST" enctype="multipart/form-data">
+                {{ foto_form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        {{ foto_form.foto.label(class="form-label") }}
+                        {{ foto_form.foto(class="form-control") }}
+                        {% if foto_form.foto.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in foto_form.foto.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ foto_form.categoria.label(class="form-label") }}
+                        {{ foto_form.categoria(class="form-control") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ foto_form.legenda.label(class="form-label") }}
+                        {{ foto_form.legenda(class="form-control") }}
+                        {% if foto_form.legenda.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in foto_form.legenda.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-upload me-2"></i>Adicionar Foto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para envio de email -->
+<div class="modal fade" id="emailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-envelope me-2"></i>Enviar por E-mail</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Esta funcionalidade está sendo finalizada. Por enquanto, você pode gerar o PDF e enviá-lo manualmente.</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Próximos passos:</strong> Gere o PDF e envie para o cliente através do seu email preferido.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <a href="{{ url_for('relatorio_express_gerar_pdf_novo', relatorio_id=relatorio.id) }}" class="btn btn-success">
+                    <i class="fas fa-file-pdf me-2"></i>Gerar PDF
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Preview da foto antes do upload
+    const fotoInput = document.querySelector('#foto');
+    if (fotoInput) {
+        fotoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Adicionar preview se necessário
+                console.log('Foto selecionada:', file.name);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
