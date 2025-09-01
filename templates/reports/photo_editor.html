@@ -42,12 +42,27 @@
 }
 
 .tool-btn {
-    margin: 5px;
+    margin: 8px 4px;
     min-width: 60px;
-    /* Melhorias para mobile */
-    min-height: 48px;
+    /* Melhorias para mobile - área de toque maior */
+    min-height: 50px;
+    padding: 12px 16px;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+@media (max-width: 767.98px) {
+    .tool-btn {
+        margin: 6px 3px;
+        min-height: 56px; /* Maior área de toque no mobile */
+        min-width: 80px;
+        font-size: 14px;
+    }
 }
 
 .tool-btn.active {
@@ -67,12 +82,30 @@
     height: 30px;
     border: 2px solid #ddd;
     border-radius: 50%;
-    margin: 2px;
+    margin: 4px;
     cursor: pointer;
     display: inline-block;
-    /* Melhorias para mobile */
-    min-width: 40px;
-    min-height: 40px;
+    /* Melhorias para mobile - área de toque maior */
+    min-width: 44px;
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (max-width: 767.98px) {
+    .color-preset {
+        min-width: 50px;
+        min-height: 50px;
+        margin: 6px;
+        border-width: 3px;
+    }
+    
+    .color-preset:hover, .color-preset:active {
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+}
     touch-action: manipulation;
 }
 
@@ -452,10 +485,10 @@ function setupEventListeners() {
     canvas.addEventListener('mouseout', stopDrawing);
     
     // Touch events para Mobile (com configurações otimizadas)
-    canvas.addEventListener('touchstart', handleTouch, { passive: false });
-    canvas.addEventListener('touchmove', handleTouch, { passive: false });
-    canvas.addEventListener('touchend', handleTouch, { passive: false });
-    canvas.addEventListener('touchcancel', handleTouch, { passive: false });
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
     
     // Prevenir zoom e scroll no mobile durante edição
     canvas.addEventListener('gesturestart', e => e.preventDefault());

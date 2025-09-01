@@ -271,11 +271,24 @@ class GoogleDriveBackup:
                             'success': upload_success
                         })
             
-            return results
+            return {
+                'success': len(results) > 0,
+                'results': results,
+                'total_files': len(results),
+                'successful_uploads': sum(1 for r in results if r.get('success')),
+                'failed_uploads': sum(1 for r in results if not r.get('success'))
+            }
             
         except Exception as e:
             print(f"Erro no backup dos arquivos do relatório: {str(e)}")
-            return {'error': str(e)}
+            return {
+                'success': False,
+                'error': str(e),
+                'results': [],
+                'total_files': 0,
+                'successful_uploads': 0,
+                'failed_uploads': 0
+            }
 
 def backup_to_drive(report_data: Dict[str, Any], project_name: str) -> Dict[str, Any]:
     """
