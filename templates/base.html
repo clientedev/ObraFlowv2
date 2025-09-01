@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}ELP Consultoria e Engenharia - Sistema de Relatórios{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
@@ -11,6 +11,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/mobile.css') }}" rel="stylesheet">
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
@@ -36,6 +37,9 @@
     
     <!-- Notificações Push -->
     <script src="{{ url_for('static', filename='js/notifications.js') }}" defer></script>
+    
+    <!-- Mobile Utilities -->
+    <script src="{{ url_for('static', filename='js/mobile-utils.js') }}" defer></script>
     
     {% block extra_head %}{% endblock %}
 </head>

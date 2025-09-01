@@ -2989,6 +2989,10 @@ def express_list():
 @login_required
 def express_new():
     """Criar novo relatório express"""
+    # Detectar se é mobile
+    user_agent = request.headers.get('User-Agent', '').lower()
+    is_mobile = any(device in user_agent for device in ['mobile', 'android', 'iphone', 'ipad']) or request.args.get('mobile') == '1'
+    
     form = RelatorioExpressForm()
     
     if form.validate_on_submit():
@@ -3125,7 +3129,9 @@ def express_new():
             flash(f'Erro ao criar relatório express: {str(e)}', 'error')
             current_app.logger.error(f'Erro ao criar relatório express: {str(e)}')
     
-    return render_template('express/novo.html', form=form)
+    # Escolher template baseado no dispositivo
+    template = 'express/novo_mobile.html' if is_mobile else 'express/novo.html'
+    return render_template(template, form=form, is_mobile=is_mobile)
 
 @app.route('/express/<int:id>')
 @login_required
