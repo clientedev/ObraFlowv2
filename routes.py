@@ -3369,6 +3369,7 @@ def express_standalone_novo():
             # Criar relatório
             relatorio = RelatorioExpressStandalone(
                 numero=numero,
+                # Dados da empresa
                 empresa_nome=form.empresa_nome.data,
                 empresa_endereco=form.empresa_endereco.data,
                 empresa_contato=form.empresa_contato.data,
@@ -3376,21 +3377,39 @@ def express_standalone_novo():
                 empresa_email=form.empresa_email.data,
                 empresa_cnpj=form.empresa_cnpj.data,
                 empresa_logo_filename=logo_filename,
+                # Dados do projeto
                 projeto_nome=form.projeto_nome.data,
                 projeto_endereco=form.projeto_endereco.data,
-                tipo_obra=form.tipo_obra.data,
+                projeto_tipo=form.projeto_tipo.data,
+                projeto_descricao=form.projeto_descricao.data,
                 data_inicio=form.data_inicio.data,
                 data_previsao_fim=form.data_previsao_fim.data,
+                # Dados da visita
                 data_visita=form.data_visita.data,
                 hora_inicio=datetime.strptime(form.hora_inicio.data, '%H:%M').time() if form.hora_inicio.data else None,
                 hora_fim=datetime.strptime(form.hora_fim.data, '%H:%M').time() if form.hora_fim.data else None,
                 clima=form.clima.data,
                 temperatura=form.temperatura.data,
-                titulo_relatorio=form.titulo_relatorio.data,
-                observacoes_gerais=form.observacoes_gerais.data,
+                equipe_presentes=form.equipe_presentes.data,
+                objetivo_visita=form.objetivo_visita.data,
+                # Conteúdo do relatório
+                observacoes_preliminares=form.observacoes_preliminares.data,
+                atividades_executadas=form.atividades_executadas.data,
+                materiais_utilizados=form.materiais_utilizados.data,
+                equipamentos_utilizados=form.equipamentos_utilizados.data,
                 problemas_identificados=form.problemas_identificados.data,
+                solucoes_implementadas=form.solucoes_implementadas.data,
                 recomendacoes=form.recomendacoes.data,
+                proximos_passos=form.proximos_passos.data,
+                observacoes_tecnicas=form.observacoes_tecnicas.data,
+                observacoes_seguranca=form.observacoes_seguranca.data,
                 conclusoes=form.conclusoes.data,
+                observacoes_finais=form.observacoes_finais.data,
+                # Campos técnicos
+                normas_aplicaveis=form.normas_aplicaveis.data,
+                especificacoes_tecnicas=form.especificacoes_tecnicas.data,
+                medicoes_realizadas=form.medicoes_realizadas.data,
+                ensaios_realizados=form.ensaios_realizados.data,
                 autor_id=current_user.id
             )
             

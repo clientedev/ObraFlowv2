@@ -91,11 +91,17 @@
                         <div class="card-body">
                             <p><strong>Projeto:</strong> {{ relatorio.projeto_nome }}</p>
                             <p><strong>Endereço:</strong> {{ relatorio.projeto_endereco }}</p>
-                            {% if relatorio.tipo_obra %}
-                            <p><strong>Tipo de Obra:</strong> {{ relatorio.tipo_obra }}</p>
+                            {% if relatorio.projeto_tipo %}
+                            <p><strong>Tipo de Projeto:</strong> {{ relatorio.projeto_tipo }}</p>
+                            {% endif %}
+                            {% if relatorio.projeto_descricao %}
+                            <p><strong>Descrição:</strong> {{ relatorio.projeto_descricao }}</p>
                             {% endif %}
                             {% if relatorio.data_inicio %}
                             <p><strong>Data de Início:</strong> {{ relatorio.data_inicio.strftime('%d/%m/%Y') }}</p>
+                            {% endif %}
+                            {% if relatorio.data_previsao_fim %}
+                            <p><strong>Previsão de Término:</strong> {{ relatorio.data_previsao_fim.strftime('%d/%m/%Y') }}</p>
                             {% endif %}
                         </div>
                     </div>
@@ -118,6 +124,9 @@
                             <p><strong>Horário:</strong> {{ relatorio.hora_inicio.strftime('%H:%M') }}{% if relatorio.hora_fim %} às {{ relatorio.hora_fim.strftime('%H:%M') }}{% endif %}</p>
                             {% endif %}
                             <p><strong>Responsável:</strong> {{ relatorio.autor.nome_completo }}</p>
+                            {% if relatorio.equipe_presentes %}
+                            <p><strong>Equipe Presente:</strong> {{ relatorio.equipe_presentes }}</p>
+                            {% endif %}
                             {% if relatorio.clima %}
                             <p><strong>Clima:</strong> {{ relatorio.clima }}</p>
                             {% endif %}
@@ -154,62 +163,250 @@
                 </div>
             </div>
 
-            <!-- Observações Gerais -->
-            {% if relatorio.observacoes_gerais %}
+            <!-- Objetivo da Visita -->
+            {% if relatorio.objetivo_visita %}
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-comment-alt text-info me-2"></i>
-                        Observações Gerais
+                        <i class="fas fa-bullseye text-primary me-2"></i>
+                        Objetivo da Visita
                     </h5>
                 </div>
                 <div class="card-body">
-                    <p class="mb-0">{{ relatorio.observacoes_gerais | replace('\n', '<br>') | safe }}</p>
+                    <p class="mb-0">{{ relatorio.objetivo_visita | replace('\n', '<br>') | safe }}</p>
                 </div>
             </div>
             {% endif %}
 
-            <!-- Problemas Identificados -->
-            {% if relatorio.problemas_identificados %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
-                        Problemas Identificados
-                    </h5>
+            <!-- Seções do Relatório -->
+            <div class="row">
+                {% if relatorio.observacoes_preliminares %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-eye text-info me-1"></i>
+                                Observações Preliminares
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">{{ relatorio.observacoes_preliminares | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <p class="mb-0">{{ relatorio.problemas_identificados | replace('\n', '<br>') | safe }}</p>
-                </div>
-            </div>
-            {% endif %}
+                {% endif %}
 
-            <!-- Recomendações -->
-            {% if relatorio.recomendacoes %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-lightbulb text-success me-2"></i>
-                        Recomendações
-                    </h5>
+                {% if relatorio.atividades_executadas %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-tasks text-success me-1"></i>
+                                Atividades Executadas
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">{{ relatorio.atividades_executadas | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <p class="mb-0">{{ relatorio.recomendacoes | replace('\n', '<br>') | safe }}</p>
+                {% endif %}
+
+                {% if relatorio.materiais_utilizados %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-cube text-warning me-1"></i>
+                                Materiais Utilizados
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">{{ relatorio.materiais_utilizados | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                    </div>
                 </div>
+                {% endif %}
+
+                {% if relatorio.equipamentos_utilizados %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-tools text-secondary me-1"></i>
+                                Equipamentos Utilizados
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">{{ relatorio.equipamentos_utilizados | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if relatorio.problemas_identificados %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-exclamation-triangle text-danger me-1"></i>
+                                Problemas Identificados
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">{{ relatorio.problemas_identificados | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if relatorio.solucoes_implementadas %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-check text-success me-1"></i>
+                                Soluções Implementadas
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">{{ relatorio.solucoes_implementadas | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if relatorio.recomendacoes %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-lightbulb text-warning me-1"></i>
+                                Recomendações
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">{{ relatorio.recomendacoes | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if relatorio.proximos_passos %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-arrow-right text-primary me-1"></i>
+                                Próximos Passos
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">{{ relatorio.proximos_passos | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if relatorio.observacoes_tecnicas %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-cog text-info me-1"></i>
+                                Observações Técnicas
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">{{ relatorio.observacoes_tecnicas | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if relatorio.observacoes_seguranca %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-shield-alt text-danger me-1"></i>
+                                Observações de Segurança
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">{{ relatorio.observacoes_seguranca | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
 
             <!-- Conclusões -->
             {% if relatorio.conclusoes %}
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-check-circle text-primary me-2"></i>
+                        <i class="fas fa-check-circle text-success me-2"></i>
                         Conclusões
                     </h5>
                 </div>
                 <div class="card-body">
                     <p class="mb-0">{{ relatorio.conclusoes | replace('\n', '<br>') | safe }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Observações Finais -->
+            {% if relatorio.observacoes_finais %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comment text-secondary me-2"></i>
+                        Observações Finais
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ relatorio.observacoes_finais | replace('\n', '<br>') | safe }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Informações Técnicas -->
+            {% if relatorio.normas_aplicaveis or relatorio.especificacoes_tecnicas or relatorio.medicoes_realizadas or relatorio.ensaios_realizados %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cogs text-warning me-2"></i>
+                        Informações Técnicas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if relatorio.normas_aplicaveis %}
+                        <div class="col-md-6 mb-3">
+                            <h6 class="fw-bold">Normas Aplicáveis</h6>
+                            <p>{{ relatorio.normas_aplicaveis | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                        {% endif %}
+                        {% if relatorio.especificacoes_tecnicas %}
+                        <div class="col-md-6 mb-3">
+                            <h6 class="fw-bold">Especificações Técnicas</h6>
+                            <p>{{ relatorio.especificacoes_tecnicas | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                        {% endif %}
+                        {% if relatorio.medicoes_realizadas %}
+                        <div class="col-md-6 mb-3">
+                            <h6 class="fw-bold">Medições Realizadas</h6>
+                            <p>{{ relatorio.medicoes_realizadas | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                        {% endif %}
+                        {% if relatorio.ensaios_realizados %}
+                        <div class="col-md-6 mb-3">
+                            <h6 class="fw-bold">Ensaios Realizados</h6>
+                            <p>{{ relatorio.ensaios_realizados | replace('\n', '<br>') | safe }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
             {% endif %}

@@ -305,10 +305,16 @@ def gerar_pdf_relatorio_express_standalone(relatorio_id, salvar_arquivo=True):
                         <div class="campo-label">Endereço:</div>
                         <div class="campo-valor">{{ relatorio.projeto_endereco }}</div>
                     </div>
-                    {% if relatorio.tipo_obra %}
+                    {% if relatorio.projeto_tipo %}
                     <div class="campo">
-                        <div class="campo-label">Tipo de Obra:</div>
-                        <div class="campo-valor">{{ relatorio.tipo_obra }}</div>
+                        <div class="campo-label">Tipo de Projeto:</div>
+                        <div class="campo-valor">{{ relatorio.projeto_tipo }}</div>
+                    </div>
+                    {% endif %}
+                    {% if relatorio.projeto_descricao %}
+                    <div class="campo">
+                        <div class="campo-label">Descrição:</div>
+                        <div class="campo-valor">{{ relatorio.projeto_descricao }}</div>
                     </div>
                     {% endif %}
                     {% if relatorio.data_inicio %}
@@ -350,6 +356,12 @@ def gerar_pdf_relatorio_express_standalone(relatorio_id, salvar_arquivo=True):
                         <div class="campo-label">Responsável:</div>
                         <div class="campo-valor">{{ autor }}</div>
                     </div>
+                    {% if relatorio.equipe_presentes %}
+                    <div class="campo">
+                        <div class="campo-label">Equipe Presente:</div>
+                        <div class="campo-valor">{{ relatorio.equipe_presentes }}</div>
+                    </div>
+                    {% endif %}
                     {% if relatorio.clima %}
                     <div class="campo">
                         <div class="campo-label">Clima:</div>
@@ -365,27 +377,134 @@ def gerar_pdf_relatorio_express_standalone(relatorio_id, salvar_arquivo=True):
                 </div>
             </div>
             
-            <!-- Observações Gerais -->
-            {% if relatorio.observacoes_gerais %}
+            <!-- Objetivo da Visita -->
+            {% if relatorio.objetivo_visita %}
             <div class="secao">
-                <div class="secao-titulo">OBSERVAÇÕES GERAIS</div>
-                <div class="campo-valor">{{ relatorio.observacoes_gerais | replace('\n', '<br>') | safe }}</div>
+                <div class="secao-titulo">OBJETIVO DA VISITA</div>
+                <div class="campo-valor">{{ relatorio.objetivo_visita | replace('\n', '<br>') | safe }}</div>
             </div>
             {% endif %}
             
-            <!-- Problemas Identificados -->
-            {% if relatorio.problemas_identificados %}
+            <!-- Observações Preliminares -->
+            {% if relatorio.observacoes_preliminares %}
             <div class="secao">
-                <div class="secao-titulo">PROBLEMAS IDENTIFICADOS</div>
-                <div class="campo-valor">{{ relatorio.problemas_identificados | replace('\n', '<br>') | safe }}</div>
+                <div class="secao-titulo">OBSERVAÇÕES PRELIMINARES</div>
+                <div class="campo-valor">{{ relatorio.observacoes_preliminares | replace('\n', '<br>') | safe }}</div>
             </div>
             {% endif %}
             
-            <!-- Recomendações -->
-            {% if relatorio.recomendacoes %}
+            <!-- Atividades Executadas -->
+            {% if relatorio.atividades_executadas %}
             <div class="secao">
-                <div class="secao-titulo">RECOMENDAÇÕES</div>
-                <div class="campo-valor">{{ relatorio.recomendacoes | replace('\n', '<br>') | safe }}</div>
+                <div class="secao-titulo">ATIVIDADES EXECUTADAS</div>
+                <div class="campo-valor">{{ relatorio.atividades_executadas | replace('\n', '<br>') | safe }}</div>
+            </div>
+            {% endif %}
+            
+            <!-- Materiais e Equipamentos -->
+            {% if relatorio.materiais_utilizados or relatorio.equipamentos_utilizados %}
+            <div class="secao">
+                <div class="secao-titulo">MATERIAIS E EQUIPAMENTOS</div>
+                {% if relatorio.materiais_utilizados %}
+                <div class="campo">
+                    <div class="campo-label">Materiais Utilizados:</div>
+                    <div class="campo-valor">{{ relatorio.materiais_utilizados | replace('\n', '<br>') | safe }}</div>
+                </div>
+                {% endif %}
+                {% if relatorio.equipamentos_utilizados %}
+                <div class="campo">
+                    <div class="campo-label">Equipamentos Utilizados:</div>
+                    <div class="campo-valor">{{ relatorio.equipamentos_utilizados | replace('\n', '<br>') | safe }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Problemas e Soluções -->
+            {% if relatorio.problemas_identificados or relatorio.solucoes_implementadas %}
+            <div class="secao">
+                <div class="secao-titulo">PROBLEMAS E SOLUÇÕES</div>
+                {% if relatorio.problemas_identificados %}
+                <div class="campo">
+                    <div class="campo-label">Problemas Identificados:</div>
+                    <div class="campo-valor">{{ relatorio.problemas_identificados | replace('\n', '<br>') | safe }}</div>
+                </div>
+                {% endif %}
+                {% if relatorio.solucoes_implementadas %}
+                <div class="campo">
+                    <div class="campo-label">Soluções Implementadas:</div>
+                    <div class="campo-valor">{{ relatorio.solucoes_implementadas | replace('\n', '<br>') | safe }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Recomendações e Próximos Passos -->
+            {% if relatorio.recomendacoes or relatorio.proximos_passos %}
+            <div class="secao">
+                <div class="secao-titulo">RECOMENDAÇÕES E PRÓXIMOS PASSOS</div>
+                {% if relatorio.recomendacoes %}
+                <div class="campo">
+                    <div class="campo-label">Recomendações:</div>
+                    <div class="campo-valor">{{ relatorio.recomendacoes | replace('\n', '<br>') | safe }}</div>
+                </div>
+                {% endif %}
+                {% if relatorio.proximos_passos %}
+                <div class="campo">
+                    <div class="campo-label">Próximos Passos:</div>
+                    <div class="campo-valor">{{ relatorio.proximos_passos | replace('\n', '<br>') | safe }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Observações Técnicas e de Segurança -->
+            {% if relatorio.observacoes_tecnicas or relatorio.observacoes_seguranca %}
+            <div class="secao">
+                <div class="secao-titulo">OBSERVAÇÕES TÉCNICAS E DE SEGURANÇA</div>
+                {% if relatorio.observacoes_tecnicas %}
+                <div class="campo">
+                    <div class="campo-label">Observações Técnicas:</div>
+                    <div class="campo-valor">{{ relatorio.observacoes_tecnicas | replace('\n', '<br>') | safe }}</div>
+                </div>
+                {% endif %}
+                {% if relatorio.observacoes_seguranca %}
+                <div class="campo">
+                    <div class="campo-label">Observações de Segurança:</div>
+                    <div class="campo-valor">{{ relatorio.observacoes_seguranca | replace('\n', '<br>') | safe }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Informações Técnicas -->
+            {% if relatorio.normas_aplicaveis or relatorio.especificacoes_tecnicas or relatorio.medicoes_realizadas or relatorio.ensaios_realizados %}
+            <div class="secao">
+                <div class="secao-titulo">INFORMAÇÕES TÉCNICAS</div>
+                {% if relatorio.normas_aplicaveis %}
+                <div class="campo">
+                    <div class="campo-label">Normas Aplicáveis:</div>
+                    <div class="campo-valor">{{ relatorio.normas_aplicaveis | replace('\n', '<br>') | safe }}</div>
+                </div>
+                {% endif %}
+                {% if relatorio.especificacoes_tecnicas %}
+                <div class="campo">
+                    <div class="campo-label">Especificações Técnicas:</div>
+                    <div class="campo-valor">{{ relatorio.especificacoes_tecnicas | replace('\n', '<br>') | safe }}</div>
+                </div>
+                {% endif %}
+                {% if relatorio.medicoes_realizadas %}
+                <div class="campo">
+                    <div class="campo-label">Medições Realizadas:</div>
+                    <div class="campo-valor">{{ relatorio.medicoes_realizadas | replace('\n', '<br>') | safe }}</div>
+                </div>
+                {% endif %}
+                {% if relatorio.ensaios_realizados %}
+                <div class="campo">
+                    <div class="campo-label">Ensaios Realizados:</div>
+                    <div class="campo-valor">{{ relatorio.ensaios_realizados | replace('\n', '<br>') | safe }}</div>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
             
@@ -394,6 +513,14 @@ def gerar_pdf_relatorio_express_standalone(relatorio_id, salvar_arquivo=True):
             <div class="secao">
                 <div class="secao-titulo">CONCLUSÕES</div>
                 <div class="campo-valor">{{ relatorio.conclusoes | replace('\n', '<br>') | safe }}</div>
+            </div>
+            {% endif %}
+            
+            <!-- Observações Finais -->
+            {% if relatorio.observacoes_finais %}
+            <div class="secao">
+                <div class="secao-titulo">OBSERVAÇÕES FINAIS</div>
+                <div class="campo-valor">{{ relatorio.observacoes_finais | replace('\n', '<br>') | safe }}</div>
             </div>
             {% endif %}
             

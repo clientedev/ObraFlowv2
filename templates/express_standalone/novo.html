@@ -135,22 +135,27 @@
                             {% endif %}
                         </div>
                         
+                        <div class="mb-3">
+                            {{ form.projeto_endereco.label(class="form-label required") }}
+                            {{ form.projeto_endereco(class="form-control" + (" is-invalid" if form.projeto_endereco.errors else ""), rows="2") }}
+                            {% if form.projeto_endereco.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.projeto_endereco.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
                         <div class="row">
-                            <div class="col-md-8">
+                            <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.projeto_endereco.label(class="form-label required") }}
-                                    {{ form.projeto_endereco(class="form-control" + (" is-invalid" if form.projeto_endereco.errors else ""), rows="2") }}
-                                    {% if form.projeto_endereco.errors %}
-                                        <div class="invalid-feedback">
-                                            {% for error in form.projeto_endereco.errors %}{{ error }}{% endfor %}
-                                        </div>
-                                    {% endif %}
+                                    {{ form.projeto_tipo.label(class="form-label") }}
+                                    {{ form.projeto_tipo(class="form-select") }}
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.tipo_obra.label(class="form-label") }}
-                                    {{ form.tipo_obra(class="form-control") }}
+                                    {{ form.projeto_descricao.label(class="form-label") }}
+                                    {{ form.projeto_descricao(class="form-control", rows="2") }}
                                 </div>
                             </div>
                         </div>
@@ -231,28 +236,168 @@
                         </h5>
                     </div>
                     <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.equipe_presentes.label(class="form-label") }}
+                                    {{ form.equipe_presentes(class="form-control", rows="3") }}
+                                    <div class="form-text">Equipe presente na visita</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.objetivo_visita.label(class="form-label required") }}
+                                    {{ form.objetivo_visita(class="form-control" + (" is-invalid" if form.objetivo_visita.errors else ""), rows="3") }}
+                                    {% if form.objetivo_visita.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.objetivo_visita.errors %}{{ error }}{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Objetivo principal da visita</div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="mb-3">
-                            {{ form.observacoes_gerais.label(class="form-label") }}
-                            {{ form.observacoes_gerais(class="form-control", rows="4") }}
-                            <div class="form-text">Observações gerais da visita</div>
+                            {{ form.observacoes_preliminares.label(class="form-label") }}
+                            {{ form.observacoes_preliminares(class="form-control", rows="3") }}
+                            <div class="form-text">Observações iniciais do local</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.atividades_executadas.label(class="form-label required") }}
+                            {{ form.atividades_executadas(class="form-control" + (" is-invalid" if form.atividades_executadas.errors else ""), rows="4") }}
+                            {% if form.atividades_executadas.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.atividades_executadas.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Descreva as atividades realizadas</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.materiais_utilizados.label(class="form-label") }}
+                                    {{ form.materiais_utilizados(class="form-control", rows="3") }}
+                                    <div class="form-text">Materiais utilizados na execução</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.equipamentos_utilizados.label(class="form-label") }}
+                                    {{ form.equipamentos_utilizados(class="form-control", rows="3") }}
+                                    <div class="form-text">Equipamentos utilizados</div>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="mb-3">
                             {{ form.problemas_identificados.label(class="form-label") }}
                             {{ form.problemas_identificados(class="form-control", rows="4") }}
-                            <div class="form-text">Liste os problemas encontrados</div>
+                            <div class="form-text">Problemas ou não conformidades identificadas</div>
                         </div>
                         
                         <div class="mb-3">
-                            {{ form.recomendacoes.label(class="form-label") }}
-                            {{ form.recomendacoes(class="form-control", rows="4") }}
-                            <div class="form-text">Recomendações para correção</div>
+                            {{ form.solucoes_implementadas.label(class="form-label") }}
+                            {{ form.solucoes_implementadas(class="form-control", rows="4") }}
+                            <div class="form-text">Soluções aplicadas ou implementadas</div>
                         </div>
                         
                         <div class="mb-3">
-                            {{ form.conclusoes.label(class="form-label") }}
-                            {{ form.conclusoes(class="form-control", rows="3") }}
+                            {{ form.recomendacoes.label(class="form-label required") }}
+                            {{ form.recomendacoes(class="form-control" + (" is-invalid" if form.recomendacoes.errors else ""), rows="4") }}
+                            {% if form.recomendacoes.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.recomendacoes.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Recomendações técnicas</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.proximos_passos.label(class="form-label") }}
+                            {{ form.proximos_passos(class="form-control", rows="3") }}
+                            <div class="form-text">Próximas etapas ou ações necessárias</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.observacoes_tecnicas.label(class="form-label") }}
+                                    {{ form.observacoes_tecnicas(class="form-control", rows="3") }}
+                                    <div class="form-text">Observações técnicas específicas</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.observacoes_seguranca.label(class="form-label") }}
+                                    {{ form.observacoes_seguranca(class="form-control", rows="3") }}
+                                    <div class="form-text">Aspectos de segurança observados</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.conclusoes.label(class="form-label required") }}
+                            {{ form.conclusoes(class="form-control" + (" is-invalid" if form.conclusoes.errors else ""), rows="4") }}
+                            {% if form.conclusoes.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.conclusoes.errors %}{{ error %}{% endfor %}
+                                </div>
+                            {% endif %}
                             <div class="form-text">Conclusões finais do relatório</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.observacoes_finais.label(class="form-label") }}
+                            {{ form.observacoes_finais(class="form-control", rows="3") }}
+                            <div class="form-text">Observações finais ou complementares</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção Técnica -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cogs text-warning me-2"></i>
+                            Informações Técnicas
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.normas_aplicaveis.label(class="form-label") }}
+                                    {{ form.normas_aplicaveis(class="form-control", rows="3") }}
+                                    <div class="form-text">Normas técnicas aplicáveis</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.especificacoes_tecnicas.label(class="form-label") }}
+                                    {{ form.especificacoes_tecnicas(class="form-control", rows="3") }}
+                                    <div class="form-text">Especificações técnicas relevantes</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.medicoes_realizadas.label(class="form-label") }}
+                                    {{ form.medicoes_realizadas(class="form-control", rows="3") }}
+                                    <div class="form-text">Medições e levantamentos realizados</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.ensaios_realizados.label(class="form-label") }}
+                                    {{ form.ensaios_realizados(class="form-control", rows="3") }}
+                                    <div class="form-text">Ensaios ou testes executados</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

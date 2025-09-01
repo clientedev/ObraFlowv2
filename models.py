@@ -372,40 +372,61 @@ class RelatorioExpressStandalone(db.Model):
     empresa_cnpj = db.Column(db.String(20))
     empresa_logo_filename = db.Column(db.String(255))  # Logo upload opcional
     
-    # Dados do projeto/local
+    # Dados do projeto/local (idêntico ao Report)
     projeto_nome = db.Column(db.String(200), nullable=False)
     projeto_endereco = db.Column(db.Text, nullable=False)
     projeto_latitude = db.Column(db.Float)
     projeto_longitude = db.Column(db.Float)
-    tipo_obra = db.Column(db.String(100))
+    projeto_tipo = db.Column(db.String(100))
+    projeto_descricao = db.Column(db.Text)
     data_inicio = db.Column(db.Date)
     data_previsao_fim = db.Column(db.Date)
     
-    # Dados da visita/inspeção
+    # Dados da visita/inspeção (todos os campos do sistema principal)
     data_visita = db.Column(db.Date, nullable=False)
     hora_inicio = db.Column(db.Time)
     hora_fim = db.Column(db.Time)
     clima = db.Column(db.String(50))
     temperatura = db.Column(db.String(20))
+    equipe_presentes = db.Column(db.Text)  # Lista de pessoas presentes
+    objetivo_visita = db.Column(db.Text)
     
-    # Dados do relatório
-    titulo_relatorio = db.Column(db.String(200), nullable=False)
-    observacoes_gerais = db.Column(db.Text)
+    # Conteúdo do relatório (todas as seções)
+    observacoes_preliminares = db.Column(db.Text)
+    atividades_executadas = db.Column(db.Text)
+    materiais_utilizados = db.Column(db.Text)
+    equipamentos_utilizados = db.Column(db.Text)
     problemas_identificados = db.Column(db.Text)
+    solucoes_implementadas = db.Column(db.Text)
     recomendacoes = db.Column(db.Text)
+    proximos_passos = db.Column(db.Text)
+    observacoes_tecnicas = db.Column(db.Text)
+    observacoes_seguranca = db.Column(db.Text)
     conclusoes = db.Column(db.Text)
-    checklist_items = db.Column(db.Text)  # JSON com checklist personalizado
+    observacoes_finais = db.Column(db.Text)
+    
+    # Checklist personalizado (JSON)
+    checklist_items = db.Column(db.Text)  # JSON com checklist
+    
+    # Campos técnicos específicos
+    normas_aplicaveis = db.Column(db.Text)
+    especificacoes_tecnicas = db.Column(db.Text)
+    medicoes_realizadas = db.Column(db.Text)
+    ensaios_realizados = db.Column(db.Text)
     
     # Metadados
     autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     status = db.Column(db.String(50), default='rascunho')  # rascunho, finalizado, aprovado
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
     data_finalizacao = db.Column(db.DateTime)
+    data_aprovacao = db.Column(db.DateTime)
+    aprovado_por_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relacionamentos
-    autor = db.relationship('User', backref='relatorios_express_standalone')
+    autor = db.relationship('User', foreign_keys=[autor_id], backref='relatorios_express_standalone_autor')
+    aprovado_por = db.relationship('User', foreign_keys=[aprovado_por_id])
     
     def __repr__(self):
         return f'<RelatorioExpressStandalone {self.numero}>'

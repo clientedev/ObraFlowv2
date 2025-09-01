@@ -191,7 +191,7 @@ class LegendaPredefinidaForm(FlaskForm):
 
 # Formulários para Relatório Express Standalone (sem projeto/empresa)
 class RelatorioExpressStandaloneForm(FlaskForm):
-    """Formulário completo para Relatório Express independente"""
+    """Formulário completo para Relatório Express independente - Todos os campos do sistema principal"""
     
     # Dados da empresa
     empresa_nome = StringField('Nome da Empresa', validators=[DataRequired(), Length(max=200)])
@@ -206,9 +206,19 @@ class RelatorioExpressStandaloneForm(FlaskForm):
     ])
     
     # Dados do projeto/local
-    projeto_nome = StringField('Nome do Projeto/Local', validators=[DataRequired(), Length(max=200)])
+    projeto_nome = StringField('Nome do Projeto', validators=[DataRequired(), Length(max=200)])
     projeto_endereco = TextAreaField('Endereço do Projeto', validators=[DataRequired()])
-    tipo_obra = StringField('Tipo de Obra', validators=[Length(max=100)])
+    projeto_tipo = SelectField('Tipo de Projeto', choices=[
+        ('', 'Selecionar...'),
+        ('Residencial', 'Residencial'),
+        ('Comercial', 'Comercial'),
+        ('Industrial', 'Industrial'),
+        ('Institucional', 'Institucional'),
+        ('Infraestrutura', 'Infraestrutura'),
+        ('Reforma', 'Reforma'),
+        ('Manutenção', 'Manutenção')
+    ], default='')
+    projeto_descricao = TextAreaField('Descrição do Projeto')
     data_inicio = DateField('Data de Início', validators=[Optional()])
     data_previsao_fim = DateField('Previsão de Término', validators=[Optional()])
     
@@ -225,13 +235,28 @@ class RelatorioExpressStandaloneForm(FlaskForm):
         ('Garoa', 'Garoa')
     ], default='')
     temperatura = StringField('Temperatura', validators=[Length(max=20)])
+    equipe_presentes = TextAreaField('Equipe Presente')
+    objetivo_visita = TextAreaField('Objetivo da Visita', validators=[DataRequired()])
     
-    # Dados do relatório
-    titulo_relatorio = StringField('Título do Relatório', validators=[DataRequired(), Length(max=200)])
-    observacoes_gerais = TextAreaField('Observações Gerais')
+    # Conteúdo do relatório - todas as seções
+    observacoes_preliminares = TextAreaField('Observações Preliminares')
+    atividades_executadas = TextAreaField('Atividades Executadas', validators=[DataRequired()])
+    materiais_utilizados = TextAreaField('Materiais Utilizados')
+    equipamentos_utilizados = TextAreaField('Equipamentos Utilizados')
     problemas_identificados = TextAreaField('Problemas Identificados')
-    recomendacoes = TextAreaField('Recomendações')
-    conclusoes = TextAreaField('Conclusões')
+    solucoes_implementadas = TextAreaField('Soluções Implementadas')
+    recomendacoes = TextAreaField('Recomendações', validators=[DataRequired()])
+    proximos_passos = TextAreaField('Próximos Passos')
+    observacoes_tecnicas = TextAreaField('Observações Técnicas')
+    observacoes_seguranca = TextAreaField('Observações de Segurança')
+    conclusoes = TextAreaField('Conclusões', validators=[DataRequired()])
+    observacoes_finais = TextAreaField('Observações Finais')
+    
+    # Campos técnicos específicos
+    normas_aplicaveis = TextAreaField('Normas Aplicáveis')
+    especificacoes_tecnicas = TextAreaField('Especificações Técnicas')
+    medicoes_realizadas = TextAreaField('Medições Realizadas')
+    ensaios_realizados = TextAreaField('Ensaios Realizados')
 
 class FotoExpressStandaloneForm(FlaskForm):
     """Formulário para adicionar foto ao relatório express standalone"""
