@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Configuração de Backup - Google Drive{% endblock %}
+
+{% block extra_css %}
+<style>
+.status-card {
+    border-left: 4px solid #17a2b8;
+    transition: all 0.3s ease;
+}
+
+.status-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.status-success {
+    background-color: #28a745;
+}
+
+.status-warning {
+    background-color: #ffc107;
+}
+
+.status-error {
+    background-color: #dc3545;
+}
+
+.config-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+}
+
+.feature-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.feature-list li:last-child {
+    border-bottom: none;
+}
+
+.feature-list i {
+    color: #28a745;
+    margin-right: 10px;
+    width: 20px;
+}
+
+.btn-google {
+    background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-google:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+    color: white;
+}
+
+.credentials-info {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+}
+
+.credentials-info h6 {
+    color: #495057;
+    margin-bottom: 1rem;
+}
+
+.credentials-info code {
+    background: #e9ecef;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+    .config-section {
+        padding: 1.5rem;
+    }
+    
+    .credentials-info {
+        padding: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            
+            <!-- Cabeçalho principal -->
+            <div class="config-section">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h2 class="mb-3">
+                            <i class="fab fa-google-drive me-3"></i>Backup Automático - Google Drive
+                        </h2>
+                        <p class="mb-0 opacity-75">
+                            Configure o backup automático de relatórios e fotos para o Google Drive. 
+                            Todos os arquivos serão organizados automaticamente por projeto.
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <i class="fab fa-google-drive" style="font-size: 4rem; opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Status atual -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card status-card h-100">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle me-2"></i>Status Atual
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <h6>Configuração</h6>
+                                <div class="d-flex align-items-center">
+                                    <span class="status-indicator {% if status.is_configured %}status-success{% else %}status-error{% endif %}"></span>
+                                    {% if status.is_configured %}
+                                        <span class="text-success">Credenciais configuradas</span>
+                                    {% else %}
+                                        <span class="text-danger">Credenciais não configuradas</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6>Autenticação</h6>
+                                <div class="d-flex align-items-center">
+                                    <span class="status-indicator {% if status.is_authenticated %}status-success{% else %}status-warning{% endif %}"></span>
+                                    {% if status.is_authenticated %}
+                                        <span class="text-success">Conectado ao Google Drive</span>
+                                    {% else %}
+                                        <span class="text-warning">Não autenticado</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6>Pasta de Destino</h6>
+                                <div class="d-flex align-items-center">
+                                    <span class="status-indicator status-success"></span>
+                                    <span class="text-success">Pasta compartilhada configurada</span>
+                                </div>
+                                <small class="text-muted">ID: {{ status.shared_folder_id }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ações -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-cog me-2"></i>Configuração
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if not status.is_configured %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Credenciais necessárias:</strong> Configure as variáveis de ambiente primeiro.
+                            </div>
+                            {% elif not status.is_authenticated %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Autorização necessária:</strong> Conecte sua conta do Google Drive.
+                            </div>
+                            <a href="{{ url_for('backup_authorize') }}" class="btn btn-google btn-lg w-100">
+                                <i class="fab fa-google me-2"></i>Conectar Google Drive
+                            </a>
+                            {% else %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>Configuração completa!</strong> O backup automático está ativo.
+                            </div>
+                            <a href="{{ url_for('backup_authorize') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-sync-alt me-2"></i>Reconectar
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações detalhadas -->
+            <div class="row">
+                <div class="col-lg-8 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-list-check me-2"></i>Funcionalidades do Backup
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="feature-list">
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <strong>Relatórios PDF:</strong> Backup automático de todos os relatórios gerados
+                                </li>
+                                <li>
+                                    <i class="fas fa-images"></i>
+                                    <strong>Fotos:</strong> Upload de todas as imagens anexadas aos relatórios
+                                </li>
+                                <li>
+                                    <i class="fas fa-folder"></i>
+                                    <strong>Organização:</strong> Pastas automáticas por projeto (Número - Nome)
+                                </li>
+                                <li>
+                                    <i class="fas fa-clock"></i>
+                                    <strong>Backup Automático:</strong> Executado sempre que um relatório for finalizado
+                                </li>
+                                <li>
+                                    <i class="fas fa-hand-pointer"></i>
+                                    <strong>Backup Manual:</strong> Botão para forçar backup quando necessário
+                                </li>
+                                <li>
+                                    <i class="fas fa-mobile-alt"></i>
+                                    <strong>Multiplataforma:</strong> Funciona em desktop, tablet e celular
+                                </li>
+                                <li>
+                                    <i class="fas fa-shield-alt"></i>
+                                    <strong>Segurança:</strong> Autenticação OAuth 2.0 com Google
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">
+                                <i class="fas fa-key me-2"></i>Configuração de Credenciais
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if not status.is_configured %}
+                            <div class="credentials-info">
+                                <h6><i class="fas fa-exclamation-circle text-warning me-2"></i>Variáveis necessárias:</h6>
+                                <p><code>GOOGLE_DRIVE_CLIENT_ID</code></p>
+                                <p><code>GOOGLE_DRIVE_CLIENT_SECRET</code></p>
+                                
+                                <hr>
+                                <h6><i class="fas fa-info-circle text-info me-2"></i>Como obter:</h6>
+                                <ol class="small">
+                                    <li>Acesse <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></li>
+                                    <li>Crie um projeto ou selecione existente</li>
+                                    <li>Ative a API do Google Drive</li>
+                                    <li>Crie credenciais OAuth 2.0</li>
+                                    <li>Configure as variáveis de ambiente</li>
+                                </ol>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Credenciais configuradas corretamente!
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% if status.is_authenticated %}
+<script>
+// Auto-refresh status para verificar conexão
+setInterval(function() {
+    fetch('/api/backup/status')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.is_authenticated) {
+                location.reload();
+            }
+        })
+        .catch(error => console.log('Status check failed:', error));
+}, 30000); // Verificar a cada 30 segundos
+</script>
+{% endif %}
+{% endblock %}
