@@ -3310,6 +3310,292 @@ def enviar_relatorio_express_por_email(relatorio, destinatarios, cc_emails, bcc_
             'falhas': len(destinatarios)
         }
 
+# ========================================
+# SISTEMA RELATÓRIO EXPRESS
+# ========================================
+
+@app.route('/express')
+@login_required
+def express_listar():
+    """Lista todos os relatórios express"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = 20
+        
+        relatorios = RelatorioExpress.query.filter_by(usuario_id=current_user.id)\
+            .order_by(RelatorioExpress.created_at.desc())\
+            .paginate(
+                page=page, per_page=per_page, error_out=False
+            )
+        
+        return render_template('express/listar.html', relatorios=relatorios)
+        
+    except Exception as e:
+        current_app.logger.error(f"Erro ao listar relatórios express: {e}")
+        flash('Erro ao carregar relatórios express.', 'error')
+        return redirect(url_for('index'))
+
+@app.route('/express/novo', methods=['GET', 'POST'])
+@login_required
+def express_novo():
+    """Criar novo relatório express"""
+    form = RelatorioExpressForm()
+    
+    if form.validate_on_submit():
+        try:
+            # Gerar número do relatório
+            numero = gerar_numero_relatorio_express()
+            
+            # Criar relatório
+            relatorio = RelatorioExpress(
+                numero=numero,
+                nome_empresa=form.nome_empresa.data,
+                cnpj_empresa=form.cnpj_empresa.data,
+                endereco_empresa=form.endereco_empresa.data,
+                cidade_empresa=form.cidade_empresa.data,
+                estado_empresa=form.estado_empresa.data,
+                cep_empresa=form.cep_empresa.data,
+                contato_empresa=form.contato_empresa.data,
+                telefone_empresa=form.telefone_empresa.data,
+                email_empresa=form.email_empresa.data,
+                titulo_obra=form.titulo_obra.data,
+                endereco_obra=form.endereco_obra.data,
+                latitude=float(form.latitude.data) if form.latitude.data else None,
+                longitude=float(form.longitude.data) if form.longitude.data else None,
+                data_visita=form.data_visita.data,
+                responsavel_obra=form.responsavel_obra.data,
+                tipo_servico=form.tipo_servico.data,
+                introducao=form.introducao.data,
+                metodologia=form.metodologia.data,
+                itens_observados=form.itens_observados.data,
+                observacoes_gerais=form.observacoes_gerais.data,
+                conclusoes=form.conclusoes.data,
+                recomendacoes=form.recomendacoes.data,
+                responsavel_tecnico=form.responsavel_tecnico.data,
+                crea_responsavel=form.crea_responsavel.data,
+                assinatura_cliente=form.assinatura_cliente.data,
+                nome_cliente_assinatura=form.nome_cliente_assinatura.data,
+                cargo_cliente_assinatura=form.cargo_cliente_assinatura.data,
+                usuario_id=current_user.id
+            )
+            
+            db.session.add(relatorio)
+            db.session.commit()
+            
+            flash(f'Relatório Express {numero} criado com sucesso!', 'success')
+            return redirect(url_for('express_editar', id=relatorio.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Erro ao criar relatório express: {e}")
+            flash('Erro ao criar relatório express.', 'error')
+    
+    return render_template('express/novo.html', form=form)
+
+@app.route('/express/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+def express_editar(id):
+    """Editar relatório express existente"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    # Verificar se o usuário pode editar
+    if relatorio.usuario_id != current_user.id and not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_listar'))
+    
+    form = RelatorioExpressForm(obj=relatorio)
+    
+    if form.validate_on_submit():
+        try:
+            form.populate_obj(relatorio)
+            relatorio.updated_at = datetime.utcnow()
+            db.session.commit()
+            
+            flash('Relatório Express atualizado com sucesso!', 'success')
+            return redirect(url_for('express_visualizar', id=relatorio.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Erro ao atualizar relatório express: {e}")
+            flash('Erro ao atualizar relatório express.', 'error')
+    
+    return render_template('express/editar.html', form=form, relatorio=relatorio)
+
+@app.route('/express/<int:id>')
+@login_required
+def express_visualizar(id):
+    """Visualizar relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    # Verificar se o usuário pode visualizar
+    if relatorio.usuario_id != current_user.id and not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_listar'))
+    
+    fotos = relatorio.fotos
+    return render_template('express/visualizar.html', relatorio=relatorio, fotos=fotos)
+
+@app.route('/express/<int:id>/fotos', methods=['GET', 'POST'])
+@login_required
+def express_fotos(id):
+    """Gerenciar fotos do relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    if relatorio.usuario_id != current_user.id and not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_listar'))
+    
+    form = FotoExpressForm()
+    
+    if form.validate_on_submit():
+        try:
+            foto_file = form.foto.data
+            filename = secure_filename(foto_file.filename)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{timestamp}_{filename}"
+            
+            upload_path = os.path.join('uploads', filename)
+            foto_file.save(upload_path)
+            
+            # Obter próximo número de ordem
+            ultima_foto = FotoRelatorioExpress.query.filter_by(relatorio_express_id=relatorio.id)\
+                .order_by(FotoRelatorioExpress.ordem.desc()).first()
+            ordem = (ultima_foto.ordem + 1) if ultima_foto else 1
+            
+            foto = FotoRelatorioExpress(
+                relatorio_express_id=relatorio.id,
+                filename=filename,
+                filename_original=filename,
+                titulo=form.titulo.data,
+                legenda=form.legenda.data,
+                descricao=form.descricao.data,
+                tipo_servico=form.tipo_servico.data,
+                ordem=ordem
+            )
+            
+            db.session.add(foto)
+            db.session.commit()
+            
+            flash('Foto adicionada com sucesso!', 'success')
+            return redirect(url_for('express_fotos', id=relatorio.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Erro ao adicionar foto: {e}")
+            flash('Erro ao adicionar foto.', 'error')
+    
+    fotos = relatorio.fotos
+    return render_template('express/fotos.html', relatorio=relatorio, fotos=fotos, form=form)
+
+@app.route('/express/<int:id>/finalizar')
+@login_required
+def express_finalizar(id):
+    """Finalizar e gerar PDF do relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    if relatorio.usuario_id != current_user.id and not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_listar'))
+    
+    try:
+        # Gerar PDF
+        pdf_filename = f"relatorio_express_{relatorio.numero}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        pdf_path = os.path.join('uploads', pdf_filename)
+        
+        resultado = gerar_pdf_relatorio_express(relatorio, relatorio.fotos, pdf_path)
+        
+        if resultado['success']:
+            relatorio.status = 'finalizado'
+            relatorio.pdf_path = pdf_path
+            relatorio.updated_at = datetime.utcnow()
+            db.session.commit()
+            
+            # Backup para Google Drive
+            try:
+                backup_result = backup_to_drive(
+                    pdf_path, 
+                    f"Express/{relatorio.numero}_{relatorio.nome_empresa}.pdf"
+                )
+                if backup_result.get('success'):
+                    relatorio.backup_drive_id = backup_result.get('file_id')
+                    relatorio.backup_drive_url = backup_result.get('file_url')
+                    db.session.commit()
+            except Exception as backup_error:
+                current_app.logger.warning(f"Erro no backup do Drive: {backup_error}")
+            
+            flash('Relatório Express finalizado com sucesso!', 'success')
+            return redirect(url_for('express_pdf', id=relatorio.id))
+        else:
+            flash(f'Erro ao gerar PDF: {resultado.get("message", "Erro desconhecido")}', 'error')
+            
+    except Exception as e:
+        current_app.logger.error(f"Erro ao finalizar relatório express: {e}")
+        flash('Erro ao finalizar relatório express.', 'error')
+    
+    return redirect(url_for('express_visualizar', id=relatorio.id))
+
+@app.route('/express/<int:id>/pdf')
+@login_required
+def express_pdf(id):
+    """Baixar PDF do relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    if relatorio.usuario_id != current_user.id and not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_listar'))
+    
+    if not relatorio.pdf_path or not os.path.exists(relatorio.pdf_path):
+        flash('PDF não encontrado. Finalize o relatório primeiro.', 'error')
+        return redirect(url_for('express_visualizar', id=relatorio.id))
+    
+    return send_from_directory(
+        'uploads', 
+        os.path.basename(relatorio.pdf_path),
+        as_attachment=True,
+        download_name=f"relatorio_express_{relatorio.numero}.pdf"
+    )
+
+@app.route('/express/<int:id>/excluir', methods=['POST'])
+@login_required
+def express_excluir(id):
+    """Excluir relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    if relatorio.usuario_id != current_user.id and not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_listar'))
+    
+    try:
+        # Excluir fotos do disco
+        for foto in relatorio.fotos:
+            try:
+                if foto.filename and os.path.exists(os.path.join('uploads', foto.filename)):
+                    os.remove(os.path.join('uploads', foto.filename))
+                if foto.filename_anotada and os.path.exists(os.path.join('uploads', foto.filename_anotada)):
+                    os.remove(os.path.join('uploads', foto.filename_anotada))
+            except Exception as e:
+                current_app.logger.warning(f"Erro ao excluir arquivo de foto: {e}")
+        
+        # Excluir PDF
+        if relatorio.pdf_path and os.path.exists(relatorio.pdf_path):
+            try:
+                os.remove(relatorio.pdf_path)
+            except Exception as e:
+                current_app.logger.warning(f"Erro ao excluir PDF: {e}")
+        
+        # Excluir do banco
+        db.session.delete(relatorio)
+        db.session.commit()
+        
+        flash('Relatório Express excluído com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erro ao excluir relatório express: {e}")
+        flash('Erro ao excluir relatório express.', 'error')
+    
+    return redirect(url_for('express_listar'))
+
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):

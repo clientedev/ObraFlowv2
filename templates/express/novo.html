@@ -2,183 +2,506 @@
 
 {% block title %}Novo Relatório Express{% endblock %}
 
-{% block extra_css %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
 <style>
-.express-header {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+.step-container {
+    display: none;
+}
+.step-container.active {
+    display: block;
+}
+
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+}
+
+.progress-step {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    position: relative;
+}
+
+.progress-step.active {
+    background: var(--elp-cyan);
     color: white;
-    padding: 2rem;
-    border-radius: 10px;
-    margin-bottom: 2rem;
+    border-color: var(--elp-cyan);
 }
-.express-form {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 10px;
-    padding: 2rem;
+
+.progress-step.completed {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
 }
+
+.progress-step:not(:last-child):after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -15px;
+    width: 30px;
+    height: 2px;
+    background: #dee2e6;
+    z-index: 1;
+}
+
 .form-section {
-    margin-bottom: 2rem;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
 }
-.form-section h5 {
-    color: #28a745;
-    border-bottom: 2px solid #28a745;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
+
+.section-title {
+    color: var(--elp-dark);
+    font-weight: bold;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--elp-cyan);
 }
+
+#map {
+    height: 300px;
+    margin: 15px 0;
+    border-radius: 8px;
+}
+
+.btn-step {
+    min-width: 120px;
+    margin: 0 10px;
+}
+
+/* Mobile responsivity */
 @media (max-width: 768px) {
-    .express-header {
-        padding: 1.5rem;
-        text-align: center;
+    .progress-steps {
+        flex-direction: column;
     }
-    .express-form {
-        padding: 1.5rem;
+    
+    .progress-step:not(:last-child):after {
+        display: none;
+    }
+    
+    .form-section {
+        padding: 15px;
+    }
+    
+    .row .col-md-6 {
+        margin-bottom: 15px;
     }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8 col-12">
-        <!-- Header -->
-        <div class="express-header">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <h2><i class="fas fa-bolt me-2"></i>Novo Relatório Express</h2>
-                    <p class="mb-0">Projeto: <strong>{{ projeto.nome }}</strong> ({{ projeto.numero }})</p>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="fas fa-bolt"></i> Novo Relatório Express</h3>
+                <a href="{{ url_for('express_listar') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Steps -->
+    <div class="progress-steps">
+        <div class="progress-step active" id="step-indicator-1">
+            <i class="fas fa-building"></i><br>
+            <small>Dados da Empresa</small>
+        </div>
+        <div class="progress-step" id="step-indicator-2">
+            <i class="fas fa-file-alt"></i><br>
+            <small>Dados do Relatório</small>
+        </div>
+        <div class="progress-step" id="step-indicator-3">
+            <i class="fas fa-camera"></i><br>
+            <small>Fotos e Checklist</small>
+        </div>
+        <div class="progress-step" id="step-indicator-4">
+            <i class="fas fa-signature"></i><br>
+            <small>Finalização</small>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="expressForm">
+        {{ form.hidden_tag() }}
+        
+        <!-- Etapa 1: Dados da Empresa -->
+        <div class="step-container active" id="step-1">
+            <div class="form-section">
+                <h4 class="section-title"><i class="fas fa-building"></i> Dados da Empresa/Cliente</h4>
+                <div class="row">
+                    <div class="col-md-8">
+                        {{ form.nome_empresa.label(class="form-label") }}
+                        {{ form.nome_empresa(class="form-control") }}
+                        {% if form.nome_empresa.errors %}
+                            <div class="text-danger">{{ form.nome_empresa.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.cnpj_empresa.label(class="form-label") }}
+                        {{ form.cnpj_empresa(class="form-control") }}
+                    </div>
                 </div>
-                <div>
-                    <a href="{{ url_for('project_detail', project_id=projeto.id) }}" class="btn btn-light">
-                        <i class="fas fa-arrow-left me-2"></i>Voltar
-                    </a>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        {{ form.endereco_empresa.label(class="form-label") }}
+                        {{ form.endereco_empresa(class="form-control", rows="2") }}
+                    </div>
                 </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ form.cidade_empresa.label(class="form-label") }}
+                        {{ form.cidade_empresa(class="form-control") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.estado_empresa.label(class="form-label") }}
+                        {{ form.estado_empresa(class="form-control") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.cep_empresa.label(class="form-label") }}
+                        {{ form.cep_empresa(class="form-control") }}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ form.contato_empresa.label(class="form-label") }}
+                        {{ form.contato_empresa(class="form-control") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.telefone_empresa.label(class="form-label") }}
+                        {{ form.telefone_empresa(class="form-control") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.email_empresa.label(class="form-label") }}
+                        {{ form.email_empresa(class="form-control") }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-end">
+                <button type="button" class="btn btn-primary btn-step" onclick="nextStep(2)">
+                    Próximo <i class="fas fa-arrow-right"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Formulário -->
-        <div class="express-form">
-            <form method="POST" id="expressForm">
-                {{ form.hidden_tag() }}
-                
-                <div class="form-section">
-                    <h5><i class="fas fa-edit me-2"></i>Observações Rápidas</h5>
-                    <p class="text-muted">
-                        Registre informações importantes sobre a visita ou obra de forma direta e objetiva.
-                    </p>
-                    
-                    {{ form.observacoes.label(class="form-label") }}
-                    {{ form.observacoes(class="form-control") }}
-                    
-                    {% if form.observacoes.errors %}
-                        <div class="text-danger mt-1">
-                            {% for error in form.observacoes.errors %}
-                                <small>{{ error }}</small><br>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    
-                    <small class="form-text text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Após criar o relatório, você poderá adicionar fotos com legendas.
-                    </small>
+        <!-- Etapa 2: Dados do Relatório -->
+        <div class="step-container" id="step-2">
+            <div class="form-section">
+                <h4 class="section-title"><i class="fas fa-file-alt"></i> Dados do Relatório</h4>
+                <div class="row">
+                    <div class="col-md-8">
+                        {{ form.titulo_obra.label(class="form-label") }}
+                        {{ form.titulo_obra(class="form-control") }}
+                        {% if form.titulo_obra.errors %}
+                            <div class="text-danger">{{ form.titulo_obra.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.data_visita.label(class="form-label") }}
+                        {{ form.data_visita(class="form-control") }}
+                    </div>
                 </div>
-
-                <!-- Informações do Projeto -->
-                <div class="form-section">
-                    <h5><i class="fas fa-building me-2"></i>Dados do Projeto</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="bg-white p-3 rounded border">
-                                <strong>Nome:</strong> {{ projeto.nome }}<br>
-                                <strong>Número:</strong> {{ projeto.numero }}<br>
-                                <strong>Cliente:</strong> {{ projeto.cliente or 'N/A' }}
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        {{ form.endereco_obra.label(class="form-label") }}
+                        {{ form.endereco_obra(class="form-control", rows="2") }}
+                        <small class="form-text text-muted">
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="getCurrentLocation()">
+                                <i class="fas fa-map-marker-alt"></i> Obter Localização Atual
+                            </button>
+                        </small>
+                        <div id="map"></div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.latitude.label(class="form-label") }}
+                                {{ form.latitude(class="form-control", readonly=True) }}
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="bg-white p-3 rounded border">
-                                <strong>Endereço:</strong><br>
-                                {{ projeto.endereco or 'N/A' }}<br>
-                                <strong>Responsável:</strong> {{ projeto.responsavel.nome_completo if projeto.responsavel else 'N/A' }}
+                            <div class="col-md-6">
+                                {{ form.longitude.label(class="form-label") }}
+                                {{ form.longitude(class="form-control", readonly=True) }}
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Botões de Ação -->
-                <div class="d-flex justify-content-between">
-                    <a href="{{ url_for('project_detail', project_id=projeto.id) }}" class="btn btn-secondary">
-                        <i class="fas fa-times me-2"></i>Cancelar
-                    </a>
-                    <button type="submit" class="btn btn-success btn-lg">
-                        <i class="fas fa-check me-2"></i>Criar Relatório Express
-                    </button>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.responsavel_obra.label(class="form-label") }}
+                        {{ form.responsavel_obra(class="form-control") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.tipo_servico.label(class="form-label") }}
+                        {{ form.tipo_servico(class="form-control") }}
+                    </div>
                 </div>
-            </form>
-        </div>
-
-        <!-- Informações -->
-        <div class="mt-4">
-            <div class="alert alert-info">
-                <h6><i class="fas fa-lightbulb me-2"></i>Sobre o Relatório Express:</h6>
-                <ul class="mb-0">
-                    <li>Versão simplificada e rápida do relatório completo</li>
-                    <li>Ideal para observações pontuais e comunicações ágeis</li>
-                    <li>Após criar, você pode adicionar fotos com legendas</li>
-                    <li>PDF gerado automaticamente com layout profissional</li>
-                    <li>Pode ser enviado por e-mail diretamente aos clientes</li>
-                </ul>
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary btn-step" onclick="prevStep(1)">
+                    <i class="fas fa-arrow-left"></i> Anterior
+                </button>
+                <button type="button" class="btn btn-primary btn-step" onclick="nextStep(3)">
+                    Próximo <i class="fas fa-arrow-right"></i>
+                </button>
             </div>
         </div>
-    </div>
-</div>
-{% endblock %}
 
-{% block extra_scripts %}
-<script>
-// Contador de caracteres para as observações
-document.addEventListener('DOMContentLoaded', function() {
-    const observacoesField = document.getElementById('observacoes');
-    const maxLength = 2000;
-    
-    if (observacoesField) {
-        // Criar contador
-        const counter = document.createElement('small');
-        counter.className = 'form-text text-muted float-end';
-        observacoesField.parentNode.appendChild(counter);
-        
-        function updateCounter() {
-            const remaining = maxLength - observacoesField.value.length;
-            counter.textContent = `${observacoesField.value.length}/${maxLength} caracteres`;
+        <!-- Etapa 3: Conteúdo do Relatório -->
+        <div class="step-container" id="step-3">
+            <div class="form-section">
+                <h4 class="section-title"><i class="fas fa-edit"></i> Conteúdo do Relatório</h4>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.introducao.label(class="form-label") }}
+                        {{ form.introducao(class="form-control", rows="4") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.metodologia.label(class="form-label") }}
+                        {{ form.metodologia(class="form-control", rows="4") }}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        {{ form.itens_observados.label(class="form-label") }}
+                        {{ form.itens_observados(class="form-control", rows="6") }}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.observacoes_gerais.label(class="form-label") }}
+                        {{ form.observacoes_gerais(class="form-control", rows="4") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.conclusoes.label(class="form-label") }}
+                        {{ form.conclusoes(class="form-control", rows="4") }}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        {{ form.recomendacoes.label(class="form-label") }}
+                        {{ form.recomendacoes(class="form-control", rows="4") }}
+                    </div>
+                </div>
+            </div>
             
-            if (remaining < 100) {
-                counter.className = 'form-text text-warning float-end';
-            } else if (remaining < 0) {
-                counter.className = 'form-text text-danger float-end';
-            } else {
-                counter.className = 'form-text text-muted float-end';
-            }
-        }
-        
-        observacoesField.addEventListener('input', updateCounter);
-        updateCounter(); // Executar na primeira vez
+            <div class="d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary btn-step" onclick="prevStep(2)">
+                    <i class="fas fa-arrow-left"></i> Anterior
+                </button>
+                <button type="button" class="btn btn-primary btn-step" onclick="nextStep(4)">
+                    Próximo <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Etapa 4: Finalização -->
+        <div class="step-container" id="step-4">
+            <div class="form-section">
+                <h4 class="section-title"><i class="fas fa-signature"></i> Assinaturas e Responsabilidade Técnica</h4>
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        {{ form.responsavel_tecnico.label(class="form-label") }}
+                        {{ form.responsavel_tecnico(class="form-control") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.crea_responsavel.label(class="form-label") }}
+                        {{ form.crea_responsavel(class="form-control") }}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-check">
+                            {{ form.assinatura_cliente(class="form-check-input") }}
+                            {{ form.assinatura_cliente.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row" id="cliente-assinatura" style="display: none;">
+                    <div class="col-md-6">
+                        {{ form.nome_cliente_assinatura.label(class="form-label") }}
+                        {{ form.nome_cliente_assinatura(class="form-control") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.cargo_cliente_assinatura.label(class="form-label") }}
+                        {{ form.cargo_cliente_assinatura(class="form-control") }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary btn-step" onclick="prevStep(3)">
+                    <i class="fas fa-arrow-left"></i> Anterior
+                </button>
+                <button type="submit" class="btn btn-success btn-step">
+                    <i class="fas fa-save"></i> Criar Relatório Express
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+// Variáveis globais
+let currentStep = 1;
+let map;
+let marker;
+
+// Navegação entre etapas
+function nextStep(step) {
+    // Validar etapa atual antes de avançar
+    if (!validateStep(currentStep)) {
+        return;
     }
+    
+    document.getElementById(`step-${currentStep}`).classList.remove('active');
+    document.getElementById(`step-indicator-${currentStep}`).classList.remove('active');
+    document.getElementById(`step-indicator-${currentStep}`).classList.add('completed');
+    
+    currentStep = step;
+    document.getElementById(`step-${step}`).classList.add('active');
+    document.getElementById(`step-indicator-${step}`).classList.add('active');
+    
+    // Inicializar mapa na etapa 2
+    if (step === 2 && !map) {
+        initializeMap();
+    }
+}
+
+function prevStep(step) {
+    document.getElementById(`step-${currentStep}`).classList.remove('active');
+    document.getElementById(`step-indicator-${currentStep}`).classList.remove('active');
+    
+    currentStep = step;
+    document.getElementById(`step-${step}`).classList.add('active');
+    document.getElementById(`step-indicator-${step}`).classList.add('active');
+    document.getElementById(`step-indicator-${step}`).classList.remove('completed');
+}
+
+function validateStep(step) {
+    if (step === 1) {
+        const nomeEmpresa = document.getElementById('nome_empresa').value.trim();
+        if (!nomeEmpresa) {
+            alert('Por favor, preencha o nome da empresa/cliente.');
+            document.getElementById('nome_empresa').focus();
+            return false;
+        }
+    } else if (step === 2) {
+        const tituloObra = document.getElementById('titulo_obra').value.trim();
+        const dataVisita = document.getElementById('data_visita').value;
+        if (!tituloObra) {
+            alert('Por favor, preencha o título da obra/projeto.');
+            document.getElementById('titulo_obra').focus();
+            return false;
+        }
+        if (!dataVisita) {
+            alert('Por favor, selecione a data da visita.');
+            document.getElementById('data_visita').focus();
+            return false;
+        }
+    }
+    return true;
+}
+
+// Controle de assinatura do cliente
+document.addEventListener('DOMContentLoaded', function() {
+    const assinaturaCheck = document.getElementById('assinatura_cliente');
+    const clienteDiv = document.getElementById('cliente-assinatura');
+    
+    assinaturaCheck.addEventListener('change', function() {
+        if (this.checked) {
+            clienteDiv.style.display = 'flex';
+        } else {
+            clienteDiv.style.display = 'none';
+        }
+    });
 });
 
-// Validação do formulário
-document.getElementById('expressForm').addEventListener('submit', function(e) {
-    const observacoes = document.getElementById('observacoes').value.trim();
+// Funcionalidade do mapa
+function initializeMap() {
+    if (map) return;
     
-    if (!observacoes) {
-        e.preventDefault();
-        alert('Por favor, preencha as observações antes de continuar.');
-        return false;
+    map = L.map('map').setView([-23.5505, -46.6333], 10); // São Paulo como padrão
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    map.on('click', function(e) {
+        if (marker) {
+            map.removeLayer(marker);
+        }
+        marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+        document.getElementById('latitude').value = e.latlng.lat.toFixed(6);
+        document.getElementById('longitude').value = e.latlng.lng.toFixed(6);
+    });
+}
+
+function getCurrentLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            
+            map.setView([lat, lng], 15);
+            marker = L.marker([lat, lng]).addTo(map);
+            document.getElementById('latitude').value = lat.toFixed(6);
+            document.getElementById('longitude').value = lng.toFixed(6);
+            
+            // Geocoding reverso para obter endereço
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.display_name) {
+                        document.getElementById('endereco_obra').value = data.display_name;
+                    }
+                })
+                .catch(error => console.warn('Erro no geocoding:', error));
+        }, function(error) {
+            alert('Erro ao obter localização: ' + error.message);
+        });
+    } else {
+        alert('Geolocalização não é suportada neste navegador.');
     }
-    
-    if (observacoes.length < 10) {
-        e.preventDefault();
-        alert('As observações devem ter pelo menos 10 caracteres.');
-        return false;
+}
+
+// Formatação de CNPJ
+document.addEventListener('DOMContentLoaded', function() {
+    const cnpjInput = document.getElementById('cnpj_empresa');
+    if (cnpjInput) {
+        cnpjInput.addEventListener('input', function() {
+            let value = this.value.replace(/\D/g, '');
+            value = value.replace(/(\d{2})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1/$2');
+            value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+            this.value = value;
+        });
     }
 });
 </script>
