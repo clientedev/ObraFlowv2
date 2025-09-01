@@ -1,10 +1,6 @@
 {% extends "base.html" %}
 
 {% block title %}Relatório Express - Dados da Empresa{% endblock %}
-
-{% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
 /* Estilo idêntico aos relatórios normais */
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -319,82 +315,70 @@ select.form-control {
 
 {% block content %}
 <div class="container">
-    <!-- Header Express -->
-    <div class="express-container">
-        <div class="express-content">
-            <div class="row align-items-center text-center">
-                <div class="col-12">
-                    <h1><i class="fas fa-bolt me-2"></i>Relatório Express</h1>
-                    <p class="mb-3 lead">Crie relatórios profissionais de forma rápida e independente</p>
-                    
-                    <!-- Indicador de etapas -->
-                    <div class="step-indicator">
-                        <div class="step active">
-                            <div class="step-number">1</div>
-                            <div class="step-label">Dados da Empresa</div>
-                        </div>
-                        <div class="step-connector"></div>
-                        <div class="step">
-                            <div class="step-number">2</div>
-                            <div class="step-label">Dados do Relatório</div>
-                        </div>
-                        <div class="step-connector"></div>
-                        <div class="step">
-                            <div class="step-number">3</div>
-                            <div class="step-label">Fotos & Finalização</div>
-                        </div>
-                    </div>
-                </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-bolt"></i> Relatório Express - Etapa 1</h2>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
             </div>
         </div>
     </div>
 
-    <!-- Informações importantes -->
-    <div class="info-box">
-        <i class="fas fa-info-circle"></i>
-        <strong>Etapa 1 de 3:</strong> Preencha os dados da empresa e do projeto. 
-        Estas informações não serão salvas permanentemente no sistema, sendo usadas apenas para este relatório.
+    <!-- Progress -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="progress mb-3" style="height: 20px;">
+                <div class="progress-bar bg-primary" role="progressbar" style="width: 33%" aria-valuenow="33" aria-valuemax="100">
+                    Etapa 1 de 3
+                </div>
+            </div>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Dados da Empresa:</strong> Preencha as informações da empresa e do projeto. 
+                Estes dados não serão salvos permanentemente no sistema.
+            </div>
+        </div>
     </div>
 
     <!-- Formulário -->
-    <div class="form-card">
-        <form method="POST" id="empresaForm">
-            {{ form.hidden_tag() }}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" id="empresaForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- Seção: Dados da Empresa -->
+                        <h5 class="card-title border-bottom pb-2 mb-4">
+                            <i class="fas fa-building me-2"></i>Dados da Empresa/Cliente
+                        </h5>
             
-            <!-- Seção: Dados da Empresa -->
-            <div class="section-header">
-                <h3><i class="fas fa-building me-2"></i>Dados da Empresa/Cliente</h3>
-                <p>Informações da empresa ou cliente para quem o relatório será gerado</p>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="form-group">
-                        {{ form.nome_empresa.label(class="form-label required-field") }}
-                        {{ form.nome_empresa(class="form-control") }}
-                        {% if form.nome_empresa.errors %}
-                            <div class="text-danger mt-1">
-                                {% for error in form.nome_empresa.errors %}
-                                    <small>{{ error }}</small>
-                                {% endfor %}
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.nome_empresa.label.text }} <span class="text-danger">*</span></label>
+                                    {{ form.nome_empresa(class="form-control") }}
+                                    {% if form.nome_empresa.errors %}
+                                        <div class="text-danger small">
+                                            {% for error in form.nome_empresa.errors %}{{ error }}{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        {{ form.cnpj_empresa.label(class="form-label") }}
-                        {{ form.cnpj_empresa(class="form-control") }}
-                        {% if form.cnpj_empresa.errors %}
-                            <div class="text-danger mt-1">
-                                {% for error in form.cnpj_empresa.errors %}
-                                    <small>{{ error }}</small>
-                                {% endfor %}
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.cnpj_empresa.label.text }}</label>
+                                    {{ form.cnpj_empresa(class="form-control") }}
+                                    {% if form.cnpj_empresa.errors %}
+                                        <div class="text-danger small">
+                                            {% for error in form.cnpj_empresa.errors %}{{ error }}{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
+                        </div>
             
             <div class="row">
                 <div class="col-md-6">
@@ -437,11 +421,10 @@ select.form-control {
                 {% endif %}
             </div>
 
-            <!-- Seção: Dados da Obra -->
-            <div class="section-header" style="margin-top: 3rem;">
-                <h3><i class="fas fa-hammer me-2"></i>Dados da Obra/Projeto</h3>
-                <p>Informações específicas sobre a obra ou projeto a ser relatado</p>
-            </div>
+                        <!-- Seção: Dados da Obra -->
+                        <h5 class="card-title border-bottom pb-2 mb-4 mt-4">
+                            <i class="fas fa-hammer me-2"></i>Dados da Obra/Projeto
+                        </h5>
             
             <div class="row">
                 <div class="col-md-8">
@@ -500,16 +483,19 @@ select.form-control {
                 </small>
             </div>
 
-            <!-- Botões de ação -->
-            <div class="action-buttons">
-                <a href="{{ url_for('index') }}" class="btn-outline-express">
-                    <i class="fas fa-times me-2"></i>Cancelar
-                </a>
-                <button type="submit" class="btn-express" id="submitBtn">
-                    <i class="fas fa-arrow-right me-2"></i>Próxima Etapa
-                </button>
+                        <!-- Botões de ação -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="fas fa-arrow-right me-2"></i>Próxima Etapa
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
@@ -520,7 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Loading state no envio
     form.addEventListener('submit', function() {
-        submitBtn.classList.add('btn-loading');
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processando...';
         submitBtn.disabled = true;
     });
     
