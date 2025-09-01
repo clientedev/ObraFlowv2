@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios Express{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="fas fa-bolt"></i> Relatórios Express</h3>
+                <a href="{{ url_for('express_new') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Relatório Express
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">📋 Lista de Relatórios Express</h6>
+                        <span class="badge bg-info">{{ relatorios|length }} relatórios</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if relatorios %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Empresa</th>
+                                    <th>Data da Visita</th>
+                                    <th>Autor</th>
+                                    <th>Status</th>
+                                    <th>Criado em</th>
+                                    <th width="200">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for relatorio in relatorios %}
+                                <tr>
+                                    <td>
+                                        <strong class="text-primary">{{ relatorio.numero }}</strong>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ relatorio.empresa_nome }}</strong>
+                                            {% if relatorio.empresa_responsavel %}
+                                            <br><small class="text-muted">{{ relatorio.empresa_responsavel }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if relatorio.data_visita %}
+                                            {{ relatorio.data_visita.strftime('%d/%m/%Y') }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ relatorio.autor.nome_completo }}</small>
+                                    </td>
+                                    <td>
+                                        {% if relatorio.status == 'rascunho' %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-edit"></i> Rascunho
+                                            </span>
+                                        {% elif relatorio.status == 'finalizado' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check"></i> Finalizado
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ relatorio.status|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ relatorio.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-sm">
+                                            <a href="{{ url_for('express_detail', id=relatorio.id) }}" 
+                                               class="btn btn-outline-primary btn-sm" title="Visualizar">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            
+                                            {% if relatorio.status == 'rascunho' %}
+                                            <a href="{{ url_for('express_edit', id=relatorio.id) }}" 
+                                               class="btn btn-outline-secondary btn-sm" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% endif %}
+                                            
+                                            {% if relatorio.status == 'finalizado' %}
+                                            <a href="{{ url_for('express_pdf', id=relatorio.id) }}" 
+                                               class="btn btn-outline-danger btn-sm" title="Baixar PDF">
+                                                <i class="fas fa-file-pdf"></i>
+                                            </a>
+                                            {% endif %}
+                                            
+                                            {% if current_user.is_master %}
+                                            <button onclick="confirmarExclusao({{ relatorio.id }}, '{{ relatorio.numero }}')" 
+                                                    class="btn btn-outline-danger btn-sm" title="Excluir">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-bolt fa-3x text-muted mb-3"></i>
+                        <h5>Nenhum Relatório Express encontrado</h5>
+                        <p class="text-muted">Crie seu primeiro relatório express para processos mais rápidos</p>
+                        <a href="{{ url_for('express_new') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Criar Primeiro Relatório Express
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações sobre Relatórios Express -->
+    <div class="row mt-4">
+        <div class="col-lg-6">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> O que são Relatórios Express?</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li><i class="fas fa-check text-success me-2"></i> Processo mais rápido sem cadastro de projeto</li>
+                        <li><i class="fas fa-check text-success me-2"></i> Dados da empresa inseridos diretamente</li>
+                        <li><i class="fas fa-check text-success me-2"></i> PDF gerado automaticamente</li>
+                        <li><i class="fas fa-check text-success me-2"></i> Mesmo layout dos relatórios padrão</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Estatísticas Rápidas</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-warning">{{ relatorios_rascunho }}</h4>
+                            <small class="text-muted">Rascunhos</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success">{{ relatorios_finalizados }}</h4>
+                            <small class="text-muted">Finalizados</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmação de exclusão -->
+<div class="modal fade" id="modalExcluir" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o relatório express <strong id="relatorioNumero"></strong>?</p>
+                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> Esta ação não pode ser desfeita!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formExcluir" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmarExclusao(id, numero) {
+    document.getElementById('relatorioNumero').textContent = numero;
+    document.getElementById('formExcluir').action = `/express/${id}/delete`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalExcluir'));
+    modal.show();
+}
+</script>
+{% endblock %}

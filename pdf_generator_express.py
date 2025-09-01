@@ -1,353 +1,181 @@
 """
 Gerador de PDF para Relatórios Express
-Sistema simplificado baseado no WeasyPrint para relatórios rápidos
+Replicação exata do template WeasyPrint padrão com dados da empresa no topo
 """
 
+from pdf_generator_weasy import WeasyPrintReportGenerator
+from models import RelatorioExpress, FotoRelatorioExpress
 import os
-import base64
+import json
 from datetime import datetime
-from weasyprint import HTML, CSS
-from io import BytesIO
-from flask import current_app, render_template_string
+import base64
+
+class ExpressReportGenerator(WeasyPrintReportGenerator):
+    """
+    Gerador de PDF para Relatórios Express
+    Herda do WeasyPrintReportGenerator e adapta apenas os dados da empresa
+    """
+    
+    def generate_express_report_pdf(self, relatorio_express, fotos_list, output_path):
+        """
+        Gera PDF do relatório express usando o mesmo template do WeasyPrint
+        mas com dados da empresa ao invés de projeto
+        """
+        
+        try:
+            # Preparar dados no mesmo formato do relatório padrão
+            report_data = self._prepare_express_data(relatorio_express, fotos_list)
+            
+            # Usar o mesmo template HTML com dados adaptados
+            html_content = self._render_template('weasy_template.html', report_data)
+            
+            # Gerar PDF usando WeasyPrint
+            result = self._generate_pdf_from_html(html_content, output_path)
+            
+            if result.get('success'):
+                print(f"✓ PDF do Relatório Express gerado: {output_path}")
+                return {
+                    'success': True,
+                    'file_path': output_path,
+                    'size': os.path.getsize(output_path) if os.path.exists(output_path) else 0
+                }
+            else:
+                return {'success': False, 'error': result.get('error', 'Erro desconhecido')}
+                
+        except Exception as e:
+            error_msg = f"Erro ao gerar PDF Express: {str(e)}"
+            print(error_msg)
+            return {'success': False, 'error': error_msg}
+    
+    def _prepare_express_data(self, relatorio_express, fotos_list):
+        """
+        Prepara dados do relatório express no formato esperado pelo template
+        Adaptação: dados da empresa ao invés de projeto
+        """
+        
+        # Dados da empresa (substitui dados do projeto)
+        empresa_data = {
+            'nome': relatorio_express.empresa_nome,
+            'endereco': relatorio_express.empresa_endereco or 'Não informado',
+            'telefone': relatorio_express.empresa_telefone or 'Não informado',
+            'email': relatorio_express.empresa_email or 'Não informado',
+            'responsavel': relatorio_express.empresa_responsavel or 'Não informado'
+        }
+        
+        # Dados do relatório (idênticos ao padrão)
+        relatorio_data = {
+            'numero': relatorio_express.numero,
+            'data_visita': relatorio_express.data_visita.strftime('%d/%m/%Y') if relatorio_express.data_visita else '',
+            'periodo_inicio': relatorio_express.periodo_inicio.strftime('%H:%M') if relatorio_express.periodo_inicio else '',
+            'periodo_fim': relatorio_express.periodo_fim.strftime('%H:%M') if relatorio_express.periodo_fim else '',
+            'condicoes_climaticas': relatorio_express.condicoes_climaticas or '',
+            'temperatura': relatorio_express.temperatura or '',
+            'endereco_visita': relatorio_express.endereco_visita or '',
+            'observacoes_gerais': relatorio_express.observacoes_gerais or '',
+            'pendencias': relatorio_express.pendencias or '',
+            'recomendacoes': relatorio_express.recomendacoes or '',
+            'status': relatorio_express.status,
+            'created_at': relatorio_express.created_at.strftime('%d/%m/%Y %H:%M')
+        }
+        
+        # Dados do autor (idênticos ao padrão)
+        autor_data = {
+            'nome': relatorio_express.autor.nome_completo,
+            'cargo': relatorio_express.autor.cargo or 'Engenheiro',
+            'email': relatorio_express.autor.email
+        }
+        
+        # Processar fotos (idêntico ao padrão)
+        fotos_data = []
+        for foto in fotos_list:
+            try:
+                foto_path = os.path.join('uploads', foto.filename_anotada or foto.filename)
+                if os.path.exists(foto_path):
+                    with open(foto_path, 'rb') as f:
+                        foto_base64 = base64.b64encode(f.read()).decode('utf-8')
+                        fotos_data.append({
+                            'titulo': foto.titulo or f'Foto {foto.ordem}',
+                            'legenda': foto.legenda or '',
+                            'descricao': foto.descricao or '',
+                            'tipo_servico': foto.tipo_servico or '',
+                            'base64': foto_base64,
+                            'ordem': foto.ordem
+                        })
+            except Exception as e:
+                print(f"Erro ao processar foto {foto.filename}: {e}")
+                continue
+        
+        # Checklist (se houver)
+        checklist_items = []
+        if relatorio_express.checklist_completo:
+            try:
+                checklist_data = json.loads(relatorio_express.checklist_completo)
+                checklist_items = checklist_data if isinstance(checklist_data, list) else []
+            except:
+                checklist_items = []
+        
+        # Retornar dados no formato do template padrão
+        return {
+            # ADAPTAÇÃO: empresa ao invés de projeto
+            'empresa': empresa_data,  # Novo campo para dados da empresa
+            
+            # Dados idênticos ao relatório padrão
+            'relatorio': relatorio_data,
+            'autor': autor_data,
+            'fotos': fotos_data,
+            'checklist_items': checklist_items,
+            
+            # Logos (idênticos)
+            'logo_elp': self._get_logo_base64('static/logo_elp_final.jpg'),
+            'logo_cliente': None,  # Express não tem logo de cliente específico
+            
+            # Data de geração
+            'data_geracao': datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+            
+            # Flag para identificar como express
+            'is_express': True
+        }
+    
+    def _render_template(self, template_name, data):
+        """
+        Renderiza template HTML com dados do relatório express
+        Usa o mesmo template do WeasyPrint mas com adaptações para empresa
+        """
+        from flask import render_template
+        
+        # Usar template específico para express ou adaptar o padrão
+        return render_template('reports/express_template.html', **data)
+
+# Funções auxiliares para compatibilidade com routes existentes
+def gerar_pdf_relatorio_express(relatorio_express, output_path):
+    """Função compatível com o sistema de rotas existente"""
+    try:
+        generator = ExpressReportGenerator()
+        fotos = relatorio_express.fotos
+        return generator.generate_express_report_pdf(relatorio_express, fotos, output_path)
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
 
 def gerar_numero_relatorio_express():
-    """Gerar número único para relatório express"""
+    """Gera número sequencial para relatórios express"""
     from models import RelatorioExpress
+    from datetime import datetime
     
-    # Buscar o último número
-    ultimo_relatorio = RelatorioExpress.query.order_by(RelatorioExpress.id.desc()).first()
+    # Buscar último número do ano atual
+    ano_atual = datetime.now().year
+    prefixo = f"EXP{ano_atual}"
+    
+    ultimo_relatorio = RelatorioExpress.query.filter(
+        RelatorioExpress.numero.like(f"{prefixo}%")
+    ).order_by(RelatorioExpress.numero.desc()).first()
     
     if ultimo_relatorio:
         try:
-            # Extrair número do último relatório (formato EXP001, EXP002, etc)
-            numero_str = ultimo_relatorio.numero.replace('EXP', '')
-            proximo_numero = int(numero_str) + 1
+            ultimo_numero = int(ultimo_relatorio.numero.replace(prefixo, ''))
+            novo_numero = ultimo_numero + 1
         except:
-            proximo_numero = 1
+            novo_numero = 1
     else:
-        proximo_numero = 1
+        novo_numero = 1
     
-    return f"EXP{proximo_numero:03d}"
-
-def gerar_pdf_relatorio_express(relatorio_express_id, salvar_arquivo=True):
-    """
-    Gerar PDF do relatório express usando WeasyPrint
-    
-    Args:
-        relatorio_express_id: ID do relatório express
-        salvar_arquivo: Se deve salvar o arquivo no disco
-    
-    Returns:
-        Caminho do arquivo gerado ou BytesIO se salvar_arquivo=False
-    """
-    from models import RelatorioExpress, FotoRelatorioExpress
-    
-    try:
-        # Buscar o relatório express
-        relatorio = RelatorioExpress.query.get_or_404(relatorio_express_id)
-        projeto = relatorio.projeto
-        
-        # Buscar fotos
-        fotos = FotoRelatorioExpress.query.filter_by(
-            relatorio_express_id=relatorio_express_id
-        ).order_by(FotoRelatorioExpress.ordem).all()
-        
-        # Preparar dados das fotos com base64
-        fotos_data = []
-        for foto in fotos:
-            foto_path = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), foto.filename)
-            if os.path.exists(foto_path):
-                with open(foto_path, 'rb') as f:
-                    foto_base64 = base64.b64encode(f.read()).decode('utf-8')
-                    fotos_data.append({
-                        'base64': foto_base64,
-                        'legenda': foto.legenda,
-                        'filename': foto.filename
-                    })
-        
-        # Preparar dados para o template
-        dados = {
-            'relatorio': relatorio,
-            'projeto': projeto,
-            'fotos': fotos_data,
-            'data_atual': datetime.now().strftime('%d/%m/%Y'),
-            'hora_atual': datetime.now().strftime('%H:%M'),
-            'autor': relatorio.autor.nome_completo
-        }
-        
-        # Template HTML do relatório express
-        html_template = """
-        <!DOCTYPE html>
-        <html lang="pt-BR">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Relatório Express {{ relatorio.numero }}</title>
-            <style>
-                @page {
-                    size: A4;
-                    margin: 2cm 1.5cm;
-                    @bottom-center {
-                        content: "Página " counter(page) " de " counter(pages);
-                        font-size: 10px;
-                        color: #666;
-                    }
-                }
-                
-                body {
-                    font-family: 'Arial', 'Helvetica', sans-serif;
-                    font-size: 12px;
-                    line-height: 1.4;
-                    color: #333;
-                    margin: 0;
-                    padding: 0;
-                }
-                
-                /* Cabeçalho */
-                .header {
-                    border-bottom: 3px solid #4ECDC4;
-                    padding-bottom: 15px;
-                    margin-bottom: 20px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                }
-                
-                .header-left {
-                    flex: 1;
-                }
-                
-                .header-right {
-                    text-align: right;
-                }
-                
-                .logo-empresa {
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #2C3E50;
-                    margin-bottom: 5px;
-                }
-                
-                .subtitulo-empresa {
-                    font-size: 11px;
-                    color: #666;
-                    font-style: italic;
-                }
-                
-                .titulo-relatorio {
-                    font-size: 24px;
-                    font-weight: bold;
-                    color: #4ECDC4;
-                    margin: 0;
-                }
-                
-                .numero-relatorio {
-                    font-size: 14px;
-                    color: #666;
-                    margin: 5px 0 0 0;
-                }
-                
-                /* Seções */
-                .secao {
-                    margin-bottom: 25px;
-                    break-inside: avoid;
-                }
-                
-                .secao-titulo {
-                    font-size: 14px;
-                    font-weight: bold;
-                    color: #2C3E50;
-                    background-color: #f8f9fa;
-                    padding: 8px 12px;
-                    border-left: 4px solid #4ECDC4;
-                    margin-bottom: 12px;
-                }
-                
-                .dados-projeto {
-                    background-color: #fafafa;
-                    padding: 15px;
-                    border-radius: 5px;
-                }
-                
-                .dados-linha {
-                    margin-bottom: 8px;
-                }
-                
-                .dados-label {
-                    font-weight: bold;
-                    color: #2C3E50;
-                    display: inline-block;
-                    width: 120px;
-                }
-                
-                .dados-valor {
-                    color: #333;
-                }
-                
-                /* Observações */
-                .observacoes-texto {
-                    background-color: #fff;
-                    border: 1px solid #e9ecef;
-                    border-radius: 5px;
-                    padding: 15px;
-                    white-space: pre-wrap;
-                    word-wrap: break-word;
-                }
-                
-                /* Fotos */
-                .foto-container {
-                    margin-bottom: 20px;
-                    break-inside: avoid;
-                    text-align: center;
-                }
-                
-                .foto-imagem {
-                    max-width: 100%;
-                    max-height: 400px;
-                    border: 1px solid #ddd;
-                    border-radius: 5px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }
-                
-                .foto-legenda {
-                    margin-top: 8px;
-                    font-size: 11px;
-                    color: #666;
-                    font-style: italic;
-                    max-width: 80%;
-                    margin-left: auto;
-                    margin-right: auto;
-                }
-                
-                /* Rodapé */
-                .rodape {
-                    margin-top: 30px;
-                    padding-top: 15px;
-                    border-top: 2px solid #4ECDC4;
-                    font-size: 10px;
-                    color: #666;
-                    text-align: center;
-                }
-                
-                .rodape-empresa {
-                    font-weight: bold;
-                    color: #2C3E50;
-                    margin-bottom: 5px;
-                }
-                
-                .rodape-info {
-                    margin-bottom: 3px;
-                }
-                
-                /* Assinatura */
-                .assinatura {
-                    margin-top: 25px;
-                    padding: 15px;
-                    background-color: #f8f9fa;
-                    border-radius: 5px;
-                    text-align: center;
-                    font-size: 11px;
-                    color: #666;
-                }
-                
-                .assinatura-linha {
-                    margin-bottom: 5px;
-                }
-            </style>
-        </head>
-        <body>
-            <!-- Cabeçalho -->
-            <div class="header">
-                <div class="header-left">
-                    <div class="logo-empresa">ELP Consultoria e Engenharia</div>
-                    <div class="subtitulo-empresa">Engenharia Civil & Fachadas</div>
-                </div>
-                <div class="header-right">
-                    <h1 class="titulo-relatorio">Relatório Express</h1>
-                    <p class="numero-relatorio">Nº {{ relatorio.numero }}</p>
-                </div>
-            </div>
-            
-            <!-- Dados do Projeto -->
-            <div class="secao">
-                <div class="secao-titulo">Dados do Projeto</div>
-                <div class="dados-projeto">
-                    <div class="dados-linha">
-                        <span class="dados-label">Empresa:</span>
-                        <span class="dados-valor">{{ projeto.cliente or 'N/A' }}</span>
-                    </div>
-                    <div class="dados-linha">
-                        <span class="dados-label">Projeto/Obra:</span>
-                        <span class="dados-valor">{{ projeto.nome }}</span>
-                    </div>
-                    <div class="dados-linha">
-                        <span class="dados-label">Número:</span>
-                        <span class="dados-valor">{{ projeto.numero }}</span>
-                    </div>
-                    <div class="dados-linha">
-                        <span class="dados-label">Endereço:</span>
-                        <span class="dados-valor">{{ projeto.endereco or 'N/A' }}</span>
-                    </div>
-                    <div class="dados-linha">
-                        <span class="dados-label">Responsável:</span>
-                        <span class="dados-valor">{{ projeto.responsavel.nome_completo if projeto.responsavel else 'N/A' }}</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Observações Rápidas -->
-            <div class="secao">
-                <div class="secao-titulo">Observações Rápidas</div>
-                <div class="observacoes-texto">{{ relatorio.observacoes }}</div>
-            </div>
-            
-            <!-- Fotos (se houver) -->
-            {% if fotos %}
-            <div class="secao">
-                <div class="secao-titulo">Fotos</div>
-                {% for foto in fotos %}
-                <div class="foto-container">
-                    <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto" class="foto-imagem">
-                    <div class="foto-legenda">{{ foto.legenda }}</div>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            
-            <!-- Assinatura -->
-            <div class="assinatura">
-                <div class="assinatura-linha"><strong>Emitido por:</strong> {{ autor }}</div>
-                <div class="assinatura-linha"><strong>Data/Hora:</strong> {{ data_atual }} às {{ hora_atual }}</div>
-            </div>
-            
-            <!-- Rodapé -->
-            <div class="rodape">
-                <div class="rodape-empresa">ELP Consultoria e Engenharia</div>
-                <div class="rodape-info">Engenharia Civil & Fachadas</div>
-                <div class="rodape-info">contato@elp.com.br | (11) 9999-9999</div>
-                <div class="rodape-info">www.elpconsultoria.com.br</div>
-            </div>
-        </body>
-        </html>
-        """
-        
-        # Renderizar template
-        html_content = render_template_string(html_template, **dados)
-        
-        if salvar_arquivo:
-            # Salvar em arquivo
-            filename = f"relatorio_express_{relatorio.numero}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            pdf_path = os.path.join('uploads', filename)
-            
-            # Gerar PDF
-            HTML(string=html_content).write_pdf(pdf_path)
-            
-            return pdf_path
-        else:
-            # Retornar como BytesIO
-            pdf_bytes = HTML(string=html_content).write_pdf()
-            return BytesIO(pdf_bytes)
-            
-    except Exception as e:
-        current_app.logger.error(f"Erro ao gerar PDF do relatório express: {e}")
-        raise e
+    return f"{prefixo}{novo_numero:03d}"

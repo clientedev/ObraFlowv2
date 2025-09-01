@@ -2,286 +2,345 @@
 
 {% block title %}Relatório Express {{ relatorio.numero }}{% endblock %}
 
-{% block extra_css %}
-<style>
-.express-header {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
-    padding: 2rem;
-    border-radius: 10px;
-    margin-bottom: 2rem;
-}
-.info-card {
-    border-left: 4px solid #28a745;
-    transition: all 0.3s ease;
-}
-.info-card:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-.observacoes-box {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 20px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-.foto-thumbnail {
-    width: 200px;
-    height: 150px;
-    object-fit: cover;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-}
-.foto-thumbnail:hover {
-    transform: scale(1.05);
-}
-.foto-card {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 20px;
-    background-color: white;
-}
-.btn-group-mobile {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-@media (max-width: 768px) {
-    .express-header {
-        padding: 1.5rem;
-        text-align: center;
-    }
-    .btn-group-mobile {
-        flex-direction: column;
-    }
-    .btn-group-mobile .btn {
-        width: 100%;
-        margin-bottom: 5px;
-    }
-    .foto-thumbnail {
-        width: 100%;
-        height: auto;
-    }
-}
-</style>
-{% endblock %}
-
 {% block content %}
-<!-- Header -->
-<div class="express-header">
-    <div class="d-flex align-items-center justify-content-between">
-        <div>
-            <h2><i class="fas fa-bolt me-2"></i>Relatório Express {{ relatorio.numero }}</h2>
-            <p class="mb-1">Projeto: <strong>{{ relatorio.projeto.nome }}</strong></p>
-            <small>Criado em {{ relatorio.data_criacao.strftime('%d/%m/%Y às %H:%M') }} por {{ relatorio.autor.nome_completo }}</small>
-        </div>
-        <div class="btn-group-mobile">
-            <a href="{{ url_for('relatorio_express_gerar_pdf', relatorio_id=relatorio.id) }}" 
-               class="btn btn-light">
-                <i class="fas fa-file-pdf me-2"></i>Gerar PDF
-            </a>
-            <a href="{{ url_for('relatorio_express_enviar_email', relatorio_id=relatorio.id) }}" 
-               class="btn btn-info">
-                <i class="fas fa-paper-plane me-2"></i>Enviar E-mail
-            </a>
-            <a href="{{ url_for('project_detail', project_id=relatorio.projeto.id) }}" 
-               class="btn btn-secondary">
-                <i class="fas fa-arrow-left me-2"></i>Voltar
-            </a>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-lg-8">
-        <!-- Informações do Projeto -->
-        <div class="card info-card mb-4">
-            <div class="card-header">
-                <h5><i class="fas fa-building me-2"></i>Dados do Projeto</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Nome:</strong> {{ relatorio.projeto.nome }}</p>
-                        <p><strong>Número:</strong> {{ relatorio.projeto.numero }}</p>
-                        <p><strong>Cliente:</strong> {{ relatorio.projeto.cliente or 'N/A' }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Endereço:</strong><br>{{ relatorio.projeto.endereco or 'N/A' }}</p>
-                        <p><strong>Responsável:</strong> {{ relatorio.projeto.responsavel.nome_completo if relatorio.projeto.responsavel else 'N/A' }}</p>
-                    </div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>
+                    <i class="fas fa-bolt"></i> Relatório Express {{ relatorio.numero }}
+                    {% if relatorio.status == 'rascunho' %}
+                        <span class="badge bg-warning ms-2">Rascunho</span>
+                    {% elif relatorio.status == 'finalizado' %}
+                        <span class="badge bg-success ms-2">Finalizado</span>
+                    {% endif %}
+                </h3>
+                <div class="btn-group">
+                    <a href="{{ url_for('express_list') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Voltar à Lista
+                    </a>
+                    
+                    {% if relatorio.status == 'rascunho' %}
+                    <a href="{{ url_for('express_edit', id=relatorio.id) }}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                    {% endif %}
+                    
+                    {% if relatorio.status == 'finalizado' %}
+                    <a href="{{ url_for('express_pdf', id=relatorio.id) }}" class="btn btn-danger">
+                        <i class="fas fa-file-pdf"></i> Baixar PDF
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Observações -->
-        <div class="card info-card mb-4">
-            <div class="card-header">
-                <h5><i class="fas fa-edit me-2"></i>Observações Rápidas</h5>
-            </div>
-            <div class="card-body">
-                <div class="observacoes-box">{{ relatorio.observacoes }}</div>
-            </div>
-        </div>
-
-        <!-- Fotos -->
-        <div class="card info-card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5><i class="fas fa-camera me-2"></i>Fotos ({{ fotos|length }})</h5>
-                <a href="{{ url_for('relatorio_express_adicionar_foto', relatorio_id=relatorio.id) }}" 
-                   class="btn btn-sm btn-success">
-                    <i class="fas fa-plus me-2"></i>Adicionar Foto
-                </a>
-            </div>
-            <div class="card-body">
-                {% if fotos %}
+    <div class="row">
+        <!-- Informações Principais -->
+        <div class="col-lg-8">
+            <!-- Dados da Empresa -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-building"></i> Dados da Empresa</h5>
+                </div>
+                <div class="card-body">
                     <div class="row">
-                        {% for foto in fotos %}
-                        <div class="col-lg-6 col-md-12 mb-4">
-                            <div class="foto-card">
+                        <div class="col-md-6">
+                            <strong>Nome da Empresa:</strong><br>
+                            <span class="text-primary">{{ relatorio.empresa_nome }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Responsável:</strong><br>
+                            {{ relatorio.empresa_responsavel or 'Não informado' }}
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <strong>Telefone:</strong><br>
+                            {{ relatorio.empresa_telefone or 'Não informado' }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>E-mail:</strong><br>
+                            {{ relatorio.empresa_email or 'Não informado' }}
+                        </div>
+                    </div>
+                    {% if relatorio.empresa_endereco %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <strong>Endereço:</strong><br>
+                            {{ relatorio.empresa_endereco }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Dados da Visita -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-calendar-check"></i> Dados da Visita</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Data da Visita:</strong><br>
+                            {% if relatorio.data_visita %}
+                                {{ relatorio.data_visita.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                Não informado
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Período:</strong><br>
+                            {% if relatorio.periodo_inicio and relatorio.periodo_fim %}
+                                {{ relatorio.periodo_inicio.strftime('%H:%M') }} às {{ relatorio.periodo_fim.strftime('%H:%M') }}
+                            {% else %}
+                                Não informado
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Condições Climáticas:</strong><br>
+                            {{ relatorio.condicoes_climaticas or 'Não informado' }}
+                        </div>
+                    </div>
+                    {% if relatorio.temperatura or relatorio.endereco_visita %}
+                    <div class="row mt-3">
+                        {% if relatorio.temperatura %}
+                        <div class="col-md-6">
+                            <strong>Temperatura:</strong><br>
+                            {{ relatorio.temperatura }}
+                        </div>
+                        {% endif %}
+                        {% if relatorio.endereco_visita %}
+                        <div class="col-md-6">
+                            <strong>Local da Visita:</strong><br>
+                            {{ relatorio.endereco_visita }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Observações -->
+            {% if relatorio.observacoes_gerais or relatorio.pendencias or relatorio.recomendacoes %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-clipboard-list"></i> Relatório da Visita</h5>
+                </div>
+                <div class="card-body">
+                    {% if relatorio.observacoes_gerais %}
+                    <div class="mb-3">
+                        <strong>Observações Gerais:</strong>
+                        <div class="border rounded p-3 bg-light">
+                            {{ relatorio.observacoes_gerais|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if relatorio.pendencias %}
+                    <div class="mb-3">
+                        <strong>Pendências:</strong>
+                        <div class="border rounded p-3 bg-warning bg-opacity-10">
+                            {{ relatorio.pendencias|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if relatorio.recomendacoes %}
+                    <div class="mb-3">
+                        <strong>Recomendações:</strong>
+                        <div class="border rounded p-3 bg-info bg-opacity-10">
+                            {{ relatorio.recomendacoes|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Fotos -->
+            {% if relatorio.fotos %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-camera"></i> Registro Fotográfico ({{ relatorio.fotos|length }} fotos)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for foto in relatorio.fotos %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card">
                                 <img src="{{ url_for('static', filename='uploads/' + foto.filename) }}" 
-                                     alt="Foto do relatório" 
-                                     class="foto-thumbnail w-100 mb-3"
-                                     onclick="ampliarImagem('{{ url_for('static', filename='uploads/' + foto.filename) }}', '{{ foto.legenda }}')">
-                                
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <p class="mb-1"><strong>Legenda:</strong></p>
-                                        <p class="text-muted small">{{ foto.legenda }}</p>
-                                        <small class="text-muted">
-                                            <i class="fas fa-clock me-1"></i>
-                                            {{ foto.created_at.strftime('%d/%m/%Y às %H:%M') }}
-                                        </small>
+                                     class="card-img-top" 
+                                     alt="{{ foto.titulo or 'Foto ' + foto.ordem|string }}"
+                                     style="height: 200px; object-fit: cover;"
+                                     data-bs-toggle="modal" 
+                                     data-bs-target="#fotoModal{{ loop.index }}"
+                                     style="cursor: pointer;">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title mb-1">{{ foto.titulo or 'Foto ' + foto.ordem|string }}</h6>
+                                    {% if foto.legenda %}
+                                    <p class="card-text small text-muted mb-1">{{ foto.legenda }}</p>
+                                    {% endif %}
+                                    {% if foto.tipo_servico %}
+                                    <span class="badge bg-secondary">{{ foto.tipo_servico }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal para foto -->
+                        <div class="modal fade" id="fotoModal{{ loop.index }}" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">{{ foto.titulo or 'Foto ' + foto.ordem|string }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2"
-                                            onclick="removerFoto({{ foto.id }}, '{{ foto.legenda[:30] }}...')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    <div class="modal-body text-center">
+                                        <img src="{{ url_for('static', filename='uploads/' + foto.filename) }}" 
+                                             class="img-fluid" 
+                                             alt="{{ foto.titulo or 'Foto ' + foto.ordem|string }}">
+                                        {% if foto.legenda or foto.descricao %}
+                                        <div class="mt-3">
+                                            {% if foto.legenda %}
+                                            <p><strong>Legenda:</strong> {{ foto.legenda }}</p>
+                                            {% endif %}
+                                            {% if foto.descricao %}
+                                            <p><strong>Descrição:</strong> {{ foto.descricao }}</p>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
-                {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-camera fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">Nenhuma foto adicionada ainda.</p>
-                        <a href="{{ url_for('relatorio_express_adicionar_foto', relatorio_id=relatorio.id) }}" 
-                           class="btn btn-success">
-                            <i class="fas fa-plus me-2"></i>Adicionar Primeira Foto
-                        </a>
-                    </div>
-                {% endif %}
+                </div>
             </div>
+            {% endif %}
         </div>
-    </div>
 
-    <!-- Sidebar com Ações -->
-    <div class="col-lg-4">
-        <!-- Ações Principais -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6><i class="fas fa-cogs me-2"></i>Ações</h6>
+        <!-- Sidebar de Informações -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-info-circle"></i> Informações do Relatório</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Número:</small><br>
+                        <strong class="text-primary">{{ relatorio.numero }}</strong>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Autor:</small><br>
+                        <strong>{{ relatorio.autor.nome_completo }}</strong><br>
+                        <small class="text-muted">{{ relatorio.autor.cargo or 'Engenheiro' }}</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Status:</small><br>
+                        {% if relatorio.status == 'rascunho' %}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-edit"></i> Rascunho
+                            </span>
+                        {% elif relatorio.status == 'finalizado' %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check"></i> Finalizado
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Criado em:</small><br>
+                        {{ relatorio.created_at.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                    
+                    {% if relatorio.updated_at != relatorio.created_at %}
+                    <div class="mb-3">
+                        <small class="text-muted">Última atualização:</small><br>
+                        {{ relatorio.updated_at.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if relatorio.finalizado_at %}
+                    <div class="mb-3">
+                        <small class="text-muted">Finalizado em:</small><br>
+                        {{ relatorio.finalizado_at.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('relatorio_express_gerar_pdf', relatorio_id=relatorio.id) }}" 
-                       class="btn btn-primary">
-                        <i class="fas fa-file-pdf me-2"></i>Gerar PDF
-                    </a>
-                    <a href="{{ url_for('relatorio_express_enviar_email', relatorio_id=relatorio.id) }}" 
-                       class="btn btn-success">
-                        <i class="fas fa-paper-plane me-2"></i>Enviar por E-mail
-                    </a>
-                    <a href="{{ url_for('relatorio_express_adicionar_foto', relatorio_id=relatorio.id) }}" 
-                       class="btn btn-info">
-                        <i class="fas fa-camera me-2"></i>Adicionar Foto
-                    </a>
-                    <hr>
-                    <a href="{{ url_for('project_detail', project_id=relatorio.projeto.id) }}" 
-                       class="btn btn-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Voltar ao Projeto
-                    </a>
+
+            <!-- Ações Rápidas -->
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-cogs"></i> Ações Rápidas</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if relatorio.status == 'rascunho' %}
+                        <a href="{{ url_for('express_edit', id=relatorio.id) }}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Editar Relatório
+                        </a>
+                        {% endif %}
+                        
+                        {% if relatorio.status == 'finalizado' %}
+                        <a href="{{ url_for('express_pdf', id=relatorio.id) }}" class="btn btn-danger">
+                            <i class="fas fa-file-pdf"></i> Baixar PDF
+                        </a>
+                        {% endif %}
+                        
+                        {% if current_user.is_master %}
+                        <hr>
+                        <button onclick="confirmarExclusao({{ relatorio.id }}, '{{ relatorio.numero }}')" 
+                                class="btn btn-outline-danger">
+                            <i class="fas fa-trash"></i> Excluir
+                        </button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!-- Informações -->
-        <div class="card">
-            <div class="card-header">
-                <h6><i class="fas fa-info-circle me-2"></i>Informações</h6>
-            </div>
-            <div class="card-body">
-                <p><strong>Número:</strong> {{ relatorio.numero }}</p>
-                <p><strong>Autor:</strong> {{ relatorio.autor.nome_completo }}</p>
-                <p><strong>Criado em:</strong><br>{{ relatorio.data_criacao.strftime('%d/%m/%Y às %H:%M') }}</p>
-                <p><strong>Total de Fotos:</strong> {{ fotos|length }}</p>
-            </div>
-        </div>
     </div>
 </div>
 
-<!-- Modal para ampliação de imagem -->
-<div class="modal fade" id="imagemModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+<!-- Modal de confirmação de exclusão -->
+{% if current_user.is_master %}
+<div class="modal fade" id="modalExcluir" tabindex="-1">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Foto do Relatório</h5>
+                <h5 class="modal-title">Confirmar Exclusão</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body text-center">
-                <img id="imagemAmpliada" src="" alt="Foto ampliada" class="img-fluid">
-                <p id="legendaAmpliada" class="mt-3 text-muted"></p>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o relatório express <strong id="relatorioNumero"></strong>?</p>
+                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> Esta ação não pode ser desfeita!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formExcluir" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
 <script>
-function ampliarImagem(src, legenda) {
-    document.getElementById('imagemAmpliada').src = src;
-    document.getElementById('legendaAmpliada').textContent = legenda;
-    new bootstrap.Modal(document.getElementById('imagemModal')).show();
+function confirmarExclusao(id, numero) {
+    document.getElementById('relatorioNumero').textContent = numero;
+    document.getElementById('formExcluir').action = `/express/${id}/delete`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalExcluir'));
+    modal.show();
 }
-
-function removerFoto(fotoId, legenda) {
-    if (confirm(`Tem certeza que deseja remover a foto "${legenda}"?\nEsta ação não pode ser desfeita.`)) {
-        fetch(`/relatorio-express/{{ relatorio.id }}/remover-foto/${fotoId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Erro ao remover foto: ' + (data.error || 'Erro desconhecido'));
-            }
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Erro ao remover foto. Tente novamente.');
-        });
-    }
-}
-
-// Toast de sucesso se houver
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-            {% if category == 'success' %}
-                // Mostrar toast de sucesso
-                console.log('{{ message }}');
-            {% endif %}
-        {% endfor %}
-    {% endif %}
-{% endwith %}
 </script>
+{% endif %}
 {% endblock %}

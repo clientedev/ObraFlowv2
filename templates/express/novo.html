@@ -2,183 +2,273 @@
 
 {% block title %}Novo Relatório Express{% endblock %}
 
-{% block extra_css %}
-<style>
-.express-header {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
-    padding: 2rem;
-    border-radius: 10px;
-    margin-bottom: 2rem;
-}
-.express-form {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 10px;
-    padding: 2rem;
-}
-.form-section {
-    margin-bottom: 2rem;
-}
-.form-section h5 {
-    color: #28a745;
-    border-bottom: 2px solid #28a745;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
-}
-@media (max-width: 768px) {
-    .express-header {
-        padding: 1.5rem;
-        text-align: center;
-    }
-    .express-form {
-        padding: 1.5rem;
-    }
-}
-</style>
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8 col-12">
-        <!-- Header -->
-        <div class="express-header">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <h2><i class="fas fa-bolt me-2"></i>Novo Relatório Express</h2>
-                    <p class="mb-0">Projeto: <strong>{{ projeto.nome }}</strong> ({{ projeto.numero }})</p>
-                </div>
-                <div>
-                    <a href="{{ url_for('project_detail', project_id=projeto.id) }}" class="btn btn-light">
-                        <i class="fas fa-arrow-left me-2"></i>Voltar
-                    </a>
-                </div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="fas fa-plus-circle"></i> Novo Relatório Express</h3>
+                <a href="{{ url_for('express_list') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar à Lista
+                </a>
             </div>
         </div>
+    </div>
 
-        <!-- Formulário -->
-        <div class="express-form">
-            <form method="POST" id="expressForm">
-                {{ form.hidden_tag() }}
-                
-                <div class="form-section">
-                    <h5><i class="fas fa-edit me-2"></i>Observações Rápidas</h5>
-                    <p class="text-muted">
-                        Registre informações importantes sobre a visita ou obra de forma direta e objetiva.
-                    </p>
-                    
-                    {{ form.observacoes.label(class="form-label") }}
-                    {{ form.observacoes(class="form-control") }}
-                    
-                    {% if form.observacoes.errors %}
-                        <div class="text-danger mt-1">
-                            {% for error in form.observacoes.errors %}
-                                <small>{{ error }}</small><br>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    
-                    <small class="form-text text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Após criar o relatório, você poderá adicionar fotos com legendas.
-                    </small>
-                </div>
-
-                <!-- Informações do Projeto -->
-                <div class="form-section">
-                    <h5><i class="fas fa-building me-2"></i>Dados do Projeto</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="bg-white p-3 rounded border">
-                                <strong>Nome:</strong> {{ projeto.nome }}<br>
-                                <strong>Número:</strong> {{ projeto.numero }}<br>
-                                <strong>Cliente:</strong> {{ projeto.cliente or 'N/A' }}
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- DADOS DA EMPRESA -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-building"></i> Dados da Empresa</h5>
+                        <small class="text-muted">Informações da empresa visitada</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.empresa_nome.label(class="form-label") }}
+                                {{ form.empresa_nome(class="form-control") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.empresa_responsavel.label(class="form-label") }}
+                                {{ form.empresa_responsavel(class="form-control") }}
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="bg-white p-3 rounded border">
-                                <strong>Endereço:</strong><br>
-                                {{ projeto.endereco or 'N/A' }}<br>
-                                <strong>Responsável:</strong> {{ projeto.responsavel.nome_completo if projeto.responsavel else 'N/A' }}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.empresa_telefone.label(class="form-label") }}
+                                {{ form.empresa_telefone(class="form-control") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.empresa_email.label(class="form-label") }}
+                                {{ form.empresa_email(class="form-control") }}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            {{ form.empresa_endereco.label(class="form-label") }}
+                            {{ form.empresa_endereco(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DADOS DA VISITA -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-calendar-check"></i> Dados da Visita</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                {{ form.data_visita.label(class="form-label") }}
+                                {{ form.data_visita(class="form-control") }}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                {{ form.periodo_inicio.label(class="form-label") }}
+                                {{ form.periodo_inicio(class="form-control") }}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                {{ form.periodo_fim.label(class="form-label") }}
+                                {{ form.periodo_fim(class="form-control") }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.condicoes_climaticas.label(class="form-label") }}
+                                {{ form.condicoes_climaticas(class="form-control") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.temperatura.label(class="form-label") }}
+                                {{ form.temperatura(class="form-control") }}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Botões de Ação -->
-                <div class="d-flex justify-content-between">
-                    <a href="{{ url_for('project_detail', project_id=projeto.id) }}" class="btn btn-secondary">
-                        <i class="fas fa-times me-2"></i>Cancelar
-                    </a>
-                    <button type="submit" class="btn btn-success btn-lg">
-                        <i class="fas fa-check me-2"></i>Criar Relatório Express
-                    </button>
+                <!-- LOCALIZAÇÃO -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-map-marker-alt"></i> Localização da Visita</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.endereco_visita.label(class="form-label") }}
+                            {{ form.endereco_visita(class="form-control") }}
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <button type="button" id="getLocationBtn" class="btn btn-outline-primary">
+                                    <i class="fas fa-crosshairs"></i> Obter Localização Atual
+                                </button>
+                            </div>
+                        </div>
+                        {{ form.latitude() }}
+                        {{ form.longitude() }}
+                    </div>
                 </div>
-            </form>
-        </div>
 
-        <!-- Informações -->
-        <div class="mt-4">
-            <div class="alert alert-info">
-                <h6><i class="fas fa-lightbulb me-2"></i>Sobre o Relatório Express:</h6>
-                <ul class="mb-0">
-                    <li>Versão simplificada e rápida do relatório completo</li>
-                    <li>Ideal para observações pontuais e comunicações ágeis</li>
-                    <li>Após criar, você pode adicionar fotos com legendas</li>
-                    <li>PDF gerado automaticamente com layout profissional</li>
-                    <li>Pode ser enviado por e-mail diretamente aos clientes</li>
-                </ul>
+                <!-- OBSERVAÇÕES E RELATÓRIO -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-clipboard-list"></i> Relatório da Visita</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.observacoes_gerais.label(class="form-label") }}
+                            {{ form.observacoes_gerais(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.pendencias.label(class="form-label") }}
+                            {{ form.pendencias(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.recomendacoes.label(class="form-label") }}
+                            {{ form.recomendacoes(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FOTOS -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-camera"></i> Registro Fotográfico</h5>
+                    </div>
+                    <div class="card-body">
+                        {{ form.fotos.label(class="form-label") }}
+                        {{ form.fotos(class="form-control", onchange="previewImages(this)") }}
+                        <small class="form-text text-muted">Selecione múltiplas fotos (JPG, PNG). Máximo 16MB por foto.</small>
+                        <div id="imagePreview" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIDEBAR DE AÇÕES -->
+            <div class="col-lg-4">
+                <div class="card sticky-top" style="top: 20px;">
+                    <div class="card-header">
+                        <h6><i class="fas fa-cogs"></i> Ações</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button type="submit" name="action" value="save_draft" class="btn btn-outline-primary">
+                                <i class="fas fa-save"></i> Salvar Rascunho
+                            </button>
+                            <button type="submit" name="action" value="finalize" class="btn btn-success">
+                                <i class="fas fa-check"></i> Finalizar Relatório
+                            </button>
+                            <hr>
+                            <a href="{{ url_for('express_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancelar
+                            </a>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h6>ℹ️ Informações:</h6>
+                            <ul class="list-unstyled small">
+                                <li>• <strong>Rascunho:</strong> Pode ser editado</li>
+                                <li>• <strong>Finalizado:</strong> Gera PDF automaticamente</li>
+                                <li>• Use fotos de qualidade para melhor resultado</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
 <script>
-// Contador de caracteres para as observações
-document.addEventListener('DOMContentLoaded', function() {
-    const observacoesField = document.getElementById('observacoes');
-    const maxLength = 2000;
+// Preview de imagens
+function previewImages(input) {
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
     
-    if (observacoesField) {
-        // Criar contador
-        const counter = document.createElement('small');
-        counter.className = 'form-text text-muted float-end';
-        observacoesField.parentNode.appendChild(counter);
+    if (input.files && input.files.length > 0) {
+        const title = document.createElement('h6');
+        title.textContent = `${input.files.length} foto(s) selecionada(s):`;
+        title.className = 'mt-3 mb-2';
+        preview.appendChild(title);
         
-        function updateCounter() {
-            const remaining = maxLength - observacoesField.value.length;
-            counter.textContent = `${observacoesField.value.length}/${maxLength} caracteres`;
-            
-            if (remaining < 100) {
-                counter.className = 'form-text text-warning float-end';
-            } else if (remaining < 0) {
-                counter.className = 'form-text text-danger float-end';
-            } else {
-                counter.className = 'form-text text-muted float-end';
+        Array.from(input.files).forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-6 col-lg-4 mb-3';
+                    col.innerHTML = `
+                        <div class="card">
+                            <img src="${e.target.result}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                            <div class="card-body p-2">
+                                <small class="text-muted">${file.name}</small>
+                            </div>
+                        </div>
+                    `;
+                    preview.appendChild(col);
+                };
+                reader.readAsDataURL(file);
             }
-        }
-        
-        observacoesField.addEventListener('input', updateCounter);
-        updateCounter(); // Executar na primeira vez
+        });
     }
+}
+
+// Localização GPS
+document.getElementById('getLocationBtn').addEventListener('click', function() {
+    getCurrentLocation(this);
 });
 
-// Validação do formulário
-document.getElementById('expressForm').addEventListener('submit', function(e) {
-    const observacoes = document.getElementById('observacoes').value.trim();
+function getCurrentLocation(btn) {
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Obtendo localização...';
+    btn.disabled = true;
     
-    if (!observacoes) {
-        e.preventDefault();
-        alert('Por favor, preencha as observações antes de continuar.');
-        return false;
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            document.getElementById('latitude').value = position.coords.latitude;
+            document.getElementById('longitude').value = position.coords.longitude;
+            
+            btn.innerHTML = '<i class="fas fa-check"></i> Localização obtida!';
+            btn.className = 'btn btn-outline-success';
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.className = 'btn btn-outline-primary';
+                btn.disabled = false;
+            }, 2000);
+        }, function(error) {
+            btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro ao obter localização';
+            btn.className = 'btn btn-outline-danger';
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.className = 'btn btn-outline-primary';
+                btn.disabled = false;
+            }, 3000);
+        });
+    } else {
+        btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Geolocalização não suportada';
+        btn.className = 'btn btn-outline-warning';
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.className = 'btn btn-outline-primary';
+            btn.disabled = false;
+        }, 3000);
     }
-    
-    if (observacoes.length < 10) {
-        e.preventDefault();
-        alert('As observações devem ter pelo menos 10 caracteres.');
-        return false;
+}
+
+// Auto-preencher data atual
+document.addEventListener('DOMContentLoaded', function() {
+    const dataVisita = document.getElementById('data_visita');
+    if (!dataVisita.value) {
+        const hoje = new Date().toISOString().split('T')[0];
+        dataVisita.value = hoje;
     }
 });
 </script>
