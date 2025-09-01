@@ -2,15 +2,15 @@ import os
 import uuid
 from datetime import datetime, date, timedelta
 from urllib.parse import urlparse
-from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response
+from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response, send_file
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from flask_mail import Message
 
 from app import app, db, mail, csrf
-from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress
-from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, EmailClienteForm
+from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress, RelatorioExpressStandalone, FotoRelatorioExpressStandalone
+from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, EmailClienteForm, RelatorioExpressStandaloneForm, FotoExpressStandaloneForm, EnvioEmailExpressForm
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
 from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
 from email_service import email_service
@@ -3309,6 +3309,163 @@ def enviar_relatorio_express_por_email(relatorio, destinatarios, cc_emails, bcc_
             'sucessos': 0,
             'falhas': len(destinatarios)
         }
+
+# =====================
+# RELATÓRIO EXPRESS STANDALONE
+# =====================
+
+def gerar_numero_relatorio_express_standalone():
+    """Gerar número único para relatório express standalone"""
+    import random
+    import string
+    while True:
+        # Formato: EXP-YYMMDD-XXXX
+        hoje = datetime.now()
+        data_str = hoje.strftime('%y%m%d')
+        sufixo = ''.join(random.choices(string.digits, k=4))
+        numero = f"EXP-{data_str}-{sufixo}"
+        
+        # Verificar se já existe
+        if not RelatorioExpressStandalone.query.filter_by(numero=numero).first():
+            return numero
+
+@app.route('/relatorio-express-standalone')
+@login_required
+def express_standalone_list():
+    """Listar relatórios express standalone"""
+    page = request.args.get('page', 1, type=int)
+    relatorios = RelatorioExpressStandalone.query.filter_by(autor_id=current_user.id).order_by(
+        RelatorioExpressStandalone.data_criacao.desc()
+    ).paginate(page=page, per_page=10, error_out=False)
+    
+    return render_template('express_standalone/list.html', relatorios=relatorios)
+
+@app.route('/relatorio-express-standalone/novo', methods=['GET', 'POST'])
+@login_required
+def express_standalone_novo():
+    """Criar novo relatório express standalone"""
+    form = RelatorioExpressStandaloneForm()
+    
+    if form.validate_on_submit():
+        try:
+            # Gerar número único
+            numero = gerar_numero_relatorio_express_standalone()
+            
+            # Lidar com upload do logo
+            logo_filename = None
+            if form.empresa_logo.data:
+                logo_file = form.empresa_logo.data
+                filename = secure_filename(logo_file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                logo_filename = f"logo_express_{timestamp}_{filename}"
+                
+                upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                if not os.path.exists(upload_folder):
+                    os.makedirs(upload_folder)
+                
+                logo_path = os.path.join(upload_folder, logo_filename)
+                logo_file.save(logo_path)
+            
+            # Criar relatório
+            relatorio = RelatorioExpressStandalone(
+                numero=numero,
+                empresa_nome=form.empresa_nome.data,
+                empresa_endereco=form.empresa_endereco.data,
+                empresa_contato=form.empresa_contato.data,
+                empresa_telefone=form.empresa_telefone.data,
+                empresa_email=form.empresa_email.data,
+                empresa_logo_filename=logo_filename,
+                titulo_relatorio=form.titulo_relatorio.data,
+                local_inspecao=form.local_inspecao.data,
+                data_inspecao=form.data_inspecao.data,
+                observacoes_gerais=form.observacoes_gerais.data,
+                itens_observados=form.itens_observados.data,
+                autor_id=current_user.id
+            )
+            
+            db.session.add(relatorio)
+            db.session.commit()
+            
+            flash('Relatório Express criado com sucesso!', 'success')
+            return redirect(url_for('express_standalone_detalhes', relatorio_id=relatorio.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar relatório: {str(e)}', 'error')
+    
+    return render_template('express_standalone/novo.html', form=form)
+
+@app.route('/relatorio-express-standalone/<int:relatorio_id>')
+@login_required
+def express_standalone_detalhes(relatorio_id):
+    """Ver detalhes do relatório express standalone"""
+    relatorio = RelatorioExpressStandalone.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if relatorio.autor_id != current_user.id and not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_standalone_list'))
+    
+    fotos = FotoRelatorioExpressStandalone.query.filter_by(
+        relatorio_id=relatorio_id
+    ).order_by(FotoRelatorioExpressStandalone.ordem).all()
+    
+    return render_template('express_standalone/detalhes.html', relatorio=relatorio, fotos=fotos)
+
+@app.route('/relatorio-express-standalone/<int:relatorio_id>/adicionar-foto', methods=['GET', 'POST'])
+@login_required
+def express_standalone_adicionar_foto(relatorio_id):
+    """Adicionar foto ao relatório express standalone"""
+    relatorio = RelatorioExpressStandalone.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if relatorio.autor_id != current_user.id and not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_standalone_list'))
+    
+    form = FotoExpressStandaloneForm()
+    
+    if form.validate_on_submit():
+        try:
+            foto_file = form.foto.data
+            if foto_file:
+                # Salvar arquivo
+                filename = secure_filename(foto_file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"express_standalone_{timestamp}_{filename}"
+                
+                upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                if not os.path.exists(upload_folder):
+                    os.makedirs(upload_folder)
+                
+                foto_path = os.path.join(upload_folder, filename)
+                foto_file.save(foto_path)
+                
+                # Definir ordem (próxima disponível)
+                max_ordem = db.session.query(db.func.max(FotoRelatorioExpressStandalone.ordem)).filter_by(
+                    relatorio_id=relatorio_id
+                ).scalar() or 0
+                
+                # Criar registro da foto
+                foto = FotoRelatorioExpressStandalone(
+                    relatorio_id=relatorio_id,
+                    filename=filename,
+                    legenda=form.legenda.data,
+                    categoria=form.categoria.data,
+                    ordem=max_ordem + 1
+                )
+                
+                db.session.add(foto)
+                db.session.commit()
+                
+                flash('Foto adicionada com sucesso!', 'success')
+                return redirect(url_for('express_standalone_detalhes', relatorio_id=relatorio_id))
+                
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao adicionar foto: {str(e)}', 'error')
+    
+    return render_template('express_standalone/adicionar_foto.html', form=form, relatorio=relatorio)
 
 # Error handlers
 @app.errorhandler(404)

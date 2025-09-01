@@ -355,3 +355,55 @@ class FotoRelatorioExpress(db.Model):
     
     def __repr__(self):
         return f'<FotoRelatorioExpress {self.filename}>'
+
+class RelatorioExpressStandalone(db.Model):
+    """Relatório Express independente - sem vínculo com projeto/empresa"""
+    __tablename__ = 'relatorios_express_standalone'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    numero = db.Column(db.String(20), unique=True, nullable=False)
+    
+    # Dados da empresa (não cadastrada, apenas para este relatório)
+    empresa_nome = db.Column(db.String(200), nullable=False)
+    empresa_endereco = db.Column(db.Text)
+    empresa_contato = db.Column(db.String(100))
+    empresa_telefone = db.Column(db.String(20))
+    empresa_email = db.Column(db.String(120))
+    empresa_logo_filename = db.Column(db.String(255))  # Logo upload opcional
+    
+    # Dados do relatório
+    titulo_relatorio = db.Column(db.String(200), nullable=False)
+    local_inspecao = db.Column(db.Text)
+    data_inspecao = db.Column(db.Date, nullable=False)
+    observacoes_gerais = db.Column(db.Text)
+    itens_observados = db.Column(db.Text)  # JSON com lista de itens
+    
+    # Metadados
+    autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    status = db.Column(db.String(50), default='rascunho')  # rascunho, finalizado
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_finalizacao = db.Column(db.DateTime)
+    
+    # Relacionamentos
+    autor = db.relationship('User', backref='relatorios_express_standalone')
+    
+    def __repr__(self):
+        return f'<RelatorioExpressStandalone {self.numero}>'
+
+class FotoRelatorioExpressStandalone(db.Model):
+    """Fotos do Relatório Express Standalone"""
+    __tablename__ = 'fotos_relatorios_express_standalone'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios_express_standalone.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    legenda = db.Column(db.String(500), nullable=False)
+    categoria = db.Column(db.String(100), default='Geral')
+    ordem = db.Column(db.Integer, default=1)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relacionamento
+    relatorio = db.relationship('RelatorioExpressStandalone', backref='fotos')
+    
+    def __repr__(self):
+        return f'<FotoRelatorioExpressStandalone {self.filename}>'

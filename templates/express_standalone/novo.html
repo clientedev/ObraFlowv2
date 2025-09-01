@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Relatório Express Independente{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="page-title">
+                        <i class="fas fa-bolt text-warning me-2"></i>
+                        Novo Relatório Express
+                    </h2>
+                    <p class="text-muted">Crie relatórios rápidos sem precisar cadastrar empresa/projeto</p>
+                </div>
+                <a href="{{ url_for('express_standalone_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+
+            <!-- Formulário -->
+            <form method="POST" enctype="multipart/form-data" novalidate>
+                {{ form.hidden_tag() }}
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-building text-primary me-2"></i>
+                            Dados da Empresa
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    {{ form.empresa_nome.label(class="form-label required") }}
+                                    {{ form.empresa_nome(class="form-control" + (" is-invalid" if form.empresa_nome.errors else "")) }}
+                                    {% if form.empresa_nome.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.empresa_nome.errors %}{{ error }}{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.empresa_logo.label(class="form-label") }}
+                                    {{ form.empresa_logo(class="form-control" + (" is-invalid" if form.empresa_logo.errors else "")) }}
+                                    {% if form.empresa_logo.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.empresa_logo.errors %}{{ error }}{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Logo da empresa (opcional)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.empresa_endereco.label(class="form-label") }}
+                            {{ form.empresa_endereco(class="form-control", rows="2") }}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.empresa_contato.label(class="form-label") }}
+                                    {{ form.empresa_contato(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.empresa_telefone.label(class="form-label") }}
+                                    {{ form.empresa_telefone(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.empresa_email.label(class="form-label") }}
+                                    {{ form.empresa_email(class="form-control" + (" is-invalid" if form.empresa_email.errors else "")) }}
+                                    {% if form.empresa_email.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.empresa_email.errors %}{{ error }}{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clipboard-list text-info me-2"></i>
+                            Dados do Relatório
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.titulo_relatorio.label(class="form-label required") }}
+                            {{ form.titulo_relatorio(class="form-control" + (" is-invalid" if form.titulo_relatorio.errors else "")) }}
+                            {% if form.titulo_relatorio.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.titulo_relatorio.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    {{ form.local_inspecao.label(class="form-label required") }}
+                                    {{ form.local_inspecao(class="form-control" + (" is-invalid" if form.local_inspecao.errors else ""), rows="2") }}
+                                    {% if form.local_inspecao.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.local_inspecao.errors %}{{ error }}{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.data_inspecao.label(class="form-label required") }}
+                                    {{ form.data_inspecao(class="form-control" + (" is-invalid" if form.data_inspecao.errors else "")) }}
+                                    {% if form.data_inspecao.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.data_inspecao.errors %}{{ error }}{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.itens_observados.label(class="form-label required") }}
+                            {{ form.itens_observados(class="form-control" + (" is-invalid" if form.itens_observados.errors else ""), rows="5") }}
+                            {% if form.itens_observados.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.itens_observados.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Descreva os principais itens observados durante a inspeção</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.observacoes_gerais.label(class="form-label") }}
+                            {{ form.observacoes_gerais(class="form-control", rows="3") }}
+                            <div class="form-text">Observações adicionais (opcional)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões -->
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ url_for('express_standalone_list') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Criar Relatório
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.required::after {
+    content: " *";
+    color: #dc3545;
+}
+</style>
+{% endblock %}

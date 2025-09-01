@@ -1,0 +1,68 @@
+Implemente uma nova funcionalidade no sistema chamada Relatório Express.
+
+Objetivo:
+Atender clientes que precisam de relatórios rápidos, sem necessidade de cadastrar empresa ou projeto. O sistema deve unir os dados da empresa + dados do relatório em um único fluxo simplificado.
+
+Especificações:
+
+Fluxo do Relatório Express:
+
+O usuário acessa uma nova aba/menu chamado “Relatório Express”.
+
+O sistema pede:
+
+Informações básicas da empresa (nome, endereço, contato, logo).
+
+Informações do relatório (itens observados, fotos, legendas, assinaturas).
+
+Após preenchimento, gera o PDF imediatamente.
+
+Características principais:
+
+Não criar cadastro de empresa nem projeto.
+
+Os dados existem apenas dentro do relatório gerado.
+
+O PDF gerado deve ser exatamente igual aos relatórios padrão, com o mesmo modelo visual, incluindo:
+
+Cabeçalho com logo da empresa e logo do cliente informado.
+
+Seções: Dados Gerais, Itens Observados, Assinaturas.
+
+Rodapé com informações de contato.
+
+Apenas pula a etapa de criação de projeto/empresa.
+
+UI/UX e Estilização:
+
+Criar uma página limpa e moderna para entrada de dados, seguindo a identidade visual do sistema.
+
+Interface responsiva (desktop, tablet e mobile).
+
+Utilizar cards ou formulários bem organizados para as seções (dados da empresa, dados do relatório).
+
+Botões de ação bem visíveis: Gerar PDF, Cancelar, Baixar, Enviar por E-mail.
+
+Layout consistente com o restante do sistema.
+
+Funcionalidade do PDF:
+
+Deve permitir:
+
+Visualizar no navegador.
+
+Baixar o PDF.
+
+Enviar por e-mail (se o usuário fornecer e-mail de destino).
+
+PDF deve manter 100% da formatação dos relatórios existentes (mesma fonte, cores, cabeçalho, rodapé e estilo).
+
+Responsividade e testes:
+
+Garantir que funcione em todos os dispositivos.
+
+Testar geração com e sem imagens.
+
+Testar envio por e-mail com PDF anexado.
+
+🚀 O objetivo é oferecer um fluxo rápido, simples e profissional, onde em poucos minutos o usuário consegue gerar um relatório completo, sem vínculo com cadastro de empresa/projeto, mantendo a padronização e identidade visual do sistema.

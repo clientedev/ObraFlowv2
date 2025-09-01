@@ -188,3 +188,59 @@ class LegendaPredefinidaForm(FlaskForm):
         ('Impermeabilização', 'Impermeabilização')
     ], default='Geral', validators=[DataRequired()])
     ativo = BooleanField('Ativo', default=True)
+
+# Formulários para Relatório Express Standalone (sem projeto/empresa)
+class RelatorioExpressStandaloneForm(FlaskForm):
+    """Formulário completo para Relatório Express independente"""
+    
+    # Dados da empresa
+    empresa_nome = StringField('Nome da Empresa', validators=[DataRequired(), Length(max=200)])
+    empresa_endereco = TextAreaField('Endereço da Empresa')
+    empresa_contato = StringField('Pessoa de Contato', validators=[Length(max=100)])
+    empresa_telefone = StringField('Telefone', validators=[Length(max=20)])
+    empresa_email = StringField('E-mail', validators=[Optional(), Email(), Length(max=120)])
+    empresa_logo = FileField('Logo da Empresa', validators=[
+        Optional(),
+        FileAllowed(['jpg', 'jpeg', 'png'], 'Apenas arquivos JPG, JPEG e PNG!')
+    ])
+    
+    # Dados do relatório
+    titulo_relatorio = StringField('Título do Relatório', validators=[DataRequired(), Length(max=200)])
+    local_inspecao = TextAreaField('Local da Inspeção', validators=[DataRequired()])
+    data_inspecao = DateField('Data da Inspeção', validators=[DataRequired()], default=datetime.date.today)
+    observacoes_gerais = TextAreaField('Observações Gerais')
+    itens_observados = TextAreaField('Itens Observados', validators=[DataRequired()])
+
+class FotoExpressStandaloneForm(FlaskForm):
+    """Formulário para adicionar foto ao relatório express standalone"""
+    foto = FileField('Foto', validators=[
+        FileRequired(),
+        FileAllowed(['jpg', 'jpeg', 'png'], 'Apenas arquivos JPG, JPEG e PNG!')
+    ])
+    legenda = StringField('Legenda', validators=[DataRequired(), Length(max=500)])
+    categoria = SelectField('Categoria', choices=[
+        ('Geral', 'Geral'),
+        ('Estrutural', 'Estrutural'),
+        ('Hidráulica', 'Hidráulica'),
+        ('Elétrica', 'Elétrica'),
+        ('Acabamentos', 'Acabamentos'),
+        ('Segurança', 'Segurança'),
+        ('Fachada', 'Fachada'),
+        ('Impermeabilização', 'Impermeabilização')
+    ], default='Geral')
+
+class EnvioEmailExpressForm(FlaskForm):
+    """Formulário para envio de relatório express por email"""
+    destinatarios = StringField('E-mails dos Destinatários', validators=[DataRequired()], 
+                               render_kw={'placeholder': 'cliente@empresa.com, outro@email.com'})
+    assunto = StringField('Assunto', validators=[DataRequired(), Length(max=500)],
+                         default='Relatório de Inspeção - {empresa} - {data}')
+    mensagem = TextAreaField('Mensagem', validators=[DataRequired()],
+                            default="""Prezado(a) cliente,
+
+Segue em anexo o relatório de inspeção realizado conforme solicitado.
+
+Em caso de dúvidas, favor entrar em contato conosco.
+
+Atenciosamente,
+Equipe ELP Consultoria e Engenharia""")
