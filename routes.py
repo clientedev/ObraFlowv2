@@ -438,6 +438,13 @@ def create_report():
             print(f"Total de {photo_count} fotos processadas para o relatório {relatorio.numero}")
             
             db.session.commit()
+            
+            # Trigger backup automático
+            try:
+                trigger_auto_backup(relatorio.projeto_id, 'relatorio', relatorio.id)
+            except Exception as e:
+                print(f"Erro no backup automático: {e}")
+            
             flash('Relatório criado com sucesso!', 'success')
             
             # Return JSON response for AJAX submission
@@ -2754,6 +2761,12 @@ def relatorio_express_novo(projeto_id):
             
             db.session.add(relatorio_express)
             db.session.commit()
+            
+            # Trigger backup automático
+            try:
+                trigger_auto_backup(projeto_id, 'relatorio_express', relatorio_express.id)
+            except Exception as e:
+                print(f"Erro no backup automático: {e}")
             
             flash('Relatório Express criado com sucesso!', 'success')
             return redirect(url_for('relatorio_express_detalhes', relatorio_id=relatorio_express.id))
