@@ -13,7 +13,7 @@ from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, Fo
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, EmailClienteForm
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
 from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
-from forms_express_new import RelatorioExpressForm as RelatorioExpressNovoForm, FotoExpressForm as FotoExpressNovoForm, EditarFotoExpressForm as EditarFotoExpressNovoForm, EnvioEmailExpressForm
+from forms_express_new import DadosEmpresaExpressForm, DadosRelatorioExpressForm, FotoExpressForm as FotoExpressNovoForm, EditarFotoExpressForm as EditarFotoExpressNovoForm, EnvioEmailExpressForm
 from email_service import email_service
 from pdf_generator_express import gerar_pdf_relatorio_express, gerar_numero_relatorio_express
 from pdf_generator_express_new import gerar_pdf_relatorio_express_novo, gerar_numero_relatorio_express as gerar_numero_novo
@@ -3161,44 +3161,97 @@ def relatorio_express_gerar_pdf(relatorio_id):
 
 # === NOVAS ROTAS DO RELATÓRIO EXPRESS COMPLETO ===
 
-# Rota principal do Relatório Express
+# Rotas do Relatório Express em duas etapas
+
+# Etapa 1: Dados da empresa
 @app.route('/relatorio-express-novo', methods=['GET', 'POST'])
 @login_required
 def relatorio_express_completo():
-    """Criar novo relatório express independente (versão completa)"""
-    form = RelatorioExpressNovoForm()
+    """Etapa 1: Dados da empresa - Relatório Express"""
+    from forms_express_new import DadosEmpresaExpressForm
+    
+    form = DadosEmpresaExpressForm()
     
     if form.validate_on_submit():
         try:
             # Gerar número único
             numero = gerar_numero_novo()
             
-            # Criar relatório express
+            # Criar relatório express com dados da empresa
             relatorio_express = RelatorioExpress(
                 numero=numero,
                 nome_empresa=form.nome_empresa.data,
+                cnpj_empresa=form.cnpj_empresa.data,
+                telefone_empresa=form.telefone_empresa.data,
+                email_empresa=form.email_empresa.data,
+                endereco_empresa=form.endereco_empresa.data,
                 nome_obra=form.nome_obra.data,
                 endereco_obra=form.endereco_obra.data,
-                observacoes=form.observacoes.data,
-                itens_observados=form.itens_observados.data,
-                preenchido_por=form.preenchido_por.data,
-                liberado_por=form.liberado_por.data,
-                responsavel_obra=form.responsavel_obra.data,
-                data_relatorio=form.data_relatorio.data,
+                tipo_obra=form.tipo_obra.data,
+                coordenadas_gps=form.coordenadas_gps.data,
+                observacoes='',  # Será preenchido na etapa 2
                 autor_id=current_user.id
             )
             
             db.session.add(relatorio_express)
             db.session.commit()
             
-            flash('Relatório Express criado com sucesso! Agora você pode adicionar fotos.', 'success')
-            return redirect(url_for('relatorio_express_detalhes_novo', relatorio_id=relatorio_express.id))
+            flash('Dados da empresa salvos com sucesso! Agora preencha os dados do relatório.', 'success')
+            return redirect(url_for('relatorio_express_etapa2', relatorio_id=relatorio_express.id))
             
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro ao criar relatório express: {str(e)}', 'error')
+            flash(f'Erro ao salvar dados da empresa: {str(e)}', 'error')
     
-    return render_template('express/novo_completo.html', form=form)
+    return render_template('express/etapa1_empresa.html', form=form)
+
+# Etapa 2: Dados do relatório
+@app.route('/relatorio-express-novo/<int:relatorio_id>/etapa2', methods=['GET', 'POST'])
+@login_required
+def relatorio_express_etapa2(relatorio_id):
+    """Etapa 2: Dados do relatório - Relatório Express"""
+    from forms_express_new import DadosRelatorioExpressForm
+    
+    relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    form = DadosRelatorioExpressForm()
+    
+    if form.validate_on_submit():
+        try:
+            # Atualizar relatório com dados do formulário
+            relatorio.titulo_relatorio = form.titulo_relatorio.data
+            relatorio.objetivo_visita = form.objetivo_visita.data
+            relatorio.observacoes = form.observacoes.data
+            relatorio.conclusoes = form.conclusoes.data
+            relatorio.recomendacoes = form.recomendacoes.data
+            relatorio.itens_observados = form.itens_observados.data
+            relatorio.itens_conformes = form.itens_conformes.data
+            relatorio.itens_nao_conformes = form.itens_nao_conformes.data
+            relatorio.data_visita = form.data_visita.data
+            relatorio.hora_inicio = form.hora_inicio.data
+            relatorio.hora_fim = form.hora_fim.data
+            relatorio.condicoes_climaticas = form.condicoes_climaticas.data
+            relatorio.preenchido_por = form.preenchido_por.data
+            relatorio.liberado_por = form.liberado_por.data
+            relatorio.responsavel_obra = form.responsavel_obra.data
+            relatorio.cargo_responsavel_obra = form.cargo_responsavel_obra.data
+            relatorio.data_relatorio = form.data_relatorio.data
+            
+            db.session.commit()
+            
+            flash('Dados do relatório salvos com sucesso! Agora você pode adicionar fotos.', 'success')
+            return redirect(url_for('relatorio_express_detalhes_novo', relatorio_id=relatorio_id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao salvar dados do relatório: {str(e)}', 'error')
+    
+    return render_template('express/etapa2_relatorio.html', form=form, relatorio=relatorio)
 
 @app.route('/relatorio-express-novo/<int:relatorio_id>')
 @login_required

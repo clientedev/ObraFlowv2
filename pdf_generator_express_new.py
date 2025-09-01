@@ -62,9 +62,52 @@ def gerar_pdf_relatorio_express_novo(relatorio_express_id, salvar_arquivo=True):
                         'filename': foto.filename
                     })
         
-        # Preparar dados para o template
+        # Preparar dados completos para o template
         dados = {
-            'relatorio': relatorio,
+            'relatorio': {
+                'numero': relatorio.numero,
+                
+                # Dados da empresa
+                'nome_empresa': relatorio.nome_empresa or '',
+                'cnpj_empresa': relatorio.cnpj_empresa or '',
+                'telefone_empresa': relatorio.telefone_empresa or '',
+                'email_empresa': relatorio.email_empresa or '',
+                'endereco_empresa': relatorio.endereco_empresa or '',
+                
+                # Dados da obra
+                'nome_obra': relatorio.nome_obra or '',
+                'endereco_obra': relatorio.endereco_obra or '',
+                'tipo_obra': relatorio.tipo_obra or '',
+                'coordenadas_gps': relatorio.coordenadas_gps or '',
+                
+                # Dados do relatório
+                'titulo_relatorio': relatorio.titulo_relatorio or f'Relatório de Visita Técnica - {relatorio.nome_obra}',
+                'objetivo_visita': relatorio.objetivo_visita or '',
+                'observacoes': relatorio.observacoes or '',
+                'conclusoes': relatorio.conclusoes or '',
+                'recomendacoes': relatorio.recomendacoes or '',
+                
+                # Itens técnicos
+                'itens_observados': relatorio.itens_observados or '',
+                'itens_conformes': relatorio.itens_conformes or '',
+                'itens_nao_conformes': relatorio.itens_nao_conformes or '',
+                
+                # Dados da visita
+                'data_visita': relatorio.data_visita.strftime('%d/%m/%Y') if relatorio.data_visita else '',
+                'hora_inicio': relatorio.hora_inicio or '',
+                'hora_fim': relatorio.hora_fim or '',
+                'condicoes_climaticas': relatorio.condicoes_climaticas or '',
+                
+                # Responsáveis
+                'preenchido_por': relatorio.preenchido_por or '',
+                'liberado_por': relatorio.liberado_por or '',
+                'responsavel_obra': relatorio.responsavel_obra or '',
+                'cargo_responsavel_obra': relatorio.cargo_responsavel_obra or '',
+                'data_relatorio': relatorio.data_relatorio.strftime('%d/%m/%Y') if relatorio.data_relatorio else '',
+                
+                # Sistema
+                'status': relatorio.status
+            },
             'fotos': fotos_data,
             'data_atual': datetime.now().strftime('%d/%m/%Y'),
             'hora_atual': datetime.now().strftime('%H:%M'),

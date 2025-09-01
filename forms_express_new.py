@@ -4,10 +4,11 @@ from wtforms import StringField, TextAreaField, DateField, HiddenField, SelectFi
 from wtforms.validators import DataRequired, Length, Email, Optional
 from datetime import date
 
-class RelatorioExpressForm(FlaskForm):
-    """Formulário completo para criação de relatório express"""
+# Formulário para dados da empresa (Etapa 1)
+class DadosEmpresaExpressForm(FlaskForm):
+    """Formulário para dados da empresa - Etapa 1"""
     
-    # Dados da empresa/obra
+    # Dados da empresa
     nome_empresa = StringField(
         'Nome da Empresa/Cliente *',
         validators=[
@@ -20,6 +21,57 @@ class RelatorioExpressForm(FlaskForm):
         }
     )
     
+    cnpj_empresa = StringField(
+        'CNPJ da Empresa',
+        validators=[
+            Optional(),
+            Length(max=20, message='Máximo 20 caracteres')
+        ],
+        render_kw={
+            'placeholder': 'XX.XXX.XXX/XXXX-XX',
+            'class': 'form-control'
+        }
+    )
+    
+    telefone_empresa = StringField(
+        'Telefone da Empresa',
+        validators=[
+            Optional(),
+            Length(max=20, message='Máximo 20 caracteres')
+        ],
+        render_kw={
+            'placeholder': '(11) 99999-9999',
+            'class': 'form-control'
+        }
+    )
+    
+    email_empresa = StringField(
+        'E-mail da Empresa',
+        validators=[
+            Optional(),
+            Email(message='E-mail inválido'),
+            Length(max=120, message='Máximo 120 caracteres')
+        ],
+        render_kw={
+            'placeholder': 'contato@empresa.com.br',
+            'class': 'form-control'
+        }
+    )
+    
+    endereco_empresa = TextAreaField(
+        'Endereço da Empresa',
+        validators=[
+            Optional(),
+            Length(max=500, message='Máximo 500 caracteres')
+        ],
+        render_kw={
+            'rows': 3,
+            'placeholder': 'Endereço completo da empresa',
+            'class': 'form-control'
+        }
+    )
+    
+    # Dados da obra
     nome_obra = StringField(
         'Nome da Obra/Projeto *',
         validators=[
@@ -35,7 +87,7 @@ class RelatorioExpressForm(FlaskForm):
     endereco_obra = TextAreaField(
         'Endereço da Obra *',
         validators=[
-            DataRequired(message='O endereço é obrigatório'),
+            DataRequired(message='O endereço da obra é obrigatório'),
             Length(max=500, message='Máximo 500 caracteres')
         ],
         render_kw={
@@ -45,34 +97,191 @@ class RelatorioExpressForm(FlaskForm):
         }
     )
     
-    # Dados do relatório
-    observacoes = TextAreaField(
-        'Observações Gerais *',
+    tipo_obra = SelectField(
+        'Tipo de Obra',
+        choices=[
+            ('', 'Selecione o tipo'),
+            ('Residencial', 'Residencial'),
+            ('Comercial', 'Comercial'),
+            ('Industrial', 'Industrial'),
+            ('Institucional', 'Institucional'),
+            ('Infraestrutura', 'Infraestrutura'),
+            ('Reforma', 'Reforma'),
+            ('Outros', 'Outros')
+        ],
+        validators=[Optional()],
+        render_kw={'class': 'form-control'}
+    )
+    
+    coordenadas_gps = StringField(
+        'Coordenadas GPS',
         validators=[
-            DataRequired(message='As observações são obrigatórias'),
-            Length(max=2000, message='Máximo 2000 caracteres')
+            Optional(),
+            Length(max=100, message='Máximo 100 caracteres')
         ],
         render_kw={
-            'rows': 6,
-            'placeholder': 'Descreva os itens observados, estado da obra, recomendações...',
+            'placeholder': 'Ex: -23.550520, -46.633308',
+            'class': 'form-control'
+        }
+    )
+
+# Formulário para dados do relatório (Etapa 2)
+class DadosRelatorioExpressForm(FlaskForm):
+    """Formulário para dados do relatório - Etapa 2"""
+    
+    # Dados gerais do relatório
+    titulo_relatorio = StringField(
+        'Título do Relatório',
+        validators=[
+            Optional(),
+            Length(max=300, message='Máximo 300 caracteres')
+        ],
+        render_kw={
+            'placeholder': 'Ex: Relatório de Visita Técnica - Estrutura',
             'class': 'form-control'
         }
     )
     
-    itens_observados = TextAreaField(
-        'Itens Observados/Checklist',
+    objetivo_visita = TextAreaField(
+        'Objetivo da Visita',
         validators=[
             Optional(),
             Length(max=1000, message='Máximo 1000 caracteres')
         ],
         render_kw={
-            'rows': 4,
-            'placeholder': 'Liste os principais itens verificados durante a visita',
+            'rows': 3,
+            'placeholder': 'Descreva o objetivo principal desta visita técnica...',
             'class': 'form-control'
         }
     )
     
-    # Assinaturas
+    # Observações técnicas
+    observacoes = TextAreaField(
+        'Observações Gerais *',
+        validators=[
+            DataRequired(message='As observações são obrigatórias'),
+            Length(max=3000, message='Máximo 3000 caracteres')
+        ],
+        render_kw={
+            'rows': 6,
+            'placeholder': 'Descreva detalhadamente os aspectos observados durante a visita...',
+            'class': 'form-control'
+        }
+    )
+    
+    conclusoes = TextAreaField(
+        'Conclusões',
+        validators=[
+            Optional(),
+            Length(max=2000, message='Máximo 2000 caracteres')
+        ],
+        render_kw={
+            'rows': 4,
+            'placeholder': 'Principais conclusões da visita técnica...',
+            'class': 'form-control'
+        }
+    )
+    
+    recomendacoes = TextAreaField(
+        'Recomendações',
+        validators=[
+            Optional(),
+            Length(max=2000, message='Máximo 2000 caracteres')
+        ],
+        render_kw={
+            'rows': 4,
+            'placeholder': 'Recomendações e sugestões para a obra...',
+            'class': 'form-control'
+        }
+    )
+    
+    # Itens técnicos
+    itens_observados = TextAreaField(
+        'Itens Observados',
+        validators=[
+            Optional(),
+            Length(max=1500, message='Máximo 1500 caracteres')
+        ],
+        render_kw={
+            'rows': 4,
+            'placeholder': 'Liste os principais itens verificados durante a visita...',
+            'class': 'form-control'
+        }
+    )
+    
+    itens_conformes = TextAreaField(
+        'Itens Conformes',
+        validators=[
+            Optional(),
+            Length(max=1500, message='Máximo 1500 caracteres')
+        ],
+        render_kw={
+            'rows': 3,
+            'placeholder': 'Itens que estão em conformidade com o projeto/normas...',
+            'class': 'form-control'
+        }
+    )
+    
+    itens_nao_conformes = TextAreaField(
+        'Itens Não Conformes',
+        validators=[
+            Optional(),
+            Length(max=1500, message='Máximo 1500 caracteres')
+        ],
+        render_kw={
+            'rows': 3,
+            'placeholder': 'Itens que necessitam correção ou ajuste...',
+            'class': 'form-control'
+        }
+    )
+    
+    # Dados da visita
+    data_visita = DateField(
+        'Data da Visita *',
+        validators=[DataRequired(message='A data da visita é obrigatória')],
+        default=date.today,
+        render_kw={'class': 'form-control'}
+    )
+    
+    hora_inicio = StringField(
+        'Hora de Início',
+        validators=[
+            Optional(),
+            Length(max=10, message='Máximo 10 caracteres')
+        ],
+        render_kw={
+            'placeholder': 'Ex: 09:00',
+            'class': 'form-control'
+        }
+    )
+    
+    hora_fim = StringField(
+        'Hora de Término',
+        validators=[
+            Optional(),
+            Length(max=10, message='Máximo 10 caracteres')
+        ],
+        render_kw={
+            'placeholder': 'Ex: 12:00',
+            'class': 'form-control'
+        }
+    )
+    
+    condicoes_climaticas = SelectField(
+        'Condições Climáticas',
+        choices=[
+            ('', 'Selecione'),
+            ('Ensolarado', 'Ensolarado'),
+            ('Parcialmente nublado', 'Parcialmente nublado'),
+            ('Nublado', 'Nublado'),
+            ('Chuvoso', 'Chuvoso'),
+            ('Ventoso', 'Ventoso')
+        ],
+        validators=[Optional()],
+        render_kw={'class': 'form-control'}
+    )
+    
+    # Responsáveis
     preenchido_por = StringField(
         'Preenchido por *',
         validators=[
@@ -92,7 +301,7 @@ class RelatorioExpressForm(FlaskForm):
             Length(max=200, message='Máximo 200 caracteres')
         ],
         render_kw={
-            'placeholder': 'Nome do responsável pela liberação (opcional)',
+            'placeholder': 'Nome do responsável pela liberação',
             'class': 'form-control'
         }
     )
@@ -104,14 +313,26 @@ class RelatorioExpressForm(FlaskForm):
             Length(max=200, message='Máximo 200 caracteres')
         ],
         render_kw={
-            'placeholder': 'Nome do responsável técnico da obra (opcional)',
+            'placeholder': 'Nome do responsável técnico da obra',
+            'class': 'form-control'
+        }
+    )
+    
+    cargo_responsavel_obra = StringField(
+        'Cargo do Responsável',
+        validators=[
+            Optional(),
+            Length(max=100, message='Máximo 100 caracteres')
+        ],
+        render_kw={
+            'placeholder': 'Ex: Engenheiro Civil, Mestre de Obras',
             'class': 'form-control'
         }
     )
     
     data_relatorio = DateField(
         'Data do Relatório *',
-        validators=[DataRequired(message='A data é obrigatória')],
+        validators=[DataRequired(message='A data do relatório é obrigatória')],
         default=date.today,
         render_kw={'class': 'form-control'}
     )

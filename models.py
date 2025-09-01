@@ -329,19 +329,42 @@ class RelatorioExpress(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     numero = db.Column(db.String(20), unique=True, nullable=False)
     
-    # Dados da empresa/projeto (não vinculados a cadastros permanentes)
+    # Dados da empresa (completos como nos relatórios normais)
     nome_empresa = db.Column(db.String(200))
+    cnpj_empresa = db.Column(db.String(20))
+    telefone_empresa = db.Column(db.String(20))
+    email_empresa = db.Column(db.String(120))
+    endereco_empresa = db.Column(db.Text)
+    
+    # Dados da obra/projeto (completos)
     nome_obra = db.Column(db.String(200))
     endereco_obra = db.Column(db.Text)
+    tipo_obra = db.Column(db.String(100))  # Residencial, Comercial, Industrial, etc.
+    coordenadas_gps = db.Column(db.String(100))  # latitude,longitude
     
-    # Dados do relatório
+    # Dados do relatório (completos como nos relatórios normais)
+    titulo_relatorio = db.Column(db.String(300))
+    objetivo_visita = db.Column(db.Text)
     observacoes = db.Column(db.Text, nullable=False)
-    itens_observados = db.Column(db.Text)  # Checklist/itens observados
+    conclusoes = db.Column(db.Text)
+    recomendacoes = db.Column(db.Text)
     
-    # Assinaturas
+    # Checklist e itens técnicos
+    itens_observados = db.Column(db.Text)
+    itens_conformes = db.Column(db.Text)
+    itens_nao_conformes = db.Column(db.Text)
+    
+    # Condições da visita
+    data_visita = db.Column(db.Date)
+    hora_inicio = db.Column(db.String(10))
+    hora_fim = db.Column(db.String(10))
+    condicoes_climaticas = db.Column(db.String(100))
+    
+    # Assinaturas e responsáveis
     preenchido_por = db.Column(db.String(200))
     liberado_por = db.Column(db.String(200))
     responsavel_obra = db.Column(db.String(200))
+    cargo_responsavel_obra = db.Column(db.String(100))
     data_relatorio = db.Column(db.Date, default=date.today)
     
     # Sistema
