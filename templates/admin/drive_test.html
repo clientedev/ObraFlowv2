@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Teste Google Drive{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-cloud me-2"></i>Teste Google Drive
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Este teste verifica a conectividade com o Google Drive e a capacidade de criar pastas no sistema de backup.
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Teste de Conectividade</h6>
+                                </div>
+                                <div class="card-body">
+                                    <button type="button" class="btn btn-primary" onclick="testConnection()">
+                                        <i class="fas fa-wifi me-2"></i>Testar Conexão
+                                    </button>
+                                    <div id="connection-result" class="mt-3"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Teste de Criação de Pasta</h6>
+                                </div>
+                                <div class="card-body">
+                                    <button type="button" class="btn btn-success" onclick="testFolderCreation()">
+                                        <i class="fas fa-folder-plus me-2"></i>Criar Pasta Teste
+                                    </button>
+                                    <div id="folder-result" class="mt-3"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Backup em Lote</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Fazer backup de todos os relatórios aprovados para o Google Drive.</p>
+                            <button type="button" class="btn btn-warning" onclick="backupAllReports()">
+                                <i class="fas fa-sync-alt me-2"></i>Backup Todos Relatórios
+                            </button>
+                            <div id="backup-result" class="mt-3"></div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6>Configuração Atual:</h6>
+                            <div class="badge bg-secondary">
+                                Token: {{ 'Configurado' if has_token else 'Não configurado' }}
+                            </div>
+                            <div class="badge bg-info ms-2">
+                                Pasta: 1DasfSDL0832tx6AQcQGMFMlOm4JMboAx
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function testConnection() {
+    const button = document.querySelector('button[onclick="testConnection()"]');
+    const resultDiv = document.getElementById('connection-result');
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Testando...';
+    resultDiv.innerHTML = '';
+
+    fetch('/admin/drive/test-connection', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check me-2"></i>
+                    <strong>Conexão bem-sucedida!</strong><br>
+                    ${data.message || 'Token válido e pasta acessível.'}
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-times me-2"></i>
+                    <strong>Erro na conexão:</strong><br>
+                    ${data.message || data.error || 'Erro desconhecido'}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Erro na comunicação:</strong><br>
+                Não foi possível conectar ao servidor.
+            </div>
+        `;
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-wifi me-2"></i>Testar Conexão';
+    });
+}
+
+function testFolderCreation() {
+    const button = document.querySelector('button[onclick="testFolderCreation()"]');
+    const resultDiv = document.getElementById('folder-result');
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Criando...';
+    resultDiv.innerHTML = '';
+
+    fetch('/admin/drive/test-folder', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            folder_name: 'TESTE_' + Date.now()
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-folder me-2"></i>
+                    <strong>Pasta criada!</strong><br>
+                    ${data.message}<br>
+                    <small class="text-muted">ID: ${data.folder_id || 'N/A'}</small>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-times me-2"></i>
+                    <strong>Erro ao criar pasta:</strong><br>
+                    ${data.message || data.error || 'Erro desconhecido'}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Erro na comunicação:</strong><br>
+                Não foi possível conectar ao servidor.
+            </div>
+        `;
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-folder-plus me-2"></i>Criar Pasta Teste';
+    });
+}
+
+function backupAllReports() {
+    const button = document.querySelector('button[onclick="backupAllReports()"]');
+    const resultDiv = document.getElementById('backup-result');
+    
+    if (!confirm('Deseja fazer backup de todos os relatórios aprovados? Esta operação pode demorar alguns minutos.')) {
+        return;
+    }
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Fazendo backup...';
+    resultDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-clock me-2"></i>Processando backup...</div>';
+
+    fetch('/admin/drive/backup-all', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check me-2"></i>
+                    <strong>Backup concluído!</strong><br>
+                    ${data.message}<br>
+                    <small class="text-muted">Arquivos processados: ${data.successful_uploads || 0}</small>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Backup parcial:</strong><br>
+                    ${data.message || 'Alguns arquivos podem não ter sido processados.'}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Erro no backup:</strong><br>
+                Não foi possível completar o backup.
+            </div>
+        `;
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Backup Todos Relatórios';
+    });
+}
+</script>
+{% endblock %}
