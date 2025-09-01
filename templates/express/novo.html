@@ -5,6 +5,149 @@
 {% block head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<style>
+/* Estilos para seletor de categorias */
+.category-selector {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+}
+
+.category-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+    background: white;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    min-height: 100px;
+}
+
+.category-option:hover {
+    border-color: #007bff;
+    background: #f8f9ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+}
+
+.category-option.selected {
+    border-color: #28a745;
+    background: #f8fff8;
+    color: #155724;
+    font-weight: 600;
+}
+
+.category-option.selected .category-icon {
+    color: #28a745;
+}
+
+.category-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+    transition: color 0.3s ease;
+}
+
+.category-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* Estilos para configuração de fotos */
+.photo-config-card {
+    border: 2px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.photo-config-card:hover {
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.legend-select, .legend-input {
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.legend-select:focus, .legend-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+    outline: 0;
+}
+
+/* Responsivo mobile */
+@media (max-width: 768px) {
+    .category-option {
+        min-height: 80px;
+        padding: 1rem 0.5rem;
+    }
+    
+    .category-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .category-name {
+        font-size: 0.8rem;
+    }
+    
+    .photo-config-card .card-body {
+        padding: 1rem !important;
+    }
+}
+
+/* Estilos para fotos configuradas */
+#configuredPhotosList .card {
+    border: 1px solid #28a745;
+    background: #f8fff8;
+}
+
+#configuredPhotosList .card-header {
+    background: #28a745;
+    color: white;
+    border-bottom: 1px solid #28a745;
+}
+
+/* Animações */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.photo-config-card {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+/* Melhorias visuais para alertas e notificações */
+.alert {
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.alert-warning {
+    border-left-color: #ffc107;
+}
+
+.alert-info {
+    border-left-color: #17a2b8;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -135,16 +278,73 @@
                     </div>
                 </div>
 
-                <!-- FOTOS -->
+                <!-- FOTOS AVANÇADAS (IGUAL AO RELATÓRIO PADRÃO) -->
                 <div class="card mb-4">
-                    <div class="card-header">
-                        <h5><i class="fas fa-camera"></i> Registro Fotográfico</h5>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-camera"></i> Fotos <span class="badge bg-info ms-2" id="photoCount">(Até 50 fotos)</span></h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="resetPhotoCategories()">
+                                <i class="fas fa-undo"></i> Limpar Seleção
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
-                        {{ form.fotos.label(class="form-label") }}
-                        {{ form.fotos(class="form-control", onchange="previewImages(this)") }}
-                        <small class="form-text text-muted">Selecione múltiplas fotos (JPG, PNG). Máximo 16MB por foto.</small>
-                        <div id="imagePreview" class="mt-3"></div>
+                        <!-- Seletor de Categoria -->
+                        <div class="mb-4">
+                            <p class="mb-3 text-muted">Selecione a categoria antes de adicionar a foto:</p>
+                            <div class="category-selector">
+                                <div class="row g-3">
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <div class="category-option" data-category="Geral" onclick="selectPhotoCategory('Geral', this)">
+                                            <i class="fas fa-camera category-icon"></i>
+                                            <div class="category-name">Geral</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <div class="category-option" data-category="Estrutura" onclick="selectPhotoCategory('Estrutura', this)">
+                                            <i class="fas fa-building category-icon"></i>
+                                            <div class="category-name">Estrutura</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <div class="category-option" data-category="Acabamento" onclick="selectPhotoCategory('Acabamento', this)">
+                                            <i class="fas fa-paint-brush category-icon"></i>
+                                            <div class="category-name">Acabamento</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <div class="category-option" data-category="Instalações" onclick="selectPhotoCategory('Instalações', this)">
+                                            <i class="fas fa-tools category-icon"></i>
+                                            <div class="category-name">Instalações</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <div class="category-option" data-category="Problema" onclick="selectPhotoCategory('Problema', this)">
+                                            <i class="fas fa-exclamation-triangle category-icon"></i>
+                                            <div class="category-name">Problema</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Upload de Fotos -->
+                        <div class="photo-upload-section" id="photoUploadSection" style="display: none;">
+                            {{ form.fotos.label(class="form-label") }}
+                            {{ form.fotos(class="form-control", onchange="handlePhotoUpload(this)", multiple=true) }}
+                            <small class="form-text text-muted">
+                                Selecione uma categoria antes de escolher as fotos. Máximo 50 fotos.
+                            </small>
+                            <div class="alert alert-warning mt-2" id="categoryWarning" style="display: none;">
+                                <i class="fas fa-exclamation-triangle"></i> Selecione uma categoria antes de escolher as fotos.
+                            </div>
+                        </div>
+
+                        <!-- Preview das Fotos Selecionadas -->
+                        <div id="selectedPhotosPreview" class="mt-4"></div>
+
+                        <!-- Lista de Fotos Configuradas -->
+                        <div id="configuredPhotosList" class="mt-4"></div>
                     </div>
                 </div>
             </div>
@@ -185,38 +385,332 @@
 </div>
 
 <script>
-// Preview de imagens
-function previewImages(input) {
-    const preview = document.getElementById('imagePreview');
-    preview.innerHTML = '';
+// Variáveis globais para controle de fotos
+let selectedCategory = null;
+let configuredPhotos = [];
+let photoCounter = 0;
+
+// Seleção de categoria
+function selectPhotoCategory(category, element) {
+    // Remover seleção anterior
+    document.querySelectorAll('.category-option').forEach(option => {
+        option.classList.remove('selected');
+    });
     
-    if (input.files && input.files.length > 0) {
-        const title = document.createElement('h6');
-        title.textContent = `${input.files.length} foto(s) selecionada(s):`;
-        title.className = 'mt-3 mb-2';
-        preview.appendChild(title);
-        
-        Array.from(input.files).forEach((file, index) => {
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const col = document.createElement('div');
-                    col.className = 'col-md-6 col-lg-4 mb-3';
-                    col.innerHTML = `
-                        <div class="card">
-                            <img src="${e.target.result}" class="card-img-top" style="height: 150px; object-fit: cover;">
-                            <div class="card-body p-2">
-                                <small class="text-muted">${file.name}</small>
-                            </div>
-                        </div>
-                    `;
-                    preview.appendChild(col);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+    // Selecionar nova categoria
+    element.classList.add('selected');
+    selectedCategory = category;
+    
+    // Mostrar seção de upload
+    document.getElementById('photoUploadSection').style.display = 'block';
+    document.getElementById('categoryWarning').style.display = 'none';
+    
+    console.log(`Categoria selecionada: ${category}`);
+}
+
+// Resetar seleção de categoria
+function resetPhotoCategories() {
+    selectedCategory = null;
+    document.querySelectorAll('.category-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    document.getElementById('photoUploadSection').style.display = 'none';
+    document.getElementById('selectedPhotosPreview').innerHTML = '';
+    
+    // Limpar input de fotos
+    const fileInput = document.querySelector('input[type="file"][multiple]');
+    if (fileInput) {
+        fileInput.value = '';
     }
 }
+
+// Manipular upload de fotos
+function handlePhotoUpload(input) {
+    if (!selectedCategory) {
+        document.getElementById('categoryWarning').style.display = 'block';
+        input.value = '';
+        return;
+    }
+    
+    if (input.files && input.files.length > 0) {
+        // Verificar limite de fotos
+        const totalPhotos = configuredPhotos.length + input.files.length;
+        if (totalPhotos > 50) {
+            alert(`Você pode adicionar no máximo 50 fotos. Atualmente você tem ${configuredPhotos.length} foto(s) configurada(s).`);
+            input.value = '';
+            return;
+        }
+        
+        showPhotoConfigurationModal(input.files, selectedCategory);
+    }
+}
+
+// Mostrar modal de configuração de fotos
+function showPhotoConfigurationModal(files, category) {
+    const preview = document.getElementById('selectedPhotosPreview');
+    preview.innerHTML = `
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-cog"></i> Configurar ${files.length} foto(s) - Categoria: ${category}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row" id="photoConfigGrid">
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary" onclick="cancelPhotoConfiguration()">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="confirmPhotoConfiguration()">
+                        <i class="fas fa-check"></i> Confirmar Fotos
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const grid = document.getElementById('photoConfigGrid');
+    Array.from(files).forEach((file, index) => {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const photoId = `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const col = document.createElement('div');
+                col.className = 'col-md-6 col-lg-4 mb-4';
+                col.innerHTML = `
+                    <div class="card photo-config-card" data-photo-id="${photoId}" data-file-name="${file.name}" data-category="${category}">
+                        <img src="${e.target.result}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                        <div class="card-body p-3">
+                            <div class="mb-2">
+                                <label class="form-label">Legenda:</label>
+                                <select class="form-control legend-select mb-2" onchange="updatePhotoConfig('${photoId}')">
+                                    <option value="">Carregando legendas...</option>
+                                </select>
+                                <input type="text" class="form-control legend-input" placeholder="Ou digite uma legenda personalizada" 
+                                       onchange="updatePhotoConfig('${photoId}')">
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openPhotoEditor('${photoId}')">
+                                    <i class="fas fa-edit"></i> Editar
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removePhotoFromConfig('${photoId}')">
+                                    <i class="fas fa-trash"></i> Remover
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(col);
+                
+                // Carregar legendas para a categoria
+                loadLegends(photoId, category);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+// Carregar legendas pré-definidas
+function loadLegends(photoId, category) {
+    console.log(`Carregando legendas para foto ${photoId}, categoria: ${category}`);
+    
+    // Mapear categoria para formato do backend
+    const categoryMap = {
+        'Estrutura': 'Estrutural',
+        'Acabamento': 'Acabamentos',
+        'Instalações': 'Elétrica',  // ou 'Hidráulica' dependendo do contexto
+        'Problema': 'Segurança',
+        'Geral': 'Geral'
+    };
+    
+    const mappedCategory = categoryMap[category] || category;
+    console.log(`Categoria mapeada: ${mappedCategory}`);
+    
+    fetch(`/api/legendas?categoria=${encodeURIComponent(mappedCategory)}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Dados recebidos:', data);
+            
+            const selectElement = document.querySelector(`[data-photo-id="${photoId}"] .legend-select`);
+            console.log('Select element:', selectElement);
+            
+            if (selectElement && data.success && data.legendas) {
+                selectElement.innerHTML = '<option value="">Selecione uma legenda predefinida</option>';
+                
+                data.legendas.forEach(legenda => {
+                    const option = document.createElement('option');
+                    option.value = legenda.texto;
+                    option.textContent = legenda.texto;
+                    selectElement.appendChild(option);
+                });
+                
+                console.log(`${data.legendas.length} legendas carregadas para categoria ${mappedCategory}`);
+            } else {
+                console.error('Erro ao carregar legendas:', data);
+                if (selectElement) {
+                    selectElement.innerHTML = '<option value="">Nenhuma legenda disponível</option>';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erro na requisição de legendas:', error);
+            const selectElement = document.querySelector(`[data-photo-id="${photoId}"] .legend-select`);
+            if (selectElement) {
+                selectElement.innerHTML = '<option value="">Erro ao carregar legendas</option>';
+            }
+        });
+}
+
+// Atualizar configuração da foto
+function updatePhotoConfig(photoId) {
+    const card = document.querySelector(`[data-photo-id="${photoId}"]`);
+    const legendSelect = card.querySelector('.legend-select');
+    const legendInput = card.querySelector('.legend-input');
+    
+    // Se selecionou uma legenda predefinida, limpar o input personalizado
+    if (legendSelect.value) {
+        legendInput.value = '';
+    }
+}
+
+// Abrir editor de fotos
+function openPhotoEditor(photoId) {
+    alert('Editor de fotos será implementado. Por enquanto, use as legendas para configurar a foto.');
+}
+
+// Remover foto da configuração
+function removePhotoFromConfig(photoId) {
+    const card = document.querySelector(`[data-photo-id="${photoId}"]`);
+    if (card) {
+        card.remove();
+    }
+}
+
+// Confirmar configuração das fotos
+function confirmPhotoConfiguration() {
+    const photoCards = document.querySelectorAll('.photo-config-card');
+    let validPhotos = 0;
+    
+    photoCards.forEach(card => {
+        const legendSelect = card.querySelector('.legend-select');
+        const legendInput = card.querySelector('.legend-input');
+        const legend = legendSelect.value || legendInput.value.trim();
+        
+        if (legend) {
+            const photoData = {
+                id: card.dataset.photoId,
+                fileName: card.dataset.fileName,
+                category: card.dataset.category,
+                legend: legend,
+                imageData: card.querySelector('img').src
+            };
+            
+            configuredPhotos.push(photoData);
+            validPhotos++;
+        }
+    });
+    
+    if (validPhotos === 0) {
+        alert('Por favor, adicione legendas para pelo menos uma foto.');
+        return;
+    }
+    
+    // Limpar preview e mostrar fotos configuradas
+    document.getElementById('selectedPhotosPreview').innerHTML = '';
+    displayConfiguredPhotos();
+    updatePhotoCounter();
+    
+    // Limpar seleção de categoria para nova seleção
+    resetPhotoCategories();
+    
+    alert(`${validPhotos} foto(s) configurada(s) com sucesso!`);
+}
+
+// Cancelar configuração
+function cancelPhotoConfiguration() {
+    document.getElementById('selectedPhotosPreview').innerHTML = '';
+    
+    // Limpar input de fotos
+    const fileInput = document.querySelector('input[type="file"][multiple]');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+}
+
+// Exibir fotos configuradas
+function displayConfiguredPhotos() {
+    const container = document.getElementById('configuredPhotosList');
+    
+    if (configuredPhotos.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-images"></i> Fotos Configuradas (${configuredPhotos.length})</h6>
+            </div>
+            <div class="card-body">
+                <div class="row" id="configuredPhotosGrid"></div>
+            </div>
+        </div>
+    `;
+    
+    const grid = document.getElementById('configuredPhotosGrid');
+    configuredPhotos.forEach((photo, index) => {
+        const col = document.createElement('div');
+        col.className = 'col-md-4 col-lg-3 mb-3';
+        col.innerHTML = `
+            <div class="card">
+                <img src="${photo.imageData}" class="card-img-top" style="height: 120px; object-fit: cover;">
+                <div class="card-body p-2">
+                    <small class="text-muted d-block">${photo.category}</small>
+                    <small class="fw-bold">${photo.legend}</small>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeConfiguredPhoto(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        grid.appendChild(col);
+    });
+}
+
+// Remover foto configurada
+function removeConfiguredPhoto(index) {
+    if (confirm('Deseja remover esta foto?')) {
+        configuredPhotos.splice(index, 1);
+        displayConfiguredPhotos();
+        updatePhotoCounter();
+    }
+}
+
+// Atualizar contador de fotos
+function updatePhotoCounter() {
+    const counter = document.getElementById('photoCount');
+    if (counter) {
+        const remaining = 50 - configuredPhotos.length;
+        counter.textContent = `(${configuredPhotos.length}/50 fotos)`;
+        
+        if (configuredPhotos.length >= 45) {
+            counter.className = 'badge bg-warning ms-2';
+        } else if (configuredPhotos.length >= 50) {
+            counter.className = 'badge bg-danger ms-2';
+        } else {
+            counter.className = 'badge bg-info ms-2';
+        }
+    }
+}
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    updatePhotoCounter();
+});
 
 // Localização GPS
 document.getElementById('getLocationBtn').addEventListener('click', function() {
