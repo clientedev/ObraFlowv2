@@ -2455,11 +2455,11 @@ def api_checklist_default():
         for item in checklist_items:
             items_data.append({
                 'id': item.id,
-                'titulo': item.titulo,
-                'descricao': item.descricao,
-                'categoria': item.categoria or 'Geral',
-                'ordem': item.ordem,
-                'obrigatorio': item.obrigatorio
+                'titulo': item.texto,  # ChecklistPadrao usa 'texto' não 'titulo'
+                'descricao': getattr(item, 'descricao', '') or '',  # Campo opcional
+                'categoria': getattr(item, 'categoria', 'Geral') or 'Geral',  # Campo opcional
+                'ordem': item.ordem or 0,
+                'obrigatorio': getattr(item, 'obrigatorio', False)
             })
         
         return jsonify({

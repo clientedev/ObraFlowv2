@@ -195,9 +195,24 @@
     gap: 0.5rem;
 }
 
+.color-preset {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.color-preset:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
 .color-preset.selected {
     border: 3px solid #007bff !important;
-    transform: scale(1.1);
+    transform: scale(1.2);
+    box-shadow: 0 3px 12px rgba(0,123,255,0.4);
 }
 </style>
 {% endblock %}
@@ -687,8 +702,8 @@ function openPhotoEditor(photoId) {
                             <div class="tool-group">
                                 <h6><i class="fas fa-pencil-alt"></i> Ferramentas de Desenho</h6>
                                 <div class="d-grid gap-2">
-                                    <button type="button" class="btn btn-outline-primary tool-btn" onclick="selectTool('pen')" data-tool="pen">
-                                        <i class="fas fa-pen"></i> Pincel
+                                    <button type="button" class="btn btn-outline-secondary tool-btn" onclick="selectTool('text')" data-tool="text">
+                                        <i class="fas fa-font"></i> Texto
                                     </button>
                                     <button type="button" class="btn btn-outline-success tool-btn" onclick="selectTool('arrow')" data-tool="arrow">
                                         <i class="fas fa-arrow-right"></i> Seta
@@ -699,8 +714,8 @@ function openPhotoEditor(photoId) {
                                     <button type="button" class="btn btn-outline-info tool-btn" onclick="selectTool('rectangle')" data-tool="rectangle">
                                         <i class="fas fa-square"></i> Retângulo
                                     </button>
-                                    <button type="button" class="btn btn-outline-secondary tool-btn" onclick="selectTool('text')" data-tool="text">
-                                        <i class="fas fa-font"></i> Texto
+                                    <button type="button" class="btn btn-outline-secondary tool-btn active" onclick="selectTool('pen')" data-tool="pen">
+                                        <i class="fas fa-pen"></i> Pincel (Ativo)
                                     </button>
                                 </div>
                             </div>
@@ -709,7 +724,7 @@ function openPhotoEditor(photoId) {
                             <div class="tool-group">
                                 <h6><i class="fas fa-palette"></i> Cores</h6>
                                 <div class="color-palette">
-                                    <div class="color-preset" style="background-color: #ff0000;" onclick="selectColor('#ff0000')"></div>
+                                    <div class="color-preset selected" style="background-color: #ff0000;" onclick="selectColor('#ff0000')"></div>
                                     <div class="color-preset" style="background-color: #00ff00;" onclick="selectColor('#00ff00')"></div>
                                     <div class="color-preset" style="background-color: #0000ff;" onclick="selectColor('#0000ff')"></div>
                                     <div class="color-preset" style="background-color: #ffff00;" onclick="selectColor('#ffff00')"></div>
@@ -717,6 +732,10 @@ function openPhotoEditor(photoId) {
                                     <div class="color-preset" style="background-color: #00ffff;" onclick="selectColor('#00ffff')"></div>
                                     <div class="color-preset" style="background-color: #000000;" onclick="selectColor('#000000')"></div>
                                     <div class="color-preset" style="background-color: #ffffff; border: 2px solid #ccc;" onclick="selectColor('#ffffff')"></div>
+                                </div>
+                                <div class="mt-2">
+                                    <label class="form-label small">Cor personalizada:</label>
+                                    <input type="color" class="form-control form-control-color" value="#ff0000" onchange="selectColor(this.value)" style="width: 50px; height: 35px;">
                                 </div>
                             </div>
                             
@@ -945,6 +964,10 @@ function initializePhotoEditor(imageSrc) {
         
         // Configurar eventos
         setupCanvasEvents();
+        
+        // Garantir que o pincel esteja selecionado por padrão
+        selectTool('pen');
+        selectColor('#ff0000');
     };
     img.src = imageSrc;
 }
@@ -1068,8 +1091,22 @@ function selectTool(tool) {
 
 function selectColor(color) {
     photoEditor.currentColor = color;
+    
+    // Remover seleção de todas as cores
     document.querySelectorAll('.color-preset').forEach(preset => preset.classList.remove('selected'));
-    event.target.classList.add('selected');
+    
+    // Se foi clicado em um preset, marcar como selecionado
+    if (event && event.target && event.target.classList.contains('color-preset')) {
+        event.target.classList.add('selected');
+    } else {
+        // Se foi usado o seletor de cor personalizado, marcar a cor mais próxima ou nenhuma
+        const colorInput = document.querySelector('input[type="color"]');
+        if (colorInput) {
+            colorInput.value = color;
+        }
+    }
+    
+    console.log(`Cor selecionada: ${color}`);
 }
 
 function updateLineWidth(width) {
