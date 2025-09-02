@@ -319,7 +319,7 @@
                                 <i class="fas fa-bolt me-2 text-success"></i>
                                 Relatórios Express
                             </h6>
-                            <a href="{{ url_for('relatorio_express_novo', projeto_id=project.id) }}" class="btn btn-sm btn-success">
+                            <a href="{{ url_for('express_new') }}" class="btn btn-sm btn-success">
                                 <i class="fas fa-plus me-1"></i>Novo Relatório Express
                             </a>
                         </div>
@@ -339,7 +339,7 @@
                                                     </h6>
                                                     <small class="text-muted">
                                                         <i class="fas fa-user me-1"></i>{{ relatorio.autor.nome_completo }}<br>
-                                                        <i class="fas fa-calendar me-1"></i>{{ relatorio.data_criacao.strftime('%d/%m/%Y às %H:%M') }}
+                                                        <i class="fas fa-calendar me-1"></i>{{ relatorio.created_at.strftime('%d/%m/%Y às %H:%M') }}
                                                     </small>
                                                 </div>
                                                 <div class="dropdown">
@@ -347,18 +347,14 @@
                                                         <i class="fas fa-cog"></i>
                                                     </button>
                                                     <ul class="dropdown-menu">
-                                                        <li><a class="dropdown-item" href="{{ url_for('relatorio_express_detalhes', relatorio_id=relatorio.id) }}">
+                                                        <li><a class="dropdown-item" href="{{ url_for('express_detail', id=relatorio.id) }}">
                                                             <i class="fas fa-eye me-2"></i>Ver Detalhes
                                                         </a></li>
-                                                        <li><a class="dropdown-item" href="{{ url_for('relatorio_express_gerar_pdf', relatorio_id=relatorio.id) }}">
+                                                        <li><a class="dropdown-item" href="{{ url_for('express_pdf', id=relatorio.id) }}">
                                                             <i class="fas fa-file-pdf me-2"></i>Gerar PDF
                                                         </a></li>
-                                                        <li><a class="dropdown-item" href="{{ url_for('relatorio_express_enviar_email', relatorio_id=relatorio.id) }}">
-                                                            <i class="fas fa-paper-plane me-2"></i>Enviar por E-mail
-                                                        </a></li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li><a class="dropdown-item" href="{{ url_for('relatorio_express_adicionar_foto', relatorio_id=relatorio.id) }}">
-                                                            <i class="fas fa-camera me-2"></i>Adicionar Foto
+                                                        <li><a class="dropdown-item" href="{{ url_for('express_edit', id=relatorio.id) }}">
+                                                            <i class="fas fa-edit me-2"></i>Editar
                                                         </a></li>
                                                     </ul>
                                                 </div>
@@ -373,7 +369,7 @@
                                                     <i class="fas fa-camera me-1"></i>{{ relatorio.fotos|length }} foto{{ 's' if relatorio.fotos|length != 1 else '' }}
                                                 </small>
                                                 <div>
-                                                    <a href="{{ url_for('relatorio_express_detalhes', relatorio_id=relatorio.id) }}" class="btn btn-sm btn-outline-success">
+                                                    <a href="{{ url_for('express_detail', id=relatorio.id) }}" class="btn btn-sm btn-outline-success">
                                                         <i class="fas fa-eye me-1"></i>Ver
                                                     </a>
                                                 </div>
