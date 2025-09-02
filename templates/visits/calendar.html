@@ -52,94 +52,13 @@
     .fc-toolbar {
         margin-bottom: 20px !important;
     }
-    
-    /* Mobile calendar improvements */
-    @media (max-width: 768px) {
-        .fc-toolbar {
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .fc-toolbar-chunk {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .fc-button-group {
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-        
-        .fc-button {
-            padding: 8px 12px !important;
-            font-size: 14px !important;
-            margin: 2px !important;
-            min-height: 44px;
-        }
-        
-        .fc-dayGridMonth-view .fc-daygrid-day-number {
-            font-size: 14px;
-            padding: 8px;
-        }
-        
-        .fc-event {
-            font-size: 11px;
-            padding: 2px 4px;
-            margin-bottom: 1px;
-        }
-        
-        .calendar-legend {
-            flex-direction: column;
-            gap: 8px;
-            align-items: flex-start;
-        }
-        
-        .legend-item {
-            justify-content: flex-start;
-            width: 100%;
-        }
-        
-        .fc-daygrid-day-top {
-            font-size: 12px;
-        }
-        
-        .fc-col-header-cell {
-            font-size: 12px;
-            padding: 8px 4px;
-        }
-    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <!-- Mobile Header -->
-        <div class="d-md-none">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h4 mb-0">
-                    <i class="fas fa-calendar-alt me-2 text-primary"></i>
-                    Calendário
-                </h1>
-                <div class="dropdown">
-                    <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-plus me-1"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="{{ url_for('visit_new') }}">
-                            <i class="fas fa-plus me-2"></i>Nova Visita
-                        </a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('visits_list') }}">
-                            <i class="fas fa-list me-2"></i>Ver Lista
-                        </a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Desktop Header -->
-        <div class="d-none d-md-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
             <h1><i class="fas fa-calendar-alt me-2 text-primary"></i>Calendário de Visitas</h1>
             <div>
                 <a href="{{ url_for('visit_new') }}" class="btn btn-primary me-2">

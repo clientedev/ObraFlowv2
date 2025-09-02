@@ -5,31 +5,7 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <!-- Mobile Header -->
-        <div class="d-md-none">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h4 mb-0">
-                    <i class="fas fa-calendar-check me-2 text-primary"></i>
-                    Visitas
-                </h1>
-                <div class="dropdown">
-                    <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-plus me-1"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="{{ url_for('visit_new') }}">
-                            <i class="fas fa-plus me-2"></i>Nova Visita
-                        </a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('visits_calendar') }}">
-                            <i class="fas fa-calendar-alt me-2"></i>Ver Calendário
-                        </a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Desktop Header -->
-        <div class="d-none d-md-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>
                 <i class="fas fa-calendar-check me-2"></i>
                 Visitas
@@ -46,72 +22,13 @@
     </div>
 </div>
 
-<!-- Filtros Mobile Responsivos -->
+<!-- Filtros Melhorados -->
 <div class="row mb-4">
     <div class="col-12">
-        <!-- Mobile Search Bar -->
-        <div class="d-md-none mb-3">
-            <div class="input-group">
-                <input type="text" class="form-control" id="searchVisitMobile" placeholder="Pesquisar projeto ou objetivo...">
-                <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#mobileFilters">
-                    <i class="fas fa-filter"></i>
-                </button>
-            </div>
-        </div>
-        
-        <!-- Mobile Status Pills -->
-        <div class="d-md-none mb-3">
-            <div class="d-flex gap-2 flex-wrap justify-content-center">
-                <button type="button" class="btn btn-outline-secondary btn-sm px-3 mobile-status-btn active" data-status="">
-                    <i class="fas fa-list me-1"></i>Todas
-                </button>
-                <button type="button" class="btn btn-outline-warning btn-sm px-3 mobile-status-btn" data-status="Agendada">
-                    <i class="fas fa-clock me-1"></i>Agendadas
-                </button>
-                <button type="button" class="btn btn-outline-success btn-sm px-3 mobile-status-btn" data-status="Realizada">
-                    <i class="fas fa-check me-1"></i>Realizadas
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm px-3 mobile-status-btn" data-status="Cancelada">
-                    <i class="fas fa-times me-1"></i>Canceladas
-                </button>
-            </div>
-        </div>
-        
-        <!-- Mobile Collapsible Filters -->
-        <div class="collapse d-md-none" id="mobileFilters">
-            <div class="card border-0 bg-light">
-                <div class="card-body p-3">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label small fw-bold text-primary">Projeto:</label>
-                            <select class="form-select" id="filterProjetoMobile">
-                                <option value="">Todos os Projetos</option>
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold text-primary">Responsável:</label>
-                            <select class="form-select" id="filterResponsavelMobile">
-                                <option value="">Todos Responsáveis</option>
-                            </select>
-                        </div>
-                        <div class="col-12 text-center">
-                            <button type="button" class="btn btn-outline-danger btn-sm me-2" onclick="clearAllFilters()">
-                                <i class="fas fa-times me-1"></i>Limpar Tudo
-                            </button>
-                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#mobileFilters">
-                                <i class="fas fa-check me-1"></i>Aplicar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Desktop Filters -->
-        <div class="card d-none d-md-block">
+        <div class="card">
             <div class="card-body py-3">
                 <div class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-3 col-sm-6">
                         <label class="form-label small fw-bold">Status:</label>
                         <select class="form-select form-select-sm" id="filterStatusVisit">
                             <option value="">Todos os Status</option>
@@ -120,27 +37,44 @@
                             <option value="Cancelada">Canceladas</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3 col-sm-6">
                         <label class="form-label small fw-bold">Projeto:</label>
                         <select class="form-select form-select-sm" id="filterProjetoVisit">
                             <option value="">Todos os Projetos</option>
+                            <!-- Será preenchido dinamicamente -->
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3 col-sm-6">
                         <label class="form-label small fw-bold">Responsável:</label>
                         <select class="form-select form-select-sm" id="filterResponsavelVisit">
                             <option value="">Todos Responsáveis</option>
+                            <!-- Será preenchido dinamicamente -->
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3 col-sm-6">
                         <label class="form-label small fw-bold">Pesquisar:</label>
                         <input type="text" class="form-control form-control-sm" id="searchVisit" placeholder="Projeto ou objetivo">
                     </div>
                 </div>
                 <div class="row mt-2">
-                    <div class="col-12 d-flex justify-content-between align-items-center">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllFilters()">
-                            <i class="fas fa-times me-1"></i>Limpar Filtros
+                    <div class="col-12">
+                        <!-- Status buttons for mobile -->
+                        <div class="btn-group d-md-none mb-2" role="group" aria-label="Status Filter Mobile">
+                            <input type="radio" class="btn-check" name="statusFilterMobile" id="filterAllMobile" autocomplete="off" checked>
+                            <label class="btn btn-outline-secondary btn-sm" for="filterAllMobile">Todas</label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilterMobile" id="filterAgendadaMobile" autocomplete="off">
+                            <label class="btn btn-outline-warning btn-sm" for="filterAgendadaMobile">Agendadas</label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilterMobile" id="filterRealizadaMobile" autocomplete="off">
+                            <label class="btn btn-outline-success btn-sm" for="filterRealizadaMobile">Realizadas</label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilterMobile" id="filterCanceladaMobile" autocomplete="off">
+                            <label class="btn btn-outline-danger btn-sm" for="filterCanceladaMobile">Canceladas</label>
+                        </div>
+                        
+                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearVisitFilters()">
+                            <i class="fas fa-times"></i> Limpar Filtros
                         </button>
                         <small class="text-muted">
                             <span id="visitFilteredCount">{{ visits|length if visits else 0 }}</span> visita(s) encontrada(s)
@@ -157,114 +91,7 @@
         <div class="card">
             <div class="card-body">
                 {% if visits %}
-                    <!-- Mobile Cards View -->
-                    <div class="d-md-none" id="mobileVisitsList">
-                        {% for visit in visits %}
-                        <div class="card mb-3 visit-mobile-card" 
-                             data-status="{{ visit.status }}" 
-                             data-projeto="{{ visit.projeto.nome }}" 
-                             data-responsavel="{{ visit.projeto.responsavel.nome_completo }}"
-                             data-search="{{ (visit.projeto.nome + ' ' + (visit.objetivo or '')).lower() }}">
-                            <div class="card-body p-3">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div class="flex-grow-1">
-                                        <h6 class="card-title mb-1 text-primary fw-bold">
-                                            {{ visit.projeto.nome }}
-                                        </h6>
-                                        <small class="text-muted d-block">
-                                            <i class="fas fa-hashtag me-1"></i>{{ visit.projeto.numero }}
-                                        </small>
-                                    </div>
-                                    <div class="text-end">
-                                        {% if visit.status == 'Realizada' %}
-                                            <span class="badge bg-success rounded-pill px-3">
-                                                <i class="fas fa-check me-1"></i>{{ visit.status }}
-                                            </span>
-                                        {% elif visit.status == 'Agendada' %}
-                                            <span class="badge bg-warning text-dark rounded-pill px-3">
-                                                <i class="fas fa-clock me-1"></i>{{ visit.status }}
-                                            </span>
-                                        {% elif visit.status == 'Cancelada' %}
-                                            <span class="badge bg-danger rounded-pill px-3">
-                                                <i class="fas fa-times me-1"></i>{{ visit.status }}
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-secondary rounded-pill px-3">{{ visit.status }}</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                
-                                <div class="row g-3 mb-3">
-                                    <div class="col-6">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-calendar text-muted me-2"></i>
-                                            <div>
-                                                <small class="text-muted d-block">Agendada</small>
-                                                <strong class="small">{{ visit.data_agendada.strftime('%d/%m/%Y') }}</strong><br>
-                                                <small class="text-muted">{{ visit.data_agendada.strftime('%H:%M') }}</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-user text-muted me-2"></i>
-                                            <div>
-                                                <small class="text-muted d-block">Responsável</small>
-                                                <strong class="small">{{ visit.projeto.responsavel.nome_completo.split()[0] }}</strong>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                {% if visit.objetivo %}
-                                <div class="mb-3">
-                                    <small class="text-muted">Objetivo:</small>
-                                    <p class="small mb-0">{{ visit.objetivo[:120] }}{{ '...' if visit.objetivo|length > 120 else '' }}</p>
-                                </div>
-                                {% endif %}
-                                
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        {% if visit.latitude and visit.longitude %}
-                                            <a href="https://www.google.com/maps?q={{ visit.latitude }},{{ visit.longitude }}" 
-                                               target="_blank" class="btn btn-outline-info btn-sm">
-                                                <i class="fas fa-map-marker-alt me-1"></i>Localização
-                                            </a>
-                                        {% endif %}
-                                    </div>
-                                    <div class="btn-group" role="group">
-                                        {% if visit.status == 'Agendada' %}
-                                            <a href="{{ url_for('visit_realize', visit_id=visit.id) }}" 
-                                               class="btn btn-success btn-sm">
-                                                <i class="fas fa-check me-1"></i>Realizar
-                                            </a>
-                                        {% endif %}
-                                        <div class="dropdown">
-                                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" 
-                                                    type="button" data-bs-toggle="dropdown">
-                                                <i class="fas fa-ellipsis-v"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li><a class="dropdown-item" href="{{ url_for('visit_communication', visit_id=visit.id) }}">
-                                                    <i class="fas fa-comments me-2"></i>Comunicação
-                                                </a></li>
-                                                <li><a class="dropdown-item" href="{{ url_for('visit_checklist', visit_id=visit.id) }}">
-                                                    <i class="fas fa-list-check me-2"></i>Checklist
-                                                </a></li>
-                                                <li><a class="dropdown-item" href="{{ url_for('project_view', project_id=visit.projeto.id) }}">
-                                                    <i class="fas fa-building me-2"></i>Ver Projeto
-                                                </a></li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    
-                    <!-- Desktop Table View -->
-                    <div class="table-responsive d-none d-md-block">
+                    <div class="table-responsive">
                         <table class="table table-striped" id="visitsTable">
                             <thead>
                                 <tr>
@@ -473,136 +300,25 @@ document.addEventListener('DOMContentLoaded', function() {
         if (countElement) countElement.textContent = visibleCount;
     }
     
-    // Configurar filtros mobile
-    setupMobileFilters();
-    
-    function setupMobileFilters() {
-        // Mobile status buttons
-        const mobileStatusBtns = document.querySelectorAll('.mobile-status-btn');
-        mobileStatusBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                // Remove active from all buttons
-                mobileStatusBtns.forEach(b => b.classList.remove('active'));
-                // Add active to clicked button
-                this.classList.add('active');
-                // Apply filter
-                applyMobileFilters();
-            });
-        });
-        
-        // Mobile search
-        const mobileSearch = document.getElementById('searchVisitMobile');
-        if (mobileSearch) {
-            mobileSearch.addEventListener('input', applyMobileFilters);
-        }
-        
-        // Mobile dropdowns
-        const mobileProject = document.getElementById('filterProjetoMobile');
-        const mobileResponsavel = document.getElementById('filterResponsavelMobile');
-        if (mobileProject) mobileProject.addEventListener('change', applyMobileFilters);
-        if (mobileResponsavel) mobileResponsavel.addEventListener('change', applyMobileFilters);
-        
-        // Preencher filtros mobile
-        fillMobileFilterOptions();
-    }
-    
-    function fillMobileFilterOptions() {
-        const mobileCards = document.querySelectorAll('.visit-mobile-card');
-        const projetoSet = new Set();
-        const responsavelSet = new Set();
-        
-        mobileCards.forEach(card => {
-            const projeto = card.getAttribute('data-projeto');
-            const responsavel = card.getAttribute('data-responsavel');
-            
-            if (projeto) projetoSet.add(projeto);
-            if (responsavel) responsavelSet.add(responsavel);
-        });
-        
-        // Preencher select de projetos mobile
-        const projetoMobile = document.getElementById('filterProjetoMobile');
-        if (projetoMobile) {
-            projetoSet.forEach(projeto => {
-                const option = document.createElement('option');
-                option.value = projeto;
-                option.textContent = projeto;
-                projetoMobile.appendChild(option);
-            });
-        }
-        
-        // Preencher select de responsáveis mobile
-        const responsavelMobile = document.getElementById('filterResponsavelMobile');
-        if (responsavelMobile) {
-            responsavelSet.forEach(responsavel => {
-                const option = document.createElement('option');
-                option.value = responsavel;
-                option.textContent = responsavel;
-                responsavelMobile.appendChild(option);
-            });
-        }
-    }
-    
-    function applyMobileFilters() {
-        const activeStatusBtn = document.querySelector('.mobile-status-btn.active');
-        const statusFilter = activeStatusBtn ? activeStatusBtn.getAttribute('data-status') : '';
-        const searchFilter = (document.getElementById('searchVisitMobile')?.value || '').toLowerCase();
-        const projetoFilter = document.getElementById('filterProjetoMobile')?.value || '';
-        const responsavelFilter = document.getElementById('filterResponsavelMobile')?.value || '';
-        
-        const mobileCards = document.querySelectorAll('.visit-mobile-card');
-        let visibleCount = 0;
-        
-        mobileCards.forEach(card => {
-            const cardStatus = card.getAttribute('data-status') || '';
-            const cardProjeto = card.getAttribute('data-projeto') || '';
-            const cardResponsavel = card.getAttribute('data-responsavel') || '';
-            const cardSearch = card.getAttribute('data-search') || '';
-            
-            const statusMatch = !statusFilter || cardStatus === statusFilter;
-            const projetoMatch = !projetoFilter || cardProjeto.includes(projetoFilter);
-            const responsavelMatch = !responsavelFilter || cardResponsavel === responsavelFilter;
-            const searchMatch = !searchFilter || cardSearch.includes(searchFilter);
-            
-            if (statusMatch && projetoMatch && responsavelMatch && searchMatch) {
-                card.style.display = '';
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
-        });
-    }
-    
-    // Função global para limpar todos os filtros
-    window.clearAllFilters = function() {
+    // Expor função global para o botão de limpar
+    window.clearVisitFilters = function() {
         // Limpar filtros desktop
-        const desktopFilters = ['filterStatusVisit', 'filterProjetoVisit', 'filterResponsavelVisit', 'searchVisit'];
-        desktopFilters.forEach(id => {
+        const filters = ['filterStatusVisit', 'filterProjetoVisit', 'filterResponsavelVisit', 'searchVisit'];
+        filters.forEach(id => {
             const element = document.getElementById(id);
             if (element) element.value = '';
         });
         
         // Limpar filtros mobile
-        const mobileFilters = ['searchVisitMobile', 'filterProjetoMobile', 'filterResponsavelMobile'];
-        mobileFilters.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.value = '';
+        const allButton = document.getElementById('filterAllMobile');
+        if (allButton) allButton.checked = true;
+        
+        rows.forEach(row => {
+            row.style.display = '';
         });
         
-        // Reset mobile status buttons
-        const mobileStatusBtns = document.querySelectorAll('.mobile-status-btn');
-        mobileStatusBtns.forEach(btn => btn.classList.remove('active'));
-        const allBtn = document.querySelector('.mobile-status-btn[data-status=""]');
-        if (allBtn) allBtn.classList.add('active');
-        
-        // Show all items
-        const desktopRows = document.querySelectorAll('#visitsTable tbody tr');
-        desktopRows.forEach(row => row.style.display = '');
-        
-        const mobileCards = document.querySelectorAll('.visit-mobile-card');
-        mobileCards.forEach(card => card.style.display = '');
-        
         const countElement = document.getElementById('visitFilteredCount');
-        if (countElement) countElement.textContent = desktopRows.length || mobileCards.length;
+        if (countElement) countElement.textContent = rows.length;
     };
 });
 </script>
