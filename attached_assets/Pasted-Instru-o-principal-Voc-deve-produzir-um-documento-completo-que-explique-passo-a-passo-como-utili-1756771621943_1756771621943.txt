@@ -1,0 +1,118 @@
+Instrução principal
+Você deve produzir um documento completo que explique, passo a passo, como utilizar o sistema e todas as suas funcionalidades. O documento será o manual oficial do produto para usuários finais, administradores e auditores.
+
+Requisitos obrigatórios do documento
+
+Idioma: Português (Brasil).
+
+Formato de entrega: DOCX (Word), PDF finalizado e versão em Markdown (.md). Além disso, gerar uma one-page QuickStart (1 página) com os passos essenciais. Fornecer também um índice navegável no PDF/DOCX.
+
+Públicos alvo (seções separadas):
+
+Administrador (configuração, usuários, permissões, logs).
+
+Operador/Usuário diário (rotinas, criação e edição de dados).
+
+Auditor/Gestão (relatórios, exportações, histórico).
+
+Tom e nível: claro, conciso e prático. Assuma leitores com conhecimento básico de informática; detalhes técnicos quando necessário (ex.: requisitos de sistema, pré-requisitos). Use linguagem direta e passos numerados.
+
+Estrutura mínima exigida (cada item deve virar uma seção detalhada):
+
+Capa (nome do sistema, versão, data, autor).
+
+Sumário.
+
+Visão geral do sistema (objetivo, público, pré-requisitos).
+
+Lista completa de funcionalidades (resumo rápido de cada funcionalidade).
+
+Guias passo a passo por funcionalidade (ver abaixo como documentar cada fluxo).
+
+Relatório Express: descrever exatamente o fluxo Dados da Empresa → Relatório sem criar projeto ou empresa; o PDF deve ser idêntico ao relatório padrão, com os dados da empresa adicionados no topo — mostrar passo a passo e exemplos.
+
+Geração de PDF (como gerar, opções, exportar, como garantir que o PDF fique idêntico aos relatórios padrão).
+
+Gestão de usuários e permissões (criar, editar, perfis, redirecionamentos de login).
+
+Fluxos WMS / Estoque (recebimento, movimentação, inventário, ajustes, picking — documentar cada etapa se existir).
+
+CRUDs importantes (produtos — destacar o fluxo de cadastro multi-etapa se existir), projetos, clientes, relatórios.
+
+Tela por tela: descreva cada tela/aba, campos, botões e comportamentos esperados (inclua validações e mensagens de erro).
+
+Troubleshooting / Erros comuns e como resolver (com mensagens de exemplo).
+
+Perguntas Frequentes (FAQ).
+
+Glossário de termos.
+
+Apêndices: endpoints/API (se houver), modelos de dados relevantes, backups, rotinas de manutenção, logs, migrações, changelog.
+
+Contatos e responsáveis (quem acionar em caso de problema).
+
+Como documentar cada passo (padrão para todas as funcionalidades)
+
+Objetivo da ação (o que o usuário alcança).
+
+Pré-requisitos (permissões, dados obrigatórios).
+
+Passo a passo numerado (cada passo curto e preciso).
+
+Captura de tela sugerida com legenda e indicação de onde recortar. (Use marcadores/retângulos para destacar campos / botões.)
+
+Resultado esperado (antes e depois).
+
+Erros possíveis e resolução (mensagens reais se existirem).
+
+Observações e boas práticas.
+
+Exemplo com dados fictícios (ex.: empresa “ACME Ltda.”, produto “Parafuso M8”).
+
+Requisitos visuais e de usabilidade do documento
+
+Incluir placeholders para screenshots e destacar quais telas precisam de imagens.
+
+Fornecer versões das imagens em alta resolução e uma pasta com os assets.
+
+Layout limpo e compatível com a identidade visual do sistema (cores, fonte, logo).
+
+Usar cabeçalhos e subseções consistentes; cada passo numerado; tabelas para configurações e campos.
+
+Inserir atalhos e dicas (se houver).
+
+Critérios de aceitação (QA)
+
+Cada guia passo a passo deve ser executável por um usuário teste e validado sem dúvidas.
+
+O Relatório Express deve gerar PDF exatamente igual ao relatório padrão (mesmo layout, campos e ordenação) — apenas com a adição dos dados da empresa no topo. Incluir teste de comparação (captura lado a lado).
+
+Documento revisado por pelo menos 1 SME (subject-matter expert) e 1 QA.
+
+Entrega com DOCX, PDF, Markdown e QuickStart; pasta de imagens; e checklist de verificação.
+
+Metadados e versão
+
+Incluir seção “Histórico de Revisões” (data, autor, alterações).
+
+Indicar a versão do sistema documentada.
+
+Extras opcionais (incluir se possível)
+
+Roteiro de vídeo tutorial curto (5–7 minutos) com timestamps.
+
+Slides (PDF) com “treinamento rápido” para uso em onboarding.
+
+Checklist imprimível para operadores.
+
+Instrução final para o redator/IA
+
+Faça um inventário completo das telas e funcionalidades do sistema (verifique UI/menus e confirme com o time se necessário).
+
+Para cada funcionalidade, gere o passo a passo seguindo o padrão acima.
+
+Priorize clareza visual: todo passo que envolva UI deve ter uma screenshot (ou placeholder) com legenda e destaque.
+
+Entregue os arquivos solicitados e um checklist de QA com testes manuais básicos para validar cada fluxo.
+
+Produza o documento finalizado conforme os critérios de aceitação.
