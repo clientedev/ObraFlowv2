@@ -5,13 +5,13 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+            <h1 class="mb-0">
                 <i class="fas fa-calendar-check me-2"></i>
                 Visitas
             </h1>
-            <div>
-                <a href="{{ url_for('visits_calendar') }}" class="btn btn-outline-info me-2">
+            <div class="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
+                <a href="{{ url_for('visits_calendar') }}" class="btn btn-outline-info">
                     <i class="fas fa-calendar-alt me-2"></i>Calendário
                 </a>
                 <a href="{{ url_for('visit_new') }}" class="btn btn-primary">
@@ -27,58 +27,68 @@
     <div class="col-12">
         <div class="card">
             <div class="card-body py-3">
-                <div class="row g-3">
-                    <div class="col-md-3 col-sm-6">
+                <!-- Campo de pesquisa principal - 100% em mobile -->
+                <div class="row g-2 mb-3">
+                    <div class="col-12">
+                        <label class="form-label small fw-bold">Pesquisar:</label>
+                        <input type="text" class="form-control" id="searchVisit" placeholder="Pesquisar por projeto ou objetivo..." style="min-height: 44px; font-size: 16px;">
+                    </div>
+                </div>
+                
+                <!-- Filtros em linha para desktop, ocultos em mobile -->
+                <div class="row g-2 d-none d-md-flex">
+                    <div class="col-md-4">
                         <label class="form-label small fw-bold">Status:</label>
-                        <select class="form-select form-select-sm" id="filterStatusVisit">
+                        <select class="form-select form-select-sm" id="filterStatusVisit" style="min-height: 38px;">
                             <option value="">Todos os Status</option>
                             <option value="Agendada">Agendadas</option>
                             <option value="Realizada">Realizadas</option>
                             <option value="Cancelada">Canceladas</option>
                         </select>
                     </div>
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-4">
                         <label class="form-label small fw-bold">Projeto:</label>
-                        <select class="form-select form-select-sm" id="filterProjetoVisit">
+                        <select class="form-select form-select-sm" id="filterProjetoVisit" style="min-height: 38px;">
                             <option value="">Todos os Projetos</option>
                             <!-- Será preenchido dinamicamente -->
                         </select>
                     </div>
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-4">
                         <label class="form-label small fw-bold">Responsável:</label>
-                        <select class="form-select form-select-sm" id="filterResponsavelVisit">
+                        <select class="form-select form-select-sm" id="filterResponsavelVisit" style="min-height: 38px;">
                             <option value="">Todos Responsáveis</option>
                             <!-- Será preenchido dinamicamente -->
                         </select>
                     </div>
-                    <div class="col-md-3 col-sm-6">
-                        <label class="form-label small fw-bold">Pesquisar:</label>
-                        <input type="text" class="form-control form-control-sm" id="searchVisit" placeholder="Projeto ou objetivo">
-                    </div>
                 </div>
                 <div class="row mt-2">
                     <div class="col-12">
-                        <!-- Status buttons for mobile -->
-                        <div class="btn-group d-md-none mb-2" role="group" aria-label="Status Filter Mobile">
-                            <input type="radio" class="btn-check" name="statusFilterMobile" id="filterAllMobile" autocomplete="off" checked>
-                            <label class="btn btn-outline-secondary btn-sm" for="filterAllMobile">Todas</label>
-                            
-                            <input type="radio" class="btn-check" name="statusFilterMobile" id="filterAgendadaMobile" autocomplete="off">
-                            <label class="btn btn-outline-warning btn-sm" for="filterAgendadaMobile">Agendadas</label>
-                            
-                            <input type="radio" class="btn-check" name="statusFilterMobile" id="filterRealizadaMobile" autocomplete="off">
-                            <label class="btn btn-outline-success btn-sm" for="filterRealizadaMobile">Realizadas</label>
-                            
-                            <input type="radio" class="btn-check" name="statusFilterMobile" id="filterCanceladaMobile" autocomplete="off">
-                            <label class="btn btn-outline-danger btn-sm" for="filterCanceladaMobile">Canceladas</label>
+                        <!-- Botões de status para mobile - responsivos com rolagem horizontal -->
+                        <div class="d-md-none mb-3">
+                            <label class="form-label small fw-bold d-block mb-2">Filtrar por Status:</label>
+                            <div class="d-flex gap-2 overflow-x-auto pb-2" style="scrollbar-width: thin;">
+                                <input type="radio" class="btn-check" name="statusFilterMobile" id="filterAllMobile" autocomplete="off" checked>
+                                <label class="btn btn-outline-secondary flex-shrink-0" for="filterAllMobile" style="min-height: 44px; min-width: 80px;">Todas</label>
+                                
+                                <input type="radio" class="btn-check" name="statusFilterMobile" id="filterAgendadaMobile" autocomplete="off">
+                                <label class="btn btn-outline-warning flex-shrink-0" for="filterAgendadaMobile" style="min-height: 44px; min-width: 100px;">Agendadas</label>
+                                
+                                <input type="radio" class="btn-check" name="statusFilterMobile" id="filterRealizadaMobile" autocomplete="off">
+                                <label class="btn btn-outline-success flex-shrink-0" for="filterRealizadaMobile" style="min-height: 44px; min-width: 100px;">Realizadas</label>
+                                
+                                <input type="radio" class="btn-check" name="statusFilterMobile" id="filterCanceladaMobile" autocomplete="off">
+                                <label class="btn btn-outline-danger flex-shrink-0" for="filterCanceladaMobile" style="min-height: 44px; min-width: 110px;">Canceladas</label>
+                            </div>
                         </div>
                         
-                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearVisitFilters()">
-                            <i class="fas fa-times"></i> Limpar Filtros
-                        </button>
-                        <small class="text-muted">
-                            <span id="visitFilteredCount">{{ visits|length if visits else 0 }}</span> visita(s) encontrada(s)
-                        </small>
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearVisitFilters()" style="min-height: 44px;">
+                                <i class="fas fa-times"></i> Limpar Filtros
+                            </button>
+                            <small class="text-muted">
+                                <span id="visitFilteredCount">{{ visits|length if visits else 0 }}</span> visita(s) encontrada(s)
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -141,19 +151,19 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div class="btn-group" role="group">
+                                        <div class="btn-group d-flex flex-wrap gap-1" role="group">
                                             {% if visit.status == 'Agendada' %}
-                                                <a href="{{ url_for('visit_realize', visit_id=visit.id) }}" class="btn btn-sm btn-success" title="Realizar Visita">
+                                                <a href="{{ url_for('visit_realize', visit_id=visit.id) }}" class="btn btn-sm btn-success flex-shrink-0" title="Realizar Visita" style="min-height: 38px; min-width: 38px;">
                                                     <i class="fas fa-check"></i>
                                                 </a>
                                             {% endif %}
-                                            <a href="{{ url_for('visit_communication', visit_id=visit.id) }}" class="btn btn-sm btn-primary" title="Comunicação">
+                                            <a href="{{ url_for('visit_communication', visit_id=visit.id) }}" class="btn btn-sm btn-primary flex-shrink-0" title="Comunicação" style="min-height: 38px; min-width: 38px;">
                                                 <i class="fas fa-comments"></i>
                                             </a>
-                                            <a href="{{ url_for('visit_checklist', visit_id=visit.id) }}" class="btn btn-sm btn-outline-info" title="Ver Checklist">
+                                            <a href="{{ url_for('visit_checklist', visit_id=visit.id) }}" class="btn btn-sm btn-outline-info flex-shrink-0" title="Ver Checklist" style="min-height: 38px; min-width: 38px;">
                                                 <i class="fas fa-list-check"></i>
                                             </a>
-                                            <a href="{{ url_for('project_view', project_id=visit.projeto.id) }}" class="btn btn-sm btn-outline-secondary" title="Ver Projeto">
+                                            <a href="{{ url_for('project_view', project_id=visit.projeto.id) }}" class="btn btn-sm btn-outline-secondary flex-shrink-0" title="Ver Projeto" style="min-height: 38px; min-width: 38px;">
                                                 <i class="fas fa-building"></i>
                                             </a>
                                         </div>
@@ -168,7 +178,7 @@
                         <i class="fas fa-calendar-check fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">Nenhuma visita agendada</h5>
                         <p class="text-muted">Comece agendando a primeira visita.</p>
-                        <a href="{{ url_for('visit_new') }}" class="btn btn-primary">
+                        <a href="{{ url_for('visit_new') }}" class="btn btn-primary" style="min-height: 44px;">
                             <i class="fas fa-plus me-2"></i>Agendar Primeira Visita
                         </a>
                     </div>
@@ -177,6 +187,131 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Responsividade para tabela de visitas */
+@media (max-width: 768px) {
+    .table-responsive {
+        border: none;
+    }
+    
+    #visitsTable {
+        font-size: 14px;
+    }
+    
+    #visitsTable th,
+    #visitsTable td {
+        padding: 8px 4px;
+        vertical-align: middle;
+    }
+    
+    #visitsTable th {
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    /* Ocultar colunas menos importantes em mobile */
+    #visitsTable th:nth-child(3), /* Data Realizada */
+    #visitsTable td:nth-child(3),
+    #visitsTable th:nth-child(6), /* Objetivo - parte */
+    #visitsTable td:nth-child(6) {
+        display: none;
+    }
+    
+    /* Reduzir largura de colunas específicas */
+    #visitsTable th:nth-child(7), /* Localização */
+    #visitsTable td:nth-child(7) {
+        width: 60px;
+        text-align: center;
+    }
+    
+    /* Ajustar botões de ação */
+    .btn-group {
+        gap: 2px !important;
+    }
+    
+    .btn-sm {
+        padding: 4px 6px !important;
+        font-size: 12px !important;
+        min-height: 32px !important;
+        min-width: 32px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    /* Ocultar mais colunas em telas muito pequenas */
+    #visitsTable th:nth-child(4), /* Responsável */
+    #visitsTable td:nth-child(4) {
+        display: none;
+    }
+    
+    #visitsTable {
+        font-size: 12px;
+    }
+    
+    #visitsTable th,
+    #visitsTable td {
+        padding: 6px 2px;
+    }
+    
+    /* Melhorar badges de status */
+    .badge {
+        font-size: 10px;
+        padding: 4px 6px;
+    }
+}
+
+/* Melhorias gerais de UX */
+.btn-group .btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Ajustes para botões de filtro mobile */
+.overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+    height: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 2px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}
+
+/* Garantir altura mínima adequada para toque */
+.btn, .form-control, .form-select {
+    min-height: 44px;
+}
+
+@media (max-width: 768px) {
+    .btn:not(.btn-sm) {
+        min-height: 44px;
+        font-size: 16px; /* Previne zoom no iOS */
+    }
+    
+    .form-control, .form-select {
+        font-size: 16px; /* Previne zoom no iOS */
+    }
+}
+</style>
 {% endblock %}
 
 {% block extra_scripts %}
