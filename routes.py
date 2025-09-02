@@ -9,8 +9,8 @@ from werkzeug.utils import secure_filename
 from flask_mail import Message
 
 from app import app, db, mail, csrf
-from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress
-from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, EmailClienteForm
+from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress, LegendaPredefinida
+from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
 from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
 from email_service import email_service
@@ -980,7 +980,7 @@ def project_view(project_id):
     contatos = ContatoProjeto.query.filter_by(projeto_id=project_id).all()
     visitas = Visita.query.filter_by(projeto_id=project_id).order_by(Visita.data_agendada.desc()).all()
     relatorios = Relatorio.query.filter_by(projeto_id=project_id).order_by(Relatorio.created_at.desc()).all()
-    relatorios_express = RelatorioExpress.query.filter_by(projeto_id=project_id).order_by(RelatorioExpress.data_criacao.desc()).all()
+    relatorios_express = RelatorioExpress.query.order_by(RelatorioExpress.created_at.desc()).all()
     
     # Get communications from all visits of this project
     comunicacoes = []
