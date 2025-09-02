@@ -66,12 +66,126 @@ input, select, textarea, button {
     margin-bottom: 16px;
 }
 
-/* Mobile spacing improvements */
+/* Mobile Visit System Improvements */
+.visit-mobile-card {
+    border: none;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    border-radius: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.visit-mobile-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+.mobile-status-btn {
+    border-radius: 50px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-width: 2px;
+}
+
+.mobile-status-btn.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+    box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+}
+
+.mobile-status-btn:not(.active):hover {
+    transform: translateY(-1px);
+}
+
+/* Mobile Calendar Improvements */
+@media (max-width: 768px) {
+    .fc-toolbar {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .fc-toolbar-chunk {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .fc-button-group {
+        flex-wrap: wrap;
+    }
+    
+    .fc-button {
+        padding: 8px 12px;
+        font-size: 14px;
+        margin: 2px;
+    }
+    
+    .fc-header-toolbar {
+        margin-bottom: 15px !important;
+    }
+    
+    .fc-dayGridMonth-view .fc-daygrid-day-number {
+        font-size: 14px;
+        padding: 8px;
+    }
+    
+    .fc-event {
+        font-size: 11px;
+        padding: 2px 4px;
+        margin-bottom: 1px;
+    }
+    
+    .calendar-legend {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+    }
+    
+    .legend-item {
+        justify-content: flex-start;
+        width: 100%;
+    }
+}
+
+/* Mobile Form Improvements */
 @media (max-width: 576px) {
     .container, .container-fluid {
         padding-left: 12px;
         padding-right: 12px;
     }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn-group .dropdown-menu {
+        min-width: 160px;
+    }
+    
+    .form-floating > label {
+        font-size: 14px;
+    }
+    
+    /* Mobile filter improvements */
+    .collapse.show {
+        animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
     
     .card {
         margin-bottom: 12px;
