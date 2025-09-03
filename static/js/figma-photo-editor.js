@@ -51,16 +51,20 @@ class FigmaPhotoEditor {
         this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
     }
     
-    // === COORDENADAS PRECISAS ===
+    // === COORDENADAS PRECISAS - CORRIGIDO ===
     getCanvasCoordinates(clientX, clientY) {
         const rect = this.canvas.getBoundingClientRect();
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
         
-        return {
-            x: (clientX - rect.left) * scaleX,
-            y: (clientY - rect.top) * scaleY
-        };
+        // Coordenadas exatas sem escala - aparece onde tocou
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        
+        // Verificar se está dentro do canvas
+        if (x >= 0 && y >= 0 && x <= rect.width && y <= rect.height) {
+            return { x, y };
+        }
+        
+        return { x: 0, y: 0 };
     }
     
     // === EVENTOS TOUCH ===
