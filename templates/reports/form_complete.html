@@ -937,21 +937,6 @@ function toggleChecklistItem(checkbox) {
     }
 }
 
-// Função para alternar item do checklist (mostrar/ocultar observações)
-function toggleChecklistItem(checkbox) {
-    const itemId = checkbox.id.replace('check_', '');
-    const obsDiv = document.getElementById('obs_' + itemId);
-    const item = checkbox.closest('.checklist-item');
-    
-    if (checkbox.checked) {
-        if (obsDiv) obsDiv.style.display = 'block';
-        if (item) item.classList.add('completed');
-    } else {
-        if (obsDiv) obsDiv.style.display = 'none';
-        if (item) item.classList.remove('completed');
-    }
-}
-
 // Carregar checklist padrão do sistema
 function carregarChecklistPadrao() {
     fetch('/api/checklist-padrao')
