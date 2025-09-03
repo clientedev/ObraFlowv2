@@ -6,6 +6,54 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <style>
+/* CSS específico para eliminar tremida na página novo express */
+* {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+/* Permitir seleção apenas em inputs */
+input, textarea, select {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+}
+
+/* Eliminar tremida em todos elementos do formulário */
+.card, .card-body, .card-header, 
+.form-group, .mb-3, .mb-4,
+.container-fluid, .row, .col-12 {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: manipulation !important;
+    
+    /* ELIMINAR TODAS ANIMAÇÕES */
+    -webkit-transition: none !important;
+    -moz-transition: none !important;
+    -o-transition: none !important;
+    transition: none !important;
+    
+    /* ELIMINAR TRANSFORMAÇÕES */
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -o-transform: none !important;
+    transform: none !important;
+}
+
+/* Botões sem hover problemático */
+.btn {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    touch-action: manipulation !important;
+    
+    /* APENAS animação mínima de cor */
+    -webkit-transition: background-color 0.1s ease !important;
+    transition: background-color 0.1s ease !important;
+}
 /* Estilos para seletor de categorias */
 .category-selector {
     padding: 1rem;
@@ -24,9 +72,12 @@
     border: 2px solid #dee2e6;
     border-radius: 10px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: none !important;
     text-align: center;
     min-height: 100px;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    touch-action: manipulation !important;
 }
 
 .category-option:hover {

@@ -2,8 +2,88 @@
 
 {% block title %}Relatórios Express{% endblock %}
 
-{% block extra_css %}
+{% block head %}
 <style>
+/* CSS específico para eliminar tremida na página express */
+* {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+/* Permitir seleção apenas em inputs */
+input, textarea, select {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+}
+
+/* Estabilizar tabela express COM scroll horizontal */
+.table-responsive {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 4px;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+    width: 100%;
+    border: 2px solid #20c1e8;
+    margin: 10px 0;
+}
+
+.table, .table th, .table td {
+    margin-bottom: 0;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    min-width: 150px;
+    white-space: nowrap;
+}
+
+.table {
+    min-width: 900px !important;
+    width: max-content;
+}
+
+/* Eliminar tremida em botões e cards */
+.btn, .card, .card-header, .card-body {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Parar qualquer animação que cause tremida EXCETO scroll */
+.container-fluid, .row, .col-12 {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    transform: translate3d(0,0,0);
+    -webkit-transform: translate3d(0,0,0);
+}
+
+/* Indicador visual de scroll */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #20c1e8;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #17a2b8;
+}
+
 /* Mobile optimizations for express reports table */
 @media (max-width: 768px) {
     .btn-group-sm .btn {
