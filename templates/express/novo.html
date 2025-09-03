@@ -334,23 +334,32 @@ input, textarea, select {
                 </div>
 
                 <!-- DADOS DA VISITA -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5><i class="fas fa-calendar-check"></i> Dados da Visita</h5>
+                <div class="express-card">
+                    <div class="express-card-header">
+                        <div>
+                            <h5 class="express-mb-0"><i class="fas fa-calendar-check express-text-primary"></i> Dados da Visita</h5>
+                            <small class="express-text-muted">Informações sobre o horário da visita</small>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                {{ form.data_visita.label(class="form-label") }}
-                                {{ form.data_visita(class="form-control") }}
+                    <div class="express-card-body">
+                        <div class="express-row">
+                            <div class="express-col-md-4 express-col-12">
+                                <div class="express-form-group">
+                                    {{ form.data_visita.label(class="express-form-label") }}
+                                    {{ form.data_visita(class="express-form-control") }}
+                                </div>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                {{ form.periodo_inicio.label(class="form-label") }}
-                                {{ form.periodo_inicio(class="form-control") }}
+                            <div class="express-col-md-4 express-col-12">
+                                <div class="express-form-group">
+                                    {{ form.periodo_inicio.label(class="express-form-label") }}
+                                    {{ form.periodo_inicio(class="express-form-control") }}
+                                </div>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                {{ form.periodo_fim.label(class="form-label") }}
-                                {{ form.periodo_fim(class="form-control") }}
+                            <div class="express-col-md-4 express-col-12">
+                                <div class="express-form-group">
+                                    {{ form.periodo_fim.label(class="express-form-label") }}
+                                    {{ form.periodo_fim(class="express-form-control") }}
+                                </div>
                             </div>
                         </div>
                         <div class="row">
