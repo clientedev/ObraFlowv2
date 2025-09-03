@@ -1,6 +1,6 @@
 /* CSS Mobile Otimizado - Sistema de Visitas */
 
-/* Impedir arrasto sem quebrar layout */
+/* Impedir arrasto do app completo */
 html, body {
     -webkit-user-select: none;
     user-select: none;
@@ -10,7 +10,18 @@ html, body {
     -moz-user-drag: none;
     -o-user-drag: none;
     user-drag: none;
-    overscroll-behavior: none;
+    overscroll-behavior: contain;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Impedir movimento lateral do viewport */
+body {
+    width: 100vw;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    touch-action: pan-y pinch-zoom;
 }
 
 /* Permitir seleção de texto em inputs */
@@ -20,9 +31,24 @@ input, textarea, select {
     touch-action: manipulation;
 }
 
-/* Parar vibração da tela */
+/* Parar vibração da tela e controlar touch */
 * {
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Evitar arrasto de elementos principais */
+.navbar, .container, .container-fluid, main, nav, header, footer {
+    -webkit-user-drag: none;
+    user-drag: none;
+    touch-action: pan-y;
+}
+
+/* Prevenir movimentação de imagens e ícones */
+img, i, .fas, .fab, .far {
+    -webkit-user-drag: none;
+    user-drag: none;
+    pointer-events: auto;
     touch-action: manipulation;
 }
 
@@ -49,6 +75,8 @@ input, textarea, select {
     -webkit-user-select: none;
     user-select: none;
     position: relative;
+    -webkit-user-drag: none;
+    user-drag: none;
 }
 
 /* Botões com área de toque adequada */
