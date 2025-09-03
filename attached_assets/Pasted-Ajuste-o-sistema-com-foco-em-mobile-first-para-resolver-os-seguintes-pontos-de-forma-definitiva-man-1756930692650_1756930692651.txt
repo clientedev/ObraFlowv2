@@ -1,0 +1,111 @@
+Ajuste o sistema com foco em mobile-first para resolver os seguintes pontos de forma definitiva, mantendo toda a lógica atual e sem alterar o fluxo de geração de PDF:
+
+1) Lista de Relatórios — rolagem lateral e leitura em telas pequenas
+
+Problema: no mobile não é possível “arrastar para o lado”; colunas quebram/usabilidade ruim.
+Requisitos:
+
+Habilitar rolagem horizontal por gesto (drag-to-scroll) na tabela/listagem:
+
+overflow-x: auto; -webkit-overflow-scrolling: touch; no contêiner da lista/tabela.
+
+Suporte a gesto de arrastar com o dedo (Pointer/Touch events) sem bloquear a rolagem vertical da página.
+
+Cabeçalho fixo (sticky) da tabela no mobile para manter títulos visíveis.
+
+Exibir hint visual (“Arraste →”) com gradiente nas bordas e desaparecer após primeiro scroll.
+
+Alternativa automática para telas muito estreitas: modo “cards empilhados” (cada linha da tabela vira um card com pares label:valor), mantendo as mesmas informações.
+
+Ícones/ações por linha permanecem acessíveis (menu “…” com toque confortável).
+Critérios de aceite:
+
+É possível rolar horizontalmente com o dedo em iOS/Android.
+
+Nenhum texto/coluna corta ou sobrepõe.
+
+Performance suave (sem engasgos) e sem “scroll-jank”.
+
+2) UI/UX “solta” — grid, espaçamentos, áreas seguras e padronização
+
+Problema: a interface parece “flutuando” no mobile, sem alinhamento/contêineres.
+Requisitos:
+
+Implementar sistema de layout consistente:
+
+Contêiner central com largura máxima e padding lateral (ex.: 16px em mobile, 24px em tablets).
+
+Grid/Stack responsivo (flex/grid) com escala de espaçamentos 4/8/12/16/24.
+
+Respeitar safe areas (iOS/Android): padding-top/bottom: env(safe-area-inset-*).
+
+Tipografia responsiva (clamp) e alvos de toque ≥ 44px.
+
+Barra de ações (ex.: Voltar / Salvar / PDF) fixa ao final do conteúdo em mobile quando houver espaço limitado; empilhar botões verticalmente quando necessário.
+
+Tokens de design (CSS vars) para cores, raio, sombras e espaçamentos; manter identidade visual atual.
+Critérios de aceite:
+
+Nada “cola” nas bordas; espaçamentos consistentes.
+
+Todos os botões são tocáveis confortavelmente e alinhados.
+
+Nenhum conteúdo quebra/estoura em 320–390 px de largura.
+
+3) Edição de Imagens — precisão ao adicionar formas geométricas
+
+Problema: falta precisão para desenhar/posicionar formas (retângulos/círculos/setas/etc.).
+Requisitos:
+
+Canvas com alta densidade de pixels (devicePixelRatio) e render com requestAnimationFrame.
+
+Zoom (25%–800%) com pinch em mobile e botões +/–; Pan com dois dedos/arrasto; travar scroll da página ao desenhar.
+
+Grade opcional com “snap” (4/8px), guias e régua; alinhamento (esquerda/centro/direita/topo/meio/base).
+
+Alças de manipulação grandes (touch-friendly) e cursor/retículo para precisão.
+
+Painel de propriedades do objeto selecionado: X, Y, Largura, Altura, Ângulo, Espessura, Cor, Opacidade, Z-index; entrada numérica com setinhas (step 1; Shift = 10).
+
+Nudge por setas do teclado (1px; Shift = 10px) quando disponível.
+
+Hit test com tolerância (8–12px) para facilitar seleção em touch.
+
+Undo/Redo (histórico) e bloquear/duplicar objeto.
+
+Exportar imagem sem perda e no mesmo DPI/resolução de entrada; não alterar o pipeline do PDF.
+Critérios de aceite:
+
+Consigo posicionar e dimensionar formas com precisão em mobile.
+
+Zoom/pan funcionam sem “tremer” ou pegar scroll da página.
+
+Seleção e ajuste de formas é previsível e estável.
+
+4) Acessibilidade & Performance
+
+Contraste seguindo WCAG AA, estados de foco/ativo visíveis.
+
+Animações respeitam “prefers-reduced-motion”.
+
+Imagens lazy-loading, compressão adequada, evitar reflows pesados.
+
+Eventos touch/passive e throttling para 60fps no mobile.
+
+5) Testes obrigatórios (QA)
+
+Dispositivos: iPhone (Safari), Android (Chrome), tablets e desktop com janela estreita.
+
+Resoluções: 320, 360, 390, 414, 768, 1024px.
+
+Fluxos: listar relatórios (scroll lateral e modo cards), abrir/editar/gerar PDF, editar imagem (desenhar/ajustar/zoom/pan/exportar).
+
+Aprovação somente se todos os critérios de aceite acima forem atendidos.
+
+6) Restrições
+
+Não alterar a lógica de negócios nem o modelo do PDF.
+
+Manter todas as integrações existentes (e-mail, Drive, Relatório Express, etc.).
+
+Caso necessário, isolar mudanças sob flag mobile_v2 até a aprovação final.

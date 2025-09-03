@@ -4,230 +4,230 @@
 
 {% block head %}
 <style>
-/* CSS específico para eliminar tremida na página de relatórios */
-* {
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
+/* Customizações específicas da página de relatórios */
+.reports-header {
+    background: linear-gradient(135deg, var(--elp-dark) 0%, var(--elp-primary) 100%);
+    color: white;
+    padding: var(--space-6) 0;
+    margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) var(--space-6) calc(-1 * var(--space-4));
 }
 
-/* Permitir seleção apenas em inputs */
-input, textarea, select {
-    -webkit-user-select: text !important;
-    user-select: text !important;
+@media (min-width: 768px) {
+    .reports-header {
+        margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) var(--space-6) calc(-1 * var(--space-6));
+    }
 }
 
-/* Estabilizar tabela COM scroll horizontal */
-.table-responsive {
+.reports-title {
+    margin: 0;
+    font-size: var(--text-xl);
+    font-weight: 700;
+}
+
+.filters-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--space-6);
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+    .filter-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+}
+
+.form-label {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--elp-dark);
+    margin-bottom: var(--space-2);
+}
+
+.form-control, .form-select {
+    border: 1px solid #e1e5e9;
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    font-size: var(--text-sm);
+    transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--elp-primary);
+    box-shadow: 0 0 0 3px rgba(32, 193, 232, 0.1);
+}
+
+.results-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+    padding: var(--space-3);
     background: #f8f9fa;
-    border-radius: 8px;
-    padding: 4px;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-touch-callout: none !important;
-    overflow-x: auto !important;
-    overflow-y: visible !important;
-    -webkit-overflow-scrolling: touch !important;
-    touch-action: pan-x pan-y !important;
-    width: 100%;
-}
-
-.table, .table th, .table td {
-    margin-bottom: 0;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-touch-callout: none !important;
-    min-width: 150px;
-    white-space: nowrap;
-}
-
-.table {
-    min-width: 900px !important;
-    width: max-content;
-}
-
-/* Eliminar tremida em botões e cards */
-.btn, .card, .card-header, .card-body {
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-touch-callout: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-}
-
-/* Parar qualquer animação que cause tremida EXCETO scroll */
-.container-fluid, .row, .col-12 {
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    transform: translate3d(0,0,0);
-    -webkit-transform: translate3d(0,0,0);
-}
-
-/* GARANTIR scroll horizontal nas tabelas */
-.table-responsive {
-    border: 2px solid #20c1e8;
-    margin: 10px 0;
-}
-
-/* Indicador visual de scroll */
-.table-responsive::-webkit-scrollbar {
-    height: 8px;
-}
-
-.table-responsive::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.table-responsive::-webkit-scrollbar-thumb {
-    background: #20c1e8;
-    border-radius: 4px;
-}
-
-.table-responsive::-webkit-scrollbar-thumb:hover {
-    background: #17a2b8;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3><i class="fas fa-file-alt"></i> Relatórios de Obra</h3>
-                    <a href="{{ url_for('create_report') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Novo Relatório
-                    </a>
-                </div>
+<div class="mobile-container">
+    <!-- Header da página -->
+    <div class="reports-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="reports-title">
+                <i class="fas fa-file-alt me-3"></i>Relatórios de Obra
+            </h1>
+            <a href="{{ url_for('create_report') }}" class="mobile-button primary">
+                <i class="fas fa-plus me-2"></i>Novo Relatório
+            </a>
+        </div>
+    </div>
+    
+    <div class="mobile-stack gap-lg">
                 
-                <!-- Filtros de Relatórios -->
-                <div class="card-body border-bottom">
-                    <div class="row g-3">
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold">Status:</label>
-                            <select class="form-select form-select-sm" id="filterStatus">
-                                <option value="">Todos os Status</option>
-                                <option value="Aprovado">Aprovado</option>
-                                <option value="Rejeitado">Rejeitado</option>
-                                <option value="Aguardando Aprovação">Aguardando Aprovação</option>
-                                <option value="Rascunho">Rascunho</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold">Projeto:</label>
-                            <select class="form-select form-select-sm" id="filterProjeto">
-                                <option value="">Todos os Projetos</option>
-                                <!-- Será preenchido dinamicamente -->
-                            </select>
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold">Autor:</label>
-                            <select class="form-select form-select-sm" id="filterAutor">
-                                <option value="">Todos Autores</option>
-                                <!-- Será preenchido dinamicamente -->
-                            </select>
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold">Pesquisar:</label>
-                            <input type="text" class="form-control form-control-sm" id="searchReport" placeholder="Número ou título">
-                        </div>
-                    </div>
-                    <div class="row mt-2">
-                        <div class="col-12">
-                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearReportFilters()">
-                                <i class="fas fa-times"></i> Limpar Filtros
-                            </button>
-                            <small class="text-muted">
-                                <span id="reportFilteredCount">{{ relatorios.items|length if relatorios and relatorios.items else 0 }}</span> relatório(s) encontrado(s)
-                            </small>
-                        </div>
-                    </div>
+        <!-- Filtros de Relatórios -->
+        <div class="filters-card">
+            <h3 class="mb-4">
+                <i class="fas fa-filter me-2"></i>Filtros
+            </h3>
+            
+            <div class="filter-grid">
+                <div>
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="filterStatus">
+                        <option value="">Todos os Status</option>
+                        <option value="Aprovado">Aprovado</option>
+                        <option value="Rejeitado">Rejeitado</option>
+                        <option value="Aguardando Aprovação">Aguardando Aprovação</option>
+                        <option value="Rascunho">Rascunho</option>
+                    </select>
                 </div>
-                <div class="card-body">
-                    {% if relatorios and relatorios.items %}
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Número</th>
-                                        <th>Título</th>
-                                        <th>Projeto</th>
-                                        <th>Autor</th>
-                                        <th>Data</th>
-                                        <th>Status</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for report in relatorios.items %}
-                                    <tr>
-                                        <td>{{ report.numero }}</td>
-                                        <td>{{ report.titulo }}</td>
-                                        <td>{{ report.projeto.nome if report.projeto else '-' }}</td>
-                                        <td>{{ report.autor.nome_completo if report.autor else '-' }}</td>
-                                        <td>{{ report.data_relatorio.strftime('%d/%m/%Y') if report.data_relatorio else '-' }}</td>
-                                        <td>
-                                            <span class="badge 
-                                                {% if report.status == 'Aprovado' %}bg-success
-                                                {% elif report.status == 'Rejeitado' %}bg-danger
-                                                {% elif report.status == 'Aguardando Aprovação' %}bg-warning
-                                                {% else %}bg-secondary{% endif %}">
-                                                {{ report.status }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group me-1">
-                                                <a href="{{ url_for('edit_report', id=report.id) }}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-eye"></i> Ver
-                                                </a>
-                                                <div class="btn-group">
-                                                    <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
-                                                        <i class="fas fa-file-pdf"></i> PDF
-                                                    </button>
-                                                    <ul class="dropdown-menu">
-                                                        <li><a class="dropdown-item" href="{{ url_for('generate_pdf_report', id=report.id) }}" target="_blank">
-                                                            <i class="fas fa-eye me-2"></i>Visualizar PDF
-                                                        </a></li>
-                                                        <li><a class="dropdown-item" href="{{ url_for('generate_report_pdf_download', id=report.id) }}">
-                                                            <i class="fas fa-download me-2"></i>Baixar PDF
-                                                        </a></li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            {% if current_user.is_master %}
-                                                {% if report.status == 'Aguardando Aprovação' %}
-                                                <div class="btn-group me-1">
-                                                    <a href="{{ url_for('approve_report', id=report.id) }}" class="btn btn-sm btn-success">
-                                                        <i class="fas fa-check"></i> Aprovar
-                                                    </a>
-                                                    <a href="{{ url_for('reject_report', id=report.id) }}" class="btn btn-sm btn-danger">
-                                                        <i class="fas fa-times"></i> Rejeitar
-                                                    </a>
-                                                </div>
-                                                {% endif %}
-                                                <a href="{{ url_for('delete_report', id=report.id) }}" class="btn btn-sm btn-outline-danger"
-                                                   onclick="return confirm('Excluir relatório {{ report.numero }}? Esta ação não pode ser desfeita.')">
-                                                    <i class="fas fa-trash"></i> Excluir
-                                                </a>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
-                            <h4>Nenhum relatório encontrado</h4>
-                            <p class="text-muted">Crie seu primeiro relatório de obra clicando no botão acima.</p>
-                        </div>
-                    {% endif %}
+                <div>
+                    <label class="form-label">Projeto</label>
+                    <select class="form-select" id="filterProjeto">
+                        <option value="">Todos os Projetos</option>
+                        <!-- Será preenchido dinamicamente -->
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Autor</label>
+                    <select class="form-select" id="filterAutor">
+                        <option value="">Todos Autores</option>
+                        <!-- Será preenchido dinamicamente -->
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Pesquisar</label>
+                    <input type="text" class="form-control" id="searchReport" placeholder="Número ou título">
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <button type="button" class="mobile-button secondary" onclick="clearReportFilters()">
+                    <i class="fas fa-times me-2"></i>Limpar Filtros
+                </button>
+                <div class="results-summary">
+                    <span id="reportFilteredCount">{{ relatorios.items|length if relatorios and relatorios.items else 0 }}</span> relatório(s) encontrado(s)
                 </div>
             </div>
         </div>
+        <!-- Lista de Relatórios -->
+        {% if relatorios and relatorios.items %}
+            <div class="mobile-card">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Título</th>
+                                <th>Projeto</th>
+                                <th>Autor</th>
+                                <th>Data</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in relatorios.items %}
+                            <tr>
+                                <td><strong>#{{ report.numero }}</strong></td>
+                                <td>{{ report.titulo }}</td>
+                                <td>{{ report.projeto.nome if report.projeto else '-' }}</td>
+                                <td>{{ report.autor.nome_completo if report.autor else '-' }}</td>
+                                <td>{{ report.data_relatorio.strftime('%d/%m/%Y') if report.data_relatorio else '-' }}</td>
+                                <td>
+                                    {% if report.status == 'Aprovado' %}
+                                        <span class="status-badge approved">Aprovado</span>
+                                    {% elif report.status == 'Rejeitado' %}
+                                        <span class="status-badge rejected">Rejeitado</span>
+                                    {% elif report.status == 'Aguardando Aprovação' %}
+                                        <span class="status-badge pending">Aguardando</span>
+                                    {% else %}
+                                        <span class="status-badge draft">Rascunho</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('edit_report', id=report.id) }}" class="action-btn primary" title="Ver Relatório">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        
+                                        <div class="dropdown">
+                                            <button class="action-btn secondary dropdown-toggle" data-bs-toggle="dropdown" title="PDF">
+                                                <i class="fas fa-file-pdf"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="{{ url_for('generate_pdf_report', id=report.id) }}" target="_blank">
+                                                    <i class="fas fa-eye me-2"></i>Visualizar PDF
+                                                </a></li>
+                                                <li><a class="dropdown-item" href="{{ url_for('generate_report_pdf_download', id=report.id) }}">
+                                                    <i class="fas fa-download me-2"></i>Baixar PDF
+                                                </a></li>
+                                            </ul>
+                                        </div>
+                                        
+                                        {% if current_user.is_master %}
+                                            {% if report.status == 'Aguardando Aprovação' %}
+                                                <a href="{{ url_for('approve_report', id=report.id) }}" class="action-btn" style="background: var(--elp-success); color: white;" title="Aprovar">
+                                                    <i class="fas fa-check"></i>
+                                                </a>
+                                                <a href="{{ url_for('reject_report', id=report.id) }}" class="action-btn danger" title="Rejeitar">
+                                                    <i class="fas fa-times"></i>
+                                                </a>
+                                            {% endif %}
+                                            <a href="{{ url_for('delete_report', id=report.id) }}" class="action-btn danger" title="Excluir"
+                                               onclick="return confirm('Excluir relatório {{ report.numero }}? Esta ação não pode ser desfeita.')">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% else %}
+            <div class="mobile-card text-center" style="padding: var(--space-8);">
+                <i class="fas fa-file-alt fa-4x text-muted mb-4"></i>
+                <h3>Nenhum relatório encontrado</h3>
+                <p class="text-muted mb-4">Crie seu primeiro relatório de obra para começar.</p>
+                <a href="{{ url_for('create_report') }}" class="mobile-button primary">
+                    <i class="fas fa-plus me-2"></i>Criar Primeiro Relatório
+                </a>
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

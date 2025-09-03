@@ -1,0 +1,395 @@
+/* Sistema de Editor de Imagens com Precisão Máxima */
+
+.precision-editor-container {
+    position: relative;
+    background: var(--elp-light);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    margin: var(--space-4) 0;
+}
+
+.precision-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+    flex-wrap: wrap;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    background: #f8f9fa;
+}
+
+.tool-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: var(--space-2);
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+    color: var(--elp-dark);
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-btn:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+}
+
+.tool-btn.active {
+    background: var(--elp-primary);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.tool-btn:active {
+    transform: translateY(0);
+}
+
+/* Canvas do editor */
+.precision-canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 70vh;
+    margin: 0 auto;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    cursor: crosshair;
+    
+    /* Otimizações para touch */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* Controles de zoom */
+.zoom-controls {
+    position: absolute;
+    bottom: var(--space-4);
+    right: var(--space-4);
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 25px;
+    padding: var(--space-2);
+    box-shadow: var(--shadow-md);
+    gap: var(--space-2);
+    z-index: 10;
+}
+
+.zoom-btn {
+    min-width: 36px;
+    min-height: 36px;
+    padding: var(--space-2);
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--elp-dark);
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.zoom-btn:hover {
+    background: var(--elp-primary);
+    color: white;
+}
+
+.zoom-level {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--elp-dark);
+    padding: 0 var(--space-2);
+    min-width: 50px;
+    text-align: center;
+}
+
+/* Painel de propriedades */
+.properties-panel {
+    position: absolute;
+    top: 60px;
+    left: var(--space-4);
+    width: 250px;
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    box-shadow: var(--shadow-lg);
+    z-index: 20;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.properties-panel h4 {
+    margin: 0 0 var(--space-4) 0;
+    font-size: var(--text-base);
+    color: var(--elp-dark);
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: var(--space-2);
+}
+
+.prop-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+}
+
+.prop-group label {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--elp-dark);
+    min-width: 60px;
+}
+
+.prop-input {
+    flex: 1;
+    padding: var(--space-2);
+    border: 1px solid #e1e5e9;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    background: white;
+    transition: all 0.2s ease;
+}
+
+.prop-input:focus {
+    border-color: var(--elp-primary);
+    box-shadow: 0 0 0 3px rgba(32, 193, 232, 0.1);
+    outline: none;
+}
+
+.prop-input[type="color"] {
+    width: 60px;
+    height: 36px;
+    padding: 2px;
+    cursor: pointer;
+}
+
+.prop-input[type="range"] {
+    height: 6px;
+    background: #e1e5e9;
+    outline: none;
+    cursor: pointer;
+}
+
+.prop-input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--elp-primary);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.prop-input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--elp-primary);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Seleção de objetos */
+.object-selected {
+    outline: 2px solid var(--elp-primary);
+    outline-offset: 2px;
+}
+
+.selection-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--elp-primary);
+    border: 2px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 15;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.selection-handle:hover {
+    background: #17a2b8;
+    transform: scale(1.2);
+}
+
+/* Grade */
+.grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0.3;
+}
+
+/* Responsividade mobile */
+@media (max-width: 768px) {
+    .precision-toolbar {
+        padding: var(--space-2);
+        gap: var(--space-2);
+        justify-content: center;
+    }
+    
+    .toolbar-group {
+        gap: var(--space-1);
+        padding: var(--space-1);
+    }
+    
+    .tool-btn {
+        min-width: 40px;
+        min-height: 40px;
+        font-size: 14px;
+    }
+    
+    .properties-panel {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: auto;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        max-height: 50vh;
+        z-index: 100;
+    }
+    
+    .zoom-controls {
+        bottom: var(--space-2);
+        right: var(--space-2);
+        padding: var(--space-1);
+        gap: var(--space-1);
+    }
+    
+    .zoom-btn {
+        min-width: 32px;
+        min-height: 32px;
+    }
+    
+    .zoom-level {
+        font-size: var(--text-xs);
+        min-width: 40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .precision-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-2);
+    }
+    
+    .toolbar-group {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .precision-canvas {
+        max-height: 50vh;
+    }
+}
+
+/* Animações */
+@keyframes toolSelect {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.tool-btn.active {
+    animation: toolSelect 0.3s ease;
+}
+
+@keyframes propertyUpdate {
+    0% { background: rgba(32, 193, 232, 0.1); }
+    100% { background: transparent; }
+}
+
+.prop-input:focus {
+    animation: propertyUpdate 0.5s ease;
+}
+
+/* Estados de hover em desktop */
+@media (min-width: 769px) {
+    .tool-btn:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: -35px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--elp-dark);
+        color: white;
+        padding: var(--space-1) var(--space-2);
+        border-radius: var(--radius-sm);
+        font-size: var(--text-xs);
+        white-space: nowrap;
+        z-index: 100;
+        pointer-events: none;
+    }
+    
+    .zoom-btn:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: -35px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--elp-dark);
+        color: white;
+        padding: var(--space-1) var(--space-2);
+        border-radius: var(--radius-sm);
+        font-size: var(--text-xs);
+        white-space: nowrap;
+        z-index: 100;
+        pointer-events: none;
+    }
+}
+
+/* Prevenção de seleção */
+.precision-editor-container * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.prop-input {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* Performance */
+.precision-canvas,
+.grid-overlay {
+    will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tool-btn,
+    .zoom-btn,
+    .prop-input {
+        transition: none;
+    }
+    
+    .tool-btn.active {
+        animation: none;
+    }
+}
