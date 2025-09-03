@@ -1,94 +1,49 @@
-/* CSS Mobile Otimizado - Sistema de Visitas */
+/* CSS Mobile Otimizado - Experiência Perfeita */
 
-/* Impedir arrasto do app completo */
+/* Configuração base mobile - equilibrada */
 html, body {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: auto;
+    overflow-x: hidden;
+    touch-action: pan-y;
+}
+
+/* Permitir seleção apenas em inputs */
+input, textarea, select, [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+    touch-action: manipulation;
+}
+
+/* Impedir seleção em elementos de interface */
+.navbar, .card, .btn, .table, th, td, .dropdown-menu {
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
-    -webkit-user-drag: none;
-    -khtml-user-drag: none;
-    -moz-user-drag: none;
-    -o-user-drag: none;
-    user-drag: none;
-    overscroll-behavior: contain;
-    position: relative;
-    overflow-x: hidden;
 }
 
-/* Impedir movimento lateral do viewport */
-body {
-    width: 100vw;
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
-    touch-action: pan-y pinch-zoom;
-}
-
-/* Permitir seleção de texto em inputs */
-input, textarea, select {
-    -webkit-user-select: text;
-    user-select: text;
-    touch-action: manipulation;
-}
-
-/* Parar vibração da tela e controlar touch */
-* {
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-}
-
-/* Evitar arrasto de elementos principais - SUPER FORTE */
-.navbar, .container, .container-fluid, main, nav, header, footer, 
-.card, .card-body, .card-header, .row, .col-12, .col-md-3, .col-sm-6 {
-    -webkit-user-drag: none !important;
-    user-drag: none !important;
-    touch-action: pan-y !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    position: relative;
-}
-
-/* Página de relatórios - IMPEDIR MOVIMENTO TOTAL */
-body, html {
-    overscroll-behavior-x: none !important;
-    overscroll-behavior-y: contain !important;
-    overflow-x: hidden !important;
-}
-
-/* Prevenir movimentação de imagens e ícones */
-img, i, .fas, .fab, .far {
-    -webkit-user-drag: none;
-    user-drag: none;
-    pointer-events: auto;
-    touch-action: manipulation;
-}
-
-/* Tabelas com scroll horizontal - IMPEDIR ARRASTO */
+/* Tabelas responsivas - scroll horizontal perfeito */
 .table-responsive {
     overflow-x: auto;
+    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x pan-y;
-    -webkit-user-drag: none;
-    user-drag: none;
-    position: relative;
+    scroll-behavior: smooth;
 }
 
-/* Forçar estabilidade da tabela */
-.table, .table-striped {
-    -webkit-user-drag: none;
-    user-drag: none;
-    touch-action: pan-y;
-    position: relative;
-}
-
-.mobile-scroll-table {
+/* Garantir largura mínima das tabelas */
+.table-responsive .table {
     min-width: 800px;
+    white-space: nowrap;
 }
 
-.mobile-scroll-table th,
-.mobile-scroll-table td {
+.table-responsive .table th,
+.table-responsive .table td {
     min-width: 120px;
-    white-space: nowrap;
+    padding: 8px 12px;
 }
 
 /* Canvas do editor de fotos */
@@ -96,21 +51,30 @@ img, i, .fas, .fab, .far {
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
-    position: relative;
-    -webkit-user-drag: none;
-    user-drag: none;
 }
 
 /* Botões com área de toque adequada */
 @media (max-width: 767.98px) {
     .btn, .tool-btn {
         min-height: 44px;
-        min-width: 44px;
         padding: 12px 16px;
+        touch-action: manipulation;
     }
     
     .color-preset {
         min-width: 44px;
         min-height: 44px;
+    }
+    
+    /* Melhorar área de scroll em tabelas mobile */
+    .table-responsive {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+    }
+    
+    .table-responsive .table th,
+    .table-responsive .table td {
+        font-size: 14px;
+        min-width: 100px;
     }
 }
