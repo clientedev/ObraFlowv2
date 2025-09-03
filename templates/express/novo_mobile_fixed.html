@@ -1,0 +1,860 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Relatório Express{% endblock %}
+
+{% block head %}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+/* === DESIGN MOBILE-FIRST PROFISSIONAL ELP === */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
+    min-height: 100vh;
+    color: #2c3e50;
+    line-height: 1.6;
+}
+
+/* Container Mobile */
+.mobile-app {
+    min-height: 100vh;
+    padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 16px);
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Header ELP */
+.app-header {
+    background: linear-gradient(135deg, #343a40 0%, #20c1e8 100%);
+    color: white;
+    padding: 24px 20px;
+    border-radius: 16px;
+    text-align: center;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(32, 193, 232, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.app-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
+    animation: shimmer 4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+}
+
+.app-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.app-subtitle {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-top: 6px;
+    position: relative;
+    z-index: 2;
+}
+
+/* Progress Bar */
+.progress-section {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(32, 193, 232, 0.1);
+}
+
+.progress-track {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #20c1e8, #17a2b8);
+    border-radius: 12px;
+    width: 0%;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 13px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Seções do Formulário */
+.form-section {
+    background: white;
+    border-radius: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    border: 1px solid rgba(32, 193, 232, 0.1);
+    overflow: hidden;
+}
+
+.section-header {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 16px 20px;
+    border-bottom: 2px solid rgba(32, 193, 232, 0.1);
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-icon {
+    color: #20c1e8;
+    font-size: 18px;
+}
+
+.section-body {
+    padding: 20px;
+}
+
+/* Campos do Formulário */
+.field-group {
+    margin-bottom: 20px;
+}
+
+.field-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.field-label.required::after {
+    content: " *";
+    color: #e74c3c;
+    font-weight: 700;
+}
+
+.field-input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    font-size: 16px;
+    font-family: inherit;
+    background: white;
+    color: #2c3e50;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.field-input:focus {
+    outline: none;
+    border-color: #20c1e8;
+    box-shadow: 0 0 0 0.2rem rgba(32, 193, 232, 0.15);
+    transform: translateY(-2px);
+}
+
+.field-input::placeholder {
+    color: #adb5bd;
+    font-weight: 400;
+}
+
+select.field-input {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+textarea.field-input {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.5;
+}
+
+/* Input com Ícone */
+.input-with-icon {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #20c1e8;
+    font-size: 16px;
+    z-index: 2;
+}
+
+.input-with-icon .field-input {
+    padding-left: 48px;
+}
+
+/* Grid Responsivo */
+.field-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.field-col {
+    flex: 1;
+}
+
+@media (max-width: 640px) {
+    .field-row {
+        flex-direction: column;
+        gap: 0;
+    }
+}
+
+/* Botões */
+.button-group {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 16px 20px;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.1);
+    margin: 20px -16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-top: 1px solid rgba(32, 193, 232, 0.1);
+}
+
+.btn {
+    width: 100%;
+    padding: 16px 20px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    min-height: 52px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #20c1e8, #17a2b8);
+    color: white;
+    box-shadow: 0 6px 24px rgba(32, 193, 232, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(32, 193, 232, 0.5);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    color: white;
+    box-shadow: 0 4px 16px rgba(108, 117, 125, 0.3);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+}
+
+.btn-outline {
+    background: white;
+    color: #20c1e8;
+    border: 2px solid #20c1e8;
+    box-shadow: none;
+}
+
+.btn-outline:hover {
+    background: #20c1e8;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(32, 193, 232, 0.3);
+}
+
+.btn:disabled,
+.btn.loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 8px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Location Preview */
+.location-preview {
+    display: none;
+    margin-top: 12px;
+    padding: 12px;
+    background: linear-gradient(135deg, #e8f5e8, #f0fff0);
+    border-radius: 8px;
+    border-left: 3px solid #28a745;
+    font-size: 13px;
+    color: #155724;
+}
+
+/* Info Cards */
+.info-card {
+    background: linear-gradient(135deg, #e3f2fd, #f0f8ff);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border-left: 4px solid #20c1e8;
+}
+
+.info-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1565c0;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.info-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(21, 101, 192, 0.1);
+}
+
+.info-detail:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1976d2;
+}
+
+.info-value {
+    font-size: 13px;
+    color: #1565c0;
+    text-align: right;
+    font-weight: 600;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Animações */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-section {
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.form-section:nth-child(1) { animation-delay: 0.1s; }
+.form-section:nth-child(2) { animation-delay: 0.2s; }
+.form-section:nth-child(3) { animation-delay: 0.3s; }
+
+/* Responsivo Mobile */
+@media (max-width: 480px) {
+    .mobile-app {
+        padding: env(safe-area-inset-top, 12px) env(safe-area-inset-right, 12px) env(safe-area-inset-bottom, 12px) env(safe-area-inset-left, 12px);
+    }
+    
+    .app-header {
+        padding: 20px 16px;
+        border-radius: 12px;
+    }
+    
+    .app-title {
+        font-size: 20px;
+    }
+    
+    .section-body {
+        padding: 16px;
+    }
+    
+    .field-input {
+        font-size: 16px; /* Previne zoom no iOS */
+    }
+    
+    .button-group {
+        margin: 16px -12px 0;
+        padding: 12px 16px;
+    }
+}
+
+/* Focus Visible */
+.btn:focus-visible,
+.field-input:focus-visible {
+    outline: 2px solid #20c1e8;
+    outline-offset: 2px;
+}
+
+/* High Contrast */
+@media (prefers-contrast: high) {
+    .app-header {
+        background: #2c3e50;
+    }
+    
+    .field-input {
+        border-width: 2px;
+    }
+    
+    .btn-primary {
+        background: #0056b3;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mobile-app">
+    <!-- Header ELP -->
+    <div class="app-header">
+        <h1 class="app-title">
+            <i class="fas fa-bolt"></i>
+            Novo Relatório Express
+        </h1>
+        <div class="app-subtitle">Sistema ELP - Criação Rápida</div>
+    </div>
+    
+    <!-- Progress Bar -->
+    <div class="progress-section">
+        <div class="progress-track">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+        <div class="progress-text" id="progressText">Preencha os campos obrigatórios</div>
+    </div>
+    
+    <form method="POST" enctype="multipart/form-data" id="expressForm">
+        {{ form.hidden_tag() }}
+        
+        <!-- Dados da Empresa -->
+        <div class="form-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-building section-icon"></i>
+                    Dados da Empresa
+                </h2>
+            </div>
+            <div class="section-body">
+                {% if form.empresa_nome %}
+                <div class="field-group">
+                    <label class="field-label required">Nome da Empresa</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-building input-icon"></i>
+                        {{ form.empresa_nome(class="field-input", placeholder="Digite o nome da empresa", required=true) }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if form.empresa_endereco %}
+                <div class="field-group">
+                    <label class="field-label">Endereço da Empresa</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-map-marker-alt input-icon"></i>
+                        {{ form.empresa_endereco(class="field-input", placeholder="Endereço da empresa") }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Dados da Visita -->
+        <div class="form-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-calendar section-icon"></i>
+                    Dados da Visita
+                </h2>
+            </div>
+            <div class="section-body">
+                <div class="field-row">
+                    <div class="field-col">
+                        <div class="field-group">
+                            <label class="field-label required">Data</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-calendar input-icon"></i>
+                                {{ form.data_visita(class="field-input", required=true) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-col">
+                        <div class="field-group">
+                            <label class="field-label required">Horário</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-clock input-icon"></i>
+                                {{ form.periodo_inicio(class="field-input", type="time", required=true) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Condições -->
+        <div class="form-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-cloud-sun section-icon"></i>
+                    Condições
+                </h2>
+            </div>
+            <div class="section-body">
+                <div class="field-row">
+                    <div class="field-col">
+                        <div class="field-group">
+                            <label class="field-label">Clima</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-cloud-sun input-icon"></i>
+                                {{ form.condicoes_climaticas(class="field-input") }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-col">
+                        <div class="field-group">
+                            <label class="field-label">Temperatura</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-thermometer-half input-icon"></i>
+                                {{ form.temperatura(class="field-input", placeholder="Ex: 25°C") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Localização -->
+        <div class="form-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-map-marker-alt section-icon"></i>
+                    Localização
+                </h2>
+            </div>
+            <div class="section-body">
+                <div class="field-group">
+                    <label class="field-label">Endereço da Visita</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-map-marker-alt input-icon"></i>
+                        {{ form.endereco_visita(class="field-input", placeholder="Local da visita") }}
+                    </div>
+                </div>
+                
+                <button type="button" id="getLocationBtn" class="btn btn-outline">
+                    <i class="fas fa-crosshairs"></i> Obter Localização GPS
+                </button>
+                
+                <div id="locationPreview" class="location-preview"></div>
+                
+                {{ form.latitude(type="hidden") }}
+                {{ form.longitude(type="hidden") }}
+            </div>
+        </div>
+        
+        <!-- Observações -->
+        <div class="form-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-clipboard-list section-icon"></i>
+                    Observações
+                </h2>
+            </div>
+            <div class="section-body">
+                <div class="field-group">
+                    <label class="field-label">Observações Gerais</label>
+                    {{ form.observacoes_gerais(class="field-input", rows="4", placeholder="Observações sobre a visita...") }}
+                </div>
+                
+                <div class="field-group">
+                    <label class="field-label">Pendências</label>
+                    {{ form.pendencias(class="field-input", rows="3", placeholder="Pendências identificadas...") }}
+                </div>
+                
+                <div class="field-group">
+                    <label class="field-label">Recomendações</label>
+                    {{ form.recomendacoes(class="field-input", rows="3", placeholder="Recomendações para a obra...") }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Botões -->
+        <div class="button-group">
+            <button type="submit" name="action" value="finalize" class="btn btn-primary" id="finalizeBtn">
+                <i class="fas fa-check"></i> Finalizar Relatório
+            </button>
+            <button type="submit" name="action" value="save_draft" class="btn btn-secondary">
+                <i class="fas fa-save"></i> Salvar Rascunho
+            </button>
+            <a href="{{ url_for('express_list') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📱 Sistema Mobile-First ELP Iniciado');
+    
+    // Elementos principais
+    const form = document.getElementById('expressForm');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const getLocationBtn = document.getElementById('getLocationBtn');
+    const locationPreview = document.getElementById('locationPreview');
+    const finalizeBtn = document.getElementById('finalizeBtn');
+    
+    // Configurar data/hora atual
+    const hoje = new Date().toISOString().split('T')[0];
+    const agora = new Date().toTimeString().split(' ')[0].substring(0, 5);
+    
+    const dataInput = document.querySelector('input[name="data_visita"]');
+    const horaInput = document.querySelector('input[name="periodo_inicio"]');
+    
+    if (dataInput && !dataInput.value) dataInput.value = hoje;
+    if (horaInput && !horaInput.value) horaInput.value = agora;
+    
+    // Progress tracking
+    function updateProgress() {
+        const requiredFields = form.querySelectorAll('[required]');
+        let filledCount = 0;
+        
+        requiredFields.forEach(field => {
+            if (field.value && field.value.trim()) {
+                filledCount++;
+            }
+        });
+        
+        const progress = Math.round((filledCount / requiredFields.length) * 100);
+        
+        if (progressBar) {
+            progressBar.style.width = progress + '%';
+        }
+        
+        if (progressText) {
+            if (progress === 0) {
+                progressText.textContent = 'Comece preenchendo os dados';
+            } else if (progress < 50) {
+                progressText.textContent = `${progress}% - Continue preenchendo`;
+            } else if (progress < 100) {
+                progressText.textContent = `${progress}% - Quase pronto!`;
+            } else {
+                progressText.textContent = '✅ Pronto para finalizar';
+            }
+        }
+        
+        // Enable/disable finalize button
+        if (finalizeBtn) {
+            finalizeBtn.disabled = progress < 100;
+            if (progress === 100) {
+                finalizeBtn.style.opacity = '1';
+            } else {
+                finalizeBtn.style.opacity = '0.7';
+            }
+        }
+    }
+    
+    // Monitor campos obrigatórios
+    const requiredFields = form.querySelectorAll('[required]');
+    requiredFields.forEach(field => {
+        field.addEventListener('input', updateProgress);
+        field.addEventListener('change', updateProgress);
+    });
+    
+    // Geolocalização
+    if (getLocationBtn && locationPreview) {
+        getLocationBtn.addEventListener('click', function() {
+            if (!navigator.geolocation) {
+                alert('Geolocalização não suportada.');
+                return;
+            }
+            
+            const originalHTML = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Localizando...';
+            this.disabled = true;
+            this.classList.add('loading');
+            
+            console.log('📍 Obtendo GPS...');
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const accuracy = Math.round(position.coords.accuracy);
+                    
+                    // Preencher campos
+                    const latInput = document.querySelector('input[name="latitude"]');
+                    const lonInput = document.querySelector('input[name="longitude"]');
+                    
+                    if (latInput) latInput.value = lat.toFixed(6);
+                    if (lonInput) lonInput.value = lon.toFixed(6);
+                    
+                    // Mostrar preview
+                    locationPreview.innerHTML = `
+                        <strong>📍 Localização obtida</strong><br>
+                        <small>Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}</small><br>
+                        <small>Precisão: ${accuracy}m</small>
+                    `;
+                    locationPreview.style.display = 'block';
+                    
+                    this.innerHTML = '<i class="fas fa-check"></i> GPS Obtido';
+                    this.disabled = false;
+                    this.classList.remove('loading');
+                    this.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                    this.style.color = 'white';
+                    
+                    console.log('✅ Localização obtida');
+                },
+                (error) => {
+                    console.error('❌ Erro GPS:', error);
+                    
+                    let errorMsg = 'Erro ao obter localização.';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMsg = 'Permissão negada. Ative a localização.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMsg = 'Localização indisponível.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMsg = 'Tempo esgotado.';
+                            break;
+                    }
+                    
+                    alert(errorMsg);
+                    
+                    this.innerHTML = originalHTML;
+                    this.disabled = false;
+                    this.classList.remove('loading');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 600000
+                }
+            );
+        });
+    }
+    
+    // Form submission
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const submitBtn = e.submitter;
+            
+            if (submitBtn && submitBtn.classList.contains('btn')) {
+                const originalHTML = submitBtn.innerHTML;
+                
+                if (submitBtn.name === 'action' && submitBtn.value === 'finalize') {
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finalizando...';
+                    submitBtn.classList.add('loading');
+                    console.log('📝 Finalizando relatório...');
+                } else if (submitBtn.name === 'action' && submitBtn.value === 'save_draft') {
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+                    submitBtn.classList.add('loading');
+                    console.log('💾 Salvando rascunho...');
+                }
+                
+                // Restore after timeout
+                setTimeout(() => {
+                    if (submitBtn.classList.contains('loading')) {
+                        submitBtn.innerHTML = originalHTML;
+                        submitBtn.classList.remove('loading');
+                    }
+                }, 30000);
+            }
+        });
+    }
+    
+    // Initial progress
+    setTimeout(updateProgress, 500);
+    
+    console.log('✅ Sistema Mobile-First inicializado com sucesso');
+});
+</script>
+{% endblock %}

@@ -3137,7 +3137,7 @@ def express_new():
 @login_required
 def express_novo_mobile():
     """Novo relatório express - sempre usar template mobile"""
-    from .forms import RelatorioExpressForm
+    from forms import RelatorioExpressForm
     
     form = RelatorioExpressForm()
     
@@ -3154,15 +3154,17 @@ def express_novo_mobile():
             relatorio_express.numero = numero
             relatorio_express.autor_id = current_user.id
             
-            # Dados básicos do projeto
-            if form.projeto_id.data:
-                relatorio_express.projeto_id = form.projeto_id.data
+            # Dados da empresa
+            relatorio_express.empresa_nome = form.empresa_nome.data if hasattr(form, 'empresa_nome') else None
+            relatorio_express.empresa_endereco = form.empresa_endereco.data if hasattr(form, 'empresa_endereco') else None
+            relatorio_express.empresa_telefone = form.empresa_telefone.data if hasattr(form, 'empresa_telefone') else None
+            relatorio_express.empresa_email = form.empresa_email.data if hasattr(form, 'empresa_email') else None
+            relatorio_express.empresa_responsavel = form.empresa_responsavel.data if hasattr(form, 'empresa_responsavel') else None
                 
             # Dados da visita
             relatorio_express.data_visita = form.data_visita.data
             relatorio_express.periodo_inicio = form.periodo_inicio.data
-            relatorio_express.responsavel = form.responsavel.data
-            relatorio_express.cargo_responsavel = form.cargo_responsavel.data
+            relatorio_express.periodo_fim = form.periodo_fim.data if hasattr(form, 'periodo_fim') else None
             relatorio_express.condicoes_climaticas = form.condicoes_climaticas.data
             relatorio_express.temperatura = form.temperatura.data
             relatorio_express.endereco_visita = form.endereco_visita.data
@@ -3201,7 +3203,7 @@ def express_novo_mobile():
             current_app.logger.error(f'Erro ao criar relatório express: {str(e)}')
     
     # Sempre usar template mobile
-    return render_template('express/novo_mobile.html', form=form, is_mobile=True)
+    return render_template('express/novo_mobile_fixed.html', form=form, is_mobile=True)
 
 @app.route('/express/<int:id>')
 @login_required
