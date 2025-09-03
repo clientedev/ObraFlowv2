@@ -909,6 +909,34 @@ function mapCategoryToLegenda(photoCategory) {
     return mapping[photoCategory] || 'Geral';
 }
 
+// Função para alternar estado do checklist item
+function toggleChecklistItem(checkbox) {
+    const itemId = checkbox.id.replace('check_', '');
+    const obsSection = document.getElementById(`obs_${itemId}`);
+    const checklistItem = checkbox.closest('.checklist-item');
+    
+    if (checkbox.checked) {
+        // Marcar como completo
+        checklistItem.classList.add('completed');
+        // Mostrar campo de observações
+        if (obsSection) {
+            obsSection.style.display = 'block';
+        }
+    } else {
+        // Desmarcar como completo
+        checklistItem.classList.remove('completed');
+        // Ocultar campo de observações
+        if (obsSection) {
+            obsSection.style.display = 'none';
+            // Limpar observações se desejar
+            const textarea = obsSection.querySelector('textarea');
+            if (textarea) {
+                textarea.value = '';
+            }
+        }
+    }
+}
+
 // Carregar checklist padrão do sistema
 function carregarChecklistPadrao() {
     fetch('/api/checklist-padrao')
