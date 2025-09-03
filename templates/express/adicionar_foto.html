@@ -4,6 +4,8 @@
 
 {% block extra_css %}
 <link href="{{ url_for('static', filename='css/canva-style-editor.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/mobile-accessibility.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/professional-photo-editor.css') }}" rel="stylesheet">
 <style>
 .express-header {
     background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
@@ -43,6 +45,29 @@
     background-color: #e8f5e8;
     border-color: #1e7e34;
 }
+
+/* CSS integrado para Canva Editor */
+.canva-canvas {
+    max-width: 100%;
+    height: auto;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    background: white;
+    display: block;
+    margin: 0 auto;
+    touch-action: none;
+}
+
+.canvas-container {
+    padding: 1rem;
+    background: #f8f9fa;
+    text-align: center;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #007bff, #0056b3) !important;
+}
+
 @media (max-width: 768px) {
     .express-header {
         padding: 1rem;
@@ -50,6 +75,12 @@
     }
     .upload-form {
         padding: 1.5rem;
+    }
+    .canva-canvas {
+        border-width: 1px;
+    }
+    .card-body {
+        padding: 0.75rem;
     }
 }
 </style>
@@ -105,26 +136,34 @@
                 <div class="text-center mb-4">
                     <img id="imagePreview" class="photo-preview" alt="Preview da foto">
                     
-                    <!-- Editor Canva (aparece apenas após seleção da foto) -->
+                    <!-- Editor Canva Profissional -->
                     <div id="canva-editor-container" style="display: none;" class="mt-4">
-                        <div class="card border-primary">
-                            <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0">
-                                    <i class="fas fa-palette me-2"></i>Editor Profissional Estilo Canva
-                                    <small class="ms-2 opacity-75">Adicione formas, redimensione e posicione</small>
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="canvas-container text-center">
-                                    <canvas id="photoCanvas" width="800" height="600" style="max-width: 100%; border: 2px solid #007bff; border-radius: 8px;"></canvas>
+                        <div class="card border-primary shadow-sm">
+                            <div class="card-header bg-gradient-primary text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-palette me-2"></i>Editor Profissional Canva
+                                    </h6>
+                                    <small class="opacity-75">Toque, redimensione, confirme</small>
                                 </div>
-                                <div class="mt-3">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleCanvaEditor()">
-                                        <i class="fas fa-edit me-1"></i>Usar Foto Editada
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm ms-2" onclick="resetToOriginal()">
-                                        <i class="fas fa-undo me-1"></i>Usar Original
-                                    </button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="canva-toolbar-container"></div>
+                                <div class="canvas-container position-relative">
+                                    <canvas id="photoCanvas" class="canva-canvas"></canvas>
+                                </div>
+                                <div class="p-3 border-top bg-light">
+                                    <div class="d-flex gap-2 flex-wrap justify-content-center">
+                                        <button type="button" class="btn btn-primary btn-sm" onclick="applyCanvaEdits()">
+                                            <i class="fas fa-check me-1"></i>Aplicar Edições
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetToOriginalPhoto()">
+                                            <i class="fas fa-undo me-1"></i>Original
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearAllShapes()">
+                                            <i class="fas fa-trash me-1"></i>Limpar Tudo
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -181,7 +220,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/canva-style-editor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/canva-style-editor-mobile.js') }}"></script>
 <script>
 // Variável para controlar se temos imagem selecionada
 let hasImage = false;
@@ -206,71 +245,33 @@ function previewImage(input) {
     }
 }
 
-// Funções do Editor Canva
+// Funções do Editor Canva Mobile Otimizado
 function showCanvaEditor(imageSrc) {
     const container = document.getElementById('canva-editor-container');
     container.style.display = 'block';
     
-    // Inicializar editor se não existe
-    if (!window.expressCanvaEditor) {
-        window.expressCanvaEditor = new CanvaStyleEditor('photoCanvas');
-    }
-    
-    // Carregar imagem no canvas
-    const img = new Image();
-    img.onload = function() {
-        const canvas = document.getElementById('photoCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Ajustar tamanho do canvas proporcionalmente
-        const maxWidth = 800;
-        const maxHeight = 600;
-        const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
-        
-        canvas.width = img.width * ratio;
-        canvas.height = img.height * ratio;
-        
-        // Desenhar imagem
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Definir como imagem base do editor
-        if (window.expressCanvaEditor) {
-            window.expressCanvaEditor.setBaseImage(img);
+    // Inicializar editor mobile otimizado
+    setTimeout(() => {
+        if (!window.expressCanvaEditor) {
+            window.expressCanvaEditor = initializeCanvaEditor('photoCanvas');
         }
-    };
-    img.src = imageSrc;
-}
-
-function toggleCanvaEditor() {
-    if (window.expressCanvaEditor) {
-        const editedImageData = window.expressCanvaEditor.getCanvasDataURL();
         
-        // Converter para blob e atualizar input
-        fetch(editedImageData)
-            .then(res => res.blob())
-            .then(blob => {
-                const file = new File([blob], 'edited-photo.png', { type: 'image/png' });
-                const dt = new DataTransfer();
-                dt.items.add(file);
-                document.getElementById('foto').files = dt.files;
-                
-                // Atualizar preview
-                document.getElementById('imagePreview').src = editedImageData;
-                
-                // Feedback visual
-                showSuccessMessage('Foto editada aplicada com sucesso!');
-            });
-    }
+        // Carregar imagem no canvas
+        const img = new Image();
+        img.onload = function() {
+            if (window.expressCanvaEditor) {
+                window.expressCanvaEditor.setBaseImage(img);
+            }
+        };
+        img.src = imageSrc;
+    }, 200);
 }
 
-function resetToOriginal() {
-    // Voltar para a imagem original
-    const input = document.getElementById('foto');
-    if (input.files && input.files[0]) {
-        previewImage(input);
-        showSuccessMessage('Imagem original restaurada!');
-    }
-}
+// Função movida para canva-style-editor-mobile.js
+// applyCanvaEdits() está disponível globalmente
+
+// Função movida para canva-style-editor-mobile.js
+// resetToOriginalPhoto() está disponível globalmente
 
 function showSuccessMessage(message) {
     const toast = document.createElement('div');
