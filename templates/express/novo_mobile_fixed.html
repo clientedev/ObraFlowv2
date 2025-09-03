@@ -3,46 +3,41 @@
 {% block title %}Novo Relatório Express{% endblock %}
 
 {% block head %}
-<style>
-/* === DESIGN MOBILE-FIRST PROFISSIONAL ELP === */
+<!-- Bootstrap 5 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
+<style>
+/* === ESTILO CUSTOMIZADO ELP COM BOOTSTRAP === */
+
+:root {
+    --elp-primary: #20c1e8;
+    --elp-secondary: #343a40;
+    --elp-gradient: linear-gradient(135deg, #343a40 0%, #20c1e8 100%);
+    --elp-shadow: 0 8px 32px rgba(32, 193, 232, 0.15);
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
     min-height: 100vh;
-    color: #2c3e50;
-    line-height: 1.6;
-}
-
-/* Container Mobile */
-.mobile-app {
-    min-height: 100vh;
-    padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 16px);
-    max-width: 100%;
-    overflow-x: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 /* Header ELP */
-.app-header {
-    background: linear-gradient(135deg, #343a40 0%, #20c1e8 100%);
+.elp-header {
+    background: var(--elp-gradient);
     color: white;
-    padding: 24px 20px;
-    border-radius: 16px;
+    padding: 2rem;
+    border-radius: 20px;
     text-align: center;
-    margin-bottom: 20px;
-    box-shadow: 0 8px 32px rgba(32, 193, 232, 0.3);
+    margin-bottom: 2rem;
+    box-shadow: var(--elp-shadow);
     position: relative;
     overflow: hidden;
 }
 
-.app-header::before {
+.elp-header::before {
     content: '';
     position: absolute;
     top: -50%;
@@ -58,8 +53,8 @@ body {
     50% { opacity: 0.7; }
 }
 
-.app-title {
-    font-size: 22px;
+.elp-header h1 {
+    font-size: 1.8rem;
     font-weight: 700;
     margin: 0;
     position: relative;
@@ -67,327 +62,142 @@ body {
     text-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
-.app-subtitle {
-    font-size: 14px;
+.elp-subtitle {
+    font-size: 1rem;
     opacity: 0.9;
-    margin-top: 6px;
+    margin-top: 0.5rem;
     position: relative;
     z-index: 2;
 }
 
-/* Progress Bar */
-.progress-section {
-    background: white;
-    padding: 20px;
-    border-radius: 16px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    border: 1px solid rgba(32, 193, 232, 0.1);
-}
-
-.progress-track {
-    width: 100%;
-    height: 8px;
+/* Progress Bar Customizado */
+.progress-elp {
+    height: 10px;
+    border-radius: 10px;
     background: #e9ecef;
-    border-radius: 12px;
     overflow: hidden;
-    margin-bottom: 12px;
+    margin-bottom: 1rem;
 }
 
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #20c1e8, #17a2b8);
-    border-radius: 12px;
-    width: 0%;
+.progress-elp .progress-bar {
+    background: linear-gradient(90deg, var(--elp-primary), #17a2b8);
+    border-radius: 10px;
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.progress-text {
-    text-align: center;
-    font-size: 13px;
-    color: #6c757d;
-    font-weight: 500;
-}
-
-/* Seções do Formulário */
-.form-section {
-    background: white;
-    border-radius: 16px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+/* Cards com Estilo ELP */
+.card-elp {
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     border: 1px solid rgba(32, 193, 232, 0.1);
     overflow: hidden;
+    margin-bottom: 1.5rem;
 }
 
-.section-header {
+.card-header-elp {
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    padding: 16px 20px;
     border-bottom: 2px solid rgba(32, 193, 232, 0.1);
+    padding: 1rem 1.5rem;
 }
 
-.section-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #2c3e50;
+.card-header-elp h5 {
     margin: 0;
+    color: #2c3e50;
+    font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .section-icon {
-    color: #20c1e8;
-    font-size: 18px;
+    color: var(--elp-primary);
+    font-size: 1.2rem;
 }
 
-.section-body {
-    padding: 20px;
+/* Formulário */
+.form-control:focus {
+    border-color: var(--elp-primary);
+    box-shadow: 0 0 0 0.2rem rgba(32, 193, 232, 0.25);
 }
 
-/* Campos do Formulário */
-.field-group {
-    margin-bottom: 20px;
+.form-select:focus {
+    border-color: var(--elp-primary);
+    box-shadow: 0 0 0 0.2rem rgba(32, 193, 232, 0.25);
 }
 
-.field-label {
-    display: block;
-    font-size: 14px;
+/* Input Groups */
+.input-group-text {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border: 1px solid #ced4da;
+    color: var(--elp-primary);
     font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 8px;
 }
 
-.field-label.required::after {
-    content: " *";
-    color: #e74c3c;
-    font-weight: 700;
-}
-
-.field-input {
-    width: 100%;
-    padding: 14px 16px;
-    border: 2px solid #e9ecef;
-    border-radius: 12px;
-    font-size: 16px;
-    font-family: inherit;
-    background: white;
-    color: #2c3e50;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-
-.field-input:focus {
-    outline: none;
-    border-color: #20c1e8;
-    box-shadow: 0 0 0 0.2rem rgba(32, 193, 232, 0.15);
-    transform: translateY(-2px);
-}
-
-.field-input::placeholder {
-    color: #adb5bd;
-    font-weight: 400;
-}
-
-select.field-input {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 12px center;
-    background-repeat: no-repeat;
-    background-size: 16px;
-    padding-right: 40px;
-    cursor: pointer;
-}
-
-textarea.field-input {
-    resize: vertical;
-    min-height: 100px;
-    line-height: 1.5;
-}
-
-/* Input com Ícone */
-.input-with-icon {
-    position: relative;
-}
-
-.input-icon {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #20c1e8;
-    font-size: 16px;
-    z-index: 2;
-}
-
-.input-with-icon .field-input {
-    padding-left: 48px;
-}
-
-/* Grid Responsivo */
-.field-row {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 20px;
-}
-
-.field-col {
-    flex: 1;
-}
-
-@media (max-width: 640px) {
-    .field-row {
-        flex-direction: column;
-        gap: 0;
-    }
-}
-
-/* Botões */
-.button-group {
-    position: sticky;
-    bottom: 0;
-    background: white;
-    padding: 16px 20px;
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -8px 32px rgba(0,0,0,0.1);
-    margin: 20px -16px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    border-top: 1px solid rgba(32, 193, 232, 0.1);
-}
-
-.btn {
-    width: 100%;
-    padding: 16px 20px;
+/* Botões ELP */
+.btn-elp-primary {
+    background: linear-gradient(135deg, var(--elp-primary), #17a2b8);
     border: none;
-    border-radius: 12px;
-    font-size: 16px;
+    color: white;
     font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
+    padding: 0.8rem 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(32, 193, 232, 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    text-decoration: none;
-    position: relative;
-    overflow: hidden;
-    min-height: 52px;
 }
 
-.btn-primary {
-    background: linear-gradient(135deg, #20c1e8, #17a2b8);
-    color: white;
-    box-shadow: 0 6px 24px rgba(32, 193, 232, 0.4);
-}
-
-.btn-primary:hover {
+.btn-elp-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(32, 193, 232, 0.5);
-}
-
-.btn-secondary {
-    background: linear-gradient(135deg, #6c757d, #495057);
+    box-shadow: 0 6px 24px rgba(32, 193, 232, 0.4);
     color: white;
-    box-shadow: 0 4px 16px rgba(108, 117, 125, 0.3);
 }
 
-.btn-secondary:hover {
+.btn-elp-secondary {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    border: none;
+    color: white;
+    font-weight: 700;
+    padding: 0.8rem 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(108, 117, 125, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-elp-secondary:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+    color: white;
 }
 
-.btn-outline {
+.btn-elp-outline {
     background: white;
-    color: #20c1e8;
-    border: 2px solid #20c1e8;
-    box-shadow: none;
+    color: var(--elp-primary);
+    border: 2px solid var(--elp-primary);
+    font-weight: 700;
+    padding: 0.8rem 2rem;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.btn-outline:hover {
-    background: #20c1e8;
+.btn-elp-outline:hover {
+    background: var(--elp-primary);
     color: white;
     transform: translateY(-1px);
     box-shadow: 0 4px 16px rgba(32, 193, 232, 0.3);
 }
 
-.btn:disabled,
-.btn.loading {
-    opacity: 0.7;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
-.btn.loading::after {
-    content: '';
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top: 2px solid white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-left: 8px;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Location Preview */
-.location-preview {
-    display: none;
-    margin-top: 12px;
-    padding: 12px;
-    background: linear-gradient(135deg, #e8f5e8, #f0fff0);
-    border-radius: 8px;
-    border-left: 3px solid #28a745;
-    font-size: 13px;
-    color: #155724;
-}
-
-/* Responsivo Mobile */
-@media (max-width: 480px) {
-    .mobile-app {
-        padding: env(safe-area-inset-top, 12px) env(safe-area-inset-right, 12px) env(safe-area-inset-bottom, 12px) env(safe-area-inset-left, 12px);
-    }
-    
-    .app-header {
-        padding: 20px 16px;
-        border-radius: 12px;
-    }
-    
-    .app-title {
-        font-size: 20px;
-    }
-    
-    .section-body {
-        padding: 16px;
-    }
-    
-    .field-input {
-        font-size: 16px; /* Previne zoom no iOS */
-    }
-    
-    .button-group {
-        margin: 16px -12px 0;
-        padding: 12px 16px;
-    }
-}
-
-/* Focus Visible */
-.btn:focus-visible,
-.field-input:focus-visible {
-    outline: 2px solid #20c1e8;
-    outline-offset: 2px;
+/* Alert para localização */
+.alert-success {
+    background: linear-gradient(135deg, #d4edda, #f0fff0);
+    border-left: 4px solid #28a745;
+    border-radius: 10px;
 }
 
 /* Animações */
 @keyframes slideUp {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(30px);
     }
     to {
         opacity: 1;
@@ -395,30 +205,71 @@ textarea.field-input {
     }
 }
 
-.form-section {
-    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+.card-elp {
+    animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.form-section:nth-child(1) { animation-delay: 0.1s; }
-.form-section:nth-child(2) { animation-delay: 0.2s; }
-.form-section:nth-child(3) { animation-delay: 0.3s; }
+.card-elp:nth-child(1) { animation-delay: 0.1s; }
+.card-elp:nth-child(2) { animation-delay: 0.2s; }
+.card-elp:nth-child(3) { animation-delay: 0.3s; }
+.card-elp:nth-child(4) { animation-delay: 0.4s; }
 
-/* High Contrast */
+/* Responsivo Mobile */
+@media (max-width: 768px) {
+    .elp-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .btn-elp-primary,
+    .btn-elp-secondary,
+    .btn-elp-outline {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        font-size: 16px; /* Previne zoom no iOS */
+    }
+}
+
+/* Loading states */
+.btn.loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin-left: -10px;
+    margin-top: -10px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* High Contrast Support */
 @media (prefers-contrast: high) {
-    .app-header {
+    .elp-header {
         background: #2c3e50;
     }
     
-    .field-input {
-        border-width: 2px;
-    }
-    
-    .btn-primary {
+    .btn-elp-primary {
         background: #0056b3;
     }
 }
 
-/* Reduced Motion */
+/* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -432,246 +283,301 @@ textarea.field-input {
 {% endblock %}
 
 {% block content %}
-<div class="mobile-app">
-    <!-- Header ELP -->
-    <div class="app-header">
-        <h1 class="app-title">
-            <i class="fas fa-bolt"></i>
-            Novo Relatório Express
-        </h1>
-        <div class="app-subtitle">Sistema ELP - Criação Rápida</div>
+<div class="container-fluid px-3 py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8 col-xl-6">
+            
+            <!-- Header ELP -->
+            <div class="elp-header">
+                <h1>
+                    <i class="fas fa-bolt me-2"></i>
+                    Novo Relatório Express
+                </h1>
+                <div class="elp-subtitle">Sistema ELP - Criação Rápida e Profissional</div>
+            </div>
+            
+            <!-- Progress Card -->
+            <div class="card-elp">
+                <div class="card-body">
+                    <div class="progress-elp">
+                        <div class="progress-bar" role="progressbar" id="progressBar" style="width: 0%"></div>
+                    </div>
+                    <div class="text-center">
+                        <small class="text-muted" id="progressText">Preencha os campos obrigatórios para continuar</small>
+                    </div>
+                </div>
+            </div>
+            
+            <form method="POST" enctype="multipart/form-data" id="expressForm">
+                {{ form.hidden_tag() }}
+                
+                <!-- Dados da Empresa -->
+                <div class="card-elp">
+                    <div class="card-header-elp">
+                        <h5>
+                            <i class="fas fa-building section-icon"></i>
+                            Dados da Empresa
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">
+                                    {{ form.empresa_nome.label.text }}
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-building"></i>
+                                    </span>
+                                    {{ form.empresa_nome(class="form-control", required=true, placeholder="Digite o nome da empresa") }}
+                                </div>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">{{ form.empresa_endereco.label.text }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </span>
+                                    {{ form.empresa_endereco(class="form-control", rows="2", placeholder="Endereço completo da empresa") }}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">{{ form.empresa_telefone.label.text }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-phone"></i>
+                                    </span>
+                                    {{ form.empresa_telefone(class="form-control", placeholder="(00) 00000-0000") }}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">{{ form.empresa_email.label.text }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-envelope"></i>
+                                    </span>
+                                    {{ form.empresa_email(class="form-control", type="email", placeholder="contato@empresa.com") }}
+                                </div>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">{{ form.empresa_responsavel.label.text }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                    {{ form.empresa_responsavel(class="form-control", placeholder="Nome do responsável") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dados da Visita -->
+                <div class="card-elp">
+                    <div class="card-header-elp">
+                        <h5>
+                            <i class="fas fa-calendar section-icon"></i>
+                            Dados da Visita
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">
+                                    {{ form.data_visita.label.text }}
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-calendar"></i>
+                                    </span>
+                                    {{ form.data_visita(class="form-control", required=true) }}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">{{ form.periodo_inicio.label.text }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
+                                    {{ form.periodo_inicio(class="form-control") }}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">{{ form.periodo_fim.label.text }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
+                                    {{ form.periodo_fim(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Condições Climáticas -->
+                <div class="card-elp">
+                    <div class="card-header-elp">
+                        <h5>
+                            <i class="fas fa-cloud-sun section-icon"></i>
+                            Condições Climáticas
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">{{ form.condicoes_climaticas.label.text }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-cloud-sun"></i>
+                                    </span>
+                                    {{ form.condicoes_climaticas(class="form-select") }}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">{{ form.temperatura.label.text }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-thermometer-half"></i>
+                                    </span>
+                                    {{ form.temperatura(class="form-control", placeholder="Ex: 25°C") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Localização -->
+                <div class="card-elp">
+                    <div class="card-header-elp">
+                        <h5>
+                            <i class="fas fa-map-marker-alt section-icon"></i>
+                            Localização da Visita
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ form.endereco_visita.label.text }}</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </span>
+                                {{ form.endereco_visita(class="form-control", rows="2", placeholder="Endereço onde foi realizada a visita") }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="button" id="getLocationBtn" class="btn btn-elp-outline">
+                                <i class="fas fa-crosshairs me-2"></i>
+                                Obter Localização GPS
+                            </button>
+                        </div>
+                        
+                        <div id="locationPreview" class="alert alert-success d-none">
+                            <strong><i class="fas fa-check-circle me-2"></i>Localização obtida!</strong>
+                            <div id="locationText"></div>
+                        </div>
+                        
+                        {{ form.latitude }}
+                        {{ form.longitude }}
+                    </div>
+                </div>
+                
+                <!-- Observações -->
+                <div class="card-elp">
+                    <div class="card-header-elp">
+                        <h5>
+                            <i class="fas fa-clipboard-list section-icon"></i>
+                            Observações e Relatório
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ form.observacoes_gerais.label.text }}</label>
+                            {{ form.observacoes_gerais(class="form-control", rows="4", placeholder="Observações gerais sobre a visita") }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ form.pendencias.label.text }}</label>
+                            {{ form.pendencias(class="form-control", rows="3", placeholder="Pendências identificadas") }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ form.recomendacoes.label.text }}</label>
+                            {{ form.recomendacoes(class="form-control", rows="3", placeholder="Recomendações técnicas") }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fotos -->
+                <div class="card-elp">
+                    <div class="card-header-elp">
+                        <h5>
+                            <i class="fas fa-camera section-icon"></i>
+                            Anexar Fotos
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ form.fotos.label.text }}</label>
+                            {{ form.fotos(class="form-control") }}
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Formatos aceitos: JPG, PNG. Múltiplas fotos permitidas.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Campos ocultos -->
+                {{ form.checklist_completo }}
+                
+                <!-- Botões de Ação -->
+                <div class="card-elp">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <button type="submit" name="action" value="finalize" class="btn btn-elp-primary w-100" id="finalizeBtn">
+                                    <i class="fas fa-check me-2"></i>
+                                    Finalizar Relatório
+                                </button>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <button type="submit" name="action" value="save_draft" class="btn btn-elp-secondary w-100">
+                                    <i class="fas fa-save me-2"></i>
+                                    Salvar Rascunho
+                                </button>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <a href="{{ url_for('express_list') }}" class="btn btn-elp-outline w-100">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    Cancelar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </form>
+        </div>
     </div>
-    
-    <!-- Progress Bar -->
-    <div class="progress-section">
-        <div class="progress-track">
-            <div class="progress-fill" id="progressBar"></div>
-        </div>
-        <div class="progress-text" id="progressText">Preencha os campos obrigatórios</div>
-    </div>
-    
-    <form method="POST" enctype="multipart/form-data" id="expressForm">
-        {{ form.hidden_tag() }}
-        
-        <!-- Dados da Empresa -->
-        <div class="form-section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-building section-icon"></i>
-                    Dados da Empresa
-                </h2>
-            </div>
-            <div class="section-body">
-                <div class="field-group">
-                    <label class="field-label required">{{ form.empresa_nome.label.text }}</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-building input-icon"></i>
-                        {{ form.empresa_nome(class="field-input", required=true) }}
-                    </div>
-                </div>
-                
-                <div class="field-group">
-                    <label class="field-label">{{ form.empresa_endereco.label.text }}</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-map-marker-alt input-icon"></i>
-                        {{ form.empresa_endereco(class="field-input") }}
-                    </div>
-                </div>
-                
-                <div class="field-row">
-                    <div class="field-col">
-                        <div class="field-group">
-                            <label class="field-label">{{ form.empresa_telefone.label.text }}</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-phone input-icon"></i>
-                                {{ form.empresa_telefone(class="field-input") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field-col">
-                        <div class="field-group">
-                            <label class="field-label">{{ form.empresa_email.label.text }}</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-envelope input-icon"></i>
-                                {{ form.empresa_email(class="field-input", type="email") }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="field-group">
-                    <label class="field-label">{{ form.empresa_responsavel.label.text }}</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-user input-icon"></i>
-                        {{ form.empresa_responsavel(class="field-input") }}
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Dados da Visita -->
-        <div class="form-section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-calendar section-icon"></i>
-                    Dados da Visita
-                </h2>
-            </div>
-            <div class="section-body">
-                <div class="field-row">
-                    <div class="field-col">
-                        <div class="field-group">
-                            <label class="field-label required">{{ form.data_visita.label.text }}</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-calendar input-icon"></i>
-                                {{ form.data_visita(class="field-input", required=true) }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field-col">
-                        <div class="field-group">
-                            <label class="field-label">{{ form.periodo_inicio.label.text }}</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-clock input-icon"></i>
-                                {{ form.periodo_inicio(class="field-input") }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="field-group">
-                    <label class="field-label">{{ form.periodo_fim.label.text }}</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-clock input-icon"></i>
-                        {{ form.periodo_fim(class="field-input") }}
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Condições -->
-        <div class="form-section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-cloud-sun section-icon"></i>
-                    Condições Climáticas
-                </h2>
-            </div>
-            <div class="section-body">
-                <div class="field-row">
-                    <div class="field-col">
-                        <div class="field-group">
-                            <label class="field-label">{{ form.condicoes_climaticas.label.text }}</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-cloud-sun input-icon"></i>
-                                {{ form.condicoes_climaticas(class="field-input") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field-col">
-                        <div class="field-group">
-                            <label class="field-label">{{ form.temperatura.label.text }}</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-thermometer-half input-icon"></i>
-                                {{ form.temperatura(class="field-input") }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Localização -->
-        <div class="form-section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-map-marker-alt section-icon"></i>
-                    Localização da Visita
-                </h2>
-            </div>
-            <div class="section-body">
-                <div class="field-group">
-                    <label class="field-label">{{ form.endereco_visita.label.text }}</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-map-marker-alt input-icon"></i>
-                        {{ form.endereco_visita(class="field-input") }}
-                    </div>
-                </div>
-                
-                <button type="button" id="getLocationBtn" class="btn btn-outline">
-                    <i class="fas fa-crosshairs"></i> Obter Localização GPS
-                </button>
-                
-                <div id="locationPreview" class="location-preview"></div>
-                
-                {{ form.latitude }}
-                {{ form.longitude }}
-            </div>
-        </div>
-        
-        <!-- Observações -->
-        <div class="form-section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-clipboard-list section-icon"></i>
-                    Observações e Relatório
-                </h2>
-            </div>
-            <div class="section-body">
-                <div class="field-group">
-                    <label class="field-label">{{ form.observacoes_gerais.label.text }}</label>
-                    {{ form.observacoes_gerais(class="field-input") }}
-                </div>
-                
-                <div class="field-group">
-                    <label class="field-label">{{ form.pendencias.label.text }}</label>
-                    {{ form.pendencias(class="field-input") }}
-                </div>
-                
-                <div class="field-group">
-                    <label class="field-label">{{ form.recomendacoes.label.text }}</label>
-                    {{ form.recomendacoes(class="field-input") }}
-                </div>
-            </div>
-        </div>
-        
-        <!-- Fotos -->
-        <div class="form-section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-camera section-icon"></i>
-                    Anexar Fotos
-                </h2>
-            </div>
-            <div class="section-body">
-                <div class="field-group">
-                    <label class="field-label">{{ form.fotos.label.text }}</label>
-                    {{ form.fotos(class="field-input") }}
-                </div>
-            </div>
-        </div>
-        
-        <!-- Campos ocultos -->
-        {{ form.checklist_completo }}
-        
-        <!-- Botões -->
-        <div class="button-group">
-            <button type="submit" name="action" value="finalize" class="btn btn-primary" id="finalizeBtn">
-                <i class="fas fa-check"></i> Finalizar Relatório
-            </button>
-            <button type="submit" name="action" value="save_draft" class="btn btn-secondary">
-                <i class="fas fa-save"></i> Salvar Rascunho
-            </button>
-            <a href="{{ url_for('express_list') }}" class="btn btn-outline">
-                <i class="fas fa-arrow-left"></i> Cancelar
-            </a>
-        </div>
-    </form>
 </div>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('📱 Sistema Mobile-First ELP Iniciado');
+    console.log('🚀 Sistema ELP Express Report iniciado');
     
     // Elementos principais
     const form = document.getElementById('expressForm');
@@ -679,6 +585,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const progressText = document.getElementById('progressText');
     const getLocationBtn = document.getElementById('getLocationBtn');
     const locationPreview = document.getElementById('locationPreview');
+    const locationText = document.getElementById('locationText');
     const finalizeBtn = document.getElementById('finalizeBtn');
     
     // Configurar data/hora atual
@@ -691,7 +598,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (dataInput && !dataInput.value) dataInput.value = hoje;
     if (horaInput && !horaInput.value) horaInput.value = agora;
     
-    // Progress tracking
+    // Função para atualizar progresso
     function updateProgress() {
         const requiredFields = form.querySelectorAll('[required]');
         let filledCount = 0;
@@ -706,103 +613,107 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (progressBar) {
             progressBar.style.width = progress + '%';
+            progressBar.setAttribute('aria-valuenow', progress);
         }
         
         if (progressText) {
             if (progress === 0) {
-                progressText.textContent = 'Comece preenchendo os dados';
+                progressText.textContent = 'Comece preenchendo os campos obrigatórios';
             } else if (progress < 50) {
-                progressText.textContent = `${progress}% - Continue preenchendo`;
+                progressText.textContent = `${progress}% completo - Continue preenchendo`;
             } else if (progress < 100) {
-                progressText.textContent = `${progress}% - Quase pronto!`;
+                progressText.textContent = `${progress}% completo - Quase pronto!`;
             } else {
-                progressText.textContent = '✅ Pronto para finalizar';
+                progressText.textContent = '✅ Todos os campos obrigatórios preenchidos';
             }
         }
         
-        // Enable/disable finalize button
+        // Habilitar/desabilitar botão finalizar
         if (finalizeBtn) {
             finalizeBtn.disabled = progress < 100;
             if (progress === 100) {
-                finalizeBtn.style.opacity = '1';
+                finalizeBtn.classList.remove('opacity-50');
             } else {
-                finalizeBtn.style.opacity = '0.7';
+                finalizeBtn.classList.add('opacity-50');
             }
         }
     }
     
-    // Monitor campos obrigatórios
+    // Monitorar campos obrigatórios
     const requiredFields = form.querySelectorAll('[required]');
     requiredFields.forEach(field => {
         field.addEventListener('input', updateProgress);
         field.addEventListener('change', updateProgress);
     });
     
-    // Geolocalização
-    if (getLocationBtn && locationPreview) {
+    // Geolocalização GPS
+    if (getLocationBtn) {
         getLocationBtn.addEventListener('click', function() {
             if (!navigator.geolocation) {
-                alert('Geolocalização não suportada pelo seu navegador.');
+                alert('Geolocalização não é suportada pelo seu navegador.');
                 return;
             }
             
             const originalHTML = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Localizando...';
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Obtendo localização...';
             this.disabled = true;
             this.classList.add('loading');
             
-            console.log('📍 Obtendo GPS...');
+            console.log('📍 Obtendo coordenadas GPS...');
             
             navigator.geolocation.getCurrentPosition(
-                (position) => {
+                function(position) {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
                     const accuracy = Math.round(position.coords.accuracy);
                     
-                    // Preencher campos
+                    // Preencher campos ocultos
                     const latInput = document.querySelector('input[name="latitude"]');
                     const lonInput = document.querySelector('input[name="longitude"]');
                     
                     if (latInput) latInput.value = lat.toFixed(6);
                     if (lonInput) lonInput.value = lon.toFixed(6);
                     
-                    // Mostrar preview
-                    locationPreview.innerHTML = `
-                        <strong>📍 Localização obtida com sucesso!</strong><br>
-                        <small>Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}</small><br>
-                        <small>Precisão: ${accuracy}m</small>
-                    `;
-                    locationPreview.style.display = 'block';
+                    // Mostrar localização obtida
+                    if (locationText && locationPreview) {
+                        locationText.innerHTML = `
+                            <small class="d-block">Latitude: ${lat.toFixed(6)}</small>
+                            <small class="d-block">Longitude: ${lon.toFixed(6)}</small>
+                            <small class="text-muted">Precisão: ${accuracy}m</small>
+                        `;
+                        locationPreview.classList.remove('d-none');
+                    }
                     
-                    this.innerHTML = '<i class="fas fa-check"></i> GPS Obtido';
-                    this.disabled = false;
-                    this.classList.remove('loading');
-                    this.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
-                    this.style.color = 'white';
+                    // Atualizar botão
+                    getLocationBtn.innerHTML = '<i class="fas fa-check me-2"></i>Localização Obtida';
+                    getLocationBtn.disabled = false;
+                    getLocationBtn.classList.remove('loading', 'btn-elp-outline');
+                    getLocationBtn.classList.add('btn-success');
                     
                     console.log('✅ Localização obtida com sucesso');
                 },
-                (error) => {
-                    console.error('❌ Erro GPS:', error);
+                function(error) {
+                    console.error('❌ Erro ao obter localização:', error);
                     
-                    let errorMsg = 'Erro ao obter localização.';
+                    let errorMessage = 'Erro ao obter localização.';
                     switch(error.code) {
                         case error.PERMISSION_DENIED:
-                            errorMsg = 'Permissão negada. Ative a localização nas configurações.';
+                            errorMessage = 'Permissão negada. Permita o acesso à localização.';
                             break;
                         case error.POSITION_UNAVAILABLE:
-                            errorMsg = 'Localização indisponível no momento.';
+                            errorMessage = 'Localização indisponível no momento.';
                             break;
                         case error.TIMEOUT:
-                            errorMsg = 'Tempo esgotado para obter localização.';
+                            errorMessage = 'Tempo limite atingido para obter localização.';
                             break;
                     }
                     
-                    alert(errorMsg);
+                    alert(errorMessage);
                     
-                    this.innerHTML = originalHTML;
-                    this.disabled = false;
-                    this.classList.remove('loading');
+                    // Restaurar botão
+                    getLocationBtn.innerHTML = originalHTML;
+                    getLocationBtn.disabled = false;
+                    getLocationBtn.classList.remove('loading');
                 },
                 {
                     enableHighAccuracy: true,
@@ -813,7 +724,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Form submission
+    // Submissão do formulário
     if (form) {
         form.addEventListener('submit', function(e) {
             const submitBtn = e.submitter;
@@ -822,16 +733,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const originalHTML = submitBtn.innerHTML;
                 
                 if (submitBtn.name === 'action' && submitBtn.value === 'finalize') {
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finalizando...';
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Finalizando...';
                     submitBtn.classList.add('loading');
-                    console.log('📝 Finalizando relatório...');
+                    console.log('📝 Finalizando relatório express...');
                 } else if (submitBtn.name === 'action' && submitBtn.value === 'save_draft') {
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando...';
                     submitBtn.classList.add('loading');
                     console.log('💾 Salvando rascunho...');
                 }
                 
-                // Restore after timeout
+                // Restaurar após timeout
                 setTimeout(() => {
                     if (submitBtn.classList.contains('loading')) {
                         submitBtn.innerHTML = originalHTML;
@@ -842,10 +753,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Initial progress
+    // Progresso inicial
     setTimeout(updateProgress, 500);
     
-    console.log('✅ Sistema Mobile-First inicializado com sucesso');
+    console.log('✅ Sistema ELP inicializado com sucesso');
 });
 </script>
 {% endblock %}
