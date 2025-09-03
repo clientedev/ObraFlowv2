@@ -90,17 +90,17 @@
                 </div>
                 <div class="card-body">
                     {% if relatorios %}
-                    <div class="table-responsive">
+                    <div class="table-responsive mobile-scroll-table">
                         <table class="table table-hover">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Número</th>
-                                    <th class="d-none d-md-table-cell">Empresa</th>
-                                    <th class="d-none d-lg-table-cell">Data da Visita</th>
-                                    <th class="d-none d-lg-table-cell">Autor</th>
-                                    <th>Status</th>
-                                    <th class="d-none d-md-table-cell">Criado em</th>
-                                    <th style="min-width: 140px;">Ações</th>
+                                    <th style="min-width: 80px;">Número</th>
+                                    <th style="min-width: 150px;">Empresa</th>
+                                    <th style="min-width: 110px;">Data da Visita</th>
+                                    <th style="min-width: 100px;">Autor</th>
+                                    <th style="min-width: 100px;">Status</th>
+                                    <th style="min-width: 120px;">Criado em</th>
+                                    <th style="min-width: 180px;">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -108,12 +108,8 @@
                                 <tr>
                                     <td>
                                         <strong class="text-primary">{{ relatorio.numero }}</strong>
-                                        <div class="d-md-none">
-                                            <small class="text-muted d-block">{{ relatorio.empresa_nome }}</small>
-                                            <small class="text-muted">{{ relatorio.created_at.strftime('%d/%m/%Y') }}</small>
-                                        </div>
                                     </td>
-                                    <td class="d-none d-md-table-cell">
+                                    <td>
                                         <div>
                                             <strong>{{ relatorio.empresa_nome }}</strong>
                                             {% if relatorio.empresa_responsavel %}
@@ -121,34 +117,30 @@
                                             {% endif %}
                                         </div>
                                     </td>
-                                    <td class="d-none d-lg-table-cell">
+                                    <td>
                                         {% if relatorio.data_visita %}
                                             {{ relatorio.data_visita.strftime('%d/%m/%Y') }}
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td class="d-none d-lg-table-cell">
+                                    <td>
                                         <small>{{ relatorio.autor.nome_completo }}</small>
                                     </td>
                                     <td>
                                         {% if relatorio.status == 'rascunho' %}
                                             <span class="badge bg-warning">
-                                                <i class="fas fa-edit d-none d-sm-inline"></i> 
-                                                <span class="d-none d-sm-inline">Rascunho</span>
-                                                <span class="d-sm-none">R</span>
+                                                <i class="fas fa-edit"></i> Rascunho
                                             </span>
                                         {% elif relatorio.status == 'finalizado' %}
                                             <span class="badge bg-success">
-                                                <i class="fas fa-check d-none d-sm-inline"></i> 
-                                                <span class="d-none d-sm-inline">Finalizado</span>
-                                                <span class="d-sm-none">F</span>
+                                                <i class="fas fa-check"></i> Finalizado
                                             </span>
                                         {% else %}
                                             <span class="badge bg-secondary">{{ relatorio.status|title }}</span>
                                         {% endif %}
                                     </td>
-                                    <td class="d-none d-md-table-cell">
+                                    <td>
                                         <small class="text-muted">
                                             {{ relatorio.created_at.strftime('%d/%m/%Y %H:%M') }}
                                         </small>

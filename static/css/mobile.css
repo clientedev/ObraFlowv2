@@ -1,22 +1,50 @@
 /* Mobile-First CSS Enhancement */
 
-/* Base mobile styles */
+/* Base mobile styles - STOP SCREEN VIBRATION */
 * {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
     box-sizing: border-box;
+    /* Eliminar qualquer vibração ou feedback tátil */
+    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+    touch-action: manipulation !important;
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* ELIMINAR VIBRAÇÃO COMPLETA DO BODY */
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    touch-action: manipulation !important;
+    overscroll-behavior: contain;
+    /* Prevenir bounce scroll que pode causar "vibração" */
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Touch-friendly inputs */
 input, select, textarea, button {
     font-size: 16px !important; /* Prevents zoom on iOS */
     min-height: 44px; /* Apple's recommended touch target size */
+    /* ELIMINAR VIBRAÇÃO EM INPUTS */
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    touch-action: manipulation !important;
+}
+
+/* Permitir seleção de texto apenas em inputs de texto */
+input[type="text"], input[type="email"], input[type="password"], textarea {
+    -webkit-user-select: text !important;
+    user-select: text !important;
 }
 
 /* Mobile button improvements */
@@ -31,7 +59,10 @@ input, select, textarea, button {
 }
 
 .btn:active {
-    transform: scale(0.98);
+    /* REMOVER TRANSFORM QUE CAUSA VIBRAÇÃO */
+    /* transform: scale(0.98); */
+    opacity: 0.8;
+    background-color: rgba(0,123,255,0.1);
 }
 
 /* Mobile form improvements */
@@ -106,25 +137,95 @@ input, select, textarea, button {
 }
 
 .clickable:active, .card:active {
-    transform: scale(0.98);
+    /* REMOVER TRANSFORM QUE CAUSA VIBRAÇÃO */
+    /* transform: scale(0.98); */
     opacity: 0.8;
+    background-color: rgba(0,123,255,0.05);
 }
 
-/* Mobile table improvements */
+/* Mobile table improvements - CORRIGIR SCROLL HORIZONTAL */
 @media (max-width: 768px) {
     .table-responsive {
         border-radius: 8px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        /* GARANTIR SCROLL HORIZONTAL SUAVE */
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        -webkit-overflow-scrolling: touch !important;
+        /* Eliminar vibração na tabela */
+        -webkit-tap-highlight-color: transparent !important;
+        touch-action: pan-x pan-y !important;
+        /* Scroll suave sem bounce */
+        overscroll-behavior: contain;
+        scroll-behavior: smooth;
     }
     
     .table {
         font-size: 14px;
+        /* GARANTIR LARGURA MÍNIMA PARA FORÇAR SCROLL HORIZONTAL */
+        min-width: 800px !important;
+        margin-bottom: 0;
     }
     
     .table th,
     .table td {
-        padding: 8px;
+        padding: 8px 12px;
         white-space: nowrap;
+        /* Larguras mínimas para cada coluna */
+        min-width: 80px;
+    }
+    
+    /* Ajustar larguras específicas das colunas */
+    .table th:first-child,
+    .table td:first-child {
+        min-width: 60px; /* Número */
+    }
+    
+    .table th:nth-child(2),
+    .table td:nth-child(2) {
+        min-width: 150px; /* Título */
+    }
+    
+    .table th:nth-child(3),
+    .table td:nth-child(3) {
+        min-width: 120px; /* Projeto */
+    }
+    
+    .table th:nth-child(4),
+    .table td:nth-child(4) {
+        min-width: 100px; /* Autor */
+    }
+    
+    .table th:nth-child(5),
+    .table td:nth-child(5) {
+        min-width: 90px; /* Data */
+    }
+    
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+        min-width: 120px; /* Status */
+    }
+    
+    .table th:last-child,
+    .table td:last-child {
+        min-width: 200px; /* Ações */
+    }
+    
+    /* Classe específica para scroll suave em tabelas mobile */
+    .mobile-scroll-table {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        touch-action: pan-x pan-y !important;
+        overscroll-behavior-x: contain !important;
+        scroll-behavior: smooth !important;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .mobile-scroll-table .table {
+        min-width: 750px !important;
+        margin-bottom: 0;
     }
 }
 
