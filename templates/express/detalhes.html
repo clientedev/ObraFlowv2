@@ -2,6 +2,55 @@
 
 {% block title %}Relatório Express {{ relatorio.numero }}{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Mobile optimizations for express report details */
+@media (max-width: 768px) {
+    .btn-group {
+        flex-direction: column !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+    
+    .btn-group .btn {
+        width: 100% !important;
+        min-height: 44px !important;
+        justify-content: center !important;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column !important;
+        gap: 16px !important;
+        align-items: stretch !important;
+    }
+    
+    .card-body {
+        padding: 12px !important;
+    }
+    
+    .row .col-md-6,
+    .row .col-md-4 {
+        margin-bottom: 12px;
+    }
+}
+
+@media (max-width: 576px) {
+    .btn-group .btn {
+        min-height: 48px !important;
+        font-size: 14px !important;
+    }
+    
+    h3 {
+        font-size: 1.5rem !important;
+    }
+    
+    .badge {
+        font-size: 12px !important;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">

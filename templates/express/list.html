@@ -2,6 +2,70 @@
 
 {% block title %}Relatórios Express{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Mobile optimizations for express reports table */
+@media (max-width: 768px) {
+    .btn-group-sm .btn {
+        min-width: 40px;
+        min-height: 40px;
+        padding: 8px 10px;
+        margin: 2px;
+    }
+    
+    .btn-group-sm {
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+    }
+    
+    .table td {
+        padding: 8px 4px !important;
+        vertical-align: middle;
+    }
+    
+    .table th {
+        padding: 8px 4px !important;
+        font-size: 14px;
+    }
+    
+    .badge {
+        font-size: 11px;
+        padding: 4px 6px;
+    }
+}
+
+@media (max-width: 576px) {
+    .btn-group-sm .btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    
+    .table {
+        font-size: 13px;
+    }
+    
+    .card-body {
+        padding: 12px;
+    }
+}
+
+/* Ensure action buttons don't overflow */
+.table td:last-child {
+    white-space: nowrap;
+    width: 1%;
+}
+
+.btn-group-sm {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 2px !important;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -31,12 +95,12 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Número</th>
-                                    <th>Empresa</th>
-                                    <th>Data da Visita</th>
-                                    <th>Autor</th>
+                                    <th class="d-none d-md-table-cell">Empresa</th>
+                                    <th class="d-none d-lg-table-cell">Data da Visita</th>
+                                    <th class="d-none d-lg-table-cell">Autor</th>
                                     <th>Status</th>
-                                    <th>Criado em</th>
-                                    <th width="200">Ações</th>
+                                    <th class="d-none d-md-table-cell">Criado em</th>
+                                    <th style="min-width: 140px;">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -44,8 +108,12 @@
                                 <tr>
                                     <td>
                                         <strong class="text-primary">{{ relatorio.numero }}</strong>
+                                        <div class="d-md-none">
+                                            <small class="text-muted d-block">{{ relatorio.empresa_nome }}</small>
+                                            <small class="text-muted">{{ relatorio.created_at.strftime('%d/%m/%Y') }}</small>
+                                        </div>
                                     </td>
-                                    <td>
+                                    <td class="d-none d-md-table-cell">
                                         <div>
                                             <strong>{{ relatorio.empresa_nome }}</strong>
                                             {% if relatorio.empresa_responsavel %}
@@ -53,45 +121,51 @@
                                             {% endif %}
                                         </div>
                                     </td>
-                                    <td>
+                                    <td class="d-none d-lg-table-cell">
                                         {% if relatorio.data_visita %}
                                             {{ relatorio.data_visita.strftime('%d/%m/%Y') }}
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="d-none d-lg-table-cell">
                                         <small>{{ relatorio.autor.nome_completo }}</small>
                                     </td>
                                     <td>
                                         {% if relatorio.status == 'rascunho' %}
                                             <span class="badge bg-warning">
-                                                <i class="fas fa-edit"></i> Rascunho
+                                                <i class="fas fa-edit d-none d-sm-inline"></i> 
+                                                <span class="d-none d-sm-inline">Rascunho</span>
+                                                <span class="d-sm-none">R</span>
                                             </span>
                                         {% elif relatorio.status == 'finalizado' %}
                                             <span class="badge bg-success">
-                                                <i class="fas fa-check"></i> Finalizado
+                                                <i class="fas fa-check d-none d-sm-inline"></i> 
+                                                <span class="d-none d-sm-inline">Finalizado</span>
+                                                <span class="d-sm-none">F</span>
                                             </span>
                                         {% else %}
                                             <span class="badge bg-secondary">{{ relatorio.status|title }}</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="d-none d-md-table-cell">
                                         <small class="text-muted">
                                             {{ relatorio.created_at.strftime('%d/%m/%Y %H:%M') }}
                                         </small>
                                     </td>
                                     <td>
-                                        <div class="btn-group-sm">
+                                        <div class="btn-group-sm d-flex flex-wrap gap-1">
                                             <a href="{{ url_for('express_detail', id=relatorio.id) }}" 
                                                class="btn btn-outline-primary btn-sm" title="Visualizar">
                                                 <i class="fas fa-eye"></i>
+                                                <span class="d-none d-lg-inline ms-1">Ver</span>
                                             </a>
                                             
                                             {% if relatorio.status == 'rascunho' %}
                                             <a href="{{ url_for('express_edit', id=relatorio.id) }}" 
                                                class="btn btn-outline-secondary btn-sm" title="Editar">
                                                 <i class="fas fa-edit"></i>
+                                                <span class="d-none d-xl-inline ms-1">Editar</span>
                                             </a>
                                             {% endif %}
                                             
@@ -99,6 +173,7 @@
                                             <a href="{{ url_for('express_pdf', id=relatorio.id) }}" 
                                                class="btn btn-outline-danger btn-sm" title="Baixar PDF">
                                                 <i class="fas fa-file-pdf"></i>
+                                                <span class="d-none d-xl-inline ms-1">PDF</span>
                                             </a>
                                             {% endif %}
                                             

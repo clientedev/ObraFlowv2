@@ -909,6 +909,29 @@ function mapCategoryToLegenda(photoCategory) {
     return mapping[photoCategory] || 'Geral';
 }
 
+// Função para alternar checkbox e mostrar/ocultar campo de observações
+function toggleChecklistItem(checkbox) {
+    const itemId = checkbox.id.replace('check_', '');
+    const obsField = document.getElementById(`obs_${itemId}`);
+    const parentItem = checkbox.closest('.checklist-item');
+    
+    if (checkbox.checked) {
+        if (obsField) {
+            obsField.style.display = 'block';
+        }
+        if (parentItem) {
+            parentItem.classList.add('completed');
+        }
+    } else {
+        if (obsField) {
+            obsField.style.display = 'none';
+        }
+        if (parentItem) {
+            parentItem.classList.remove('completed');
+        }
+    }
+}
+
 // Função para alternar estado do checklist item
 function toggleChecklistItem(checkbox) {
     const itemId = checkbox.id.replace('check_', '');
