@@ -154,24 +154,27 @@ function showUpdateLoader() {
     document.body.appendChild(loader);
 }
 
-// Adicionar estilos de animação
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideInRight {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    
-    @keyframes slideOutRight {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-    }
-    
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-`;
-document.head.appendChild(style);
+// Adicionar estilos de animação (apenas se não existir)
+if (!document.getElementById('pwa-update-styles')) {
+    const style = document.createElement('style');
+    style.id = 'pwa-update-styles';
+    style.textContent = `
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
+}
 
 console.log('🚀 PWA Update Manager v2.0 carregado - Editor Figma Mobile');
