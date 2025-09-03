@@ -3,7 +3,7 @@
     "short_name": "ELP Relatórios",
     "description": "Sistema de acompanhamento de visitas em obras para ELP Consultoria e Engenharia",
     "start_url": "/",
-    "display": "fullscreen",
+    "display": "standalone",
     "background_color": "#343a40",
     "theme_color": "#20c1e8",
     "orientation": "portrait-primary",

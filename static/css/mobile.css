@@ -1,48 +1,28 @@
 /* CSS Mobile Otimizado - Sistema de Visitas */
 
-/* Fixar app na tela - impedir arrasto */
+/* Impedir arrasto sem quebrar layout */
 html, body {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: none;
-    touch-action: pan-y;
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
-}
-
-/* Impedir que a página seja arrastável */
-body {
     -webkit-user-drag: none;
     -khtml-user-drag: none;
     -moz-user-drag: none;
     -o-user-drag: none;
     user-drag: none;
-}
-
-/* Container principal */
-main, .container, .container-fluid {
-    height: 100vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-}
-
-/* Parar vibração da tela */
-* {
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+    overscroll-behavior: none;
 }
 
 /* Permitir seleção de texto em inputs */
 input, textarea, select {
     -webkit-user-select: text;
     user-select: text;
+    touch-action: manipulation;
+}
+
+/* Parar vibração da tela */
+* {
+    -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
 }
 
