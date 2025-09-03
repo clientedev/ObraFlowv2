@@ -18,7 +18,7 @@ input, textarea, select {
     user-select: text !important;
 }
 
-/* Estabilizar tabela completamente */
+/* Estabilizar tabela COM scroll horizontal */
 .table-responsive {
     background: #f8f9fa;
     border-radius: 8px;
@@ -26,6 +26,11 @@ input, textarea, select {
     -webkit-user-select: none !important;
     user-select: none !important;
     -webkit-touch-callout: none !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+    width: 100%;
 }
 
 .table, .table th, .table td {
@@ -33,6 +38,13 @@ input, textarea, select {
     -webkit-user-select: none !important;
     user-select: none !important;
     -webkit-touch-callout: none !important;
+    min-width: 150px;
+    white-space: nowrap;
+}
+
+.table {
+    min-width: 900px !important;
+    width: max-content;
 }
 
 /* Eliminar tremida em botões e cards */
@@ -43,12 +55,37 @@ input, textarea, select {
     -webkit-tap-highlight-color: transparent !important;
 }
 
-/* Parar qualquer animação que cause tremida */
+/* Parar qualquer animação que cause tremida EXCETO scroll */
 .container-fluid, .row, .col-12 {
     -webkit-user-select: none !important;
     user-select: none !important;
     transform: translate3d(0,0,0);
     -webkit-transform: translate3d(0,0,0);
+}
+
+/* GARANTIR scroll horizontal nas tabelas */
+.table-responsive {
+    border: 2px solid #20c1e8;
+    margin: 10px 0;
+}
+
+/* Indicador visual de scroll */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #20c1e8;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #17a2b8;
 }
 </style>
 {% endblock %}
