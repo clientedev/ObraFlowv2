@@ -5,6 +5,8 @@
 {% block head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<link href="{{ url_for('static', filename='css/express-mobile.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/canva-style-editor.css') }}" rel="stylesheet">
 <style>
 /* CSS específico para eliminar tremida na página novo express */
 * {
@@ -269,53 +271,64 @@ input, textarea, select {
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3><i class="fas fa-plus-circle"></i> Novo Relatório Express</h3>
-                <a href="{{ url_for('express_list') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Voltar à Lista
-                </a>
+<div class="safe-area-container">
+    <div class="express-container">
+        <div class="express-row">
+            <div class="express-col-12">
+                <div class="express-d-flex express-justify-content-between express-align-items-center express-mb-4 express-header">
+                    <h3 class="express-text-primary"><i class="fas fa-plus-circle"></i> Novo Relatório Express</h3>
+                    <a href="{{ url_for('express_list') }}" class="express-btn express-btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
 
     <form method="POST" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         
-        <div class="row">
-            <div class="col-lg-8">
+        <div class="express-row">
+            <div class="express-col-lg-8 express-col-12">
                 <!-- DADOS DA EMPRESA -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5><i class="fas fa-building"></i> Dados da Empresa</h5>
-                        <small class="text-muted">Informações da empresa visitada</small>
+                <div class="express-card">
+                    <div class="express-card-header">
+                        <div>
+                            <h5 class="express-mb-0"><i class="fas fa-building express-text-primary"></i> Dados da Empresa</h5>
+                            <small class="express-text-muted">Informações da empresa visitada</small>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.empresa_nome.label(class="form-label") }}
-                                {{ form.empresa_nome(class="form-control") }}
+                    <div class="express-card-body">
+                        <div class="express-row">
+                            <div class="express-col-md-6 express-col-12">
+                                <div class="express-form-group">
+                                    {{ form.empresa_nome.label(class="express-form-label") }}
+                                    {{ form.empresa_nome(class="express-form-control") }}
+                                </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.empresa_responsavel.label(class="form-label") }}
-                                {{ form.empresa_responsavel(class="form-control") }}
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.empresa_telefone.label(class="form-label") }}
-                                {{ form.empresa_telefone(class="form-control") }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.empresa_email.label(class="form-label") }}
-                                {{ form.empresa_email(class="form-control") }}
+                            <div class="express-col-md-6 express-col-12">
+                                <div class="express-form-group">
+                                    {{ form.empresa_responsavel.label(class="express-form-label") }}
+                                    {{ form.empresa_responsavel(class="express-form-control") }}
+                                </div>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            {{ form.empresa_endereco.label(class="form-label") }}
-                            {{ form.empresa_endereco(class="form-control") }}
+                        <div class="express-row">
+                            <div class="express-col-md-6 express-col-12">
+                                <div class="express-form-group">
+                                    {{ form.empresa_telefone.label(class="express-form-label") }}
+                                    {{ form.empresa_telefone(class="express-form-control") }}
+                                </div>
+                            </div>
+                            <div class="express-col-md-6 express-col-12">
+                                <div class="express-form-group">
+                                    {{ form.empresa_email.label(class="express-form-label") }}
+                                    {{ form.empresa_email(class="express-form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="express-form-group">
+                            {{ form.empresa_endereco.label(class="express-form-label") }}
+                            {{ form.empresa_endereco(class="express-form-control express-textarea") }}
                         </div>
                     </div>
                 </div>
