@@ -2,6 +2,22 @@
 
 {% block title %}Relatórios{% endblock %}
 
+{% block head %}
+<style>
+/* CSS específico para impedir arrasto na página de relatórios */
+body, html {
+    overscroll-behavior: none !important;
+    touch-action: pan-y !important;
+    -webkit-user-drag: none !important;
+    user-drag: none !important;
+}
+.table-responsive {
+    overscroll-behavior-x: contain !important;
+    overscroll-behavior-y: none !important;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">

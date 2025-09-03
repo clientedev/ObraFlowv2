@@ -37,11 +37,22 @@ input, textarea, select {
     touch-action: manipulation;
 }
 
-/* Evitar arrasto de elementos principais */
-.navbar, .container, .container-fluid, main, nav, header, footer {
-    -webkit-user-drag: none;
-    user-drag: none;
-    touch-action: pan-y;
+/* Evitar arrasto de elementos principais - SUPER FORTE */
+.navbar, .container, .container-fluid, main, nav, header, footer, 
+.card, .card-body, .card-header, .row, .col-12, .col-md-3, .col-sm-6 {
+    -webkit-user-drag: none !important;
+    user-drag: none !important;
+    touch-action: pan-y !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    position: relative;
+}
+
+/* Página de relatórios - IMPEDIR MOVIMENTO TOTAL */
+body, html {
+    overscroll-behavior-x: none !important;
+    overscroll-behavior-y: contain !important;
+    overflow-x: hidden !important;
 }
 
 /* Prevenir movimentação de imagens e ícones */
@@ -52,11 +63,22 @@ img, i, .fas, .fab, .far {
     touch-action: manipulation;
 }
 
-/* Tabelas com scroll horizontal */
+/* Tabelas com scroll horizontal - IMPEDIR ARRASTO */
 .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x pan-y;
+    -webkit-user-drag: none;
+    user-drag: none;
+    position: relative;
+}
+
+/* Forçar estabilidade da tabela */
+.table, .table-striped {
+    -webkit-user-drag: none;
+    user-drag: none;
+    touch-action: pan-y;
+    position: relative;
 }
 
 .mobile-scroll-table {
