@@ -1,28 +1,35 @@
 // Service Worker para PWA e Notificações Push
-const CACHE_NAME = 'elp-relatorios-v1';
+const CACHE_NAME = 'elp-relatorios-v2-figma-editor';
 const urlsToCache = [
   '/',
   '/static/css/style.css',
+  '/static/css/express-mobile.css',
   '/static/js/simple-offline.js',
   '/static/js/pwa-install.js',
+  '/static/js/figma-photo-editor.js',
   '/static/icons/icon-192x192.png',
   '/static/icons/icon-512x512.png',
+  '/express/novo',
   '/offline'
 ];
 
 // Instalação do Service Worker
 self.addEventListener('install', event => {
+  console.log('SW: Instalando versão v2 com Figma Editor');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('SW: Cache aberto');
+        console.log('SW: Cache v2 aberto - Editor Figma incluído');
         return cache.addAll(urlsToCache);
       })
   );
+  // Força ativação imediata da nova versão
+  self.skipWaiting();
 });
 
 // Ativação do Service Worker
 self.addEventListener('activate', event => {
+  console.log('SW: Ativando versão v2 com melhorias mobile');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -33,6 +40,9 @@ self.addEventListener('activate', event => {
           }
         })
       );
+    }).then(() => {
+      // Força controle de todas as abas
+      return self.clients.claim();
     })
   );
 });
