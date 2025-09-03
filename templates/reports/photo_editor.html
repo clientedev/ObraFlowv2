@@ -159,8 +159,6 @@
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
 }
-    touch-action: manipulation;
-}
 
 .color-preset:hover,
 .color-preset:focus {
@@ -819,102 +817,56 @@ function getMousePos(e) {
     ];
 }
 
-// Funções touch otimizadas para máxima precisão em dispositivos móveis
+// Touch Events Simplificados - Máxima Precisão
 function handleTouchStart(e) {
     e.preventDefault();
-    e.stopPropagation();
-    
-    // Verificar se é um toque simples (não multi-touch)
     if (e.touches.length !== 1) return;
     
-    // PRECISÃO MÁXIMA: Calcular offset preciso do canvas
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    // Coordenadas precisas com compensação de scroll
     const touch = e.touches[0];
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const rect = canvas.getBoundingClientRect();
     
-    const exactX = (touch.clientX + scrollLeft - rect.left) * scaleX;
-    const exactY = (touch.clientY + scrollTop - rect.top) * scaleY;
+    // Calcular coordenadas simples e precisas
+    const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
     
-    // Simular evento mouse com coordenadas ultra-precisas
-    const touchEvent = {
-        clientX: rect.left + (exactX / scaleX),
-        clientY: rect.top + (exactY / scaleY),
-        touches: e.touches,
-        preventDefault: () => {},
-        stopPropagation: () => {}
+    // Criar evento simplificado
+    const simpleEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY
     };
     
-    startDrawing(touchEvent);
+    startDrawing(simpleEvent);
 }
 
 function handleTouchMove(e) {
     e.preventDefault();
-    e.stopPropagation();
-    
-    // Verificar se é um toque simples e se está desenhando
     if (e.touches.length !== 1 || !isDrawing) return;
     
-    // PRECISÃO MÁXIMA: Calcular offset preciso do canvas
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    // Coordenadas precisas com compensação de scroll
     const touch = e.touches[0];
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     
-    const exactX = (touch.clientX + scrollLeft - rect.left) * scaleX;
-    const exactY = (touch.clientY + scrollTop - rect.top) * scaleY;
-    
-    // Simular evento mouse com coordenadas ultra-precisas
-    const touchEvent = {
-        clientX: rect.left + (exactX / scaleX),
-        clientY: rect.top + (exactY / scaleY),
-        touches: e.touches,
-        preventDefault: () => {},
-        stopPropagation: () => {}
+    // Evento simplificado
+    const simpleEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY
     };
     
-    draw(touchEvent);
+    draw(simpleEvent);
 }
 
 function handleTouchEnd(e) {
     e.preventDefault();
-    e.stopPropagation();
-    
     if (!isDrawing) return;
     
-    // Para touchend, sempre usar changedTouches para máxima precisão
-    if (e.changedTouches && e.changedTouches.length > 0) {
-        // PRECISÃO MÁXIMA: Calcular offset preciso do canvas
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        
-        // Coordenadas precisas com compensação de scroll
-        const touch = e.changedTouches[0];
-        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
-        const exactX = (touch.clientX + scrollLeft - rect.left) * scaleX;
-        const exactY = (touch.clientY + scrollTop - rect.top) * scaleY;
-        
-        // Usar último toque conhecido para finalizar com coordenadas precisas
-        const touchEvent = {
-            clientX: rect.left + (exactX / scaleX),
-            clientY: rect.top + (exactY / scaleY),
-            changedTouches: e.changedTouches,
-            preventDefault: () => {},
-            stopPropagation: () => {}
-        };
-        stopDrawing(touchEvent);
-    }
+    const touch = e.changedTouches ? e.changedTouches[0] : null;
+    if (!touch) return;
+    
+    // Evento simplificado
+    const simpleEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    };
+    
+    stopDrawing(simpleEvent);
 }
 
 function setColor(color) {

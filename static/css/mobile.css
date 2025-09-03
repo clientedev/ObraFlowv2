@@ -1,448 +1,52 @@
-/* Mobile-First CSS Enhancement */
+/* CSS Mobile Otimizado - Sistema de Visitas */
 
-/* Base mobile styles - STOP SCREEN VIBRATION */
+/* Parar vibração da tela */
 * {
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
-    user-select: none !important;
-    box-sizing: border-box;
-    /* Eliminar qualquer vibração ou feedback tátil */
-    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    /* ELIMINAR VIBRAÇÃO COMPLETA DO BODY */
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    touch-action: manipulation !important;
-    overscroll-behavior: contain;
-    /* Prevenir bounce scroll que pode causar "vibração" */
+/* Permitir seleção de texto em inputs */
+input, textarea, select {
+    -webkit-user-select: text;
+    user-select: text;
+    touch-action: manipulation;
+}
+
+/* Tabelas com scroll horizontal */
+.table-responsive {
+    overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
 }
 
-/* Touch-friendly inputs */
-input, select, textarea, button {
-    font-size: 16px !important; /* Prevents zoom on iOS */
-    min-height: 44px; /* Apple's recommended touch target size */
-    /* ELIMINAR VIBRAÇÃO EM INPUTS */
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    touch-action: manipulation !important;
+.mobile-scroll-table {
+    min-width: 800px;
 }
 
-/* Permitir seleção de texto apenas em inputs de texto */
-input[type="text"], input[type="email"], input[type="password"], textarea {
-    -webkit-user-select: text !important;
-    user-select: text !important;
+.mobile-scroll-table th,
+.mobile-scroll-table td {
+    min-width: 120px;
+    white-space: nowrap;
 }
 
-/* Mobile button improvements */
-.btn {
-    min-height: 44px;
-    padding: 12px 20px;
-    font-size: 16px;
-    border-radius: 8px;
-    transition: all 0.3s ease;
+/* Canvas do editor de fotos */
+#photoCanvas {
+    touch-action: none;
     -webkit-user-select: none;
     user-select: none;
 }
 
-.btn:active {
-    /* REMOVER TRANSFORM QUE CAUSA VIBRAÇÃO */
-    /* transform: scale(0.98); */
-    opacity: 0.8;
-    background-color: rgba(0,123,255,0.1);
-}
-
-/* Mobile form improvements */
-.form-control, .form-select {
-    border-radius: 8px;
-    border: 2px solid #e9ecef;
-    padding: 12px 16px;
-    font-size: 16px;
-    transition: all 0.3s ease;
-}
-
-.form-control:focus, .form-select:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
-    outline: none;
-}
-
-/* Mobile navigation */
-.navbar-toggler {
-    border: none;
-    padding: 8px;
-}
-
-.navbar-toggler:focus {
-    box-shadow: none;
-}
-
-/* Mobile card improvements */
-.card {
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin-bottom: 16px;
-}
-
-/* Mobile spacing improvements */
-@media (max-width: 576px) {
-    .container, .container-fluid {
-        padding-left: 12px;
-        padding-right: 12px;
+/* Botões com área de toque adequada */
+@media (max-width: 767.98px) {
+    .btn, .tool-btn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px 16px;
     }
     
-    .card {
-        margin-bottom: 12px;
+    .color-preset {
+        min-width: 44px;
+        min-height: 44px;
     }
-    
-    .card-body {
-        padding: 16px;
-    }
-    
-    .btn {
-        width: 100%;
-        margin-bottom: 8px;
-    }
-    
-    .btn-group .btn {
-        width: auto;
-        margin-bottom: 0;
-    }
-    
-    h1 { font-size: 1.75rem; }
-    h2 { font-size: 1.5rem; }
-    h3 { font-size: 1.25rem; }
-    h4 { font-size: 1.125rem; }
-    h5 { font-size: 1rem; }
-    h6 { font-size: 0.875rem; }
-}
-
-/* Touch feedback for clickable elements */
-.clickable, .card:hover, .btn, .nav-link, .dropdown-item {
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-.clickable:active, .card:active {
-    /* REMOVER TRANSFORM QUE CAUSA VIBRAÇÃO */
-    /* transform: scale(0.98); */
-    opacity: 0.8;
-    background-color: rgba(0,123,255,0.05);
-}
-
-/* Mobile table improvements - CORRIGIR SCROLL HORIZONTAL */
-@media (max-width: 768px) {
-    .table-responsive {
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        /* GARANTIR SCROLL HORIZONTAL SUAVE */
-        overflow-x: auto !important;
-        overflow-y: visible !important;
-        -webkit-overflow-scrolling: touch !important;
-        /* Eliminar vibração na tabela */
-        -webkit-tap-highlight-color: transparent !important;
-        touch-action: pan-x pan-y !important;
-        /* Scroll suave sem bounce */
-        overscroll-behavior: contain;
-        scroll-behavior: smooth;
-    }
-    
-    .table {
-        font-size: 14px;
-        /* GARANTIR LARGURA MÍNIMA PARA FORÇAR SCROLL HORIZONTAL */
-        min-width: 800px !important;
-        margin-bottom: 0;
-    }
-    
-    .table th,
-    .table td {
-        padding: 8px 12px;
-        white-space: nowrap;
-        /* Larguras mínimas para cada coluna */
-        min-width: 80px;
-    }
-    
-    /* Ajustar larguras específicas das colunas */
-    .table th:first-child,
-    .table td:first-child {
-        min-width: 60px; /* Número */
-    }
-    
-    .table th:nth-child(2),
-    .table td:nth-child(2) {
-        min-width: 150px; /* Título */
-    }
-    
-    .table th:nth-child(3),
-    .table td:nth-child(3) {
-        min-width: 120px; /* Projeto */
-    }
-    
-    .table th:nth-child(4),
-    .table td:nth-child(4) {
-        min-width: 100px; /* Autor */
-    }
-    
-    .table th:nth-child(5),
-    .table td:nth-child(5) {
-        min-width: 90px; /* Data */
-    }
-    
-    .table th:nth-child(6),
-    .table td:nth-child(6) {
-        min-width: 120px; /* Status */
-    }
-    
-    .table th:last-child,
-    .table td:last-child {
-        min-width: 200px; /* Ações */
-    }
-    
-    /* Classe específica para scroll suave em tabelas mobile */
-    .mobile-scroll-table {
-        -webkit-overflow-scrolling: touch !important;
-        overflow-x: auto !important;
-        overflow-y: visible !important;
-        touch-action: pan-x pan-y !important;
-        overscroll-behavior-x: contain !important;
-        scroll-behavior: smooth !important;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
-    .mobile-scroll-table .table {
-        min-width: 750px !important;
-        margin-bottom: 0;
-    }
-}
-
-/* Mobile modal improvements */
-@media (max-width: 576px) {
-    .modal-dialog {
-        margin: 8px;
-        width: calc(100% - 16px);
-        max-width: none;
-    }
-    
-    .modal-content {
-        border-radius: 12px;
-    }
-    
-    .modal-header,
-    .modal-footer {
-        padding: 16px;
-    }
-    
-    .modal-body {
-        padding: 16px;
-    }
-}
-
-/* Loading states for mobile */
-.loading-mobile {
-    position: relative;
-    pointer-events: none;
-    opacity: 0.6;
-}
-
-.loading-mobile::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    margin: -10px 0 0 -10px;
-    border: 2px solid #f3f3f3;
-    border-top: 2px solid #007bff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Mobile notifications */
-.mobile-notification {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #007bff;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 25px;
-    font-size: 14px;
-    font-weight: 500;
-    z-index: 9999;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    animation: slideUp 0.3s ease;
-}
-
-.mobile-notification.success {
-    background: #28a745;
-}
-
-.mobile-notification.error {
-    background: #dc3545;
-}
-
-.mobile-notification.warning {
-    background: #ffc107;
-    color: #212529;
-}
-
-@keyframes slideUp {
-    from {
-        transform: translate(-50%, 100px);
-        opacity: 0;
-    }
-    to {
-        transform: translate(-50%, 0);
-        opacity: 1;
-    }
-}
-
-/* Accessibility improvements */
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-}
-
-/* Forçar tema claro */
-body {
-    background-color: #ffffff !important;
-    color: #212529 !important;
-}
-
-.card {
-    background-color: #ffffff !important;
-    color: #212529 !important;
-}
-
-.form-control, .form-select {
-    background-color: #ffffff !important;
-    color: #495057 !important;
-    border-color: #ced4da !important;
-}
-
-.form-control:focus, .form-select:focus {
-    background-color: #ffffff !important;
-    color: #495057 !important;
-}
-
-.table {
-    color: #212529 !important;
-    background-color: #ffffff !important;
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-    .btn {
-        border-width: 2px;
-    }
-    
-    .form-control, .form-select {
-        border-width: 2px;
-    }
-    
-    .card {
-        border-width: 2px;
-    }
-}
-
-/* Landscape mode adjustments */
-@media screen and (orientation: landscape) and (max-height: 500px) {
-    .navbar-brand {
-        font-size: 14px;
-    }
-    
-    .modal-dialog {
-        max-height: calc(100vh - 20px);
-        margin: 10px auto;
-    }
-    
-    .modal-content {
-        max-height: none;
-        overflow-y: auto;
-    }
-}
-
-/* iOS specific fixes */
-@supports (-webkit-touch-callout: none) {
-    /* iOS Safari specific styles */
-    .form-control, .form-select {
-        border-radius: 8px; /* Consistent with iOS design */
-    }
-    
-    .btn {
-        border-radius: 8px;
-    }
-    
-    /* Fix for iOS viewport bug */
-    .ios-fix {
-        height: -webkit-fill-available;
-    }
-}
-
-/* Android specific fixes */
-@media screen and (-webkit-min-device-pixel-ratio: 1.5) {
-    /* High DPI Android devices */
-    .btn {
-        border-width: 1px;
-    }
-}
-
-/* PWA specific styles */
-@media (display-mode: standalone) {
-    /* When app is installed as PWA */
-    .pwa-only {
-        display: block !important;
-    }
-    
-    .browser-only {
-        display: none !important;
-    }
-    
-    body {
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-    }
-}
-
-/* Safe area adjustments for notched devices */
-.safe-area-top {
-    padding-top: env(safe-area-inset-top);
-}
-
-.safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-}
-
-.safe-area-left {
-    padding-left: env(safe-area-inset-left);
-}
-
-.safe-area-right {
-    padding-right: env(safe-area-inset-right);
 }
