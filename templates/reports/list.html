@@ -4,14 +4,51 @@
 
 {% block head %}
 <style>
-/* CSS específico para experiência perfeita na página de relatórios */
+/* CSS específico para eliminar tremida na página de relatórios */
+* {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+/* Permitir seleção apenas em inputs */
+input, textarea, select {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+}
+
+/* Estabilizar tabela completamente */
 .table-responsive {
     background: #f8f9fa;
     border-radius: 8px;
     padding: 4px;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
 }
-.table {
+
+.table, .table th, .table td {
     margin-bottom: 0;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+}
+
+/* Eliminar tremida em botões e cards */
+.btn, .card, .card-header, .card-body {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Parar qualquer animação que cause tremida */
+.container-fluid, .row, .col-12 {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    transform: translate3d(0,0,0);
+    -webkit-transform: translate3d(0,0,0);
 }
 </style>
 {% endblock %}

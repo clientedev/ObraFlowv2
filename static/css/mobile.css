@@ -1,13 +1,17 @@
 /* CSS Mobile Otimizado - Experiência Perfeita */
 
-/* Configuração base mobile - equilibrada */
+/* Configuração base mobile - estável sem tremida */
 html, body {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
     overscroll-behavior-x: none;
     overscroll-behavior-y: auto;
     overflow-x: hidden;
     touch-action: pan-y;
+    transform: translate3d(0,0,0);
+    -webkit-transform: translate3d(0,0,0);
 }
 
 /* Permitir seleção apenas em inputs */
