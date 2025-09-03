@@ -1,0 +1,122 @@
+Objetivo: Corrigir a versão mobile, restaurar o CSS do Relatório Express para ficar idêntico ao desktop (mas responsivo), consertar o bug do editor de imagens (traços/objetos deslocando para o canto ao adicionar setas/objetos) e implementar um sistema touch-friendly de objetos (tap para adicionar, pinch para redimensionar, botão para rotacionar, trocar cor, confirmar fixa o objeto). Use o vídeo enviado como referência (fluxo inspirado no sistema de objetos do Figma). Seja direto: não altere a lógica do PDF nem do backend — apenas interface, UX e comportamento do editor.
+
+1) Correção do Relatório Express (CSS / Responsividade)
+
+Problema: a tela do Relatório Express está sem CSS (aparecendo como texto puro) em mobile. Deve ficar exatamente igual ao desktop, porém adaptado para mobile (mobile-first).
+
+Requisitos:
+
+Importar/retomar as mesmas classes/componentes CSS do desktop para a página do Relatório Express. Garantir que a mesma hierarquia de containers, paddings e tokens de design (cores, bordas, sombras, radii) seja aplicada.
+
+Adotar mobile-first: breakpoints recomendados 0–480px (mobile), 481–768px (tablet), >768px (desktop).
+
+Container principal com max-width idêntico ao desktop e padding lateral responsivo (ex.: 16px mobile, 24px tablet, 32px desktop). Respeitar env(safe-area-inset-*).
+
+Formular campos do Relatório Express com mesmo markup do formulário de relatório padrão (mesmos label, classes e validações) — só que exibidos verticalmente e com inputs full-width em mobile.
+
+Corrigir ícones, espaçamentos, botões (Voltar / Salvar / PDF) para manter exato estilo desktop (bordas, ícone + texto), empilhando quando não couberem. Alvos de toque ≥ 44px.
+
+Garantir que os cabeçalhos, subtítulos e legendas usem as mesmas fontes/tamanhos relativos (usar clamp() para escala tipográfica).
+
+Critérios de aceitação:
+
+A tela do Relatório Express é indistinguível do desktop em estilo (cores, espaçamentos, tipografia) e permanece totalmente usável em telas mobile sem perder o visual.
+
+Todos os campos replicam exatamente os campos do formulário de relatório normal.
+
+2) Consertar bug do Editor de Imagens (objetos indo para canto / riscos diagonais)
+
+Problema: ao adicionar uma seta/retângulo/círculo no editor mobile, os traços/objetos aparecem deslocados em direção ao canto superior esquerdo (comportamento consistente para todos os objetos).
+
+Análise sugerida (possíveis causas que devem ser verificadas):
+
+Uso incorreto do clientX/clientY vs. coordenadas do canvas/SVG (não compensando offset do container, scroll ou devicePixelRatio).
+
+Canvas com DPR não ajustado (scale mismatch entre CSS pixels e device pixels).
+
+Eventos touch mapeados como mouse sem normalização, ou transformações CSS (transform: scale) não consideradas no cálculo da posição.
+
+Requisitos de correção:
+
+Normalizar coordenadas: mapear sempre as coordenadas do evento para o sistema de coordenadas do elemento usando getBoundingClientRect() e devicePixelRatio. Ex.:
+
+const rect = el.getBoundingClientRect();
+const x = (event.clientX - rect.left) * (el.width / rect.width);
+const y = (event.clientY - rect.top) * (el.height / rect.height);
+
+
+Se usar canvas: configurar largura/altura reais multiplicadas por window.devicePixelRatio, e aplicar context.scale(dpr, dpr) para evitar mismatch visual.
+
+Se usar SVG overlay (recomendado para formas vetoriais): usar coordenadas em SVG viewport e ajustar viewBox, compensando getScreenCTM() quando necessário.
+
+Impedir que scroll da página interfira no touch-draw: ao entrar no modo edição/gesto, bloquear scroll vertical (ex.: touch-action: none no container de desenho, ou body { overflow: hidden } durante edição).
+
+Centralizar a lógica de transformação: todas as transformações (translate/scale/rotate) devem ser calculadas em um único espaço de coordenadas e aplicadas ao objeto, evitando transform CSS adicionais que causem offset.
+
+Critérios de aceitação:
+
+Ao adicionar qualquer objeto (seta/retângulo/círculo), ele aparece exatamente no ponto do toque/click — sem deslocamentos para o canto.
+
+Traços gerados pela ferramenta caneta seguem o dedo/estoque sem saltos ou deslocamentos, independente de zoom/pan.
+
+3) Nova interação de objetos (comportamento igual ao vídeo / Figma objects)
+
+Requisitos funcionais (touch-first):
+
+Selecionar objeto: usuário escolhe ferramenta (Caneta / Seta / Retângulo / Círculo / Texto / etc.) no menu inferior.
+
+Tap para adicionar: ao escolher um objeto (ex.: Seta), o usuário toca na imagem no ponto desejado — o objeto é criado centralizado nesse ponto com tamanho default.
+
+Pinch to scale: permitir redimensionamento via gesto de pinça (2 dedos) para aumentar/diminuir tamanho do objeto. Em desktop permitir arraste das alças.
+
+Pan/Zoom da imagem: suportar pan (com 2 dedos) e pinch zoom na imagem; durante transformação, o sistema deve differentiá-los de gesto de adicionar/arrastar objeto (ex.: 1 dedo = adicionar/arrastar; 2 dedos = pan/zoom).
+
+Rotacionar: disponibilizar um botão de rotação que abre um controle rotacional (slider ou roda) permitindo rotacionar em qualquer grau (0–360°). Também permitir input numérico.
+
+Alterar cor e espessura: painel de propriedades com seleção de cor, espessura da linha e opacidade.
+
+Confirmar/OK: ao clicar OK o objeto fica fixo (imutável) — para alterar depois o usuário deve criar um novo objeto. Permitir opção AVANÇADA: desbloquear objetos (só via modo avançado/editar).
+
+Adicionar múltiplos objetos: após confirmar, usuário pode selecionar outra ferramenta e repetir.
+
+Undo/Redo, duplicar e deletar últimos objetos.
+
+Implementação técnica recomendada:
+
+Usar SVG overlay sobre a imagem (melhor precisão para vetores, rotação / atributos estilo, e export para PDF sem rasterizar irregularmente). Alternativa: Canvas + retained-mode object model (mantendo lista de objetos com transform matrices).
+
+Manter um modelo de objetos em JS com propriedades: { type, x, y, width, height, rotation, color, strokeWidth, locked }.
+
+Ao exportar a imagem para o PDF, rasterizar imagem base + desenhar SVG por cima em alta resolução, garantindo DPI original.
+
+UX detalhado (comportamento igual ao vídeo / Figma objects):
+
+Vídeo mostra: selecionar “Seta”, tocar no ponto para posicionar a seta, usar gesto pinch para aumentar/ diminuir, e há um botão grande para rotacionar; a cor muda via paleta; após OK a seta fica fixa e é possível colocar outra. Reproduzir fluxo idêntico.
+
+Critérios de aceitação:
+
+Tap adiciona objeto no ponto exato; pinch redimensiona suavemente; rotação por botão funciona; OK fixa o objeto; múltiplos objetos funcionam sem interferir entre si.
+
+4) Melhorias gerais de UX e layout (mobile)
+
+Barra inferior de ferramentas deve ser fixa e não sobrepor elementos importantes; botões grandes e separados.
+
+Ao abrir o editor, diminuir background (modal full-screen com backdrop) e manter close (X) no topo.
+
+Mostrar tooltip breve com instruções de toque na primeira vez: “Toque para adicionar · Pinça para redimensionar · Dois dedos para mover/zoom”.
+
+Garantir indicadores visuais para seleção/hover/touch (outline claro, handles visíveis).
+
+5) QA / Testes obrigatórios (deve ser executado e comprovado)
+
+Dispositivos: Android (Chrome), iPhone (Safari), Tablet.
+
+Fluxos para testar:
+
+Relatório Express: abrir → preencher campos → anexar imagem → editar imagem → adicionar 3 objetos (seta, retângulo, texto) → redimensionar com pinch → rotacionar → trocar cor → OK → gerar PDF → verificar objetos fixos no PDF.
+
+Editor: tap para adicionar objetos exatamente no ponto; verificar sem deslocamento.
+
+Export: PDF gerado com mesma aparência do relatório padrão.
+
+Testar com devicePixelRatio variado (1, 2, 3) e em diferentes zooms da página.

@@ -1,0 +1,595 @@
+/* 
+ * CSS Mobile-First para Relatório Express
+ * Objetivo: Reproduzir exatamente o estilo desktop, adaptado responsivamente 
+ */
+
+/* === RESET E BASE === */
+* {
+    box-sizing: border-box;
+}
+
+/* Safe area para dispositivos com notch */
+.safe-area-container {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* === CONTAINERS PRINCIPAIS === */
+.express-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+    width: 100%;
+}
+
+/* === CARDS E COMPONENTES === */
+.express-card {
+    background: white;
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+.express-card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.express-card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+    padding: 1rem 1.5rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.express-card-body {
+    padding: 1.5rem;
+}
+
+/* === FORMULÁRIO === */
+.express-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.express-form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #212529;
+    font-size: 0.875rem;
+}
+
+.express-form-control {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 16px; /* Evita zoom no iOS */
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    background-image: none;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.express-form-control:focus {
+    color: #212529;
+    background-color: #fff;
+    border-color: #007bff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.express-form-control:disabled {
+    background-color: #e9ecef;
+    opacity: 1;
+}
+
+.express-form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 12px;
+    padding-right: 44px;
+}
+
+.express-textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* === BOTÕES === */
+.express-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    line-height: 1.5;
+    color: #212529;
+    text-align: center;
+    text-decoration: none;
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 12px 20px;
+    font-size: 1rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease-in-out;
+    min-height: 44px; /* Target touch mínimo */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    gap: 0.5rem;
+}
+
+.express-btn-primary {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.express-btn-primary:hover {
+    color: #fff;
+    background-color: #0056b3;
+    border-color: #004085;
+}
+
+.express-btn-success {
+    color: #fff;
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.express-btn-success:hover {
+    color: #fff;
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+.express-btn-secondary {
+    color: #fff;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.express-btn-secondary:hover {
+    color: #fff;
+    background-color: #545b62;
+    border-color: #4e555b;
+}
+
+.express-btn-outline-primary {
+    color: #007bff;
+    border-color: #007bff;
+}
+
+.express-btn-outline-primary:hover {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.express-btn-lg {
+    padding: 16px 24px;
+    font-size: 1.125rem;
+    border-radius: 0.5rem;
+    min-height: 48px;
+}
+
+.express-btn-sm {
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    border-radius: 0.25rem;
+    min-height: 38px;
+}
+
+/* === HEADER EXPRESS === */
+.express-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+}
+
+.express-header h1,
+.express-header h2,
+.express-header h3 {
+    margin: 0;
+    font-weight: 600;
+    color: white;
+}
+
+.express-header p {
+    margin: 0.5rem 0 0 0;
+    opacity: 0.9;
+}
+
+/* === GRID SYSTEM === */
+.express-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -0.75rem;
+}
+
+.express-col {
+    flex: 1 1 0%;
+    padding: 0 0.75rem;
+}
+
+.express-col-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+    padding: 0 0.75rem;
+}
+
+.express-col-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding: 0 0.75rem;
+}
+
+.express-col-4 {
+    flex: 0 0 33.333333%;
+    max-width: 33.333333%;
+    padding: 0 0.75rem;
+}
+
+.express-col-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+    padding: 0 0.75rem;
+}
+
+/* === UTILITIES === */
+.express-d-flex {
+    display: flex !important;
+}
+
+.express-flex-wrap {
+    flex-wrap: wrap !important;
+}
+
+.express-justify-content-between {
+    justify-content: space-between !important;
+}
+
+.express-align-items-center {
+    align-items: center !important;
+}
+
+.express-gap-2 {
+    gap: 0.5rem !important;
+}
+
+.express-gap-3 {
+    gap: 1rem !important;
+}
+
+.express-mb-0 {
+    margin-bottom: 0 !important;
+}
+
+.express-mb-1 {
+    margin-bottom: 0.25rem !important;
+}
+
+.express-mb-2 {
+    margin-bottom: 0.5rem !important;
+}
+
+.express-mb-3 {
+    margin-bottom: 1rem !important;
+}
+
+.express-mb-4 {
+    margin-bottom: 1.5rem !important;
+}
+
+.express-mt-2 {
+    margin-top: 0.5rem !important;
+}
+
+.express-mt-3 {
+    margin-top: 1rem !important;
+}
+
+.express-text-center {
+    text-align: center !important;
+}
+
+.express-text-muted {
+    color: #6c757d !important;
+}
+
+.express-fw-bold {
+    font-weight: 700 !important;
+}
+
+.express-fw-semibold {
+    font-weight: 600 !important;
+}
+
+/* === TIPOGRAFIA RESPONSIVA === */
+.express-h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.express-h2 {
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.express-h3 {
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.express-h4 {
+    font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.express-h5 {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.express-h6 {
+    font-size: clamp(0.875rem, 1.8vw, 1rem);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+/* === ALERTS E MENSAGENS === */
+.express-alert {
+    position: relative;
+    padding: 12px 16px;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.375rem;
+}
+
+.express-alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.express-alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+.express-alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+}
+
+.express-alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+/* === BREAKPOINTS === */
+
+/* Tablet: 481px - 768px */
+@media (min-width: 481px) and (max-width: 768px) {
+    .express-container {
+        padding: 24px;
+    }
+    
+    .express-header {
+        padding: 2rem;
+    }
+    
+    .express-card-body {
+        padding: 2rem;
+    }
+    
+    /* Grid ajustado para tablet */
+    .express-col-sm-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+    
+    .express-col-sm-4 {
+        flex: 0 0 33.333333%;
+        max-width: 33.333333%;
+    }
+    
+    .express-col-sm-3 {
+        flex: 0 0 25%;
+        max-width: 25%;
+    }
+}
+
+/* Desktop: > 768px */
+@media (min-width: 769px) {
+    .express-container {
+        padding: 32px;
+    }
+    
+    .express-header {
+        padding: 2.5rem;
+    }
+    
+    .express-card-body {
+        padding: 2.5rem;
+    }
+    
+    /* Grid para desktop */
+    .express-col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+    
+    .express-col-md-4 {
+        flex: 0 0 33.333333%;
+        max-width: 33.333333%;
+    }
+    
+    .express-col-md-3 {
+        flex: 0 0 25%;
+        max-width: 25%;
+    }
+    
+    .express-col-lg-8 {
+        flex: 0 0 66.666667%;
+        max-width: 66.666667%;
+    }
+    
+    .express-col-lg-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+    
+    .express-col-lg-4 {
+        flex: 0 0 33.333333%;
+        max-width: 33.333333%;
+    }
+    
+    /* Formulário em duas colunas no desktop */
+    .express-form-row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -0.75rem;
+    }
+    
+    .express-form-col {
+        flex: 1 1 0%;
+        padding: 0 0.75rem;
+    }
+    
+    .express-form-col-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        padding: 0 0.75rem;
+    }
+}
+
+/* Mobile muito pequeno: < 480px */
+@media (max-width: 480px) {
+    .express-container {
+        padding: 12px;
+    }
+    
+    .express-header {
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    .express-card-body {
+        padding: 1rem;
+    }
+    
+    .express-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .express-d-flex.express-flex-mobile-column {
+        flex-direction: column;
+    }
+    
+    .express-d-flex.express-flex-mobile-column .express-btn {
+        margin-bottom: 0.5rem;
+    }
+    
+    .express-d-flex.express-flex-mobile-column .express-btn:last-child {
+        margin-bottom: 0;
+    }
+}
+
+/* === PHOTO EDITOR ESPECÍFICO === */
+.express-photo-editor {
+    position: relative;
+    background: #f8f9fa;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.express-photo-canvas {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    background: white;
+    touch-action: none;
+}
+
+.express-editor-toolbar {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    border-top: 1px solid #dee2e6;
+    padding: 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.express-editor-toolbar .express-btn {
+    min-width: 60px;
+}
+
+/* === ANIMATION CONTROL === */
+.express-reduced-motion * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+}
+
+/* === FOCUS MANAGEMENT === */
+.express-form-control:focus-visible {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+.express-btn:focus-visible {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+/* === HIGH CONTRAST SUPPORT === */
+@media (prefers-contrast: high) {
+    .express-card {
+        border: 2px solid #000;
+    }
+    
+    .express-form-control {
+        border: 2px solid #000;
+    }
+    
+    .express-btn {
+        border-width: 2px;
+    }
+}
