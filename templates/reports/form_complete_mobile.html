@@ -1,0 +1,69 @@
+{% extends "reports/form_complete.html" %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+/* Mobile-specific overrides for form_complete.html */
+@media (max-width: 768px) {
+    .form-check-input {
+        width: 22px !important;
+        height: 22px !important;
+        margin-right: 10px !important;
+        flex-shrink: 0 !important;
+        border-radius: 4px !important;
+        border-width: 2px !important;
+    }
+    
+    .form-check {
+        display: flex !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .form-check-label {
+        flex: 1 !important;
+        line-height: 1.4 !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        font-size: 14px;
+    }
+    
+    .checklist-item {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .btn {
+        min-height: 44px !important;
+    }
+    
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+        min-height: 50px;
+    }
+}
+
+@media (max-width: 576px) {
+    .form-check-input {
+        width: 20px !important;
+        height: 20px !important;
+    }
+    
+    .form-check-label {
+        font-size: 13px;
+        line-height: 1.3;
+    }
+    
+    .checklist-item {
+        padding: 10px;
+    }
+}
+</style>
+{% endblock %}

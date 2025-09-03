@@ -22,6 +22,159 @@
     object-fit: cover;
     border-radius: 8px;
 }
+
+/* Correções de responsividade para mobile */
+/* Checkbox fixes - garantir formato quadrado e tamanho adequado */
+.form-check-input {
+    width: 20px !important;
+    height: 20px !important;
+    margin-top: 0.1em !important;
+    margin-right: 12px !important;
+    flex-shrink: 0 !important;
+    border-radius: 4px !important;
+    border-width: 2px !important;
+}
+
+/* Container do checkbox e label */
+.form-check {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    margin-bottom: 12px !important;
+}
+
+/* Label do checkbox - quebra de linha adequada */
+.form-check-label {
+    flex: 1 !important;
+    line-height: 1.5 !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+}
+
+/* Botões responsivos */
+.btn {
+    min-height: 44px !important;
+}
+
+/* Responsividade mobile específica */
+@media (max-width: 768px) {
+    .checklist-item {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .form-check-input {
+        width: 22px !important;
+        height: 22px !important;
+        margin-right: 10px !important;
+    }
+    
+    .form-check {
+        gap: 10px !important;
+    }
+    
+    .form-check-label {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    /* Botões empilhados em mobile */
+    .btn-group-toggle {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .btn-group-toggle .btn {
+        width: 100% !important;
+        justify-content: flex-start !important;
+    }
+    
+    /* Ajustes para campos de formulário */
+    .form-control, .form-select {
+        min-height: 44px;
+        font-size: 16px; /* Previne zoom no iOS */
+    }
+    
+    /* Espaçamento consistente */
+    .card {
+        margin-bottom: 16px !important;
+    }
+    
+    .row .col-md-6 {
+        margin-bottom: 12px;
+    }
+}
+
+/* Responsividade para telas muito pequenas */
+@media (max-width: 576px) {
+    .checklist-item {
+        padding: 10px;
+    }
+    
+    .form-check-input {
+        width: 20px !important;
+        height: 20px !important;
+    }
+    
+    .form-check-label {
+        font-size: 13px;
+        line-height: 1.3;
+    }
+    
+    /* Textarea responsivo */
+    .form-control[rows] {
+        min-height: 80px;
+    }
+    
+    /* Botões de categoria em grid responsivo */
+    .btn-group-toggle {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+        gap: 8px !important;
+    }
+}
+
+/* Garantir que checkboxes checked mantenham formato */
+.form-check-input:checked {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+@media (max-width: 768px) {
+    .form-check-input:checked {
+        width: 22px !important;
+        height: 22px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .form-check-input:checked {
+        width: 20px !important;
+        height: 20px !important;
+    }
+}
+
+/* Botões de ação principais responsivos */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+        min-height: 50px;
+    }
+}
 </style>
 {% endblock %}
 
@@ -219,12 +372,14 @@
 
                         <div class="row">
                             <div class="col-12">
-                                <button type="submit" class="btn btn-success me-2">
-                                    <i class="fas fa-save"></i> Salvar Relatório
-                                </button>
-                                <a href="{{ url_for('reports') }}" class="btn btn-secondary">
-                                    <i class="fas fa-arrow-left"></i> Voltar
-                                </a>
+                                <div class="action-buttons">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save"></i> Salvar Relatório
+                                    </button>
+                                    <a href="{{ url_for('reports') }}" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left"></i> Voltar
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </form>
