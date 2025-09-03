@@ -3133,6 +3133,76 @@ def express_new():
     template = 'express/novo_mobile.html' if is_mobile else 'express/novo.html'
     return render_template(template, form=form, is_mobile=is_mobile)
 
+@app.route('/express/novo_mobile', methods=['GET', 'POST'])
+@login_required
+def express_novo_mobile():
+    """Novo relatório express - sempre usar template mobile"""
+    from .forms import RelatorioExpressForm
+    
+    form = RelatorioExpressForm()
+    
+    if form.validate_on_submit():
+        try:
+            # Determinar ação
+            action = request.form.get('action', 'save_draft')
+            
+            # Gerar número único
+            numero = gerar_numero_relatorio_express()
+            
+            # Criar relatório express
+            relatorio_express = RelatorioExpress()
+            relatorio_express.numero = numero
+            relatorio_express.autor_id = current_user.id
+            
+            # Dados básicos do projeto
+            if form.projeto_id.data:
+                relatorio_express.projeto_id = form.projeto_id.data
+                
+            # Dados da visita
+            relatorio_express.data_visita = form.data_visita.data
+            relatorio_express.periodo_inicio = form.periodo_inicio.data
+            relatorio_express.responsavel = form.responsavel.data
+            relatorio_express.cargo_responsavel = form.cargo_responsavel.data
+            relatorio_express.condicoes_climaticas = form.condicoes_climaticas.data
+            relatorio_express.temperatura = form.temperatura.data
+            relatorio_express.endereco_visita = form.endereco_visita.data
+            
+            # Localização
+            if form.latitude.data:
+                relatorio_express.latitude = float(form.latitude.data)
+            if form.longitude.data:
+                relatorio_express.longitude = float(form.longitude.data)
+            
+            # Observações
+            relatorio_express.observacoes_gerais = form.observacoes_gerais.data
+            relatorio_express.pendencias = form.pendencias.data
+            relatorio_express.recomendacoes = form.recomendacoes.data
+            
+            # Status baseado na ação
+            if action == 'finalize':
+                relatorio_express.status = 'finalizado'
+                relatorio_express.finalizado_at = datetime.utcnow()
+            else:
+                relatorio_express.status = 'rascunho'
+            
+            db.session.add(relatorio_express)
+            db.session.commit()
+            
+            if action == 'finalize':
+                flash('Relatório Express finalizado com sucesso!', 'success')
+                return redirect(url_for('express_detail', id=relatorio_express.id))
+            else:
+                flash('Rascunho de Relatório Express salvo com sucesso!', 'info')
+                return redirect(url_for('express_edit', id=relatorio_express.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar relatório express: {str(e)}', 'error')
+            current_app.logger.error(f'Erro ao criar relatório express: {str(e)}')
+    
+    # Sempre usar template mobile
+    return render_template('express/novo_mobile.html', form=form, is_mobile=True)
+
 @app.route('/express/<int:id>')
 @login_required
 def express_detail(id):
