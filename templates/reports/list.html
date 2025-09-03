@@ -4,50 +4,88 @@
 
 {% block head %}
 <style>
-/* Otimizações específicas para scroll horizontal */
+/* CSS específico para eliminar tremida na página de relatórios */
+* {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+/* Permitir seleção apenas em inputs */
+input, textarea, select {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+}
+
+/* Estabilizar tabela COM scroll horizontal */
 .table-responsive {
-    border: 1px solid #dee2e6;
+    background: #f8f9fa;
     border-radius: 8px;
-    background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 4px;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+    width: 100%;
+}
+
+.table, .table th, .table td {
+    margin-bottom: 0;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    min-width: 150px;
+    white-space: nowrap;
 }
 
 .table {
-    margin-bottom: 0;
+    min-width: 900px !important;
+    width: max-content;
 }
 
-.table thead th {
-    background-color: var(--elp-dark);
-    color: white;
-    border-bottom: 2px solid var(--elp-primary);
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-    z-index: 10;
+/* Eliminar tremida em botões e cards */
+.btn, .card, .card-header, .card-body {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
 }
 
-/* Status badges melhorados */
-.badge {
-    font-size: 0.75rem;
-    padding: 0.5em 0.75em;
-    border-radius: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+/* Parar qualquer animação que cause tremida EXCETO scroll */
+.container-fluid, .row, .col-12 {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    transform: translate3d(0,0,0);
+    -webkit-transform: translate3d(0,0,0);
 }
 
-/* Botões de ação otimizados */
-.btn-sm {
-    min-height: 32px;
-    padding: 0.375rem 0.75rem;
+/* GARANTIR scroll horizontal nas tabelas */
+.table-responsive {
+    border: 2px solid #20c1e8;
+    margin: 10px 0;
 }
 
-@media (max-width: 768px) {
-    .btn-sm {
-        min-height: 40px;
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
-    }
+/* Indicador visual de scroll */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #20c1e8;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #17a2b8;
 }
 </style>
 {% endblock %}
@@ -107,7 +145,6 @@
                         </div>
                     </div>
                 </div>
-                
                 <div class="card-body">
                     {% if relatorios and relatorios.items %}
                         <div class="table-responsive">
@@ -126,7 +163,7 @@
                                 <tbody>
                                     {% for report in relatorios.items %}
                                     <tr>
-                                        <td><strong>#{{ report.numero }}</strong></td>
+                                        <td>{{ report.numero }}</td>
                                         <td>{{ report.titulo }}</td>
                                         <td>{{ report.projeto.nome if report.projeto else '-' }}</td>
                                         <td>{{ report.autor.nome_completo if report.autor else '-' }}</td>
@@ -135,7 +172,7 @@
                                             <span class="badge 
                                                 {% if report.status == 'Aprovado' %}bg-success
                                                 {% elif report.status == 'Rejeitado' %}bg-danger
-                                                {% elif report.status == 'Aguardando Aprovação' %}bg-warning text-dark
+                                                {% elif report.status == 'Aguardando Aprovação' %}bg-warning
                                                 {% else %}bg-secondary{% endif %}">
                                                 {{ report.status }}
                                             </span>
@@ -234,81 +271,86 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Preencher select de projetos
         const projetoSelect = document.getElementById('filterProjeto');
-        Array.from(projetoSet).sort().forEach(projeto => {
-            const option = document.createElement('option');
-            option.value = projeto;
-            option.textContent = projeto;
-            projetoSelect.appendChild(option);
-        });
+        if (projetoSelect) {
+            projetoSet.forEach(projeto => {
+                const option = document.createElement('option');
+                option.value = projeto;
+                option.textContent = projeto;
+                projetoSelect.appendChild(option);
+            });
+        }
         
         // Preencher select de autores
         const autorSelect = document.getElementById('filterAutor');
-        Array.from(autorSet).sort().forEach(autor => {
-            const option = document.createElement('option');
-            option.value = autor;
-            option.textContent = autor;
-            autorSelect.appendChild(option);
-        });
+        if (autorSelect) {
+            autorSet.forEach(autor => {
+                const option = document.createElement('option');
+                option.value = autor;
+                option.textContent = autor;
+                autorSelect.appendChild(option);
+            });
+        }
     }
     
     function setupReportFilters() {
-        const statusFilter = document.getElementById('filterStatus');
-        const projetoFilter = document.getElementById('filterProjeto');
-        const autorFilter = document.getElementById('filterAutor');
+        const filterStatus = document.getElementById('filterStatus');
+        const filterProjeto = document.getElementById('filterProjeto');
+        const filterAutor = document.getElementById('filterAutor');
         const searchInput = document.getElementById('searchReport');
-        const countElement = document.getElementById('reportFilteredCount');
         
-        function applyFilters() {
-            const statusValue = statusFilter.value.toLowerCase();
-            const projetoValue = projetoFilter.value;
-            const autorValue = autorFilter.value;
-            const searchValue = searchInput.value.toLowerCase();
-            
-            let visibleCount = 0;
-            
-            rows.forEach(row => {
-                const rowStatus = row.getAttribute('data-status').toLowerCase();
-                const rowProjeto = row.getAttribute('data-projeto');
-                const rowAutor = row.getAttribute('data-autor');
-                const rowSearch = row.getAttribute('data-search');
-                
-                const statusMatch = !statusValue || rowStatus.includes(statusValue);
-                const projetoMatch = !projetoValue || rowProjeto === projetoValue;
-                const autorMatch = !autorValue || rowAutor === autorValue;
-                const searchMatch = !searchValue || rowSearch.includes(searchValue);
-                
-                const shouldShow = statusMatch && projetoMatch && autorMatch && searchMatch;
-                
-                row.style.display = shouldShow ? '' : 'none';
-                if (shouldShow) visibleCount++;
-            });
-            
-            countElement.textContent = visibleCount;
-        }
+        [filterStatus, filterProjeto, filterAutor].forEach(filter => {
+            if (filter) filter.addEventListener('change', applyReportFilters);
+        });
         
-        // Event listeners para todos os filtros
-        statusFilter.addEventListener('change', applyFilters);
-        projetoFilter.addEventListener('change', applyFilters);
-        autorFilter.addEventListener('change', applyFilters);
-        searchInput.addEventListener('input', applyFilters);
+        if (searchInput) searchInput.addEventListener('input', applyReportFilters);
     }
+    
+    function applyReportFilters() {
+        const statusFilter = document.getElementById('filterStatus')?.value || '';
+        const projetoFilter = document.getElementById('filterProjeto')?.value || '';
+        const autorFilter = document.getElementById('filterAutor')?.value || '';
+        const searchText = (document.getElementById('searchReport')?.value || '').toLowerCase();
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const status = row.getAttribute('data-status') || '';
+            const projeto = row.getAttribute('data-projeto') || '';
+            const autor = row.getAttribute('data-autor') || '';
+            const searchData = row.getAttribute('data-search') || '';
+            
+            const statusMatch = !statusFilter || status.includes(statusFilter);
+            const projetoMatch = !projetoFilter || projeto === projetoFilter;
+            const autorMatch = !autorFilter || autor === autorFilter;
+            const searchMatch = !searchText || searchData.includes(searchText);
+            
+            if (statusMatch && projetoMatch && autorMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        const countElement = document.getElementById('reportFilteredCount');
+        if (countElement) countElement.textContent = visibleCount;
+    }
+    
+    // Expor função global para o botão de limpar
+    window.clearReportFilters = function() {
+        const filters = ['filterStatus', 'filterProjeto', 'filterAutor', 'searchReport'];
+        filters.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.value = '';
+        });
+        
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        
+        const countElement = document.getElementById('reportFilteredCount');
+        if (countElement) countElement.textContent = rows.length;
+    };
 });
-
-// Função global para limpar filtros
-function clearReportFilters() {
-    document.getElementById('filterStatus').value = '';
-    document.getElementById('filterProjeto').value = '';
-    document.getElementById('filterAutor').value = '';
-    document.getElementById('searchReport').value = '';
-    
-    // Mostrar todas as linhas
-    const rows = document.querySelectorAll('tbody tr');
-    rows.forEach(row => {
-        row.style.display = '';
-    });
-    
-    // Atualizar contador
-    document.getElementById('reportFilteredCount').textContent = rows.length;
-}
 </script>
 {% endblock %}
