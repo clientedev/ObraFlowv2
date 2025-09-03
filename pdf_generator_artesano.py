@@ -468,8 +468,8 @@ Rua Jaboticabal, 530 apto. 31 - São Paulo - SP - CEP: 03188-000<br/>
 leopoldo@elpconsultoria.eng.br<br/>
 Telefone: (11) 99138-4517"""
         
-        # Texto do lado direito
-        footer_right = "Relatório gerado no Produttivo"
+        # Texto do lado direito (removido conforme solicitação)
+        footer_right = ""
         
         footer_data = [
             [

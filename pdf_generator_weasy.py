@@ -225,7 +225,7 @@ class WeasyPrintReportGenerator:
             </div>
         </div>
         <div class="footer-right">
-            <div class="generated-info">Relatório gerado no <span class="produttivo">Produttivo</span></div>
+            <!-- Texto removido conforme solicitação -->
         </div>
     </div>
 </body>
