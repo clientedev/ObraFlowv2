@@ -63,6 +63,59 @@
         min-width: 80px;
         font-size: 14px;
     }
+    
+    /* Canvas otimizado para mobile */
+    #photoCanvas {
+        max-height: 50vh;
+        width: 100%;
+        /* Melhorar precisão touch */
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        /* Adicionar feedback visual para touch */
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: 2px solid #ddd;
+    }
+    
+    /* Melhorar área de controles em mobile */
+    .tool-group {
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+    
+    /* Ajustar slider para mobile */
+    #brushSize {
+        height: 8px;
+        -webkit-appearance: none;
+        background: #ddd;
+        border-radius: 5px;
+        outline: none;
+    }
+    
+    #brushSize::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #007bff;
+        cursor: pointer;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    #brushSize::-moz-range-thumb {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #007bff;
+        cursor: pointer;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
 }
 
 .tool-btn.active {
@@ -484,7 +537,7 @@ function setupEventListeners() {
     canvas.addEventListener('mouseup', stopDrawing);
     canvas.addEventListener('mouseout', stopDrawing);
     
-    // Touch events para Mobile (com configurações otimizadas)
+    // Touch events para Mobile (com configurações otimizadas para máxima precisão)
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
@@ -494,6 +547,12 @@ function setupEventListeners() {
     canvas.addEventListener('gesturestart', e => e.preventDefault());
     canvas.addEventListener('gesturechange', e => e.preventDefault());
     canvas.addEventListener('gestureend', e => e.preventDefault());
+    
+    // Adicionar eventos específicos para iOS Safari
+    canvas.addEventListener('touchforcechange', e => e.preventDefault());
+    
+    // Prevenir context menu em toque longo
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
 }
 
 function startDrawing(e) {
@@ -607,21 +666,33 @@ function stopDrawing(e) {
 }
 
 function drawArrow(fromX, fromY, toX, toY) {
-    const headLength = 15;
+    // Otimizar tamanho da cabeça da seta baseado na linha e dispositivo
+    const lineLength = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2));
+    const isMobile = window.innerWidth <= 768;
+    
+    // Ajustar tamanho da cabeça da seta para mobile (proporcionalmente maior para melhor visibilidade)
+    let headLength = Math.max(10, Math.min(25, lineLength * 0.2));
+    if (isMobile) {
+        headLength = Math.max(12, Math.min(30, lineLength * 0.25));
+    }
+    
     const angle = Math.atan2(toY - fromY, toX - fromX);
     
     ctx.strokeStyle = currentColor;
     ctx.lineWidth = currentSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
     
     // Linha principal
     ctx.moveTo(fromX, fromY);
     ctx.lineTo(toX, toY);
     
-    // Ponta da seta
-    ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), toY - headLength * Math.sin(angle - Math.PI / 6));
+    // Ponta da seta - ângulo otimizado para mobile
+    const arrowAngle = Math.PI / 6; // 30 graus
+    ctx.lineTo(toX - headLength * Math.cos(angle - arrowAngle), toY - headLength * Math.sin(angle - arrowAngle));
     ctx.moveTo(toX, toY);
-    ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), toY - headLength * Math.sin(angle + Math.PI / 6));
+    ctx.lineTo(toX - headLength * Math.cos(angle + arrowAngle), toY - headLength * Math.sin(angle + arrowAngle));
     
     ctx.stroke();
 }
@@ -629,16 +700,37 @@ function drawArrow(fromX, fromY, toX, toY) {
 function drawCircle(centerX, centerY, edgeX, edgeY) {
     const radius = Math.sqrt(Math.pow(edgeX - centerX, 2) + Math.pow(edgeY - centerY, 2));
     
+    // Garantir raio mínimo para visibilidade em mobile
+    const minRadius = window.innerWidth <= 768 ? 8 : 5;
+    const finalRadius = Math.max(minRadius, radius);
+    
     ctx.strokeStyle = currentColor;
     ctx.lineWidth = currentSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, finalRadius, 0, 2 * Math.PI);
     ctx.stroke();
 }
 
 function drawRectangle(startX, startY, endX, endY) {
+    // Garantir dimensões mínimas para visibilidade em mobile
+    const minSize = window.innerWidth <= 768 ? 10 : 5;
+    const width = endX - startX;
+    const height = endY - startY;
+    
+    // Ajustar coordenadas se o retângulo for muito pequeno
+    if (Math.abs(width) < minSize) {
+        endX = startX + (width >= 0 ? minSize : -minSize);
+    }
+    if (Math.abs(height) < minSize) {
+        endY = startY + (height >= 0 ? minSize : -minSize);
+    }
+    
     ctx.strokeStyle = currentColor;
     ctx.lineWidth = currentSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.rect(startX, startY, endX - startX, endY - startY);
     ctx.stroke();
@@ -685,49 +777,93 @@ function getMousePos(e) {
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     
-    // Para eventos touch, usar coordenadas do touch
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    // Para eventos touch, usar coordenadas do touch com precisão máxima
+    let clientX, clientY;
     
+    if (e.touches && e.touches.length > 0) {
+        // Touch events - usar as coordenadas do primeiro toque
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+        // TouchEnd events - usar changedTouches
+        clientX = e.changedTouches[0].clientX;
+        clientY = e.changedTouches[0].clientY;
+    } else {
+        // Mouse events
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+    
+    // Calcular coordenadas precisas no canvas
+    const x = Math.round((clientX - rect.left) * scaleX);
+    const y = Math.round((clientY - rect.top) * scaleY);
+    
+    // Garantir que as coordenadas estão dentro dos limites do canvas
     return [
-        (clientX - rect.left) * scaleX,
-        (clientY - rect.top) * scaleY
+        Math.max(0, Math.min(canvas.width, x)),
+        Math.max(0, Math.min(canvas.height, y))
     ];
 }
 
-function handleTouch(e) {
+// Funções touch otimizadas para máxima precisão em dispositivos móveis
+function handleTouchStart(e) {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!e.touches || e.touches.length === 0) {
-        // TouchEnd event
-        if (isDrawing) {
-            stopDrawing(e);
-        }
-        return;
-    }
+    // Verificar se é um toque simples (não multi-touch)
+    if (e.touches.length !== 1) return;
     
-    const touch = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    // Criar evento personalizado com coordenadas corretas para mobile
-    const customEvent = {
-        clientX: touch.clientX,
-        clientY: touch.clientY,
+    // Simular evento mouse com dados do touch
+    const touchEvent = {
+        clientX: e.touches[0].clientX,
+        clientY: e.touches[0].clientY,
         touches: e.touches,
         preventDefault: () => {},
         stopPropagation: () => {}
     };
     
-    // Mapear eventos touch para mouse
-    if (e.type === 'touchstart') {
-        startDrawing(customEvent);
-    } else if (e.type === 'touchmove') {
-        draw(customEvent);
-    } else if (e.type === 'touchend') {
-        stopDrawing(customEvent);
+    startDrawing(touchEvent);
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Verificar se é um toque simples e se está desenhando
+    if (e.touches.length !== 1 || !isDrawing) return;
+    
+    // Simular evento mouse com dados do touch
+    const touchEvent = {
+        clientX: e.touches[0].clientX,
+        clientY: e.touches[0].clientY,
+        touches: e.touches,
+        preventDefault: () => {},
+        stopPropagation: () => {}
+    };
+    
+    draw(touchEvent);
+}
+
+function handleTouchEnd(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Para touchend, usar changedTouches se touches estiver vazio
+    const touches = e.touches.length > 0 ? e.touches : e.changedTouches;
+    
+    if (touches.length === 0 || !isDrawing) {
+        if (isDrawing) {
+            // Usar último toque conhecido para finalizar
+            const touchEvent = {
+                clientX: e.changedTouches[0].clientX,
+                clientY: e.changedTouches[0].clientY,
+                changedTouches: e.changedTouches,
+                preventDefault: () => {},
+                stopPropagation: () => {}
+            };
+            stopDrawing(touchEvent);
+        }
+        return;
     }
 }
 
