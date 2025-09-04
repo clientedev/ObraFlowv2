@@ -143,10 +143,14 @@ class ExpressReportGenerator(WeasyPrintReportGenerator):
                     def __init__(self, foto_express):
                         self.filename = foto_express.filename
                         self.filename_anotada = getattr(foto_express, 'filename_anotada', None)
-                        # Usar a legenda configurada pelo usuário ou fallback
-                        self.legenda = foto_express.legenda or f"Foto {foto_express.ordem}"
-                        self.titulo = getattr(foto_express, 'titulo', None) or self.legenda
-                        self.descricao = self.legenda  # Usar legenda como descrição para o PDF
+                        # Criar descrição completa incluindo legenda pré-definida
+                        base_descricao = f"Foto {foto_express.ordem}"
+                        if foto_express.legenda:
+                            base_descricao += f" - {foto_express.legenda}"
+                        
+                        self.legenda = base_descricao
+                        self.titulo = getattr(foto_express, 'titulo', None) or base_descricao
+                        self.descricao = base_descricao
                         self.ordem = foto_express.ordem
                 
                 fotos_processadas.append(MockFoto(foto))

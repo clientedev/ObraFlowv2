@@ -84,16 +84,26 @@ class WeasyPrintReportGenerator:
                     with open(foto_path, 'rb') as f:
                         foto_base64 = base64.b64encode(f.read()).decode('utf-8')
                     
+                    # Criar legenda completa incluindo a legenda pré-definida
+                    legenda_completa = foto.descricao or f"Foto {foto.ordem}"
+                    if hasattr(foto, 'legenda') and foto.legenda:
+                        legenda_completa += f" - {foto.legenda}"
+                    
                     data['fotos'].append({
                         'base64': foto_base64,
-                        'legenda': foto.descricao or f"Foto {foto.ordem}",
+                        'legenda': legenda_completa,
                         'ordem': foto.ordem
                     })
                 else:
+                    # Criar legenda completa incluindo a legenda pré-definida
+                    legenda_completa = foto.descricao or f"Foto {foto.ordem}"
+                    if hasattr(foto, 'legenda') and foto.legenda:
+                        legenda_completa += f" - {foto.legenda}"
+                    
                     # Adicionar placeholder para fotos não encontradas
                     data['fotos'].append({
                         'base64': None,
-                        'legenda': foto.descricao or f"Foto {foto.ordem}",
+                        'legenda': legenda_completa,
                         'ordem': foto.ordem,
                         'not_found': True
                     })
