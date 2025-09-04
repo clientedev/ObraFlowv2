@@ -870,60 +870,92 @@ function loadLegends(photoId, category) {
     const mappedCategory = categoryMap[category] || category;
     console.log(`Categoria mapeada: ${mappedCategory}`);
     
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', '/api/legendas?categoria=all', true);
+    const selectElement = document.querySelector(`[data-photo-id="${photoId}"] .legend-select`);
+    if (!selectElement) return;
     
-    xhr.onload = function() {
-        if (xhr.status === 200) {
-            try {
-                const data = JSON.parse(xhr.responseText);
-                
-                const selectElement = document.querySelector(`[data-photo-id="${photoId}"] .legend-select`);
-                
-                if (selectElement && data.success && data.legendas) {
-                    selectElement.innerHTML = '<option value="">Selecione uma legenda...</option>';
-                    
-                    const categorias = {
-                        'Acabamentos': [],
-                        'Estrutural': [],
-                        'Geral': [],
-                        'Segurança': []
-                    };
-                    
-                    data.legendas.forEach(legenda => {
-                        if (categorias[legenda.categoria]) {
-                            categorias[legenda.categoria].push(legenda);
-                        }
-                    });
-                    
-                    Object.keys(categorias).forEach(cat => {
-                        if (categorias[cat].length > 0) {
-                            const optgroup = document.createElement('optgroup');
-                            optgroup.label = cat;
-                            
-                            categorias[cat].forEach(legenda => {
-                                const option = document.createElement('option');
-                                option.value = legenda.texto;
-                                option.textContent = legenda.texto;
-                                optgroup.appendChild(option);
-                            });
-                            
-                            selectElement.appendChild(optgroup);
-                        }
-                    });
-                } else if (selectElement) {
-                    selectElement.innerHTML = '<option value="">Nenhuma legenda disponível</option>';
-                }
-            } catch (e) {
-                const selectElement = document.querySelector(`[data-photo-id="${photoId}"] .legend-select`);
-                if (selectElement) {
-                    selectElement.innerHTML = '<option value="">Erro ao carregar</option>';
-                }
-            }
-        }
+    // Legendas fixas para garantir funcionamento no mobile
+    const legendas = [
+        // Acabamentos - 16 itens
+        {"categoria": "Acabamentos", "texto": "Lixamento corretamente executado"},
+        {"categoria": "Acabamentos", "texto": "Lixamento com falhas, necessário correção"},
+        {"categoria": "Acabamentos", "texto": "Lixamento executado sem preenchimento do encunhamento. Preenchimentos devem ser executados antes do lixamento"},
+        {"categoria": "Acabamentos", "texto": "Lixamento executado sem preenchimento de chupetas. Preenchimentos devem ser executados antes do lixamento"},
+        {"categoria": "Acabamentos", "texto": "Necessário retirada do excesso de massa da junta dos blocos de alvenaria"},
+        {"categoria": "Acabamentos", "texto": "Necessário retirada de etiquetas"},
+        {"categoria": "Acabamentos", "texto": "Necessário retirada de madeiras encrustadas no concreto"},
+        {"categoria": "Acabamentos", "texto": "Necessário preenchimento das juntas dos blocos"},
+        {"categoria": "Acabamentos", "texto": "Pendente lixamento das requadrações superiores dos caixilhos"},
+        {"categoria": "Acabamentos", "texto": "Necessário retirada de pregos"},
+        {"categoria": "Acabamentos", "texto": "Necessário retirada de pó de serra incrustado no concreto"},
+        {"categoria": "Acabamentos", "texto": "Emboço bem-acabado"},
+        {"categoria": "Acabamentos", "texto": "Emboço mal-acabado"},
+        {"categoria": "Acabamentos", "texto": "Friso torto"},
+        {"categoria": "Acabamentos", "texto": "Friso com profundidade irregular"},
+        {"categoria": "Acabamentos", "texto": "Pingadeira mal-acabada"},
+        
+        // Estrutural - 18 itens
+        {"categoria": "Estrutural", "texto": "Ordem de execução do chapisco incorreta. Necessário execução do chapisco desempenado na estrutura antes da execução do chapisco de areia e cimento"},
+        {"categoria": "Estrutural", "texto": "Chapisco corretamente executado"},
+        {"categoria": "Estrutural", "texto": "Chapisco com dentes baixos"},
+        {"categoria": "Estrutural", "texto": "Chapisco com falhas. Necessário correção"},
+        {"categoria": "Estrutural", "texto": "Lavagem correta"},
+        {"categoria": "Estrutural", "texto": "Falha de lavagem"},
+        {"categoria": "Estrutural", "texto": "Pendente chapiscamento das massas de chumbamento dos contramarcos"},
+        {"categoria": "Estrutural", "texto": "Chapisco com resistência baixa"},
+        {"categoria": "Estrutural", "texto": "Chapisco com resistência atingida"},
+        {"categoria": "Estrutural", "texto": "Emboço executado corretamente"},
+        {"categoria": "Estrutural", "texto": "Emboço executado com projeção mecânica"},
+        {"categoria": "Estrutural", "texto": "Emboço executado manualmente"},
+        {"categoria": "Estrutural", "texto": "Cheia de massa sem reforço"},
+        {"categoria": "Estrutural", "texto": "Reforço corretamente executado"},
+        {"categoria": "Estrutural", "texto": "Emboço com traço incorreto"},
+        {"categoria": "Estrutural", "texto": "Emboço com traço correto"},
+        {"categoria": "Estrutural", "texto": "Telas corretamente posicionadas"},
+        {"categoria": "Estrutural", "texto": "Caída invertida"},
+        
+        // Geral - 6 itens
+        {"categoria": "Geral", "texto": "Evidenciado pó de cimento aplicado sobre emboço. Necessário retirada completa. Proibido a utilização de pó de cimento"},
+        {"categoria": "Geral", "texto": "Evidenciado pó de gesso aplicado sobre emboço. Necessário retirada completa. Proibido a utilização de pó de gesso"},
+        {"categoria": "Geral", "texto": "Uso de talisca de madeira. Necessário retirada. É proibido o uso de talisca de madeira"},
+        {"categoria": "Geral", "texto": "Não evidenciado uso de chapisco colante antes da aplicação do emboço sobre mureta"},
+        {"categoria": "Geral", "texto": "Não evidenciado uso de chapisco colante antes da aplicação do emboço sobre aba"},
+        {"categoria": "Geral", "texto": "Uso incorreto de chapisco colante em pó sobre superfície"},
+        
+        // Segurança - 2 itens
+        {"categoria": "Segurança", "texto": "Pendente corte dos ganchos"},
+        {"categoria": "Segurança", "texto": "Pendente tratamentos dos ganchos cortados com pintura anti-corrosiva tipo zarcão"}
+    ];
+    
+    selectElement.innerHTML = '<option value="">Selecione uma legenda...</option>';
+    
+    const categorias = {
+        'Acabamentos': [],
+        'Estrutural': [],
+        'Geral': [],
+        'Segurança': []
     };
     
-    xhr.send();
+    legendas.forEach(legenda => {
+        if (categorias[legenda.categoria]) {
+            categorias[legenda.categoria].push(legenda);
+        }
+    });
+    
+    Object.keys(categorias).forEach(cat => {
+        if (categorias[cat].length > 0) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = cat + ' (' + categorias[cat].length + ' itens)';
+            
+            categorias[cat].forEach(legenda => {
+                const option = document.createElement('option');
+                option.value = legenda.texto;
+                option.textContent = legenda.texto;
+                optgroup.appendChild(option);
+            });
+            
+            selectElement.appendChild(optgroup);
+        }
+    });
 }
 
 // Atualizar configuração da foto
