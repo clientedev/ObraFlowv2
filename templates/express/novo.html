@@ -926,54 +926,21 @@ function loadLegends(photoId, category) {
         {"categoria": "Segurança", "texto": "Pendente tratamentos dos ganchos cortados com pintura anti-corrosiva tipo zarcão"}
     ];
     
-    // Primeiro carregar legendas fixas como fallback
+    // Carregar direto da API PostgreSQL
     selectElement.innerHTML = '<option value="">Carregando...</option>';
     
-    const categorias = {
-        'Acabamentos': [],
-        'Estrutural': [],
-        'Geral': [],
-        'Segurança': []
-    };
-    
-    legendas.forEach(legenda => {
-        if (categorias[legenda.categoria]) {
-            categorias[legenda.categoria].push(legenda);
-        }
-    });
-    
-    // Aplicar legendas fixas imediatamente
-    selectElement.innerHTML = '<option value="">Selecione uma legenda...</option>';
-    Object.keys(categorias).forEach(cat => {
-        if (categorias[cat].length > 0) {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = cat + ' (' + categorias[cat].length + ' itens)';
-            
-            categorias[cat].forEach(legenda => {
-                const option = document.createElement('option');
-                option.value = legenda.texto;
-                option.textContent = legenda.texto;
-                optgroup.appendChild(option);
-            });
-            
-            selectElement.appendChild(optgroup);
-        }
-    });
-    
-    // Tentar carregar da API para sincronização
     const xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/legendas?categoria=all', true);
-    xhr.timeout = 3000;
+    xhr.timeout = 10000;
     
     xhr.onload = function() {
         if (xhr.status === 200) {
             try {
                 const data = JSON.parse(xhr.responseText);
                 if (data.success && data.legendas && data.legendas.length > 0) {
-                    // API funcionou, substituir com dados do banco
                     selectElement.innerHTML = '<option value="">Selecione uma legenda...</option>';
                     
-                    const apiCats = {
+                    const cats = {
                         'Acabamentos': [],
                         'Estrutural': [],
                         'Geral': [],
@@ -981,17 +948,17 @@ function loadLegends(photoId, category) {
                     };
                     
                     data.legendas.forEach(leg => {
-                        if (apiCats[leg.categoria]) {
-                            apiCats[leg.categoria].push(leg);
+                        if (cats[leg.categoria]) {
+                            cats[leg.categoria].push(leg);
                         }
                     });
                     
-                    Object.keys(apiCats).forEach(cat => {
-                        if (apiCats[cat].length > 0) {
+                    Object.keys(cats).forEach(cat => {
+                        if (cats[cat].length > 0) {
                             const optgroup = document.createElement('optgroup');
-                            optgroup.label = cat + ' (' + apiCats[cat].length + ' itens)';
+                            optgroup.label = cat + ' (' + cats[cat].length + ' itens)';
                             
-                            apiCats[cat].forEach(legenda => {
+                            cats[cat].forEach(legenda => {
                                 const option = document.createElement('option');
                                 option.value = legenda.texto;
                                 option.textContent = legenda.texto;
@@ -1001,22 +968,23 @@ function loadLegends(photoId, category) {
                             selectElement.appendChild(optgroup);
                         }
                     });
-                    
-                    selectElement.dataset.source = 'api';
+                } else {
+                    selectElement.innerHTML = '<option value="">Erro: nenhuma legenda encontrada</option>';
                 }
             } catch (e) {
-                // Manter legendas fixas em caso de erro
-                selectElement.dataset.source = 'local';
+                selectElement.innerHTML = '<option value="">Erro: formato inválido</option>';
             }
+        } else {
+            selectElement.innerHTML = '<option value="">Erro: servidor indisponível</option>';
         }
     };
     
     xhr.onerror = function() {
-        selectElement.dataset.source = 'local';
+        selectElement.innerHTML = '<option value="">Erro: falha de rede</option>';
     };
     
     xhr.ontimeout = function() {
-        selectElement.dataset.source = 'local';
+        selectElement.innerHTML = '<option value="">Erro: tempo esgotado</option>';
     };
     
     xhr.send();

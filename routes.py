@@ -2463,46 +2463,117 @@ def api_legendas():
         categoria = request.args.get('categoria', 'all')
         
         from models import LegendaPredefinida
+        from datetime import datetime
+        
+        # Verificar se a tabela existe e tem dados
         query = LegendaPredefinida.query.filter_by(ativo=True)
         
-        if categoria != 'all':
+        if categoria and categoria != 'all':
             query = query.filter_by(categoria=categoria)
         
         legendas = query.order_by(LegendaPredefinida.categoria, LegendaPredefinida.texto).all()
         
-        # Preparar resposta com headers para mobile
+        # Preparar resposta estruturada
         response_data = {
             'success': True,
             'total': len(legendas),
-            'timestamp': str(datetime.utcnow()),
-            'legendas': [
-                {
-                    'id': l.id,
-                    'texto': l.texto,
-                    'categoria': l.categoria,
-                    'ativo': l.ativo
-                } for l in legendas
-            ]
+            'timestamp': datetime.utcnow().isoformat(),
+            'legendas': []
         }
         
+        # Processar legendas
+        for legenda in legendas:
+            response_data['legendas'].append({
+                'id': legenda.id,
+                'texto': legenda.texto,
+                'categoria': legenda.categoria,
+                'ativo': legenda.ativo
+            })
+        
+        # Criar resposta JSON
         response = jsonify(response_data)
         
-        # Headers para compatibilidade mobile
+        # Headers para compatibilidade total mobile/desktop
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
         response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
         
         return response
         
     except Exception as e:
-        print(f"Erro na API de legendas: {str(e)}")
+        # Log de erro para diagnóstico
+        print(f"ERRO API LEGENDAS: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
         return jsonify({
             'success': False,
-            'error': 'Erro interno do servidor',
+            'error': str(e),
+            'total': 0,
             'legendas': []
+        }), 500
+
+@app.route('/api/legendas', methods=['OPTIONS'])
+def api_legendas_options():
+    """Suporte para requisições OPTIONS (CORS preflight)"""
+    response = jsonify({'success': True})
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response
+
+# API para salvar dados de relatórios (mobile/desktop)
+@app.route('/api/relatorios', methods=['POST'])
+def api_salvar_relatorio():
+    """API para salvar relatórios - compatível mobile/desktop"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Dados não recebidos'
+            }), 400
+        
+        # Aqui você pode implementar a lógica de salvamento
+        # Por enquanto, só retorna sucesso para confirmar que a API funciona
+        
+        return jsonify({
+            'success': True,
+            'message': 'Dados recebidos com sucesso',
+            'data_received': len(str(data))
+        })
+        
+    except Exception as e:
+        print(f"ERRO API SALVAR: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/test')
+def api_test():
+    """API de teste para verificar conectividade"""
+    try:
+        from models import LegendaPredefinida
+        count = LegendaPredefinida.query.filter_by(ativo=True).count()
+        
+        return jsonify({
+            'success': True,
+            'message': 'API funcionando',
+            'database_connection': True,
+            'legendas_count': count,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'database_connection': False
         }), 500
 
 # Rotas administrativas para Checklist Padrão
