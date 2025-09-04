@@ -828,13 +828,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+{% endblock %}
 
+{% block extra_js %}
 <!-- Fabric.js CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 
 <!-- Editor Scripts -->
 <script src="{{ url_for('static', filename='js/fabric-photo-editor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/fabric-photo-editor-modal.js') }}"></script>
+{% endblock %}
 
 <!-- Modal do Editor de Fotos Professional - Sistema Express -->
 <div class="modal fade" id="fabricPhotoEditorModal" tabindex="-1" aria-hidden="true">
