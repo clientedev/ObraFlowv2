@@ -649,118 +649,98 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
     // Mostrar carregando
     select.innerHTML = '<option value="">Carregando legendas...</option>';
     
-    // Fazer duas tentativas: específica e geral
-    const urls = [
-        `/api/legendas?categoria=${encodeURIComponent(mappedCategory)}`,
-        `/api/legendas?categoria=all`
-    ];
-    
-    function tryLoadLegends(urlIndex = 0) {
-        if (urlIndex >= urls.length) {
-            select.innerHTML = '<option value="">Erro ao carregar legendas</option>';
-            return;
-        }
-        
-        fetch(urls[urlIndex])
-            .then(response => {
-                console.log(`📡 Resposta da API (tentativa ${urlIndex + 1}):`, response.status);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('📄 Dados recebidos:', data);
+    // Sempre carregar todas as legendas para mostrar no mobile
+    fetch(`/api/legendas?categoria=all`)
+        .then(response => {
+            console.log(`📡 Resposta da API:`, response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📄 Dados recebidos:', data);
+            
+            if (data.success && data.legendas && data.legendas.length > 0) {
+                // Limpar select
+                select.innerHTML = '<option value="">Selecione uma legenda...</option>';
                 
-                if (data.success && data.legendas && data.legendas.length > 0) {
-                    // Limpar e popular select
-                    select.innerHTML = '<option value="">Selecione uma legenda...</option>';
-                    
-                    // Filtrar por categoria se não for "all"
-                    let legendasToShow = data.legendas;
-                    if (urlIndex === 0) {
-                        // Primeira tentativa - mostrar apenas da categoria
-                        legendasToShow = data.legendas.filter(l => l.categoria === mappedCategory);
+                // Agrupar legendas por categoria
+                const categoriasCom = {};
+                data.legendas.forEach(legenda => {
+                    if (!categoriasCom[legenda.categoria]) {
+                        categoriasCom[legenda.categoria] = [];
                     }
-                    
-                    // Se não tem legendas da categoria específica, mostrar todas
-                    if (legendasToShow.length === 0 && urlIndex === 0) {
-                        console.log('⚠️ Nenhuma legenda específica, tentando carregar todas...');
-                        tryLoadLegends(1);
-                        return;
-                    }
-                    
-                    // Agrupar por categoria se mostrando todas
-                    if (urlIndex === 1) {
-                        const categoriasCom = {};
-                        legendasToShow.forEach(legenda => {
-                            if (!categoriasCom[legenda.categoria]) {
-                                categoriasCom[legenda.categoria] = [];
-                            }
-                            categoriasCom[legenda.categoria].push(legenda);
-                        });
-                        
-                        // Mostrar categoria atual primeiro, depois outras
-                        if (categoriasCom[mappedCategory]) {
-                            const optgroup = document.createElement('optgroup');
-                            optgroup.label = `${mappedCategory} (Recomendado)`;
-                            categoriasCom[mappedCategory].forEach(legenda => {
-                                const option = document.createElement('option');
-                                option.value = legenda.texto;
-                                option.textContent = legenda.texto;
-                                optgroup.appendChild(option);
-                            });
-                            select.appendChild(optgroup);
+                    categoriasCom[legenda.categoria].push(legenda);
+                });
+                
+                // Ordem de prioridade das categorias
+                const ordemCategorias = [mappedCategory, 'Geral', 'Estrutural', 'Acabamentos', 'Hidráulica', 'Elétrica', 'Fachada', 'Impermeabilização', 'Segurança'];
+                
+                // Mostrar categoria recomendada primeiro
+                ordemCategorias.forEach(categoria => {
+                    if (categoriasCom[categoria] && categoriasCom[categoria].length > 0) {
+                        const optgroup = document.createElement('optgroup');
+                        if (categoria === mappedCategory) {
+                            optgroup.label = `${categoria} (Recomendado para esta foto)`;
+                            optgroup.style.fontWeight = 'bold';
+                        } else {
+                            optgroup.label = categoria;
                         }
                         
-                        // Outras categorias
-                        Object.keys(categoriasCom).forEach(cat => {
-                            if (cat !== mappedCategory) {
-                                const optgroup = document.createElement('optgroup');
-                                optgroup.label = cat;
-                                categoriasCom[cat].forEach(legenda => {
-                                    const option = document.createElement('option');
-                                    option.value = legenda.texto;
-                                    option.textContent = legenda.texto;
-                                    optgroup.appendChild(option);
-                                });
-                                select.appendChild(optgroup);
-                            }
-                        });
-                    } else {
-                        // Mostrar apenas da categoria específica
-                        legendasToShow.forEach(legenda => {
+                        // Ordenar legendas da categoria
+                        categoriasCom[categoria].sort((a, b) => a.texto.localeCompare(b.texto));
+                        
+                        categoriasCom[categoria].forEach(legenda => {
                             const option = document.createElement('option');
                             option.value = legenda.texto;
                             option.textContent = legenda.texto;
-                            select.appendChild(option);
+                            if (categoria === mappedCategory) {
+                                option.style.fontWeight = 'bold';
+                            }
+                            optgroup.appendChild(option);
                         });
+                        
+                        select.appendChild(optgroup);
+                        delete categoriasCom[categoria]; // Remover para não duplicar
                     }
-                    
-                    console.log(`✅ ${legendasToShow.length} legendas carregadas para categoria ${mappedCategory}`);
-                    
-                    // Otimização mobile - garantir que o select seja visível
-                    if (window.innerWidth <= 768) {
-                        select.style.fontSize = '16px'; // Evitar zoom no iOS
-                        select.style.minHeight = '44px'; // Área de toque mínima
-                        select.style.width = '100%';
-                        select.style.display = 'block';
-                        console.log('📱 Otimizações mobile aplicadas ao select');
+                });
+                
+                // Mostrar qualquer categoria restante
+                Object.keys(categoriasCom).forEach(categoria => {
+                    if (categoriasCom[categoria].length > 0) {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = categoria;
+                        categoriasCom[categoria].forEach(legenda => {
+                            const option = document.createElement('option');
+                            option.value = legenda.texto;
+                            option.textContent = legenda.texto;
+                            optgroup.appendChild(option);
+                        });
+                        select.appendChild(optgroup);
                     }
-                    
-                } else {
-                    console.warn('⚠️ Dados inválidos ou vazios, tentando próxima URL');
-                    tryLoadLegends(urlIndex + 1);
+                });
+                
+                console.log(`✅ ${data.legendas.length} legendas carregadas - todas as categorias mostradas`);
+                
+                // Otimização mobile - garantir que o select seja visível
+                if (window.innerWidth <= 768) {
+                    select.style.fontSize = '16px'; // Evitar zoom no iOS
+                    select.style.minHeight = '44px'; // Área de toque mínima
+                    select.style.width = '100%';
+                    select.style.display = 'block';
+                    console.log('📱 Otimizações mobile aplicadas ao select');
                 }
-            })
-            .catch(error => {
-                console.error(`❌ Erro na requisição (tentativa ${urlIndex + 1}):`, error);
-                tryLoadLegends(urlIndex + 1);
-            });
-    }
-    
-    // Iniciar carregamento
-    tryLoadLegends();
+                
+            } else {
+                console.error('❌ Erro: Dados inválidos recebidos da API');
+                select.innerHTML = '<option value="">Erro ao carregar legendas</option>';
+            }
+        })
+        .catch(error => {
+            console.error('❌ Erro na requisição de legendas:', error);
+            select.innerHTML = '<option value="">Erro ao carregar legendas</option>';
+        });
 }
 
 // Mapear categoria da foto para categoria da legenda
