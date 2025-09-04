@@ -933,13 +933,7 @@ function openPhotoEditor(photoId) {
             return;
         }
         
-        // Usar o editor modal global
-        if (!window.fabricPhotoEditorModal) {
-            console.error('❌ Editor modal não inicializado');
-            return;
-        }
-        
-        // Callback para salvar a foto editada
+        // Callback para salvar a foto editada (definir primeiro)
         const saveCallback = async (data) => {
             console.log('💾 Salvando foto editada:', data.photoId);
             
@@ -985,7 +979,36 @@ function openPhotoEditor(photoId) {
             console.log('✅ Foto salva com sucesso');
         };
         
+        // Verificar se o editor modal está disponível
+        console.log('🔍 Verificando editor modal:', window.fabricPhotoEditorModal);
+        
+        if (!window.fabricPhotoEditorModal) {
+            console.error('❌ Editor modal não inicializado - tentando inicializar...');
+            
+            // Tentar inicializar o editor modal
+            if (typeof initFabricPhotoEditorModal === 'function') {
+                initFabricPhotoEditorModal();
+                
+                // Aguardar um momento para o editor ser inicializado
+                setTimeout(() => {
+                    if (window.fabricPhotoEditorModal) {
+                        console.log('✅ Editor inicializado com sucesso');
+                        window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
+                    } else {
+                        console.error('❌ Falha ao inicializar editor');
+                        alert('Editor de fotos não pode ser carregado. Recarregue a página.');
+                    }
+                }, 500);
+                return;
+            } else {
+                console.error('❌ Função initFabricPhotoEditorModal não encontrada');
+                alert('Sistema de edição de fotos não está disponível. Recarregue a página.');
+                return;
+            }
+        }
+        
         // Abrir editor modal
+        console.log('✅ Abrindo editor modal');
         window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
         
     } catch (error) {
@@ -1499,26 +1522,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </style>
 
 <script>
-// Adicionar botões de editar nas fotos dinamicamente
-function addEditButtonsToPhotos() {
-    document.querySelectorAll('[data-photo-id] img').forEach(img => {
-        const container = img.closest('[data-photo-id]');
-        if (container && !container.querySelector('.edit-photo-btn')) {
-            const editBtn = document.createElement('button');
-            editBtn.className = 'edit-photo-btn';
-            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-            editBtn.title = 'Editar foto';
-            editBtn.onclick = () => {
-                const photoId = container.dataset.photoId;
-                openPhotoEditor(photoId);
-            };
-            
-            // Posicionamento relativo no container
-            container.style.position = 'relative';
-            container.appendChild(editBtn);
-        }
-    });
-}
+// Função para adicionar botões foi removida - usando apenas botões do template
 
 // Inicialização quando DOM carregar
 document.addEventListener('DOMContentLoaded', function() {
@@ -1530,30 +1534,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('❌ Editor modal não disponível');
     }
     
-    // Adicionar botões de edição nas fotos existentes
-    addEditButtonsToPhotos();
-    
-    // Observer para adicionar botões em novas fotos adicionadas dinamicamente
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'childList') {
-                mutation.addedNodes.forEach(function(node) {
-                    if (node.nodeType === 1) { // Element node
-                        if (node.matches && node.matches('[data-photo-id]')) {
-                            addEditButtonsToPhotos();
-                        } else if (node.querySelector && node.querySelector('[data-photo-id]')) {
-                            addEditButtonsToPhotos();
-                        }
-                    }
-                });
-            }
-        });
-    });
-    
-    observer.observe(document.getElementById('fotosSection') || document.body, {
-        childList: true,
-        subtree: true
-    });
+    // Observer removido - usando apenas botões do template HTML
 });
 </script>
 {% endblock %}
