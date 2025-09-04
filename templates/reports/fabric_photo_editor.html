@@ -233,92 +233,13 @@ async function initEditor() {
 }
 
 function setupControls() {
-    // Configuração otimizada para botões de ferramentas em mobile
-    const isTouch = 'ontouchstart' in window;
-    let touchStartTime = 0;
-    let lastTouchTarget = null;
-    let touchProcessed = false;
-    
-    // Função unificada para seleção de ferramenta
-    function handleToolSelection(target, eventType) {
-        if (!target.dataset.tool) return false;
-        
-        const tool = target.dataset.tool;
-        console.log(`🔧 Ferramenta alterada para: ${tool} via ${eventType}`);
-        
-        // Feedback visual imediato e mais pronunciado
-        target.classList.add('pressed');
-        
-        setTimeout(() => {
-            target.classList.remove('pressed');
-        }, 150);
-        
-        if (photoEditor) {
+    // Botões de ferramentas
+    document.querySelectorAll('[data-tool]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tool = this.dataset.tool;
             photoEditor.setTool(tool);
-            
-            // Atualizar estado visual dos botões
-            document.querySelectorAll('[data-tool]').forEach(btn => {
-                btn.classList.remove('active');
-                btn.style.backgroundColor = '';
-                btn.style.color = '';
-            });
-            target.classList.add('active');
-        }
-        
-        return true;
-    }
-    
-    // Configurar eventos otimizados para mobile e desktop
-    if (isTouch) {
-        // Event listeners para dispositivos touch
-        document.querySelectorAll('[data-tool]').forEach(btn => {
-            btn.addEventListener('touchstart', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                touchStartTime = Date.now();
-                lastTouchTarget = this;
-                touchProcessed = false;
-                
-                // Feedback visual imediato
-                this.classList.add('touching');
-            }, { passive: false });
-            
-            btn.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const touchDuration = Date.now() - touchStartTime;
-                
-                // Verificar se é um tap rápido (não um scroll)
-                if (touchDuration < 300 && !touchProcessed && this === lastTouchTarget) {
-                    touchProcessed = true;
-                    handleToolSelection(this, 'touchend');
-                }
-                
-                // Limpar feedback visual
-                this.classList.remove('touching');
-                
-                lastTouchTarget = null;
-            }, { passive: false });
-            
-            // Prevenir eventos de click em dispositivos touch
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            }, { passive: false });
         });
-    } else {
-        // Event listeners para dispositivos não-touch (desktop)
-        document.querySelectorAll('[data-tool]').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleToolSelection(this, 'click');
-            });
-        });
-    }
+    });
     
     // Seletor de cor
     document.getElementById('current-color').addEventListener('click', function() {
