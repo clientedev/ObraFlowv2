@@ -152,11 +152,8 @@ body {
     transition: box-shadow 0.15s ease-in-out;
 }
 
-/* Card hover apenas para desktop */
-@media (hover: hover) and (pointer: fine) {
-    .card:hover {
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    }
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
 .card-header {
@@ -177,13 +174,10 @@ body {
     border-color: var(--primary-color);
 }
 
-/* Button hover apenas para desktop */
-@media (hover: hover) and (pointer: fine) {
-    .btn-primary:hover {
-        background-color: #0b5ed7;
-        border-color: #0a58ca;
-        transform: translateY(-1px);
-    }
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+    transform: translateY(-1px);
 }
 
 /* ELP brand colors for elements */
@@ -289,11 +283,8 @@ body {
     transition: transform 0.2s ease-in-out;
 }
 
-/* Stat card hover apenas para desktop */
-@media (hover: hover) and (pointer: fine) {
-    .stat-card:hover {
-        transform: translateY(-5px);
-    }
+.stat-card:hover {
+    transform: translateY(-5px);
 }
 
 .stat-card .display-4 {
@@ -343,11 +334,8 @@ body {
     cursor: pointer;
 }
 
-/* Photo gallery hover apenas para desktop */
-@media (hover: hover) and (pointer: fine) {
-    .photo-gallery .card-img-top:hover {
-        transform: scale(1.05);
-    }
+.photo-gallery .card-img-top:hover {
+    transform: scale(1.05);
 }
 
 /* Progress indicators */
@@ -514,19 +502,12 @@ footer {
     font-size: 3em;
 }
 
-/* Card animations - Desabilitado para mobile */
+/* Card animations */
 .card-hover {
-    transition: none;
+    transition: all 0.3s ease;
 }
 
-/* Hover effects apenas para desktop */
-@media (hover: hover) and (pointer: fine) {
-    .card-hover {
-        transition: all 0.3s ease;
-    }
-    
-    .card-hover:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12);
-    }
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12);
 }

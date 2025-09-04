@@ -29,35 +29,6 @@ input, textarea, select, [contenteditable="true"] {
     -webkit-touch-callout: none;
 }
 
-/* DESABILITAR TODOS OS EFEITOS HOVER NO MOBILE */
-.card, .card-hover, .btn, .photo-gallery .card-img-top, .stat-card {
-    transition: none !important;
-    transform: none !important;
-}
-
-/* Remover efeitos de toque indesejados */
-.card:active, .card-hover:active, .btn:active {
-    transform: none !important;
-    box-shadow: none !important;
-    opacity: 1 !important;
-}
-
-/* Ferramentas do editor - otimizações touch */
-[data-modal-tool], [data-tool], .tool-btn, .fabric-tool-btn {
-    min-height: 48px !important;
-    min-width: 48px !important;
-    touch-action: manipulation !important;
-    -webkit-tap-highlight-color: transparent !important;
-    transition: none !important;
-}
-
-/* Estados ativos para ferramentas */
-[data-modal-tool].active, [data-tool].active, .tool-btn.active, .fabric-tool-btn.active {
-    background-color: #007bff !important;
-    color: white !important;
-    border-color: #007bff !important;
-}
-
 /* Tabelas responsivas - scroll horizontal perfeito */
 .table-responsive {
     overflow-x: auto;
@@ -88,25 +59,15 @@ input, textarea, select, [contenteditable="true"] {
 
 /* Botões com área de toque adequada */
 @media (max-width: 767.98px) {
-    .btn, .tool-btn, [data-modal-tool], [data-tool], .fabric-tool-btn {
-        min-height: 48px;
-        min-width: 48px;
+    .btn, .tool-btn {
+        min-height: 44px;
         padding: 12px 16px;
         touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-        transition: none;
     }
     
     .color-preset {
-        min-width: 48px;
-        min-height: 48px;
-        touch-action: manipulation;
-    }
-    
-    /* Margem entre botões para evitar toques acidentais */
-    .btn + .btn, .tool-btn + .tool-btn, [data-modal-tool] + [data-modal-tool] {
-        margin-left: 4px;
-        margin-top: 4px;
+        min-width: 44px;
+        min-height: 44px;
     }
     
     /* Melhorar área de scroll em tabelas mobile */

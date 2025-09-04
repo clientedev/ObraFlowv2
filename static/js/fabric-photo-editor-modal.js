@@ -267,85 +267,45 @@ async function openPhotoEditorFromElement(photoElement) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Configurando listeners do editor modal');
     
-    // Variáveis para controle de touch
-    let touchProcessed = false;
-    let touchStartTime = 0;
+    // Listeners para botões de ferramentas do modal - OTIMIZADO PARA MOBILE
+    const isMobile = window.innerWidth <= 768;
+    const eventType = isMobile ? 'touchstart' : 'click';
     
-    // Função unificada para seleção de ferramenta
-    function selectTool(element, tool) {
-        if (window.fabricPhotoEditorModal) {
-            window.fabricPhotoEditorModal.setTool(tool);
+    document.addEventListener(eventType, function(e) {
+        if (e.target.matches('[data-modal-tool]')) {
+            e.preventDefault();
+            e.stopPropagation();
             
-            // Atualizar estado visual dos botões
-            document.querySelectorAll('[data-modal-tool]').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            element.classList.add('active');
-            
-            console.log('🔧 Ferramenta alterada para:', tool, 'via', touchProcessed ? 'touch' : 'click');
-            console.log('🔧 Ferramenta modal selecionada:', tool);
-        }
-    }
-    
-    // Touch events - alta prioridade para mobile
-    document.addEventListener('touchstart', function(e) {
-        if (e.target.matches('[data-modal-tool]') || e.target.closest('[data-modal-tool]')) {
-            touchProcessed = true;
-            touchStartTime = Date.now();
-            
-            const element = e.target.matches('[data-modal-tool]') ? e.target : e.target.closest('[data-modal-tool]');
-            const tool = element.dataset.modalTool;
+            const tool = e.target.dataset.modalTool;
             
             // Feedback visual imediato
-            element.style.transform = 'scale(0.95)';
-            element.style.opacity = '0.8';
-            
-            // Executar seleção imediatamente no touchstart
-            selectTool(element, tool);
-            
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    }, { passive: false });
-    
-    document.addEventListener('touchend', function(e) {
-        if (touchProcessed) {
-            const element = e.target.matches('[data-modal-tool]') ? e.target : e.target.closest('[data-modal-tool]');
-            if (element) {
-                // Restaurar visual
-                element.style.transform = '';
-                element.style.opacity = '';
-            }
-            
-            // Reset touch após pequeno delay
+            e.target.style.transform = 'scale(0.95)';
             setTimeout(() => {
-                touchProcessed = false;
-            }, 300);
+                e.target.style.transform = '';
+            }, 100);
             
-            e.preventDefault();
-            e.stopPropagation();
+            if (window.fabricPhotoEditorModal) {
+                window.fabricPhotoEditorModal.setTool(tool);
+                
+                // Atualizar estado visual dos botões
+                document.querySelectorAll('[data-modal-tool]').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.modalTool === tool);
+                });
+                
+                console.log('🔧 Ferramenta modal selecionada:', tool);
+            }
         }
-    }, { passive: false });
+    });
     
-    // Click events - fallback para desktop
-    document.addEventListener('click', function(e) {
-        if (e.target.matches('[data-modal-tool]') || e.target.closest('[data-modal-tool]')) {
-            // Evitar duplo processamento no mobile
-            if (touchProcessed) {
+    // Prevenir eventos duplicados no mobile
+    if (isMobile) {
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('[data-modal-tool]')) {
                 e.preventDefault();
                 e.stopPropagation();
-                return;
             }
-            
-            const element = e.target.matches('[data-modal-tool]') ? e.target : e.target.closest('[data-modal-tool]');
-            const tool = element.dataset.modalTool;
-            
-            selectTool(element, tool);
-            
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    })
+        });
+    }
     
     // Click listener para outros elementos
     document.addEventListener('click', function(e) {
