@@ -40,6 +40,63 @@
 .photo-category:hover {
     border-color: #007bff;
 }
+
+/* Mobile Touch Isolation - Evita conflitos com gestos nativos */
+@media (max-width: 768px) {
+    /* Isolar touch das divs principais de conteúdo */
+    .card-body,
+    .form-group,
+    .checklist-item,
+    .row.mb-4,
+    .mb-3,
+    .mb-4 {
+        touch-action: manipulation; /* Permite apenas pan e zoom */
+        -webkit-touch-callout: none; /* Desabilita callout no iOS */
+        -webkit-user-select: none; /* Desabilita seleção de texto */
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+    
+    /* Permitir interação normal apenas em inputs específicos */
+    input[type="text"],
+    input[type="date"], 
+    input[type="file"],
+    textarea,
+    select,
+    .form-control {
+        touch-action: auto;
+        -webkit-user-select: auto;
+        -moz-user-select: auto;
+        -ms-user-select: auto;
+        user-select: auto;
+        -webkit-touch-callout: default;
+    }
+    
+    /* Isolar categorias de fotos especificamente */
+    .photo-category {
+        touch-action: manipulation;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        /* Área de toque mínima */
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Evitar conflitos com scroll em containers */
+    .container-fluid,
+    .row {
+        touch-action: pan-y; /* Apenas scroll vertical */
+    }
+    
+    /* Preview de fotos - permitir apenas tap */
+    .photo-preview {
+        touch-action: manipulation;
+    }
+}
 </style>
 {% endblock %}
 
