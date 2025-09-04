@@ -523,14 +523,7 @@ def photo_annotation():
 @app.route('/photo-editor', methods=['GET', 'POST'])
 @login_required
 def photo_editor():
-    """Página do editor de fotos Figma Mobile"""
-    photo_id = request.args.get('photoId') or request.form.get('photoId')
-    return render_template('reports/photo_editor_figma.html', photo_id=photo_id)
-
-@app.route('/photo-editor-classic', methods=['GET', 'POST'])
-@login_required
-def photo_editor_classic():
-    """Editor de fotos clássico (backup)"""
+    """Página do editor de fotos"""
     photo_id = request.args.get('photoId') or request.form.get('photoId')
     return render_template('reports/photo_editor.html', photo_id=photo_id)
 
