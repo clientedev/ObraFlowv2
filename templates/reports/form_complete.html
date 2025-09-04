@@ -633,41 +633,134 @@ function removePhoto(photoId) {
     }
 }
 
-// Carregar legendas pré-definidas para uma foto específica
+// Carregar legendas pré-definidas para uma foto específica - OTIMIZADO PARA MOBILE
 function loadPredefinedCaptionsForPhoto(photoId, category) {
-    console.log(`Carregando legendas para foto ${photoId}, categoria: ${category}`);
+    console.log(`🏷️ Carregando legendas para foto ${photoId}, categoria: ${category}`);
     const mappedCategory = mapCategoryToLegenda(category);
-    console.log(`Categoria mapeada: ${mappedCategory}`);
+    console.log(`📋 Categoria mapeada: ${mappedCategory}`);
     
-    fetch(`/api/legendas?categoria=${mappedCategory}`)
-        .then(response => {
-            console.log('Resposta da API:', response.status);
-            return response.json();
-        })
-        .then(data => {
-            console.log('Dados recebidos:', data);
-            const select = document.getElementById(`predefined_${photoId}`);
-            console.log('Select element:', select);
-            
-            if (select && data.success) {
-                // Limpar opções existentes exceto a primeira
-                select.innerHTML = '<option value="">Selecione uma legenda...</option>';
+    // Verificar se o elemento existe antes de fazer a requisição
+    const select = document.getElementById(`predefined_${photoId}`);
+    if (!select) {
+        console.error(`❌ Elemento select não encontrado para foto ${photoId}`);
+        return;
+    }
+    
+    // Mostrar carregando
+    select.innerHTML = '<option value="">Carregando legendas...</option>';
+    
+    // Fazer duas tentativas: específica e geral
+    const urls = [
+        `/api/legendas?categoria=${encodeURIComponent(mappedCategory)}`,
+        `/api/legendas?categoria=all`
+    ];
+    
+    function tryLoadLegends(urlIndex = 0) {
+        if (urlIndex >= urls.length) {
+            select.innerHTML = '<option value="">Erro ao carregar legendas</option>';
+            return;
+        }
+        
+        fetch(urls[urlIndex])
+            .then(response => {
+                console.log(`📡 Resposta da API (tentativa ${urlIndex + 1}):`, response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('📄 Dados recebidos:', data);
                 
-                data.legendas.forEach(legenda => {
-                    const option = document.createElement('option');
-                    option.value = legenda.texto;
-                    option.textContent = legenda.texto;
-                    select.appendChild(option);
-                });
-                
-                console.log(`${data.legendas.length} legendas carregadas para categoria ${mappedCategory}`);
-            } else {
-                console.error('Elemento select não encontrado ou dados inválidos');
-            }
-        })
-        .catch(error => {
-            console.error('Erro ao carregar legendas:', error);
-        });
+                if (data.success && data.legendas && data.legendas.length > 0) {
+                    // Limpar e popular select
+                    select.innerHTML = '<option value="">Selecione uma legenda...</option>';
+                    
+                    // Filtrar por categoria se não for "all"
+                    let legendasToShow = data.legendas;
+                    if (urlIndex === 0) {
+                        // Primeira tentativa - mostrar apenas da categoria
+                        legendasToShow = data.legendas.filter(l => l.categoria === mappedCategory);
+                    }
+                    
+                    // Se não tem legendas da categoria específica, mostrar todas
+                    if (legendasToShow.length === 0 && urlIndex === 0) {
+                        console.log('⚠️ Nenhuma legenda específica, tentando carregar todas...');
+                        tryLoadLegends(1);
+                        return;
+                    }
+                    
+                    // Agrupar por categoria se mostrando todas
+                    if (urlIndex === 1) {
+                        const categoriasCom = {};
+                        legendasToShow.forEach(legenda => {
+                            if (!categoriasCom[legenda.categoria]) {
+                                categoriasCom[legenda.categoria] = [];
+                            }
+                            categoriasCom[legenda.categoria].push(legenda);
+                        });
+                        
+                        // Mostrar categoria atual primeiro, depois outras
+                        if (categoriasCom[mappedCategory]) {
+                            const optgroup = document.createElement('optgroup');
+                            optgroup.label = `${mappedCategory} (Recomendado)`;
+                            categoriasCom[mappedCategory].forEach(legenda => {
+                                const option = document.createElement('option');
+                                option.value = legenda.texto;
+                                option.textContent = legenda.texto;
+                                optgroup.appendChild(option);
+                            });
+                            select.appendChild(optgroup);
+                        }
+                        
+                        // Outras categorias
+                        Object.keys(categoriasCom).forEach(cat => {
+                            if (cat !== mappedCategory) {
+                                const optgroup = document.createElement('optgroup');
+                                optgroup.label = cat;
+                                categoriasCom[cat].forEach(legenda => {
+                                    const option = document.createElement('option');
+                                    option.value = legenda.texto;
+                                    option.textContent = legenda.texto;
+                                    optgroup.appendChild(option);
+                                });
+                                select.appendChild(optgroup);
+                            }
+                        });
+                    } else {
+                        // Mostrar apenas da categoria específica
+                        legendasToShow.forEach(legenda => {
+                            const option = document.createElement('option');
+                            option.value = legenda.texto;
+                            option.textContent = legenda.texto;
+                            select.appendChild(option);
+                        });
+                    }
+                    
+                    console.log(`✅ ${legendasToShow.length} legendas carregadas para categoria ${mappedCategory}`);
+                    
+                    // Otimização mobile - garantir que o select seja visível
+                    if (window.innerWidth <= 768) {
+                        select.style.fontSize = '16px'; // Evitar zoom no iOS
+                        select.style.minHeight = '44px'; // Área de toque mínima
+                        select.style.width = '100%';
+                        select.style.display = 'block';
+                        console.log('📱 Otimizações mobile aplicadas ao select');
+                    }
+                    
+                } else {
+                    console.warn('⚠️ Dados inválidos ou vazios, tentando próxima URL');
+                    tryLoadLegends(urlIndex + 1);
+                }
+            })
+            .catch(error => {
+                console.error(`❌ Erro na requisição (tentativa ${urlIndex + 1}):`, error);
+                tryLoadLegends(urlIndex + 1);
+            });
+    }
+    
+    // Iniciar carregamento
+    tryLoadLegends();
 }
 
 // Mapear categoria da foto para categoria da legenda
@@ -1518,6 +1611,49 @@ document.addEventListener('DOMContentLoaded', function() {
     .fabric-tool-btn {
         min-width: 40px;
         min-height: 40px;
+    }
+    
+    /* MOBILE: Otimizações específicas para legendas pré-definidas */
+    select[name^="photo_caption_"], 
+    select[id^="predefined_"] {
+        font-size: 16px !important;
+        min-height: 48px !important;
+        padding: 12px !important;
+        border: 2px solid #007bff !important;
+        border-radius: 8px !important;
+        background: white !important;
+        display: block !important;
+        width: 100% !important;
+        -webkit-appearance: menulist !important;
+        -moz-appearance: menulist !important;
+        appearance: menulist !important;
+    }
+    
+    /* Grupos de opções visíveis */
+    optgroup {
+        font-weight: bold !important;
+        color: #007bff !important;
+        font-size: 15px !important;
+        padding: 4px !important;
+    }
+    
+    option {
+        font-size: 14px !important;
+        padding: 8px !important;
+        color: #333 !important;
+        background: white !important;
+    }
+    
+    /* Cards de fotos otimizados */
+    .card-body.p-2 {
+        padding: 16px !important;
+    }
+    
+    /* Texto de categoria mais visível */
+    .text-muted {
+        font-size: 14px !important;
+        color: #555 !important;
+        font-weight: 600 !important;
     }
 }
 </style>
