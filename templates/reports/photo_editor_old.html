@@ -351,9 +351,11 @@ function loadImageFromUrl() {
 }
 
 function setupEventListeners() {
-    // Ferramentas
+    // Ferramentas - com eventos touch para precisão mobile
     document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
-        btn.addEventListener('click', function() {
+        // Função comum para seleção de ferramenta
+        const selectTool = function(e) {
+            e.preventDefault();
             document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             currentTool = this.dataset.tool;
@@ -365,7 +367,12 @@ function setupEventListeners() {
             }
             
             console.log('Ferramenta selecionada:', currentTool);
-        });
+        };
+        
+        // Eventos touch para precisão mobile (touchstart é mais responsivo)
+        btn.addEventListener('touchstart', selectTool, { passive: false });
+        // Evento click para compatibilidade desktop
+        btn.addEventListener('click', selectTool);
     });
     
     // Cor
