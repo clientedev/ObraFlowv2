@@ -633,35 +633,46 @@ function removePhoto(photoId) {
     }
 }
 
-// Carregar legendas pré-definidas para uma foto específica - OTIMIZADO PARA MOBILE
+// Carregar legendas pré-definidas para uma foto específica - MOBILE E DESKTOP
 function loadPredefinedCaptionsForPhoto(photoId, category) {
-    console.log(`🏷️ Carregando legendas para foto ${photoId}, categoria: ${category}`);
+    console.log(`🏷️ [MOBILE] Carregando legendas para foto ${photoId}, categoria: ${category}`);
     const mappedCategory = mapCategoryToLegenda(category);
-    console.log(`📋 Categoria mapeada: ${mappedCategory}`);
+    console.log(`📋 [MOBILE] Categoria mapeada: ${mappedCategory}`);
     
     // Verificar se o elemento existe antes de fazer a requisição
     const select = document.getElementById(`predefined_${photoId}`);
     if (!select) {
-        console.error(`❌ Elemento select não encontrado para foto ${photoId}`);
+        console.error(`❌ [MOBILE] Elemento select não encontrado para foto ${photoId}`);
         return;
     }
     
     // Mostrar carregando
     select.innerHTML = '<option value="">Carregando legendas...</option>';
     
-    // Sempre carregar todas as legendas para mostrar no mobile
-    fetch(`/api/legendas?categoria=all`)
+    console.log(`📡 [MOBILE] Fazendo requisição para: /api/legendas?categoria=all`);
+    
+    // Carregar todas as legendas - MOBILE E DESKTOP
+    fetch(`/api/legendas?categoria=all`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        cache: 'no-cache'
+    })
         .then(response => {
-            console.log(`📡 Resposta da API:`, response.status);
+            console.log(`📡 [MOBILE] Resposta da API:`, response.status, response.statusText);
             if (!response.ok) {
+                console.error(`❌ [MOBILE] Erro HTTP: ${response.status} ${response.statusText}`);
                 throw new Error(`HTTP ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
-            console.log('📄 Dados recebidos:', data);
+            console.log('📄 [MOBILE] Dados recebidos:', data);
+            console.log('🔢 [MOBILE] Total de legendas:', data.legendas ? data.legendas.length : 0);
             
-            if (data.success && data.legendas && data.legendas.length > 0) {
+            if (data && data.success && data.legendas && Array.isArray(data.legendas) && data.legendas.length > 0) {
                 // Limpar select
                 select.innerHTML = '<option value="">Selecione uma legenda...</option>';
                 
@@ -721,25 +732,35 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
                     }
                 });
                 
-                console.log(`✅ ${data.legendas.length} legendas carregadas - todas as categorias mostradas`);
+                console.log(`✅ [MOBILE] ${data.legendas.length} legendas carregadas - todas as categorias mostradas`);
                 
-                // Otimização mobile - garantir que o select seja visível
-                if (window.innerWidth <= 768) {
-                    select.style.fontSize = '16px'; // Evitar zoom no iOS
-                    select.style.minHeight = '44px'; // Área de toque mínima
-                    select.style.width = '100%';
-                    select.style.display = 'block';
-                    console.log('📱 Otimizações mobile aplicadas ao select');
-                }
+                // Forçar aplicação de estilos mobile sempre
+                select.style.fontSize = '16px !important'; // Evitar zoom no iOS
+                select.style.minHeight = '48px !important'; // Área de toque mínima
+                select.style.width = '100% !important';
+                select.style.display = 'block !important';
+                select.style.visibility = 'visible !important';
+                select.style.opacity = '1 !important';
+                console.log('📱 [MOBILE] Estilos aplicados ao select');
+                
+                // Forçar atualização do DOM
+                select.dispatchEvent(new Event('change'));
                 
             } else {
-                console.error('❌ Erro: Dados inválidos recebidos da API');
-                select.innerHTML = '<option value="">Erro ao carregar legendas</option>';
+                console.error('❌ [MOBILE] Erro: Dados inválidos recebidos da API:', data);
+                select.innerHTML = '<option value="">Erro: Nenhuma legenda encontrada</option>';
             }
         })
         .catch(error => {
-            console.error('❌ Erro na requisição de legendas:', error);
-            select.innerHTML = '<option value="">Erro ao carregar legendas</option>';
+            console.error('❌ [MOBILE] Erro na requisição de legendas:', error);
+            console.error('❌ [MOBILE] Stack trace:', error.stack);
+            select.innerHTML = '<option value="">Erro de conexão</option>';
+            
+            // Tentar novamente após 2 segundos
+            setTimeout(() => {
+                console.log('🔄 [MOBILE] Tentando novamente...');
+                loadPredefinedCaptionsForPhoto(photoId, category);
+            }, 2000);
         });
 }
 
