@@ -124,18 +124,22 @@ def generate_report_number():
     from app import db
     
     try:
-        last_report = Relatorio.query.order_by(Relatorio.id.desc()).first()
-        if last_report:
-            # Extract number from existing format like "REL-0001"
-            if last_report.numero and 'REL-' in last_report.numero:
-                try:
-                    last_num = int(last_report.numero.split('-')[1])
-                    return f"REL-{last_num + 1:04d}"
-                except:
-                    pass
+        # Buscar todos os relatórios com números no formato REL-XXXX
+        relatorios = Relatorio.query.filter(Relatorio.numero.like('REL-%')).all()
         
-        # Default start
-        return "REL-0001"
+        max_num = 0
+        for relatorio in relatorios:
+            if relatorio.numero and 'REL-' in relatorio.numero:
+                try:
+                    num = int(relatorio.numero.split('-')[1])
+                    if num > max_num:
+                        max_num = num
+                except:
+                    continue
+        
+        # Retornar próximo número disponível
+        return f"REL-{max_num + 1:04d}"
+        
     except:
         return "REL-0001"
 

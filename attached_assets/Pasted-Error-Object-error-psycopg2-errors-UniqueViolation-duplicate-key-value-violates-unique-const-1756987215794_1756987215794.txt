@@ -1,0 +1,24 @@
+Error: 
+Object {error: "(psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint…", success: false}
+error: "(psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "relatorios_numero_key"↵DETAIL: Key (numero)=(REL-0002) already exists.↵↵[SQL: INSERT INTO relatorios (numero, titulo, projeto_id, visita_id, autor_id, aprovador_id, data_relatorio, data_aprovacao, conteudo, checklist_data, status, comentario_aprovacao, created_at) VALUES (%(numero)s, %(titulo)s, %(projeto_id)s, %(visita_id)s, %(autor_id)s, %(aprovador_id)s, %(data_relatorio)s, %(data_aprovacao)s, %(conteudo)s, %(checklist_data)s, %(status)s, %(comentario_aprovacao)s, %(created_at)s) RETURNING relatorios.id]↵[parameters: {'numero': 'REL-0002', 'titulo': 'PDFv2', 'projeto_id': 5, 'visita_id': None, 'autor_id': 6, 'aprovador_id': 2, 'data_relatorio': datetime.datetime(2025, 9, 4, 0, 0), 'data_aprovacao': None, 'conteudo': 'tudo ok\n\nCHECKLIST DA OBRA:\n\n✓ Verificar condições de segurança no local\n\n✓ Conferir progresso da obra conforme cronograma\n\n○ Inspecionar qua ... (40 characters truncated) ... liar execução conforme projeto técnico\n\n○ Registrar problemas ou não conformidades encontradas\n\n○ Verificar limpeza e organização do canteiro\n\n', 'checklist_data': None, 'status': 'Aguardando Aprovação', 'comentario_aprovacao': None, 'created_at': datetime.datetime(2025, 9, 4, 11, 59, 22, 159458)}]↵(Background on this error at: https://sqlalche.me/e/20/gkpj)"
+success: false
+[[Prototype]]: Object
+constructor: ƒ Object()
+hasOwnProperty: ƒ hasOwnProperty()
+isPrototypeOf: ƒ isPrototypeOf()
+propertyIsEnumerable: ƒ propertyIsEnumerable()
+toLocaleString: ƒ toLocaleString()
+toString: ƒ toString()
+valueOf: ƒ valueOf()
+__defineGetter__: ƒ __defineGetter__()
+__defineSetter__: ƒ __defineSetter__()
+__lookupGetter__: ƒ __lookupGetter__()
+__lookupSetter__: ƒ __lookupSetter__()
+__proto__: Object
+get __proto__: ƒ get __proto__()
+set __proto__: ƒ set __proto__()
+
+at t.value (https://f234abb4-a9d0-4ad2-b80e-02b68ba49c6a-00-2yocxl8q86vpy.spock.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://f234abb4-a9d0-4ad2-b80e-02b68ba49c6a-00-2yocxl8q86vpy.spock.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://f234abb4-a9d0-4ad2-b80e-02b68ba49c6a-00-2yocxl8q86vpy.spock.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://f234abb4-a9d0-4ad2-b80e-02b68ba49c6a-00-2yocxl8q86vpy.spock.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
