@@ -523,9 +523,52 @@ def photo_annotation():
 @app.route('/photo-editor', methods=['GET', 'POST'])
 @login_required
 def photo_editor():
-    """Página do editor de fotos"""
+    """Editor de fotos professional com Fabric.js"""
     photo_id = request.args.get('photoId') or request.form.get('photoId')
-    return render_template('reports/photo_editor.html', photo_id=photo_id)
+    image_url = request.args.get('imageUrl', '')
+    
+    if request.method == 'POST':
+        # Processar imagem editada
+        edited_image = request.form.get('edited_image')
+        legend = request.form.get('legend', '')
+        
+        if edited_image and photo_id:
+            try:
+                # Processar base64
+                if ',' in edited_image:
+                    edited_image = edited_image.split(',')[1]
+                
+                import base64
+                image_binary = base64.b64decode(edited_image)
+                
+                # Salvar imagem editada
+                upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                if not os.path.exists(upload_folder):
+                    os.makedirs(upload_folder)
+                
+                filename = f"edited_{photo_id}_{uuid.uuid4().hex}.jpg"
+                filepath = os.path.join(upload_folder, filename)
+                
+                with open(filepath, 'wb') as f:
+                    f.write(image_binary)
+                
+                # Atualizar banco se necessário
+                if photo_id != 'temp':
+                    foto = FotoRelatorio.query.get(photo_id)
+                    if foto:
+                        foto.filename_anotada = filename
+                        foto.legenda = legend
+                        db.session.commit()
+                
+                flash('Imagem editada com sucesso!', 'success')
+                return redirect(request.referrer or url_for('reports'))
+                
+            except Exception as e:
+                flash(f'Erro ao salvar imagem: {str(e)}', 'error')
+    
+    return render_template('reports/fabric_photo_editor.html', 
+                         photo_id=photo_id, 
+                         image_url=image_url)
 
 @app.route('/reports/photos/<int:photo_id>/annotate', methods=['POST'])
 @login_required
@@ -1821,7 +1864,7 @@ def report_generate_pdf(report_id):
 @app.route('/reports/<int:report_id>/photo-editor')
 @login_required
 def report_photo_editor(report_id):
-    """Photo editor for report photos"""
+    """Editor de fotos professional com Fabric.js para relatórios"""
     relatorio = Relatorio.query.get_or_404(report_id)
     
     # Check permissions
@@ -1829,7 +1872,13 @@ def report_photo_editor(report_id):
         flash('Acesso negado.', 'error')
         return redirect(url_for('reports'))
     
-    return render_template('reports/photo_editor.html', relatorio=relatorio)
+    photo_id = request.args.get('photo_id', 'temp')
+    image_url = request.args.get('image_url', '')
+    
+    return render_template('reports/fabric_photo_editor.html', 
+                         relatorio=relatorio,
+                         photo_id=photo_id,
+                         image_url=image_url)
 
 @app.route('/reports/<int:report_id>/photos/annotate', methods=['POST'])
 @login_required

@@ -1,0 +1,56 @@
+Refatoração Completa com Fabric.js
+
+Quero refazer por completo a funcionalidade de edição de imagens no meu sistema (telas de Novo Relatório e Novo Relatório Express) utilizando a biblioteca Fabric.js.
+
+Atualmente, a tela funciona razoavelmente no desktop, mas em dispositivos mobile o sistema de desenho e manipulação de figuras (seta, círculo, retângulo, pincel e texto) apresenta problemas sérios de precisão no touch, além de uma interface confusa para cores e ajustes.
+
+🎯 Objetivo
+
+Reconstruir o editor de fotos do zero, com Fabric.js, garantindo:
+
+Compatibilidade total com mobile (gestos multitouch, fluidez e precisão).
+
+Sistema de figuras no estilo Figma (inserir, mover, redimensionar, rotacionar, alterar cores e espessuras).
+
+Experiência profissional, responsiva e eficiente, tanto em desktop quanto em mobile.
+
+Interface simplificada e moderna, com foco em usabilidade no toque.
+
+🔑 Funcionalidades obrigatórias
+🎨 Manipulação de objetos
+
+Inserção de seta, círculo, retângulo, texto e pincel/livre.
+
+Seleção com destaque visual (bounding box + handles).
+
+Mover livremente com um dedo.
+
+Redimensionar por pinch-to-zoom ou handles.
+
+Rotacionar com dois dedos ou handle de rotação.
+
+Editar texto com teclado nativo ao tocar.
+
+Desenho livre (pincel) com suavização e controle de espessura.
+
+🎛️ Interface e Layout
+
+Refazer o layout do editor para mobile-first, mas mantendo compatibilidade desktop.
+
+Apenas um botão de cores → ao clicar abre um color picker gradient que permite escolher cor, tonalidade e opacidade.
+
+Slider de espessura da linha com preview.
+
+Botões: Desfazer, Refazer, Limpar Tudo, Confirmar e Cancelar.
+
+Controles grandes e bem posicionados, otimizados para toque (mín. 44x44dp).
+
+📱 Experiência mobile
+
+Toque e gestos devem ser interpretados de forma precisa, sem deslocamentos incorretos.
+
+Gestos multitouch (mover, rotacionar, redimensionar) devem ser suaves e confiáveis.
+
+Feedback visual imediato (sem lag).
+
+Compatibilidade com Chrome Android, Safari iOS e Edge mobile.
