@@ -525,7 +525,18 @@ def photo_annotation():
 def photo_editor():
     """Página do editor de fotos"""
     photo_id = request.args.get('photoId') or request.form.get('photoId')
-    return render_template('reports/photo_editor.html', photo_id=photo_id)
+    
+    # Detectar dispositivo mobile via User-Agent
+    user_agent = request.headers.get('User-Agent', '').lower()
+    is_mobile = any(mobile in user_agent for mobile in [
+        'iphone', 'android', 'mobile', 'ipod', 'ipad', 'tablet'
+    ])
+    
+    # Usar novo editor mobile profissional para dispositivos móveis
+    if is_mobile:
+        return render_template('reports/figma_photo_editor.html', photo_id=photo_id)
+    else:
+        return render_template('reports/photo_editor.html', photo_id=photo_id)
 
 @app.route('/reports/photos/<int:photo_id>/annotate', methods=['POST'])
 @login_required
@@ -1829,7 +1840,17 @@ def report_photo_editor(report_id):
         flash('Acesso negado.', 'error')
         return redirect(url_for('reports'))
     
-    return render_template('reports/photo_editor.html', relatorio=relatorio)
+    # Detectar dispositivo mobile via User-Agent
+    user_agent = request.headers.get('User-Agent', '').lower()
+    is_mobile = any(mobile in user_agent for mobile in [
+        'iphone', 'android', 'mobile', 'ipod', 'ipad', 'tablet'
+    ])
+    
+    # Usar novo editor mobile profissional para dispositivos móveis
+    if is_mobile:
+        return render_template('reports/figma_photo_editor.html', relatorio=relatorio)
+    else:
+        return render_template('reports/photo_editor.html', relatorio=relatorio)
 
 @app.route('/reports/<int:report_id>/photos/annotate', methods=['POST'])
 @login_required
