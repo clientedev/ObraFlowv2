@@ -543,11 +543,176 @@ document.addEventListener('change', function(e) {
     }
 });
 
-// Editor de fotos - DESABILITADO
+// Sistema Fabric.js Photo Editor - Exatamente como no Express
 function editPhoto(photoId, imageSrc, category) {
-    // Funcionalidade removida por solicitação do usuário
-    console.log('Edição de fotos desabilitada');
-    return;
+    console.log('🎨 Abrindo editor para foto:', photoId);
+    
+    // Verificar dependências
+    console.log('🔍 Verificando dependências do editor...');
+    console.log('- window.fabricPhotoEditorModal:', window.fabricPhotoEditorModal);
+    console.log('- initFabricPhotoEditorModal:', typeof initFabricPhotoEditorModal);
+    console.log('- FabricPhotoEditor:', typeof FabricPhotoEditor);
+    console.log('- fabric:', typeof fabric);
+    console.log('- bootstrap:', typeof bootstrap);
+    
+    if (!window.fabricPhotoEditorModal) {
+        console.log('🚀 Inicializando modal do editor...');
+        
+        // Verificar dependências
+        if (typeof fabric === 'undefined') {
+            alert('Fabric.js não está carregado. Recarregue a página.');
+            return;
+        }
+        
+        if (typeof bootstrap === 'undefined') {
+            alert('Bootstrap não está carregado. Recarregue a página.');
+            return;
+        }
+        
+        if (typeof FabricPhotoEditor === 'undefined') {
+            alert('FabricPhotoEditor não está carregado. Recarregue a página.');
+            return;
+        }
+        
+        // Inicializar modal
+        if (typeof initFabricPhotoEditorModal === 'function') {
+            console.log('💫 Inicializando modal...');
+            initFabricPhotoEditorModal();
+            
+            // Aguardar inicialização e abrir
+            setTimeout(() => {
+                if (window.fabricPhotoEditorModal) {
+                    console.log('✅ Abrindo editor modal');
+                    
+                    // Usar imageSrc ou buscar do arquivo
+                    const photo = selectedPhotos.find(p => p.id === photoId);
+                    if (photo && photo.file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            window.fabricPhotoEditorModal.openEditor(e.target.result, photoId, function(editedImageData) {
+                                // Callback para salvar foto editada
+                                updatePhotoFromFabricEditor(photoId, editedImageData);
+                            });
+                            
+                            // Auto-scroll para centro após abrir
+                            setTimeout(() => {
+                                scrollToEditorCenter();
+                            }, 800);
+                        };
+                        reader.readAsDataURL(photo.file);
+                    } else {
+                        window.fabricPhotoEditorModal.openEditor(imageSrc, photoId, function(editedImageData) {
+                            updatePhotoFromFabricEditor(photoId, editedImageData);
+                        });
+                        
+                        // Auto-scroll para centro após abrir
+                        setTimeout(() => {
+                            scrollToEditorCenter();
+                        }, 800);
+                    }
+                } else {
+                    console.error('❌ Falha ao inicializar modal');
+                }
+            }, 100);
+        } else {
+            console.error('❌ Função initFabricPhotoEditorModal não encontrada');
+            alert('Sistema de edição não disponível. Recarregue a página.');
+        }
+    } else {
+        // Modal já inicializado, abrir diretamente
+        console.log('✅ Abrindo editor');
+        
+        const photo = selectedPhotos.find(p => p.id === photoId);
+        if (photo && photo.file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                window.fabricPhotoEditorModal.openEditor(e.target.result, photoId, function(editedImageData) {
+                    updatePhotoFromFabricEditor(photoId, editedImageData);
+                });
+                
+                // Auto-scroll para centro após abrir
+                setTimeout(() => {
+                    scrollToEditorCenter();
+                }, 800);
+            };
+            reader.readAsDataURL(photo.file);
+        } else {
+            window.fabricPhotoEditorModal.openEditor(imageSrc, photoId, function(editedImageData) {
+                updatePhotoFromFabricEditor(photoId, editedImageData);
+            });
+            
+            // Auto-scroll para centro após abrir
+            setTimeout(() => {
+                scrollToEditorCenter();
+            }, 800);
+        }
+    }
+}
+
+// Função para auto-scroll centralizado
+function scrollToEditorCenter() {
+    console.log('🎨 Executando auto-scroll para centro do editor');
+    
+    const modal = document.getElementById('fabricPhotoEditorModal');
+    if (!modal) {
+        console.log('⚠️ Modal não encontrado');
+        return;
+    }
+    
+    const canvasContainer = modal.querySelector('.canvas-container');
+    if (!canvasContainer) {
+        console.log('⚠️ Canvas container não encontrado');
+        return;
+    }
+    
+    try {
+        // Scroll suave para o centro do canvas
+        canvasContainer.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'center'
+        });
+        
+        // Centralizar o scroll na janela também
+        window.scrollTo({
+            top: window.innerHeight / 4,
+            behavior: 'smooth'
+        });
+        
+        console.log('✅ Auto-scroll executado com sucesso');
+    } catch (error) {
+        console.error('❌ Erro no auto-scroll:', error);
+    }
+}
+
+// Nova função para atualizar foto do Fabric Editor
+function updatePhotoFromFabricEditor(photoId, editedImageData) {
+    console.log('💾 Atualizando foto editada:', photoId);
+    
+    const photo = selectedPhotos.find(p => p.id === photoId);
+    if (!photo) {
+        console.error('❌ Foto não encontrada:', photoId);
+        return;
+    }
+    
+    // Atualizar imagem no preview
+    const img = photo.element.querySelector('.photo-preview');
+    if (img && editedImageData) {
+        img.src = editedImageData;
+        photo.annotatedSrc = editedImageData;
+    }
+    
+    // Adicionar indicador visual de foto editada
+    const card = photo.element.querySelector('.card');
+    if (card && !card.classList.contains('border-success')) {
+        card.classList.add('border-success', 'border-2');
+        const indicator = document.createElement('small');
+        indicator.className = 'text-success fw-bold';
+        indicator.innerHTML = '<i class="fas fa-check-circle"></i> Editada';
+        photo.element.querySelector('.card-body').appendChild(indicator);
+    }
+    
+    console.log('✅ Foto atualizada com sucesso');
 }
 
 // Canvas drawing functions
@@ -976,7 +1141,194 @@ function carregarChecklistPadrao() {
 document.addEventListener('DOMContentLoaded', function() {
     // Carregar checklist padrão automaticamente
     carregarChecklistPadrao();
+    
+    // Inicializar editor modal Fabric.js - exatamente como no Express
+    if (typeof initFabricPhotoEditorModal === 'function') {
+        initFabricPhotoEditorModal();
+        console.log('✅ Editor modal inicializado');
+    } else {
+        console.error('❌ Editor modal não disponível');
+    }
 });
 
 </script>
+
+<!-- Fabric.js CDN - Exatamente como no Express -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+
+<!-- Editor Scripts - Exatamente como no Express -->
+<script src="{{ url_for('static', filename='js/fabric-photo-editor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/fabric-photo-editor-modal.js') }}"></script>
+
+<!-- Modal do Editor de Fotos Professional - Exatamente como no Express -->
+<div class="modal fade" id="fabricPhotoEditorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <!-- Header -->
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit"></i> Editor de Fotos Professional
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            
+            <!-- Body -->
+            <div class="modal-body p-0" style="height: calc(100vh - 160px);">
+                <div class="fabric-editor-container" style="height: 100%;">
+                    <!-- Área principal do editor -->
+                    <div class="fabric-editor-main" style="flex: 1; display: flex; flex-direction: column;">
+                        <!-- Container do canvas -->
+                        <div class="canvas-container" style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; background: #f8f9fa;">
+                            <div class="canvas-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); overflow: hidden;">
+                                <canvas id="fabricModalCanvas"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Toolbar de ferramentas -->
+                        <div class="fabric-toolbar" style="background: white; border-top: 1px solid #e1e5e9; padding: 16px;">
+                            <!-- Ferramentas principais -->
+                            <div class="tool-group mb-3">
+                                <h6 class="text-muted mb-2">Ferramentas</h6>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button class="fabric-tool-btn active" data-modal-tool="select" title="Seleção">
+                                        <i class="fas fa-mouse-pointer"></i>
+                                    </button>
+                                    <button class="fabric-tool-btn" data-modal-tool="brush" title="Pincel">
+                                        <i class="fas fa-paint-brush"></i>
+                                    </button>
+                                    <button class="fabric-tool-btn" data-modal-tool="arrow" title="Seta">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                    <button class="fabric-tool-btn" data-modal-tool="circle" title="Círculo">
+                                        <i class="far fa-circle"></i>
+                                    </button>
+                                    <button class="fabric-tool-btn" data-modal-tool="rectangle" title="Retângulo">
+                                        <i class="far fa-square"></i>
+                                    </button>
+                                    <button class="fabric-tool-btn" data-modal-tool="text" title="Texto">
+                                        <i class="fas fa-font"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Propriedades -->
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Cor:</label>
+                                    <input type="color" id="modal-color-picker" class="form-control form-control-color" value="#FF0000">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Espessura:</label>
+                                    <input type="range" id="modal-stroke-width" class="form-range" min="1" max="20" value="3">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Legenda:</label>
+                                    <input type="text" id="modal-custom-legend" class="form-control" placeholder="Digite uma legenda...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="modal-cancel-btn">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" onclick="window.fabricPhotoEditorModal?.clear()">
+                    <i class="fas fa-trash"></i> Limpar
+                </button>
+                <button type="button" class="btn btn-warning" onclick="window.fabricPhotoEditorModal?.undo()">
+                    <i class="fas fa-undo"></i> Desfazer
+                </button>
+                <button type="button" class="btn btn-success" id="modal-save-btn">
+                    <i class="fas fa-check"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos do modal do editor - Exatamente como no Express */
+.fabric-tool-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px;
+    background: #f8f9fa;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    color: #4b5563;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.fabric-tool-btn:hover {
+    background: #e5e7eb;
+}
+
+.fabric-tool-btn.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #2563eb;
+}
+
+/* Indicador visual de foto editada */
+.photo-container.edited {
+    position: relative;
+}
+
+.edited-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #10b981;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    z-index: 10;
+}
+
+.edit-photo-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(59, 130, 246, 0.9);
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.edit-photo-btn:hover {
+    background: #3b82f6;
+    transform: scale(1.1);
+}
+
+/* Responsivo mobile */
+@media (max-width: 768px) {
+    .fabric-toolbar {
+        max-height: 40vh;
+        overflow-y: auto;
+    }
+    
+    .fabric-tool-btn {
+        min-width: 40px;
+        min-height: 40px;
+    }
+}
+</style>
+
 {% endblock %}
