@@ -870,39 +870,60 @@ function loadLegends(photoId, category) {
     const mappedCategory = categoryMap[category] || category;
     console.log(`Categoria mapeada: ${mappedCategory}`);
     
-    fetch(`/api/legendas?categoria=${encodeURIComponent(mappedCategory)}`)
-        .then(response => response.json())
-        .then(data => {
-            console.log('Dados recebidos:', data);
-            
-            const selectElement = document.querySelector(`[data-photo-id="${photoId}"] .legend-select`);
-            console.log('Select element:', selectElement);
-            
-            if (selectElement && data.success && data.legendas) {
-                selectElement.innerHTML = '<option value="">Selecione uma legenda predefinida</option>';
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/legendas?categoria=all', true);
+    
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            try {
+                const data = JSON.parse(xhr.responseText);
                 
-                data.legendas.forEach(legenda => {
-                    const option = document.createElement('option');
-                    option.value = legenda.texto;
-                    option.textContent = legenda.texto;
-                    selectElement.appendChild(option);
-                });
+                const selectElement = document.querySelector(`[data-photo-id="${photoId}"] .legend-select`);
                 
-                console.log(`${data.legendas.length} legendas carregadas para categoria ${mappedCategory}`);
-            } else {
-                console.error('Erro ao carregar legendas:', data);
-                if (selectElement) {
+                if (selectElement && data.success && data.legendas) {
+                    selectElement.innerHTML = '<option value="">Selecione uma legenda...</option>';
+                    
+                    const categorias = {
+                        'Acabamentos': [],
+                        'Estrutural': [],
+                        'Geral': [],
+                        'Segurança': []
+                    };
+                    
+                    data.legendas.forEach(legenda => {
+                        if (categorias[legenda.categoria]) {
+                            categorias[legenda.categoria].push(legenda);
+                        }
+                    });
+                    
+                    Object.keys(categorias).forEach(cat => {
+                        if (categorias[cat].length > 0) {
+                            const optgroup = document.createElement('optgroup');
+                            optgroup.label = cat;
+                            
+                            categorias[cat].forEach(legenda => {
+                                const option = document.createElement('option');
+                                option.value = legenda.texto;
+                                option.textContent = legenda.texto;
+                                optgroup.appendChild(option);
+                            });
+                            
+                            selectElement.appendChild(optgroup);
+                        }
+                    });
+                } else if (selectElement) {
                     selectElement.innerHTML = '<option value="">Nenhuma legenda disponível</option>';
                 }
+            } catch (e) {
+                const selectElement = document.querySelector(`[data-photo-id="${photoId}"] .legend-select`);
+                if (selectElement) {
+                    selectElement.innerHTML = '<option value="">Erro ao carregar</option>';
+                }
             }
-        })
-        .catch(error => {
-            console.error('Erro na requisição de legendas:', error);
-            const selectElement = document.querySelector(`[data-photo-id="${photoId}"] .legend-select`);
-            if (selectElement) {
-                selectElement.innerHTML = '<option value="">Erro ao carregar legendas</option>';
-            }
-        });
+        }
+    };
+    
+    xhr.send();
 }
 
 // Atualizar configuração da foto
