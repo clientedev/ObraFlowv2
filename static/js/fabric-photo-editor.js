@@ -21,6 +21,11 @@ class FabricPhotoEditor {
         this.historyIndex = -1;
         this.maxHistory = 50;
         
+        // Controles da seta melhorados
+        this.isDrawingArrow = false;
+        this.arrowStartPoint = null;
+        this.currentArrow = null;
+        
         // Mobile específico
         this.isMobile = window.innerWidth <= 768;
         this.isTouch = 'ontouchstart' in window;
@@ -110,9 +115,27 @@ class FabricPhotoEditor {
                 this.backgroundImage = img;
                 this.canvas.renderAll();
                 
+                // Auto-scroll para o centro da imagem após carregar
+                setTimeout(() => {
+                    this.scrollToImageCenter();
+                }, 100);
+                
                 resolve(img);
             });
         });
+    }
+    
+    // Função para fazer auto-scroll para o centro da imagem
+    scrollToImageCenter() {
+        const canvasContainer = this.canvas.wrapperEl.parentElement;
+        if (canvasContainer) {
+            canvasContainer.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'center'
+            });
+            console.log('🎨 Auto-scroll para centro da imagem executado');
+        }
     }
     
     setupCanvasEvents() {
@@ -281,6 +304,14 @@ class FabricPhotoEditor {
     
     setTool(tool) {
         console.log(`🔧 Ferramenta alterada para: ${tool}`);
+        
+        // Se mudando de seta para outra ferramenta, limpar controles de seta
+        if (this.currentTool === 'arrow' && tool !== 'arrow') {
+            this.currentArrow = null;
+            this.isDrawingArrow = false;
+            this.arrowStartPoint = null;
+        }
+        
         this.currentTool = tool;
         
         // Resetar modo de desenho
@@ -342,15 +373,32 @@ class FabricPhotoEditor {
         this.canvas.on('mouse:down', (options) => {
             if (this.currentTool !== shapeType) return;
             
+            // Se for seta e já existe uma, remover a anterior
+            if (shapeType === 'arrow' && this.currentArrow) {
+                this.canvas.remove(this.currentArrow);
+                this.currentArrow = null;
+            }
+            
             isDrawing = true;
             const pointer = this.canvas.getPointer(options.e);
             startPoint = { x: pointer.x, y: pointer.y };
+            
+            // Para setas, definir ponto inicial
+            if (shapeType === 'arrow') {
+                this.isDrawingArrow = true;
+                this.arrowStartPoint = startPoint;
+            }
             
             // Criar shape inicial
             shape = this.createShape(shapeType, startPoint, startPoint);
             if (shape) {
                 this.canvas.add(shape);
                 this.canvas.setActiveObject(shape);
+                
+                // Armazenar referência da seta
+                if (shapeType === 'arrow') {
+                    this.currentArrow = shape;
+                }
             }
         });
         
@@ -359,12 +407,19 @@ class FabricPhotoEditor {
             
             const pointer = this.canvas.getPointer(options.e);
             this.updateShape(shape, shapeType, startPoint, pointer);
+            
+            // Atualizar referência da seta
+            if (shapeType === 'arrow') {
+                this.currentArrow = shape;
+            }
+            
             this.canvas.renderAll();
         });
         
         this.canvas.on('mouse:up', () => {
             if (isDrawing && shape) {
                 isDrawing = false;
+                this.isDrawingArrow = false;
                 this.saveState();
                 
                 // Para texto, abrir editor

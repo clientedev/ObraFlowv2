@@ -55,8 +55,28 @@ class FabricPhotoEditorModal {
             
             console.log('✅ Editor modal inicializado');
             
+            // Auto-scroll para o centro da imagem após inicializar
+            setTimeout(() => {
+                this.scrollToImageCenter();
+            }, 200);
+            
         } catch (error) {
             console.error('❌ Erro ao inicializar editor modal:', error);
+        }
+    }
+    
+    // Função para fazer auto-scroll para o centro da imagem
+    scrollToImageCenter() {
+        const modal = document.getElementById(this.modalId);
+        const canvasContainer = modal?.querySelector('.canvas-container');
+        
+        if (canvasContainer) {
+            canvasContainer.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'center'
+            });
+            console.log('🎨 Auto-scroll para centro da imagem executado');
         }
     }
     
