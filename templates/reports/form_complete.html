@@ -689,27 +689,44 @@ function scrollToEditorCenter() {
 function updatePhotoFromFabricEditor(photoId, editedImageData) {
     console.log('💾 Atualizando foto editada:', photoId);
     
-    const photo = selectedPhotos.find(p => p.id === photoId);
-    if (!photo) {
-        console.error('❌ Foto não encontrada:', photoId);
+    // Buscar elemento da foto diretamente pelo ID
+    const photoElement = document.getElementById(photoId);
+    if (!photoElement) {
+        console.error('❌ Elemento da foto não encontrado:', photoId);
         return;
     }
     
     // Atualizar imagem no preview
-    const img = photo.element.querySelector('.photo-preview');
-    if (img && editedImageData) {
-        img.src = editedImageData;
-        photo.annotatedSrc = editedImageData;
+    const img = photoElement.querySelector('.photo-preview');
+    if (img && editedImageData.imageData) {
+        img.src = editedImageData.imageData;
+        console.log('✅ Imagem do preview atualizada');
+        
+        // Também atualizar onclick para manter funcionalidade
+        img.setAttribute('onclick', `editPhoto('${photoId}', '${editedImageData.imageData}', '${img.getAttribute('data-category') || 'Geral'}')`);
+    }
+    
+    // Atualizar também em selectedPhotos se existir
+    const photo = selectedPhotos.find(p => p.id === photoId);
+    if (photo) {
+        photo.annotatedSrc = editedImageData.imageData;
+        console.log('✅ Dados da foto atualizados em selectedPhotos');
     }
     
     // Adicionar indicador visual de foto editada
-    const card = photo.element.querySelector('.card');
+    const card = photoElement.querySelector('.card');
     if (card && !card.classList.contains('border-success')) {
         card.classList.add('border-success', 'border-2');
+        
+        // Remover indicador anterior se existir
+        const oldIndicator = card.querySelector('.edit-indicator');
+        if (oldIndicator) oldIndicator.remove();
+        
         const indicator = document.createElement('small');
-        indicator.className = 'text-success fw-bold';
+        indicator.className = 'text-success fw-bold edit-indicator d-block mt-1';
         indicator.innerHTML = '<i class="fas fa-check-circle"></i> Editada';
-        photo.element.querySelector('.card-body').appendChild(indicator);
+        photoElement.querySelector('.card-body').appendChild(indicator);
+        console.log('✅ Indicador visual adicionado');
     }
     
     console.log('✅ Foto atualizada com sucesso');
