@@ -3,409 +3,542 @@
 {% block title %}Novo Relatório Express{% endblock %}
 
 {% block head %}
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <style>
-/* === RESET E BASE === */
+/* Mobile First Design System - SEM TREMIDA */
 * {
-    margin: 0;
-    padding: 0;
     box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    touch-action: manipulation !important;
+    
+    /* ELIMINAR TODAS ANIMAÇÕES */
+    -webkit-transition: none !important;
+    -moz-transition: none !important;
+    -o-transition: none !important;
+    transition: none !important;
+    
+    /* ELIMINAR TRANSFORMAÇÕES */
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -o-transform: none !important;
+    transform: none !important;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
-    min-height: 100vh;
-    color: #2c3e50;
-    line-height: 1.6;
-}
-
-/* === MOBILE CONTAINER === */
-.mobile-app {
-    min-height: 100vh;
-    padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 16px);
-    max-width: 100%;
-    overflow-x: hidden;
-}
-
-/* === HEADER === */
-.app-header {
-    background: linear-gradient(135deg, #343a40 0%, #20c1e8 100%);
-    color: white;
-    padding: 24px 20px;
-    border-radius: 16px;
-    text-align: center;
-    margin-bottom: 20px;
-    box-shadow: 0 8px 32px rgba(32, 193, 232, 0.3);
-    position: relative;
-    overflow: hidden;
-}
-
-.app-header::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
-    animation: shimmer 4s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 0.7; }
-}
-
-.app-title {
-    font-size: 22px;
-    font-weight: 700;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #ffffff;
     margin: 0;
-    position: relative;
-    z-index: 2;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    padding: 0;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    touch-action: pan-y !important;
 }
 
-.app-subtitle {
-    font-size: 14px;
-    opacity: 0.9;
-    margin-top: 6px;
-    position: relative;
-    z-index: 2;
+/* Permitir seleção apenas em inputs */
+input, textarea, select {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+    -webkit-touch-callout: default !important;
+    touch-action: manipulation !important;
+    font-size: 16px !important; /* Prevenir zoom */
 }
 
-/* === PROGRESS BAR === */
-.progress-section {
-    background: white;
-    padding: 20px;
-    border-radius: 16px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    border: 1px solid rgba(32, 193, 232, 0.1);
-}
-
-.progress-track {
+.mobile-container {
     width: 100%;
-    height: 8px;
-    background: #e9ecef;
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 12px;
+    min-height: 100vh;
+    padding: 0;
+    margin: 0;
 }
 
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #20c1e8, #17a2b8);
-    border-radius: 12px;
-    width: 0%;
-    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.progress-text {
+/* Header Mobile */
+.mobile-header {
+    background: #f8f9fa;
+    color: #495057;
+    padding: 15px;
     text-align: center;
-    font-size: 13px;
-    color: #6c757d;
-    font-weight: 500;
+    font-size: 18px;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid #e9ecef;
 }
 
-/* === FORM SECTIONS === */
+/* Form Sections */
 .form-section {
     background: white;
-    border-radius: 16px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-    border: 1px solid rgba(32, 193, 232, 0.1);
+    margin: 10px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     overflow: hidden;
+    border: 1px solid #e9ecef;
 }
 
 .section-header {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    padding: 16px 20px;
-    border-bottom: 2px solid rgba(32, 193, 232, 0.1);
-}
-
-.section-title {
+    background: #f8f9fa;
+    padding: 15px;
+    border-bottom: 1px solid #e9ecef;
+    font-weight: 600;
+    color: #495057;
     font-size: 16px;
-    font-weight: 700;
-    color: #2c3e50;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 
-.section-icon {
-    color: #20c1e8;
-    font-size: 18px;
-}
-
-.section-body {
+.section-content {
     padding: 20px;
 }
 
-/* === FORM FIELDS === */
-.field-group {
+/* Form Controls Mobile */
+.form-group {
     margin-bottom: 20px;
 }
 
-.field-label {
+.form-label {
     display: block;
-    font-size: 14px;
     font-weight: 600;
-    color: #2c3e50;
+    color: #495057;
     margin-bottom: 8px;
+    font-size: 14px;
 }
 
-.field-label.required::after {
-    content: " *";
-    color: #e74c3c;
-    font-weight: 700;
-}
-
-.field-input {
+.form-control, .form-select, textarea {
     width: 100%;
     padding: 14px 16px;
     border: 2px solid #e9ecef;
-    border-radius: 12px;
-    font-size: 16px;
-    font-family: inherit;
+    border-radius: 10px;
+    font-size: 16px; /* Prevents zoom on iOS */
     background: white;
-    color: #2c3e50;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: all 0.3s ease;
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 52px;
 }
 
-.field-input:focus {
+.form-control:focus, .form-select:focus, textarea:focus {
     outline: none;
-    border-color: #20c1e8;
-    box-shadow: 0 0 0 0.2rem rgba(32, 193, 232, 0.15);
-    transform: translateY(-2px);
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    background: #fbfcff;
 }
 
-.field-input::placeholder {
-    color: #adb5bd;
-    font-weight: 400;
-}
-
-select.field-input {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 12px center;
-    background-repeat: no-repeat;
-    background-size: 16px;
-    padding-right: 40px;
-    cursor: pointer;
-}
-
-textarea.field-input {
-    resize: vertical;
+textarea {
     min-height: 100px;
-    line-height: 1.5;
+    resize: vertical;
 }
 
-/* === INPUT WITH ICON === */
-.input-with-icon {
-    position: relative;
-}
-
-.input-icon {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #20c1e8;
-    font-size: 16px;
-    z-index: 2;
-}
-
-.input-with-icon .field-input {
-    padding-left: 48px;
-}
-
-/* === GRID SYSTEM === */
-.field-row {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 20px;
-}
-
-.field-col {
-    flex: 1;
-}
-
-@media (max-width: 640px) {
-    .field-row {
-        flex-direction: column;
-        gap: 0;
-    }
-}
-
-/* === INFO CARDS === */
-.info-card {
-    background: linear-gradient(135deg, #e3f2fd, #f0f8ff);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 16px;
-    border-left: 4px solid #20c1e8;
-}
-
-.info-card-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1565c0;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.info-detail {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(21, 101, 192, 0.1);
-}
-
-.info-detail:last-child {
-    border-bottom: none;
-}
-
-.info-label {
-    font-size: 13px;
-    font-weight: 500;
-    color: #1976d2;
-}
-
-.info-value {
-    font-size: 13px;
-    color: #1565c0;
-    text-align: right;
-    font-weight: 600;
-}
-
-/* === BADGES === */
-.badge {
-    display: inline-block;
-    padding: 4px 8px;
-    background: linear-gradient(135deg, #28a745, #20c997);
-    color: white;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-/* === BUTTONS === */
-.button-group {
-    position: sticky;
-    bottom: 0;
-    background: white;
-    padding: 16px 20px;
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -8px 32px rgba(0,0,0,0.1);
-    margin: 20px -16px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    border-top: 1px solid rgba(32, 193, 232, 0.1);
-}
-
+/* Button System Mobile */
 .btn {
+    display: block;
     width: 100%;
     padding: 16px 20px;
     border: none;
     border-radius: 12px;
     font-size: 16px;
-    font-weight: 700;
-    font-family: inherit;
+    font-weight: 600;
+    text-align: center;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    transition: all 0.3s ease;
+    margin-bottom: 12px;
+    min-height: 52px;
     text-decoration: none;
     position: relative;
     overflow: hidden;
-    min-height: 52px;
-}
-
-.btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
-}
-
-.btn:hover::before {
-    left: 100%;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #20c1e8, #17a2b8);
+    background: #007bff;
     color: white;
-    box-shadow: 0 6px 24px rgba(32, 193, 232, 0.4);
+    border: 1px solid #007bff;
 }
 
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(32, 193, 232, 0.5);
+.btn-primary:hover, .btn-primary:active {
+    background: #0056b3;
+    border-color: #0056b3;
 }
 
 .btn-secondary {
-    background: linear-gradient(135deg, #6c757d, #495057);
+    background: #6c757d;
     color: white;
-    box-shadow: 0 4px 16px rgba(108, 117, 125, 0.3);
 }
 
-.btn-secondary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
-}
-
-.btn-outline {
+.btn-outline-primary {
     background: white;
-    color: #20c1e8;
-    border: 2px solid #20c1e8;
-    box-shadow: none;
+    color: #007bff;
+    border: 2px solid #007bff;
 }
 
-.btn-outline:hover {
-    background: #20c1e8;
+.btn-outline-primary:hover, .btn-outline-primary:active {
+    background: #007bff;
     color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(32, 193, 232, 0.3);
 }
 
-.btn:disabled,
-.btn.loading {
-    opacity: 0.7;
+.btn-success {
+    background: #28a745;
+    color: white;
+    border: 1px solid #28a745;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border: 1px solid #dc3545;
+}
+
+/* Loading States */
+.btn:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
-    pointer-events: none;
+    transform: none !important;
 }
 
-.btn.loading::after {
-    content: '';
-    position: absolute;
+.btn .spinner-border {
     width: 20px;
     height: 20px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top: 2px solid white;
+    margin-right: 8px;
+}
+
+/* Photo Upload Mobile */
+.photo-upload-zone {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 30px 20px;
+    text-align: center;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 15px 0;
+}
+
+.photo-upload-zone:hover, .photo-upload-zone:active {
+    border-color: #007bff;
+    background: #f0f8ff;
+}
+
+.photo-upload-zone.dragover {
+    border-color: #28a745;
+    background: #f8fff8;
+}
+
+.upload-icon {
+    font-size: 3rem;
+    color: #6c757d;
+    margin-bottom: 15px;
+}
+
+.upload-text {
+    color: #6c757d;
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+/* Category Selection Mobile */
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.category-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 90px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-card:hover, .category-card:active {
+    border-color: #007bff;
+    background: #f8f9ff;
+    transform: translateY(-2px);
+}
+
+.category-card.selected {
+    border-color: #28a745;
+    background: #f8fff8;
+    color: #155724;
+}
+
+.category-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    color: #6c757d;
+    transition: color 0.3s ease;
+}
+
+.category-card.selected .category-icon {
+    color: #28a745;
+}
+
+.category-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Photo Configuration Mobile */
+.photo-config-list {
+    margin: 20px 0;
+}
+
+.photo-config-item {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.photo-preview {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.legend-select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 16px;
+    margin-bottom: 15px;
+    min-height: 48px;
+}
+
+.photo-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.photo-actions .btn {
+    margin-bottom: 0;
+    padding: 12px 16px;
+    font-size: 14px;
+    min-height: 44px;
+}
+
+/* Checklist Mobile */
+.checklist-container {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 0;
+}
+
+.checklist-item {
+    display: flex;
+    align-items: flex-start;
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 12px;
+    border-left: 4px solid #007bff;
+    min-height: 60px;
+}
+
+.checklist-checkbox {
+    width: 24px;
+    height: 24px;
+    margin: 2px 15px 0 0;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.checklist-label {
+    flex: 1;
+    font-size: 15px;
+    line-height: 1.4;
+    margin: 0;
+    cursor: pointer;
+    color: #495057;
+}
+
+.checklist-item.completed {
+    border-left-color: #28a745;
+}
+
+.checklist-item.completed .checklist-label {
+    color: #28a745;
+    font-weight: 500;
+}
+
+/* Photo Editor Mobile */
+.photo-editor-modal .modal-dialog {
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+}
+
+.photo-editor-modal .modal-content {
+    height: 100vh;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-header {
+    padding: 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    font-weight: 600;
+}
+
+.editor-canvas-container {
+    flex: 1;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+}
+
+.editor-canvas {
+    max-width: 100%;
+    max-height: 100%;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    touch-action: none;
+    background: white;
+}
+
+.editor-tools {
+    background: white;
+    border-top: 1px solid #e9ecef;
+    padding: 15px;
+}
+
+.tool-section {
+    margin-bottom: 20px;
+}
+
+.tool-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 12px;
+}
+
+.color-palette {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.color-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.color-option:hover, .color-option.selected {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.drawing-tools {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 15px 0;
+}
+
+.tool-button {
+    padding: 12px 8px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    background: white;
+    color: #495057;
+    font-size: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-button:hover, .tool-button.active {
+    border-color: #007bff;
+    background: #007bff;
+    color: white;
+}
+
+.tool-button i {
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+/* Map Mobile */
+#map {
+    height: 200px;
+    border-radius: 8px;
+    margin: 15px 0;
+}
+
+/* Responsive Grid */
+.mobile-grid {
+    display: grid;
+    gap: 15px;
+}
+
+.mobile-grid.two-col {
+    grid-template-columns: 1fr 1fr;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    color: white;
+}
+
+.loading-overlay.hidden {
+    display: none;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top: 4px solid white;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin-left: 8px;
+    margin-bottom: 15px;
 }
 
 @keyframes spin {
@@ -413,508 +546,1047 @@ textarea.field-input {
     100% { transform: rotate(360deg); }
 }
 
-/* === LOCATION PREVIEW === */
-.location-preview {
-    display: none;
-    margin-top: 12px;
-    padding: 12px;
-    background: linear-gradient(135deg, #e8f5e8, #f0fff0);
-    border-radius: 8px;
-    border-left: 3px solid #28a745;
-    font-size: 13px;
+/* Success/Error Messages */
+.alert-mobile {
+    margin: 10px;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.alert-success {
+    background: #d4edda;
     color: #155724;
+    border: 1px solid #c3e6cb;
 }
 
-/* === ANIMATIONS === */
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.alert-danger {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
 }
 
+/* Bottom Action Bar */
+.bottom-action-bar {
+    position: sticky;
+    bottom: 0;
+    background: #f8f9fa;
+    padding: 15px;
+    border-top: 1px solid #e9ecef;
+    box-shadow: 0 -1px 3px rgba(0,0,0,0.1);
+}
+
+/* Configured Photos Display */
+.configured-photos-display {
+    margin: 15px 0;
+}
+
+.configured-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.configured-photo-item {
+    background: white;
+    border: 2px solid #28a745;
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+}
+
+.configured-photo-item img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.configured-photo-legend {
+    font-size: 11px;
+    color: #495057;
+    line-height: 1.2;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* Form Validation */
+.form-control.invalid, .form-select.invalid {
+    border-color: #dc3545;
+    background: #fff5f5;
+}
+
+.invalid-feedback {
+    color: #dc3545;
+    font-size: 13px;
+    margin-top: 5px;
+    display: block;
+}
+
+/* Accessibility */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Manter tema claro sempre */
 .form-section {
-    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: white;
 }
 
-.form-section:nth-child(1) { animation-delay: 0.1s; }
-.form-section:nth-child(2) { animation-delay: 0.2s; }
-.form-section:nth-child(3) { animation-delay: 0.3s; }
-
-/* === RESPONSIVE === */
-@media (max-width: 480px) {
-    .mobile-app {
-        padding: env(safe-area-inset-top, 12px) env(safe-area-inset-right, 12px) env(safe-area-inset-bottom, 12px) env(safe-area-inset-left, 12px);
-    }
-    
-    .app-header {
-        padding: 20px 16px;
-        border-radius: 12px;
-    }
-    
-    .app-title {
-        font-size: 20px;
-    }
-    
-    .section-body {
-        padding: 16px;
-    }
-    
-    .field-input {
-        font-size: 16px; /* Previne zoom no iOS */
-    }
-    
-    .button-group {
-        margin: 16px -12px 0;
-        padding: 12px 16px;
-    }
+.form-control, .form-select, textarea {
+    background: white;
+    color: #495057;
 }
 
-/* === FOCUS VISIBLE === */
-.btn:focus-visible,
-.field-input:focus-visible {
-    outline: 2px solid #20c1e8;
-    outline-offset: 2px;
-}
-
-/* === HIGH CONTRAST === */
-@media (prefers-contrast: high) {
-    .app-header {
-        background: #2c3e50;
-    }
-    
-    .field-input {
-        border-width: 2px;
-    }
-    
-    .btn-primary {
-        background: #0056b3;
-    }
-}
-
-/* === REDUCED MOTION === */
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
+.checklist-item {
+    background: white;
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="mobile-app">
-    <!-- Header -->
-    <div class="app-header">
-        <h1 class="app-title">
-            <i class="fas fa-bolt"></i>
-            Novo Relatório Express
-        </h1>
-        <div class="app-subtitle">Sistema ELP - Criação Rápida</div>
+<div class="mobile-container">
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <i class="fas fa-file-alt" style="color: #007bff;"></i> Novo Relatório Express
     </div>
-    
-    <!-- Progress -->
-    <div class="progress-section">
-        <div class="progress-track">
-            <div class="progress-fill" id="progressBar"></div>
-        </div>
-        <div class="progress-text" id="progressText">Preencha os campos obrigatórios</div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <div>Salvando relatório...</div>
     </div>
-    
+
     <form method="POST" enctype="multipart/form-data" id="expressForm">
         {{ form.hidden_tag() }}
-        
-        <!-- Projeto -->
+
+        <!-- Dados da Empresa -->
         <div class="form-section">
             <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-building section-icon"></i>
-                    Projeto
-                </h2>
+                <i class="fas fa-building"></i> Dados da Empresa
             </div>
-            <div class="section-body">
-                <div class="field-group">
-                    <label class="field-label required">Selecionar Projeto</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-building input-icon"></i>
-                        {{ form.projeto_id(class="field-input", id="projetoSelect", required=true) }}
+            <div class="section-content">
+                <div class="form-group">
+                    <label class="form-label" for="empresa_nome">Nome da Empresa *</label>
+                    {{ form.empresa_nome(class="form-control", placeholder="Digite o nome da empresa") }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="empresa_endereco">Endereço</label>
+                    {{ form.empresa_endereco(class="form-control", placeholder="Endereço da empresa") }}
+                </div>
+
+                <div class="mobile-grid two-col">
+                    <div class="form-group">
+                        <label class="form-label" for="empresa_telefone">Telefone</label>
+                        {{ form.empresa_telefone(class="form-control", placeholder="(11) 99999-9999") }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="empresa_email">E-mail</label>
+                        {{ form.empresa_email(class="form-control", placeholder="contato@empresa.com") }}
                     </div>
                 </div>
-                
-                <div class="info-card" id="projectInfo" style="display: none;">
-                    <div class="info-card-title">
-                        <i class="fas fa-info-circle"></i>
-                        Detalhes do Projeto
-                    </div>
-                    <div class="info-detail">
-                        <span class="info-label">Nome:</span>
-                        <span class="info-value" id="projectName">-</span>
-                    </div>
-                    <div class="info-detail">
-                        <span class="info-label">Status:</span>
-                        <span class="info-value">
-                            <span class="badge">Ativo</span>
-                        </span>
-                    </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="empresa_responsavel">Responsável</label>
+                    {{ form.empresa_responsavel(class="form-control", placeholder="Nome do responsável") }}
                 </div>
             </div>
         </div>
-        
+
         <!-- Dados da Visita -->
         <div class="form-section">
             <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-calendar section-icon"></i>
-                    Dados da Visita
-                </h2>
+                <i class="fas fa-calendar-alt"></i> Dados da Visita
             </div>
-            <div class="section-body">
-                <div class="field-row">
-                    <div class="field-col">
-                        <div class="field-group">
-                            <label class="field-label required">Data</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-calendar input-icon"></i>
-                                {{ form.data_visita(class="field-input", required=true) }}
-                            </div>
-                        </div>
+            <div class="section-content">
+                <div class="form-group">
+                    <label class="form-label" for="data_visita">Data da Visita *</label>
+                    {{ form.data_visita(class="form-control") }}
+                </div>
+
+                <div class="mobile-grid two-col">
+                    <div class="form-group">
+                        <label class="form-label" for="periodo_inicio">Início</label>
+                        {{ form.periodo_inicio(class="form-control") }}
                     </div>
-                    <div class="field-col">
-                        <div class="field-group">
-                            <label class="field-label required">Horário</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-clock input-icon"></i>
-                                {{ form.periodo_inicio(class="field-input", type="time", required=true) }}
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label" for="periodo_fim">Fim</label>
+                        {{ form.periodo_fim(class="form-control") }}
                     </div>
                 </div>
-                
-                <div class="field-row">
-                    <div class="field-col">
-                        <div class="field-group">
-                            <label class="field-label required">Responsável</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-user input-icon"></i>
-                                {{ form.responsavel(class="field-input", required=true) }}
-                            </div>
-                        </div>
+
+                <div class="mobile-grid two-col">
+                    <div class="form-group">
+                        <label class="form-label" for="condicoes_climaticas">Condições Climáticas</label>
+                        {{ form.condicoes_climaticas(class="form-select") }}
                     </div>
-                    <div class="field-col">
-                        <div class="field-group">
-                            <label class="field-label">Cargo</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-id-badge input-icon"></i>
-                                {{ form.cargo_responsavel(class="field-input") }}
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label" for="temperatura">Temperatura</label>
+                        {{ form.temperatura(class="form-control", placeholder="Ex: 25°C") }}
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="endereco_visita">Local da Visita</label>
+                    {{ form.endereco_visita(class="form-control", placeholder="Endereço do local visitado") }}
                 </div>
             </div>
         </div>
-        
-        <!-- Condições -->
+
+        <!-- Checklist -->
         <div class="form-section">
             <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-cloud-sun section-icon"></i>
-                    Condições
-                </h2>
+                <i class="fas fa-tasks"></i> Checklist
             </div>
-            <div class="section-body">
-                <div class="field-row">
-                    <div class="field-col">
-                        <div class="field-group">
-                            <label class="field-label">Clima</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-cloud-sun input-icon"></i>
-                                {{ form.condicoes_climaticas(class="field-input") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field-col">
-                        <div class="field-group">
-                            <label class="field-label">Temperatura</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-thermometer-half input-icon"></i>
-                                {{ form.temperatura(class="field-input", placeholder="Ex: 25°C") }}
-                            </div>
-                        </div>
+            <div class="section-content">
+                <div id="checklistContainer" class="checklist-container">
+                    <div class="loading-spinner" id="checklistLoading">
+                        <i class="fas fa-spinner fa-spin"></i> Carregando checklist...
                     </div>
                 </div>
+                <input type="hidden" id="checklistData" name="checklist_completo">
             </div>
         </div>
-        
-        <!-- Localização -->
+
+        <!-- Fotos -->
         <div class="form-section">
             <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-map-marker-alt section-icon"></i>
-                    Localização
-                </h2>
+                <i class="fas fa-camera"></i> Fotos <span id="photoCounter" class="photo-counter">0</span>
             </div>
-            <div class="section-body">
-                <div class="field-group">
-                    <label class="field-label">Endereço da Visita</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-map-marker-alt input-icon"></i>
-                        {{ form.endereco_visita(class="field-input") }}
+            <div class="section-content">
+                <!-- Seleção de Categoria -->
+                <div id="categorySelection">
+                    <label class="form-label">Selecione a categoria para as fotos:</label>
+                    <div class="category-grid">
+                        <div class="category-card" data-category="Geral">
+                            <div class="category-icon"><i class="fas fa-eye"></i></div>
+                            <div class="category-name">Geral</div>
+                        </div>
+                        <div class="category-card" data-category="Estrutura">
+                            <div class="category-icon"><i class="fas fa-building"></i></div>
+                            <div class="category-name">Estrutura</div>
+                        </div>
+                        <div class="category-card" data-category="Acabamento">
+                            <div class="category-icon"><i class="fas fa-paint-brush"></i></div>
+                            <div class="category-name">Acabamento</div>
+                        </div>
+                        <div class="category-card" data-category="Instalações">
+                            <div class="category-icon"><i class="fas fa-tools"></i></div>
+                            <div class="category-name">Instalações</div>
+                        </div>
+                        <div class="category-card" data-category="Segurança">
+                            <div class="category-icon"><i class="fas fa-hard-hat"></i></div>
+                            <div class="category-name">Segurança</div>
+                        </div>
+                        <div class="category-card" data-category="Problema">
+                            <div class="category-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div class="category-name">Problema</div>
+                        </div>
                     </div>
                 </div>
-                
-                <button type="button" id="getLocationBtn" class="btn btn-outline">
-                    <i class="fas fa-crosshairs"></i> Obter Localização GPS
-                </button>
-                
-                <div id="locationPreview" class="location-preview"></div>
-                
-                {{ form.latitude(type="hidden") }}
-                {{ form.longitude(type="hidden") }}
+
+                <!-- Upload de Fotos -->
+                <div id="photoUploadZone" class="photo-upload-zone" style="display: none;">
+                    <div class="upload-icon">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <div class="upload-text">
+                        <strong>Toque para adicionar fotos</strong><br>
+                        ou arraste arquivos aqui
+                    </div>
+                    <input type="file" id="photoInput" multiple accept="image/*" style="display: none;">
+                </div>
+
+                <!-- Preview de Fotos -->
+                <div id="photoPreviewContainer" style="display: none;"></div>
+
+                <!-- Fotos Configuradas -->
+                <div id="configuredPhotosDisplay" class="configured-photos-display" style="display: none;">
+                    <div class="form-label">Fotos Configuradas:</div>
+                    <div id="configuredPhotoGrid" class="configured-photo-grid"></div>
+                </div>
+
+                <input type="hidden" id="fotoConfiguracoes" name="foto_configuracoes">
             </div>
         </div>
-        
+
         <!-- Observações -->
         <div class="form-section">
             <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-clipboard-list section-icon"></i>
-                    Observações
-                </h2>
+                <i class="fas fa-clipboard-list"></i> Observações
             </div>
-            <div class="section-body">
-                <div class="field-group">
-                    <label class="field-label">Observações Gerais</label>
-                    {{ form.observacoes_gerais(class="field-input", rows="4") }}
+            <div class="section-content">
+                <div class="form-group">
+                    <label class="form-label" for="observacoes_gerais">Observações Gerais</label>
+                    {{ form.observacoes_gerais(class="form-control", rows="4", placeholder="Observações sobre a visita...") }}
                 </div>
-                
-                <div class="field-group">
-                    <label class="field-label">Pendências</label>
-                    {{ form.pendencias(class="field-input", rows="3") }}
+
+                <div class="form-group">
+                    <label class="form-label" for="pendencias">Pendências</label>
+                    {{ form.pendencias(class="form-control", rows="3", placeholder="Itens pendentes...") }}
                 </div>
-                
-                <div class="field-group">
-                    <label class="field-label">Recomendações</label>
-                    {{ form.recomendacoes(class="field-input", rows="3") }}
+
+                <div class="form-group">
+                    <label class="form-label" for="recomendacoes">Recomendações</label>
+                    {{ form.recomendacoes(class="form-control", rows="3", placeholder="Recomendações técnicas...") }}
                 </div>
             </div>
         </div>
-        
-        <!-- Botões -->
-        <div class="button-group">
-            <button type="submit" name="action" value="finalize" class="btn btn-primary" id="finalizeBtn">
-                <i class="fas fa-check"></i> Finalizar Relatório
+
+        <!-- Bottom Action Bar -->
+        <div class="bottom-action-bar">
+            <button type="submit" class="btn btn-primary" id="saveButton">
+                <i class="fas fa-save"></i> Salvar Relatório
             </button>
-            <button type="submit" name="action" value="save_draft" class="btn btn-secondary">
-                <i class="fas fa-save"></i> Salvar Rascunho
-            </button>
-            <a href="{{ url_for('express_list') }}" class="btn btn-outline">
-                <i class="fas fa-arrow-left"></i> Cancelar
+            <a href="{{ url_for('express_list') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar
             </a>
         </div>
     </form>
 </div>
 
+<!-- Photo Configuration Modal -->
+<div class="modal fade photo-editor-modal" id="photoConfigModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="editor-header">
+                <i class="fas fa-cog"></i> Configurar Fotos
+            </div>
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 15px;">
+                <div id="photoConfigList" class="photo-config-list"></div>
+            </div>
+            <div class="modal-footer" style="padding: 15px; border-top: 1px solid #e9ecef;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-success" onclick="confirmPhotoConfiguration()">
+                    <i class="fas fa-check"></i> Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Photo Editor Modal -->
+<div class="modal fade photo-editor-modal" id="photoEditorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="editor-header">
+                <i class="fas fa-edit"></i> Editor de Foto
+            </div>
+            <div class="editor-canvas-container">
+                <canvas id="photoCanvas" class="editor-canvas"></canvas>
+            </div>
+            <div class="editor-tools">
+                <div class="tool-section">
+                    <div class="tool-title">Cores</div>
+                    <div class="color-palette">
+                        <div class="color-option selected" data-color="#ff0000" style="background: #ff0000;"></div>
+                        <div class="color-option" data-color="#00ff00" style="background: #00ff00;"></div>
+                        <div class="color-option" data-color="#0000ff" style="background: #0000ff;"></div>
+                        <div class="color-option" data-color="#ffff00" style="background: #ffff00;"></div>
+                        <div class="color-option" data-color="#ff00ff" style="background: #ff00ff;"></div>
+                        <div class="color-option" data-color="#000000" style="background: #000000;"></div>
+                    </div>
+                </div>
+                
+                <div class="tool-section">
+                    <div class="tool-title">Ferramentas</div>
+                    <div class="drawing-tools">
+                        <div class="tool-button active" data-tool="brush">
+                            <i class="fas fa-paint-brush"></i>
+                            Pincel
+                        </div>
+                        <div class="tool-button" data-tool="arrow">
+                            <i class="fas fa-arrow-right"></i>
+                            Seta
+                        </div>
+                        <div class="tool-button" data-tool="text">
+                            <i class="fas fa-font"></i>
+                            Texto
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mobile-grid two-col">
+                    <button type="button" class="btn btn-outline-primary" onclick="undoLastAction()">
+                        <i class="fas fa-undo"></i> Desfazer
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="clearCanvas()">
+                        <i class="fas fa-eraser"></i> Limpar
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 15px; border-top: 1px solid #e9ecef;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-success" onclick="saveEditedPhoto()">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+// Mobile-optimized JavaScript
+let selectedCategory = null;
+let uploadedPhotos = [];
+let configuredPhotos = [];
+let currentEditingPhoto = null;
+
+// Global drawing variables
+let canvas, ctx;
+let isDrawing = false;
+let currentTool = 'brush';
+let currentColor = '#ff0000';
+let drawingHistory = [];
+
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('📱 Sistema Mobile-First ELP iniciado');
-    
-    // Elementos
-    const form = document.getElementById('expressForm');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-    const projetoSelect = document.getElementById('projetoSelect');
-    const projectInfo = document.getElementById('projectInfo');
-    const getLocationBtn = document.getElementById('getLocationBtn');
-    const locationPreview = document.getElementById('locationPreview');
-    const finalizeBtn = document.getElementById('finalizeBtn');
-    
-    // Configurar data/hora atual
-    const hoje = new Date().toISOString().split('T')[0];
-    const agora = new Date().toTimeString().split(' ')[0].substring(0, 5);
-    
-    const dataInput = document.querySelector('input[name="data_visita"]');
-    const horaInput = document.querySelector('input[name="periodo_inicio"]');
-    
-    if (dataInput && !dataInput.value) dataInput.value = hoje;
-    if (horaInput && !horaInput.value) horaInput.value = agora;
-    
-    // Progress tracking
-    function updateProgress() {
-        const requiredFields = form.querySelectorAll('[required]');
-        let filledCount = 0;
-        
-        requiredFields.forEach(field => {
-            if (field.value && field.value.trim()) {
-                filledCount++;
-            }
+    initializeMobileInterface();
+    loadDefaultChecklist();
+});
+
+function initializeMobileInterface() {
+    // Category selection
+    document.querySelectorAll('.category-card').forEach(card => {
+        card.addEventListener('click', function() {
+            selectCategory(this.dataset.category);
         });
-        
-        const progress = Math.round((filledCount / requiredFields.length) * 100);
-        
-        progressBar.style.width = progress + '%';
-        
-        if (progress === 0) {
-            progressText.textContent = 'Comece preenchendo os dados';
-        } else if (progress < 50) {
-            progressText.textContent = `${progress}% - Continue preenchendo`;
-        } else if (progress < 100) {
-            progressText.textContent = `${progress}% - Quase pronto!`;
-        } else {
-            progressText.textContent = '✅ Pronto para finalizar';
-        }
-        
-        // Enable/disable finalize button
-        finalizeBtn.disabled = progress < 100;
-        if (progress === 100) {
-            finalizeBtn.style.opacity = '1';
-        } else {
-            finalizeBtn.style.opacity = '0.7';
-        }
-    }
+    });
+
+    // Photo upload
+    const photoInput = document.getElementById('photoInput');
+    const uploadZone = document.getElementById('photoUploadZone');
     
-    // Monitor campos obrigatórios
-    const requiredFields = form.querySelectorAll('[required]');
-    requiredFields.forEach(field => {
-        field.addEventListener('input', updateProgress);
-        field.addEventListener('change', updateProgress);
+    uploadZone.addEventListener('click', () => photoInput.click());
+    
+    photoInput.addEventListener('change', function(e) {
+        handlePhotoUpload(e.target.files);
+    });
+
+    // Drag and drop
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+        uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        handlePhotoUpload(e.dataTransfer.files);
+    });
+
+    // Form submission
+    document.getElementById('expressForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (validateForm()) {
+            showLoadingOverlay();
+            this.submit();
+        }
+    });
+}
+
+function selectCategory(category) {
+    selectedCategory = category;
+    
+    // Update visual selection
+    document.querySelectorAll('.category-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    document.querySelector(`[data-category="${category}"]`).classList.add('selected');
+    
+    // Show upload zone
+    document.getElementById('photoUploadZone').style.display = 'block';
+    
+    console.log(`Categoria selecionada: ${category}`);
+}
+
+function handlePhotoUpload(files) {
+    if (!selectedCategory) {
+        alert('Por favor, selecione uma categoria primeiro.');
+        return;
+    }
+
+    Array.from(files).forEach((file, index) => {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const photoId = `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const photoData = {
+                    id: photoId,
+                    file: file,
+                    dataUrl: e.target.result,
+                    category: selectedCategory,
+                    fileName: file.name,
+                    configured: false
+                };
+                
+                uploadedPhotos.push(photoData);
+                showPhotoConfigurationModal();
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+function showPhotoConfigurationModal() {
+    const modal = new bootstrap.Modal(document.getElementById('photoConfigModal'));
+    const configList = document.getElementById('photoConfigList');
+    
+    configList.innerHTML = '';
+    
+    uploadedPhotos.filter(photo => !photo.configured).forEach(photo => {
+        const configItem = createPhotoConfigItem(photo);
+        configList.appendChild(configItem);
+        loadLegendsForPhoto(photo.id, photo.category);
     });
     
-    // Seleção de projeto
-    if (projetoSelect) {
-        projetoSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
+    modal.show();
+}
+
+function createPhotoConfigItem(photo) {
+    const item = document.createElement('div');
+    item.className = 'photo-config-item';
+    item.dataset.photoId = photo.id;
+    item.dataset.category = photo.category;
+    item.dataset.fileName = photo.fileName;
+    
+    item.innerHTML = `
+        <img src="${photo.dataUrl}" alt="Preview" class="photo-preview">
+        <div class="form-group">
+            <label class="form-label">Categoria: <strong>${photo.category}</strong></label>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="legend_${photo.id}">Legenda (Obrigatória):</label>
+            <select class="legend-select" id="legend_${photo.id}" required>
+                <option value="">Carregando legendas...</option>
+            </select>
+        </div>
+        <div class="photo-actions">
+            <button type="button" class="btn btn-outline-primary" onclick="editPhoto('${photo.id}')">
+                <i class="fas fa-edit"></i> Editar
+            </button>
+            <button type="button" class="btn btn-outline-danger" onclick="removePhoto('${photo.id}')">
+                <i class="fas fa-trash"></i> Remover
+            </button>
+        </div>
+    `;
+    
+    return item;
+}
+
+async function loadLegendsForPhoto(photoId, category) {
+    try {
+        console.log(`Carregando legendas para foto ${photoId}, categoria: ${category}`);
+        
+        const categoryMap = {
+            'Geral': 'Geral',
+            'Estrutura': 'Estrutural',
+            'Acabamento': 'Acabamentos',
+            'Instalações': 'Elétrica',
+            'Segurança': 'Segurança',
+            'Problema': 'Geral'
+        };
+        
+        const mappedCategory = categoryMap[category] || 'Geral';
+        console.log(`Categoria mapeada: ${mappedCategory}`);
+        
+        const response = await fetch(`/api/legendas?categoria=${mappedCategory}`);
+        const data = await response.json();
+        console.log('Dados recebidos:', data);
+        
+        const select = document.getElementById(`legend_${photoId}`);
+        console.log('Select element:', select);
+        
+        if (select && data.success && data.legendas) {
+            select.innerHTML = '<option value="">Selecione uma legenda...</option>';
             
-            if (selectedOption.value && projectInfo) {
-                const projeto = selectedOption.textContent.trim();
-                const projectName = document.getElementById('projectName');
-                
-                if (projectName) projectName.textContent = projeto;
-                
-                projectInfo.style.display = 'block';
-                projectInfo.style.animation = 'slideUp 0.3s ease-out';
-                
-                console.log('📋 Projeto selecionado:', projeto);
-            } else if (projectInfo) {
-                projectInfo.style.display = 'none';
-            }
+            data.legendas.forEach(legenda => {
+                const option = document.createElement('option');
+                option.value = legenda.texto;
+                option.textContent = legenda.texto;
+                select.appendChild(option);
+            });
             
-            updateProgress();
+            console.log(`${data.legendas.length} legendas carregadas para categoria ${mappedCategory}`);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar legendas:', error);
+        const select = document.getElementById(`legend_${photoId}`);
+        if (select) {
+            select.innerHTML = '<option value="">Erro ao carregar legendas</option>';
+        }
+    }
+}
+
+function editPhoto(photoId) {
+    currentEditingPhoto = photoId;
+    const photo = uploadedPhotos.find(p => p.id === photoId);
+    
+    if (photo) {
+        initializePhotoEditor(photo.dataUrl);
+        const modal = new bootstrap.Modal(document.getElementById('photoEditorModal'));
+        modal.show();
+    }
+}
+
+function initializePhotoEditor(imageSrc) {
+    canvas = document.getElementById('photoCanvas');
+    ctx = canvas.getContext('2d');
+    
+    const img = new Image();
+    img.onload = function() {
+        // Set canvas size to fit the container while maintaining aspect ratio
+        const containerWidth = canvas.parentElement.clientWidth - 20;
+        const containerHeight = canvas.parentElement.clientHeight - 20;
+        
+        const aspectRatio = img.width / img.height;
+        let canvasWidth, canvasHeight;
+        
+        if (containerWidth / containerHeight > aspectRatio) {
+            canvasHeight = containerHeight;
+            canvasWidth = canvasHeight * aspectRatio;
+        } else {
+            canvasWidth = containerWidth;
+            canvasHeight = canvasWidth / aspectRatio;
+        }
+        
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        
+        // Draw image
+        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+        
+        // Save initial state
+        drawingHistory = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+    };
+    img.src = imageSrc;
+    
+    setupCanvasEvents();
+    setupToolEvents();
+}
+
+function setupCanvasEvents() {
+    let lastX, lastY;
+    
+    // Touch events for mobile
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isDrawing = true;
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        lastX = touch.clientX - rect.left;
+        lastY = touch.clientY - rect.top;
+    });
+    
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!isDrawing) return;
+        
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        const currentX = touch.clientX - rect.left;
+        const currentY = touch.clientY - rect.top;
+        
+        if (currentTool === 'brush') {
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(currentX, currentY);
+            ctx.stroke();
+        }
+        
+        lastX = currentX;
+        lastY = currentY;
+    });
+    
+    canvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        isDrawing = false;
+        // Save state for undo
+        drawingHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        if (drawingHistory.length > 10) drawingHistory.shift(); // Keep only last 10 states
+    });
+    
+    // Mouse events for desktop compatibility
+    canvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        const rect = canvas.getBoundingClientRect();
+        lastX = e.clientX - rect.left;
+        lastY = e.clientY - rect.top;
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+        
+        if (currentTool === 'brush') {
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(currentX, currentY);
+            ctx.stroke();
+        }
+        
+        lastX = currentX;
+        lastY = currentY;
+    });
+    
+    canvas.addEventListener('mouseup', () => {
+        isDrawing = false;
+        drawingHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        if (drawingHistory.length > 10) drawingHistory.shift();
+    });
+}
+
+function setupToolEvents() {
+    // Color selection
+    document.querySelectorAll('.color-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+            this.classList.add('selected');
+            currentColor = this.dataset.color;
+            console.log(`Cor selecionada: ${currentColor}`);
         });
+    });
+    
+    // Tool selection
+    document.querySelectorAll('.tool-button').forEach(button => {
+        button.addEventListener('click', function() {
+            document.querySelectorAll('.tool-button').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentTool = this.dataset.tool;
+            console.log(`Ferramenta selecionada: ${currentTool}`);
+        });
+    });
+}
+
+function undoLastAction() {
+    if (drawingHistory.length > 1) {
+        drawingHistory.pop(); // Remove current state
+        const previousState = drawingHistory[drawingHistory.length - 1];
+        ctx.putImageData(previousState, 0, 0);
+    }
+}
+
+function clearCanvas() {
+    if (confirm('Tem certeza que deseja limpar todas as anotações?')) {
+        // Redraw original image
+        const photo = uploadedPhotos.find(p => p.id === currentEditingPhoto);
+        if (photo) {
+            const img = new Image();
+            img.onload = function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                drawingHistory = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+            };
+            img.src = photo.dataUrl;
+        }
+    }
+}
+
+function saveEditedPhoto() {
+    const editedImageData = canvas.toDataURL('image/png');
+    const photo = uploadedPhotos.find(p => p.id === currentEditingPhoto);
+    
+    if (photo) {
+        photo.dataUrl = editedImageData;
+        photo.edited = true;
+        
+        // Update preview in configuration modal
+        const configItem = document.querySelector(`[data-photo-id="${currentEditingPhoto}"]`);
+        if (configItem) {
+            const img = configItem.querySelector('img');
+            img.src = editedImageData;
+        }
+        
+        console.log(`Foto ${currentEditingPhoto} editada e salva`);
     }
     
-    // Geolocalização
-    if (getLocationBtn && locationPreview) {
-        getLocationBtn.addEventListener('click', function() {
-            if (!navigator.geolocation) {
-                alert('Geolocalização não suportada.');
-                return;
+    // Close editor modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('photoEditorModal'));
+    modal.hide();
+}
+
+function removePhoto(photoId) {
+    if (confirm('Tem certeza que deseja remover esta foto?')) {
+        uploadedPhotos = uploadedPhotos.filter(p => p.id !== photoId);
+        const configItem = document.querySelector(`[data-photo-id="${photoId}"]`);
+        if (configItem) {
+            configItem.remove();
+        }
+        console.log(`Foto ${photoId} removida`);
+    }
+}
+
+function confirmPhotoConfiguration() {
+    const photoConfigItems = document.querySelectorAll('.photo-config-item');
+    let validPhotos = 0;
+    let photoConfigurations = [];
+    
+    photoConfigItems.forEach(item => {
+        const photoId = item.dataset.photoId;
+        const legendSelect = item.querySelector('.legend-select');
+        const legend = legendSelect.value.trim();
+        const img = item.querySelector('img');
+        
+        if (!legend) {
+            legendSelect.style.borderColor = '#dc3545';
+            legendSelect.focus();
+            alert('Por favor, selecione uma legenda predefinida para todas as fotos.');
+            return;
+        }
+        
+        if (legend && img) {
+            const photo = uploadedPhotos.find(p => p.id === photoId);
+            if (photo) {
+                const photoConfig = {
+                    data: img.src,
+                    legenda: legend,
+                    categoria: photo.category,
+                    originalName: photo.fileName
+                };
+                
+                photoConfigurations.push(photoConfig);
+                photo.configured = true;
+                photo.legend = legend;
+                validPhotos++;
+                
+                console.log(`Foto ${photoId} configurada com legenda: ${legend}`);
             }
-            
-            const originalHTML = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Localizando...';
-            this.disabled = true;
-            this.classList.add('loading');
-            
-            console.log('📍 Obtendo GPS...');
-            
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    const accuracy = Math.round(position.coords.accuracy);
-                    
-                    // Preencher campos
-                    const latInput = document.querySelector('input[name="latitude"]');
-                    const lonInput = document.querySelector('input[name="longitude"]');
-                    
-                    if (latInput) latInput.value = lat.toFixed(6);
-                    if (lonInput) lonInput.value = lon.toFixed(6);
-                    
-                    // Mostrar preview
-                    locationPreview.innerHTML = `
-                        <strong>📍 Localização obtida</strong><br>
-                        <small>Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}</small><br>
-                        <small>Precisão: ${accuracy}m</small>
-                    `;
-                    locationPreview.style.display = 'block';
-                    
-                    this.innerHTML = '<i class="fas fa-check"></i> GPS Obtido';
-                    this.disabled = false;
-                    this.classList.remove('loading');
-                    this.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
-                    this.style.color = 'white';
-                    
-                    console.log('✅ Localização obtida');
-                },
-                (error) => {
-                    console.error('❌ Erro GPS:', error);
-                    
-                    let errorMsg = 'Erro ao obter localização.';
-                    switch(error.code) {
-                        case error.PERMISSION_DENIED:
-                            errorMsg = 'Permissão negada. Ative a localização.';
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            errorMsg = 'Localização indisponível.';
-                            break;
-                        case error.TIMEOUT:
-                            errorMsg = 'Tempo esgotado.';
-                            break;
-                    }
-                    
-                    alert(errorMsg);
-                    
-                    this.innerHTML = originalHTML;
-                    this.disabled = false;
-                    this.classList.remove('loading');
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 15000,
-                    maximumAge: 600000
-                }
-            );
-        });
+        }
+    });
+    
+    if (validPhotos !== photoConfigItems.length) {
+        alert('Por favor, selecione legendas predefinidas para todas as fotos.');
+        return;
     }
     
-    // Form submission
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const submitBtn = e.submitter;
-            
-            if (submitBtn && submitBtn.classList.contains('btn')) {
-                const originalHTML = submitBtn.innerHTML;
-                
-                if (submitBtn.name === 'action' && submitBtn.value === 'finalize') {
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Finalizando...';
-                    submitBtn.classList.add('loading');
-                    console.log('📝 Finalizando relatório...');
-                } else if (submitBtn.name === 'action' && submitBtn.value === 'save_draft') {
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Salvando...';
-                    submitBtn.classList.add('loading');
-                    console.log('💾 Salvando rascunho...');
-                }
-                
-                // Restore after timeout
-                setTimeout(() => {
-                    submitBtn.innerHTML = originalHTML;
-                    submitBtn.classList.remove('loading');
-                }, 30000);
-            }
-        });
+    if (validPhotos === 0) {
+        alert('Por favor, configure pelo menos uma foto com legenda predefinida.');
+        return;
     }
     
-    // Initial progress
-    setTimeout(updateProgress, 500);
+    // Save configurations
+    document.getElementById('fotoConfiguracoes').value = JSON.stringify(photoConfigurations);
+    console.log(`Configurações das fotos salvas: ${photoConfigurations.length} fotos`);
     
-    console.log('✅ Sistema inicializado com sucesso');
-});
+    // Update configured photos display
+    displayConfiguredPhotos();
+    updatePhotoCounter();
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('photoConfigModal'));
+    modal.hide();
+    
+    // Reset for next category
+    resetCategorySelection();
+    
+    alert(`${validPhotos} foto(s) configurada(s) com sucesso!`);
+}
+
+function displayConfiguredPhotos() {
+    const display = document.getElementById('configuredPhotosDisplay');
+    const grid = document.getElementById('configuredPhotoGrid');
+    
+    grid.innerHTML = '';
+    
+    const configured = uploadedPhotos.filter(p => p.configured);
+    
+    if (configured.length > 0) {
+        display.style.display = 'block';
+        
+        configured.forEach(photo => {
+            const item = document.createElement('div');
+            item.className = 'configured-photo-item';
+            item.innerHTML = `
+                <img src="${photo.dataUrl}" alt="${photo.legend}">
+                <div class="configured-photo-legend">${photo.legend}</div>
+            `;
+            grid.appendChild(item);
+        });
+    } else {
+        display.style.display = 'none';
+    }
+}
+
+function updatePhotoCounter() {
+    const counter = document.getElementById('photoCounter');
+    const configuredCount = uploadedPhotos.filter(p => p.configured).length;
+    counter.textContent = configuredCount;
+    counter.style.display = configuredCount > 0 ? 'inline' : 'none';
+}
+
+function resetCategorySelection() {
+    selectedCategory = null;
+    document.querySelectorAll('.category-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    document.getElementById('photoUploadZone').style.display = 'none';
+    document.getElementById('photoInput').value = '';
+}
+
+async function loadDefaultChecklist() {
+    try {
+        console.log('Carregando checklist padrão...');
+        
+        const response = await fetch('/api/checklist_express');
+        const data = await response.json();
+        
+        if (data.success && data.items) {
+            renderChecklist(data.items);
+            console.log(`${data.items.length} itens do checklist padrão carregados`);
+        } else {
+            throw new Error('Erro ao carregar checklist');
+        }
+    } catch (error) {
+        console.error('Erro ao carregar checklist:', error);
+        document.getElementById('checklistContainer').innerHTML = `
+            <div class="alert-mobile alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                Erro ao carregar checklist. Tente recarregar a página.
+            </div>
+        `;
+    }
+}
+
+function renderChecklist(items) {
+    const container = document.getElementById('checklistContainer');
+    container.innerHTML = '';
+    
+    items.forEach((item, index) => {
+        const checklistItem = document.createElement('div');
+        checklistItem.className = 'checklist-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'checklist-checkbox';
+        checkbox.id = `checklist_${index}`;
+        checkbox.addEventListener('change', updateChecklistData);
+        
+        const label = document.createElement('label');
+        label.className = 'checklist-label';
+        label.htmlFor = `checklist_${index}`;
+        label.textContent = item.texto;
+        
+        checklistItem.appendChild(checkbox);
+        checklistItem.appendChild(label);
+        container.appendChild(checklistItem);
+    });
+}
+
+function updateChecklistData() {
+    const checkboxes = document.querySelectorAll('.checklist-checkbox');
+    const checklistData = [];
+    
+    checkboxes.forEach((checkbox, index) => {
+        const label = document.querySelector(`label[for="${checkbox.id}"]`);
+        checklistData.push({
+            titulo: label.textContent,
+            concluido: checkbox.checked
+        });
+        
+        // Update visual state
+        const item = checkbox.closest('.checklist-item');
+        if (checkbox.checked) {
+            item.classList.add('completed');
+        } else {
+            item.classList.remove('completed');
+        }
+    });
+    
+    document.getElementById('checklistData').value = JSON.stringify(checklistData);
+}
+
+function validateForm() {
+    const empresaNome = document.getElementById('empresa_nome');
+    const dataVisita = document.getElementById('data_visita');
+    
+    let isValid = true;
+    
+    // Clear previous validation
+    document.querySelectorAll('.form-control, .form-select').forEach(el => {
+        el.classList.remove('invalid');
+    });
+    document.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+    
+    // Validate required fields
+    if (!empresaNome.value.trim()) {
+        showFieldError(empresaNome, 'Nome da empresa é obrigatório');
+        isValid = false;
+    }
+    
+    if (!dataVisita.value) {
+        showFieldError(dataVisita, 'Data da visita é obrigatória');
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        // Scroll to first error
+        const firstError = document.querySelector('.form-control.invalid, .form-select.invalid');
+        if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+    
+    return isValid;
+}
+
+function showFieldError(field, message) {
+    field.classList.add('invalid');
+    
+    const feedback = document.createElement('div');
+    feedback.className = 'invalid-feedback';
+    feedback.textContent = message;
+    
+    field.parentNode.appendChild(feedback);
+}
+
+function showLoadingOverlay() {
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+}
+
+function hideLoadingOverlay() {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+}
+
+// Service Worker registration for PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/static/js/sw.js')
+            .then(function(registration) {
+                console.log('PWA: Service Worker registrado:', registration);
+            })
+            .catch(function(error) {
+                console.log('PWA: Erro ao registrar Service Worker:', error);
+            });
+    });
+}
 </script>
 {% endblock %}

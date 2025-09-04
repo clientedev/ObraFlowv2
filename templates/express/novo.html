@@ -5,472 +5,54 @@
 {% block head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-<link href="{{ url_for('static', filename='css/express-mobile.css') }}" rel="stylesheet">
-<link href="{{ url_for('static', filename='css/canva-style-editor.css') }}" rel="stylesheet">
 <style>
-/* === ESTILIZAÇÃO PROFISSIONAL MOBILE-FIRST ELP === */
-
-/* Reset e base */
+/* CSS específico para eliminar tremida na página novo express */
 * {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
 }
 
-body {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    min-height: 100vh;
+/* Permitir seleção apenas em inputs */
+input, textarea, select {
+    -webkit-user-select: text !important;
+    user-select: text !important;
 }
 
-/* Safe area para dispositivos com notch */
-.mobile-container {
-    padding-left: max(20px, env(safe-area-inset-left));
-    padding-right: max(20px, env(safe-area-inset-right));
-    padding-top: max(20px, env(safe-area-inset-top));
-    padding-bottom: max(20px, env(safe-area-inset-bottom));
-    max-width: 100%;
-    margin: 0 auto;
+/* Eliminar tremida em todos elementos do formulário */
+.card, .card-body, .card-header, 
+.form-group, .mb-3, .mb-4,
+.container-fluid, .row, .col-12 {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: manipulation !important;
+    
+    /* ELIMINAR TODAS ANIMAÇÕES */
+    -webkit-transition: none !important;
+    -moz-transition: none !important;
+    -o-transition: none !important;
+    transition: none !important;
+    
+    /* ELIMINAR TRANSFORMAÇÕES */
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -o-transform: none !important;
+    transform: none !important;
 }
 
-/* Header principal ELP */
-.elp-header {
-    background: linear-gradient(135deg, #343a40 0%, #20c1e8 100%);
-    color: white;
-    padding: 25px 20px;
-    border-radius: 20px 20px 0 0;
-    text-align: center;
-    box-shadow: 0 4px 20px rgba(32, 193, 232, 0.3);
-    position: relative;
-    overflow: hidden;
-}
-
-.elp-header::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
-    animation: shimmer 3s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 0.8; }
-}
-
-.elp-header h1 {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin: 0;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    position: relative;
-    z-index: 2;
-}
-
-.elp-subtitle {
-    font-size: 1rem;
-    opacity: 0.9;
-    margin-top: 8px;
-    font-weight: 400;
-    position: relative;
-    z-index: 2;
-}
-
-/* Card principal */
-.elp-main-card {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-    overflow: hidden;
-    margin-bottom: 30px;
-    border: 1px solid rgba(32, 193, 232, 0.1);
-}
-
-/* Progress bar */
-.progress-container {
-    background: #f8f9fa;
-    padding: 20px;
-    border-bottom: 1px solid #e9ecef;
-}
-
-.progress-bar-elp {
-    width: 100%;
-    height: 8px;
-    background: #e9ecef;
-    border-radius: 10px;
-    overflow: hidden;
-    position: relative;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #20c1e8, #17a2b8);
-    border-radius: 10px;
-    width: 0%;
-    transition: width 0.5s ease;
-}
-
-.progress-text {
-    text-align: center;
-    font-size: 14px;
-    color: #6c757d;
-    margin-top: 10px;
-    font-weight: 500;
-}
-
-/* Body do card */
-.elp-card-body {
-    padding: 30px;
-}
-
-/* Seções do formulário */
-.form-section {
-    margin-bottom: 35px;
-    position: relative;
-}
-
-.section-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 3px solid #20c1e8;
-    position: relative;
-}
-
-.section-title::after {
-    content: '';
-    position: absolute;
-    bottom: -3px;
-    left: 0;
-    width: 50px;
-    height: 3px;
-    background: #17a2b8;
-    border-radius: 2px;
-}
-
-/* Campos do formulário */
-.form-group {
-    margin-bottom: 25px;
-    position: relative;
-}
-
-.form-label {
-    font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 12px;
-    display: block;
-    font-size: 16px;
-    position: relative;
-}
-
-.form-label.required::after {
-    content: " *";
-    color: #e74c3c;
-    font-weight: bold;
-}
-
-.form-control, .form-select {
-    width: 100%;
-    padding: 18px 20px;
-    border: 2px solid #e9ecef;
-    border-radius: 15px;
-    font-size: 16px;
-    transition: all 0.3s ease;
-    background: white;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    font-family: inherit;
-}
-
-.form-control:focus, .form-select:focus {
-    border-color: #20c1e8;
-    outline: none;
-    box-shadow: 0 0 0 0.25rem rgba(32, 193, 232, 0.15);
-    transform: translateY(-2px);
-}
-
-.form-select {
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23333' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 15px center;
-    background-repeat: no-repeat;
-    background-size: 16px;
-    padding-right: 50px;
-}
-
-textarea.form-control {
-    resize: vertical;
-    min-height: 120px;
-    font-family: inherit;
-}
-
-/* Input groups com ícones */
-.input-group {
-    position: relative;
-}
-
-.input-group-icon {
-    position: absolute;
-    left: 18px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #20c1e8;
-    font-size: 18px;
-    z-index: 2;
-}
-
-.input-group .form-control {
-    padding-left: 55px;
-}
-
-/* Grid responsivo */
-.form-row {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 25px;
-}
-
-.form-col {
-    flex: 1;
-}
-
-/* Botões */
-.btn-container {
-    position: sticky;
-    bottom: 20px;
-    background: white;
-    padding: 25px;
-    border-radius: 20px;
-    box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
-    margin: 30px -30px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
+/* Botões sem hover problemático */
 .btn {
-    padding: 18px 25px;
-    border-radius: 15px;
-    font-weight: 700;
-    font-size: 16px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    position: relative;
-    overflow: hidden;
-    min-height: 56px;
-}
-
-.btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
-}
-
-.btn:hover::before {
-    left: 100%;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #20c1e8, #17a2b8);
-    color: white;
-    box-shadow: 0 6px 20px rgba(32, 193, 232, 0.4);
-}
-
-.btn-primary:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(32, 193, 232, 0.6);
-}
-
-.btn-secondary {
-    background: linear-gradient(135deg, #6c757d, #495057);
-    color: white;
-    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.3);
-}
-
-.btn-secondary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(108, 117, 125, 0.5);
-}
-
-/* Info cards */
-.info-card {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 25px;
-    border-left: 4px solid #20c1e8;
-}
-
-.info-title {
-    font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 12px;
-    font-size: 1.1rem;
-}
-
-.info-detail {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.info-detail:last-child {
-    border-bottom: none;
-}
-
-.info-label {
-    font-weight: 600;
-    color: #495057;
-}
-
-.info-value {
-    color: #6c757d;
-    text-align: right;
-    font-weight: 500;
-}
-
-/* Badges */
-.badge {
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.badge.bg-success {
-    background: linear-gradient(135deg, #28a745, #20c997) !important;
-}
-
-/* Localização GPS */
-.location-preview {
-    display: none;
-    margin-top: 15px;
-    padding: 15px;
-    background: linear-gradient(135deg, #e3f2fd, #f0f8ff);
-    border-radius: 12px;
-    border-left: 4px solid #20c1e8;
-    font-size: 14px;
-    color: #1565c0;
-}
-
-/* Responsivo Mobile */
-@media (max-width: 768px) {
-    .mobile-container {
-        padding: 15px;
-    }
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    touch-action: manipulation !important;
     
-    .elp-header {
-        padding: 20px 15px;
-        border-radius: 15px 15px 0 0;
-    }
-    
-    .elp-header h1 {
-        font-size: 1.5rem;
-    }
-    
-    .elp-card-body {
-        padding: 25px 20px;
-    }
-    
-    .form-row {
-        flex-direction: column;
-        gap: 0;
-    }
-    
-    .btn-container {
-        margin: 25px -20px 0;
-        padding: 20px;
-    }
-}
-
-@media (max-width: 480px) {
-    .mobile-container {
-        padding: 10px;
-    }
-    
-    .elp-header {
-        padding: 15px 10px;
-        border-radius: 12px 12px 0 0;
-    }
-    
-    .elp-header h1 {
-        font-size: 1.3rem;
-    }
-    
-    .elp-card-body {
-        padding: 20px 15px;
-    }
-    
-    .form-control, .form-select, .btn {
-        font-size: 16px; /* Evita zoom no iOS */
-        min-height: 48px;
-    }
-    
-    .btn {
-        padding: 20px;
-        font-size: 18px;
-    }
-    
-    .section-title {
-        font-size: 1.1rem;
-    }
-}
-
-/* Animações de entrada */
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.elp-main-card {
-    animation: slideInUp 0.6s ease-out;
-}
-
-/* Loading states */
-.btn.loading {
-    pointer-events: none;
-    opacity: 0.8;
-}
-
-.btn.loading::after {
-    content: '';
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top: 2px solid white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    /* APENAS animação mínima de cor */
+    -webkit-transition: background-color 0.1s ease !important;
+    transition: background-color 0.1s ease !important;
 }
 /* Estilos para seletor de categorias */
 .category-selector {
@@ -687,103 +269,75 @@ textarea.form-control {
 {% endblock %}
 
 {% block content %}
-<div class="mobile-container">
-    <!-- Header Principal ELP -->
-    <div class="elp-main-card">
-        <div class="elp-header">
-            <h1>
-                <i class="fas fa-bolt me-2"></i>
-                Novo Relatório Express
-            </h1>
-            <div class="elp-subtitle">Sistema ELP - Criação Rápida de Relatórios</div>
-        </div>
-        
-        <!-- Progress Bar -->
-        <div class="progress-container">
-            <div class="progress-bar-elp">
-                <div class="progress-fill" id="progress-bar"></div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="fas fa-plus-circle"></i> Novo Relatório Express</h3>
+                <a href="{{ url_for('express_list') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar à Lista
+                </a>
             </div>
-            <div class="progress-text" id="progress-text">Preencha os campos obrigatórios</div>
         </div>
-        
-        <div class="elp-card-body">
+    </div>
 
     <form method="POST" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         
-        <div class="express-row">
-            <div class="express-col-lg-8 express-col-12">
+        <div class="row">
+            <div class="col-lg-8">
                 <!-- DADOS DA EMPRESA -->
-                <div class="express-card">
-                    <div class="express-card-header">
-                        <div>
-                            <h5 class="express-mb-0"><i class="fas fa-building express-text-primary"></i> Dados da Empresa</h5>
-                            <small class="express-text-muted">Informações da empresa visitada</small>
-                        </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-building"></i> Dados da Empresa</h5>
+                        <small class="text-muted">Informações da empresa visitada</small>
                     </div>
-                    <div class="express-card-body">
-                        <div class="express-row">
-                            <div class="express-col-md-6 express-col-12">
-                                <div class="express-form-group">
-                                    {{ form.empresa_nome.label(class="express-form-label") }}
-                                    {{ form.empresa_nome(class="express-form-control") }}
-                                </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.empresa_nome.label(class="form-label") }}
+                                {{ form.empresa_nome(class="form-control") }}
                             </div>
-                            <div class="express-col-md-6 express-col-12">
-                                <div class="express-form-group">
-                                    {{ form.empresa_responsavel.label(class="express-form-label") }}
-                                    {{ form.empresa_responsavel(class="express-form-control") }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.empresa_responsavel.label(class="form-label") }}
+                                {{ form.empresa_responsavel(class="form-control") }}
                             </div>
                         </div>
-                        <div class="express-row">
-                            <div class="express-col-md-6 express-col-12">
-                                <div class="express-form-group">
-                                    {{ form.empresa_telefone.label(class="express-form-label") }}
-                                    {{ form.empresa_telefone(class="express-form-control") }}
-                                </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.empresa_telefone.label(class="form-label") }}
+                                {{ form.empresa_telefone(class="form-control") }}
                             </div>
-                            <div class="express-col-md-6 express-col-12">
-                                <div class="express-form-group">
-                                    {{ form.empresa_email.label(class="express-form-label") }}
-                                    {{ form.empresa_email(class="express-form-control") }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.empresa_email.label(class="form-label") }}
+                                {{ form.empresa_email(class="form-control") }}
                             </div>
                         </div>
-                        <div class="express-form-group">
-                            {{ form.empresa_endereco.label(class="express-form-label") }}
-                            {{ form.empresa_endereco(class="express-form-control express-textarea") }}
+                        <div class="mb-3">
+                            {{ form.empresa_endereco.label(class="form-label") }}
+                            {{ form.empresa_endereco(class="form-control") }}
                         </div>
                     </div>
                 </div>
 
                 <!-- DADOS DA VISITA -->
-                <div class="express-card">
-                    <div class="express-card-header">
-                        <div>
-                            <h5 class="express-mb-0"><i class="fas fa-calendar-check express-text-primary"></i> Dados da Visita</h5>
-                            <small class="express-text-muted">Informações sobre o horário da visita</small>
-                        </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-calendar-check"></i> Dados da Visita</h5>
                     </div>
-                    <div class="express-card-body">
-                        <div class="express-row">
-                            <div class="express-col-md-4 express-col-12">
-                                <div class="express-form-group">
-                                    {{ form.data_visita.label(class="express-form-label") }}
-                                    {{ form.data_visita(class="express-form-control") }}
-                                </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                {{ form.data_visita.label(class="form-label") }}
+                                {{ form.data_visita(class="form-control") }}
                             </div>
-                            <div class="express-col-md-4 express-col-12">
-                                <div class="express-form-group">
-                                    {{ form.periodo_inicio.label(class="express-form-label") }}
-                                    {{ form.periodo_inicio(class="express-form-control") }}
-                                </div>
+                            <div class="col-md-4 mb-3">
+                                {{ form.periodo_inicio.label(class="form-label") }}
+                                {{ form.periodo_inicio(class="form-control") }}
                             </div>
-                            <div class="express-col-md-4 express-col-12">
-                                <div class="express-form-group">
-                                    {{ form.periodo_fim.label(class="express-form-label") }}
-                                    {{ form.periodo_fim(class="express-form-control") }}
-                                </div>
+                            <div class="col-md-4 mb-3">
+                                {{ form.periodo_fim.label(class="form-label") }}
+                                {{ form.periodo_fim(class="form-control") }}
                             </div>
                         </div>
                         <div class="row">
