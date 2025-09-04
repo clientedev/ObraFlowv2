@@ -152,8 +152,11 @@ body {
     transition: box-shadow 0.15s ease-in-out;
 }
 
-.card:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+/* Card hover apenas para desktop */
+@media (hover: hover) and (pointer: fine) {
+    .card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
 }
 
 .card-header {
@@ -174,10 +177,13 @@ body {
     border-color: var(--primary-color);
 }
 
-.btn-primary:hover {
-    background-color: #0b5ed7;
-    border-color: #0a58ca;
-    transform: translateY(-1px);
+/* Button hover apenas para desktop */
+@media (hover: hover) and (pointer: fine) {
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+        transform: translateY(-1px);
+    }
 }
 
 /* ELP brand colors for elements */
@@ -283,8 +289,11 @@ body {
     transition: transform 0.2s ease-in-out;
 }
 
-.stat-card:hover {
-    transform: translateY(-5px);
+/* Stat card hover apenas para desktop */
+@media (hover: hover) and (pointer: fine) {
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
 }
 
 .stat-card .display-4 {
@@ -334,8 +343,11 @@ body {
     cursor: pointer;
 }
 
-.photo-gallery .card-img-top:hover {
-    transform: scale(1.05);
+/* Photo gallery hover apenas para desktop */
+@media (hover: hover) and (pointer: fine) {
+    .photo-gallery .card-img-top:hover {
+        transform: scale(1.05);
+    }
 }
 
 /* Progress indicators */
@@ -502,12 +514,19 @@ footer {
     font-size: 3em;
 }
 
-/* Card animations */
+/* Card animations - Desabilitado para mobile */
 .card-hover {
-    transition: all 0.3s ease;
+    transition: none;
 }
 
-.card-hover:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12);
+/* Hover effects apenas para desktop */
+@media (hover: hover) and (pointer: fine) {
+    .card-hover {
+        transition: all 0.3s ease;
+    }
+    
+    .card-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12);
+    }
 }

@@ -233,12 +233,83 @@ async function initEditor() {
 }
 
 function setupControls() {
-    // Botões de ferramentas
-    document.querySelectorAll('[data-tool]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tool = this.dataset.tool;
+    // Variáveis para controle de touch
+    let touchProcessed = false;
+    let touchStartTime = 0;
+    
+    // Função unificada para seleção de ferramenta
+    function selectTool(element, tool) {
+        if (photoEditor) {
             photoEditor.setTool(tool);
-        });
+            
+            // Atualizar estado visual dos botões
+            document.querySelectorAll('[data-tool]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            console.log('🔧 Ferramenta alterada para:', tool, 'via', touchProcessed ? 'touch' : 'click');
+        }
+    }
+    
+    // Touch events - alta prioridade para mobile
+    document.addEventListener('touchstart', function(e) {
+        if (e.target.matches('[data-tool]') || e.target.closest('[data-tool]')) {
+            touchProcessed = true;
+            touchStartTime = Date.now();
+            
+            const element = e.target.matches('[data-tool]') ? e.target : e.target.closest('[data-tool]');
+            const tool = element.dataset.tool;
+            
+            // Feedback visual imediato
+            element.style.transform = 'scale(0.95)';
+            element.style.opacity = '0.8';
+            
+            // Executar seleção imediatamente no touchstart
+            selectTool(element, tool);
+            
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, { passive: false });
+    
+    document.addEventListener('touchend', function(e) {
+        if (touchProcessed) {
+            const element = e.target.matches('[data-tool]') ? e.target : e.target.closest('[data-tool]');
+            if (element) {
+                // Restaurar visual
+                element.style.transform = '';
+                element.style.opacity = '';
+            }
+            
+            // Reset touch após pequeno delay
+            setTimeout(() => {
+                touchProcessed = false;
+            }, 300);
+            
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, { passive: false });
+    
+    // Click events - fallback para desktop
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('[data-tool]') || e.target.closest('[data-tool]')) {
+            // Evitar duplo processamento no mobile
+            if (touchProcessed) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+            
+            const element = e.target.matches('[data-tool]') ? e.target : e.target.closest('[data-tool]');
+            const tool = element.dataset.tool;
+            
+            selectTool(element, tool);
+            
+            e.preventDefault();
+            e.stopPropagation();
+        }
     });
     
     // Seletor de cor
