@@ -616,20 +616,7 @@ function addPhotoPreview(file, category) {
         
         console.log('✅ Foto adicionada ao array. Total:', selectedPhotos.length);
         
-        // Carregar legendas IMEDIATAMENTE
-        setTimeout(() => {
-            const testSelect = document.getElementById(`predefined_${photoId}`);
-            if (testSelect) {
-                console.log('✅ Select encontrado, carregando legendas...');
-                loadPredefinedCaptionsForPhoto(photoId, category);
-            } else {
-                console.error('❌ Select NÃO encontrado:', `predefined_${photoId}`);
-                // Tentar encontrar todos os selects na página
-                const allSelects = document.querySelectorAll('select');
-                console.log('Todos os selects na página:', allSelects.length);
-                allSelects.forEach((s, i) => console.log(`Select ${i}: id="${s.id}"`));
-            }
-        }, 100);
+        loadPredefinedCaptionsForPhoto(photoId, category);
     };
     reader.readAsDataURL(file);
 }
@@ -643,44 +630,15 @@ function removePhoto(photoId) {
 }
 
 function loadPredefinedCaptionsForPhoto(photoId, category) {
-    console.log('🚀 INICIANDO loadPredefinedCaptionsForPhoto');
-    console.log('📋 photoId:', photoId);
-    console.log('📁 category:', category);
-    
-    const selectId = `predefined_${photoId}`;
-    console.log('🔍 Procurando select com ID:', selectId);
-    
-    const select = document.getElementById(selectId);
-    console.log('📝 Select encontrado:', !!select);
-    
+    const select = document.getElementById(`predefined_${photoId}`);
     if (!select) {
-        console.error('❌ ERRO: Select não encontrado!');
-        alert(`ERRO: Select não encontrado! ID: ${selectId}`);
+        alert('Select não encontrado: ' + photoId);
         return;
     }
     
-    console.log('✅ Select válido, populando...');
-    select.innerHTML = '<option value="">⏳ Carregando legendas...</option>';
+    select.innerHTML = '<option value="">Carregando legendas...</option>';
     
-    // Legendas simples para teste
-    const legendasSimples = [
-        'Teste Legenda 1',
-        'Teste Legenda 2', 
-        'Teste Legenda 3'
-    ];
-    
-    // Aplicar legendas simples primeiro
-    select.innerHTML = '<option value="">Selecione uma legenda...</option>';
-    legendasSimples.forEach(legenda => {
-        const option = document.createElement('option');
-        option.value = legenda;
-        option.textContent = legenda;
-        select.appendChild(option);
-    });
-    
-    console.log('✅ Legendas simples aplicadas');
-    
-    // Agora tentar com as legendas completas
+    // Teste direto com as legendas fixas para mobile
     const legendas = [
         // Acabamentos
         {"categoria": "Acabamentos", "texto": "Lixamento corretamente executado"},
