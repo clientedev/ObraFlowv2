@@ -725,56 +725,72 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
         }
     });
     
-    // Fallback: tentar API se disponível
-    setTimeout(() => {
-        if (select.options.length <= 1) {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', '/api/legendas?categoria=all', true);
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    try {
-                        const data = JSON.parse(xhr.responseText);
-                        if (data.success && data.legendas && data.legendas.length > 0) {
-                            // API funcionou, substituir
-                            select.innerHTML = '<option value="">Selecione uma legenda...</option>';
-                            
-                            const cats = {
-                                'Acabamentos': [],
-                                'Estrutural': [],
-                                'Geral': [],
-                                'Segurança': []
-                            };
-                            
-                            data.legendas.forEach(leg => {
-                                if (cats[leg.categoria]) {
-                                    cats[leg.categoria].push(leg);
-                                }
-                            });
-                            
-                            Object.keys(cats).forEach(cat => {
-                                if (cats[cat].length > 0) {
-                                    const optgroup = document.createElement('optgroup');
-                                    optgroup.label = cat;
-                                    
-                                    cats[cat].forEach(legenda => {
-                                        const option = document.createElement('option');
-                                        option.value = legenda.texto;
-                                        option.textContent = legenda.texto;
-                                        optgroup.appendChild(option);
-                                    });
-                                    
-                                    select.appendChild(optgroup);
-                                }
-                            });
+    // Sempre tentar carregar da API primeiro para sincronização
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/legendas?categoria=all', true);
+    xhr.timeout = 5000;
+    
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            try {
+                const data = JSON.parse(xhr.responseText);
+                if (data.success && data.legendas && data.legendas.length > 0) {
+                    // API funcionou, usar dados do banco
+                    select.innerHTML = '<option value="">Selecione uma legenda...</option>';
+                    
+                    const cats = {
+                        'Acabamentos': [],
+                        'Estrutural': [],
+                        'Geral': [],
+                        'Segurança': []
+                    };
+                    
+                    data.legendas.forEach(leg => {
+                        if (cats[leg.categoria]) {
+                            cats[leg.categoria].push(leg);
                         }
-                    } catch (e) {
-                        // Manter as legendas fixas
-                    }
+                    });
+                    
+                    Object.keys(cats).forEach(cat => {
+                        if (cats[cat].length > 0) {
+                            const optgroup = document.createElement('optgroup');
+                            optgroup.label = cat + ' (' + cats[cat].length + ' itens)';
+                            
+                            cats[cat].forEach(legenda => {
+                                const option = document.createElement('option');
+                                option.value = legenda.texto;
+                                option.textContent = legenda.texto;
+                                optgroup.appendChild(option);
+                            });
+                            
+                            select.appendChild(optgroup);
+                        }
+                    });
+                    
+                    // Marcar como carregado da API
+                    select.dataset.source = 'api';
+                } else {
+                    // Manter legendas fixas como fallback
+                    select.dataset.source = 'local';
                 }
-            };
-            xhr.send();
+            } catch (e) {
+                // Manter legendas fixas como fallback
+                select.dataset.source = 'local';
+            }
         }
-    }, 500);
+    };
+    
+    xhr.onerror = function() {
+        // Manter legendas fixas como fallback
+        select.dataset.source = 'local';
+    };
+    
+    xhr.ontimeout = function() {
+        // Manter legendas fixas como fallback
+        select.dataset.source = 'local';
+    };
+    
+    xhr.send();
 }
 
 // Mapear categoria da foto para categoria da legenda

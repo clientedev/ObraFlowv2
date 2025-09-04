@@ -2458,27 +2458,52 @@ def admin_legenda_excluir(id):
 # API para buscar legendas predefinidas (para todos os usuários)
 @app.route('/api/legendas')
 def api_legendas():
-    """API para buscar legendas predefinidas por categoria"""
-    categoria = request.args.get('categoria', 'all')
-    
-    from models import LegendaPredefinida
-    query = LegendaPredefinida.query.filter_by(ativo=True)
-    
-    if categoria != 'all':
-        query = query.filter_by(categoria=categoria)
-    
-    legendas = query.order_by(LegendaPredefinida.categoria, LegendaPredefinida.texto).all()
-    
-    return jsonify({
-        'success': True,
-        'legendas': [
-            {
-                'id': l.id,
-                'texto': l.texto,
-                'categoria': l.categoria
-            } for l in legendas
-        ]
-    })
+    """API para buscar legendas predefinidas por categoria - compatível mobile/desktop"""
+    try:
+        categoria = request.args.get('categoria', 'all')
+        
+        from models import LegendaPredefinida
+        query = LegendaPredefinida.query.filter_by(ativo=True)
+        
+        if categoria != 'all':
+            query = query.filter_by(categoria=categoria)
+        
+        legendas = query.order_by(LegendaPredefinida.categoria, LegendaPredefinida.texto).all()
+        
+        # Preparar resposta com headers para mobile
+        response_data = {
+            'success': True,
+            'total': len(legendas),
+            'timestamp': str(datetime.utcnow()),
+            'legendas': [
+                {
+                    'id': l.id,
+                    'texto': l.texto,
+                    'categoria': l.categoria,
+                    'ativo': l.ativo
+                } for l in legendas
+            ]
+        }
+        
+        response = jsonify(response_data)
+        
+        # Headers para compatibilidade mobile
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        
+        return response
+        
+    except Exception as e:
+        print(f"Erro na API de legendas: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor',
+            'legendas': []
+        }), 500
 
 # Rotas administrativas para Checklist Padrão
 @app.route('/developer/checklist-padrao')

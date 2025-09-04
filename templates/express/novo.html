@@ -926,7 +926,8 @@ function loadLegends(photoId, category) {
         {"categoria": "Segurança", "texto": "Pendente tratamentos dos ganchos cortados com pintura anti-corrosiva tipo zarcão"}
     ];
     
-    selectElement.innerHTML = '<option value="">Selecione uma legenda...</option>';
+    // Primeiro carregar legendas fixas como fallback
+    selectElement.innerHTML = '<option value="">Carregando...</option>';
     
     const categorias = {
         'Acabamentos': [],
@@ -941,6 +942,8 @@ function loadLegends(photoId, category) {
         }
     });
     
+    // Aplicar legendas fixas imediatamente
+    selectElement.innerHTML = '<option value="">Selecione uma legenda...</option>';
     Object.keys(categorias).forEach(cat => {
         if (categorias[cat].length > 0) {
             const optgroup = document.createElement('optgroup');
@@ -956,6 +959,67 @@ function loadLegends(photoId, category) {
             selectElement.appendChild(optgroup);
         }
     });
+    
+    // Tentar carregar da API para sincronização
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/legendas?categoria=all', true);
+    xhr.timeout = 3000;
+    
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            try {
+                const data = JSON.parse(xhr.responseText);
+                if (data.success && data.legendas && data.legendas.length > 0) {
+                    // API funcionou, substituir com dados do banco
+                    selectElement.innerHTML = '<option value="">Selecione uma legenda...</option>';
+                    
+                    const apiCats = {
+                        'Acabamentos': [],
+                        'Estrutural': [],
+                        'Geral': [],
+                        'Segurança': []
+                    };
+                    
+                    data.legendas.forEach(leg => {
+                        if (apiCats[leg.categoria]) {
+                            apiCats[leg.categoria].push(leg);
+                        }
+                    });
+                    
+                    Object.keys(apiCats).forEach(cat => {
+                        if (apiCats[cat].length > 0) {
+                            const optgroup = document.createElement('optgroup');
+                            optgroup.label = cat + ' (' + apiCats[cat].length + ' itens)';
+                            
+                            apiCats[cat].forEach(legenda => {
+                                const option = document.createElement('option');
+                                option.value = legenda.texto;
+                                option.textContent = legenda.texto;
+                                optgroup.appendChild(option);
+                            });
+                            
+                            selectElement.appendChild(optgroup);
+                        }
+                    });
+                    
+                    selectElement.dataset.source = 'api';
+                }
+            } catch (e) {
+                // Manter legendas fixas em caso de erro
+                selectElement.dataset.source = 'local';
+            }
+        }
+    };
+    
+    xhr.onerror = function() {
+        selectElement.dataset.source = 'local';
+    };
+    
+    xhr.ontimeout = function() {
+        selectElement.dataset.source = 'local';
+    };
+    
+    xhr.send();
 }
 
 // Atualizar configuração da foto
