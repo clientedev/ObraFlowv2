@@ -72,6 +72,21 @@
                 </div>
             </div>
 
+            <!-- Teste de Conectividade API - MOBILE -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">Status da API</h6>
+                            <button id="testApiBtn" class="btn btn-sm btn-outline-primary" onclick="testMobileApi()">
+                                <i class="fas fa-wifi"></i> Testar Conectividade Mobile
+                            </button>
+                            <span id="apiStatus" class="ms-2 text-muted">Clique para testar</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Lista de Legendas por Categoria -->
             {% set categorias = legendas|map(attribute='categoria')|unique|list %}
             {% for categoria in categorias %}
@@ -180,6 +195,109 @@ function excluirLegenda(id, texto) {
     document.getElementById('legendaTexto').textContent = texto;
     document.getElementById('formExcluir').action = `/admin/legendas/${id}/excluir`;
     new bootstrap.Modal(document.getElementById('modalExcluir')).show();
+}
+
+// TESTE DE API MOBILE - DIAGNÓSTICO COMPLETO
+function testMobileApi() {
+    const btn = document.getElementById('testApiBtn');
+    const status = document.getElementById('apiStatus');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testando...';
+    status.innerHTML = 'Executando testes...';
+    status.className = 'ms-2 text-warning';
+    
+    // Teste da API
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/legendas?categoria=all', true);
+    xhr.timeout = 15000;
+    
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            try {
+                const data = JSON.parse(xhr.responseText);
+                if (data.success && data.legendas) {
+                    status.innerHTML = `✅ API OK - ${data.total} legendas carregadas`;
+                    status.className = 'ms-2 text-success';
+                    createTestSelect(data.legendas);
+                } else {
+                    status.innerHTML = '❌ API OK mas sem dados válidos';
+                    status.className = 'ms-2 text-danger';
+                }
+            } catch (e) {
+                status.innerHTML = '❌ API OK mas JSON inválido: ' + e.message;
+                status.className = 'ms-2 text-danger';
+            }
+        } else {
+            status.innerHTML = `❌ API falhou - Status: ${xhr.status}`;
+            status.className = 'ms-2 text-danger';
+        }
+        
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-wifi"></i> Testar Novamente';
+    };
+    
+    xhr.onerror = function() {
+        status.innerHTML = '❌ Erro de rede';
+        status.className = 'ms-2 text-danger';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-wifi"></i> Testar Novamente';
+    };
+    
+    xhr.ontimeout = function() {
+        status.innerHTML = '❌ Timeout - API lenta';
+        status.className = 'ms-2 text-danger';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-wifi"></i> Testar Novamente';
+    };
+    
+    xhr.send();
+}
+
+function createTestSelect(legendas) {
+    let existingTest = document.getElementById('testSelectContainer');
+    if (existingTest) existingTest.remove();
+    
+    const container = document.createElement('div');
+    container.id = 'testSelectContainer';
+    container.className = 'mt-3 p-3 bg-success bg-opacity-10 rounded';
+    container.innerHTML = `
+        <h6>✅ Teste Mobile - Select com Legendas:</h6>
+        <select class="form-select" id="testSelect">
+            <option value="">Selecione uma legenda...</option>
+        </select>
+        <small class="text-muted d-block mt-1">Se aparecerem aqui, o mobile funciona!</small>
+    `;
+    
+    document.getElementById('apiStatus').parentElement.appendChild(container);
+    
+    const select = document.getElementById('testSelect');
+    const cats = {
+        'Acabamentos': [],
+        'Estrutural': [],
+        'Geral': [],
+        'Segurança': []
+    };
+    
+    legendas.forEach(leg => {
+        if (cats[leg.categoria]) cats[leg.categoria].push(leg);
+    });
+    
+    Object.keys(cats).forEach(cat => {
+        if (cats[cat].length > 0) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = `${cat} (${cats[cat].length})`;
+            
+            cats[cat].forEach(legenda => {
+                const option = document.createElement('option');
+                option.value = legenda.texto;
+                option.textContent = legenda.texto;
+                optgroup.appendChild(option);
+            });
+            
+            select.appendChild(optgroup);
+        }
+    });
 }
 </script>
 {% endblock %}

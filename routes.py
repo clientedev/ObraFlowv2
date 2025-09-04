@@ -2462,33 +2462,52 @@ def api_legendas():
     try:
         categoria = request.args.get('categoria', 'all')
         
-        from models import LegendaPredefinida
-        from datetime import datetime
+        # Import local para garantir disponibilidade
+        try:
+            from models import LegendaPredefinida
+        except ImportError as ie:
+            print(f"ERRO IMPORT: {ie}")
+            return jsonify({
+                'success': False,
+                'error': 'Modelo não encontrado',
+                'legendas': []
+            }), 500
         
-        # Verificar se a tabela existe e tem dados
-        query = LegendaPredefinida.query.filter_by(ativo=True)
+        # Buscar legendas no banco
+        try:
+            query = LegendaPredefinida.query.filter_by(ativo=True)
+            
+            if categoria and categoria != 'all':
+                query = query.filter_by(categoria=categoria)
+            
+            legendas = query.order_by(LegendaPredefinida.categoria, LegendaPredefinida.texto).all()
+        except Exception as db_error:
+            print(f"ERRO BD: {db_error}")
+            return jsonify({
+                'success': False,
+                'error': f'Erro no banco: {str(db_error)}',
+                'legendas': []
+            }), 500
         
-        if categoria and categoria != 'all':
-            query = query.filter_by(categoria=categoria)
-        
-        legendas = query.order_by(LegendaPredefinida.categoria, LegendaPredefinida.texto).all()
-        
-        # Preparar resposta estruturada
+        # Preparar resposta
         response_data = {
             'success': True,
             'total': len(legendas),
-            'timestamp': datetime.utcnow().isoformat(),
             'legendas': []
         }
         
-        # Processar legendas
+        # Processar cada legenda
         for legenda in legendas:
-            response_data['legendas'].append({
-                'id': legenda.id,
-                'texto': legenda.texto,
-                'categoria': legenda.categoria,
-                'ativo': legenda.ativo
-            })
+            try:
+                response_data['legendas'].append({
+                    'id': getattr(legenda, 'id', 0),
+                    'texto': getattr(legenda, 'texto', ''),
+                    'categoria': getattr(legenda, 'categoria', 'Geral'),
+                    'ativo': getattr(legenda, 'ativo', True)
+                })
+            except Exception as proc_error:
+                print(f"ERRO PROCESSAMENTO: {proc_error}")
+                continue
         
         # Criar resposta JSON
         response = jsonify(response_data)
