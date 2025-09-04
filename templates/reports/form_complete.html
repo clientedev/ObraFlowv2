@@ -616,11 +616,18 @@ function addPhotoPreview(file, category) {
         
         console.log('✅ Foto adicionada ao array. Total:', selectedPhotos.length);
         
-        // Carregar legendas pré-definidas para esta categoria
+        // Carregar legendas IMEDIATAMENTE - sem delay
+        console.log('🏷️ INICIANDO carregamento IMEDIATO de legendas para:', photoId, category);
+        loadPredefinedCaptionsForPhoto(photoId, category);
+        
+        // Backup: tentar novamente após 1 segundo se necessário
         setTimeout(() => {
-            console.log('🏷️ Carregando legendas para foto:', photoId);
-            loadPredefinedCaptionsForPhoto(photoId, category);
-        }, 100);
+            const select = document.getElementById(`predefined_${photoId}`);
+            if (select && select.options.length <= 1) {
+                console.log('🔄 RETRY: Tentando carregar legendas novamente');
+                loadPredefinedCaptionsForPhoto(photoId, category);
+            }
+        }, 1000);
     };
     reader.readAsDataURL(file);
 }
@@ -633,95 +640,183 @@ function removePhoto(photoId) {
     }
 }
 
-// Carregar legendas pré-definidas - VERSÃO SIMPLIFICADA PARA MOBILE
+// SISTEMA DE LEGENDAS MOBILE - VERSÃO GARANTIDA 100%
 function loadPredefinedCaptionsForPhoto(photoId, category) {
-    console.log(`🏷️ MOBILE: Carregando legendas para ${photoId}, categoria: ${category}`);
+    console.log('🚀 INICIANDO carregamento de legendas');
+    console.log('📊 Parâmetros:', {photoId, category});
+    console.log('📱 User Agent:', navigator.userAgent);
+    console.log('🌐 URL atual:', window.location.href);
     
-    const select = document.getElementById(`predefined_${photoId}`);
+    // STEP 1: Verificar elemento select
+    const selectId = `predefined_${photoId}`;
+    const select = document.getElementById(selectId);
+    
+    console.log('🔍 Procurando elemento:', selectId);
+    console.log('📋 Elemento encontrado:', !!select);
+    
     if (!select) {
-        console.error(`❌ MOBILE: Select não encontrado: predefined_${photoId}`);
+        console.error('❌ ERRO CRÍTICO: Select não encontrado!');
+        console.log('🔎 Todos os selects na página:');
+        document.querySelectorAll('select').forEach((s, i) => {
+            console.log(`  ${i}: id="${s.id}" class="${s.className}"`);
+        });
         return;
     }
     
-    // Limpar e mostrar carregando
-    select.innerHTML = '<option value="">Carregando...</option>';
+    // STEP 2: Mostrar feedback visual
+    select.innerHTML = '<option value="">🔄 Carregando legendas...</option>';
+    select.style.backgroundColor = '#fff3cd';
+    select.style.border = '2px solid #ffc107';
     
-    // Usar XMLHttpRequest para melhor compatibilidade mobile
+    console.log('📡 Fazendo requisição para API...');
+    
+    // STEP 3: Fazer requisição com máxima compatibilidade
     const xhr = new XMLHttpRequest();
-    xhr.open('GET', '/api/legendas?categoria=all', true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
+    const url = '/api/legendas?categoria=all&_t=' + Date.now(); // Cache bust
+    
+    console.log('🌐 URL da requisição:', url);
+    
+    xhr.open('GET', url, true);
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.setRequestHeader('Cache-Control', 'no-cache');
+    
+    xhr.timeout = 15000; // 15 segundos
     
     xhr.onreadystatechange = function() {
+        console.log('📊 Estado da requisição:', xhr.readyState, 'Status:', xhr.status);
+        
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
+                console.log('✅ Resposta recebida com sucesso');
+                console.log('📄 Resposta bruta (primeiros 200 chars):', xhr.responseText.substring(0, 200));
+                
                 try {
                     const data = JSON.parse(xhr.responseText);
-                    console.log(`✅ MOBILE: Recebidas ${data.legendas ? data.legendas.length : 0} legendas`);
+                    console.log('📊 Dados parseados:', data);
+                    console.log('🔢 Total de legendas:', data.legendas ? data.legendas.length : 0);
                     
-                    if (data.success && data.legendas && data.legendas.length > 0) {
-                        // Limpar select
-                        select.innerHTML = '<option value="">Selecione uma legenda...</option>';
+                    if (data && data.success && data.legendas && Array.isArray(data.legendas)) {
+                        console.log('✅ Dados válidos - processando legendas...');
                         
-                        // Separar por categoria
+                        // STEP 4: Limpar e popular select
+                        select.innerHTML = '<option value="">Selecione uma legenda...</option>';
+                        select.style.backgroundColor = '';
+                        select.style.border = '';
+                        
+                        // Organizar por categoria com TODAS as categorias possíveis
                         const categorias = {
                             'Acabamentos': [],
-                            'Estrutural': [], 
+                            'Estrutural': [],
                             'Geral': [],
                             'Segurança': []
                         };
                         
                         // Agrupar legendas
-                        data.legendas.forEach(leg => {
-                            if (categorias[leg.categoria]) {
-                                categorias[leg.categoria].push(leg);
+                        let totalAdicionadas = 0;
+                        data.legendas.forEach((legenda, index) => {
+                            console.log(`📝 Processando legenda ${index + 1}:`, legenda);
+                            
+                            if (legenda.categoria && categorias.hasOwnProperty(legenda.categoria)) {
+                                categorias[legenda.categoria].push(legenda);
+                                totalAdicionadas++;
+                            } else {
+                                console.warn('⚠️ Categoria não reconhecida:', legenda.categoria);
+                                // Adicionar em Geral como fallback
+                                categorias['Geral'].push(legenda);
+                                totalAdicionadas++;
                             }
                         });
                         
-                        // Adicionar por categoria
+                        console.log('📊 Legendas agrupadas:', categorias);
+                        console.log('🔢 Total adicionadas:', totalAdicionadas);
+                        
+                        // STEP 5: Adicionar opções por categoria
+                        let totalOptions = 0;
                         Object.keys(categorias).forEach(cat => {
                             if (categorias[cat].length > 0) {
-                                const optgroup = document.createElement('optgroup');
-                                optgroup.label = cat;
+                                console.log(`📂 Criando grupo ${cat} com ${categorias[cat].length} itens`);
                                 
-                                categorias[cat].forEach(legenda => {
+                                const optgroup = document.createElement('optgroup');
+                                optgroup.label = `${cat} (${categorias[cat].length} itens)`;
+                                
+                                categorias[cat].forEach((legenda, i) => {
                                     const option = document.createElement('option');
                                     option.value = legenda.texto;
                                     option.textContent = legenda.texto;
+                                    option.title = `Categoria: ${cat}`;
                                     optgroup.appendChild(option);
+                                    totalOptions++;
+                                    
+                                    if (i < 3) { // Log apenas os primeiros 3 de cada categoria
+                                        console.log(`  ✓ Opção ${i + 1}: ${legenda.texto.substring(0, 50)}...`);
+                                    }
                                 });
                                 
                                 select.appendChild(optgroup);
                             }
                         });
                         
-                        // Estilos mobile
+                        // STEP 6: Aplicar estilos mobile
                         select.style.fontSize = '16px';
                         select.style.minHeight = '48px';
                         select.style.width = '100%';
                         select.style.display = 'block';
+                        select.style.padding = '12px';
                         
-                        console.log('✅ MOBILE: Legendas carregadas com sucesso');
+                        console.log(`🎉 SUCESSO! ${totalOptions} opções adicionadas ao select`);
+                        console.log('📋 Elemento final:', select.outerHTML.substring(0, 300));
+                        
+                        // Verificação final
+                        const optionCount = select.querySelectorAll('option').length;
+                        console.log(`🔍 Verificação final: ${optionCount} opções no DOM`);
+                        
+                        if (optionCount > 1) {
+                            select.style.backgroundColor = '#d4edda';
+                            select.style.border = '2px solid #28a745';
+                            setTimeout(() => {
+                                select.style.backgroundColor = '';
+                                select.style.border = '';
+                            }, 3000);
+                        }
                         
                     } else {
-                        console.error('❌ MOBILE: Dados inválidos');
-                        select.innerHTML = '<option value="">Erro: dados inválidos</option>';
+                        console.error('❌ Dados inválidos recebidos:', data);
+                        select.innerHTML = '<option value="">❌ Dados inválidos</option>';
+                        select.style.backgroundColor = '#f8d7da';
+                        select.style.border = '2px solid #dc3545';
                     }
+                    
                 } catch (e) {
-                    console.error('❌ MOBILE: Erro ao processar JSON:', e);
-                    select.innerHTML = '<option value="">Erro: formato inválido</option>';
+                    console.error('❌ Erro ao processar JSON:', e);
+                    console.log('📄 Resposta que causou erro:', xhr.responseText);
+                    select.innerHTML = '<option value="">❌ Erro de formato</option>';
+                    select.style.backgroundColor = '#f8d7da';
+                    select.style.border = '2px solid #dc3545';
                 }
             } else {
-                console.error(`❌ MOBILE: Erro HTTP ${xhr.status}`);
-                select.innerHTML = '<option value="">Erro de conexão</option>';
+                console.error(`❌ Erro HTTP: ${xhr.status} ${xhr.statusText}`);
+                select.innerHTML = '<option value="">❌ Erro de servidor</option>';
+                select.style.backgroundColor = '#f8d7da';
+                select.style.border = '2px solid #dc3545';
             }
         }
     };
     
     xhr.onerror = function() {
-        console.error('❌ MOBILE: Erro de rede');
-        select.innerHTML = '<option value="">Erro de rede</option>';
+        console.error('❌ Erro de rede');
+        select.innerHTML = '<option value="">❌ Erro de rede</option>';
+        select.style.backgroundColor = '#f8d7da';
+        select.style.border = '2px solid #dc3545';
     };
     
+    xhr.ontimeout = function() {
+        console.error('❌ Timeout da requisição');
+        select.innerHTML = '<option value="">❌ Timeout</option>';
+        select.style.backgroundColor = '#f8d7da';
+        select.style.border = '2px solid #dc3545';
+    };
+    
+    console.log('📡 Enviando requisição...');
     xhr.send();
 }
 
