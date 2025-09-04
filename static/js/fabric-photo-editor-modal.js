@@ -182,7 +182,7 @@ function initFabricPhotoEditorModal() {
 }
 
 // Função para abrir editor de uma foto
-async function openPhotoEditor(photoElement) {
+async function openPhotoEditorFromElement(photoElement) {
     try {
         const photoSrc = photoElement.src;
         const photoId = photoElement.dataset.photoId || Date.now();

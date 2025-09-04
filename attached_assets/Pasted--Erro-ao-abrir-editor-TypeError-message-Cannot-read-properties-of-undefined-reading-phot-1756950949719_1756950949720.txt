@@ -1,0 +1,74 @@
+❌ Erro ao abrir editor: 
+TypeError {}
+message: "Cannot read properties of undefined (reading 'photoId')"
+stack: "TypeError: Cannot read properties of undefined (reading 'photoId')↵ at openPhotoEditor (https://f234abb4-a9d0-4ad2-b80e-02b68ba49c6a-00-2yocxl8q86vpy.spock.replit.dev/static/js/fabric-photo-editor-modal.js:188:46)↵ at HTMLButtonElement.onclick (https://f234abb4-a9d0-4ad2-b80e-02b68ba49c6a-00-2yocxl8q86vpy.spock.replit.dev/express/new:1:1)"
+get stack: ƒ ()
+length: 0
+name: ""
+[[Prototype]]: ƒ ()
+set stack: ƒ ()
+length: 1
+name: ""
+[[Prototype]]: ƒ ()
+[[Prototype]]: Object
+constructor: ƒ TypeError()
+length: 1
+name: "TypeError"
+prototype: Object
+constructor: ƒ TypeError()
+length: 1
+name: "TypeError"
+prototype: Object
+constructor: ƒ TypeError()
+message: "Cannot read properties of undefined (reading 'photoId')"
+name: "TypeError"
+[[Prototype]]: Object
+constructor: ƒ TypeError()
+message: "Cannot read properties of undefined (reading 'photoId')"
+name: "TypeError"
+toString: ƒ toString()
+[[Prototype]]: Object
+[[Prototype]]: ƒ Error()
+stackTraceLimit: 10
+captureStackTrace: ƒ captureStackTrace()
+isError: ƒ isError()
+length: 1
+name: "TypeError"
+prototype: Object
+[[Prototype]]: ƒ ()
+message: "Cannot read properties of undefined (reading 'photoId')"
+name: "TypeError"
+[[Prototype]]: Object
+[[Prototype]]: ƒ Error()
+stackTraceLimit: 10
+captureStackTrace: ƒ captureStackTrace()
+isError: ƒ isError()
+length: 1
+name: "TypeError"
+prototype: Object
+[[Prototype]]: ƒ ()
+message: "Cannot read properties of undefined (reading 'photoId')"
+name: "TypeError"
+[[Prototype]]: Object
+constructor: ƒ TypeError()
+message: "Cannot read properties of undefined (reading 'photoId')"
+name: "TypeError"
+toString: ƒ toString()
+length: 0
+name: "toString"
+[[Prototype]]: ƒ ()
+[[Prototype]]: Object
+constructor: ƒ TypeError()
+hasOwnProperty: ƒ hasOwnProperty()
+isPrototypeOf: ƒ isPrototypeOf()
+propertyIsEnumerable: ƒ propertyIsEnumerable()
+toLocaleString: ƒ toLocaleString()
+toString: ƒ toString()
+valueOf: ƒ valueOf()
+__defineGetter__: ƒ __defineGetter__()
+__defineSetter__: ƒ __defineSetter__()
+__lookupGetter__: ƒ __lookupGetter__()
+__lookupSetter__: ƒ __lookupSetter__()
+__proto__: Object
+get __proto__: ƒ get __proto__()
+set __proto__: ƒ set __proto__()
