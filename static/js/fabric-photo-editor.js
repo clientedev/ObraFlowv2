@@ -125,15 +125,31 @@ class FabricPhotoEditor {
         });
     }
     
-    // Função para fazer auto-scroll para o centro da imagem
+    // Função para fazer auto-scroll para o centro da imagem - Melhorada para mobile
     scrollToImageCenter() {
         const canvasContainer = this.canvas.wrapperEl.parentElement;
+        
         if (canvasContainer) {
-            canvasContainer.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center',
-                inline: 'center'
-            });
+            // Para mobile, usar scroll suave com fallback
+            if (this.isMobile) {
+                // Scroll manual para mobile com melhor suporte
+                const containerRect = canvasContainer.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                const scrollTop = window.pageYOffset + containerRect.top - (viewportHeight / 2) + (containerRect.height / 2);
+                
+                window.scrollTo({
+                    top: Math.max(0, scrollTop),
+                    behavior: 'smooth'
+                });
+            } else {
+                // Desktop - usar scrollIntoView
+                canvasContainer.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'center'
+                });
+            }
+            
             console.log('🎨 Auto-scroll para centro da imagem executado');
         }
     }
@@ -364,14 +380,34 @@ class FabricPhotoEditor {
         let isDrawing = false;
         let startPoint = {};
         let shape = null;
+        let drawingLocked = false; // Previne múltiplos desenhos simultâneos
         
         // Remover eventos anteriores
         this.canvas.off('mouse:down');
         this.canvas.off('mouse:move');
         this.canvas.off('mouse:up');
         
-        this.canvas.on('mouse:down', (options) => {
-            if (this.currentTool !== shapeType) return;
+        // Suporte para eventos touch
+        const getPointer = (e) => {
+            if (e.touches && e.touches[0]) {
+                const rect = this.canvas.upperCanvasEl.getBoundingClientRect();
+                return {
+                    x: e.touches[0].clientX - rect.left,
+                    y: e.touches[0].clientY - rect.top
+                };
+            }
+            return this.canvas.getPointer(e);
+        };
+        
+        const startDrawing = (e) => {
+            if (this.currentTool !== shapeType || drawingLocked) return;
+            
+            // Prevenir comportamento padrão em mobile
+            if (e.touches) {
+                e.preventDefault();
+            }
+            
+            drawingLocked = true; // Bloquear múltiplos desenhos
             
             // Se for seta e já existe uma, remover a anterior
             if (shapeType === 'arrow' && this.currentArrow) {
@@ -380,7 +416,7 @@ class FabricPhotoEditor {
             }
             
             isDrawing = true;
-            const pointer = this.canvas.getPointer(options.e);
+            const pointer = getPointer(e);
             startPoint = { x: pointer.x, y: pointer.y };
             
             // Para setas, definir ponto inicial
@@ -389,23 +425,25 @@ class FabricPhotoEditor {
                 this.arrowStartPoint = startPoint;
             }
             
-            // Criar shape inicial
-            shape = this.createShape(shapeType, startPoint, startPoint);
-            if (shape) {
-                this.canvas.add(shape);
-                this.canvas.setActiveObject(shape);
-                
-                // Armazenar referência da seta
-                if (shapeType === 'arrow') {
-                    this.currentArrow = shape;
+            // Criar shape inicial - APENAS uma vez
+            if (!shape) {
+                shape = this.createShape(shapeType, startPoint, startPoint);
+                if (shape) {
+                    this.canvas.add(shape);
+                    this.canvas.setActiveObject(shape);
+                    
+                    // Armazenar referência da seta
+                    if (shapeType === 'arrow') {
+                        this.currentArrow = shape;
+                    }
                 }
             }
-        });
+        };
         
-        this.canvas.on('mouse:move', (options) => {
-            if (!isDrawing || !shape) return;
+        const updateDrawing = (e) => {
+            if (!isDrawing || !shape || !drawingLocked) return;
             
-            const pointer = this.canvas.getPointer(options.e);
+            const pointer = getPointer(e);
             this.updateShape(shape, shapeType, startPoint, pointer);
             
             // Atualizar referência da seta
@@ -414,9 +452,11 @@ class FabricPhotoEditor {
             }
             
             this.canvas.renderAll();
-        });
+        };
         
-        this.canvas.on('mouse:up', () => {
+        const endDrawing = (e) => {
+            if (!drawingLocked) return;
+            
             if (isDrawing && shape) {
                 isDrawing = false;
                 this.isDrawingArrow = false;
@@ -429,7 +469,20 @@ class FabricPhotoEditor {
                 
                 shape = null;
             }
-        });
+            
+            drawingLocked = false; // Liberar para próximo desenho
+        };
+        
+        // Eventos mouse
+        this.canvas.on('mouse:down', startDrawing);
+        this.canvas.on('mouse:move', updateDrawing);
+        this.canvas.on('mouse:up', endDrawing);
+        
+        // Eventos touch para mobile
+        const canvasEl = this.canvas.upperCanvasEl;
+        canvasEl.addEventListener('touchstart', startDrawing, { passive: false });
+        canvasEl.addEventListener('touchmove', updateDrawing, { passive: false });
+        canvasEl.addEventListener('touchend', endDrawing, { passive: false });
     }
     
     createShape(type, start, end) {

@@ -65,17 +65,33 @@ class FabricPhotoEditorModal {
         }
     }
     
-    // Função para fazer auto-scroll para o centro da imagem
+    // Função para fazer auto-scroll para o centro da imagem - Melhorada para mobile
     scrollToImageCenter() {
         const modal = document.getElementById(this.modalId);
         const canvasContainer = modal?.querySelector('.canvas-container');
+        const isMobile = window.innerWidth <= 768;
         
         if (canvasContainer) {
-            canvasContainer.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center',
-                inline: 'center'
-            });
+            // Para mobile, usar scroll suave com fallback
+            if (isMobile) {
+                // Scroll manual para mobile com melhor suporte
+                const containerRect = canvasContainer.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                const scrollTop = window.pageYOffset + containerRect.top - (viewportHeight / 2) + (containerRect.height / 2);
+                
+                window.scrollTo({
+                    top: Math.max(0, scrollTop),
+                    behavior: 'smooth'
+                });
+            } else {
+                // Desktop - usar scrollIntoView
+                canvasContainer.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'center'
+                });
+            }
+            
             console.log('🎨 Auto-scroll para centro da imagem executado');
         }
     }
