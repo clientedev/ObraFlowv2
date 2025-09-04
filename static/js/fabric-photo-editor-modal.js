@@ -268,41 +268,67 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Configurando listeners do editor modal');
     
     // Listeners para botões de ferramentas do modal - OTIMIZADO PARA MOBILE
-    const isMobile = window.innerWidth <= 768;
-    const eventType = isMobile ? 'touchstart' : 'click';
+    const isMobile = 'ontouchstart' in window || window.innerWidth <= 768;
     
-    document.addEventListener(eventType, function(e) {
-        if (e.target.matches('[data-modal-tool]')) {
-            e.preventDefault();
-            e.stopPropagation();
+    // Função para lidar com seleção de ferramenta
+    function handleToolSelection(e, tool) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Feedback visual imediato
+        e.target.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            e.target.style.transform = '';
+        }, 100);
+        
+        if (window.fabricPhotoEditorModal) {
+            window.fabricPhotoEditorModal.setTool(tool);
             
-            const tool = e.target.dataset.modalTool;
+            // Atualizar estado visual dos botões
+            document.querySelectorAll('[data-modal-tool]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.modalTool === tool);
+            });
             
-            // Feedback visual imediato
-            e.target.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                e.target.style.transform = '';
-            }, 100);
-            
-            if (window.fabricPhotoEditorModal) {
-                window.fabricPhotoEditorModal.setTool(tool);
-                
-                // Atualizar estado visual dos botões
-                document.querySelectorAll('[data-modal-tool]').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.modalTool === tool);
-                });
-                
-                console.log('🔧 Ferramenta modal selecionada:', tool);
-            }
+            console.log('🔧 Ferramenta modal selecionada:', tool);
         }
-    });
+    }
     
-    // Prevenir eventos duplicados no mobile
     if (isMobile) {
+        // Para mobile: usar apenas touchend para evitar conflitos
+        document.addEventListener('touchend', function(e) {
+            if (e.target.matches('[data-modal-tool]')) {
+                const tool = e.target.dataset.modalTool;
+                handleToolSelection(e, tool);
+            }
+        }, { passive: false });
+        
+        // Prevenir click em mobile para evitar duplo disparo
         document.addEventListener('click', function(e) {
             if (e.target.matches('[data-modal-tool]')) {
                 e.preventDefault();
                 e.stopPropagation();
+            }
+        });
+        
+        // Prevenir touchstart e touchmove em botões para evitar scroll
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.matches('[data-modal-tool]')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.matches('[data-modal-tool]')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+    } else {
+        // Para desktop: usar click normal
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('[data-modal-tool]')) {
+                const tool = e.target.dataset.modalTool;
+                handleToolSelection(e, tool);
             }
         });
     }
