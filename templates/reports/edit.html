@@ -155,263 +155,156 @@
     </div>
 </div>
 
-<!-- Photo Editor Modal -->
-<div class="modal fade" id="photoEditorModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
+<!-- Fabric Photo Editor Modal - Sistema Unificado -->
+<div class="modal fade" id="fabricPhotoEditorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Editor de Foto</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Editor de Fotos</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-8">
-                        <div id="canvasContainer" class="text-center">
-                            <canvas id="photoCanvas" style="border: 1px solid #ccc; max-width: 100%;"></canvas>
+            <div class="modal-body p-0">
+                <div class="fabric-editor-container">
+                    <!-- Toolbar -->
+                    <div class="fabric-toolbar">
+                        <div class="fabric-tools">
+                            <div class="tool-group">
+                                <button class="fabric-tool-btn active" data-modal-tool="select" title="Seleção">
+                                    <i class="fas fa-mouse-pointer"></i>
+                                </button>
+                                <button class="fabric-tool-btn" data-modal-tool="brush" title="Pincel">
+                                    <i class="fas fa-paint-brush"></i>
+                                </button>
+                                <button class="fabric-tool-btn" data-modal-tool="arrow" title="Seta">
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                                <button class="fabric-tool-btn" data-modal-tool="circle" title="Círculo">
+                                    <i class="fas fa-circle"></i>
+                                </button>
+                                <button class="fabric-tool-btn" data-modal-tool="rectangle" title="Retângulo">
+                                    <i class="far fa-square"></i>
+                                </button>
+                                <button class="fabric-tool-btn" data-modal-tool="text" title="Texto">
+                                    <i class="fas fa-font"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="tools-panel">
-                            <h6>Ferramentas de Desenho</h6>
-                            <div class="btn-group-vertical d-grid gap-2 mb-3">
-                                <button class="btn btn-outline-primary tool-btn" data-tool="pen">
-                                    <i class="fas fa-pen"></i> Caneta
-                                </button>
-                                <button class="btn btn-outline-success tool-btn" data-tool="arrow">
-                                    <i class="fas fa-arrow-right"></i> Seta
-                                </button>
-                                <button class="btn btn-outline-info tool-btn" data-tool="rectangle">
-                                    <i class="fas fa-square"></i> Retângulo
-                                </button>
-                                <button class="btn btn-outline-warning tool-btn" data-tool="circle">
-                                    <i class="fas fa-circle"></i> Círculo
-                                </button>
-                                <button class="btn btn-outline-secondary tool-btn" data-tool="text">
-                                    <i class="fas fa-font"></i> Texto
-                                </button>
-                                <button class="btn btn-outline-danger" onclick="clearCanvas()">
-                                    <i class="fas fa-eraser"></i> Limpar
-                                </button>
-                            </div>
-                            
-                            <h6>Cores</h6>
-                            <div class="color-palette mb-3">
-                                <div class="color-box" style="background: red" onclick="setColor('red')"></div>
-                                <div class="color-box" style="background: blue" onclick="setColor('blue')"></div>
-                                <div class="color-box" style="background: green" onclick="setColor('green')"></div>
-                                <div class="color-box" style="background: yellow" onclick="setColor('yellow')"></div>
-                                <div class="color-box" style="background: orange" onclick="setColor('orange')"></div>
-                                <div class="color-box" style="background: purple" onclick="setColor('purple')"></div>
-                                <div class="color-box" style="background: black" onclick="setColor('black')"></div>
-                                <div class="color-box" style="background: white; border: 1px solid #ccc" onclick="setColor('white')"></div>
-                            </div>
-                            
-                            <h6>Tamanho do Traço</h6>
-                            <input type="range" class="form-range" min="1" max="20" value="3" id="strokeWidth" onchange="setStrokeWidth(this.value)">
-                            <span id="strokeValue">3px</span>
-                        </div>
+                    
+                    <!-- Canvas Container -->
+                    <div class="fabric-canvas-container">
+                        <canvas id="fabricModalCanvas"></canvas>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="saveAnnotatedPhoto()">Salvar Anotações</button>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-danger" onclick="window.fabricPhotoEditorModal?.clear()">
+                    <i class="fas fa-trash"></i> Limpar
+                </button>
+                <button type="button" class="btn btn-warning" onclick="window.fabricPhotoEditorModal?.undo()">
+                    <i class="fas fa-undo"></i> Desfazer
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-success" onclick="saveFabricPhoto()">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-.color-box {
-    width: 30px;
-    height: 30px;
-    display: inline-block;
-    margin: 2px;
-    cursor: pointer;
-    border-radius: 3px;
-    border: 2px solid transparent;
-}
-.color-box:hover {
-    border-color: #007bff;
-}
-.tool-btn.active {
-    background-color: var(--bs-primary);
-    color: white;
-}
-</style>
-
 <script>
-let canvas, ctx, currentTool = 'pen', currentColor = 'red', currentStrokeWidth = 3;
-let isDrawing = false, startX, startY;
+// Sistema Fabric.js Photo Editor - Unificado
 let currentPhotoId = null;
+let currentPhotoData = null;
 
+// Função para editar foto - agora usando Fabric.js
 function editPhoto(photoId, filename) {
-    currentPhotoId = photoId;
-    const modal = new bootstrap.Modal(document.getElementById('photoEditorModal'));
-    modal.show();
+    console.log('🎨 Abrindo editor para foto:', photoId);
     
-    // Load image into canvas
+    currentPhotoId = photoId;
+    const imageUrl = `/static/uploads/${filename}`;
+    
+    currentPhotoData = {
+        photoId: photoId,
+        imageUrl: imageUrl,
+        filename: filename
+    };
+    
+    // Abrir modal Fabric.js
+    openFabricPhotoEditor(photoId, imageUrl, saveFabricPhoto);
+    
+    // Auto-scroll para o centro da imagem após o modal abrir
     setTimeout(() => {
-        canvas = document.getElementById('photoCanvas');
-        ctx = canvas.getContext('2d');
-        
-        const img = new Image();
-        img.onload = function() {
-            canvas.width = this.width;
-            canvas.height = this.height;
-            ctx.drawImage(this, 0, 0);
-        };
-        img.src = `/static/uploads/${filename}`;
-        
-        setupCanvasEvents();
+        scrollToEditor();
     }, 500);
 }
 
-function setupCanvasEvents() {
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseout', stopDrawing);
-}
-
-function startDrawing(e) {
-    isDrawing = true;
-    const rect = canvas.getBoundingClientRect();
-    startX = e.clientX - rect.left;
-    startY = e.clientY - rect.top;
+// Função para fazer auto-scroll para o centro do editor
+function scrollToEditor() {
+    const modal = document.getElementById('fabricPhotoEditorModal');
+    const canvasContainer = modal.querySelector('.fabric-canvas-container');
     
-    if (currentTool === 'pen') {
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-    }
-}
-
-function draw(e) {
-    if (!isDrawing) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    ctx.strokeStyle = currentColor;
-    ctx.lineWidth = currentStrokeWidth;
-    ctx.lineCap = 'round';
-    
-    if (currentTool === 'pen') {
-        ctx.lineTo(x, y);
-        ctx.stroke();
-    }
-}
-
-function stopDrawing() {
-    if (!isDrawing) return;
-    isDrawing = false;
-    
-    const rect = canvas.getBoundingClientRect();
-    const endX = event.clientX - rect.left;
-    const endY = event.clientY - rect.top;
-    
-    if (currentTool === 'arrow') {
-        drawArrow(startX, startY, endX, endY);
-    } else if (currentTool === 'rectangle') {
-        drawRectangle(startX, startY, endX, endY);
-    } else if (currentTool === 'circle') {
-        drawCircle(startX, startY, endX, endY);
-    }
-}
-
-function drawArrow(fromX, fromY, toX, toY) {
-    const headlen = 15;
-    const angle = Math.atan2(toY - fromY, toX - fromX);
-    
-    ctx.strokeStyle = currentColor;
-    ctx.lineWidth = currentStrokeWidth;
-    ctx.beginPath();
-    ctx.moveTo(fromX, fromY);
-    ctx.lineTo(toX, toY);
-    ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
-    ctx.moveTo(toX, toY);
-    ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
-    ctx.stroke();
-}
-
-function drawRectangle(x1, y1, x2, y2) {
-    ctx.strokeStyle = currentColor;
-    ctx.lineWidth = currentStrokeWidth;
-    ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-}
-
-function drawCircle(x1, y1, x2, y2) {
-    const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-    ctx.strokeStyle = currentColor;
-    ctx.lineWidth = currentStrokeWidth;
-    ctx.beginPath();
-    ctx.arc(x1, y1, radius, 0, 2 * Math.PI);
-    ctx.stroke();
-}
-
-function setColor(color) {
-    currentColor = color;
-}
-
-function setStrokeWidth(width) {
-    currentStrokeWidth = width;
-    document.getElementById('strokeValue').textContent = width + 'px';
-}
-
-function clearCanvas() {
-    if (confirm('Tem certeza que deseja limpar todas as anotações?')) {
-        // Reload original image
-        const img = new Image();
-        img.onload = function() {
-            canvas.width = this.width;
-            canvas.height = this.height;
-            ctx.drawImage(this, 0, 0);
-        };
-        img.src = canvas.toDataURL();
-    }
-}
-
-function saveAnnotatedPhoto() {
-    if (!currentPhotoId) return;
-    
-    const annotatedImageData = canvas.toDataURL('image/jpeg', 0.8);
-    
-    fetch(`/reports/photos/${currentPhotoId}/annotate`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify({
-            image_data: annotatedImageData
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Anotações salvas com sucesso!');
-            bootstrap.Modal.getInstance(document.getElementById('photoEditorModal')).hide();
-            location.reload();
-        } else {
-            alert('Erro ao salvar anotações: ' + data.error);
-        }
-    })
-    .catch(error => {
-        alert('Erro ao salvar anotações: ' + error);
-    });
-}
-
-// Tool selection
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.tool-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            currentTool = this.dataset.tool;
+    if (canvasContainer) {
+        canvasContainer.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'center'
         });
-    });
-});
+    }
+}
+
+// Função para salvar foto editada no Fabric.js
+function saveFabricPhoto() {
+    console.log('💾 Salvando foto editada');
+    
+    if (!window.fabricPhotoEditorModal?.canvas || !currentPhotoId) {
+        console.error('❌ Canvas ou photoId não encontrado');
+        return;
+    }
+    
+    try {
+        // Obter dados da imagem do canvas Fabric.js
+        const imageData = window.fabricPhotoEditorModal.canvas.toDataURL('image/jpeg', 0.9);
+        
+        // Enviar para o servidor
+        fetch(`/reports/photos/${currentPhotoId}/annotate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                image_data: imageData
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Anotações salvas com sucesso!');
+                
+                // Fechar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('fabricPhotoEditorModal'));
+                if (modal) modal.hide();
+                
+                // Recarregar página
+                location.reload();
+            } else {
+                alert('❌ Erro ao salvar anotações: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Erro:', error);
+            alert('❌ Erro ao salvar anotações: ' + error);
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar:', error);
+        alert('❌ Erro ao processar imagem');
+    }
+}
 
 function addPhoto() {
     // Redirect to report form with edit mode
@@ -508,5 +401,73 @@ function showPhotoModal(imageSrc, caption, order) {
     const bootstrapModal = new bootstrap.Modal(modal);
     bootstrapModal.show();
 }
+
+// Inicializar sistema Fabric.js quando DOM estiver pronto
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar modal do Fabric.js
+    if (typeof initFabricPhotoEditorModal === 'function') {
+        initFabricPhotoEditorModal();
+    }
+});
+
+// Função para abrir o editor Fabric.js
+function openFabricPhotoEditor(photoId, imageUrl, saveCallback) {
+    console.log('🔍 Verificando dependências do editor...');
+    console.log('- window.fabricPhotoEditorModal:', window.fabricPhotoEditorModal);
+    console.log('- initFabricPhotoEditorModal:', typeof initFabricPhotoEditorModal);
+    console.log('- FabricPhotoEditor:', typeof FabricPhotoEditor);
+    console.log('- fabric:', typeof fabric);
+    console.log('- bootstrap:', typeof bootstrap);
+    
+    if (!window.fabricPhotoEditorModal) {
+        console.log('🚀 Inicializando modal do editor...');
+        
+        // Verificar dependências
+        if (typeof fabric === 'undefined') {
+            alert('Fabric.js não está carregado. Recarregue a página.');
+            return;
+        }
+        
+        if (typeof bootstrap === 'undefined') {
+            alert('Bootstrap não está carregado. Recarregue a página.');
+            return;
+        }
+        
+        if (typeof FabricPhotoEditor === 'undefined') {
+            alert('FabricPhotoEditor não está carregado. Recarregue a página.');
+            return;
+        }
+        
+        // Inicializar modal
+        if (typeof initFabricPhotoEditorModal === 'function') {
+            initFabricPhotoEditorModal();
+            
+            // Aguardar inicialização e abrir
+            setTimeout(() => {
+                if (window.fabricPhotoEditorModal) {
+                    console.log('✅ Abrindo editor modal');
+                    window.fabricPhotoEditorModal.openEditor(imageUrl, photoId, saveCallback);
+                } else {
+                    console.error('❌ Falha ao inicializar modal');
+                }
+            }, 100);
+        } else {
+            console.error('❌ Função initFabricPhotoEditorModal não encontrada');
+            alert('Sistema de edição não disponível. Recarregue a página.');
+        }
+    } else {
+        // Modal já inicializado, abrir diretamente
+        console.log('✅ Abrindo editor');
+        window.fabricPhotoEditorModal.openEditor(imageUrl, photoId, saveCallback);
+    }
+}
 </script>
+
+<!-- Fabric.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+
+<!-- Fabric Photo Editor CSS e JS -->
+<script src="{{ url_for('static', filename='js/fabric-photo-editor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/fabric-photo-editor-modal.js') }}"></script>
+
 {% endblock %}
