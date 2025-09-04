@@ -1242,54 +1242,9 @@ function capturarLocalizacao() {
     );
 }
 
-// Carregar legendas pré-definidas para uma foto específica
-function loadPredefinedCaptionsForPhoto(photoId, category) {
-    console.log(`Carregando legendas para foto ${photoId}, categoria: ${category}`);
-    const mappedCategory = mapCategoryToLegenda(category);
-    console.log(`Categoria mapeada: ${mappedCategory}`);
-    
-    fetch(`/api/legendas?categoria=${mappedCategory}`)
-        .then(response => response.json())
-        .then(data => {
-            console.log('Dados recebidos:', data);
-            const select = document.getElementById(`predefined_${photoId}`);
-            console.log('Select element:', select);
-            
-            if (select && data.success) {
-                // Limpar opções existentes exceto a primeira
-                select.innerHTML = '<option value="">Selecione uma legenda...</option>';
-                
-                data.legendas.forEach(legenda => {
-                    const option = document.createElement('option');
-                    option.value = legenda.texto;
-                    option.textContent = legenda.texto;
-                    select.appendChild(option);
-                });
-                
-                console.log(`${data.legendas.length} legendas carregadas para categoria ${mappedCategory}`);
-            } else {
-                console.error('Elemento select não encontrado ou dados inválidos');
-            }
-        })
-        .catch(error => {
-            console.error('Erro ao carregar legendas:', error);
-        });
-}
+// FUNÇÃO DUPLICADA REMOVIDA - usar apenas a versão otimizada para mobile
 
-// Mapear categoria da foto para categoria da legenda
-function mapCategoryToLegenda(photoCategory) {
-    const mapping = {
-        'Fundação': 'Estrutural',
-        'Estrutura': 'Estrutural', 
-        'Alvenaria': 'Estrutural',
-        'Instalações': 'Elétrica',
-        'Cobertura': 'Impermeabilização',
-        'Acabamento': 'Acabamentos',
-        'Problema': 'Segurança',
-        'Geral': 'Geral'
-    };
-    return mapping[photoCategory] || 'Geral';
-}
+// FUNÇÃO DUPLICADA REMOVIDA - usar apenas a versão do início do arquivo
 
 // Função para alternar checkbox e mostrar/ocultar campo de observações
 function toggleChecklistItem(checkbox) {
