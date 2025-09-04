@@ -980,13 +980,35 @@ function openPhotoEditor(photoId) {
         };
         
         // Verificar se o editor modal está disponível
-        console.log('🔍 Verificando editor modal:', window.fabricPhotoEditorModal);
+        console.log('🔍 Verificando dependências do editor...');
+        console.log('- window.fabricPhotoEditorModal:', window.fabricPhotoEditorModal);
+        console.log('- initFabricPhotoEditorModal:', typeof initFabricPhotoEditorModal);
+        console.log('- FabricPhotoEditor:', typeof FabricPhotoEditor);
+        console.log('- fabric:', typeof fabric);
+        console.log('- bootstrap:', typeof bootstrap);
         
         if (!window.fabricPhotoEditorModal) {
-            console.error('❌ Editor modal não inicializado - tentando inicializar...');
+            console.error('❌ Editor modal não inicializado');
+            
+            // Verificar se as dependências estão carregadas
+            if (typeof fabric === 'undefined') {
+                alert('Fabric.js não está carregado. Recarregue a página.');
+                return;
+            }
+            
+            if (typeof bootstrap === 'undefined') {
+                alert('Bootstrap não está carregado. Recarregue a página.');
+                return;
+            }
+            
+            if (typeof FabricPhotoEditor === 'undefined') {
+                alert('Editor de fotos não está carregado. Recarregue a página.');
+                return;
+            }
             
             // Tentar inicializar o editor modal
             if (typeof initFabricPhotoEditorModal === 'function') {
+                console.log('🔄 Tentando inicializar editor modal...');
                 initFabricPhotoEditorModal();
                 
                 // Aguardar um momento para o editor ser inicializado
@@ -995,7 +1017,7 @@ function openPhotoEditor(photoId) {
                         console.log('✅ Editor inicializado com sucesso');
                         window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
                     } else {
-                        console.error('❌ Falha ao inicializar editor');
+                        console.error('❌ Falha ao inicializar editor após tentativa');
                         alert('Editor de fotos não pode ser carregado. Recarregue a página.');
                     }
                 }, 500);
