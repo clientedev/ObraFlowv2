@@ -114,9 +114,12 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Admin Controls**: Painel administrativo com teste de conectividade e backup em lote
 - ✅ **Mobile Compatibility**: Interface responsiva para desktop e mobile
 
-### Sistema Completo Validado (2025-09-01)
+### Sistema Completo Validado (2025-09-04)
 - ✅ **Mobile-First Design**: Interface 100% responsiva com touch otimizado
-- ✅ **Editor de Fotos Mobile**: Touch events unificados, coordenadas precisas, área de toque 44px+
+- ✅ **Editor de Fotos Mobile**: Touch events unificados, coordenadas precisas, área de toque 56px+
+- ✅ **Mobile Tool Selection Fix**: Seleção de ferramentas precisa com um toque, feedback táctil imediato
+- ✅ **3GB Image Capacity**: Suporte para 200 fotos por relatório, sem limite individual de arquivo
+- ✅ **HD Image Support**: Remoção de limites individuais para imagens de alta resolução
 - ✅ **PWA Completo**: Instalável como app nativo, offline mode, push notifications
 - ✅ **PDF com Logos**: Geração WeasyPrint com template Artesano pixel-perfect
 - ✅ **Google Drive Operacional**: Upload automático de PDFs e imagens funcionando

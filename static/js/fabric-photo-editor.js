@@ -878,3 +878,77 @@ class FabricPhotoEditor {
 
 // Export para uso global
 window.FabricPhotoEditor = FabricPhotoEditor;
+
+// MOBILE: Configuração de event listeners para botões de ferramentas - CORREÇÃO PARA MOBILE
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 Configurando event listeners para botões de ferramentas principais');
+    
+    // Função unificada para seleção de ferramentas principais (não-modal)
+    function selectMainTool(tool, buttonElement) {
+        // Feedback visual imediato
+        buttonElement.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            buttonElement.style.transform = '';
+        }, 100);
+        
+        // Encontrar o editor ativo
+        if (window.currentEditor && typeof window.currentEditor.setTool === 'function') {
+            window.currentEditor.setTool(tool);
+            
+            // Atualizar estado visual dos botões
+            document.querySelectorAll('[data-tool], .tool-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            buttonElement.classList.add('active');
+            
+            console.log('🔧 Ferramenta principal selecionada:', tool);
+        }
+    }
+    
+    // MOBILE: Touch event handler para botões principais
+    let touchHandled = false;
+    
+    document.addEventListener('touchstart', function(e) {
+        const toolButton = e.target.closest('[data-tool], .tool-btn');
+        if (toolButton && !toolButton.closest('#fabricPhotoEditorModal')) { // Excluir modal
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Feedback táctil imediato
+            toolButton.classList.add('touching');
+            
+            touchHandled = true;
+            const tool = toolButton.dataset.tool || toolButton.getAttribute('data-tool');
+            if (tool) {
+                selectMainTool(tool, toolButton);
+            }
+            
+            // Reset flag após um tempo
+            setTimeout(() => { touchHandled = false; }, 300);
+        }
+    }, { passive: false });
+    
+    // Remover classe touching ao finalizar toque
+    document.addEventListener('touchend', function(e) {
+        const toolButton = e.target.closest('[data-tool], .tool-btn');
+        if (toolButton && !toolButton.closest('#fabricPhotoEditorModal')) {
+            setTimeout(() => {
+                toolButton.classList.remove('touching');
+            }, 150);
+        }
+    });
+    
+    // DESKTOP: Click event handler para botões principais - fallback
+    document.addEventListener('click', function(e) {
+        const toolButton = e.target.closest('[data-tool], .tool-btn');
+        if (toolButton && !toolButton.closest('#fabricPhotoEditorModal') && !touchHandled) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const tool = toolButton.dataset.tool || toolButton.getAttribute('data-tool');
+            if (tool) {
+                selectMainTool(tool, toolButton);
+            }
+        }
+    });
+});

@@ -267,45 +267,69 @@ async function openPhotoEditorFromElement(photoElement) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Configurando listeners do editor modal');
     
-    // Listeners para botões de ferramentas do modal - OTIMIZADO PARA MOBILE
-    const isMobile = window.innerWidth <= 768;
-    const eventType = isMobile ? 'touchstart' : 'click';
+    // MOBILE: Função unificada para seleção de ferramentas - CORREÇÃO DEFINITIVA
+    function selectTool(tool, buttonElement) {
+        // Feedback visual imediato
+        buttonElement.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            buttonElement.style.transform = '';
+        }, 100);
+        
+        if (window.fabricPhotoEditorModal) {
+            window.fabricPhotoEditorModal.setTool(tool);
+            
+            // Atualizar estado visual dos botões
+            document.querySelectorAll('[data-modal-tool]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            buttonElement.classList.add('active');
+            
+            console.log('🔧 Ferramenta modal selecionada:', tool);
+        }
+    }
     
-    document.addEventListener(eventType, function(e) {
-        if (e.target.matches('[data-modal-tool]')) {
+    // MOBILE: Touch event handler - prioridade para mobile
+    let touchHandled = false;
+    
+    document.addEventListener('touchstart', function(e) {
+        const toolButton = e.target.closest('[data-modal-tool]');
+        if (toolButton) {
             e.preventDefault();
             e.stopPropagation();
             
-            const tool = e.target.dataset.modalTool;
+            // Feedback táctil imediato
+            toolButton.classList.add('touching');
             
-            // Feedback visual imediato
-            e.target.style.transform = 'scale(0.95)';
+            touchHandled = true;
+            const tool = toolButton.dataset.modalTool;
+            selectTool(tool, toolButton);
+            
+            // Reset flag após um tempo
+            setTimeout(() => { touchHandled = false; }, 300);
+        }
+    }, { passive: false });
+    
+    // Remover classe touching ao finalizar toque
+    document.addEventListener('touchend', function(e) {
+        const toolButton = e.target.closest('[data-modal-tool]');
+        if (toolButton) {
             setTimeout(() => {
-                e.target.style.transform = '';
-            }, 100);
-            
-            if (window.fabricPhotoEditorModal) {
-                window.fabricPhotoEditorModal.setTool(tool);
-                
-                // Atualizar estado visual dos botões
-                document.querySelectorAll('[data-modal-tool]').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.modalTool === tool);
-                });
-                
-                console.log('🔧 Ferramenta modal selecionada:', tool);
-            }
+                toolButton.classList.remove('touching');
+            }, 150);
         }
     });
     
-    // Prevenir eventos duplicados no mobile
-    if (isMobile) {
-        document.addEventListener('click', function(e) {
-            if (e.target.matches('[data-modal-tool]')) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        });
-    }
+    // DESKTOP: Click event handler - fallback para desktop
+    document.addEventListener('click', function(e) {
+        const toolButton = e.target.closest('[data-modal-tool]');
+        if (toolButton && !touchHandled) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const tool = toolButton.dataset.modalTool;
+            selectTool(tool, toolButton);
+        }
+    });
     
     // Click listener para outros elementos
     document.addEventListener('click', function(e) {
