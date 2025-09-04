@@ -600,3 +600,142 @@
 .fabric-editor-header {
     contain: layout style paint;
 }
+
+/* =================== OTIMIZAÇÕES MOBILE =================== */
+
+/* Estilos otimizados para dispositivos móveis */
+@media (max-width: 768px) {
+    /* Botões de ferramentas mais responsivos em mobile */
+    .fabric-tool-btn {
+        min-width: 56px;
+        min-height: 56px;
+        padding: 14px;
+        font-size: 22px;
+        border-radius: 16px;
+        /* Melhor feedback tátil */
+        transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+        transform-origin: center;
+    }
+    
+    /* Estados de interação mais pronunciados */
+    .fabric-tool-btn:active {
+        transform: scale(0.92);
+        background: #d1d5db;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    .fabric-tool-btn.active {
+        background: #3b82f6;
+        color: white;
+        border-color: #2563eb;
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        transform: scale(1.02);
+    }
+    
+    /* Feedback visual durante o touch */
+    .fabric-tool-btn.touching {
+        background: #cce7ff;
+        transform: scale(0.95);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+    
+    /* Área de toque maior para melhor usabilidade */
+    .fabric-tool-btn::before {
+        content: '';
+        position: absolute;
+        top: -8px;
+        left: -8px;
+        right: -8px;
+        bottom: -8px;
+        border-radius: 24px;
+        z-index: -1;
+    }
+    
+    /* Toolbar com melhor layout mobile */
+    .fabric-toolbar {
+        padding: 20px 16px;
+        gap: 20px;
+    }
+    
+    .tools-row {
+        gap: 12px;
+        justify-content: flex-start;
+    }
+    
+    /* Propriedades com layout otimizado */
+    .property-controls {
+        gap: 16px;
+    }
+    
+    .property-row {
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    
+    .property-label {
+        min-width: 80px;
+        font-size: 15px;
+    }
+}
+
+/* Otimizações para touch devices */
+@media (pointer: coarse) {
+    /* Todos os elementos interativos com área de toque mínima de 44px */
+    .fabric-tool-btn,
+    .action-btn,
+    .color-button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    /* Desabilitar hover em dispositivos touch */
+    .fabric-tool-btn:hover {
+        background: #f8f9fa;
+        transform: none;
+    }
+    
+    .fabric-tool-btn.active:hover {
+        background: #3b82f6;
+        transform: scale(1.02);
+    }
+    
+    /* Melhor feedback visual para touch */
+    .fabric-tool-btn:active {
+        transition: all 0.1s ease-out;
+    }
+}
+
+/* Animações para feedback responsivo */
+@keyframes touchFeedback {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    50% {
+        transform: scale(0.95);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+}
+
+.fabric-tool-btn.touch-feedback {
+    animation: touchFeedback 0.2s ease-out;
+}
+
+/* Estados visuais mais claros */
+.fabric-tool-btn.selected {
+    background: #3b82f6 !important;
+    color: white !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important;
+    font-weight: 600;
+}
+
+.fabric-tool-btn.pressed {
+    background: #2563eb !important;
+    transform: scale(0.9) !important;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2) !important;
+}

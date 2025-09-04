@@ -269,40 +269,99 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Listeners para botões de ferramentas do modal - OTIMIZADO PARA MOBILE
     const isMobile = window.innerWidth <= 768;
-    const eventType = isMobile ? 'touchstart' : 'click';
+    const isTouch = 'ontouchstart' in window;
+    let touchStartTime = 0;
+    let lastTouchTarget = null;
+    let touchProcessed = false;
     
-    document.addEventListener(eventType, function(e) {
-        if (e.target.matches('[data-modal-tool]')) {
-            e.preventDefault();
-            e.stopPropagation();
+    // Função unificada para lidar com seleção de ferramenta
+    function handleToolSelection(target, eventType) {
+        if (!target.matches('[data-modal-tool]')) return false;
+        
+        const tool = target.dataset.modalTool;
+        console.log(`🔧 Ferramenta alterada para: ${tool} via ${eventType}`);
+        
+        // Feedback visual imediato e mais pronunciado
+        target.classList.add('pressed');
+        
+        setTimeout(() => {
+            target.classList.remove('pressed');
+        }, 150);
+        
+        if (window.fabricPhotoEditorModal) {
+            window.fabricPhotoEditorModal.setTool(tool);
             
-            const tool = e.target.dataset.modalTool;
+            // Atualizar estado visual dos botões de forma mais robusta
+            document.querySelectorAll('[data-modal-tool]').forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.backgroundColor = '';
+                btn.style.color = '';
+            });
+            target.classList.add('active');
             
-            // Feedback visual imediato
-            e.target.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                e.target.style.transform = '';
-            }, 100);
-            
-            if (window.fabricPhotoEditorModal) {
-                window.fabricPhotoEditorModal.setTool(tool);
-                
-                // Atualizar estado visual dos botões
-                document.querySelectorAll('[data-modal-tool]').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.modalTool === tool);
-                });
-                
-                console.log('🔧 Ferramenta modal selecionada:', tool);
-            }
+            console.log('🔧 Ferramenta modal selecionada:', tool);
         }
-    });
+        
+        return true;
+    }
     
-    // Prevenir eventos duplicados no mobile
-    if (isMobile) {
+    // Event listener otimizado para touch em mobile
+    if (isTouch) {
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.matches('[data-modal-tool]')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                touchStartTime = Date.now();
+                lastTouchTarget = e.target;
+                touchProcessed = false;
+                
+                // Feedback visual imediato no touchstart
+                e.target.classList.add('touching');
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchend', function(e) {
+            if (e.target.matches('[data-modal-tool]') || 
+                (lastTouchTarget && lastTouchTarget.matches('[data-modal-tool]'))) {
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const touchDuration = Date.now() - touchStartTime;
+                const target = e.target.matches('[data-modal-tool]') ? e.target : lastTouchTarget;
+                
+                // Verificar se é um tap rápido (não um scroll)
+                if (touchDuration < 300 && !touchProcessed && target) {
+                    touchProcessed = true;
+                    handleToolSelection(target, 'touchend');
+                }
+                
+                // Limpar feedback visual
+                if (target) {
+                    target.classList.remove('touching');
+                }
+                
+                lastTouchTarget = null;
+            }
+        }, { passive: false });
+        
+        // Prevenir eventos de click em dispositivos touch
         document.addEventListener('click', function(e) {
             if (e.target.matches('[data-modal-tool]')) {
                 e.preventDefault();
                 e.stopPropagation();
+                return false;
+            }
+        }, { passive: false });
+        
+    } else {
+        // Para dispositivos não-touch (desktop)
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('[data-modal-tool]')) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleToolSelection(e.target, 'click');
             }
         });
     }
