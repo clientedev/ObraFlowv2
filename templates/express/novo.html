@@ -1035,7 +1035,11 @@ function openPhotoEditor(photoId) {
         
     } catch (error) {
         console.error('❌ Erro ao abrir editor:', error);
-        alert('Erro ao abrir editor de fotos. Tente novamente.');
+        console.error('Stack trace:', error.stack);
+        console.error('Mensagem:', error.message);
+        console.error('Nome:', error.name);
+        console.error('Tipo do erro:', typeof error);
+        alert('Erro ao abrir editor de fotos. Verifique o console para detalhes.');
     }
 }
 
