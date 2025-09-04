@@ -374,6 +374,11 @@ class ArtesanoPDFGenerator:
                 
                 # Legenda da foto - cinza escuro conforme especificação
                 caption1 = foto1.descricao or f"Foto {foto1.ordem}"
+                
+                # Adicionar legenda pré-definida se existir
+                if foto1.legenda:
+                    caption1 += f"<br/><font size='8'>{foto1.legenda}</font>"
+                
                 captions.append(Paragraph(caption1, self.styles['PhotoCaption']))
             
             # Segunda foto (se existir)
@@ -386,6 +391,11 @@ class ArtesanoPDFGenerator:
                     photos.append(Paragraph("Foto não encontrada", self.styles['NormalText']))
                 
                 caption2 = foto2.descricao or f"Foto {foto2.ordem}"
+                
+                # Adicionar legenda pré-definida se existir
+                if foto2.legenda:
+                    caption2 += f"<br/><font size='8'>{foto2.legenda}</font>"
+                
                 captions.append(Paragraph(caption2, self.styles['PhotoCaption']))
             
             # Se só tiver uma foto, centralizar
