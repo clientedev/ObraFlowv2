@@ -385,7 +385,7 @@ class FabricPhotoEditor {
         let isDrawing = false;
         let startPoint = {};
         let shape = null;
-        let drawingLocked = false; // Previne múltiplos desenhos simultâneos
+        let drawingLocked = false;
         
         // Remover eventos anteriores
         this.canvas.off('mouse:down');
@@ -412,39 +412,31 @@ class FabricPhotoEditor {
                 e.preventDefault();
             }
             
-            drawingLocked = true; // Bloquear múltiplos desenhos
-            
-            // Para SETAS: Remover TODAS as setas existentes primeiro
-            if (shapeType === 'arrow') {
-                this.clearAllArrows();
-            }
-            
+            drawingLocked = true;
             isDrawing = true;
+            
             const pointer = getPointer(e);
             startPoint = { x: pointer.x, y: pointer.y };
             
-            // Para setas, definir ponto inicial
+            // Para SETAS: Limpar setas existentes e criar UMA nova
             if (shapeType === 'arrow') {
+                this.clearAllArrows();
                 this.isDrawingArrow = true;
                 this.arrowStartPoint = startPoint;
-            }
-            
-            // Criar shape inicial - APENAS uma vez
-            if (!shape) {
+                
+                // Criar UMA seta inicial
                 shape = this.createShape(shapeType, startPoint, startPoint);
                 if (shape) {
-                    // Marcar setas para identificação
-                    if (shapeType === 'arrow') {
-                        shape.arrowType = 'arrow';
-                    }
-                    
+                    shape.arrowType = 'arrow';
+                    this.canvas.add(shape);
+                    this.currentArrow = shape;
+                }
+            } else {
+                // Para outras formas
+                shape = this.createShape(shapeType, startPoint, startPoint);
+                if (shape) {
                     this.canvas.add(shape);
                     this.canvas.setActiveObject(shape);
-                    
-                    // Armazenar referência da seta
-                    if (shapeType === 'arrow') {
-                        this.currentArrow = shape;
-                    }
                 }
             }
         };
@@ -453,11 +445,23 @@ class FabricPhotoEditor {
             if (!isDrawing || !shape || !drawingLocked) return;
             
             const pointer = getPointer(e);
-            this.updateShape(shape, shapeType, startPoint, pointer);
             
-            // Atualizar referência da seta
-            if (shapeType === 'arrow') {
-                this.currentArrow = shape;
+            // ATUALIZAR a seta existente, NÃO criar nova
+            if (shapeType === 'arrow' && this.currentArrow) {
+                // Remover seta atual temporariamente
+                this.canvas.remove(this.currentArrow);
+                
+                // Criar nova seta atualizada
+                const updatedArrow = this.createShape(shapeType, startPoint, pointer);
+                if (updatedArrow) {
+                    updatedArrow.arrowType = 'arrow';
+                    this.canvas.add(updatedArrow);
+                    this.currentArrow = updatedArrow;
+                    shape = updatedArrow;
+                }
+            } else {
+                // Para outras formas, usar updateShape normal
+                this.updateShape(shape, shapeType, startPoint, pointer);
             }
             
             this.canvas.renderAll();
@@ -466,27 +470,20 @@ class FabricPhotoEditor {
         const endDrawing = (e) => {
             if (!drawingLocked || !isDrawing) return;
             
+            isDrawing = false;
+            this.isDrawingArrow = false;
+            
             if (shape) {
-                isDrawing = false;
-                this.isDrawingArrow = false;
-                
-                // Finalizar seta - garantir que é única
-                if (shapeType === 'arrow' && shape) {
-                    shape.arrowType = 'arrow';
-                    this.currentArrow = shape;
-                }
-                
                 this.saveState();
                 
                 // Para texto, abrir editor
                 if (shapeType === 'text' && shape.text === 'Texto') {
                     this.editText(shape);
                 }
-                
-                shape = null;
             }
             
-            drawingLocked = false; // Liberar para próximo desenho
+            shape = null;
+            drawingLocked = false;
         };
         
         // Eventos mouse
@@ -592,18 +589,10 @@ class FabricPhotoEditor {
                 break;
                 
             case 'arrow':
-                // Recriar seta com novas dimensões
-                const newArrow = this.createArrow(start, current, {
-                    fill: 'transparent',
-                    stroke: this.currentColor,
-                    strokeWidth: this.currentStrokeWidth,
-                    opacity: this.opacity
-                });
-                
-                this.canvas.remove(shape);
-                this.canvas.add(newArrow);
-                this.canvas.setActiveObject(newArrow);
-                return newArrow;
+                // Para setas, esta função não deve ser chamada
+                // O updateDrawing já cuida das setas diretamente
+                console.warn('updateShape chamado para arrow - usar updateDrawing');
+                break;
         }
         
         return shape;
