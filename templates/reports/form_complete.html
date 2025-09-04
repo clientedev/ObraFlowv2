@@ -432,15 +432,40 @@ document.addEventListener('DOMContentLoaded', function() {
     canvas = document.getElementById('photoCanvas');
     ctx = canvas.getContext('2d');
     
-    // Event listeners para categorias
-    document.querySelectorAll('.photo-category').forEach(category => {
-        category.addEventListener('click', function() {
-            document.querySelectorAll('.photo-category').forEach(c => c.classList.remove('selected'));
-            this.classList.add('selected');
-            selectedCategory = this.dataset.category;
-            updatePhotoInput();
+    // Event listeners para categorias - CORRIGIDO
+    function setupCategoryListeners() {
+        document.querySelectorAll('.photo-category').forEach(category => {
+            // Remover listeners antigos
+            category.removeEventListener('click', selectCategoryHandler);
+            category.removeEventListener('touchstart', selectCategoryHandler);
+            
+            // Adicionar novos listeners
+            category.addEventListener('click', selectCategoryHandler);
+            category.addEventListener('touchstart', selectCategoryHandler);
         });
-    });
+    }
+    
+    function selectCategoryHandler(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('📷 Categoria selecionada:', this.dataset.category);
+        
+        // Remover seleção anterior
+        document.querySelectorAll('.photo-category').forEach(c => c.classList.remove('selected'));
+        
+        // Selecionar nova categoria
+        this.classList.add('selected');
+        selectedCategory = this.dataset.category;
+        
+        // Atualizar input de fotos
+        updatePhotoInput();
+        
+        console.log('✅ Categoria atual:', selectedCategory);
+    }
+    
+    // Chamar setup
+    setupCategoryListeners();
     
     // Event listener para upload de fotos
     document.getElementById('photoInput').addEventListener('change', handlePhotoUpload);
@@ -513,32 +538,54 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function handlePhotoUpload(event) {
+    console.log('📷 Upload de fotos iniciado');
+    console.log('Categoria selecionada:', selectedCategory);
+    
+    if (!selectedCategory) {
+        alert('Selecione uma categoria antes de adicionar fotos.');
+        event.target.value = '';
+        return;
+    }
+    
     const files = event.target.files;
+    console.log('Arquivos selecionados:', files.length);
+    
     if (files.length + selectedPhotos.length > 200) {
         alert('Máximo de 200 fotos permitido.');
         return;
     }
     
+    // Processar cada arquivo
     for (let file of files) {
-        if (selectedPhotos.length >= 5) break;
+        if (selectedPhotos.length >= 200) {
+            console.log('⚠️ Limite de 200 fotos atingido');
+            break;
+        }
+        console.log('Processando arquivo:', file.name);
         addPhotoPreview(file, selectedCategory);
     }
     
     event.target.value = ''; // Reset input
+    console.log('✅ Upload concluído. Total de fotos:', selectedPhotos.length);
 }
 
 function addPhotoPreview(file, category) {
+    console.log('🖼️ Adicionando preview da foto:', file.name, 'Categoria:', category);
+    
     const reader = new FileReader();
     reader.onload = function(e) {
         const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const src = e.target.result;
         
+        console.log('✨ Criando elemento da foto com ID:', photoId);
+        
         const photoDiv = document.createElement('div');
         photoDiv.className = 'col-md-4 mb-3';
         photoDiv.id = photoId;
+        photoDiv.setAttribute('data-photo-id', photoId);
         photoDiv.innerHTML = `
             <div class="card">
-                <img src="${src}" class="card-img-top photo-preview" alt="Preview" style="cursor: pointer;" onclick="editPhoto('${photoId}', '${src}', '${category}')">
+                <img src="${src}" class="card-img-top photo-preview" alt="Preview" style="cursor: pointer;" data-category="${category}">
                 <div class="card-body p-2">
                     <!-- Seletor de Legendas -->
                     <select class="form-control form-control-sm mb-2" id="predefined_${photoId}" name="photo_caption_${photoId}" required>
@@ -567,8 +614,13 @@ function addPhotoPreview(file, category) {
             originalSrc: src
         });
         
+        console.log('✅ Foto adicionada ao array. Total:', selectedPhotos.length);
+        
         // Carregar legendas pré-definidas para esta categoria
-        setTimeout(() => loadPredefinedCaptionsForPhoto(photoId, category), 100);
+        setTimeout(() => {
+            console.log('🏷️ Carregando legendas para foto:', photoId);
+            loadPredefinedCaptionsForPhoto(photoId, category);
+        }, 100);
     };
     reader.readAsDataURL(file);
 }
@@ -632,12 +684,18 @@ function mapCategoryToLegenda(photoCategory) {
 
 function updatePhotoInput() {
     const input = document.getElementById('photoInput');
+    console.log('🔄 Atualizando input de fotos. Categoria:', selectedCategory);
+    
     if (selectedCategory) {
         input.disabled = false;
         input.style.opacity = '1';
+        input.style.pointerEvents = 'auto';
+        console.log('✅ Input de fotos habilitado');
     } else {
         input.disabled = true;
         input.style.opacity = '0.5';
+        input.style.pointerEvents = 'none';
+        console.log('⚠️ Input de fotos desabilitado');
     }
 }
 
@@ -757,7 +815,7 @@ function openPhotoEditor(photoId) {
         
         // Editor disponível, abrir diretamente
         console.log('✅ Abrindo editor');
-        await window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
+        window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
         
     } catch (error) {
         console.error('❌ Erro ao abrir editor:', error);
