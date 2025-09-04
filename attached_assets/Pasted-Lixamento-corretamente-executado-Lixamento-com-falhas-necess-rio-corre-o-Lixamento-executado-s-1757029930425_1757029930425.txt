@@ -1,0 +1,83 @@
+Lixamento corretamente executado;
+
+Lixamento com falhas, necessário correção;
+
+Lixamento executado sem preenchimento do encunhamento. Preenchimentos devem ser executados antes do lixamento;
+
+Lixamento executado sem preenchimento de chupetas. Preenchimentos devem ser executados antes do lixamento;
+
+Necessário retirada do excesso de massa da junta dos blocos de alvenaria;
+
+Necessário retirada de etiquetas;
+
+Necessário retirada de madeiras encrustadas no concreto;
+
+Necessário preenchimento das juntas dos blocos;
+
+Pendente lixamento das requadrações superiores dos caixilhos;
+
+Pendente corte dos ganchos;
+
+Pendente tratamentos dos ganchos cortados com pintura anti-corrosiva tipo zarcão;
+
+Necessário retirada de pregos;
+
+Necessário retirada de pó de serra incrustado no concreto;
+
+Ordem de execução do chapisco incorreta. Necessário execução do chapisco desempenado na estrutura antes da execução do chapisco de areia e cimento;
+
+Chapisco corretamente executado;
+
+Chapisco com dentes baixos;
+
+Chapisco com falhas. Necessário correção;
+
+Lavagem correta;
+
+Falha de lavagem;
+
+Pendente chapiscamento das massas de chumbamento dos contramarcos;
+
+Chapisco com resistência baixa;
+
+Chapisco com resistência atingida;
+
+Emboço executado corretamente;
+
+Emboço executado com projeção mecânica;
+
+Emboço executado manualmente;
+
+Evidenciado pó de cimento aplicado sobre emboço. Necessário retirada completa. Proibido a utilização de pó de cimento;
+
+Evidenciado pó de gesso aplicado sobre emboço. Necessário retirada completa. Proibido a utilização de pó de gesso;
+
+Uso de talisca de madeira. Necessário retirada. É proibido o uso de talisca de madeira;
+
+Não evidenciado uso de chapisco colante antes da aplicação do emboço sobre mureta;
+
+Não evidenciado uso de chapisco colante antes da aplicação do emboço sobre aba;
+
+Uso incorreto de chapisco colante em pó sobre superfície;
+
+Cheia de massa sem reforço;
+
+Reforço corretamente executado;
+
+Emboço bem-acabado;
+
+Emboço mal-acabado;
+
+Friso torto;
+
+Friso com profundidade irregular;
+
+Emboço com traço incorreto;
+
+Emboço com traço correto;
+
+Telas corretamente posicionadas;
+
+Caída invertida;
+
+Pingadeira mal-acabada;
