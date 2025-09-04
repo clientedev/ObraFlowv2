@@ -546,7 +546,7 @@ function addPhotoPreview(file, category) {
                     </select>
                     <small class="text-muted d-block">Categoria: ${category}</small>
                     <div class="btn-group w-100 mt-2">
-                        <button type="button" class="btn btn-sm btn-primary" onclick="editPhoto('${photoId}', '${src}', '${category}')">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="openPhotoEditor('${photoId}')">
                             <i class="fas fa-edit"></i> Editar
                         </button>
                         <button type="button" class="btn btn-sm btn-danger" onclick="removePhoto('${photoId}')">
@@ -677,108 +677,91 @@ document.addEventListener('change', function(e) {
 });
 
 // Sistema Fabric.js Photo Editor - Exatamente como no Express
-function editPhoto(photoId, imageSrc, category) {
-    console.log('🎨 Abrindo editor para foto:', photoId);
-    
-    // Verificar dependências
-    console.log('🔍 Verificando dependências do editor...');
-    console.log('- window.fabricPhotoEditorModal:', window.fabricPhotoEditorModal);
-    console.log('- initFabricPhotoEditorModal:', typeof initFabricPhotoEditorModal);
-    console.log('- FabricPhotoEditor:', typeof FabricPhotoEditor);
-    console.log('- fabric:', typeof fabric);
-    console.log('- bootstrap:', typeof bootstrap);
-    
-    if (!window.fabricPhotoEditorModal) {
-        console.log('🚀 Inicializando modal do editor...');
+function openPhotoEditor(photoId) {
+    try {
+        console.log(`🎨 Abrindo editor para foto: ${photoId}`);
         
-        // Verificar dependências
-        if (typeof fabric === 'undefined') {
-            alert('Fabric.js não está carregado. Recarregue a página.');
+        const card = document.querySelector(`[data-photo-id="${photoId}"]`);
+        if (!card) {
+            console.error(`❌ Card não encontrado para foto: ${photoId}`);
             return;
         }
         
-        if (typeof bootstrap === 'undefined') {
-            alert('Bootstrap não está carregado. Recarregue a página.');
+        const img = card.querySelector('img');
+        if (!img || !img.src) {
+            console.error(`❌ Imagem não encontrada para foto: ${photoId}`);
             return;
         }
         
-        if (typeof FabricPhotoEditor === 'undefined') {
-            alert('FabricPhotoEditor não está carregado. Recarregue a página.');
-            return;
-        }
-        
-        // Inicializar modal
-        if (typeof initFabricPhotoEditorModal === 'function') {
-            console.log('💫 Inicializando modal...');
-            initFabricPhotoEditorModal();
+        // Callback para salvar a foto editada (definir primeiro)
+        const saveCallback = async (data) => {
+            console.log('💾 Salvando foto editada:', data.photoId);
             
-            // Aguardar inicialização e abrir
-            setTimeout(() => {
-                if (window.fabricPhotoEditorModal) {
-                    console.log('✅ Abrindo editor modal');
-                    
-                    // Usar imageSrc ou buscar do arquivo
-                    const photo = selectedPhotos.find(p => p.id === photoId);
-                    if (photo && photo.file) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            window.fabricPhotoEditorModal.openEditor(e.target.result, photoId, function(editedImageData) {
-                                // Callback para salvar foto editada
-                                updatePhotoFromFabricEditor(photoId, editedImageData);
-                            });
-                            
-                            // Auto-scroll para centro após abrir
-                            setTimeout(() => {
-                                scrollToEditorCenter();
-                            }, 800);
-                        };
-                        reader.readAsDataURL(photo.file);
-                    } else {
-                        window.fabricPhotoEditorModal.openEditor(imageSrc, photoId, function(editedImageData) {
-                            updatePhotoFromFabricEditor(photoId, editedImageData);
-                        });
-                        
-                        // Auto-scroll para centro após abrir
-                        setTimeout(() => {
-                            scrollToEditorCenter();
-                        }, 800);
-                    }
-                } else {
-                    console.error('❌ Falha ao inicializar modal');
-                }
-            }, 100);
-        } else {
-            console.error('❌ Função initFabricPhotoEditorModal não encontrada');
-            alert('Sistema de edição não disponível. Recarregue a página.');
-        }
-    } else {
-        // Modal já inicializado, abrir diretamente
-        console.log('✅ Abrindo editor');
+            // Atualizar preview da foto no card
+            img.src = data.imageData;
+            img.dataset.edited = 'true';
+            img.dataset.legend = data.legend;
+            
+            // Marcar visualmente como editada
+            card.classList.add('edited');
+            
+            // Adicionar badge de editado se não existir
+            if (!card.querySelector('.edited-badge')) {
+                const badge = document.createElement('div');
+                badge.className = 'edited-badge';
+                badge.innerHTML = '<i class="fas fa-edit"></i> Editado';
+                card.appendChild(badge);
+            }
+            
+            console.log('✅ Foto salva com sucesso');
+        };
         
-        const photo = selectedPhotos.find(p => p.id === photoId);
-        if (photo && photo.file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                window.fabricPhotoEditorModal.openEditor(e.target.result, photoId, function(editedImageData) {
-                    updatePhotoFromFabricEditor(photoId, editedImageData);
-                });
+        // Verificar se o editor modal está disponível  
+        if (!window.fabricPhotoEditorModal) {
+            console.error('❌ Editor modal não inicializado');
+            
+            // Verificar se as dependências estão carregadas
+            if (typeof fabric === 'undefined') {
+                alert('Fabric.js não está carregado. Recarregue a página.');
+                return;
+            }
+            
+            if (typeof bootstrap === 'undefined') {
+                alert('Bootstrap não está carregado. Recarregue a página.');
+                return;
+            }
+            
+            if (typeof FabricPhotoEditor === 'undefined') {
+                alert('Editor de fotos não está carregado. Recarregue a página.');
+                return;
+            }
+            
+            // Tentar inicializar o editor modal
+            if (typeof initFabricPhotoEditorModal === 'function') {
+                console.log('🔄 Tentando inicializar editor modal...');
+                initFabricPhotoEditorModal();
                 
-                // Auto-scroll para centro após abrir
+                // Aguardar um momento para o editor ser inicializado
                 setTimeout(() => {
-                    scrollToEditorCenter();
-                }, 800);
-            };
-            reader.readAsDataURL(photo.file);
-        } else {
-            window.fabricPhotoEditorModal.openEditor(imageSrc, photoId, function(editedImageData) {
-                updatePhotoFromFabricEditor(photoId, editedImageData);
-            });
-            
-            // Auto-scroll para centro após abrir
-            setTimeout(() => {
-                scrollToEditorCenter();
-            }, 800);
+                    if (window.fabricPhotoEditorModal) {
+                        console.log('✅ Editor inicializado com sucesso');
+                        window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
+                    } else {
+                        console.error('❌ Falha ao inicializar editor após tentativa');
+                        alert('Editor de fotos não pode ser carregado. Recarregue a página.');
+                    }
+                }, 500);
+                return;
+            }
         }
+        
+        // Editor disponível, abrir diretamente
+        console.log('✅ Abrindo editor');
+        await window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
+        
+    } catch (error) {
+        console.error('❌ Erro ao abrir editor:', error);
+        alert('Erro ao abrir editor de fotos. Tente novamente.');
     }
 }
 

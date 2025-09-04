@@ -92,29 +92,8 @@ function handleIOSSpecificOptimizations() {
 }
 
 function initializeTouchFeedback() {
-    // Add touch feedback to clickable elements
-    const clickableSelectors = [
-        '.btn', '.card', '.nav-link', '.dropdown-item', 
-        '.clickable', '[data-bs-toggle]', '[onclick]'
-    ];
-    
-    clickableSelectors.forEach(selector => {
-        document.addEventListener('touchstart', function(e) {
-            if (e.target.matches(selector) || e.target.closest(selector)) {
-                const element = e.target.matches(selector) ? e.target : e.target.closest(selector);
-                element.classList.add('touching');
-            }
-        });
-        
-        document.addEventListener('touchend', function(e) {
-            if (e.target.matches(selector) || e.target.closest(selector)) {
-                const element = e.target.matches(selector) ? e.target : e.target.closest(selector);
-                setTimeout(() => {
-                    element.classList.remove('touching');
-                }, 150);
-            }
-        });
-    });
+    // Touch feedback removido - sem animações nos cards
+    console.log('Touch feedback desabilitado conforme solicitado');
 }
 
 function initializeMobileNotifications() {
@@ -304,14 +283,10 @@ window.MobileUtils = {
     }
 };
 
-// Add CSS for touch ripple effect
+// CSS de touch removido - sem animações nos cards
 const style = document.createElement('style');
 style.textContent = `
-    .touching {
-        opacity: 0.7;
-        transform: scale(0.98);
-        transition: all 0.1s ease;
-    }
+    /* Touch feedback removido */
     
     @keyframes ripple {
         to {

@@ -511,7 +511,7 @@
     }
 }
 
-/* MOBILE: Feedback táctil aprimorado - CORREÇÃO DEFINITIVA */
+/* MOBILE: Feedback táctil aprimorado - APENAS PARA FERRAMENTAS */
 .fabric-tool-btn.touching,
 .tool-btn.touching {
     background: #2563eb !important;
