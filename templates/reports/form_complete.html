@@ -96,6 +96,58 @@
     .photo-preview {
         touch-action: manipulation;
     }
+    
+    /* OTIMIZAÇÃO EXTREMA PARA BOTÕES DE FERRAMENTAS MOBILE */
+    .tool-btn,
+    .fabric-tool-btn {
+        min-height: 50px !important;
+        min-width: 50px !important;
+        padding: 12px !important;
+        margin: 2px !important;
+        font-size: 16px !important;
+        border-radius: 8px !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: rgba(0,123,255,0.3) !important;
+        -webkit-touch-callout: none !important;
+        position: relative !important;
+        z-index: 10 !important;
+    }
+    
+    /* Estado ativo mais visível */
+    .tool-btn.active,
+    .fabric-tool-btn.active {
+        background-color: #007bff !important;
+        color: white !important;
+        border-color: #007bff !important;
+        box-shadow: 0 0 0 2px rgba(0,123,255,0.25) !important;
+    }
+    
+    /* Hover/focus para mobile */
+    .tool-btn:active,
+    .fabric-tool-btn:active {
+        background-color: #0056b3 !important;
+        transform: scale(0.95) !important;
+        transition: transform 0.1s ease !important;
+    }
+    
+    /* Container das ferramentas otimizado */
+    .btn-group-vertical,
+    .tool-group,
+    .d-flex.gap-2 {
+        gap: 4px !important;
+    }
+    
+    /* Área expandida de toque */
+    .tool-btn::before,
+    .fabric-tool-btn::before {
+        content: '';
+        position: absolute;
+        top: -5px;
+        left: -5px;
+        right: -5px;
+        bottom: -5px;
+        z-index: -1;
+    }
 }
 </style>
 {% endblock %}
@@ -393,13 +445,37 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listener para upload de fotos
     document.getElementById('photoInput').addEventListener('change', handlePhotoUpload);
     
-    // Event listeners para ferramentas
+    // Event listeners para ferramentas - OTIMIZADO PARA MOBILE
     document.querySelectorAll('.tool-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        // Usar touchstart para resposta mais rápida no mobile
+        const isMobile = window.innerWidth <= 768;
+        const eventType = isMobile ? 'touchstart' : 'click';
+        
+        btn.addEventListener(eventType, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Feedback visual imediato
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = '';
+            }, 100);
+            
+            // Atualizar ferramentas
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             currentTool = this.dataset.tool;
+            
+            console.log('🔧 Ferramenta selecionada:', currentTool);
         });
+        
+        // Prevenir eventos duplicados no mobile
+        if (isMobile) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        }
     });
     
     // Canvas events - Mouse

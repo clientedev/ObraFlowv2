@@ -267,10 +267,23 @@ async function openPhotoEditorFromElement(photoElement) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Configurando listeners do editor modal');
     
-    // Listeners para botões de ferramentas do modal
-    document.addEventListener('click', function(e) {
+    // Listeners para botões de ferramentas do modal - OTIMIZADO PARA MOBILE
+    const isMobile = window.innerWidth <= 768;
+    const eventType = isMobile ? 'touchstart' : 'click';
+    
+    document.addEventListener(eventType, function(e) {
         if (e.target.matches('[data-modal-tool]')) {
+            e.preventDefault();
+            e.stopPropagation();
+            
             const tool = e.target.dataset.modalTool;
+            
+            // Feedback visual imediato
+            e.target.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                e.target.style.transform = '';
+            }, 100);
+            
             if (window.fabricPhotoEditorModal) {
                 window.fabricPhotoEditorModal.setTool(tool);
                 
@@ -278,9 +291,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('[data-modal-tool]').forEach(btn => {
                     btn.classList.toggle('active', btn.dataset.modalTool === tool);
                 });
+                
+                console.log('🔧 Ferramenta modal selecionada:', tool);
             }
         }
-        
+    });
+    
+    // Prevenir eventos duplicados no mobile
+    if (isMobile) {
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('[data-modal-tool]')) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    }
+    
+    // Click listener para outros elementos
+    document.addEventListener('click', function(e) {
         // Botão de editar foto
         if (e.target.matches('.edit-photo-btn') || e.target.closest('.edit-photo-btn')) {
             const btn = e.target.matches('.edit-photo-btn') ? e.target : e.target.closest('.edit-photo-btn');
