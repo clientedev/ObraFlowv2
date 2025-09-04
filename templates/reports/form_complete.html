@@ -294,7 +294,7 @@
 
                         <!-- Sistema de Fotos -->
                         <div class="mb-4">
-                            <h5><i class="fas fa-camera"></i> Fotos (Até 50 fotos) 🆕</h5>
+                            <h5><i class="fas fa-camera"></i> Fotos (Até 200 fotos) 🆕</h5>
                             
                             <!-- Seleção de Categoria -->
                             <div class="mb-3">
@@ -336,7 +336,7 @@
                             <!-- Upload de Fotos -->
                             <div class="mb-3">
                                 <input type="file" id="photoInput" class="form-control" multiple accept="image/*" disabled style="opacity: 0.5;">
-                                <small class="text-muted">Selecione uma categoria antes de escolher as fotos. <strong style="color: red;">Máximo 50 fotos.</strong></small>
+                                <small class="text-muted">Selecione uma categoria antes de escolher as fotos. <strong style="color: red;">Máximo 200 fotos - Até 3GB total.</strong></small>
                             </div>
 
                             <!-- Preview das Fotos -->
@@ -514,8 +514,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function handlePhotoUpload(event) {
     const files = event.target.files;
-    if (files.length + selectedPhotos.length > 50) {
-        alert('Máximo de 50 fotos permitido.');
+    if (files.length + selectedPhotos.length > 200) {
+        alert('Máximo de 200 fotos permitido.');
         return;
     }
     

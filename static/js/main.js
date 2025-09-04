@@ -162,9 +162,9 @@ function previewImage(input) {
     const file = input.files[0];
     if (!file) return;
 
-    // Validate file size (16MB)
-    if (file.size > 16 * 1024 * 1024) {
-        showAlert('Erro: O arquivo é muito grande. Tamanho máximo: 16MB', 'danger');
+    // Validate file size (3GB)
+    if (file.size > 3 * 1024 * 1024 * 1024) {
+        showAlert('Erro: O arquivo é muito grande. Tamanho máximo: 3GB', 'danger');
         input.value = '';
         return;
     }

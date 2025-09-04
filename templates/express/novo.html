@@ -625,7 +625,7 @@ input, textarea, select {
                 <!-- FOTOS AVANÇADAS (IGUAL AO RELATÓRIO PADRÃO) -->
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5><i class="fas fa-camera"></i> Fotos <span class="badge bg-info ms-2" id="photoCount">(Até 50 fotos)</span></h5>
+                        <h5><i class="fas fa-camera"></i> Fotos <span class="badge bg-info ms-2" id="photoCount">(Até 200 fotos)</span></h5>
                         <div class="btn-group" role="group">
                             <button type="button" class="btn btn-outline-primary btn-sm" onclick="resetPhotoCategories()">
                                 <i class="fas fa-undo"></i> Limpar Seleção
@@ -677,7 +677,7 @@ input, textarea, select {
                             {{ form.fotos.label(class="form-label") }}
                             {{ form.fotos(class="form-control", onchange="handlePhotoUpload(this)", multiple=true) }}
                             <small class="form-text text-muted">
-                                Selecione uma categoria antes de escolher as fotos. Máximo 50 fotos.
+                                Selecione uma categoria antes de escolher as fotos. Máximo 200 fotos - Até 3GB total.
                             </small>
                             <div class="alert alert-warning mt-2" id="categoryWarning" style="display: none;">
                                 <i class="fas fa-exclamation-triangle"></i> Selecione uma categoria antes de escolher as fotos.
@@ -779,8 +779,8 @@ function handlePhotoUpload(input) {
     if (input.files && input.files.length > 0) {
         // Verificar limite de fotos
         const totalPhotos = configuredPhotos.length + input.files.length;
-        if (totalPhotos > 50) {
-            alert(`Você pode adicionar no máximo 50 fotos. Atualmente você tem ${configuredPhotos.length} foto(s) configurada(s).`);
+        if (totalPhotos > 200) {
+            alert(`Você pode adicionar no máximo 200 fotos. Atualmente você tem ${configuredPhotos.length} foto(s) configurada(s).`);
             input.value = '';
             return;
         }
@@ -1177,12 +1177,12 @@ function removeConfiguredPhoto(index) {
 function updatePhotoCounter() {
     const counter = document.getElementById('photoCount');
     if (counter) {
-        const remaining = 50 - configuredPhotos.length;
-        counter.textContent = `(${configuredPhotos.length}/50 fotos)`;
+        const remaining = 200 - configuredPhotos.length;
+        counter.textContent = `(${configuredPhotos.length}/200 fotos)`;
         
-        if (configuredPhotos.length >= 45) {
+        if (configuredPhotos.length >= 180) {
             counter.className = 'badge bg-warning ms-2';
-        } else if (configuredPhotos.length >= 50) {
+        } else if (configuredPhotos.length >= 200) {
             counter.className = 'badge bg-danger ms-2';
         } else {
             counter.className = 'badge bg-info ms-2';
