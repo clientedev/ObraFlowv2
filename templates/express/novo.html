@@ -6,36 +6,19 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <style>
-/* CSS específico para eliminar tremida na página novo express */
+/* CSS MOBILE OTIMIZADO - LAYOUT DESKTOP PARA MOBILE */
+
+/* RESET UNIVERSAL */
 * {
     -webkit-tap-highlight-color: transparent !important;
     -webkit-touch-callout: none !important;
     -webkit-user-select: none !important;
     user-select: none !important;
-}
-
-/* Permitir seleção apenas em inputs */
-input, textarea, select {
-    -webkit-user-select: text !important;
-    user-select: text !important;
-}
-
-/* Eliminar tremida em todos elementos do formulário */
-.card, .card-body, .card-header, 
-.form-group, .mb-3, .mb-4,
-.container-fluid, .row, .col-12 {
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-touch-callout: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-    touch-action: manipulation !important;
-    
     /* ELIMINAR TODAS ANIMAÇÕES */
     -webkit-transition: none !important;
     -moz-transition: none !important;
     -o-transition: none !important;
     transition: none !important;
-    
     /* ELIMINAR TRANSFORMAÇÕES */
     -webkit-transform: none !important;
     -moz-transform: none !important;
@@ -43,16 +26,225 @@ input, textarea, select {
     transform: none !important;
 }
 
-/* Botões sem hover problemático */
-.btn {
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-touch-callout: none !important;
-    touch-action: manipulation !important;
+/* Permitir seleção apenas em inputs */
+input, textarea, select {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+    font-size: 16px !important; /* Prevenir zoom iOS */
+    -webkit-appearance: none !important;
+    border-radius: 0.375rem !important;
+}
+
+/* MOBILE VIEWPORT FIX */
+@media (max-width: 768px) {
+    body {
+        font-size: 14px !important;
+        -webkit-text-size-adjust: 100% !important;
+        touch-action: pan-y !important;
+    }
     
-    /* APENAS animação mínima de cor */
-    -webkit-transition: background-color 0.1s ease !important;
-    transition: background-color 0.1s ease !important;
+    /* Container responsivo */
+    .container-fluid {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+    
+    /* Header do formulário */
+    h3 {
+        font-size: 1.3rem !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Cards das seções */
+    .card {
+        margin-bottom: 1rem !important;
+        border-radius: 0.5rem !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+    }
+    
+    .card-header {
+        padding: 0.75rem 1rem !important;
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        background: #f8f9fa !important;
+        border-bottom: 1px solid #dee2e6 !important;
+    }
+    
+    .card-body {
+        padding: 1rem !important;
+    }
+    
+    /* Inputs e labels */
+    .form-label {
+        font-weight: 500 !important;
+        margin-bottom: 0.5rem !important;
+        font-size: 14px !important;
+    }
+    
+    .form-control {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 16px !important;
+        border-radius: 0.375rem !important;
+        border: 1px solid #ced4da !important;
+    }
+    
+    .form-control:focus {
+        border-color: #007bff !important;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25) !important;
+    }
+    
+    /* Botões */
+    .btn {
+        padding: 0.5rem 1rem !important;
+        font-size: 14px !important;
+        border-radius: 0.375rem !important;
+        font-weight: 500 !important;
+        touch-action: manipulation !important;
+    }
+    
+    .btn-primary {
+        background-color: #007bff !important;
+        border-color: #007bff !important;
+        color: white !important;
+    }
+    
+    .btn-success {
+        background-color: #28a745 !important;
+        border-color: #28a745 !important;
+        color: white !important;
+    }
+    
+    .btn-outline-primary {
+        color: #007bff !important;
+        border-color: #007bff !important;
+        background: white !important;
+    }
+    
+    /* Seção de checklist */
+    .checklist-item-card {
+        border: 1px solid #dee2e6 !important;
+        border-left: 4px solid #ffc107 !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .form-check {
+        padding-left: 1.75rem !important;
+    }
+    
+    .form-check-input {
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+        margin-top: 0.125rem !important;
+    }
+    
+    .form-check-label {
+        font-size: 14px !important;
+        font-weight: 500 !important;
+    }
+    
+    /* Seção de fotos */
+    .photo-config-card {
+        border: 1px solid #dee2e6 !important;
+        border-radius: 0.5rem !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Seletor de categorias de fotos */
+    .category-selector {
+        background: #f8f9fa !important;
+        border-radius: 0.5rem !important;
+        padding: 1rem !important;
+        margin-bottom: 1rem !important;
+        border: 1px solid #dee2e6 !important;
+    }
+    
+    .category-option {
+        background: white !important;
+        border: 1px solid #dee2e6 !important;
+        border-radius: 0.375rem !important;
+        padding: 0.75rem !important;
+        margin: 0.25rem !important;
+        text-align: center !important;
+        cursor: pointer !important;
+        min-height: 60px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    .category-option.selected {
+        background: #e8f5e8 !important;
+        border-color: #28a745 !important;
+        color: #155724 !important;
+    }
+    
+    .category-icon {
+        font-size: 1.2rem !important;
+        margin-bottom: 0.25rem !important;
+    }
+    
+    .category-name {
+        font-size: 0.8rem !important;
+        font-weight: 500 !important;
+        margin: 0 !important;
+    }
+    
+    /* Área de upload de fotos */
+    .file-upload-area {
+        border: 2px dashed #dee2e6 !important;
+        border-radius: 0.5rem !important;
+        padding: 1rem !important;
+        text-align: center !important;
+        background: #f8f9fa !important;
+    }
+    
+    /* Contador de fotos */
+    .photo-counter {
+        background: #17a2b8 !important;
+        color: white !important;
+        border-radius: 1rem !important;
+        padding: 0.25rem 0.75rem !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+    }
+    
+    /* Botões de ações finais */
+    .actions-section {
+        margin-top: 2rem !important;
+        padding-top: 1rem !important;
+        border-top: 1px solid #dee2e6 !important;
+    }
+    
+    .btn-block {
+        width: 100% !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .info-box {
+        background: #e7f3ff !important;
+        border: 1px solid #b3d9ff !important;
+        border-radius: 0.5rem !important;
+        padding: 1rem !important;
+        margin-top: 1rem !important;
+    }
+    
+    .info-box h6 {
+        color: #0056b3 !important;
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .info-box ul {
+        margin-bottom: 0 !important;
+        padding-left: 1rem !important;
+    }
+    
+    .info-box li {
+        font-size: 0.85rem !important;
+        margin-bottom: 0.25rem !important;
+    }
 }
 /* Estilos para seletor de categorias */
 .category-selector {

@@ -3129,8 +3129,8 @@ def express_new():
             flash(f'Erro ao criar relatório express: {str(e)}', 'error')
             current_app.logger.error(f'Erro ao criar relatório express: {str(e)}')
     
-    # Escolher template baseado no dispositivo
-    template = 'express/novo_mobile.html' if is_mobile else 'express/novo.html'
+    # SEMPRE usar template desktop para garantir estilização adequada
+    template = 'express/novo.html'
     return render_template(template, form=form, is_mobile=is_mobile)
 
 @app.route('/express/<int:id>')
