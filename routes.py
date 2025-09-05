@@ -2641,16 +2641,23 @@ def api_legendas():
                 print(f"ERRO PROCESSAMENTO: {proc_error}")
                 continue
         
-        print(f"POSTGRESQL LEGENDAS: {response_data['total']} legendas reais, categoria={categoria or 'todas'}")
+        print(f"🔄 REAL-TIME SYNC: {response_data['total']} legendas fresh do PostgreSQL, categoria={categoria or 'todas'}")
+        
+        # Adicionar timestamp de sincronização
+        response_data['timestamp'] = datetime.utcnow().isoformat()
+        response_data['sync_real_time'] = True
         
         # Criar resposta JSON
         response = jsonify(response_data)
         
-        # Headers otimizados para mobile/desktop
+        # Headers AGRESSIVOS anti-cache para SINCRONIZAÇÃO TEMPO REAL
         response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
+        response.headers['Last-Modified'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+        response.headers['ETag'] = f'"{hash(str(response_data))}"'
+        response.headers['Vary'] = '*'
         response.headers['Access-Control-Allow-Origin'] = '*'
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Cache-Control'
