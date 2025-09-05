@@ -189,6 +189,27 @@ class FabricPhotoEditor {
             }
         });
         
+        // MOBILE: Capturar quando texto entra em modo de edição automaticamente
+        this.canvas.on('text:editing:entered', (e) => {
+            console.log('📱 Texto entrou em modo de edição');
+            const textObject = e.target;
+            if (textObject && (textObject.type === 'i-text' || textObject.type === 'text')) {
+                // Detectar se é mobile e forçar teclado
+                const isMobileDevice = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                                      ('ontouchstart' in window) ||
+                                      (navigator.maxTouchPoints > 0) ||
+                                      (window.innerWidth <= 768);
+                
+                if (isMobileDevice) {
+                    console.log('📱 Texto selecionado em mobile - abrindo teclado automaticamente');
+                    // Aguardar um pouco para garantir que o Fabric.js processou
+                    setTimeout(() => {
+                        this.createSimpleMobileInput(textObject);
+                    }, 100);
+                }
+            }
+        });
+        
         // Prevenção de contexto mobile
         this.canvas.on('mouse:down', (e) => {
             if (this.isTouch) {
@@ -892,6 +913,13 @@ class FabricPhotoEditor {
         if (existingInput) {
             existingInput.remove();
             console.log('📱 Input anterior removido');
+        }
+        
+        // Remover overlay anterior se existir
+        const existingOverlay = document.getElementById('mobile-text-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+            console.log('📱 Overlay anterior removido');
         }
         
         // Criar input simples como nos formulários
