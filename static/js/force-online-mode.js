@@ -23,8 +23,39 @@ class ForceOnlineMode {
         // 4. Limpar cache do navegador
         this.clearBrowserCache();
         
-        // 5. Forçar reload sem cache
+        // 5. CACHE BUSTING AGRESSIVO para PWA
+        this.aggressiveCacheBusting();
+        
+        // 6. Forçar reload sem cache
         this.forceReload();
+    }
+
+    // Cache busting agressivo especialmente para PWA
+    aggressiveCacheBusting() {
+        try {
+            // Forçar revalidação de todos os recursos
+            const resources = [
+                '/api/legendas',
+                '/api/test', 
+                '/static/js/realtime-sync.js',
+                '/static/css/style.css'
+            ];
+            
+            resources.forEach(resource => {
+                const timestamp = Date.now();
+                fetch(`${resource}?_cb=${timestamp}`, { 
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache' }
+                }).catch(() => {
+                    // Ignore errors, just trying to bust cache
+                });
+            });
+            
+            console.log('🔥 PWA CACHE BUSTING: Recursos forçados a revalidar');
+            
+        } catch (error) {
+            console.error('❌ Erro no cache busting:', error);
+        }
     }
 
     clearLocalStorage() {
