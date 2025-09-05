@@ -155,6 +155,11 @@ class FabricPhotoEditor {
     }
     
     setupCanvasEvents() {
+        // Variáveis para controle de duplo clique
+        let lastClickTime = 0;
+        let lastClickedObject = null;
+        const doubleClickDelay = 300; // ms
+        
         // Eventos de seleção
         this.canvas.on('selection:created', (e) => {
             this.updateSelectionControls(e.selected);
@@ -173,17 +178,44 @@ class FabricPhotoEditor {
             this.saveState();
         });
         
+        // Evento de duplo clique para edição de texto
+        this.canvas.on('mouse:down', (e) => {
+            const currentTime = Date.now();
+            const timeDiff = currentTime - lastClickTime;
+            
+            // Verificar se é duplo clique E ferramenta de seleção está ativa
+            if (timeDiff < doubleClickDelay && 
+                lastClickedObject === e.target && 
+                this.currentTool === 'select' && 
+                e.target && 
+                (e.target.type === 'i-text' || e.target.type === 'text')) {
+                
+                console.log('🔤 Duplo clique detectado em texto - ativando edição');
+                this.activateTextEditing(e.target);
+                
+                // Reset para evitar triplo clique
+                lastClickTime = 0;
+                lastClickedObject = null;
+                return;
+            }
+            
+            // Atualizar variáveis de controle
+            lastClickTime = currentTime;
+            lastClickedObject = e.target;
+            
+            // Prevenção de contexto mobile
+            if (this.isTouch) {
+                e.e.preventDefault();
+            }
+        });
+        
         // Eventos de desenho livre
         this.canvas.on('path:created', () => {
             this.saveState();
         });
         
-        // Prevenção de contexto mobile
-        this.canvas.on('mouse:down', (e) => {
-            if (this.isTouch) {
-                e.e.preventDefault();
-            }
-        });
+        // Prevenção de contexto mobile integrada ao evento de duplo clique
+        // (removido evento separado para evitar conflito)
     }
     
     setupMobileOptimizations() {
@@ -201,9 +233,49 @@ class FabricPhotoEditor {
         let touchStartTime = 0;
         let initialTouches = {};
         
+        // Variáveis para duplo toque em mobile
+        let lastTouchTime = 0;
+        let lastTouchedObject = null;
+        const doubleTouchDelay = 300; // ms
+        
         canvasElement.addEventListener('touchstart', (e) => {
             touchStartTime = Date.now();
             this.isMultiTouch = e.touches.length > 1;
+            
+            // Verificar duplo toque para edição de texto
+            if (e.touches.length === 1 && this.currentTool === 'select') {
+                const currentTime = Date.now();
+                const timeDiff = currentTime - lastTouchTime;
+                
+                // Obter objeto tocado
+                const touch = e.touches[0];
+                const rect = this.canvas.upperCanvasEl.getBoundingClientRect();
+                const pointer = {
+                    x: touch.clientX - rect.left,
+                    y: touch.clientY - rect.top
+                };
+                const object = this.canvas.findTarget(pointer);
+                
+                // Verificar se é duplo toque em texto
+                if (timeDiff < doubleTouchDelay && 
+                    lastTouchedObject === object && 
+                    object && 
+                    (object.type === 'i-text' || object.type === 'text')) {
+                    
+                    console.log('🔤📱 Duplo toque mobile detectado em texto - ativando edição');
+                    e.preventDefault();
+                    this.activateTextEditing(object);
+                    
+                    // Reset para evitar triplo toque
+                    lastTouchTime = 0;
+                    lastTouchedObject = null;
+                    return;
+                }
+                
+                // Atualizar variáveis de controle
+                lastTouchTime = currentTime;
+                lastTouchedObject = object;
+            }
             
             // Armazenar posições iniciais dos toques
             for (let i = 0; i < e.touches.length; i++) {
@@ -476,9 +548,9 @@ class FabricPhotoEditor {
             if (shape) {
                 this.saveState();
                 
-                // Para texto, abrir editor
-                if (shapeType === 'text' && shape.text === 'Texto') {
-                    this.editText(shape);
+                // Para texto, SEMPRE abrir editor automaticamente
+                if (shapeType === 'text') {
+                    this.activateTextEditing(shape);
                 }
             }
             
@@ -529,13 +601,20 @@ class FabricPhotoEditor {
                 });
                 
             case 'text':
-                return new fabric.IText('Texto', {
+                return new fabric.IText('', {
                     left: start.x,
                     top: start.y,
                     fill: this.currentColor,
                     fontSize: 24,
                     fontFamily: 'Arial',
-                    opacity: this.opacity
+                    opacity: this.opacity,
+                    placeholder: 'Digite aqui...',
+                    // Configurações mobile otimizadas
+                    selectable: true,
+                    editable: true,
+                    editingBorderColor: this.currentColor,
+                    cursorColor: this.currentColor,
+                    cursorWidth: 2
                 });
                 
             default:
@@ -844,8 +923,66 @@ class FabricPhotoEditor {
     // =================== UTILS ===================
     
     editText(textObject) {
-        textObject.enterEditing();
-        textObject.selectAll();
+        this.activateTextEditing(textObject);
+    }
+    
+    activateTextEditing(textObject) {
+        // Garantir que o texto está selecionado
+        this.canvas.setActiveObject(textObject);
+        this.canvas.renderAll();
+        
+        // Aguardar o próximo frame para garantir que a seleção foi aplicada
+        requestAnimationFrame(() => {
+            // Entrar em modo de edição
+            textObject.enterEditing();
+            
+            // Se texto está vazio, não selecionar tudo
+            if (!textObject.text || textObject.text.trim() === '') {
+                // Focar no campo de texto
+                if (textObject.hiddenTextarea) {
+                    textObject.hiddenTextarea.focus();
+                    
+                    // Para mobile: forçar abertura do teclado
+                    if (this.isMobile || this.isTouch) {
+                        this.forceMobileKeyboard(textObject.hiddenTextarea);
+                    }
+                }
+            } else {
+                // Selecionar todo o texto existente
+                textObject.selectAll();
+            }
+            
+            console.log('✅ Edição de texto ativada com teclado mobile');
+        });
+    }
+    
+    forceMobileKeyboard(textarea) {
+        // Técnicas para forçar abertura do teclado em dispositivos móveis
+        if (textarea) {
+            // Garantir que o elemento é visível e focável
+            textarea.style.position = 'absolute';
+            textarea.style.left = '0px';
+            textarea.style.top = '0px';
+            textarea.style.opacity = '0';
+            textarea.style.pointerEvents = 'auto';
+            textarea.style.fontSize = '16px'; // Impede zoom no iOS
+            
+            // Focar com um pequeno delay
+            setTimeout(() => {
+                textarea.focus();
+                textarea.click();
+                
+                // Trigger adicional para iOS
+                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                    const event = new TouchEvent('touchstart', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    textarea.dispatchEvent(event);
+                }
+            }, 100);
+        }
     }
     
     showContextMenu(e) {
