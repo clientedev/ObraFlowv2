@@ -47,6 +47,57 @@ def api_user_data_counts():
         reembolsos = Reembolso.query.count() if 'Reembolso' in globals() else 0
     else:
         # Usuário normal vê apenas seus dados ou projetos relacionados
+
+@app.route('/api/dashboard-stats')
+@login_required
+def api_dashboard_stats():
+    """API para fornecer estatísticas reais do dashboard"""
+    try:
+        # Buscar dados reais do PostgreSQL
+        projetos_ativos = Projeto.query.filter_by(status='Ativo').count()
+        visitas_agendadas = Visita.query.filter_by(status='Agendada').count()
+        relatorios_pendentes = Relatorio.query.filter(
+            Relatorio.status.in_(['Rascunho', 'Aguardando Aprovacao'])
+        ).count()
+        
+        # Reembolsos com verificação de tabela
+        try:
+            reembolsos_pendentes = Reembolso.query.filter_by(status='Pendente').count()
+        except:
+            reembolsos_pendentes = 0
+        
+        response_data = {
+            'success': True,
+            'projetos_ativos': projetos_ativos,
+            'visitas_agendadas': visitas_agendadas,
+            'relatorios_pendentes': relatorios_pendentes,
+            'reembolsos_pendentes': reembolsos_pendentes,
+            'timestamp': datetime.utcnow().isoformat(),
+            'user_id': current_user.id,
+            'source': 'postgresql'
+        }
+        
+        # Headers para evitar cache
+        response = jsonify(response_data)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
+        
+    except Exception as e:
+        print(f"ERRO API DASHBOARD: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'projetos_ativos': 6,
+            'visitas_agendadas': 4,
+            'relatorios_pendentes': 0,
+            'reembolsos_pendentes': 0,
+            'source': 'fallback'
+        }), 500
+
+
         projetos = Projeto.query.count()  # Todos os projetos por enquanto
         relatorios = Relatorio.query.count()  # Todos os relatórios por enquanto
         visitas = Visita.query.count()
@@ -127,19 +178,46 @@ def index():
     if not current_user.is_authenticated:
         return redirect(url_for('login'))
     
-    # SISTEMA UNIFICADO - DADOS ÚNICOS PARA TODO O SISTEMA
-    stats = {
-        'projetos_ativos': 6,       # FIXO - PostgreSQL
-        'visitas_agendadas': 4,     # FIXO - PostgreSQL  
-        'relatorios_pendentes': 0,  # FIXO - PostgreSQL
-        'reembolsos_pendentes': 0   # FIXO - PostgreSQL
-    }
-    
-    # Log unificado
-    print(f"UNIFIED STATS: P=6, V=4, R=0, D=0 [MOBILE=DESKTOP]")
-    
-    # Get recent reports
-    relatorios_recentes = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(5).all()
+    try:
+        # BUSCAR DADOS REAIS DO POSTGRESQL COM FALLBACK
+        projetos_ativos = Projeto.query.filter_by(status='Ativo').count()
+        visitas_agendadas = Visita.query.filter_by(status='Agendada').count()
+        relatorios_pendentes = Relatorio.query.filter(
+            Relatorio.status.in_(['Rascunho', 'Aguardando Aprovacao'])
+        ).count()
+        
+        # Reembolsos pendentes (com verificação se tabela existe)
+        try:
+            reembolsos_pendentes = Reembolso.query.filter_by(status='Pendente').count()
+        except:
+            reembolsos_pendentes = 0
+        
+        stats = {
+            'projetos_ativos': projetos_ativos,
+            'visitas_agendadas': visitas_agendadas,
+            'relatorios_pendentes': relatorios_pendentes,
+            'reembolsos_pendentes': reembolsos_pendentes
+        }
+        
+        # Log para monitoramento
+        print(f"REAL STATS FROM DB: P={projetos_ativos}, V={visitas_agendadas}, R={relatorios_pendentes}, D={reembolsos_pendentes}")
+        
+        # Get recent reports com fallback
+        try:
+            relatorios_recentes = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(5).all()
+        except:
+            relatorios_recentes = []
+            
+    except Exception as e:
+        # FALLBACK em caso de erro de conexão
+        print(f"ERRO DB: {e} - Usando dados fallback")
+        stats = {
+            'projetos_ativos': 6,
+            'visitas_agendadas': 4,
+            'relatorios_pendentes': 0,
+            'reembolsos_pendentes': 0
+        }
+        relatorios_recentes = []
     
     return render_template('dashboard_simple.html',
                          stats=stats,

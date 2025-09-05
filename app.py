@@ -3,8 +3,10 @@ import logging
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
+from flask_mail import Mail
+import time
+import logging
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -73,27 +75,60 @@ def load_user(user_id):
 # Create upload directory
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+def create_admin_user_safe():
+    from models import User
+    from werkzeug.security import generate_password_hash
+    MAX_RETRIES = 5
+    RETRY_DELAY = 5 # seconds
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            # Attempt to create admin user
+            existing_admin = User.query.filter_by(is_master=True).first()
+            if not existing_admin:
+                admin_user = User(
+                    username='admin',
+                    email='admin@exemplo.com',
+                    password_hash=generate_password_hash('admin123'),
+                    nome_completo='Administrador do Sistema',
+                    cargo='Administrador',
+                    is_master=True,
+                    ativo=True
+                )
+                db.session.add(admin_user)
+                db.session.commit()
+                logging.info("Admin user created successfully")
+            else:
+                logging.info("Admin user already exists.")
+            break # Exit loop if successful
+        except Exception as e:
+            logging.error(f"Attempt {attempt + 1} failed to create admin user: {e}")
+            if attempt < MAX_RETRIES - 1:
+                logging.info(f"Retrying in {RETRY_DELAY} seconds...")
+                time.sleep(RETRY_DELAY)
+            else:
+                logging.error("Max retries reached. Could not create admin user.")
+
+
 with app.app_context():
     # Make sure to import the models here or their tables won't be created
     import models  # noqa: F401
-    
-    db.create_all()
-    
+
+    # Robust database creation with retries
+    MAX_DB_RETRIES = 5
+    RETRY_DELAY_DB = 5 # seconds
+    for attempt in range(MAX_DB_RETRIES):
+        try:
+            db.create_all()
+            logging.info("Database tables created successfully.")
+            break
+        except Exception as e:
+            logging.error(f"Attempt {attempt + 1} failed to create database tables: {e}")
+            if attempt < MAX_DB_RETRIES - 1:
+                logging.info(f"Retrying database creation in {RETRY_DELAY_DB} seconds...")
+                time.sleep(RETRY_DELAY_DB)
+            else:
+                logging.error("Max retries reached. Could not create database tables.")
+
     # Create default admin user if none exists
-    try:
-        from models import User
-        from werkzeug.security import generate_password_hash
-        
-        if not User.query.filter_by(is_master=True).first():
-            admin = User()
-            admin.username = 'admin'
-            admin.email = 'admin@exemplo.com'
-            admin.nome_completo = 'Administrador do Sistema'
-            admin.password_hash = generate_password_hash('admin123')
-            admin.is_master = True
-            admin.cargo = 'Administrador'
-            db.session.add(admin)
-            db.session.commit()
-            logging.info("Admin user created: admin/admin123")
-    except Exception as e:
-        logging.error(f"Error creating admin user: {e}")
+    create_admin_user_safe()
