@@ -921,21 +921,21 @@ class FabricPhotoEditor {
     }
     
     createSimpleMobileInput(textObject) {
-        console.log('📱 Criando input mobile simplificado');
+        console.log('📱 Criando interface modal limpa para edição de texto');
         
-        // Limpar qualquer input existente
-        this.clearMobileInput();
+        // LIMPEZA TOTAL - Remover qualquer modal anterior
+        this.cleanupMobileInput();
         
-        // Criar container principal fixo
-        const container = document.createElement('div');
-        container.id = 'mobile-text-container';
-        container.style.cssText = `
+        // Criar container modal centralizado
+        const modal = document.createElement('div');
+        modal.id = 'mobile-text-modal';
+        modal.style.cssText = `
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
             right: 0 !important;
             bottom: 0 !important;
-            background: rgba(0,0,0,0.8) !important;
+            background: rgba(0,0,0,0.7) !important;
             z-index: 999999 !important;
             display: flex !important;
             align-items: center !important;
@@ -943,161 +943,174 @@ class FabricPhotoEditor {
             padding: 20px !important;
         `;
         
-        // Criar card de edição
-        const editCard = document.createElement('div');
-        editCard.style.cssText = `
+        // Criar card centralizado
+        const card = document.createElement('div');
+        card.style.cssText = `
             background: white !important;
-            border-radius: 15px !important;
-            padding: 25px !important;
+            border-radius: 16px !important;
+            padding: 24px !important;
             width: 100% !important;
             max-width: 400px !important;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3) !important;
         `;
         
-        // Título
-        const title = document.createElement('h5');
+        // Título do modal
+        const title = document.createElement('h3');
         title.textContent = 'Editar Texto';
         title.style.cssText = `
-            margin: 0 0 15px 0 !important;
+            margin: 0 0 16px 0 !important;
+            font-size: 18px !important;
+            font-weight: 600 !important;
             color: #333 !important;
             text-align: center !important;
         `;
         
-        // Input principal
+        // Input principal - GRANDE e VISÍVEL
         const input = document.createElement('input');
         input.type = 'text';
         input.id = 'mobile-text-input';
         input.value = textObject.text === 'Digite aqui' ? '' : (textObject.text || '');
-        input.placeholder = 'Digite o texto aqui...';
-        
-        // Estilo otimizado para mobile
+        input.placeholder = 'Digite o texto';
         input.style.cssText = `
             width: 100% !important;
-            padding: 15px !important;
+            padding: 16px !important;
             font-size: 18px !important;
             border: 2px solid #007bff !important;
             border-radius: 8px !important;
             outline: none !important;
-            margin-bottom: 20px !important;
-            box-sizing: border-box !important;
-            -webkit-appearance: none !important;
-            appearance: none !important;
+            margin-bottom: 16px !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+            background: #fff !important;
+            color: #333 !important;
         `;
         
-        // Atributos para forçar teclado
+        // Atributos mobile otimizados
         input.setAttribute('inputmode', 'text');
         input.setAttribute('enterkeyhint', 'done');
         input.autocomplete = 'off';
         input.autocorrect = 'off';
-        input.autocapitalize = 'sentences';
-        input.spellcheck = true;
+        input.autocapitalize = 'off';
+        input.spellcheck = false;
         
         // Container de botões
         const buttonContainer = document.createElement('div');
         buttonContainer.style.cssText = `
             display: flex !important;
-            gap: 10px !important;
-            justify-content: space-between !important;
-        `;
-        
-        // Botão Confirmar
-        const confirmBtn = document.createElement('button');
-        confirmBtn.textContent = 'Confirmar';
-        confirmBtn.style.cssText = `
-            flex: 1 !important;
-            padding: 12px !important;
-            background: #007bff !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 6px !important;
-            font-size: 16px !important;
-            font-weight: bold !important;
-            touch-action: manipulation !important;
+            gap: 12px !important;
+            justify-content: flex-end !important;
         `;
         
         // Botão Cancelar
-        const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = 'Cancelar';
-        cancelBtn.style.cssText = `
-            flex: 1 !important;
-            padding: 12px !important;
-            background: #6c757d !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 6px !important;
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancelar';
+        cancelButton.style.cssText = `
+            padding: 12px 24px !important;
             font-size: 16px !important;
-            touch-action: manipulation !important;
+            border: 1px solid #ddd !important;
+            border-radius: 8px !important;
+            background: #f8f9fa !important;
+            color: #666 !important;
+            cursor: pointer !important;
+            min-height: 44px !important;
+        `;
+        
+        // Botão Confirmar
+        const confirmButton = document.createElement('button');
+        confirmButton.textContent = 'Confirmar';
+        confirmButton.style.cssText = `
+            padding: 12px 24px !important;
+            font-size: 16px !important;
+            border: none !important;
+            border-radius: 8px !important;
+            background: #007bff !important;
+            color: white !important;
+            cursor: pointer !important;
+            min-height: 44px !important;
         `;
         
         // Montar estrutura
-        editCard.appendChild(title);
-        editCard.appendChild(input);
-        buttonContainer.appendChild(cancelBtn);
-        buttonContainer.appendChild(confirmBtn);
-        editCard.appendChild(buttonContainer);
-        container.appendChild(editCard);
+        buttonContainer.appendChild(cancelButton);
+        buttonContainer.appendChild(confirmButton);
         
-        // Adicionar ao DOM
-        document.body.appendChild(container);
+        card.appendChild(title);
+        card.appendChild(input);
+        card.appendChild(buttonContainer);
         
-        // FORÇAR FOCO NO INPUT - Estratégia agressiva mas limpa
+        modal.appendChild(card);
+        document.body.appendChild(modal);
+        
+        console.log('📱 Modal criado e adicionado ao DOM');
+        
+        // FOCO AGRESSIVO - Garantir que o teclado apareça
         const focusInput = () => {
             input.focus();
             input.select();
-            console.log('📱 Foco aplicado ao input mobile');
+            console.log('📱 Foco aplicado ao input');
         };
         
         // Múltiplas tentativas de foco
-        requestAnimationFrame(() => {
-            focusInput();
-            setTimeout(focusInput, 100);
-            setTimeout(focusInput, 300);
-        });
+        setTimeout(focusInput, 50);
+        setTimeout(focusInput, 200);
+        setTimeout(focusInput, 500);
         
-        // Event listeners
-        input.addEventListener('input', (e) => {
-            textObject.text = e.target.value;
+        // Eventos de input
+        input.addEventListener('input', () => {
+            textObject.text = input.value;
             this.canvas.renderAll();
         });
         
+        // Confirmar com Enter
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                this.finalizeMobileTextEdit(textObject, input.value, container);
+                this.confirmTextEdit(textObject, input.value);
+                modal.remove();
             }
         });
         
-        confirmBtn.addEventListener('click', () => {
-            this.finalizeMobileTextEdit(textObject, input.value, container);
+        // Botão confirmar
+        confirmButton.addEventListener('click', () => {
+            this.confirmTextEdit(textObject, input.value);
+            modal.remove();
         });
         
-        cancelBtn.addEventListener('click', () => {
-            container.remove();
+        // Botão cancelar
+        cancelButton.addEventListener('click', () => {
+            modal.remove();
         });
         
-        // Clique no fundo para cancelar
-        container.addEventListener('click', (e) => {
-            if (e.target === container) {
-                container.remove();
+        // Fechar ao clicar no fundo (mas não no card)
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
             }
         });
         
-        console.log('📱 Input mobile criado e configurado');
+        // Prevenir propagação no card
+        card.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
     }
     
-    finalizeMobileTextEdit(textObject, text, container) {
-        textObject.text = text || 'Digite aqui';
+    cleanupMobileInput() {
+        // Remove qualquer modal anterior
+        const existingModal = document.getElementById('mobile-text-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Remove outros elementos antigos
+        const oldContainer = document.getElementById('mobile-text-container');
+        if (oldContainer) {
+            oldContainer.remove();
+        }
+    }
+    
+    confirmTextEdit(textObject, newText) {
+        textObject.text = newText;
         this.canvas.renderAll();
         this.saveState();
-        container.remove();
-        console.log('📱 Edição de texto finalizada:', text);
-    }
-    
-    clearMobileInput() {
-        const existing = document.getElementById('mobile-text-container');
-        if (existing) {
-            existing.remove();
-        }
+        console.log('📱 Texto confirmado:', newText);
     }
     
     
