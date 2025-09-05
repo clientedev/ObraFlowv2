@@ -182,14 +182,33 @@ class FabricPhotoEditor {
         this.canvas.on('mouse:dblclick', (e) => {
             if (e.target && (e.target.type === 'i-text' || e.target.type === 'text')) {
                 console.log('📱 Clique duplo em texto - forçando teclado móvel');
-                this.editText(e.target);
+                if (this.isMobile || this.isTouch) {
+                    this.createNativeTextInput(e.target);
+                } else {
+                    this.editText(e.target);
+                }
             }
         });
         
-        // Prevenção de contexto mobile
+        // MOBILE: Event handler consolidado para mouse:down
         this.canvas.on('mouse:down', (e) => {
+            // Prevenção de contexto mobile
             if (this.isTouch) {
                 e.e.preventDefault();
+            }
+            
+            // Verificar texto para mobile
+            if (this.currentTool !== 'text' && e.target && 
+                (e.target.type === 'i-text' || e.target.type === 'text') && 
+                (this.isMobile || this.isTouch)) {
+                
+                // Delay pequeno para permitir seleção primeiro
+                setTimeout(() => {
+                    if (this.canvas.getActiveObject() === e.target) {
+                        console.log('📱 Texto selecionado - preparando input nativo');
+                        this.createNativeTextInput(e.target);
+                    }
+                }, 300);
             }
         });
     }
@@ -486,7 +505,13 @@ class FabricPhotoEditor {
                 
                 // Para texto, abrir editor
                 if (shapeType === 'text' && shape.text === 'Texto') {
-                    this.editText(shape);
+                    if (this.isMobile || this.isTouch) {
+                        // Mobile: usar input nativo
+                        setTimeout(() => this.createNativeTextInput(shape), 100);
+                    } else {
+                        // Desktop: usar editor do Fabric.js
+                        this.editText(shape);
+                    }
                 }
             }
             
@@ -852,68 +877,123 @@ class FabricPhotoEditor {
     // =================== UTILS ===================
     
     editText(textObject) {
-        // Entrar em modo de edição
+        // Entrar em modo de edição (desktop apenas)
         textObject.enterEditing();
         textObject.selectAll();
-        
-        // MOBILE: Forçar aparecimento do teclado virtual
-        if (this.isMobile || this.isTouch) {
-            // Aguardar o fabric.js processar a entrada em edição
-            setTimeout(() => {
-                // Procurar por vários possíveis elementos de input do Fabric.js
-                const canvasWrapper = this.canvas.upperCanvasEl.parentNode;
-                let inputElement = canvasWrapper.querySelector('textarea') ||
-                                 canvasWrapper.querySelector('input[type="text"]') ||
-                                 canvasWrapper.querySelector('.canvas-container textarea') ||
-                                 canvasWrapper.querySelector('.canvas-container input');
-                
-                if (inputElement) {
-                    // Remover temporariamente readonly se houver
-                    const wasReadOnly = inputElement.readOnly;
-                    inputElement.readOnly = false;
-                    
-                    // Configurar para mobile
-                    inputElement.style.fontSize = '16px'; // Prevent zoom on iOS
-                    inputElement.style.position = 'absolute';
-                    inputElement.style.opacity = '1';
-                    inputElement.style.pointerEvents = 'auto';
-                    
-                    // Forçar foco múltiplas vezes para garantir
-                    inputElement.focus();
-                    inputElement.click();
-                    inputElement.select();
-                    
-                    // Métodos específicos para diferentes dispositivos
-                    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                        // iOS precisa de evento input
-                        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-                        inputElement.dispatchEvent(new Event('touchstart', { bubbles: true }));
-                    } else if (/Android/.test(navigator.userAgent)) {
-                        // Android pode precisar de focus diferente
-                        inputElement.dispatchEvent(new Event('focus', { bubbles: true }));
-                    }
-                    
-                    // Restaurar readonly se era readonly antes
-                    if (wasReadOnly) {
-                        setTimeout(() => { inputElement.readOnly = wasReadOnly; }, 50);
-                    }
-                    
-                    console.log('📱 Teclado móvel forçado - elemento encontrado:', inputElement.tagName);
-                } else {
-                    console.log('⚠️ Nenhum elemento de input do Fabric.js encontrado');
-                    
-                    // Fallback: criar input temporário para forçar teclado
-                    const tempInput = document.createElement('input');
-                    tempInput.style.position = 'absolute';
-                    tempInput.style.left = '-9999px';
-                    tempInput.style.fontSize = '16px';
-                    document.body.appendChild(tempInput);
-                    tempInput.focus();
-                    setTimeout(() => document.body.removeChild(tempInput), 1000);
-                    console.log('📱 Fallback: input temporário criado');
-                }
-            }, 150); // Aumentar delay para 150ms
+    }
+    
+    // MOBILE: Criar input nativo sobreposto ao canvas
+    createNativeTextInput(textObject) {
+        if (this.activeTextInput) {
+            this.activeTextInput.remove();
+            this.activeTextInput = null;
         }
+        
+        // Calcular posição na tela
+        const canvasRect = this.canvas.upperCanvasEl.getBoundingClientRect();
+        const bound = textObject.getBoundingRect(true, true);
+        
+        // Criar textarea nativo
+        const textarea = document.createElement('textarea');
+        textarea.value = textObject.text || '';
+        
+        // Estilização para match com o texto do canvas
+        textarea.style.position = 'absolute';
+        textarea.style.left = `${canvasRect.left + bound.left}px`;
+        textarea.style.top = `${canvasRect.top + bound.top}px`;
+        textarea.style.width = `${Math.max(120, bound.width + 20)}px`;
+        textarea.style.height = `${Math.max(40, bound.height + 20)}px`;
+        textarea.style.fontSize = `${Math.max(16, textObject.fontSize || 20)}px`; // Min 16px para evitar zoom no iOS
+        textarea.style.fontFamily = textObject.fontFamily || 'Arial, sans-serif';
+        textarea.style.color = textObject.fill || '#000000';
+        textarea.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        textarea.style.border = '2px solid #007bff';
+        textarea.style.borderRadius = '4px';
+        textarea.style.padding = '8px';
+        textarea.style.zIndex = '10000';
+        textarea.style.resize = 'none';
+        textarea.style.overflow = 'hidden';
+        
+        // Atributos para mobile
+        textarea.setAttribute('inputmode', 'text');
+        textarea.setAttribute('autocapitalize', 'sentences');
+        textarea.setAttribute('autocorrect', 'on');
+        textarea.setAttribute('spellcheck', 'true');
+        
+        // Adicionar ao DOM
+        document.body.appendChild(textarea);
+        this.activeTextInput = textarea;
+        
+        // Foco imediato (mesmo ciclo de evento)
+        textarea.focus();
+        textarea.select();
+        
+        console.log('📱 Input nativo criado e focado - posição:', {
+            left: textarea.style.left,
+            top: textarea.style.top,
+            width: textarea.style.width,
+            height: textarea.style.height
+        });
+        
+        // Auto-resize do textarea
+        const autoResize = () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = `${Math.max(40, textarea.scrollHeight)}px`;
+        };
+        
+        textarea.addEventListener('input', autoResize);
+        autoResize(); // Resize inicial
+        
+        // Salvar ao sair (blur)
+        textarea.addEventListener('blur', () => {
+            if (this.activeTextInput === textarea) {
+                textObject.text = textarea.value;
+                this.canvas.requestRenderAll();
+                this.saveState();
+                textarea.remove();
+                this.activeTextInput = null;
+                console.log('📱 Texto salvo e input removido');
+            }
+        });
+        
+        // Salvar com Enter (sem Shift)
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                textarea.blur();
+            }
+            
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                textarea.remove();
+                this.activeTextInput = null;
+                this.canvas.requestRenderAll();
+                console.log('📱 Edição cancelada');
+            }
+        });
+        
+        // Ajustar posição se sair da tela
+        setTimeout(() => {
+            const rect = textarea.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            if (rect.right > viewportWidth - 20) {
+                textarea.style.left = `${viewportWidth - rect.width - 20}px`;
+            }
+            
+            if (rect.bottom > viewportHeight - 20) {
+                textarea.style.top = `${viewportHeight - rect.height - 20}px`;
+            }
+            
+            if (rect.left < 20) {
+                textarea.style.left = '20px';
+            }
+            
+            if (rect.top < 20) {
+                textarea.style.top = '20px';
+            }
+        }, 50);
     }
     
     showContextMenu(e) {
@@ -937,6 +1017,12 @@ class FabricPhotoEditor {
     }
     
     destroy() {
+        // Limpar input nativo se existir
+        if (this.activeTextInput) {
+            this.activeTextInput.remove();
+            this.activeTextInput = null;
+        }
+        
         if (this.canvas) {
             this.canvas.dispose();
         }
