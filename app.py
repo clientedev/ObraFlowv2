@@ -109,6 +109,101 @@ def create_admin_user_safe():
             else:
                 logging.error("Max retries reached. Could not create admin user.")
 
+def create_default_legendas():
+    from models import LegendaPredefinida, User
+    
+    # Definir todas as 42 legendas padrão
+    legendas_padrao = [
+        # Acabamentos (16 legendas)
+        ("Emboço bem-acabado", "Acabamentos"),
+        ("Emboço mal-acabado", "Acabamentos"), 
+        ("Friso com profundidade irregular", "Acabamentos"),
+        ("Friso torto", "Acabamentos"),
+        ("Lixamento com falhas, necessário correção", "Acabamentos"),
+        ("Lixamento corretamente executado", "Acabamentos"),
+        ("Lixamento executado sem preenchimento de chupetas. Preenchimentos devem ser executados antes do lixamento", "Acabamentos"),
+        ("Lixamento executado sem preenchimento do encunhamento. Preenchimentos devem ser executados antes do lixamento", "Acabamentos"),
+        ("Necessário preenchimento das juntas dos blocos", "Acabamentos"),
+        ("Necessário retirada de etiquetas", "Acabamentos"),
+        ("Necessário retirada de madeiras encrustadas no concreto", "Acabamentos"),
+        ("Necessário retirada de pregos", "Acabamentos"),
+        ("Necessário retirada de pó de serra incrustado no concreto", "Acabamentos"),
+        ("Necessário retirada do excesso de massa da junta dos blocos de alvenaria", "Acabamentos"),
+        ("Pendente lixamento das requadrações superiores dos caixilhos", "Acabamentos"),
+        ("Pingadeira mal-acabada", "Acabamentos"),
+        
+        # Estrutural (18 legendas)
+        ("Caída invertida", "Estrutural"),
+        ("Chapisco com dentes baixos", "Estrutural"),
+        ("Chapisco com falhas. Necessário correção", "Estrutural"),
+        ("Chapisco com resistência atingida", "Estrutural"),
+        ("Chapisco com resistência baixa", "Estrutural"),
+        ("Chapisco corretamente executado", "Estrutural"),
+        ("Cheia de massa sem reforço", "Estrutural"),
+        ("Emboço com traço correto", "Estrutural"),
+        ("Emboço com traço incorreto", "Estrutural"),
+        ("Emboço executado com projeção mecânica", "Estrutural"),
+        ("Emboço executado corretamente", "Estrutural"),
+        ("Emboço executado manualmente", "Estrutural"),
+        ("Falha de lavagem", "Estrutural"),
+        ("Lavagem correta", "Estrutural"),
+        ("Ordem de execução do chapisco incorreta. Necessário execução do chapisco desempenado na estrutura antes da execução do chapisco de areia e cimento", "Estrutural"),
+        ("Pendente chapiscamento das massas de chumbamento dos contramarcos", "Estrutural"),
+        ("Reforço corretamente executado", "Estrutural"),
+        ("Telas corretamente posicionadas", "Estrutural"),
+        
+        # Geral (6 legendas)
+        ("Evidenciado pó de cimento aplicado sobre emboço. Necessário retirada completa. Proibido a utilização de pó de cimento", "Geral"),
+        ("Evidenciado pó de gesso aplicado sobre emboço. Necessário retirada completa. Proibido a utilização de pó de gesso", "Geral"),
+        ("Não evidenciado uso de chapisco colante antes da aplicação do emboço sobre aba", "Geral"),
+        ("Não evidenciado uso de chapisco colante antes da aplicação do emboço sobre mureta", "Geral"),
+        ("Uso de talisca de madeira. Necessário retirada. É proibido o uso de talisca de madeira", "Geral"),
+        ("Uso incorreto de chapisco colante em pó sobre superfície", "Geral"),
+        
+        # Segurança (2 legendas)
+        ("Pendente corte dos ganchos", "Segurança"),
+        ("Pendente tratamentos dos ganchos cortados com pintura anti-corrosiva tipo zarcão", "Segurança")
+    ]
+    
+    try:
+        # Verificar se já existem legendas
+        count = LegendaPredefinida.query.filter_by(ativo=True).count()
+        if count >= 42:
+            logging.info(f"✅ Legendas já existem: {count} encontradas")
+            return
+        
+        # Buscar usuário admin para ser o criador
+        admin_user = User.query.filter_by(is_master=True).first()
+        if not admin_user:
+            logging.error("❌ Admin user não encontrado - não é possível criar legendas")
+            return
+        
+        # Criar legendas que não existem
+        legendas_criadas = 0
+        for texto, categoria in legendas_padrao:
+            # Verificar se já existe
+            existe = LegendaPredefinida.query.filter_by(texto=texto, categoria=categoria).first()
+            if not existe:
+                nova_legenda = LegendaPredefinida(
+                    texto=texto,
+                    categoria=categoria,
+                    ativo=True,
+                    criado_por=admin_user.id
+                )
+                db.session.add(nova_legenda)
+                legendas_criadas += 1
+        
+        if legendas_criadas > 0:
+            db.session.commit()
+            total_final = LegendaPredefinida.query.filter_by(ativo=True).count()
+            logging.info(f"✅ LEGENDAS CRIADAS: {legendas_criadas} novas legendas | Total: {total_final}")
+        else:
+            logging.info("✅ Todas as legendas já existem")
+            
+    except Exception as e:
+        logging.error(f"❌ Erro ao criar legendas padrão: {e}")
+        db.session.rollback()
+
 
 with app.app_context():
     # Make sure to import the models here or their tables won't be created
@@ -132,3 +227,6 @@ with app.app_context():
 
     # Create default admin user if none exists
     create_admin_user_safe()
+    
+    # Create default legendas if they don't exist
+    create_default_legendas()
