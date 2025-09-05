@@ -2736,6 +2736,63 @@ def api_test():
             'database_connection': False
         }), 500
 
+@app.route('/clear-pwa-cache')
+def clear_pwa_cache():
+    """Endpoint para forçar limpeza de cache PWA mobile"""
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Limpeza PWA Cache</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="{{ url_for('static', filename='js/force-online-mode.js') }}"></script>
+    </head>
+    <body style="font-family: Arial, sans-serif; padding: 20px; background: #f8f9fa;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h1 style="color: #20c1e8; text-align: center;">🧹 Limpeza PWA Cache</h1>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">
+                Este endpoint força a limpeza completa do cache PWA mobile para garantir dados idênticos do PostgreSQL.
+            </p>
+            
+            <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="color: #2d5f2d; margin-top: 0;">✅ Ações Executadas:</h3>
+                <ul style="color: #2d5f2d;">
+                    <li>localStorage completamente limpo</li>
+                    <li>sessionStorage removido</li> 
+                    <li>Service Workers desregistrados</li>
+                    <li>Cache do navegador removido</li>
+                    <li>Reload forçado sem cache</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <button onclick="window.clearPWACache()" style="background: #20c1e8; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; cursor: pointer;">
+                    🔄 Limpar Cache Agora
+                </button>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <h4 style="color: #856404; margin-top: 0;">📱 Como usar no Mobile PWA:</h4>
+                <ol style="color: #856404;">
+                    <li>Acesse esta URL no app mobile instalado</li>
+                    <li>Clique em "Limpar Cache Agora"</li>
+                    <li>Aguarde o reload automático</li>
+                    <li>Verifique se os dados estão idênticos ao desktop</li>
+                </ol>
+            </div>
+        </div>
+        
+        <script>
+            // Executar limpeza automática ao carregar
+            console.log('🧹 Iniciando limpeza automática PWA cache...');
+            setTimeout(() => {
+                new ForceOnlineMode();
+            }, 1000);
+        </script>
+    </body>
+    </html>
+    """
+
 # Rotas administrativas para Checklist Padrão
 @app.route('/developer/checklist-padrao')
 @login_required

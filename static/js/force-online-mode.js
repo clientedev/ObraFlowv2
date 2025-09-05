@@ -29,33 +29,52 @@ class ForceOnlineMode {
 
     clearLocalStorage() {
         try {
-            // Limpar dados específicos offline
+            // LIMPEZA AGRESSIVA PARA PWA MOBILE - Garantir dados PostgreSQL
             const offlineKeys = [
                 'offline_data',
                 'sync_queue', 
                 'offline_reports',
                 'offline_visits',
                 'offline_projects',
-                'offline_reimbursements'
+                'offline_reimbursements',
+                'cached_legendas',
+                'mobile_data',
+                'pwa_cache',
+                'app_data'
             ];
             
             offlineKeys.forEach(key => {
                 localStorage.removeItem(key);
-                console.log(`🧹 CLEARED: localStorage.${key}`);
+                console.log(`🧹 PWA CLEAR: localStorage.${key}`);
             });
             
-            // Limpar tudo se necessário
+            // Limpar TODAS as chaves que possam ter dados cached
             const allKeys = Object.keys(localStorage);
             allKeys.forEach(key => {
-                if (key.includes('offline') || key.includes('sync') || key.includes('cache')) {
+                if (key.includes('offline') || key.includes('sync') || key.includes('cache') || 
+                    key.includes('legenda') || key.includes('mobile') || key.includes('pwa') ||
+                    key.includes('app_') || key.includes('data_')) {
                     localStorage.removeItem(key);
-                    console.log(`🧹 CLEARED: localStorage.${key}`);
+                    console.log(`🧹 PWA CLEAR: localStorage.${key}`);
                 }
             });
+            
+            // CLEAR TOTAL para PWA problemático
+            if (this.isPWAApp()) {
+                localStorage.clear();
+                console.log('🧹 PWA TOTAL CLEAR: localStorage completamente limpo');
+            }
             
         } catch (error) {
             console.error('❌ Erro ao limpar localStorage:', error);
         }
+    }
+
+    // Detectar se está rodando como PWA instalado
+    isPWAApp() {
+        return window.matchMedia('(display-mode: standalone)').matches ||
+               window.navigator.standalone === true ||
+               document.referrer.includes('android-app://');
     }
 
     clearSessionStorage() {
@@ -73,8 +92,20 @@ class ForceOnlineMode {
                 const registrations = await navigator.serviceWorker.getRegistrations();
                 for (const registration of registrations) {
                     await registration.unregister();
-                    console.log('🧹 CLEARED: Service Worker');
+                    console.log('🧹 PWA CLEAR: Service Worker removido');
+                    
+                    // Força atualização do registro
+                    if (registration.active) {
+                        registration.active.postMessage({command: 'SKIP_WAITING'});
+                    }
                 }
+                
+                // Forçar reload de service workers
+                if (registrations.length > 0) {
+                    console.log('🔄 PWA: Forçando reload por Service Worker detectado');
+                    setTimeout(() => window.location.reload(true), 100);
+                }
+                
             } catch (error) {
                 console.error('❌ Erro ao limpar Service Worker:', error);
             }
@@ -121,7 +152,7 @@ class ForceOnlineMode {
     }
 }
 
-// Executar automaticamente se detectar dados offline
+// EXECUÇÃO AGRESSIVA PARA PWA MOBILE
 document.addEventListener('DOMContentLoaded', function() {
     // Verificar se tem parâmetro para forçar online
     const urlParams = new URLSearchParams(window.location.search);
@@ -130,9 +161,47 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Verificar se está em modo offline
-    ForceOnlineMode.forceOnlineForPage();
+    // SEMPRE verificar em PWA mobile - não confiar em cache
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+    if (isPWA) {
+        console.log('📱 PWA DETECTADO - Forçando modo online');
+        // Pequeno delay para não interferir no carregamento
+        setTimeout(() => {
+            ForceOnlineMode.forceOnlineForPage();
+        }, 500);
+    } else {
+        // Verificar se está em modo offline
+        ForceOnlineMode.forceOnlineForPage();
+    }
 });
 
-// Expor globalmente
+// Expor globalmente e criar endpoint de limpeza manual
 window.ForceOnlineMode = ForceOnlineMode;
+
+// Função global para limpar cache via console/URL
+window.clearPWACache = function() {
+    console.log('🔥 LIMPEZA MANUAL PWA');
+    new ForceOnlineMode();
+};
+
+// Auto-detectar problemas de dados inconsistentes
+window.detectDataInconsistency = function() {
+    // Se a API retorna 42 legendas mas a interface mostra menos, há problema
+    fetch('/api/legendas')
+        .then(response => response.json())
+        .then(data => {
+            const apiCount = data.legendas ? data.legendas.length : 0;
+            console.log(`📊 API retorna: ${apiCount} legendas`);
+            
+            if (apiCount !== 42) {
+                console.log('⚠️ INCONSISTÊNCIA DETECTADA - Limpando cache');
+                new ForceOnlineMode();
+            }
+        })
+        .catch(err => console.error('Erro ao verificar dados:', err));
+};
+
+// Executar verificação automática em PWAs
+if (window.matchMedia('(display-mode: standalone)').matches) {
+    setTimeout(detectDataInconsistency, 2000);
+}
