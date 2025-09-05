@@ -60,20 +60,70 @@ class PWAInstaller {
         const installBtn = document.createElement('div');
         installBtn.id = 'pwa-install-btn';
         installBtn.innerHTML = `
-            <div class="alert alert-info alert-dismissible fade show position-fixed" 
-                 style="bottom: 20px; left: 20px; z-index: 9999; max-width: 350px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 12px;">
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-download fa-2x text-primary me-3"></i>
-                    <div>
-                        <h6 class="mb-1"><strong>📱 Instalar ELP App</strong></h6>
-                        <p class="mb-2 small">Instale nosso app para acesso rápido e melhor experiência mobile</p>
-                        <button id="install-pwa-btn" class="btn btn-primary btn-sm">
-                            <i class="fas fa-download me-1"></i>Instalar Agora
+            <div class="position-fixed" 
+                 style="bottom: 20px; left: 20px; z-index: 9999; max-width: 380px;">
+                <div class="card shadow-lg border-0" 
+                     style="border-radius: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; animation: slideInLeft 0.6s ease-out;">
+                    <button type="button" class="btn-close btn-close-white position-absolute" 
+                            style="top: 12px; right: 12px; z-index: 10; opacity: 0.8;" 
+                            onclick="this.closest('.position-fixed').remove()"></button>
+                    
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle p-3 me-3" 
+                                 style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
+                                <i class="fas fa-mobile-alt fa-2x text-white"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-1 fw-bold text-white">📱 Instalar ELP App</h5>
+                                <small class="text-white-50">Versão Mobile Otimizada</small>
+                            </div>
+                        </div>
+                        
+                        <p class="mb-3 text-white-75" style="font-size: 14px; line-height: 1.4;">
+                            ✨ Acesso offline<br>
+                            🚀 Carregamento mais rápido<br>
+                            🎯 Interface otimizada para mobile
+                        </p>
+                        
+                        <button id="install-pwa-btn" class="btn btn-light btn-lg w-100 fw-bold" 
+                                style="border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: all 0.3s ease;">
+                            <i class="fas fa-download me-2"></i>Instalar Agora
                         </button>
+                        
+                        <div class="text-center mt-2">
+                            <small class="text-white-50">⚡ Instalação rápida e segura</small>
+                        </div>
                     </div>
                 </div>
             </div>
+            
+            <style>
+                @keyframes slideInLeft {
+                    from {
+                        transform: translateX(-100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                
+                #install-pwa-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important;
+                    background: #f8f9fa !important;
+                }
+                
+                .text-white-75 {
+                    color: rgba(255,255,255,0.85) !important;
+                }
+                
+                .text-white-50 {
+                    color: rgba(255,255,255,0.7) !important;
+                }
+            </style>
         `;
         
         document.body.appendChild(installBtn);
@@ -123,17 +173,55 @@ class PWAInstaller {
     showInstalledMessage() {
         const successMsg = document.createElement('div');
         successMsg.innerHTML = `
-            <div class="alert alert-success alert-dismissible fade show position-fixed" 
-                 style="bottom: 20px; left: 20px; z-index: 9999; max-width: 350px; border-radius: 12px;">
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-check-circle fa-2x text-success me-3"></i>
-                    <div>
-                        <h6 class="mb-1"><strong>✅ App Instalado!</strong></h6>
-                        <p class="mb-0 small">ELP App foi instalado com sucesso no seu dispositivo</p>
+            <div class="position-fixed" 
+                 style="bottom: 20px; left: 20px; z-index: 9999; max-width: 380px;">
+                <div class="card shadow-lg border-0" 
+                     style="border-radius: 20px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; animation: bounceIn 0.8s ease-out;">
+                    <button type="button" class="btn-close btn-close-white position-absolute" 
+                            style="top: 12px; right: 12px; z-index: 10; opacity: 0.8;" 
+                            onclick="this.closest('.position-fixed').remove()"></button>
+                    
+                    <div class="card-body p-4 text-center">
+                        <div class="mb-3">
+                            <div class="rounded-circle mx-auto p-3 mb-3" 
+                                 style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); width: 80px; height: 80px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-check-circle fa-3x text-white"></i>
+                            </div>
+                            
+                            <h4 class="mb-2 fw-bold text-white">🎉 Sucesso!</h4>
+                            <h6 class="mb-0 text-white-75">ELP App Instalado</h6>
+                        </div>
+                        
+                        <p class="mb-3 text-white-75" style="font-size: 14px;">
+                            Agora você pode acessar o app diretamente da tela inicial do seu dispositivo!
+                        </p>
+                        
+                        <div class="d-flex align-items-center justify-content-center text-white-50">
+                            <i class="fas fa-mobile-alt me-2"></i>
+                            <small>Procure pelo ícone ELP na sua tela inicial</small>
+                        </div>
                     </div>
                 </div>
             </div>
+            
+            <style>
+                @keyframes bounceIn {
+                    0% {
+                        transform: scale(0.3);
+                        opacity: 0;
+                    }
+                    50% {
+                        transform: scale(1.05);
+                    }
+                    70% {
+                        transform: scale(0.9);
+                    }
+                    100% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+            </style>
         `;
         
         document.body.appendChild(successMsg);
