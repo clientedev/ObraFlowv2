@@ -21,6 +21,46 @@ from google_drive_backup import backup_to_drive, test_drive_connection
 import math
 import json
 
+# Debug routes para identificar diferenças de dados
+@app.route('/api/current-user')
+@login_required
+def api_current_user():
+    """Retorna dados do usuário atual para debug"""
+    return jsonify({
+        'id': current_user.id,
+        'username': current_user.username,
+        'email': current_user.email,
+        'is_master': current_user.is_master,
+        'nome_completo': getattr(current_user, 'nome_completo', None),
+        'cargo': getattr(current_user, 'cargo', None)
+    })
+
+@app.route('/api/user-data-counts')
+@login_required
+def api_user_data_counts():
+    """Retorna contadores de dados para o usuário atual"""
+    # Se usuário for master, vê todos os dados
+    if current_user.is_master:
+        projetos = Projeto.query.count()
+        relatorios = Relatorio.query.count()
+        visitas = Visita.query.count()
+        reembolsos = Reembolso.query.count() if 'Reembolso' in globals() else 0
+    else:
+        # Usuário normal vê apenas seus dados ou projetos relacionados
+        projetos = Projeto.query.count()  # Todos os projetos por enquanto
+        relatorios = Relatorio.query.count()  # Todos os relatórios por enquanto
+        visitas = Visita.query.count()
+        reembolsos = 0
+    
+    return jsonify({
+        'projetos': projetos,
+        'relatorios': relatorios,
+        'visitas': visitas,
+        'reembolsos': reembolsos,
+        'user_id': current_user.id,
+        'is_master': current_user.is_master
+    })
+
 # Authentication routes
 @app.route('/login', methods=['GET', 'POST'])
 def login():

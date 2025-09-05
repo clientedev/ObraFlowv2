@@ -36,24 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Mostrar status PostgreSQL-only
-    const statusDiv = document.createElement('div');
-    statusDiv.style.cssText = `
-        position: fixed; 
-        top: 10px; 
-        left: 10px; 
-        background: #28a745; 
-        color: white; 
-        padding: 8px 12px; 
-        border-radius: 5px; 
-        font-size: 12px; 
-        z-index: 9999;
-        font-family: monospace;
-    `;
-    statusDiv.innerHTML = '🗄️ PostgreSQL ONLY';
-    document.body.appendChild(statusDiv);
-    
-    setTimeout(() => statusDiv.remove(), 3000);
+    // Status messages removed
 });
 
 console.log('🗄️ MODO POSTGRESQL-ONLY ATIVADO - Dados sincronizados garantidos');

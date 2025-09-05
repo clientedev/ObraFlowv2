@@ -94,21 +94,7 @@ clearAllOfflineData();
 document.addEventListener('DOMContentLoaded', function() {
     const isMobile = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     
-    if (isMobile) {
-        const statusDiv = document.createElement('div');
-        statusDiv.innerHTML = `
-            <div class="alert alert-success alert-dismissible position-fixed" style="top: 70px; right: 10px; z-index: 9999; max-width: 300px; font-size: 12px;">
-                <strong>📱 MOBILE - PostgreSQL ONLY</strong><br>
-                Offline desabilitado, dados 100% sincronizados
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        document.body.appendChild(statusDiv);
-        
-        setTimeout(() => {
-            if (statusDiv.parentNode) statusDiv.remove();
-        }, 5000);
-    }
+    // Mensagens removidas conforme solicitado
 });
 
 console.log('🎯 SISTEMA OFFLINE COMPLETAMENTE DESABILITADO - PostgreSQL ONLY');
