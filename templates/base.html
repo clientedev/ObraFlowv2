@@ -14,8 +14,8 @@
     <link href="{{ url_for('static', filename='css/mobile.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/mobile-accessibility.css') }}" rel="stylesheet">
     
-    <!-- PWA Manifest DISABLED for PostgreSQL-only mode -->
-    <!-- <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}"> -->
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#20c1e8">
@@ -35,6 +35,9 @@
     
     <!-- FORCE DASHBOARD SYNC - Valores corretos -->
     <script src="{{ url_for('static', filename='js/force-dashboard-sync.js') }}"></script>
+    
+    <!-- PWA INSTALL ONLY - Sem funcionalidade offline -->
+    <script src="{{ url_for('static', filename='js/pwa-install-only.js') }}" defer></script>
     
     <!-- Mobile Utilities -->
     <script src="{{ url_for('static', filename='js/mobile-utils.js') }}" defer></script>

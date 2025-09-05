@@ -1,7 +1,7 @@
 {
-    "name": "ELP Consultoria - Sistema de Relatórios",
+    "name": "ELP Consultoria - Sistema de Relatórios v2.1",
     "short_name": "ELP Relatórios",
-    "description": "Sistema de acompanhamento de visitas em obras para ELP Consultoria e Engenharia",
+    "description": "Sistema profissional unificado de relatórios e gestão de obras - ELP Consultoria e Engenharia",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#343a40",
