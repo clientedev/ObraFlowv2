@@ -933,13 +933,13 @@ class FabricPhotoEditor {
         input.autocapitalize = 'off';
         input.spellcheck = false;
         
-        // Estilo que FORÇA visibilidade e funcionalidade
+        // Estilo que FORÇA visibilidade e funcionalidade - Z-INDEX MÁXIMO
         input.style.cssText = `
             position: fixed !important;
             left: 10px !important;
             right: 10px !important;
             bottom: 20px !important;
-            z-index: 999999 !important;
+            z-index: 2147483647 !important;
             background: #ffffff !important;
             border: 3px solid #007bff !important;
             border-radius: 12px !important;
@@ -959,7 +959,20 @@ class FabricPhotoEditor {
             user-select: text !important;
             -webkit-appearance: none !important;
             appearance: none !important;
+            transform: translateZ(0) !important;
+            will-change: transform !important;
+            pointer-events: auto !important;
+            isolation: isolate !important;
         `;
+        
+        // DEBUGGING: Forçar visibilidade extrema
+        console.log('📱 DEBUGGING - Criando input com z-index máximo:', input.style.zIndex);
+        
+        // Adicionar ao body E ao document.documentElement para garantir
+        document.body.appendChild(input);
+        if (document.documentElement !== document.body.parentNode) {
+            document.documentElement.appendChild(input.cloneNode(true));
+        }
         
         // Criar overlay para destacar
         const overlay = document.createElement('div');
@@ -971,22 +984,33 @@ class FabricPhotoEditor {
             right: 0 !important;
             bottom: 0 !important;
             background: rgba(0,0,0,0.5) !important;
-            z-index: 999998 !important;
+            z-index: 2147483646 !important;
             display: block !important;
         `;
         
-        // Adicionar overlay primeiro, depois input
+        // Adicionar overlay primeiro
         document.body.appendChild(overlay);
-        document.body.appendChild(input);
         
         console.log('📱 Input e overlay adicionados ao DOM');
+        console.log('📱 DEBUGGING - Posição do input:', {
+            position: input.style.position,
+            zIndex: input.style.zIndex,
+            bottom: input.style.bottom,
+            visibility: input.style.visibility,
+            display: input.style.display
+        });
         
         // FORÇA TECLADO - Múltiplas tentativas agressivas
         const forceKeyboard = () => {
             const element = document.getElementById('mobile-text-edit');
             if (element) {
+                console.log('📱 DEBUGGING - Element exists:', element);
+                console.log('📱 DEBUGGING - Element rect:', element.getBoundingClientRect());
+                console.log('📱 DEBUGGING - Element computed style:', window.getComputedStyle(element));
+                
                 // Método 1: Focus direto
                 element.focus();
+                console.log('📱 Focus applied, activeElement:', document.activeElement === element);
                 
                 // Método 2: Click para simular interação do usuário
                 element.click();
@@ -1001,10 +1025,16 @@ class FabricPhotoEditor {
                 // Método 4: Select text
                 element.select();
                 
-                // Método 5: Set cursor position
-                element.setSelectionRange(0, element.value.length);
+                // Método 5: Set cursor position  
+                try {
+                    element.setSelectionRange(0, element.value.length);
+                } catch (e) {
+                    console.log('📱 DEBUGGING - setSelectionRange error:', e);
+                }
                 
                 console.log('📱 Forçando teclado com todos os métodos');
+            } else {
+                console.log('📱 DEBUGGING - Element NOT found!');
             }
         };
         
