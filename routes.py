@@ -47,6 +47,17 @@ def api_user_data_counts():
         reembolsos = Reembolso.query.count() if 'Reembolso' in globals() else 0
     else:
         # Usuário normal vê apenas seus dados ou projetos relacionados
+        projetos = Projeto.query.count()
+        relatorios = Relatorio.query.count()
+        visitas = Visita.query.count()
+        reembolsos = 0
+
+    return jsonify({
+        'projetos': projetos,
+        'relatorios': relatorios,
+        'visitas': visitas,
+        'reembolsos': reembolsos
+    })
 
 @app.route('/api/dashboard-stats')
 @login_required
@@ -2610,69 +2621,27 @@ def api_legendas():
                 'legendas': []
             }), 500
         
-        # SISTEMA UNIFICADO - Forçar 42 legendas fixas para mobile/desktop
+        # Preparar resposta com dados reais do PostgreSQL
         response_data = {
             'success': True,
-            'total': 42,
-            'legendas': [
-                # Acabamentos (16)
-                {"id": 1, "texto": "Pintura externa descascando", "categoria": "Acabamentos", "ativo": True},
-                {"id": 2, "texto": "Revestimento cerâmico solto", "categoria": "Acabamentos", "ativo": True},
-                {"id": 3, "texto": "Azulejo com trinca", "categoria": "Acabamentos", "ativo": True},
-                {"id": 4, "texto": "Piso com riscos", "categoria": "Acabamentos", "ativo": True},
-                {"id": 5, "texto": "Massa corrida descascando", "categoria": "Acabamentos", "ativo": True},
-                {"id": 6, "texto": "Porta descascada", "categoria": "Acabamentos", "ativo": True},
-                {"id": 7, "texto": "Janela oxidada", "categoria": "Acabamentos", "ativo": True},
-                {"id": 8, "texto": "Rodapé solto", "categoria": "Acabamentos", "ativo": True},
-                {"id": 9, "texto": "Gesso com manchas", "categoria": "Acabamentos", "ativo": True},
-                {"id": 10, "texto": "Textura irregular", "categoria": "Acabamentos", "ativo": True},
-                {"id": 11, "texto": "Forro danificado", "categoria": "Acabamentos", "ativo": True},
-                {"id": 12, "texto": "Rejunte escuro", "categoria": "Acabamentos", "ativo": True},
-                {"id": 13, "texto": "Bancada riscada", "categoria": "Acabamentos", "ativo": True},
-                {"id": 14, "texto": "Espelho manchado", "categoria": "Acabamentos", "ativo": True},
-                {"id": 15, "texto": "Vidro temperado trincado", "categoria": "Acabamentos", "ativo": True},
-                {"id": 16, "texto": "Peitoril danificado", "categoria": "Acabamentos", "ativo": True},
-                
-                # Estrutural (18)
-                {"id": 17, "texto": "Rachadura na parede", "categoria": "Estrutural", "ativo": True},
-                {"id": 18, "texto": "Fissura no teto", "categoria": "Estrutural", "ativo": True},
-                {"id": 19, "texto": "Trinca na viga", "categoria": "Estrutural", "ativo": True},
-                {"id": 20, "texto": "Deslocamento de pilar", "categoria": "Estrutural", "ativo": True},
-                {"id": 21, "texto": "Laje com deflexão", "categoria": "Estrutural", "ativo": True},
-                {"id": 22, "texto": "Armadura exposta", "categoria": "Estrutural", "ativo": True},
-                {"id": 23, "texto": "Concreto com ninhos", "categoria": "Estrutural", "ativo": True},
-                {"id": 24, "texto": "Fundação com recalque", "categoria": "Estrutural", "ativo": True},
-                {"id": 25, "texto": "Junta de dilatação aberta", "categoria": "Estrutural", "ativo": True},
-                {"id": 26, "texto": "Alvenaria fora de prumo", "categoria": "Estrutural", "ativo": True},
-                {"id": 27, "texto": "Verga inadequada", "categoria": "Estrutural", "ativo": True},
-                {"id": 28, "texto": "Contraverga ausente", "categoria": "Estrutural", "ativo": True},
-                {"id": 29, "texto": "Blocos cerâmicos trincados", "categoria": "Estrutural", "ativo": True},
-                {"id": 30, "texto": "Amarração deficiente", "categoria": "Estrutural", "ativo": True},
-                {"id": 31, "texto": "Estrutura metálica corroída", "categoria": "Estrutural", "ativo": True},
-                {"id": 32, "texto": "Soldas com defeitos", "categoria": "Estrutural", "ativo": True},
-                {"id": 33, "texto": "Parafusos soltos", "categoria": "Estrutural", "ativo": True},
-                {"id": 34, "texto": "Deformação estrutural", "categoria": "Estrutural", "ativo": True},
-                
-                # Geral (6)
-                {"id": 35, "texto": "Obra em andamento", "categoria": "Geral", "ativo": True},
-                {"id": 36, "texto": "Serviço finalizado", "categoria": "Geral", "ativo": True},
-                {"id": 37, "texto": "Necessita reparo", "categoria": "Geral", "ativo": True},
-                {"id": 38, "texto": "Conforme projeto", "categoria": "Geral", "ativo": True},
-                {"id": 39, "texto": "Pendência identificada", "categoria": "Geral", "ativo": True},
-                {"id": 40, "texto": "Aprovado para próxima etapa", "categoria": "Geral", "ativo": True},
-                
-                # Segurança (2)
-                {"id": 41, "texto": "Equipamento de proteção ausente", "categoria": "Segurança", "ativo": True},
-                {"id": 42, "texto": "Área de risco sinalizada", "categoria": "Segurança", "ativo": True}
-            ]
+            'total': len(legendas),
+            'legendas': []
         }
         
-        # Filtrar por categoria se especificada
-        if categoria and categoria != 'all':
-            response_data['legendas'] = [l for l in response_data['legendas'] if l['categoria'] == categoria]
-            response_data['total'] = len(response_data['legendas'])
+        # Processar cada legenda
+        for legenda in legendas:
+            try:
+                response_data['legendas'].append({
+                    'id': getattr(legenda, 'id', 0),
+                    'texto': getattr(legenda, 'texto', ''),
+                    'categoria': getattr(legenda, 'categoria', 'Geral'),
+                    'ativo': getattr(legenda, 'ativo', True)
+                })
+            except Exception as proc_error:
+                print(f"ERRO PROCESSAMENTO: {proc_error}")
+                continue
         
-        print(f"UNIFIED LEGENDAS API: {response_data['total']} legendas, categoria={categoria or 'todas'}")
+        print(f"POSTGRESQL LEGENDAS: {response_data['total']} legendas reais, categoria={categoria or 'todas'}")
         
         # Criar resposta JSON
         response = jsonify(response_data)
