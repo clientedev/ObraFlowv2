@@ -981,31 +981,20 @@ class FabricPhotoEditor {
         
         console.log('📱 Input e overlay adicionados ao DOM');
         
-        // MULTIPLE ATTEMPTS para garantir foco
-        const focusAttempts = [
-            () => input.focus(),
-            () => input.click(),
-            () => {
-                input.focus();
-                input.setSelectionRange(0, input.value.length);
-            },
-            () => {
-                input.focus();
-                input.select();
-            }
-        ];
-        
-        // Tentar foco imediato
-        focusAttempts.forEach((attempt, index) => {
-            setTimeout(attempt, index * 50);
-        });
-        
-        // Tentar foco após delays maiores
+        // Foco mais simples e direto
         setTimeout(() => {
             input.focus();
             input.select();
-            console.log('📱 Foco tardio aplicado');
-        }, 300);
+            console.log('📱 Input focado após timeout');
+        }, 100);
+        
+        // Segundo foco para garantia
+        setTimeout(() => {
+            if (document.getElementById('mobile-text-edit')) {
+                input.focus();
+                console.log('📱 Segundo foco aplicado');
+            }
+        }, 500);
         
         console.log('📱 Input criado e múltiplas tentativas de foco executadas');
         
@@ -1028,28 +1017,29 @@ class FabricPhotoEditor {
             }
         });
         
-        // Finalizar quando perder foco
-        input.addEventListener('blur', () => {
-            console.log('📱 Input perdeu foco, finalizando edição');
-            setTimeout(() => {
+        // REMOVIDO: evento blur que estava causando o desaparecimento
+        // O input agora só desaparece com Enter ou clique no overlay
+        
+        // Fechar ao clicar no overlay (mas não no input)
+        overlay.addEventListener('click', (e) => {
+            // Verificar se o clique foi realmente no overlay e não no input
+            if (e.target === overlay) {
+                console.log('📱 Overlay clicado, finalizando edição');
                 textObject.text = input.value;
                 this.canvas.renderAll();
-                if (document.getElementById('mobile-text-edit')) {
-                    input.remove();
-                }
-                if (document.getElementById('mobile-text-overlay')) {
-                    overlay.remove();
-                }
-            }, 200);
+                input.remove();
+                overlay.remove();
+            }
         });
         
-        // Fechar ao clicar no overlay
-        overlay.addEventListener('click', () => {
-            console.log('📱 Overlay clicado, finalizando edição');
-            textObject.text = input.value;
-            this.canvas.renderAll();
-            input.remove();
-            overlay.remove();
+        // Prevenir que cliques no input fechem o modal
+        input.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log('📱 Input clicado - mantendo aberto');
+        });
+        
+        input.addEventListener('focus', () => {
+            console.log('📱 Input recebeu foco - mantendo aberto');
         });
     }
     
