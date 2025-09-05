@@ -382,8 +382,7 @@ function salvarNovoItem() {
     fetch('/admin/checklist-padrao/add', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ texto: texto })
     })
@@ -483,10 +482,7 @@ function removerItem(itemId) {
     console.log('Removendo item:', itemId);
     
     fetch('/admin/checklist-padrao/delete/' + itemId, {
-        method: 'DELETE',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token() }}'
-        }
+        method: 'DELETE'
     })
     .then(response => response.json())
     .then(data => {
@@ -524,8 +520,7 @@ function salvarOrdem() {
     fetch('/admin/checklist-padrao/reorder', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ items: items })
     })
