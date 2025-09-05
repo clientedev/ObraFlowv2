@@ -860,81 +860,168 @@ class FabricPhotoEditor {
     // =================== UTILS ===================
     
     editText(textObject) {
-        // MOBILE: Criar input simples como nos formulários
-        if (this.isMobile || this.isTouch) {
+        console.log('📱 Editando texto - isMobile:', this.isMobile, 'isTouch:', this.isTouch, 'userAgent:', navigator.userAgent);
+        
+        // FORÇA SEMPRE O INPUT MÓVEL PARA TESTE
+        // Detectar dispositivos móveis de forma mais robusta
+        const isMobileDevice = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                              ('ontouchstart' in window) ||
+                              (navigator.maxTouchPoints > 0) ||
+                              (window.innerWidth <= 768);
+        
+        console.log('📱 Detecção mobile:', isMobileDevice);
+        
+        if (isMobileDevice) {
+            console.log('📱 Criando input móvel');
             this.createSimpleMobileInput(textObject);
             return;
         }
         
         // DESKTOP: Usar edição normal do Fabric.js
+        console.log('🖥️ Usando edição desktop');
         this.canvas.setActiveObject(textObject);
         textObject.enterEditing();
         textObject.selectAll();
     }
     
     createSimpleMobileInput(textObject) {
+        console.log('📱 Criando input móvel simples');
+        
         // Remover input anterior se existir
         const existingInput = document.getElementById('mobile-text-edit');
         if (existingInput) {
             existingInput.remove();
+            console.log('📱 Input anterior removido');
         }
         
         // Criar input simples como nos formulários
         const input = document.createElement('input');
         input.type = 'text';
         input.id = 'mobile-text-edit';
-        input.value = textObject.text || '';
+        input.value = textObject.text === 'Digite aqui' ? '' : (textObject.text || '');
         input.placeholder = 'Digite o texto';
+        input.autocomplete = 'off';
+        input.autocorrect = 'off';
+        input.autocapitalize = 'off';
+        input.spellcheck = false;
         
-        // Estilo igual aos inputs de formulário
+        // Estilo que FORÇA visibilidade e funcionalidade
         input.style.cssText = `
             position: fixed !important;
-            left: 20px !important;
-            right: 20px !important;
+            left: 10px !important;
+            right: 10px !important;
             bottom: 20px !important;
             z-index: 999999 !important;
-            background: white !important;
-            border: 2px solid #007bff !important;
-            border-radius: 8px !important;
-            padding: 15px !important;
-            font-size: 16px !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+            background: #ffffff !important;
+            border: 3px solid #007bff !important;
+            border-radius: 12px !important;
+            padding: 16px 20px !important;
+            font-size: 18px !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4) !important;
             outline: none !important;
+            color: #333 !important;
+            max-width: none !important;
+            min-height: 50px !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: block !important;
+            touch-action: manipulation !important;
+            -webkit-user-select: text !important;
+            user-select: text !important;
+            -webkit-appearance: none !important;
+            appearance: none !important;
         `;
         
-        // Adicionar ao body
+        // Criar overlay para destacar
+        const overlay = document.createElement('div');
+        overlay.id = 'mobile-text-overlay';
+        overlay.style.cssText = `
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            background: rgba(0,0,0,0.5) !important;
+            z-index: 999998 !important;
+            display: block !important;
+        `;
+        
+        // Adicionar overlay primeiro, depois input
+        document.body.appendChild(overlay);
         document.body.appendChild(input);
         
-        // Focar imediatamente para abrir teclado
-        input.focus();
-        input.select();
+        console.log('📱 Input e overlay adicionados ao DOM');
         
-        console.log('📱 Input mobile criado e focado');
+        // MULTIPLE ATTEMPTS para garantir foco
+        const focusAttempts = [
+            () => input.focus(),
+            () => input.click(),
+            () => {
+                input.focus();
+                input.setSelectionRange(0, input.value.length);
+            },
+            () => {
+                input.focus();
+                input.select();
+            }
+        ];
+        
+        // Tentar foco imediato
+        focusAttempts.forEach((attempt, index) => {
+            setTimeout(attempt, index * 50);
+        });
+        
+        // Tentar foco após delays maiores
+        setTimeout(() => {
+            input.focus();
+            input.select();
+            console.log('📱 Foco tardio aplicado');
+        }, 300);
+        
+        console.log('📱 Input criado e múltiplas tentativas de foco executadas');
         
         // Atualizar texto em tempo real
-        input.addEventListener('input', () => {
-            textObject.text = input.value;
+        input.addEventListener('input', (e) => {
+            console.log('📱 Input changed:', e.target.value);
+            textObject.text = e.target.value;
             this.canvas.renderAll();
         });
         
         // Finalizar com Enter
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
+                e.preventDefault();
+                console.log('📱 Enter pressionado, finalizando edição');
                 textObject.text = input.value;
                 this.canvas.renderAll();
                 input.remove();
+                overlay.remove();
             }
         });
         
         // Finalizar quando perder foco
         input.addEventListener('blur', () => {
+            console.log('📱 Input perdeu foco, finalizando edição');
             setTimeout(() => {
                 textObject.text = input.value;
                 this.canvas.renderAll();
                 if (document.getElementById('mobile-text-edit')) {
                     input.remove();
                 }
-            }, 100);
+                if (document.getElementById('mobile-text-overlay')) {
+                    overlay.remove();
+                }
+            }, 200);
+        });
+        
+        // Fechar ao clicar no overlay
+        overlay.addEventListener('click', () => {
+            console.log('📱 Overlay clicado, finalizando edição');
+            textObject.text = input.value;
+            this.canvas.renderAll();
+            input.remove();
+            overlay.remove();
         });
     }
     
