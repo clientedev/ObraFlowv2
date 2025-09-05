@@ -61,13 +61,13 @@ class PWAInstaller {
         installBtn.id = 'pwa-install-btn';
         installBtn.innerHTML = `
             <div class="alert alert-info alert-dismissible fade show position-fixed" 
-                 style="top: 70px; right: 15px; z-index: 9999; max-width: 320px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                 style="bottom: 20px; left: 20px; z-index: 9999; max-width: 350px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 12px;">
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 <div class="d-flex align-items-center">
                     <i class="fas fa-download fa-2x text-primary me-3"></i>
                     <div>
-                        <h6 class="mb-1"><strong>Instalar ELP App</strong></h6>
-                        <p class="mb-2 small">Instale nosso app para acesso rápido e melhor experiência</p>
+                        <h6 class="mb-1"><strong>📱 Instalar ELP App</strong></h6>
+                        <p class="mb-2 small">Instale nosso app para acesso rápido e melhor experiência mobile</p>
                         <button id="install-pwa-btn" class="btn btn-primary btn-sm">
                             <i class="fas fa-download me-1"></i>Instalar Agora
                         </button>
@@ -124,13 +124,13 @@ class PWAInstaller {
         const successMsg = document.createElement('div');
         successMsg.innerHTML = `
             <div class="alert alert-success alert-dismissible fade show position-fixed" 
-                 style="top: 70px; right: 15px; z-index: 9999; max-width: 320px;">
+                 style="bottom: 20px; left: 20px; z-index: 9999; max-width: 350px; border-radius: 12px;">
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 <div class="d-flex align-items-center">
                     <i class="fas fa-check-circle fa-2x text-success me-3"></i>
                     <div>
-                        <h6 class="mb-1"><strong>App Instalado!</strong></h6>
-                        <p class="mb-0 small">ELP App foi instalado com sucesso</p>
+                        <h6 class="mb-1"><strong>✅ App Instalado!</strong></h6>
+                        <p class="mb-0 small">ELP App foi instalado com sucesso no seu dispositivo</p>
                     </div>
                 </div>
             </div>
