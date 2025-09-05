@@ -3135,6 +3135,130 @@ def developer_checklist_reorder():
         print(f"Erro ao reordenar checklist: {e}")
         return jsonify({'error': f'Erro interno: {str(e)}'}), 500
 
+# ====== ADMIN ROUTES FOR CHECKLIST (equivalentes às developer) ======
+
+@app.route('/admin/checklist-padrao/add', methods=['POST'])
+@login_required
+@csrf.exempt
+def admin_checklist_add():
+    """Adicionar novo item ao checklist padrão (admin)"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        data = request.get_json()
+        texto = data.get('texto', '').strip()
+        
+        if not texto:
+            return jsonify({'error': 'Texto é obrigatório'}), 400
+        
+        # Get next order
+        ultimo_item = ChecklistPadrao.query.order_by(ChecklistPadrao.ordem.desc()).first()
+        nova_ordem = (ultimo_item.ordem + 1) if ultimo_item else 1
+        
+        novo_item = ChecklistPadrao(
+            texto=texto,
+            ordem=nova_ordem,
+            ativo=True
+        )
+        
+        db.session.add(novo_item)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Item adicionado com sucesso',
+            'item': {
+                'id': novo_item.id,
+                'texto': novo_item.texto,
+                'ordem': novo_item.ordem
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
+@app.route('/admin/checklist-padrao/edit/<int:item_id>', methods=['PUT'])
+@login_required
+@csrf.exempt
+def admin_checklist_edit(item_id):
+    """Editar item do checklist padrão (admin)"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        item = ChecklistPadrao.query.get_or_404(item_id)
+        
+        data = request.get_json()
+        novo_texto = data.get('texto', '').strip()
+        
+        if not novo_texto:
+            return jsonify({'error': 'Texto é obrigatório'}), 400
+        
+        item.texto = novo_texto
+        item.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
+@app.route('/admin/checklist-padrao/delete/<int:item_id>', methods=['DELETE'])
+@login_required
+@csrf.exempt
+def admin_checklist_delete(item_id):
+    """Remover item do checklist padrão (admin)"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        item = ChecklistPadrao.query.get_or_404(item_id)
+        
+        # Marcar como inativo em vez de deletar fisicamente
+        item.ativo = False
+        item.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
+@app.route('/admin/checklist-padrao/reorder', methods=['POST'])
+@login_required
+@csrf.exempt
+def admin_checklist_reorder():
+    """Reordenar itens do checklist padrão (admin)"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        data = request.get_json()
+        items = data.get('items', [])
+        
+        for item_data in items:
+            item_id = item_data.get('id')
+            nova_ordem = item_data.get('ordem')
+            
+            if item_id and nova_ordem:
+                item = ChecklistPadrao.query.get(item_id)
+                if item:
+                    item.ordem = nova_ordem
+                    item.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
 @app.route('/api/checklist-padrao')
 @login_required
 def api_checklist_padrao():
