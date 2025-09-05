@@ -63,7 +63,7 @@ class PWAInstaller {
             <div class="position-fixed" 
                  style="bottom: 20px; left: 20px; z-index: 9999; max-width: 380px;">
                 <div class="card shadow-lg border-0" 
-                     style="border-radius: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; animation: slideInLeft 0.6s ease-out;">
+                     style="border-radius: 20px; background: linear-gradient(135deg, #343a40 0%, #20c1e8 100%); color: white; animation: slideInLeft 0.6s ease-out;">
                     <button type="button" class="btn-close btn-close-white position-absolute" 
                             style="top: 12px; right: 12px; z-index: 10; opacity: 0.8;" 
                             onclick="this.closest('.position-fixed').remove()"></button>
@@ -75,24 +75,25 @@ class PWAInstaller {
                                 <i class="fas fa-mobile-alt fa-2x text-white"></i>
                             </div>
                             <div>
-                                <h5 class="mb-1 fw-bold text-white">📱 Instalar ELP App</h5>
-                                <small class="text-white-50">Versão Mobile Otimizada</small>
+                                <h5 class="mb-1 fw-bold text-white">📱 ELP Consultoria</h5>
+                                <small class="text-white-50">Sistema de Vistorias Mobile</small>
                             </div>
                         </div>
                         
                         <p class="mb-3 text-white-75" style="font-size: 14px; line-height: 1.4;">
-                            ✨ Acesso offline<br>
-                            🚀 Carregamento mais rápido<br>
-                            🎯 Interface otimizada para mobile
+                            🏗️ Gestão de vistorias<br>
+                            📋 Relatórios profissionais<br>
+                            📷 Editor de fotos integrado<br>
+                            🔧 Acesso offline completo
                         </p>
                         
-                        <button id="install-pwa-btn" class="btn btn-light btn-lg w-100 fw-bold" 
-                                style="border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: all 0.3s ease;">
-                            <i class="fas fa-download me-2"></i>Instalar Agora
+                        <button id="install-pwa-btn" class="btn btn-lg w-100 fw-bold" 
+                                style="border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: all 0.3s ease; background: #20c1e8; border: none; color: white;">
+                            <i class="fas fa-download me-2"></i>Instalar Sistema ELP
                         </button>
                         
                         <div class="text-center mt-2">
-                            <small class="text-white-50">⚡ Instalação rápida e segura</small>
+                            <small class="text-white-50">⚡ ELP Consultoria e Engenharia</small>
                         </div>
                     </div>
                 </div>
@@ -112,8 +113,8 @@ class PWAInstaller {
                 
                 #install-pwa-btn:hover {
                     transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important;
-                    background: #f8f9fa !important;
+                    box-shadow: 0 6px 20px rgba(32,193,232,0.3) !important;
+                    background: #1aa8c7 !important;
                 }
                 
                 .text-white-75 {
@@ -176,7 +177,7 @@ class PWAInstaller {
             <div class="position-fixed" 
                  style="bottom: 20px; left: 20px; z-index: 9999; max-width: 380px;">
                 <div class="card shadow-lg border-0" 
-                     style="border-radius: 20px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; animation: bounceIn 0.8s ease-out;">
+                     style="border-radius: 20px; background: linear-gradient(135deg, #20c1e8 0%, #20c997 100%); color: white; animation: bounceIn 0.8s ease-out;">
                     <button type="button" class="btn-close btn-close-white position-absolute" 
                             style="top: 12px; right: 12px; z-index: 10; opacity: 0.8;" 
                             onclick="this.closest('.position-fixed').remove()"></button>
@@ -189,16 +190,16 @@ class PWAInstaller {
                             </div>
                             
                             <h4 class="mb-2 fw-bold text-white">🎉 Sucesso!</h4>
-                            <h6 class="mb-0 text-white-75">ELP App Instalado</h6>
+                            <h6 class="mb-0 text-white-75">Sistema ELP Instalado</h6>
                         </div>
                         
                         <p class="mb-3 text-white-75" style="font-size: 14px;">
-                            Agora você pode acessar o app diretamente da tela inicial do seu dispositivo!
+                            Agora você pode acessar o Sistema ELP diretamente da tela inicial do seu dispositivo!
                         </p>
                         
                         <div class="d-flex align-items-center justify-content-center text-white-50">
-                            <i class="fas fa-mobile-alt me-2"></i>
-                            <small>Procure pelo ícone ELP na sua tela inicial</small>
+                            <i class="fas fa-hard-hat me-2"></i>
+                            <small>Procure pelo ícone "ELP Consultoria" na sua tela inicial</small>
                         </div>
                     </div>
                 </div>
