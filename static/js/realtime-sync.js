@@ -205,35 +205,8 @@ class RealTimeSync {
     }
     
     showSyncNotification(count) {
-        // Notificação sutil de atualização
-        const notification = document.createElement('div');
-        notification.className = 'sync-notification';
-        notification.innerHTML = `
-            <i class="fas fa-sync-alt"></i> 
-            ${count} legendas sincronizadas
-        `;
-        notification.style.cssText = `
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: #20c1e8;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            z-index: 9999;
-            opacity: 0.9;
-            pointer-events: none;
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Remover após 2 segundos
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 2000);
+        // Notificação removida - apenas log console para debug
+        console.log(`🔄 REAL-TIME SYNC: ${count} legendas fresh do PostgreSQL`);
     }
     
     handleSyncError(error) {
