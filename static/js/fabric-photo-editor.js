@@ -191,21 +191,41 @@ class FabricPhotoEditor {
         
         // MOBILE: Capturar quando texto entra em modo de edição automaticamente
         this.canvas.on('text:editing:entered', (e) => {
-            console.log('📱 Texto entrou em modo de edição');
+            console.log('📱 EVENTO CAPTURADO: Texto entrou em modo de edição');
             const textObject = e.target;
             if (textObject && (textObject.type === 'i-text' || textObject.type === 'text')) {
-                // Detectar se é mobile e forçar teclado
-                const isMobileDevice = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                                      ('ontouchstart' in window) ||
-                                      (navigator.maxTouchPoints > 0) ||
-                                      (window.innerWidth <= 768);
+                // ANÁLISE PROFUNDA: Detectar mobile com logs detalhados
+                const userAgent = navigator.userAgent;
+                const hasTouch = 'ontouchstart' in window;
+                const maxTouchPoints = navigator.maxTouchPoints > 0;
+                const screenWidth = window.innerWidth <= 768;
+                
+                console.log('📱 ANÁLISE MOBILE:', {
+                    userAgent,
+                    hasTouch,
+                    maxTouchPoints,
+                    screenWidth,
+                    navigator: navigator
+                });
+                
+                const isMobileDevice = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) ||
+                                      hasTouch ||
+                                      maxTouchPoints ||
+                                      screenWidth;
+                
+                console.log('📱 DECISÃO MOBILE:', isMobileDevice);
                 
                 if (isMobileDevice) {
-                    console.log('📱 Texto selecionado em mobile - abrindo teclado automaticamente');
+                    console.log('📱 MOBILE DETECTADO - Criando input customizado');
+                    // Cancelar edição padrão do Fabric.js
+                    textObject.exitEditing();
+                    
                     // Aguardar um pouco para garantir que o Fabric.js processou
                     setTimeout(() => {
                         this.createSimpleMobileInput(textObject);
-                    }, 100);
+                    }, 50);
+                } else {
+                    console.log('📱 DESKTOP DETECTADO - Permitindo edição normal');
                 }
             }
         });
@@ -906,7 +926,12 @@ class FabricPhotoEditor {
     }
     
     createSimpleMobileInput(textObject) {
-        console.log('📱 Criando input móvel simples');
+        console.log('📱 ===== INICIANDO CRIAÇÃO DO INPUT MÓVEL =====');
+        console.log('📱 textObject:', textObject);
+        console.log('📱 textObject.text:', textObject.text);
+        console.log('📱 Window dimensions:', window.innerWidth, 'x', window.innerHeight);
+        console.log('📱 Document body:', document.body);
+        console.log('📱 Viewport:', document.documentElement.clientWidth, 'x', document.documentElement.clientHeight);
         
         // Remover input anterior se existir
         const existingInput = document.getElementById('mobile-text-edit');
@@ -991,14 +1016,44 @@ class FabricPhotoEditor {
         // Adicionar overlay primeiro
         document.body.appendChild(overlay);
         
-        console.log('📱 Input e overlay adicionados ao DOM');
+        console.log('📱 ===== ADICIONANDO ELEMENTOS AO DOM =====');
+        console.log('📱 Overlay adicionado:', overlay);
+        console.log('📱 Input será adicionado:', input);
+        console.log('📱 Body children antes:', document.body.children.length);
+        
+        // Adicionar input ao body
+        document.body.appendChild(input);
+        
+        console.log('📱 Body children depois:', document.body.children.length);
+        console.log('📱 Input no DOM:', document.getElementById('mobile-text-edit'));
         console.log('📱 DEBUGGING - Posição do input:', {
             position: input.style.position,
             zIndex: input.style.zIndex,
             bottom: input.style.bottom,
             visibility: input.style.visibility,
-            display: input.style.display
+            display: input.style.display,
+            rect: input.getBoundingClientRect()
         });
+        
+        // TESTE EXTREMO: Adicionar input visível na tela TODA para debug
+        const debugInput = document.createElement('input');
+        debugInput.id = 'debug-input';
+        debugInput.value = 'DEBUG - SE VOCÊ VER ISSO, O PROBLEMA NÃO É VISIBILIDADE';
+        debugInput.style.cssText = `
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            z-index: 2147483647 !important;
+            background: red !important;
+            border: 5px solid yellow !important;
+            padding: 20px !important;
+            font-size: 24px !important;
+            color: white !important;
+        `;
+        document.body.appendChild(debugInput);
+        
+        console.log('📱 DEBUG INPUT ADICIONADO - Se você não ver, há problema no DOM');
         
         // FORÇA TECLADO - Múltiplas tentativas agressivas
         const forceKeyboard = () => {
