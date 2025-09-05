@@ -57,27 +57,6 @@ input, textarea, select, [contenteditable="true"] {
     user-select: none;
 }
 
-/* CORREÇÃO: Área de seleção de categorias de fotos deve ter scroll vertical */
-.photo-categories, .category-selector, .photo-category-list {
-    touch-action: pan-y !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: contain !important;
-}
-
-/* Seção de fotos completa - permitir scroll */
-.fotos-section, .photos-container, [class*="foto"], [class*="photo"] {
-    touch-action: pan-y !important;
-    -webkit-overflow-scrolling: touch !important;
-}
-
-/* Container principal de formulários - permitir scroll total */
-.form-container, .report-form, .express-form {
-    touch-action: auto !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-}
-
 /* Botões com área de toque adequada */
 @media (max-width: 767.98px) {
     .btn, .tool-btn {
