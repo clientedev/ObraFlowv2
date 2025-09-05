@@ -284,8 +284,8 @@ window.MobileUtils = {
 };
 
 // CSS de touch removido - sem animações nos cards
-const mobileUtilsStyle = document.createElement('style');
-mobileUtilsStyle.textContent = `
+const style = document.createElement('style');
+style.textContent = `
     /* Touch feedback removido */
     
     @keyframes ripple {
@@ -302,7 +302,7 @@ mobileUtilsStyle.textContent = `
         }
     }
 `;
-document.head.appendChild(mobileUtilsStyle);
+document.head.appendChild(style);
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {

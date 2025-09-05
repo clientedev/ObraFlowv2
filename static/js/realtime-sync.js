@@ -260,8 +260,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // CSS para notificações
-const realtimeSyncStyle = document.createElement('style');
-realtimeSyncStyle.textContent = `
+const style = document.createElement('style');
+style.textContent = `
     .sync-notification {
         animation: slideIn 0.3s ease-out;
     }
@@ -277,4 +277,4 @@ realtimeSyncStyle.textContent = `
         }
     }
 `;
-document.head.appendChild(realtimeSyncStyle);
+document.head.appendChild(style);
