@@ -178,6 +178,14 @@ class FabricPhotoEditor {
             this.saveState();
         });
         
+        // MOBILE: Evento de clique duplo em texto para abrir teclado
+        this.canvas.on('mouse:dblclick', (e) => {
+            if (e.target && (e.target.type === 'i-text' || e.target.type === 'text')) {
+                console.log('📱 Clique duplo em texto - forçando teclado móvel');
+                this.editText(e.target);
+            }
+        });
+        
         // Prevenção de contexto mobile
         this.canvas.on('mouse:down', (e) => {
             if (this.isTouch) {
@@ -844,8 +852,36 @@ class FabricPhotoEditor {
     // =================== UTILS ===================
     
     editText(textObject) {
+        // Entrar em modo de edição
         textObject.enterEditing();
         textObject.selectAll();
+        
+        // MOBILE: Forçar aparecimento do teclado virtual
+        if (this.isMobile || this.isTouch) {
+            // Aguardar o fabric.js processar a entrada em edição
+            setTimeout(() => {
+                // Encontrar o elemento de texto do Fabric.js
+                const textareaElement = this.canvas.upperCanvasEl.parentNode.querySelector('textarea');
+                
+                if (textareaElement) {
+                    // Forçar foco e seleção no elemento de texto
+                    textareaElement.focus();
+                    textareaElement.select();
+                    
+                    // Métodos adicionais para garantir o teclado em diferentes dispositivos
+                    textareaElement.click();
+                    
+                    // Para iOS: disparar evento de input
+                    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                        textareaElement.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    
+                    console.log('📱 Teclado móvel forçado para aparecer');
+                } else {
+                    console.log('⚠️ Elemento textarea do Fabric.js não encontrado');
+                }
+            }, 100);
+        }
     }
     
     showContextMenu(e) {
