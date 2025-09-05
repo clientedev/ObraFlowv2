@@ -860,27 +860,59 @@ class FabricPhotoEditor {
         if (this.isMobile || this.isTouch) {
             // Aguardar o fabric.js processar a entrada em edição
             setTimeout(() => {
-                // Encontrar o elemento de texto do Fabric.js
-                const textareaElement = this.canvas.upperCanvasEl.parentNode.querySelector('textarea');
+                // Procurar por vários possíveis elementos de input do Fabric.js
+                const canvasWrapper = this.canvas.upperCanvasEl.parentNode;
+                let inputElement = canvasWrapper.querySelector('textarea') ||
+                                 canvasWrapper.querySelector('input[type="text"]') ||
+                                 canvasWrapper.querySelector('.canvas-container textarea') ||
+                                 canvasWrapper.querySelector('.canvas-container input');
                 
-                if (textareaElement) {
-                    // Forçar foco e seleção no elemento de texto
-                    textareaElement.focus();
-                    textareaElement.select();
+                if (inputElement) {
+                    // Remover temporariamente readonly se houver
+                    const wasReadOnly = inputElement.readOnly;
+                    inputElement.readOnly = false;
                     
-                    // Métodos adicionais para garantir o teclado em diferentes dispositivos
-                    textareaElement.click();
+                    // Configurar para mobile
+                    inputElement.style.fontSize = '16px'; // Prevent zoom on iOS
+                    inputElement.style.position = 'absolute';
+                    inputElement.style.opacity = '1';
+                    inputElement.style.pointerEvents = 'auto';
                     
-                    // Para iOS: disparar evento de input
+                    // Forçar foco múltiplas vezes para garantir
+                    inputElement.focus();
+                    inputElement.click();
+                    inputElement.select();
+                    
+                    // Métodos específicos para diferentes dispositivos
                     if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                        textareaElement.dispatchEvent(new Event('input', { bubbles: true }));
+                        // iOS precisa de evento input
+                        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+                        inputElement.dispatchEvent(new Event('touchstart', { bubbles: true }));
+                    } else if (/Android/.test(navigator.userAgent)) {
+                        // Android pode precisar de focus diferente
+                        inputElement.dispatchEvent(new Event('focus', { bubbles: true }));
                     }
                     
-                    console.log('📱 Teclado móvel forçado para aparecer');
+                    // Restaurar readonly se era readonly antes
+                    if (wasReadOnly) {
+                        setTimeout(() => { inputElement.readOnly = wasReadOnly; }, 50);
+                    }
+                    
+                    console.log('📱 Teclado móvel forçado - elemento encontrado:', inputElement.tagName);
                 } else {
-                    console.log('⚠️ Elemento textarea do Fabric.js não encontrado');
+                    console.log('⚠️ Nenhum elemento de input do Fabric.js encontrado');
+                    
+                    // Fallback: criar input temporário para forçar teclado
+                    const tempInput = document.createElement('input');
+                    tempInput.style.position = 'absolute';
+                    tempInput.style.left = '-9999px';
+                    tempInput.style.fontSize = '16px';
+                    document.body.appendChild(tempInput);
+                    tempInput.focus();
+                    setTimeout(() => document.body.removeChild(tempInput), 1000);
+                    console.log('📱 Fallback: input temporário criado');
                 }
-            }, 100);
+            }, 150); // Aumentar delay para 150ms
         }
     }
     
