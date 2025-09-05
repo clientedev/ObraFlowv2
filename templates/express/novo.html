@@ -926,19 +926,24 @@ function loadLegends(photoId, category) {
         {"categoria": "Segurança", "texto": "Pendente tratamentos dos ganchos cortados com pintura anti-corrosiva tipo zarcão"}
     ];
     
-    // Carregar direto da API PostgreSQL
-    selectElement.innerHTML = '<option value="">Carregando...</option>';
+    // MOBILE DEBUG: Carregar legendas com fallback robusto
+    selectElement.innerHTML = '<option value="">🔍 Conectando...</option>';
+    console.log('🔍 MOBILE DEBUG: Iniciando carregamento de legendas');
     
+    // Tentar primeira opção: API PostgreSQL
     const xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/legendas?categoria=all', true);
-    xhr.timeout = 10000;
+    xhr.timeout = 15000; // Aumentado para mobile
     
     xhr.onload = function() {
+        console.log('🔍 MOBILE DEBUG: API respondeu com status:', xhr.status);
         if (xhr.status === 200) {
             try {
                 const data = JSON.parse(xhr.responseText);
+                console.log('🔍 MOBILE DEBUG: Dados recebidos:', data);
+                
                 if (data.success && data.legendas && data.legendas.length > 0) {
-                    selectElement.innerHTML = '<option value="">Selecione uma legenda...</option>';
+                    selectElement.innerHTML = '<option value="">✅ Selecione uma legenda...</option>';
                     
                     const cats = {
                         'Acabamentos': [],
@@ -968,26 +973,72 @@ function loadLegends(photoId, category) {
                             selectElement.appendChild(optgroup);
                         }
                     });
+                    
+                    console.log('✅ MOBILE DEBUG: Legendas carregadas da API com sucesso!');
                 } else {
-                    selectElement.innerHTML = '<option value="">Erro: nenhuma legenda encontrada</option>';
+                    console.warn('⚠️ MOBILE DEBUG: API sem dados válidos');
+                    usarLegendasFixas(selectElement, legendas, 'API_SEM_DADOS');
                 }
             } catch (e) {
-                selectElement.innerHTML = '<option value="">Erro: formato inválido</option>';
+                console.error('❌ MOBILE DEBUG: Erro JSON:', e);
+                usarLegendasFixas(selectElement, legendas, 'ERRO_JSON');
             }
         } else {
-            selectElement.innerHTML = '<option value="">Erro: servidor indisponível</option>';
+            console.warn('⚠️ MOBILE DEBUG: Status não 200:', xhr.status);
+            usarLegendasFixas(selectElement, legendas, 'STATUS_ERRO');
         }
     };
     
     xhr.onerror = function() {
-        selectElement.innerHTML = '<option value="">Erro: falha de rede</option>';
+        console.error('❌ MOBILE DEBUG: Erro de rede');
+        usarLegendasFixas(selectElement, legendas, 'REDE_ERRO');
     };
     
     xhr.ontimeout = function() {
-        selectElement.innerHTML = '<option value="">Erro: tempo esgotado</option>';
+        console.error('❌ MOBILE DEBUG: Timeout');
+        usarLegendasFixas(selectElement, legendas, 'TIMEOUT');
     };
     
     xhr.send();
+    console.log('🔍 MOBILE DEBUG: Requisição enviada');
+}
+
+// MOBILE FALLBACK: Função para usar legendas fixas quando API falha
+function usarLegendasFixas(selectElement, legendas, motivo) {
+    console.log('🛠️ MOBILE FALLBACK: Usando legendas fixas. Motivo:', motivo);
+    
+    selectElement.innerHTML = '<option value="">⚙️ Selecione uma legenda (modo local)...</option>';
+    
+    const cats = {
+        'Acabamentos': [],
+        'Estrutural': [],
+        'Geral': [],
+        'Segurança': []
+    };
+    
+    legendas.forEach(leg => {
+        if (cats[leg.categoria]) {
+            cats[leg.categoria].push(leg);
+        }
+    });
+    
+    Object.keys(cats).forEach(cat => {
+        if (cats[cat].length > 0) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = cat + ' (LOCAL - ' + cats[cat].length + ' itens)';
+            
+            cats[cat].forEach(legenda => {
+                const option = document.createElement('option');
+                option.value = legenda.texto;
+                option.textContent = legenda.texto;
+                optgroup.appendChild(option);
+            });
+            
+            selectElement.appendChild(optgroup);
+        }
+    });
+    
+    console.log('✅ MOBILE FALLBACK: Legendas fixas carregadas com sucesso!');
 }
 
 // Atualizar configuração da foto
