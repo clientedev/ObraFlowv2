@@ -30,12 +30,8 @@
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512x512.png') }}">
     
-    <!-- DISABLE OFFLINE - PostgreSQL ONLY -->
-    <script src="{{ url_for('static', filename='js/disable-offline-mobile.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/postgresql-only.js') }}"></script>
-    
-    <!-- DEBUG USER SESSION -->
-    <script src="{{ url_for('static', filename='js/debug-user-session.js') }}"></script>
+    <!-- FORCE DATABASE SYNC - Remove dados locais -->
+    <script src="{{ url_for('static', filename='js/force-database-sync.js') }}"></script>
     
     <!-- Mobile Utilities -->
     <script src="{{ url_for('static', filename='js/mobile-utils.js') }}" defer></script>
