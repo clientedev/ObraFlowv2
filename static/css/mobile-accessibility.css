@@ -40,6 +40,25 @@
     transition: border-color 0.1s ease !important;
 }
 
+/* MOBILE INPUT OVERLAY - PERMITIR TOTAL INTERAÇÃO */
+#mobile-text-overlay,
+#mobile-text-overlay * {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+    -webkit-touch-callout: default !important;
+    touch-action: manipulation !important;
+    pointer-events: auto !important;
+}
+
+#mobile-text-overlay input {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    -webkit-user-select: text !important;
+    user-select: text !important;
+    font-size: 18px !important;
+    zoom: 1 !important;
+}
+
 /* Tabelas - SCROLL horizontal SEM conflitos */
 .table-responsive {
     -webkit-user-select: none !important;

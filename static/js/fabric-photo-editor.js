@@ -1,3 +1,4 @@
+
 /**
  * Editor de Fotos Professional com Fabric.js
  * Otimizado para Mobile - Experiência Figma-like
@@ -33,6 +34,10 @@ class FabricPhotoEditor {
         this.lastDistance = 0;
         this.isMultiTouch = false;
         
+        // NOVO: Controle de input mobile
+        this.mobileInputActive = false;
+        this.currentEditingText = null;
+        
         this.init();
     }
     
@@ -62,8 +67,8 @@ class FabricPhotoEditor {
             this.setupMobileOptimizations();
             this.setupKeyboardShortcuts();
             
-            // MOBILE: Garantir compatibilidade do textarea
-            this.ensureMobileTextareaCompatibility();
+            // MOBILE: Sistema de input melhorado
+            this.setupMobileTextSystem();
             
             // Salvar estado inicial
             this.saveState();
@@ -181,61 +186,292 @@ class FabricPhotoEditor {
             this.saveState();
         });
         
-        // MOBILE: Evento de clique duplo em texto para abrir teclado
+        // MOBILE: Clique duplo em texto - INTERCEPTAR ANTES DO FABRIC.JS
         this.canvas.on('mouse:dblclick', (e) => {
             if (e.target && (e.target.type === 'i-text' || e.target.type === 'text')) {
-                console.log('📱 Clique duplo em texto - forçando teclado móvel');
-                this.editText(e.target);
+                console.log('📱 Clique duplo detectado - iniciando edição mobile');
+                // BLOQUEAR edição padrão do Fabric.js
+                e.e.preventDefault();
+                e.e.stopPropagation();
+                
+                // Usar nosso sistema mobile
+                this.startMobileTextEdit(e.target);
+                return false;
             }
         });
         
-        // MOBILE: Capturar quando texto entra em modo de edição automaticamente
+        // INTERCEPTAR evento de edição do Fabric.js
         this.canvas.on('text:editing:entered', (e) => {
-            console.log('📱 EVENTO CAPTURADO: Texto entrou em modo de edição');
+            console.log('📱 INTERCEPTANDO edição do Fabric.js');
             const textObject = e.target;
-            if (textObject && (textObject.type === 'i-text' || textObject.type === 'text')) {
-                // ANÁLISE PROFUNDA: Detectar mobile com logs detalhados
-                const userAgent = navigator.userAgent;
-                const hasTouch = 'ontouchstart' in window;
-                const maxTouchPoints = navigator.maxTouchPoints > 0;
-                const screenWidth = window.innerWidth <= 768;
+            
+            // Se for mobile, cancelar e usar nosso sistema
+            if (this.detectMobileDevice()) {
+                console.log('📱 Mobile detectado - cancelando edição padrão');
                 
-                console.log('📱 ANÁLISE MOBILE:', {
-                    userAgent,
-                    hasTouch,
-                    maxTouchPoints,
-                    screenWidth,
-                    navigator: navigator
-                });
-                
-                const isMobileDevice = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) ||
-                                      hasTouch ||
-                                      maxTouchPoints ||
-                                      screenWidth;
-                
-                console.log('📱 DECISÃO MOBILE:', isMobileDevice);
-                
-                if (isMobileDevice) {
-                    console.log('📱 MOBILE DETECTADO - Criando input customizado');
-                    // Cancelar edição padrão do Fabric.js
+                // Cancelar edição imediatamente
+                setTimeout(() => {
                     textObject.exitEditing();
-                    
-                    // Aguardar um pouco para garantir que o Fabric.js processou
-                    setTimeout(() => {
-                        this.createSimpleMobileInput(textObject);
-                    }, 50);
-                } else {
-                    console.log('📱 DESKTOP DETECTADO - Permitindo edição normal');
-                }
+                    this.startMobileTextEdit(textObject);
+                }, 50);
             }
         });
         
         // Prevenção de contexto mobile
         this.canvas.on('mouse:down', (e) => {
-            if (this.isTouch) {
+            if (this.isTouch && !this.mobileInputActive) {
                 e.e.preventDefault();
             }
         });
+    }
+    
+    // NOVO: Sistema completo de input mobile
+    setupMobileTextSystem() {
+        // Detectar quando textarea do Fabric.js é criado
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.tagName === 'TEXTAREA' && node.style && node.style.position === 'absolute') {
+                        console.log('📱 TEXTAREA do Fabric.js detectado - bloqueando para mobile');
+                        if (this.detectMobileDevice()) {
+                            // Esconder textarea do Fabric.js
+                            node.style.display = 'none';
+                            node.style.opacity = '0';
+                            node.style.pointerEvents = 'none';
+                        }
+                    }
+                });
+            });
+        });
+        
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+    
+    detectMobileDevice() {
+        const userAgent = navigator.userAgent;
+        const isMobileUA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        const hasTouch = 'ontouchstart' in window;
+        const maxTouchPoints = navigator.maxTouchPoints > 0;
+        const screenWidth = window.innerWidth <= 768;
+        
+        return isMobileUA || hasTouch || maxTouchPoints || screenWidth;
+    }
+    
+    startMobileTextEdit(textObject) {
+        console.log('📱 INICIANDO edição mobile para texto:', textObject.text);
+        
+        this.mobileInputActive = true;
+        this.currentEditingText = textObject;
+        
+        // Garantir que o objeto não está em modo de edição do Fabric.js
+        if (textObject.isEditing) {
+            textObject.exitEditing();
+        }
+        
+        // Aguardar um pouco e criar input mobile
+        setTimeout(() => {
+            this.createMobileTextInput(textObject);
+        }, 100);
+    }
+    
+    createMobileTextInput(textObject) {
+        console.log('📱 Criando input mobile OTIMIZADO');
+        
+        // LIMPAR qualquer input anterior
+        this.destroyMobileInput();
+        
+        // Criar overlay fixo
+        const overlay = document.createElement('div');
+        overlay.id = 'mobile-text-overlay';
+        overlay.style.cssText = `
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            background: rgba(0,0,0,0.8) !important;
+            z-index: 999999 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 20px !important;
+        `;
+        
+        // Container do input
+        const container = document.createElement('div');
+        container.style.cssText = `
+            background: white !important;
+            border-radius: 16px !important;
+            padding: 24px !important;
+            width: 90% !important;
+            max-width: 400px !important;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3) !important;
+        `;
+        
+        // Título
+        const title = document.createElement('h3');
+        title.textContent = 'Editar Texto';
+        title.style.cssText = `
+            margin: 0 0 16px 0 !important;
+            font-size: 18px !important;
+            font-weight: 600 !important;
+            color: #333 !important;
+            text-align: center !important;
+        `;
+        
+        // INPUT PRINCIPAL - OTIMIZADO PARA MOBILE
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = textObject.text === 'Digite aqui' ? '' : (textObject.text || '');
+        input.placeholder = 'Digite o texto';
+        input.style.cssText = `
+            width: 100% !important;
+            padding: 16px !important;
+            font-size: 18px !important;
+            border: 2px solid #007bff !important;
+            border-radius: 8px !important;
+            outline: none !important;
+            margin-bottom: 16px !important;
+            box-sizing: border-box !important;
+            -webkit-appearance: none !important;
+            appearance: none !important;
+        `;
+        
+        // Atributos mobile CRÍTICOS
+        input.setAttribute('inputmode', 'text');
+        input.setAttribute('enterkeyhint', 'done');
+        input.setAttribute('autocomplete', 'off');
+        input.setAttribute('autocorrect', 'off');
+        input.setAttribute('autocapitalize', 'off');
+        input.setAttribute('spellcheck', 'false');
+        
+        // Botões
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+            display: flex !important;
+            gap: 12px !important;
+            justify-content: flex-end !important;
+        `;
+        
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancelar';
+        cancelButton.style.cssText = `
+            padding: 12px 24px !important;
+            font-size: 16px !important;
+            border: 1px solid #ddd !important;
+            border-radius: 8px !important;
+            background: #f8f9fa !important;
+            color: #666 !important;
+            cursor: pointer !important;
+            min-height: 44px !important;
+        `;
+        
+        const confirmButton = document.createElement('button');
+        confirmButton.textContent = 'Confirmar';
+        confirmButton.style.cssText = `
+            padding: 12px 24px !important;
+            font-size: 16px !important;
+            border: none !important;
+            border-radius: 8px !important;
+            background: #007bff !important;
+            color: white !important;
+            cursor: pointer !important;
+            min-height: 44px !important;
+        `;
+        
+        // Montar estrutura
+        buttonContainer.appendChild(cancelButton);
+        buttonContainer.appendChild(confirmButton);
+        
+        container.appendChild(title);
+        container.appendChild(input);
+        container.appendChild(buttonContainer);
+        
+        overlay.appendChild(container);
+        document.body.appendChild(overlay);
+        
+        // FOCO MÚLTIPLO E AGRESSIVO
+        const focusInput = () => {
+            try {
+                input.focus();
+                input.select();
+                console.log('📱 Foco aplicado ao input mobile');
+            } catch (e) {
+                console.log('📱 Erro no foco:', e);
+            }
+        };
+        
+        // Tentar foco múltiplas vezes
+        setTimeout(focusInput, 50);
+        setTimeout(focusInput, 150);
+        setTimeout(focusInput, 300);
+        setTimeout(focusInput, 500);
+        
+        // Event listeners
+        input.addEventListener('input', () => {
+            textObject.set('text', input.value);
+            this.canvas.renderAll();
+        });
+        
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.confirmMobileTextEdit(textObject, input.value);
+            }
+        });
+        
+        confirmButton.addEventListener('click', () => {
+            this.confirmMobileTextEdit(textObject, input.value);
+        });
+        
+        cancelButton.addEventListener('click', () => {
+            this.cancelMobileTextEdit();
+        });
+        
+        // Fechar ao tocar no overlay
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                this.cancelMobileTextEdit();
+            }
+        });
+        
+        // Armazenar referências
+        this.mobileInputOverlay = overlay;
+        this.mobileInput = input;
+        
+        // FORÇA o teclado com scroll
+        setTimeout(() => {
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            focusInput();
+        }, 200);
+    }
+    
+    confirmMobileTextEdit(textObject, newText) {
+        console.log('📱 Confirmando texto mobile:', newText);
+        
+        textObject.set('text', newText);
+        this.canvas.renderAll();
+        this.saveState();
+        
+        this.destroyMobileInput();
+    }
+    
+    cancelMobileTextEdit() {
+        console.log('📱 Cancelando edição mobile');
+        this.destroyMobileInput();
+    }
+    
+    destroyMobileInput() {
+        if (this.mobileInputOverlay) {
+            this.mobileInputOverlay.remove();
+            this.mobileInputOverlay = null;
+        }
+        
+        this.mobileInput = null;
+        this.mobileInputActive = false;
+        this.currentEditingText = null;
+        
+        console.log('📱 Input mobile destruído');
     }
     
     setupMobileOptimizations() {
@@ -533,7 +769,8 @@ class FabricPhotoEditor {
                     // Aguardar o objeto ser adicionado ao canvas
                     setTimeout(() => {
                         this.canvas.setActiveObject(shape);
-                        this.editText(shape);
+                        // Usar nosso sistema mobile sempre
+                        this.startMobileTextEdit(shape);
                     }, 50);
                 }
             }
@@ -592,7 +829,7 @@ class FabricPhotoEditor {
                     fontSize: 24,
                     fontFamily: 'Arial',
                     opacity: this.opacity,
-                    editable: true
+                    editable: false  // IMPORTANTE: Desabilitar edição padrão
                 });
                 
             default:
@@ -901,251 +1138,9 @@ class FabricPhotoEditor {
     // =================== UTILS ===================
     
     editText(textObject) {
-        // Detectar dispositivos móveis de forma robusta
-        const isMobileDevice = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                              ('ontouchstart' in window) ||
-                              (navigator.maxTouchPoints > 0) ||
-                              (window.innerWidth <= 768);
-        
-        console.log('📱 Editando texto - Mobile detectado:', isMobileDevice);
-        
-        if (isMobileDevice) {
-            // MOBILE: Usar interface customizada
-            this.createSimpleMobileInput(textObject);
-        } else {
-            // DESKTOP: Usar edição nativa do Fabric.js
-            this.canvas.setActiveObject(textObject);
-            textObject.enterEditing();
-            textObject.selectAll();
-        }
-    }
-    
-    createSimpleMobileInput(textObject) {
-        console.log('📱 Criando interface modal limpa para edição de texto');
-        
-        // LIMPEZA TOTAL - Remover qualquer modal anterior
-        this.cleanupMobileInput();
-        
-        // Criar container modal centralizado
-        const modal = document.createElement('div');
-        modal.id = 'mobile-text-modal';
-        modal.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            background: rgba(0,0,0,0.7) !important;
-            z-index: 999999 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding: 20px !important;
-        `;
-        
-        // Criar card centralizado
-        const card = document.createElement('div');
-        card.style.cssText = `
-            background: white !important;
-            border-radius: 16px !important;
-            padding: 24px !important;
-            width: 100% !important;
-            max-width: 400px !important;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3) !important;
-        `;
-        
-        // Título do modal
-        const title = document.createElement('h3');
-        title.textContent = 'Editar Texto';
-        title.style.cssText = `
-            margin: 0 0 16px 0 !important;
-            font-size: 18px !important;
-            font-weight: 600 !important;
-            color: #333 !important;
-            text-align: center !important;
-        `;
-        
-        // Input principal - GRANDE e VISÍVEL
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.id = 'mobile-text-input';
-        input.value = textObject.text === 'Digite aqui' ? '' : (textObject.text || '');
-        input.placeholder = 'Digite o texto';
-        input.style.cssText = `
-            width: 100% !important;
-            padding: 16px !important;
-            font-size: 18px !important;
-            border: 2px solid #007bff !important;
-            border-radius: 8px !important;
-            outline: none !important;
-            margin-bottom: 16px !important;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-            background: #fff !important;
-            color: #333 !important;
-        `;
-        
-        // Atributos mobile otimizados
-        input.setAttribute('inputmode', 'text');
-        input.setAttribute('enterkeyhint', 'done');
-        input.autocomplete = 'off';
-        input.autocorrect = 'off';
-        input.autocapitalize = 'off';
-        input.spellcheck = false;
-        
-        // Container de botões
-        const buttonContainer = document.createElement('div');
-        buttonContainer.style.cssText = `
-            display: flex !important;
-            gap: 12px !important;
-            justify-content: flex-end !important;
-        `;
-        
-        // Botão Cancelar
-        const cancelButton = document.createElement('button');
-        cancelButton.textContent = 'Cancelar';
-        cancelButton.style.cssText = `
-            padding: 12px 24px !important;
-            font-size: 16px !important;
-            border: 1px solid #ddd !important;
-            border-radius: 8px !important;
-            background: #f8f9fa !important;
-            color: #666 !important;
-            cursor: pointer !important;
-            min-height: 44px !important;
-        `;
-        
-        // Botão Confirmar
-        const confirmButton = document.createElement('button');
-        confirmButton.textContent = 'Confirmar';
-        confirmButton.style.cssText = `
-            padding: 12px 24px !important;
-            font-size: 16px !important;
-            border: none !important;
-            border-radius: 8px !important;
-            background: #007bff !important;
-            color: white !important;
-            cursor: pointer !important;
-            min-height: 44px !important;
-        `;
-        
-        // Montar estrutura
-        buttonContainer.appendChild(cancelButton);
-        buttonContainer.appendChild(confirmButton);
-        
-        card.appendChild(title);
-        card.appendChild(input);
-        card.appendChild(buttonContainer);
-        
-        modal.appendChild(card);
-        document.body.appendChild(modal);
-        
-        console.log('📱 Modal criado e adicionado ao DOM');
-        
-        // FOCO AGRESSIVO - Garantir que o teclado apareça
-        const focusInput = () => {
-            input.focus();
-            input.select();
-            console.log('📱 Foco aplicado ao input');
-        };
-        
-        // Múltiplas tentativas de foco
-        setTimeout(focusInput, 50);
-        setTimeout(focusInput, 200);
-        setTimeout(focusInput, 500);
-        
-        // Eventos de input
-        input.addEventListener('input', () => {
-            textObject.text = input.value;
-            this.canvas.renderAll();
-        });
-        
-        // Confirmar com Enter
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.confirmTextEdit(textObject, input.value);
-                modal.remove();
-            }
-        });
-        
-        // Botão confirmar
-        confirmButton.addEventListener('click', () => {
-            this.confirmTextEdit(textObject, input.value);
-            modal.remove();
-        });
-        
-        // Botão cancelar
-        cancelButton.addEventListener('click', () => {
-            modal.remove();
-        });
-        
-        // Fechar ao clicar no fundo (mas não no card)
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-            }
-        });
-        
-        // Prevenir propagação no card
-        card.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-    }
-    
-    cleanupMobileInput() {
-        // Remove qualquer modal anterior
-        const existingModal = document.getElementById('mobile-text-modal');
-        if (existingModal) {
-            existingModal.remove();
-        }
-        
-        // Remove outros elementos antigos
-        const oldContainer = document.getElementById('mobile-text-container');
-        if (oldContainer) {
-            oldContainer.remove();
-        }
-    }
-    
-    confirmTextEdit(textObject, newText) {
-        textObject.text = newText;
-        this.canvas.renderAll();
-        this.saveState();
-        console.log('📱 Texto confirmado:', newText);
-    }
-    
-    
-    ensureMobileTextareaCompatibility() {
-        // Garantir que textarea do Fabric.js seja acessível em mobile
-        if (this.isMobile || this.isTouch) {
-            // CSS para garantir que textarea do Fabric.js funcione
-            const mobileStyleElement = document.createElement('style');
-            mobileStyleElement.textContent = `
-                .canvas-container textarea {
-                    position: absolute !important;
-                    opacity: 0 !important;
-                    z-index: 1000 !important;
-                    left: 0px !important;
-                    top: 0px !important;
-                    width: 1px !important;
-                    height: 1px !important;
-                    border: none !important;
-                    background: transparent !important;
-                    resize: none !important;
-                    outline: none !important;
-                    -webkit-user-select: text !important;
-                    user-select: text !important;
-                    touch-action: manipulation !important;
-                }
-                
-                .upper-canvas {
-                    -webkit-user-select: none !important;
-                    user-select: none !important;
-                }
-            `;
-            document.head.appendChild(mobileStyleElement);
-            
-            console.log('📱 CSS de compatibilidade móvel aplicado');
-        }
+        // SEMPRE usar sistema mobile
+        console.log('📱 editText chamado - usando sistema mobile');
+        this.startMobileTextEdit(textObject);
     }
     
     showContextMenu(e) {
@@ -1170,7 +1165,7 @@ class FabricPhotoEditor {
     
     destroy() {
         // Limpar inputs mobile
-        this.clearMobileInput();
+        this.destroyMobileInput();
         
         if (this.canvas) {
             this.canvas.dispose();
@@ -1182,13 +1177,22 @@ class FabricPhotoEditor {
 // Export para uso global
 window.FabricPhotoEditor = FabricPhotoEditor;
 
-// MOBILE: Configuração de event listeners para botões de ferramentas - CORREÇÃO PARA MOBILE
+// MOBILE: Configuração de event listeners para botões de ferramentas - SEM CONFLITOS
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔧 Configurando event listeners para botões de ferramentas principais');
+    console.log('🔧 Configurando event listeners ÚNICOS para botões principais');
     
-    // Função unificada para seleção de ferramentas principais (não-modal)
+    // REMOVER todos os event listeners anteriores para evitar duplicatas
+    const existingButtons = document.querySelectorAll('[data-tool], .tool-btn');
+    existingButtons.forEach(btn => {
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+    });
+    
+    // Função unificada para seleção de ferramentas principais
     function selectMainTool(tool, buttonElement) {
-        // Feedback visual imediato
+        console.log('🔧 Selecionando ferramenta:', tool);
+        
+        // Feedback visual
         buttonElement.style.transform = 'scale(0.95)';
         setTimeout(() => {
             buttonElement.style.transform = '';
@@ -1199,52 +1203,33 @@ document.addEventListener('DOMContentLoaded', function() {
             window.currentEditor.setTool(tool);
             
             // Atualizar estado visual dos botões
-            document.querySelectorAll('[data-tool], .tool-btn').forEach(btn => {
+            document.querySelectorAll('[data-tool]:not([data-modal-tool]), .tool-btn:not([data-modal-tool])').forEach(btn => {
                 btn.classList.remove('active');
             });
             buttonElement.classList.add('active');
-            
-            console.log('🔧 Ferramenta principal selecionada:', tool);
         }
     }
     
-    // MOBILE: Touch event handler para botões principais
-    let touchHandled = false;
-    
-    document.addEventListener('touchstart', function(e) {
-        const toolButton = e.target.closest('[data-tool], .tool-btn');
-        if (toolButton && !toolButton.closest('#fabricPhotoEditorModal')) { // Excluir modal
+    // Event listener ÚNICO com delegate
+    document.addEventListener('click', function(e) {
+        const toolButton = e.target.closest('[data-tool]:not([data-modal-tool]), .tool-btn:not([data-modal-tool])');
+        
+        if (toolButton && !toolButton.closest('.modal')) {
             e.preventDefault();
             e.stopPropagation();
             
-            // Feedback táctil imediato
-            toolButton.classList.add('touching');
-            
-            touchHandled = true;
             const tool = toolButton.dataset.tool || toolButton.getAttribute('data-tool');
             if (tool) {
                 selectMainTool(tool, toolButton);
             }
-            
-            // Reset flag após um tempo
-            setTimeout(() => { touchHandled = false; }, 300);
-        }
-    }, { passive: false });
-    
-    // Remover classe touching ao finalizar toque
-    document.addEventListener('touchend', function(e) {
-        const toolButton = e.target.closest('[data-tool], .tool-btn');
-        if (toolButton && !toolButton.closest('#fabricPhotoEditorModal')) {
-            setTimeout(() => {
-                toolButton.classList.remove('touching');
-            }, 150);
         }
     });
     
-    // DESKTOP: Click event handler para botões principais - fallback
-    document.addEventListener('click', function(e) {
-        const toolButton = e.target.closest('[data-tool], .tool-btn');
-        if (toolButton && !toolButton.closest('#fabricPhotoEditorModal') && !touchHandled) {
+    // Event listener ÚNICO para touch
+    document.addEventListener('touchend', function(e) {
+        const toolButton = e.target.closest('[data-tool]:not([data-modal-tool]), .tool-btn:not([data-modal-tool])');
+        
+        if (toolButton && !toolButton.closest('.modal')) {
             e.preventDefault();
             e.stopPropagation();
             
