@@ -109,6 +109,57 @@ def create_admin_user_safe():
             else:
                 logging.error("Max retries reached. Could not create admin user.")
 
+def create_default_checklists():
+    from models import ChecklistPadrao, User
+    
+    # Definir os 6 itens de checklist padrão
+    checklist_padrao = [
+        ("Verificar condições de segurança no local", 1),
+        ("Conferir progresso da obra conforme cronograma", 2),
+        ("Inspecionar qualidade dos materiais utilizados", 3),
+        ("Avaliar execução conforme projeto técnico", 4),
+        ("Registrar problemas ou não conformidades encontradas", 5),
+        ("Verificar limpeza e organização do canteiro", 6)
+    ]
+    
+    try:
+        # Verificar se já existem itens
+        count = ChecklistPadrao.query.filter_by(ativo=True).count()
+        if count >= 6:
+            logging.info(f"✅ Checklist padrão já existe: {count} itens encontrados")
+            return
+        
+        # Buscar usuário admin para ser o criador
+        admin_user = User.query.filter_by(is_master=True).first()
+        if not admin_user:
+            logging.error("❌ Admin user não encontrado - não é possível criar checklist")
+            return
+        
+        # Criar itens que não existem
+        itens_criados = 0
+        for texto, ordem in checklist_padrao:
+            # Verificar se já existe
+            existe = ChecklistPadrao.query.filter_by(texto=texto, ordem=ordem).first()
+            if not existe:
+                novo_item = ChecklistPadrao(
+                    texto=texto,
+                    ordem=ordem,
+                    ativo=True
+                )
+                db.session.add(novo_item)
+                itens_criados += 1
+        
+        if itens_criados > 0:
+            db.session.commit()
+            total_final = ChecklistPadrao.query.filter_by(ativo=True).count()
+            logging.info(f"✅ CHECKLIST CRIADO: {itens_criados} novos itens | Total: {total_final}")
+        else:
+            logging.info("✅ Todos os itens de checklist já existem")
+            
+    except Exception as e:
+        logging.error(f"❌ Erro ao criar checklist padrão: {e}")
+        db.session.rollback()
+
 def create_default_legendas():
     from models import LegendaPredefinida, User
     
@@ -227,6 +278,9 @@ with app.app_context():
 
     # Create default admin user if none exists
     create_admin_user_safe()
+    
+    # Create default checklists if they don't exist
+    create_default_checklists()
     
     # Create default legendas if they don't exist
     create_default_legendas()
