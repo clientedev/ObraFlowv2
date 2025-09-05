@@ -873,109 +873,168 @@ class FabricPhotoEditor {
         textObject.enterEditing();
         textObject.selectAll();
         
-        // MOBILE: Implementação completa para forçar teclado
+        // MOBILE: Forçar teclado com múltiplos métodos
         if (this.isMobile || this.isTouch) {
+            // Tentar imediatamente primeiro
+            this.forceMobileKeyboard(textObject);
+            
+            // Também tentar após delay para garantir
             setTimeout(() => {
-                // Método 1: Tentar usar hiddenTextarea do Fabric.js
-                if (textObject.hiddenTextarea) {
-                    console.log('📱 Usando hiddenTextarea do Fabric.js');
-                    textObject.hiddenTextarea.focus();
-                    textObject.hiddenTextarea.click();
-                    
-                    // Garantir que está visível e focável
-                    textObject.hiddenTextarea.style.opacity = '0';
-                    textObject.hiddenTextarea.style.position = 'absolute';
-                    textObject.hiddenTextarea.style.zIndex = '1000';
-                    textObject.hiddenTextarea.style.left = '0px';
-                    textObject.hiddenTextarea.style.top = '0px';
-                    
-                    return;
-                }
-                
-                // Método 2: Procurar textarea no DOM
-                const textareaElement = this.canvas.upperCanvasEl.parentNode.querySelector('textarea');
-                if (textareaElement) {
-                    console.log('📱 Usando textarea encontrado no DOM');
-                    textareaElement.focus();
-                    textareaElement.click();
-                    return;
-                }
-                
-                // Método 3: Criar input temporário invisível como fallback
-                console.log('📱 Criando input temporário para mobile');
-                this.createMobileFallbackInput(textObject);
-                
-            }, 150);
+                this.forceMobileKeyboard(textObject);
+            }, 100);
+            
+            setTimeout(() => {
+                this.forceMobileKeyboard(textObject);
+            }, 300);
         }
+    }
+    
+    forceMobileKeyboard(textObject) {
+        console.log('📱 Forçando teclado móvel - tentativa');
+        
+        // Método 1: hiddenTextarea do Fabric.js
+        if (textObject.hiddenTextarea) {
+            console.log('📱 Método 1: hiddenTextarea encontrado');
+            try {
+                // Garantir visibilidade
+                textObject.hiddenTextarea.style.position = 'fixed';
+                textObject.hiddenTextarea.style.left = '0px';
+                textObject.hiddenTextarea.style.top = '0px';
+                textObject.hiddenTextarea.style.opacity = '0.01';
+                textObject.hiddenTextarea.style.zIndex = '9999';
+                textObject.hiddenTextarea.style.width = '1px';
+                textObject.hiddenTextarea.style.height = '1px';
+                
+                // Forçar foco
+                textObject.hiddenTextarea.focus();
+                textObject.hiddenTextarea.click();
+                
+                // Para iOS
+                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                    textObject.hiddenTextarea.setAttribute('readonly', false);
+                    textObject.hiddenTextarea.removeAttribute('readonly');
+                }
+                
+                return true;
+            } catch (e) {
+                console.log('📱 Erro no método 1:', e);
+            }
+        }
+        
+        // Método 2: Procurar textarea no canvas
+        try {
+            const textarea = this.canvas.wrapperEl.querySelector('textarea');
+            if (textarea) {
+                console.log('📱 Método 2: textarea no canvas encontrado');
+                textarea.style.position = 'fixed';
+                textarea.style.left = '0px';
+                textarea.style.top = '0px';
+                textarea.style.opacity = '0.01';
+                textarea.style.zIndex = '9999';
+                textarea.focus();
+                textarea.click();
+                return true;
+            }
+        } catch (e) {
+            console.log('📱 Erro no método 2:', e);
+        }
+        
+        // Método 3: Fallback com input personalizado
+        console.log('📱 Método 3: criando fallback input');
+        this.createMobileFallbackInput(textObject);
+        return true;
     }
     
     createMobileFallbackInput(textObject) {
         // Remover input anterior se existir
-        const existingInput = document.getElementById('mobile-text-input');
+        const existingInput = document.getElementById('mobile-text-fallback');
         if (existingInput) {
             existingInput.remove();
         }
         
-        // Criar input temporário invisível
+        console.log('📱 Criando input fallback mobile');
+        
+        // Criar input temporário VISÍVEL temporariamente
         const mobileInput = document.createElement('input');
         mobileInput.type = 'text';
-        mobileInput.id = 'mobile-text-input';
+        mobileInput.id = 'mobile-text-fallback';
         mobileInput.value = textObject.text || '';
+        mobileInput.placeholder = 'Digite seu texto...';
+        
+        // Estilo que GARANTE que seja focável
         mobileInput.style.cssText = `
-            position: absolute;
-            opacity: 0;
-            z-index: -1;
-            left: -9999px;
-            top: -9999px;
-            width: 1px;
-            height: 1px;
+            position: fixed !important;
+            left: 50% !important;
+            top: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            z-index: 99999 !important;
+            background: white !important;
+            border: 2px solid #007bff !important;
+            padding: 10px !important;
+            border-radius: 5px !important;
+            font-size: 16px !important;
+            width: 80% !important;
+            max-width: 300px !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
         `;
         
-        // Adicionar ao DOM
+        // Adicionar ao body
         document.body.appendChild(mobileInput);
         
-        // Forçar foco para abrir teclado
+        // Forçar foco imediato
         setTimeout(() => {
             mobileInput.focus();
-            mobileInput.click();
-            console.log('📱 Input móvel temporário focado');
-        }, 50);
+            mobileInput.select();
+            console.log('📱 Input fallback focado e selecionado');
+        }, 10);
         
-        // Sincronizar valor com o objeto IText
+        // Sincronizar com IText em tempo real
         mobileInput.addEventListener('input', (e) => {
             textObject.text = e.target.value;
             this.canvas.renderAll();
         });
         
-        // Limpar quando sair da edição
-        const cleanupInput = () => {
-            if (mobileInput.parentNode) {
+        // Finalizar edição ao pressionar Enter
+        mobileInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                textObject.text = mobileInput.value;
+                this.canvas.renderAll();
+                textObject.exitEditing();
+                mobileInput.remove();
+                console.log('📱 Edição finalizada com Enter');
+            }
+        });
+        
+        // Remover input quando perder foco
+        mobileInput.addEventListener('blur', () => {
+            setTimeout(() => {
+                if (document.getElementById('mobile-text-fallback')) {
+                    textObject.text = mobileInput.value;
+                    this.canvas.renderAll();
+                    textObject.exitEditing();
+                    mobileInput.remove();
+                    console.log('📱 Edição finalizada por blur');
+                }
+            }, 100);
+        });
+        
+        // Cleanup quando sair da edição
+        textObject.on('editing:exited', () => {
+            if (document.getElementById('mobile-text-fallback')) {
                 mobileInput.remove();
             }
-            textObject.off('editing:exited', cleanupInput);
-        };
-        
-        textObject.on('editing:exited', cleanupInput);
-        
-        // Também limpar quando clicar fora
-        setTimeout(() => {
-            const handleOutsideClick = (e) => {
-                if (!e.target.closest('.canvas-container') && !e.target.closest('#mobile-text-input')) {
-                    textObject.exitEditing();
-                    cleanupInput();
-                    document.removeEventListener('click', handleOutsideClick);
-                }
-            };
-            document.addEventListener('click', handleOutsideClick);
-        }, 200);
+        });
     }
     
     ensureMobileTextareaCompatibility() {
         // Garantir que textarea do Fabric.js seja acessível em mobile
         if (this.isMobile || this.isTouch) {
             // CSS para garantir que textarea do Fabric.js funcione
-            const style = document.createElement('style');
-            style.textContent = `
+            const mobileStyleElement = document.createElement('style');
+            mobileStyleElement.textContent = `
                 .canvas-container textarea {
                     position: absolute !important;
                     opacity: 0 !important;
@@ -998,7 +1057,7 @@ class FabricPhotoEditor {
                     user-select: none !important;
                 }
             `;
-            document.head.appendChild(style);
+            document.head.appendChild(mobileStyleElement);
             
             console.log('📱 CSS de compatibilidade móvel aplicado');
         }
