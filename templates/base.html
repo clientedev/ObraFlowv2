@@ -30,6 +30,12 @@
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512x512.png') }}">
     
+    <!-- Force Online Mode - Limpar cache offline -->
+    <script src="{{ url_for('static', filename='js/force-online-mode.js') }}" defer></script>
+    
+    <!-- Mobile Sync Fix - Garantir PostgreSQL -->
+    <script src="{{ url_for('static', filename='js/mobile-sync-fix.js') }}" defer></script>
+    
     <!-- Offline Detection -->
     <script src="{{ url_for('static', filename='js/simple-offline.js') }}" defer></script>
     
