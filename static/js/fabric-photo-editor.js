@@ -981,20 +981,44 @@ class FabricPhotoEditor {
         
         console.log('📱 Input e overlay adicionados ao DOM');
         
-        // Foco mais simples e direto
-        setTimeout(() => {
-            input.focus();
-            input.select();
-            console.log('📱 Input focado após timeout');
-        }, 100);
-        
-        // Segundo foco para garantia
-        setTimeout(() => {
-            if (document.getElementById('mobile-text-edit')) {
-                input.focus();
-                console.log('📱 Segundo foco aplicado');
+        // FORÇA TECLADO - Múltiplas tentativas agressivas
+        const forceKeyboard = () => {
+            const element = document.getElementById('mobile-text-edit');
+            if (element) {
+                // Método 1: Focus direto
+                element.focus();
+                
+                // Método 2: Click para simular interação do usuário
+                element.click();
+                
+                // Método 3: Trigger eventos touch para mobile
+                const touchStart = new TouchEvent('touchstart', {
+                    bubbles: true,
+                    cancelable: true,
+                });
+                element.dispatchEvent(touchStart);
+                
+                // Método 4: Select text
+                element.select();
+                
+                // Método 5: Set cursor position
+                element.setSelectionRange(0, element.value.length);
+                
+                console.log('📱 Forçando teclado com todos os métodos');
             }
-        }, 500);
+        };
+        
+        // Tentar imediatamente
+        forceKeyboard();
+        
+        // Tentar após 100ms
+        setTimeout(forceKeyboard, 100);
+        
+        // Tentar após 300ms
+        setTimeout(forceKeyboard, 300);
+        
+        // Tentar após 500ms
+        setTimeout(forceKeyboard, 500);
         
         console.log('📱 Input criado e múltiplas tentativas de foco executadas');
         
@@ -1036,11 +1060,31 @@ class FabricPhotoEditor {
         input.addEventListener('click', (e) => {
             e.stopPropagation();
             console.log('📱 Input clicado - mantendo aberto');
+            // Forçar foco novamente ao clicar
+            setTimeout(() => {
+                input.focus();
+                input.select();
+            }, 10);
         });
         
         input.addEventListener('focus', () => {
             console.log('📱 Input recebeu foco - mantendo aberto');
         });
+        
+        input.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            console.log('📱 Touchstart no input');
+            // Forçar foco no touch
+            setTimeout(() => {
+                input.focus();
+                input.select();
+            }, 10);
+        });
+        
+        // Adicionar atributos para forçar teclado mobile
+        input.setAttribute('inputmode', 'text');
+        input.setAttribute('enterkeyhint', 'done');
+        input.readOnly = false;
     }
     
     
