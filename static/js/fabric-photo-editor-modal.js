@@ -53,6 +53,9 @@ class FabricPhotoEditorModal {
             // Configurar eventos do modal
             this.setupModalEvents();
             
+            // Configurar melhorias específicas para contexto modal
+            this.setupModalTextSupport();
+            
             console.log('✅ Editor modal inicializado');
             
             // Auto-scroll para o centro da imagem após inicializar
@@ -112,10 +115,150 @@ class FabricPhotoEditorModal {
             cancelBtn.onclick = () => this.closeEditor();
         }
         
+        // Configurar eventos de botões de ferramentas no modal
+        const toolButtons = modal.querySelectorAll('[data-modal-tool]');
+        toolButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tool = btn.dataset.modalTool;
+                this.setTool(tool);
+                
+                // Atualizar visual dos botões
+                toolButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                console.log(`🔧 Ferramenta modal ativada: ${tool}`);
+            });
+        });
+        
         // Limpar ao fechar modal
         modal.addEventListener('hidden.bs.modal', () => {
             this.cleanup();
         });
+    }
+    
+    setupModalTextSupport() {
+        // Configurações específicas para suporte de texto em modais
+        const modal = document.getElementById(this.modalId);
+        if (!modal || !this.photoEditor) return;
+        
+        // Garantir que o modal permite focus em elementos internos
+        modal.setAttribute('tabindex', '-1');
+        modal.style.outline = 'none';
+        
+        // Configurar o canvas para permitir focus em contexto modal
+        const canvas = this.photoEditor.canvas;
+        if (canvas && canvas.upperCanvasEl) {
+            // Garantir que o canvas pode receber focus dentro do modal
+            canvas.upperCanvasEl.setAttribute('tabindex', '0');
+            canvas.upperCanvasEl.style.outline = 'none';
+            
+            // Configurar eventos específicos para texto em modal
+            this.setupModalTextEvents(canvas);
+        }
+        
+        console.log('🔤 Suporte a texto configurado para modal');
+    }
+    
+    setupModalTextEvents(canvas) {
+        // Override da função activateTextEditing para contexto modal
+        if (this.photoEditor && this.photoEditor.activateTextEditing) {
+            const originalActivateTextEditing = this.photoEditor.activateTextEditing.bind(this.photoEditor);
+            
+            this.photoEditor.activateTextEditing = (textObject) => {
+                console.log('🔤📱 Ativando edição de texto no MODAL');
+                
+                // Garantir que o texto está selecionado
+                canvas.setActiveObject(textObject);
+                canvas.renderAll();
+                
+                // Aguardar o próximo frame para garantir que a seleção foi aplicada
+                requestAnimationFrame(() => {
+                    // Entrar em modo de edição
+                    textObject.enterEditing();
+                    
+                    // Se texto está vazio, não selecionar tudo
+                    if (!textObject.text || textObject.text.trim() === '') {
+                        // Focar no campo de texto
+                        if (textObject.hiddenTextarea) {
+                            this.configureModalTextarea(textObject.hiddenTextarea);
+                        }
+                    } else {
+                        // Selecionar todo o texto existente
+                        textObject.selectAll();
+                        if (textObject.hiddenTextarea) {
+                            this.configureModalTextarea(textObject.hiddenTextarea);
+                        }
+                    }
+                    
+                    console.log('✅ Edição de texto ativada no MODAL com teclado mobile');
+                });
+            };
+        }
+    }
+    
+    configureModalTextarea(textarea) {
+        if (!textarea) return;
+        
+        const modal = document.getElementById(this.modalId);
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // Configurar textarea para funcionar dentro do modal
+        textarea.style.position = 'fixed';
+        textarea.style.left = '50%';
+        textarea.style.top = '50%';
+        textarea.style.transform = 'translate(-50%, -50%)';
+        textarea.style.zIndex = '9999'; // Acima do modal
+        textarea.style.opacity = '0.01'; // Quase invisível mas funcional
+        textarea.style.pointerEvents = 'auto';
+        textarea.style.fontSize = '16px'; // Impede zoom no iOS
+        textarea.style.border = 'none';
+        textarea.style.background = 'transparent';
+        textarea.style.resize = 'none';
+        textarea.style.outline = 'none';
+        
+        // Garantir que o textarea está dentro do contexto do modal
+        if (modal) {
+            // Mover o textarea para dentro do modal se não estiver
+            if (!modal.contains(textarea)) {
+                modal.appendChild(textarea);
+            }
+        }
+        
+        // Focar com delay para garantir funcionamento
+        setTimeout(() => {
+            textarea.focus();
+            
+            // Para mobile: forçar abertura do teclado com técnicas específicas
+            if (isMobile) {
+                // Trigger eventos específicos para mobile
+                textarea.click();
+                
+                // Técnicas específicas para iOS
+                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                    const touchEvent = new TouchEvent('touchstart', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    textarea.dispatchEvent(touchEvent);
+                    
+                    // Força o input visible
+                    textarea.style.transform = 'translate(-50%, -50%) scale(1)';
+                    textarea.setAttribute('readonly', false);
+                    textarea.removeAttribute('readonly');
+                }
+                
+                // Para Android
+                if (/Android/i.test(navigator.userAgent)) {
+                    textarea.style.fontSize = '16px'; // Evita zoom
+                    textarea.focus();
+                    textarea.setSelectionRange(0, textarea.value.length);
+                }
+            }
+            
+            console.log('⌨️ Textarea configurado para modal mobile');
+        }, 150);
     }
     
     async saveAndClose() {
