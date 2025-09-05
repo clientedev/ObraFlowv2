@@ -926,24 +926,30 @@ function loadLegends(photoId, category) {
         {"categoria": "Segurança", "texto": "Pendente tratamentos dos ganchos cortados com pintura anti-corrosiva tipo zarcão"}
     ];
     
-    // MOBILE DEBUG: Carregar legendas com fallback robusto
-    selectElement.innerHTML = '<option value="">🔍 Conectando...</option>';
-    console.log('🔍 MOBILE DEBUG: Iniciando carregamento de legendas');
+    // COMUNICAÇÃO OBRIGATÓRIA COM BANCO DE DADOS POSTGRESQL
+    selectElement.innerHTML = '<option value="">🔗 Conectando com banco...</option>';
+    console.log('🔗 MOBILE: Conectando obrigatoriamente ao PostgreSQL');
     
-    // Tentar primeira opção: API PostgreSQL
+    // Comunicação direta com API PostgreSQL - SEM FALLBACK
     const xhr = new XMLHttpRequest();
-    xhr.open('GET', '/api/legendas?categoria=all', true);
-    xhr.timeout = 15000; // Aumentado para mobile
+    xhr.open('GET', `/api/legendas?categoria=all&t=${Date.now()}`, true);
+    xhr.timeout = 30000; // 30 segundos para garantir conexão
+    
+    // Configurar headers para mobile
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Cache-Control', 'no-cache');
     
     xhr.onload = function() {
-        console.log('🔍 MOBILE DEBUG: API respondeu com status:', xhr.status);
+        console.log(`🔗 MOBILE API: Status ${xhr.status}, Response:`, xhr.responseText.substring(0, 200));
+        
         if (xhr.status === 200) {
             try {
                 const data = JSON.parse(xhr.responseText);
-                console.log('🔍 MOBILE DEBUG: Dados recebidos:', data);
                 
                 if (data.success && data.legendas && data.legendas.length > 0) {
-                    selectElement.innerHTML = '<option value="">✅ Selecione uma legenda...</option>';
+                    // SUCESSO: Dados carregados do PostgreSQL
+                    selectElement.innerHTML = '<option value="">📊 Selecione uma legenda...</option>';
                     
                     const cats = {
                         'Acabamentos': [],
@@ -952,21 +958,25 @@ function loadLegends(photoId, category) {
                         'Segurança': []
                     };
                     
+                    // Organizar por categoria
                     data.legendas.forEach(leg => {
                         if (cats[leg.categoria]) {
                             cats[leg.categoria].push(leg);
                         }
                     });
                     
+                    // Criar optgroups organizados
                     Object.keys(cats).forEach(cat => {
                         if (cats[cat].length > 0) {
                             const optgroup = document.createElement('optgroup');
-                            optgroup.label = cat + ' (' + cats[cat].length + ' itens)';
+                            optgroup.label = `${cat} (${cats[cat].length} itens do BD)`;
                             
                             cats[cat].forEach(legenda => {
                                 const option = document.createElement('option');
                                 option.value = legenda.texto;
                                 option.textContent = legenda.texto;
+                                option.setAttribute('data-id', legenda.id);
+                                option.setAttribute('data-categoria', legenda.categoria);
                                 optgroup.appendChild(option);
                             });
                             
@@ -974,71 +984,62 @@ function loadLegends(photoId, category) {
                         }
                     });
                     
-                    console.log('✅ MOBILE DEBUG: Legendas carregadas da API com sucesso!');
+                    console.log(`✅ MOBILE DB: ${data.total} legendas carregadas do PostgreSQL!`);
+                    
                 } else {
-                    console.warn('⚠️ MOBILE DEBUG: API sem dados válidos');
-                    usarLegendasFixas(selectElement, legendas, 'API_SEM_DADOS');
+                    // ERRO: API funcionou mas sem dados
+                    selectElement.innerHTML = '<option value="">❌ ERRO: Nenhuma legenda no banco</option>';
+                    console.error('❌ MOBILE DB: API respondeu mas sem legendas no banco');
                 }
-            } catch (e) {
-                console.error('❌ MOBILE DEBUG: Erro JSON:', e);
-                usarLegendasFixas(selectElement, legendas, 'ERRO_JSON');
+                
+            } catch (parseError) {
+                // ERRO: JSON inválido
+                selectElement.innerHTML = '<option value="">❌ ERRO: Formato de dados inválido</option>';
+                console.error('❌ MOBILE DB: Erro ao processar JSON:', parseError);
             }
         } else {
-            console.warn('⚠️ MOBILE DEBUG: Status não 200:', xhr.status);
-            usarLegendasFixas(selectElement, legendas, 'STATUS_ERRO');
+            // ERRO: Status HTTP diferente de 200
+            selectElement.innerHTML = `<option value="">❌ ERRO: Servidor (${xhr.status})</option>`;
+            console.error(`❌ MOBILE DB: Falha HTTP ${xhr.status}:`, xhr.responseText);
         }
     };
     
     xhr.onerror = function() {
-        console.error('❌ MOBILE DEBUG: Erro de rede');
-        usarLegendasFixas(selectElement, legendas, 'REDE_ERRO');
+        // ERRO: Falha de rede
+        selectElement.innerHTML = '<option value="">❌ ERRO: Falha de rede com servidor</option>';
+        console.error('❌ MOBILE DB: Falha de conexão de rede');
     };
     
     xhr.ontimeout = function() {
-        console.error('❌ MOBILE DEBUG: Timeout');
-        usarLegendasFixas(selectElement, legendas, 'TIMEOUT');
+        // ERRO: Timeout
+        selectElement.innerHTML = '<option value="">❌ ERRO: Timeout (30s) - Servidor lento</option>';
+        console.error('❌ MOBILE DB: Timeout na conexão');
     };
     
     xhr.send();
-    console.log('🔍 MOBILE DEBUG: Requisição enviada');
+    console.log('🔗 MOBILE: Requisição PostgreSQL enviada');
 }
 
-// MOBILE FALLBACK: Função para usar legendas fixas quando API falha
-function usarLegendasFixas(selectElement, legendas, motivo) {
-    console.log('🛠️ MOBILE FALLBACK: Usando legendas fixas. Motivo:', motivo);
+// DIAGNÓSTICO DE CONEXÃO MOBILE-POSTGRESQL
+function diagnosticarConexaoMobile() {
+    console.log('🔍 DIAGNÓSTICO MOBILE-POSTGRESQL:');
+    console.log('- User Agent:', navigator.userAgent);
+    console.log('- Connection:', navigator.connection ? navigator.connection.effectiveType : 'N/A');
+    console.log('- Online:', navigator.onLine);
+    console.log('- URL Base:', window.location.origin);
     
-    selectElement.innerHTML = '<option value="">⚙️ Selecione uma legenda (modo local)...</option>';
-    
-    const cats = {
-        'Acabamentos': [],
-        'Estrutural': [],
-        'Geral': [],
-        'Segurança': []
-    };
-    
-    legendas.forEach(leg => {
-        if (cats[leg.categoria]) {
-            cats[leg.categoria].push(leg);
-        }
-    });
-    
-    Object.keys(cats).forEach(cat => {
-        if (cats[cat].length > 0) {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = cat + ' (LOCAL - ' + cats[cat].length + ' itens)';
-            
-            cats[cat].forEach(legenda => {
-                const option = document.createElement('option');
-                option.value = legenda.texto;
-                option.textContent = legenda.texto;
-                optgroup.appendChild(option);
-            });
-            
-            selectElement.appendChild(optgroup);
-        }
-    });
-    
-    console.log('✅ MOBILE FALLBACK: Legendas fixas carregadas com sucesso!');
+    // Teste direto da API
+    fetch('/api/legendas?categoria=all&teste=mobile')
+        .then(response => {
+            console.log('🔍 Teste Fetch API:', response.status, response.headers.get('content-type'));
+            return response.json();
+        })
+        .then(data => {
+            console.log('🔍 Dados recebidos via Fetch:', data);
+        })
+        .catch(error => {
+            console.error('🔍 Erro Fetch:', error);
+        });
 }
 
 // Atualizar configuração da foto
@@ -1719,7 +1720,12 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('❌ Editor modal não disponível');
     }
     
-    // Observer removido - usando apenas botões do template HTML
+    // DIAGNÓSTICO AUTOMÁTICO MOBILE-POSTGRESQL
+    setTimeout(function() {
+        if (window.innerWidth <= 768) {
+            diagnosticarConexaoMobile();
+        }
+    }, 2000);
 });
 </script>
 {% endblock %}

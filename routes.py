@@ -2512,14 +2512,21 @@ def api_legendas():
         # Criar resposta JSON
         response = jsonify(response_data)
         
-        # Headers para compatibilidade total mobile/desktop
+        # Headers otimizados para mobile/desktop
         response.headers['Content-Type'] = 'application/json; charset=utf-8'
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
         response.headers['Access-Control-Allow-Origin'] = '*'
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Cache-Control'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['Connection'] = 'keep-alive'
+        
+        # Log para monitoramento de acesso mobile
+        user_agent = request.headers.get('User-Agent', '')
+        is_mobile = 'Mobile' in user_agent or 'Android' in user_agent or 'iPhone' in user_agent
+        print(f"📱 API ACCESS: {'MOBILE' if is_mobile else 'DESKTOP'} - {len(legendas)} legendas retornadas")
         
         return response
         
