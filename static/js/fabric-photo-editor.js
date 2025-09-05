@@ -62,6 +62,9 @@ class FabricPhotoEditor {
             this.setupMobileOptimizations();
             this.setupKeyboardShortcuts();
             
+            // MOBILE: Garantir compatibilidade do textarea
+            this.ensureMobileTextareaCompatibility();
+            
             // Salvar estado inicial
             this.saveState();
             
@@ -484,9 +487,13 @@ class FabricPhotoEditor {
             if (shape) {
                 this.saveState();
                 
-                // Para texto, abrir editor
-                if (shapeType === 'text' && shape.text === 'Texto') {
-                    this.editText(shape);
+                // Para texto, abrir editor automaticamente
+                if (shapeType === 'text') {
+                    // Aguardar o objeto ser adicionado ao canvas
+                    setTimeout(() => {
+                        this.canvas.setActiveObject(shape);
+                        this.editText(shape);
+                    }, 50);
                 }
             }
             
@@ -537,13 +544,14 @@ class FabricPhotoEditor {
                 });
                 
             case 'text':
-                return new fabric.IText('Texto', {
+                return new fabric.IText('Digite aqui', {
                     left: start.x,
                     top: start.y,
                     fill: this.currentColor,
                     fontSize: 24,
                     fontFamily: 'Arial',
-                    opacity: this.opacity
+                    opacity: this.opacity,
+                    editable: true
                 });
                 
             default:
@@ -852,35 +860,147 @@ class FabricPhotoEditor {
     // =================== UTILS ===================
     
     editText(textObject) {
-        // Entrar em modo de edição
+        console.log('📱 Iniciando edição de texto mobile-friendly');
+        
+        // Garantir que é IText e configurar para edição
+        if (textObject.type !== 'i-text') {
+            console.log('⚠️ Objeto não é IText, convertendo...');
+            return;
+        }
+        
+        // Ativar objeto e entrar em edição
+        this.canvas.setActiveObject(textObject);
         textObject.enterEditing();
         textObject.selectAll();
         
-        // MOBILE: Forçar aparecimento do teclado virtual
+        // MOBILE: Implementação completa para forçar teclado
         if (this.isMobile || this.isTouch) {
-            // Aguardar o fabric.js processar a entrada em edição
             setTimeout(() => {
-                // Encontrar o elemento de texto do Fabric.js
-                const textareaElement = this.canvas.upperCanvasEl.parentNode.querySelector('textarea');
-                
-                if (textareaElement) {
-                    // Forçar foco e seleção no elemento de texto
-                    textareaElement.focus();
-                    textareaElement.select();
+                // Método 1: Tentar usar hiddenTextarea do Fabric.js
+                if (textObject.hiddenTextarea) {
+                    console.log('📱 Usando hiddenTextarea do Fabric.js');
+                    textObject.hiddenTextarea.focus();
+                    textObject.hiddenTextarea.click();
                     
-                    // Métodos adicionais para garantir o teclado em diferentes dispositivos
-                    textareaElement.click();
+                    // Garantir que está visível e focável
+                    textObject.hiddenTextarea.style.opacity = '0';
+                    textObject.hiddenTextarea.style.position = 'absolute';
+                    textObject.hiddenTextarea.style.zIndex = '1000';
+                    textObject.hiddenTextarea.style.left = '0px';
+                    textObject.hiddenTextarea.style.top = '0px';
                     
-                    // Para iOS: disparar evento de input
-                    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                        textareaElement.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                    
-                    console.log('📱 Teclado móvel forçado para aparecer');
-                } else {
-                    console.log('⚠️ Elemento textarea do Fabric.js não encontrado');
+                    return;
                 }
-            }, 100);
+                
+                // Método 2: Procurar textarea no DOM
+                const textareaElement = this.canvas.upperCanvasEl.parentNode.querySelector('textarea');
+                if (textareaElement) {
+                    console.log('📱 Usando textarea encontrado no DOM');
+                    textareaElement.focus();
+                    textareaElement.click();
+                    return;
+                }
+                
+                // Método 3: Criar input temporário invisível como fallback
+                console.log('📱 Criando input temporário para mobile');
+                this.createMobileFallbackInput(textObject);
+                
+            }, 150);
+        }
+    }
+    
+    createMobileFallbackInput(textObject) {
+        // Remover input anterior se existir
+        const existingInput = document.getElementById('mobile-text-input');
+        if (existingInput) {
+            existingInput.remove();
+        }
+        
+        // Criar input temporário invisível
+        const mobileInput = document.createElement('input');
+        mobileInput.type = 'text';
+        mobileInput.id = 'mobile-text-input';
+        mobileInput.value = textObject.text || '';
+        mobileInput.style.cssText = `
+            position: absolute;
+            opacity: 0;
+            z-index: -1;
+            left: -9999px;
+            top: -9999px;
+            width: 1px;
+            height: 1px;
+        `;
+        
+        // Adicionar ao DOM
+        document.body.appendChild(mobileInput);
+        
+        // Forçar foco para abrir teclado
+        setTimeout(() => {
+            mobileInput.focus();
+            mobileInput.click();
+            console.log('📱 Input móvel temporário focado');
+        }, 50);
+        
+        // Sincronizar valor com o objeto IText
+        mobileInput.addEventListener('input', (e) => {
+            textObject.text = e.target.value;
+            this.canvas.renderAll();
+        });
+        
+        // Limpar quando sair da edição
+        const cleanupInput = () => {
+            if (mobileInput.parentNode) {
+                mobileInput.remove();
+            }
+            textObject.off('editing:exited', cleanupInput);
+        };
+        
+        textObject.on('editing:exited', cleanupInput);
+        
+        // Também limpar quando clicar fora
+        setTimeout(() => {
+            const handleOutsideClick = (e) => {
+                if (!e.target.closest('.canvas-container') && !e.target.closest('#mobile-text-input')) {
+                    textObject.exitEditing();
+                    cleanupInput();
+                    document.removeEventListener('click', handleOutsideClick);
+                }
+            };
+            document.addEventListener('click', handleOutsideClick);
+        }, 200);
+    }
+    
+    ensureMobileTextareaCompatibility() {
+        // Garantir que textarea do Fabric.js seja acessível em mobile
+        if (this.isMobile || this.isTouch) {
+            // CSS para garantir que textarea do Fabric.js funcione
+            const style = document.createElement('style');
+            style.textContent = `
+                .canvas-container textarea {
+                    position: absolute !important;
+                    opacity: 0 !important;
+                    z-index: 1000 !important;
+                    left: 0px !important;
+                    top: 0px !important;
+                    width: 1px !important;
+                    height: 1px !important;
+                    border: none !important;
+                    background: transparent !important;
+                    resize: none !important;
+                    outline: none !important;
+                    -webkit-user-select: text !important;
+                    user-select: text !important;
+                    touch-action: manipulation !important;
+                }
+                
+                .upper-canvas {
+                    -webkit-user-select: none !important;
+                    user-select: none !important;
+                }
+            `;
+            document.head.appendChild(style);
+            
+            console.log('📱 CSS de compatibilidade móvel aplicado');
         }
     }
     
