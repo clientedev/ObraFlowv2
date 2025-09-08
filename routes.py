@@ -9,6 +9,27 @@ from werkzeug.utils import secure_filename
 from flask_mail import Message
 
 from app import app, db, mail, csrf
+
+# Health check endpoint for Railway deployment
+@app.route('/health')
+def health_check():
+    """Health check endpoint for Railway deployment"""
+    try:
+        # Basic database connectivity test
+        db.session.execute(db.text('SELECT 1'))
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.utcnow().isoformat(),
+            'database': 'connected'
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'timestamp': datetime.utcnow().isoformat(),
+            'database': 'disconnected',
+            'error': str(e)
+        }), 503
+
 from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress, LegendaPredefinida
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
