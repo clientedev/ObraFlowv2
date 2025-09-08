@@ -62,10 +62,15 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Don't check CSRF by default
 app.config['WTF_CSRF_METHODS'] = ['POST', 'PUT', 'PATCH', 'DELETE']
 
 # initialize the app with the extension, flask-sqlalchemy >= 3.0.x
-db.init_app(app)
-login_manager.init_app(app)
-mail.init_app(app)
-csrf.init_app(app)
+try:
+    db.init_app(app)
+    login_manager.init_app(app)
+    mail.init_app(app)
+    csrf.init_app(app)
+    logging.info("✅ Flask extensions initialized successfully")
+except Exception as e:
+    logging.error(f"❌ Error initializing Flask extensions: {e}")
+    raise
 
 # Login manager configuration
 login_manager.login_view = 'login'  # type: ignore
@@ -290,11 +295,10 @@ def init_database():
 
 # Initialize database for Railway deployment
 if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("DATABASE_URL"):
-    # Delayed initialization for Railway
-    import threading
-    db_init_thread = threading.Thread(target=init_database)
-    db_init_thread.daemon = True
-    db_init_thread.start()
+    # Direct initialization for Railway (more reliable than threading)
+    logging.info("🚂 Railway environment detected - initializing database")
+    init_database()
 else:
     # Direct initialization for local development
+    logging.info("💻 Local environment detected - initializing database")
     init_database()
