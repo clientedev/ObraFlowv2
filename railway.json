@@ -5,9 +5,8 @@
   "deploy": {
     "restartPolicyType": "always",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 120,
-    "healthcheckMaxRetries": 5,
-    "healthcheckInterval": 15,
-    "startCommand": "gunicorn main:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --preload --max-requests 1000"
+    "healthcheckTimeout": 300,
+    "healthcheckMaxRetries": 8,
+    "healthcheckInterval": 30
   }
 }
