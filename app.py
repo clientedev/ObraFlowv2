@@ -265,31 +265,36 @@ def create_default_legendas():
         db.session.rollback()
 
 
-with app.app_context():
-    # Make sure to import the models here or their tables won't be created
-    import models  # noqa: F401
-
-    # Robust database creation with retries
-    MAX_DB_RETRIES = 5
-    RETRY_DELAY_DB = 5 # seconds
-    for attempt in range(MAX_DB_RETRIES):
-        try:
+# Initialize database in a separate function for Railway optimization
+def init_database():
+    """Initialize database tables and default data"""
+    try:
+        with app.app_context():
+            # Make sure to import the models here or their tables won't be created
+            import models  # noqa: F401
+            
+            # Quick database setup for Railway
             db.create_all()
             logging.info("Database tables created successfully.")
-            break
-        except Exception as e:
-            logging.error(f"Attempt {attempt + 1} failed to create database tables: {e}")
-            if attempt < MAX_DB_RETRIES - 1:
-                logging.info(f"Retrying database creation in {RETRY_DELAY_DB} seconds...")
-                time.sleep(RETRY_DELAY_DB)
-            else:
-                logging.error("Max retries reached. Could not create database tables.")
+            
+            # Create default admin user if none exists
+            create_admin_user_safe()
+            
+            # Create default checklists if they don't exist
+            create_default_checklists()
+            
+            # Create default legendas if they don't exist
+            create_default_legendas()
+    except Exception as e:
+        logging.error(f"Database initialization error: {e}")
 
-    # Create default admin user if none exists
-    create_admin_user_safe()
-    
-    # Create default checklists if they don't exist
-    create_default_checklists()
-    
-    # Create default legendas if they don't exist
-    create_default_legendas()
+# Initialize database for Railway deployment
+if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("DATABASE_URL"):
+    # Delayed initialization for Railway
+    import threading
+    db_init_thread = threading.Thread(target=init_database)
+    db_init_thread.daemon = True
+    db_init_thread.start()
+else:
+    # Direct initialization for local development
+    init_database()

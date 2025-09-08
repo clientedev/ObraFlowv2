@@ -10,24 +10,35 @@ from flask_mail import Message
 
 from app import app, db, mail, csrf
 
-# Health check endpoint for Railway deployment
+# Health check endpoint for Railway deployment - LIGHTWEIGHT VERSION
 @app.route('/health')
 def health_check():
-    """Health check endpoint for Railway deployment"""
+    """Lightweight health check for Railway - no database dependency"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.utcnow().isoformat(),
+        'service': 'flask-app'
+    }), 200
+
+@app.route('/health/full')
+def health_check_full():
+    """Full health check with database connectivity"""
     try:
         # Basic database connectivity test
         db.session.execute(db.text('SELECT 1'))
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.utcnow().isoformat(),
-            'database': 'connected'
+            'database': 'connected',
+            'service': 'flask-app'
         }), 200
     except Exception as e:
         return jsonify({
             'status': 'unhealthy',
             'timestamp': datetime.utcnow().isoformat(),
             'database': 'disconnected',
-            'error': str(e)
+            'error': str(e),
+            'service': 'flask-app'
         }), 503
 
 from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress, LegendaPredefinida
