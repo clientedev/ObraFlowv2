@@ -1,0 +1,56 @@
+# Development files
+.git
+.gitignore
+README.md
+replit.md
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.pytest_cache
+
+# Dependencies
+.cache
+.pythonlibs
+node_modules
+
+# Environment files
+.env
+.venv
+venv/
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local development
+instance/
+.replit
+.upm
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Test files
+test_*
+*_test.py
