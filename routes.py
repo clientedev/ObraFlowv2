@@ -42,7 +42,7 @@ def health_check_full():
         }), 503
 
 from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress, LegendaPredefinida
-from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm
+from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm, FirstLoginForm
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
 from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
 from email_service import email_service
@@ -166,6 +166,11 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.ativo and check_password_hash(user.password_hash, form.password.data):
             login_user(user, remember=form.remember_me.data)
+            
+            # Verificar se é o primeiro login
+            if hasattr(user, 'primeiro_login') and user.primeiro_login:
+                return redirect(url_for('first_login'))
+            
             next_page = request.args.get('next')
             if not next_page or urlparse(next_page).netloc != '':
                 next_page = url_for('index')
@@ -4069,5 +4074,35 @@ def not_found_error(error):
 def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
+
+# Rota para primeiro login - troca de senha obrigatória
+@app.route('/first-login', methods=['GET', 'POST'])
+@login_required
+def first_login():
+    # Se não é primeiro login, redireciona para home
+    if not hasattr(current_user, 'primeiro_login') or not current_user.primeiro_login:
+        return redirect(url_for('index'))
+    
+    form = FirstLoginForm()
+    
+    if form.validate_on_submit():
+        # Verificar senha atual
+        if not check_password_hash(current_user.password_hash, form.current_password.data):
+            flash('Senha atual incorreta.', 'error')
+            return render_template('auth/first_login.html', form=form)
+        
+        # Atualizar senha e marcar como não sendo mais primeiro login
+        try:
+            current_user.password_hash = generate_password_hash(form.new_password.data)
+            current_user.primeiro_login = False
+            db.session.commit()
+            
+            flash('Senha alterada com sucesso! Bem-vindo ao sistema.', 'success')
+            return redirect(url_for('index'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao alterar senha: {str(e)}', 'error')
+    
+    return render_template('auth/first_login.html', form=form)
 
 

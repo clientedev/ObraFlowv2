@@ -11,6 +11,12 @@ class LoginForm(FlaskForm):
     password = PasswordField('Senha', validators=[DataRequired()])
     remember_me = BooleanField('Lembrar-me')
 
+# Formulário para troca de senha no primeiro login
+class FirstLoginForm(FlaskForm):
+    current_password = PasswordField('Senha Atual', validators=[DataRequired()])
+    new_password = PasswordField('Nova Senha', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Confirmar Nova Senha', validators=[DataRequired(), EqualTo('new_password', message='As senhas devem coincidir')])
+
 class RegisterForm(FlaskForm):
     username = StringField('Usuário', validators=[DataRequired(), Length(min=4, max=25)])
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -95,88 +101,121 @@ class VisitaForm(FlaskForm):
 class ReportForm(FlaskForm):
     titulo = StringField('Título do Relatório', validators=[DataRequired(), Length(max=200)])
     projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
-    conteudo = TextAreaField('Conteúdo do Relatório')
+    data_relatorio = DateField('Data do Relatório', validators=[DataRequired()], default=datetime.date.today)
+    conteudo = TextAreaField('Conteúdo', validators=[DataRequired()], widget=TextArea())
+    aprovador_nome = StringField('Nome do Aprovador', validators=[DataRequired(), Length(max=200)])
+    observacoes = TextAreaField('Observações Gerais')
     
     def __init__(self, *args, **kwargs):
         super(ReportForm, self).__init__(*args, **kwargs)
         from models import Projeto
         self.projeto_id.choices = [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
 
-class VisitaRealizadaForm(FlaskForm):
-    atividades_realizadas = TextAreaField('Atividades Realizadas', validators=[DataRequired()])
-    observacoes = TextAreaField('Observações')
-    latitude = HiddenField()
-    longitude = HiddenField()
-    endereco_gps = StringField('Localização GPS', validators=[Optional()])
-
-class ChecklistItemForm(FlaskForm):
-    pergunta = TextAreaField('Pergunta', validators=[DataRequired()])
-    resposta = TextAreaField('Resposta')
-    concluido = BooleanField('Concluído')
-    obrigatorio = BooleanField('Obrigatório')
-
-def coerce_int_or_none(value):
-    if value == '' or value is None:
-        return None
-    try:
-        return int(value)
-    except (ValueError, TypeError):
-        return None
+class ChecklistPadraoForm(FlaskForm):
+    titulo = StringField('Título do Item', validators=[DataRequired(), Length(max=200)])
+    descricao = TextAreaField('Descrição', validators=[Optional()])
+    categoria = SelectField('Categoria', choices=[
+        ('Estrutural', 'Estrutural'),
+        ('Acabamentos', 'Acabamentos'),
+        ('Instalações', 'Instalações'),
+        ('Segurança', 'Segurança'),
+        ('Limpeza', 'Limpeza'),
+        ('Geral', 'Geral')
+    ], default='Geral', validators=[DataRequired()])
+    ordem = IntegerField('Ordem', validators=[Optional(), NumberRange(min=1)])
+    obrigatorio = BooleanField('Item Obrigatório', default=False)
+    ativo = BooleanField('Ativo', default=True)
 
 class RelatorioForm(FlaskForm):
-    titulo = StringField('Título do Relatório', validators=[DataRequired(), Length(max=300)])
+    titulo = StringField('Título', validators=[DataRequired(), Length(max=200)])
     projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
-    visita_id = SelectField('Visita (Opcional)', coerce=coerce_int_or_none, validators=[Optional()])
-    conteudo = TextAreaField('Conteúdo', widget=TextArea())
-    aprovador_nome = StringField('Nome do Aprovador', validators=[Length(max=200)])
-    data_relatorio = DateField('Data do Relatório', validators=[DataRequired()])
+    data_relatorio = DateField('Data do Relatório', validators=[DataRequired()], default=datetime.date.today)
+    aprovador_nome = StringField('Nome do Aprovador', validators=[DataRequired(), Length(max=200)])
+    conteudo = TextAreaField('Conteúdo do Relatório', validators=[Optional()], widget=TextArea())
+    observacoes = TextAreaField('Observações Gerais', validators=[Optional()])
+    status = SelectField('Status', choices=[
+        ('Rascunho', 'Rascunho'),
+        ('Aguardando Aprovacao', 'Aguardando Aprovação'),
+        ('Aprovado', 'Aprovado'),
+        ('Rejeitado', 'Rejeitado')
+    ], default='Rascunho')
     
     def __init__(self, *args, **kwargs):
         super(RelatorioForm, self).__init__(*args, **kwargs)
-        from models import Projeto, Visita
-        self.projeto_id.choices = [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
-        self.visita_id.choices = [('', 'Selecione uma visita (opcional)')] + [(v.id, f"Visita {v.id} - {v.data_visita.strftime('%d/%m/%Y')}") for v in Visita.query.filter_by(status='Realizada').all()]
-
-class FotoRelatorioForm(FlaskForm):
-    foto = FileField('Foto', validators=[
-        FileRequired(),
-        FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Apenas imagens são permitidas!')
-    ])
-    titulo = StringField('Título da Foto', validators=[Length(max=200)])
-    descricao = TextAreaField('Descrição')
-    tipo_servico = StringField('Tipo de Serviço', validators=[Length(max=100)])
+        from models import Projeto
+        self.projeto_id.choices = [(0, 'Selecione um projeto')] + [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
 
 class ReembolsoForm(FlaskForm):
-    projeto_id = SelectField('Projeto (Opcional)', coerce=int, validators=[Optional()])
-    periodo_inicio = DateField('Período - Início', validators=[DataRequired()])
-    periodo_fim = DateField('Período - Fim', validators=[DataRequired()])
-    quilometragem = FloatField('Quilometragem', validators=[Optional(), NumberRange(min=0)])
-    valor_km = FloatField('Valor por KM (R$)', validators=[Optional(), NumberRange(min=0)])
-    alimentacao = FloatField('Alimentação (R$)', validators=[Optional(), NumberRange(min=0)])
-    hospedagem = FloatField('Hospedagem (R$)', validators=[Optional(), NumberRange(min=0)])
-    outros_gastos = FloatField('Outros Gastos (R$)', validators=[Optional(), NumberRange(min=0)])
-    descricao_outros = TextAreaField('Descrição de Outros Gastos')
-    observacoes = TextAreaField('Observações')
+    titulo = StringField('Título do Reembolso', validators=[DataRequired(), Length(max=200)])
+    projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
+    data_solicitacao = DateField('Data da Solicitação', validators=[DataRequired()], default=datetime.date.today)
+    descricao = TextAreaField('Descrição/Justificativa', validators=[DataRequired()])
+    
+    # Categoria gastos com tratamento robusto
+    quilometragem = FloatField('Quilometragem', validators=[Optional(), NumberRange(min=0)], default=0)
+    valor_km = FloatField('Valor por KM (R$)', validators=[Optional(), NumberRange(min=0)], default=0)
+    alimentacao = FloatField('Alimentação (R$)', validators=[Optional(), NumberRange(min=0)], default=0)
+    hospedagem = FloatField('Hospedagem (R$)', validators=[Optional(), NumberRange(min=0)], default=0)
+    outros_gastos = FloatField('Outros Gastos (R$)', validators=[Optional(), NumberRange(min=0)], default=0)
+    
+    status = SelectField('Status', choices=[
+        ('Pendente', 'Pendente'),
+        ('Aprovado', 'Aprovado'),
+        ('Rejeitado', 'Rejeitado'),
+        ('Pago', 'Pago')
+    ], default='Pendente')
     
     def __init__(self, *args, **kwargs):
         super(ReembolsoForm, self).__init__(*args, **kwargs)
         from models import Projeto
-        self.projeto_id.choices = [('', 'Selecione um projeto (opcional)')] + [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
+        self.projeto_id.choices = [(0, 'Selecione um projeto')] + [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
+    
+    def validate(self, extra_validators=None):
+        """Validação personalizada para garantir que pelo menos um valor seja preenchido"""
+        if not super().validate(extra_validators):
+            return False
+        
+        # Verificar se pelo menos um campo de valor foi preenchido
+        valores = [
+            self.quilometragem.data or 0,
+            self.alimentacao.data or 0,
+            self.hospedagem.data or 0,
+            self.outros_gastos.data or 0
+        ]
+        
+        if all(v == 0 for v in valores):
+            self.quilometragem.errors.append('Pelo menos um valor de gasto deve ser informado.')
+            return False
+        
+        return True
 
-class TipoObraForm(FlaskForm):
-    nome = StringField('Nome', validators=[DataRequired(), Length(max=100)])
-    descricao = TextAreaField('Descrição')
-    ativo = BooleanField('Ativo', default=True)
+class ConfiguracaoEmailForm(FlaskForm):
+    smtp_server = StringField('Servidor SMTP', validators=[DataRequired(), Length(max=255)])
+    smtp_port = IntegerField('Porta SMTP', validators=[DataRequired(), NumberRange(min=1, max=65535)])
+    smtp_username = StringField('Usuário SMTP', validators=[DataRequired(), Email(), Length(max=255)])
+    smtp_password = PasswordField('Senha SMTP', validators=[Optional(), Length(max=255)])
+    use_tls = BooleanField('Usar TLS', default=True)
+    remetente_nome = StringField('Nome do Remetente', validators=[DataRequired(), Length(max=200)])
+    remetente_email = StringField('E-mail do Remetente', validators=[DataRequired(), Email(), Length(max=255)])
 
-class ChecklistTemplateForm(FlaskForm):
-    nome = StringField('Nome', validators=[DataRequired(), Length(max=200)])
-    descricao = TextAreaField('Descrição')
-    obrigatorio = BooleanField('Obrigatório')
-    ordem = IntegerField('Ordem', validators=[NumberRange(min=0)], default=0)
-    ativo = BooleanField('Ativo', default=True)
+# Formulários adicionais que estavam faltando
+class VisitaRealizadaForm(FlaskForm):
+    data_realizada = DateTimeField('Data da Visita Realizada', validators=[DataRequired()])
+    observacoes = TextAreaField('Observações da Visita')
+    checklist_items = TextAreaField('Itens Verificados')
+
+class FotoRelatorioForm(FlaskForm):
+    legenda = StringField('Legenda da Foto', validators=[Optional(), Length(max=500)])
+    categoria = SelectField('Categoria', choices=[
+        ('Geral', 'Geral'),
+        ('Estrutural', 'Estrutural'),
+        ('Acabamentos', 'Acabamentos'),
+        ('Instalações', 'Instalações'),
+        ('Segurança', 'Segurança')
+    ], default='Geral')
 
 class LegendaPredefinidaForm(FlaskForm):
-    texto = TextAreaField('Texto da Legenda', validators=[DataRequired(), Length(max=500)], render_kw={'rows': 3})
+    texto = StringField('Texto da Legenda', validators=[DataRequired(), Length(max=500)])
     categoria = SelectField('Categoria', choices=[
         ('Geral', 'Geral'),
         ('Estrutural', 'Estrutural'),

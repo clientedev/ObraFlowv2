@@ -15,6 +15,7 @@ class User(UserMixin, db.Model):
     telefone = db.Column(db.String(20))
     is_master = db.Column(db.Boolean, default=False)
     is_developer = db.Column(db.Boolean, default=False)  # Novo tipo de usuário
+    primeiro_login = db.Column(db.Boolean, default=True)  # Campo para controlar primeiro login
     ativo = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
