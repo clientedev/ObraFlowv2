@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ['python311', 'gcc']
+
+[phases.install]
+cmds = ['pip install -r pyproject.toml']
+
+[phases.build]
+cmds = ['echo "Build complete"']
+
+[start]
+cmd = 'gunicorn main:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --preload'
