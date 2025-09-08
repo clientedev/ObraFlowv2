@@ -5,8 +5,8 @@
   "deploy": {
     "restartPolicyType": "always",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 300,
-    "healthcheckMaxRetries": 8,
-    "healthcheckInterval": 30
+    "healthcheckTimeout": 120,
+    "healthcheckMaxRetries": 10,
+    "healthcheckInterval": 15
   }
 }
