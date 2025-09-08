@@ -97,6 +97,15 @@
                         </div>
                     </div>
                     
+                    <div class="mb-3">
+                        {{ form.email_principal.label(class="form-label") }}
+                        {{ form.email_principal(class="form-control" + (" is-invalid" if form.email_principal.errors else ""), placeholder="cliente@exemplo.com") }}
+                        {% for error in form.email_principal.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                        <small class="form-text text-muted">E-mail principal do cliente para envio de relatórios.</small>
+                    </div>
+                    
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">

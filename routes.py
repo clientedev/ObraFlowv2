@@ -1158,25 +1158,38 @@ def upload_report_photos(id):
 def project_new():
     form = ProjetoForm()
     
+    if request.method == 'POST':
+        print(f"🔍 DEBUG: Form data received: {dict(request.form)}")
+        print(f"🔍 DEBUG: Form validation: {form.validate_on_submit()}")
+        if form.errors:
+            print(f"🔍 DEBUG: Form errors: {form.errors}")
+    
     if form.validate_on_submit():
-        projeto = Projeto()
-        projeto.numero = generate_project_number()
-        projeto.nome = form.nome.data
-        projeto.descricao = form.descricao.data
-        projeto.endereco = form.endereco.data
-        projeto.latitude = float(form.latitude.data) if form.latitude.data else None
-        projeto.longitude = float(form.longitude.data) if form.longitude.data else None
-        projeto.tipo_obra = form.tipo_obra.data
-        projeto.responsavel_id = form.responsavel_id.data
-        projeto.email_principal = form.email_principal.data
-        projeto.data_inicio = form.data_inicio.data
-        projeto.data_previsao_fim = form.data_previsao_fim.data
-        projeto.status = form.status.data
-        
-        db.session.add(projeto)
-        db.session.commit()
-        flash('Projeto cadastrado com sucesso!', 'success')
-        return redirect(url_for('projects_list'))
+        try:
+            projeto = Projeto()
+            projeto.numero = generate_project_number()
+            projeto.nome = form.nome.data
+            projeto.descricao = form.descricao.data
+            projeto.endereco = form.endereco.data
+            projeto.latitude = float(form.latitude.data) if form.latitude.data else None
+            projeto.longitude = float(form.longitude.data) if form.longitude.data else None
+            projeto.tipo_obra = form.tipo_obra.data
+            projeto.responsavel_id = form.responsavel_id.data
+            projeto.email_principal = form.email_principal.data
+            projeto.data_inicio = form.data_inicio.data
+            projeto.data_previsao_fim = form.data_previsao_fim.data
+            projeto.status = form.status.data
+            
+            print(f"🔍 DEBUG: Trying to save projeto: {projeto.nome}")
+            db.session.add(projeto)
+            db.session.commit()
+            print(f"✅ DEBUG: Projeto saved successfully!")
+            flash('Projeto cadastrado com sucesso!', 'success')
+            return redirect(url_for('projects_list'))
+        except Exception as e:
+            print(f"❌ DEBUG: Error saving projeto: {e}")
+            db.session.rollback()
+            flash(f'Erro ao salvar projeto: {str(e)}', 'error')
     
     return render_template('projects/form.html', form=form)
 
