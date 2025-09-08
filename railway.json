@@ -5,8 +5,9 @@
   "deploy": {
     "restartPolicyType": "always",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 120,
-    "healthcheckMaxRetries": 10,
-    "healthcheckInterval": 15
+    "healthcheckTimeout": 300,
+    "healthcheckMaxRetries": 15,
+    "healthcheckInterval": 30,
+    "startCommand": "python main_production.py"
   }
 }

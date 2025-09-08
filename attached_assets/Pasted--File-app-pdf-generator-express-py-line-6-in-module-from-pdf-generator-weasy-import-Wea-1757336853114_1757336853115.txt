@@ -1,0 +1,31 @@
+  File "/app/pdf_generator_express.py", line 6, in <module>
+    from pdf_generator_weasy import WeasyPrintReportGenerator
+  File "/app/pdf_generator_weasy.py", line 8, in <module>
+    from weasyprint import HTML, CSS
+  File "/opt/venv/lib/python3.12/site-packages/weasyprint/__init__.py", line 433, in <module>
+    from .css import preprocess_stylesheet  # noqa: I001, E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/weasyprint/css/__init__.py", line 28, in <module>
+    from .computed_values import COMPUTER_FUNCTIONS
+  File "/opt/venv/lib/python3.12/site-packages/weasyprint/css/computed_values.py", line 9, in <module>
+    from ..text.ffi import FROM_UNITS, ffi, pango
+  File "/opt/venv/lib/python3.12/site-packages/weasyprint/text/ffi.py", line 475, in <module>
+    gobject = _dlopen(
+              ^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/weasyprint/text/ffi.py", line 463, in _dlopen
+    return ffi.dlopen(names[0], flags)  # pragma: no cover
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/cffi/api.py", line 150, in dlopen
+    lib, function_cache = _make_ffi_library(self, name, flags)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/cffi/api.py", line 834, in _make_ffi_library
+    backendlib = _load_backend_lib(backend, libname, flags)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/cffi/api.py", line 829, in _load_backend_lib
+    raise OSError(msg)
+OSError: cannot load library 'libgobject-2.0-0': libgobject-2.0-0: cannot open shared object file: No such file or directory.  Additionally, ctypes.util.find_library() did not manage to locate a library called 'libgobject-2.0-0'
+[2025-09-08 12:59:24 +0000] [50] [INFO] Worker exiting (pid: 50)
+[2025-09-08 12:59:24 +0000] [49] [ERROR] Worker (pid:50) exited with code 3
+[2025-09-08 12:59:24 +0000] [49] [ERROR] Shutting down: Master
+[2025-09-08 12:59:24 +0000] [49] [ERROR] Reason: Worker failed to boot.
+🚀 INICIANDO DEPLOYMENT RAILWAY ULTRA-ROBUSTO

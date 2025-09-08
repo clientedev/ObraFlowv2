@@ -5,9 +5,19 @@ Gerador de PDF usando WeasyPrint para replicar exatamente o modelo Artesano
 import os
 import json
 from datetime import datetime
-from weasyprint import HTML, CSS
 from jinja2 import Template
 from flask import current_app
+
+# Try to import WeasyPrint with graceful fallback
+try:
+    from weasyprint import HTML, CSS
+    WEASYPRINT_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️  WeasyPrint não disponível: {e}")
+    print("🔄 Sistema funcionará com ReportLab como fallback")
+    WEASYPRINT_AVAILABLE = False
+    HTML = None
+    CSS = None
 
 class WeasyPrintReportGenerator:
     def __init__(self):
@@ -26,6 +36,15 @@ class WeasyPrintReportGenerator:
         Returns:
             bytes ou caminho do arquivo gerado
         """
+        if not WEASYPRINT_AVAILABLE:
+            # Fallback para ReportLab se WeasyPrint não estiver disponível
+            try:
+                from pdf_generator import ReportGenerator
+                reportlab_generator = ReportGenerator()
+                return reportlab_generator.generate_report_pdf(relatorio, fotos, output_path)
+            except Exception as e:
+                raise Exception(f"Erro: WeasyPrint não disponível e falha no fallback ReportLab: {str(e)}")
+        
         try:
             # Preparar dados para o template
             data = self._prepare_report_data(relatorio, fotos)
@@ -46,7 +65,15 @@ class WeasyPrintReportGenerator:
                 return pdf_bytes
                 
         except Exception as e:
-            raise Exception(f"Erro ao gerar PDF com WeasyPrint: {str(e)}")
+            # Fallback para ReportLab se WeasyPrint falhar
+            try:
+                print(f"⚠️  WeasyPrint falhou: {e}")
+                print("🔄 Tentando fallback para ReportLab...")
+                from pdf_generator import ReportGenerator
+                reportlab_generator = ReportGenerator()
+                return reportlab_generator.generate_report_pdf(relatorio, fotos, output_path)
+            except Exception as fallback_error:
+                raise Exception(f"Erro ao gerar PDF - WeasyPrint: {str(e)} | ReportLab: {str(fallback_error)}")
     
     def _prepare_report_data(self, relatorio, fotos):
         """Preparar dados do relatório para o template"""

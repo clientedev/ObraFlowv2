@@ -3,7 +3,13 @@ Gerador de PDF para Relatórios Express
 Replicação exata do template WeasyPrint padrão com dados da empresa no topo
 """
 
-from pdf_generator_weasy import WeasyPrintReportGenerator
+# Try to import WeasyPrint generator with graceful fallback
+try:
+    from pdf_generator_weasy import WeasyPrintReportGenerator, WEASYPRINT_AVAILABLE
+except ImportError:
+    print("⚠️  WeasyPrint generator não disponível")
+    WEASYPRINT_AVAILABLE = False
+    WeasyPrintReportGenerator = None
 from models import RelatorioExpress, FotoRelatorioExpress
 import os
 import json
@@ -11,7 +17,7 @@ from datetime import datetime
 import base64
 from flask import current_app
 
-class ExpressReportGenerator(WeasyPrintReportGenerator):
+class ExpressReportGenerator(WeasyPrintReportGenerator if WEASYPRINT_AVAILABLE else object):
     """
     Gerador de PDF para Relatórios Express
     Herda do WeasyPrintReportGenerator e adapta apenas os dados da empresa
@@ -22,6 +28,15 @@ class ExpressReportGenerator(WeasyPrintReportGenerator):
         Gera PDF do relatório express usando o mesmo método do WeasyPrint
         mas com dados da empresa ao invés de projeto
         """
+        
+        if not WEASYPRINT_AVAILABLE:
+            # Fallback para ReportLab quando WeasyPrint não estiver disponível
+            try:
+                return self._generate_express_fallback_pdf(relatorio_express, fotos_list, output_path)
+            except Exception as e:
+                error_msg = f"Erro ao gerar PDF Express (fallback): {str(e)}"
+                print(error_msg)
+                return {'success': False, 'error': error_msg}
         
         try:
             # Criar um objeto mock que simula um relatório padrão
@@ -34,9 +49,15 @@ class ExpressReportGenerator(WeasyPrintReportGenerator):
             return super().generate_report_pdf(mock_relatorio, fotos_processadas, output_path)
                 
         except Exception as e:
-            error_msg = f"Erro ao gerar PDF Express: {str(e)}"
-            print(error_msg)
-            return {'success': False, 'error': error_msg}
+            # Tentar fallback para ReportLab
+            try:
+                print(f"⚠️  WeasyPrint falhou para Express: {e}")
+                print("🔄 Tentando fallback para ReportLab...")
+                return self._generate_express_fallback_pdf(relatorio_express, fotos_list, output_path)
+            except Exception as fallback_error:
+                error_msg = f"Erro ao gerar PDF Express - WeasyPrint: {str(e)} | Fallback: {str(fallback_error)}"
+                print(error_msg)
+                return {'success': False, 'error': error_msg}
     
     def _create_mock_report(self, relatorio_express):
         """
@@ -160,6 +181,21 @@ class ExpressReportGenerator(WeasyPrintReportGenerator):
         
         return fotos_processadas
     
+    def _generate_express_fallback_pdf(self, relatorio_express, fotos_list, output_path):
+        """
+        Fallback para gerar PDF usando ReportLab quando WeasyPrint não estiver disponível
+        """
+        from pdf_generator import ReportGenerator
+        
+        # Criar mock do relatório para usar com ReportLab
+        mock_relatorio = self._create_mock_report(relatorio_express)
+        
+        # Processar fotos
+        fotos_processadas = self._process_express_photos(fotos_list)
+        
+        # Usar ReportLab generator
+        reportlab_generator = ReportGenerator()
+        return reportlab_generator.generate_report_pdf(mock_relatorio, fotos_processadas, output_path)
 
 
 # Funções auxiliares para compatibilidade com routes existentes

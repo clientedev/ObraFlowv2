@@ -1,0 +1,26 @@
+[phases.install]
+nixPkgs = [
+  "python311",
+  "python311Packages.pip",
+  "glib",
+  "pango",
+  "fontconfig", 
+  "freetype",
+  "harfbuzz",
+  "fribidi",
+  "libpng",
+  "libjpeg",
+  "gdk-pixbuf",
+  "cairo",
+  "gtk3",
+  "gobject-introspection",
+  "pkg-config"
+]
+
+[phases.build]
+cmds = [
+  "pip install --no-cache-dir -r requirements.txt"
+]
+
+[start]
+cmd = "python main_production.py"
