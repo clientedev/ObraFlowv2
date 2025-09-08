@@ -212,10 +212,14 @@ def register():
             is_master=form.is_master.data
         )
         
-        db.session.add(user)
-        db.session.commit()
-        flash('Usuário cadastrado com sucesso!', 'success')
-        return redirect(url_for('users_list'))
+        try:
+            db.session.add(user)
+            db.session.commit()
+            flash('Usuário cadastrado com sucesso!', 'success')
+            return redirect(url_for('users_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao cadastrar usuário: {str(e)}', 'error')
     
     return render_template('auth/register.html', form=form)
 
@@ -316,9 +320,13 @@ def user_edit(user_id):
         if form.password.data:
             user.password_hash = generate_password_hash(form.password.data)
         
-        db.session.commit()
-        flash('Usuário atualizado com sucesso!', 'success')
-        return redirect(url_for('users_list'))
+        try:
+            db.session.commit()
+            flash('Usuário atualizado com sucesso!', 'success')
+            return redirect(url_for('users_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar usuário: {str(e)}', 'error')
     
     return render_template('users/form.html', form=form, user=user)
 
