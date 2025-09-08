@@ -1,11 +1,35 @@
 [phases.setup]
-nixPkgs = ['python311', 'gcc']
+nixPkgs = ['python311', 'gcc', 'pkg-config', 'cairo', 'pango', 'gdk-pixbuf', 'libffi', 'gobject-introspection']
 
 [phases.install]
-cmds = ['pip install -r pyproject.toml']
+cmds = [
+    'pip install --upgrade pip setuptools wheel',
+    'pip install email-validator==2.2.0',
+    'pip install flask-dance==7.1.0',
+    'pip install flask==3.1.1',
+    'pip install flask-sqlalchemy==3.1.1',
+    'pip install gunicorn==23.0.0',
+    'pip install psycopg2-binary==2.9.10',
+    'pip install flask-login==0.6.3',
+    'pip install oauthlib==3.3.1',
+    'pip install pyjwt==2.10.1',
+    'pip install werkzeug==3.1.3',
+    'pip install sqlalchemy==2.0.43',
+    'pip install flask-mail==0.10.0',
+    'pip install flask-wtf==1.2.2',
+    'pip install wtforms==3.2.1',
+    'pip install reportlab==4.4.3',
+    'pip install pillow==11.3.0',
+    'pip install pdfkit==1.0.0',
+    'pip install wkhtmltopdf==0.2',
+    'pip install openai==1.100.1',
+    'pip install requests==2.32.4',
+    'pip install weasyprint==66.0',
+    'pip install jinja2==3.1.6'
+]
 
 [phases.build]
-cmds = ['echo "Build complete"']
+cmds = ['echo "Build complete - all dependencies installed"']
 
 [start]
 cmd = 'gunicorn main:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --preload'
