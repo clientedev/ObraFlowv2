@@ -89,12 +89,12 @@
                             <tbody>
                                 {% for project in projects %}
                                 <tr data-status="{{ project.status }}" 
-                                    data-tipo="{{ project.tipo_obra.nome if project.tipo_obra else '' }}"
+                                    data-tipo="{{ project.tipo_obra if project.tipo_obra else '' }}"
                                     data-responsavel="{{ project.responsavel.nome_completo if project.responsavel else '' }}"
                                     data-search="{{ (project.numero + ' ' + project.nome)|lower }}">
                                     <td><strong>{{ project.numero }}</strong></td>
                                     <td>{{ project.nome }}</td>
-                                    <td>{{ project.tipo_obra.nome if project.tipo_obra else '-' }}</td>
+                                    <td>{{ project.tipo_obra if project.tipo_obra else '-' }}</td>
                                     <td>{{ project.responsavel.nome_completo if project.responsavel else '-' }}</td>
                                     <td>
                                         {% if project.status == 'Ativo' %}

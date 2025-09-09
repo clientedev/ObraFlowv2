@@ -38,7 +38,7 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <p><strong>Tipo de Obra:</strong> {{ project.tipo_obra.nome }}</p>
+                        <p><strong>Tipo de Obra:</strong> {{ project.tipo_obra }}</p>
                         <p><strong>Responsável:</strong> {{ project.responsavel.nome_completo }}</p>
                         <p><strong>Status:</strong> 
                             {% if project.status == 'Ativo' %}
