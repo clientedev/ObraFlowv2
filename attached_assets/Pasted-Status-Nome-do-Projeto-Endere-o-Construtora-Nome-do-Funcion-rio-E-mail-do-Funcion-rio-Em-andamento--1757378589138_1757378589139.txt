@@ -1,0 +1,106 @@
+Status	Nome do Projeto	Endereço	Construtora	Nome do Funcionário	E-mail do Funcionário
+Em andamento	Ápice Aclimação	Rua Gama Cerqueira 577 - Cambuci	Construtora Filippo	Eng. Marcelo Izar	marcelo@filippo.com.br
+Concluída	Astral Saúde	R. Carneiro da Cunha 555 - Vila da Saúde	Tecnisa	Eng. Bruna Cristina da Silva Souza	bruna.souza@tecnisa.com.br
+Concluída	Astral Saúde	R. Carneiro da Cunha 555 - Vila da Saúde	Tecnisa	Eng. Rosa Alice Sant anna	eng.rosa@tecnisa.com.br
+Concluída	Astral Saúde	R. Carneiro da Cunha 555 - Vila da Saúde	Tecnisa	Gustavo Bomfim Carvalho de Almeida	gustavo.almeida@tecnisa.com.br
+Concluída	Astral Saúde	R. Carneiro da Cunha 555 - Vila da Saúde	Tecnisa	Eng. Luana Sato	luana.sato@tecnisa.com.br
+Concluída	Astral Saúde	R. Carneiro da Cunha 555 - Vila da Saúde	Tecnisa	Bruno Andrelini De Freitas 	bruno.andrelini@tecnisa.com.br
+Em andamento	Baume	R. Consórcio 130 - Vila Nova Conceição	OR	Felipe Nogueira Brunelli 	felipebrunelli@or.com.br
+Em andamento	Baume	R. Consórcio 130 - Vila Nova Conceição	OR	Diego Moreira Campos	diegomcampos@or.com.br
+Em andamento	Biotique Ibirapuera	R. Manuel da Nóbrega 778 - Paraíso	Porto Ferraz	Luana Assis	luana.assis@portoferraz.com.br
+Em andamento	Biotique Ibirapuera	R. Manuel da Nóbrega 778 - Paraíso	Porto Ferraz	Carlos Marques	carlos.marques@portoferraz.com.br
+Em andamento	Biotique Ibirapuera	R. Manuel da Nóbrega 778 - Paraíso	Porto Ferraz	Bruna Costa	bruna.costa@portoferraz.com.br
+Em andamento	Biotique Ibirapuera	R. Manuel da Nóbrega 778 - Paraíso	Porto Ferraz	Caio Brito	caio.brito@portoferraz.com.br
+Em andamento	Bosque das Pitangueiras	Rua Arnaldo Jose Pacifico 18	Tecnisa	Vitor Teixeira Carneiro da Cunha 	vitor.cunha@tecnisa.com.br
+Em andamento	Bosque das Pitangueiras	Rua Arnaldo Jose Pacifico 18	Tecnisa	Giovanna Teixeira Custodio	giovanna.custodio@tecnisa.com.br
+Em andamento	Bosque das Pitangueiras	Rua Arnaldo Jose Pacifico 18	Tecnisa	Daniel Bonini Pereira	daniel.pereira@tecnisa.com.br
+Em andamento	Bosque das Pitangueiras	Rua Arnaldo Jose Pacifico 18	Tecnisa	Fabio Yuzo Yoda	fabio.yoda@tecnisa.com.br
+Em andamento	Bosque das Pitangueiras	Rua Arnaldo Jose Pacifico 18	Tecnisa	Eng. Luana Sato	luana.sato@tecnisa.com.br
+Concluída	Casa Alto de Pinheiros	Av. Diógenes Ribeiro de Lima 2440	Even Construtora	Wesley Soares Fernandes Nobre	wfernandes@even.com.br
+Concluída	Casa Alto de Pinheiros	Av. Diógenes Ribeiro de Lima 2441	Even Construtora	Isabella Soriani Almeida	isalmeida@even.com.br
+Concluída	Casa Alto de Pinheiros	Av. Diógenes Ribeiro de Lima 2442	Even Construtora	Vinicius Alves Bassi	vabassi@even.com.br
+Concluída	Casa Alto de Pinheiros	Av. Diógenes Ribeiro de Lima 2443	Even Construtora	Maria Luisa Figueiredo	mafigueiredo@even.com.br
+Concluída	Casa Alto de Pinheiros	Av. Diógenes Ribeiro de Lima 2444	Even Construtora	Rodrigo Augusto Estrada Carvalho Do Nascimento	ranascimento@even.com.br
+Concluída	Casa Alto de Pinheiros	Av. Diógenes Ribeiro de Lima 2445	Even Construtora	Anderson Machado	amachado@even.com.br
+Em andamento	Casa Jardim Ibirapuera	Av. Piassanguaba 326 - Planalto Paulista	MV Construção	Diogo	estagioeng.ibirapuera@mvconstrucoes.com.br
+Em andamento	Casa Jardim Ibirapuera	Av. Piassanguaba 326 - Planalto Paulista	MV Construção	Victor Coutinho	victor.coutinho@mvconstrucoes.com.br
+Em andamento	Casa Jardim Ibirapuera	Av. Piassanguaba 326 - Planalto Paulista	MV Construção	Alexandre Zafiro	alexandre.zafiro@mvconstrucoes.com.br
+Em andamento	Casa Jardim Ibirapuera	Av. Piassanguaba 326 - Planalto Paulista	MV Construção	Adriana Siqueira	adriana.siqueira@mvconstrucoes.com.br
+Em andamento	Casa Jardim Ibirapuera	Av. Piassanguaba 326 - Planalto Paulista	MV Construção	Kayque Sousa	kayque.sousa@mvconstrucoes.com.br
+Em andamento	Casa Jardim Kansas	Rua Kansas 101, Brooklin, São Paulo	MV Construção	Adriana Siqueira	adriana.siqueira@mvconstrucoes.com.br
+Em andamento	Casa Jardim Kansas	Rua Kansas 101, Brooklin, São Paulo	MV Construção	Kayque Sousa	kayque.sousa@mvconstrucoes.com.br
+Em andamento	Casa Jardim Kansas	Rua Kansas 101, Brooklin, São Paulo	MV Construção	Douglas Castro	douglas.castro@mvconstrucoes.com.br
+Em andamento	Casa Jardim Kansas	Rua Kansas 101, Brooklin, São Paulo	MV Construção	Lucas Aires	lucas.aires@mvconstrucoes.com.br
+Em andamento	Casa Jardim Laplace	R. Laplace 352	MV Construção	Adriana Siqueira	adriana.siqueira@mvconstrucoes.com.br
+Em andamento	Casa Jardim Laplace	R. Laplace 352	MV Construção	Kayque Sousa	kayque.sousa@mvconstrucoes.com.br
+Em andamento	Casa Jardim Laplace	R. Laplace 352	MV Construção	Joselia Andrade	joselia.andrade@mvconstrucoes.com.br
+Em andamento	Casa Jardim Laplace	R. Laplace 352	MV Construção	Vinicius Oliveira	vinicius.oliveira@mvconstrucoes.com.br
+Em andamento	Casa Magnólia	Avenida das Magnólias 679	R. Yazbek	Cintia Santos	cintia.santos@ryazbek.com.br
+Em andamento	Casa Magnólia	Avenida das Magnólias 679	R. Yazbek	Mirella Cavalcante 	mirella@ryazbek.com.br
+Em andamento	Casa Magnólia	Avenida das Magnólias 679	R. Yazbek	Henry Camargo	henry.camargo@ryazbek.com.br
+Em andamento	Cond. Duquesa de São Francisco	Alameda Sibipuruna, 167 - Jd. Adalgisa - Osasco - SP		Reginaldo Corrêa - Sindico	contato@sttrategia.com
+Em andamento	Cond. Duquesa de São Francisco	Alameda Sibipuruna, 167 - Jd. Adalgisa - Osasco - SP		Administração 	gerencia.duquesa@gmail.com
+Em andamento	Esther Ibirapuera	R. Manuel da Nóbrega 950	Even Construtora	Engenharia	nf.esther@even.com.br
+Em andamento	Greenview Brooklyn	R. São Sebastião 318	Patrimônio	Cauane Ribeiro	cauane.ribeiro@patrimoniodi.com.br
+Em andamento	Greenview Brooklyn	R. São Sebastião 318	Patrimônio	Iago Alves Faria	iago.faria@patrimoniodi.com.br
+Concluída	Joaquim	Rua R. Joaquim Guarani 322 - Brooklin - São Paulo	Even Construtora	Engenharia	nf.joaquim@even.com.br
+Em andamento	Kalea Jardins	Rua da Consolação 3288	Tecnisa	Marcela Murgia	marcela.murgia@tecnisa.com.br
+Em andamento	Kalea Jardins	Rua da Consolação 3289	Tecnisa	Adailson Cardoso Teixeira	adailson.teixeira@tecnisa.com.br
+Em andamento	Kalea Jardins	Rua da Consolação 3290	Tecnisa	Renato Pimentel Gomes	renato.gomes@tecnisa.com.br
+Em andamento	Kalea Jardins	Rua da Consolação 3291	Tecnisa	Eng. Luana Sato	luana.sato@tecnisa.com.br
+Em andamento	Madre de Deus	Rua Madre de Deus, 503	Even Construtora	Engenharia	madre@even.com.br
+Em andamento	Mirant Ibirapuera	Rua Pedro de Toledo 388	Trisul	Gabriel Xavier	gabrielxavier@trisul.com.br
+Em andamento	Mirant Ibirapuera	Rua Pedro de Toledo 388	Trisul	Bismarck Albuquerque	bismarckalbuquerque@trisul.com.br
+Em andamento	Mirant Ibirapuera	Rua Pedro de Toledo 388	Trisul	Isabella Silva	isabellasilva@trisul.com.br
+Em andamento	Mirant Ibirapuera	Rua Pedro de Toledo 388	Trisul	Aline Collacite	alinecollacite@trisul.com.br
+Em andamento	MOD Paulista	Rua Maestro Cardim - 1143 - Bela Vista - São Paulo	Niss / GNG	Bruna Garcia	bruna.garcia@gng.com.br
+Em andamento	MOD Paulista	Rua Maestro Cardim - 1143 - Bela Vista - São Paulo	Niss / GNG	José Carlos	jose.carlos@gng.com.br 
+Em andamento	MOD Paulista	Rua Maestro Cardim - 1143 - Bela Vista - São Paulo	Niss / GNG	Thaís Oliveira	thais.oliveira@gng.com.br
+Em andamento	MOD Paulista	Rua Maestro Cardim - 1143 - Bela Vista - São Paulo	Niss / GNG	Jéssica Paixão 	jessica.paixao@niss.com.br
+Em andamento	Monã	Av Indianópolis 618	Diálogo Engenharia	Wialan Santos	wialan.santos@dialogo.com.br
+Em andamento	Monã	Av Indianópolis 618	Diálogo Engenharia	Rafael Bellis	rafael.bellis@dialogo.com.br
+Em andamento	Monã	Av Indianópolis 618	Diálogo Engenharia	Thiago Ribeiro	thiago.ribeiro@dialogo.com.br
+Em andamento	Monã	Av Indianópolis 618	Diálogo Engenharia	Marcelo Soares	marcelo.soares@dialogo.com.br
+Em andamento	Monã	Av Indianópolis 618	Diálogo Engenharia	Luanderson Melo	luanderson.melo@dialogo.com.br
+Em andamento	Monã	Av Indianópolis 618	Diálogo Engenharia	Andres Herran	andres.herran@dialogo.com.br
+Em andamento	Monã	Av Indianópolis 618	Diálogo Engenharia	Breno Cury	breno.cury@dialogo.com.br
+Em andamento	PJM 319	R. Padre João Manuel 319 - Cerqueira César	Trisul	Arthur Sileo	arthursileo@trisul.com.br
+Em andamento	PJM 319	R. Padre João Manuel 319 - Cerqueira César	Trisul	Stephany Carassoli	stephanycarassoli@trisul.com.br
+Em andamento	PJM 319	R. Padre João Manuel 319 - Cerqueira César	Trisul	Maria Camila	mariasilva@trisul.com.br
+Em andamento	PJM 319	R. Padre João Manuel 319 - Cerqueira César	Trisul	Ariane Esteves	arianeesteves@trisul.com.br
+Em andamento	Praça dos Omaguás	R. Inácio Pereira da Rocha 597 - Pinheiros - São Paulo	Trisul	Danilo Scarpitta	daniloscarpitta@trisul.com.br
+Em andamento	Praça dos Omaguás	R. Inácio Pereira da Rocha 597 - Pinheiros - São Paulo	Trisul	Stephany Carassoli	stephanycarassoli@trisul.com.br
+Em andamento	Praça dos Omaguás	R. Inácio Pereira da Rocha 597 - Pinheiros - São Paulo	Trisul	Luan Silva	luansilva@trisul.com.br
+Em andamento	Prado Paulista	R. Pamplona 112 - Bela Vista	Porto Ferraz	Lucas Oliveira	lucas.oliveira@portoferraz.com.br
+Em andamento	Prado Paulista	R. Pamplona 112 - Bela Vista	Porto Ferraz	Carlos Marques	carlos.marques@portoferraz.com.br
+Em andamento	Prado Paulista	R. Pamplona 112 - Bela Vista	Porto Ferraz	Mateus Lima	mateus.lima@portoferraz.com.br
+Em andamento	Prado Paulista	R. Pamplona 112 - Bela Vista	Porto Ferraz	Guilherme Rezende	guilherme.rezende@portoferraz.com.br
+Em andamento	Prado Paulista	R. Pamplona 112 - Bela Vista	Porto Ferraz	Bruno Paraventi	bruno.paraventi@portoferraz.com.br
+Em andamento	Prado Paulista	R. Pamplona 112 - Bela Vista	Porto Ferraz	Thais Flor 	thais.flor@portoferraz.com.br
+Em andamento	Reserva das Figueiras	Rua Arnaldo Jose Pacifico 20	Tecnisa	Fabio Yuzo Yoda	fabio.yoda@tecnisa.com.br
+Em andamento	Reserva das Figueiras	Rua Arnaldo Jose Pacifico 20	Tecnisa	Eng. Luana Sato	luana.sato@tecnisa.com.br
+Em andamento	Reserva das Figueiras	Rua Arnaldo Jose Pacifico 20	Tecnisa	Marcos Vinicius Lacerda Soprani	marcos.soprani@tecnisa.com.br
+Em andamento	Reserva das Figueiras	Rua Arnaldo Jose Pacifico 20	Tecnisa	Vanessa Gomes Ivonica	vanessa.ivonica@tecnisa.com.br
+Em andamento	Side sacomã	Rua do Lago 216	Trisul	André Oliveira	andreoliveira@trisul.com.br
+Em andamento	Side sacomã	Rua do Lago 216	Trisul	Lucas Ricarte	lucasricarte@trisul.com.br
+Em andamento	Side sacomã	Rua do Lago 216	Trisul	Vinicius Correia	viniciuscorreia@trisul.com.br
+Em andamento	Side sacomã	Rua do Lago 216	Trisul	Rafael Silva	rafaelsilva@trisul.com.br
+Em andamento	TRIU 1722	Rua Barão de Triunfo 1722	MSB Sanchez	Pedro Sanchez	pedro@msbsanchez.com.br
+Em andamento	TRIU 1722	Rua Barão de Triunfo 1722	MSB Sanchez	Carolina Iervolino	carolina.iervolino@msbsanchez.com.br
+Em andamento	TRIU 1722	Rua Barão de Triunfo 1722	MSB Sanchez	Antonio Nour	tony@msbsanchez.com.br
+Em andamento	Valen	Rua Capote Valente 65	Trisul	Wallace Lemos	wallacelemos@trisul.com.br
+Em andamento	Valen	Rua Capote Valente 65	Trisul	Leonardo Dionísio	leonardodionizio@trisul.com.br
+Em andamento	Visconde de Guaratiba	Rua Visconde de Guaratiba 218	Tecnisa	Bruna Matias Maia 	bruna.maia@tecnisa.com.br
+Em andamento	Visconde de Guaratiba	Rua Visconde de Guaratiba 218	Tecnisa	Marcus Vieira	Marcus.vieira@tecnisa.com.br
+Em andamento	Visconde de Guaratiba	Rua Visconde de Guaratiba 218	Tecnisa	Renata Matsunaga	Renata.matsunaga@tecnisa.com.br
+Em andamento	Visconde de Guaratiba	Rua Visconde de Guaratiba 218	Tecnisa	Kayo Cyrillo	kayo.cyrillo@tecnisa.com.br
+Em andamento	Visconde de Guaratiba	Rua Visconde de Guaratiba 218	Tecnisa	Eng. Luana Sato	luana.sato@tecnisa.com.br
+Concluída	Vista Park Ibirapuera	R. Dra. Neyde Apparecida Sollitto, 252/306 - Vila Clementino	Construtora RFM	Vinicius Vieira 	vinicius.vieira@rfm.com.br
+Concluída	Vista Park Ibirapuera	R. Dra. Neyde Apparecida Sollitto, 252/306 - Vila Clementino	Construtora RFM	Julio Andrade Olicio Maia 	julio.maia@rfm.com.br
+Concluída	Vista Park Ibirapuera	R. Dra. Neyde Apparecida Sollitto, 252/306 - Vila Clementino	Construtora RFM	Adryann Matheus Lima Alves	adryann.alves@rfm.com.br
+Concluída	Vista Park Ibirapuera	R. Dra. Neyde Apparecida Sollitto, 252/306 - Vila Clementino	Construtora RFM	Gustavo Mendonca Cacau Nascimento	gustavo.mendonca@rfm.com.br
+Concluída	Vista Park Ibirapuera	R. Dra. Neyde Apparecida Sollitto, 252/306 - Vila Clementino	Construtora RFM	"	Bettyandra Cavalcante Machado"	bettyandra@rfm.com.br
+Em andamento	Zeit Brooklin	Rua Francisco Dias Velho, 51 - Vila Cordeiro	Setin / Vero	Aline Santos	aline.santos@veroincorporadora.com.br
+Em andamento	Zeit Brooklin	Rua Francisco Dias Velho, 51 - Vila Cordeiro	Setin / Vero	Erica Juliato	erica.juliato@veroincorporadora.com.br
+Em andamento	Zeit Brooklin	Rua Francisco Dias Velho, 51 - Vila Cordeiro	Setin / Vero	Priscila Coelho	priscila.coelho@veroincorporadora.com.br
+Em andamento	Zeit Brooklin	Rua Francisco Dias Velho, 51 - Vila Cordeiro	Setin / Vero	Gustavo Rangel	gustavo.rangel@veroincorporadora.com.br
