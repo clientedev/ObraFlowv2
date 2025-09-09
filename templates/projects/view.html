@@ -39,6 +39,8 @@
                 <div class="row">
                     <div class="col-md-6">
                         <p><strong>Tipo de Obra:</strong> {{ project.tipo_obra }}</p>
+                        <p><strong>Construtora:</strong> {{ project.construtora }}</p>
+                        <p><strong>Funcionário:</strong> {{ project.nome_funcionario }}</p>
                         <p><strong>Responsável:</strong> {{ project.responsavel.nome_completo }}</p>
                         <p><strong>Status:</strong> 
                             {% if project.status == 'Ativo' %}
