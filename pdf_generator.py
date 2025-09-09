@@ -324,7 +324,7 @@ class ReportPDFGenerator:
         """Professional ELP header with logo and company info"""
         try:
             # Company header with logo
-            logo_path = 'static/logo_elp_final.jpg'
+            logo_path = 'static/logo_elp_new.jpg'
             if os.path.exists(logo_path):
                 logo_img = Image(logo_path, width=3.5*cm, height=1.8*cm)
                 
@@ -629,7 +629,7 @@ class ReportPDFGenerator:
         """Add professional ELP header with logo and company info"""
         try:
             # Try to load ELP logo
-            logo_path = 'static/logo_elp_final.jpg'
+            logo_path = 'static/logo_elp_new.jpg'
             if os.path.exists(logo_path):
                 logo_img = Image(logo_path, width=4*cm, height=2*cm)
                 

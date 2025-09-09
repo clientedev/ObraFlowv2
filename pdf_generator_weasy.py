@@ -79,6 +79,17 @@ class WeasyPrintReportGenerator:
         """Preparar dados do relatório para o template"""
         projeto = relatorio.projeto
         
+        # Carregar logo em base64
+        logo_base64 = ""
+        try:
+            logo_path = os.path.join('static', 'logo_elp_new.jpg')
+            if os.path.exists(logo_path):
+                import base64
+                with open(logo_path, 'rb') as f:
+                    logo_base64 = base64.b64encode(f.read()).decode('utf-8')
+        except Exception as e:
+            print(f"Erro ao carregar logo: {e}")
+        
         # Dados básicos
         data = {
             'titulo': 'Relatório de Visita',
@@ -92,6 +103,7 @@ class WeasyPrintReportGenerator:
             'liberado_por': "Eng. José Leopoldo Pugliese",
             'responsavel': projeto.responsavel.nome_completo if projeto.responsavel else "Não informado",
             'data_relatorio': relatorio.data_relatorio.strftime('%d/%m/%Y %H:%M') if relatorio.data_relatorio else datetime.now().strftime('%d/%m/%Y %H:%M'),
+            'logo_base64': logo_base64,
             'fotos': []
         }
         
@@ -150,18 +162,7 @@ class WeasyPrintReportGenerator:
     <!-- Cabeçalho com logo ELP e título -->
     <div class="header-section">
         <div class="logo-container">
-            <svg class="elp-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40">
-                <!-- Logo ELP -->
-                <rect x="8" y="8" width="24" height="24" fill="none" stroke="#4A90E2" stroke-width="2"/>
-                <rect x="12" y="12" width="8" height="8" fill="#4A90E2"/>
-                <rect x="20" y="12" width="8" height="8" fill="none" stroke="#4A90E2" stroke-width="1"/>
-                <rect x="12" y="20" width="8" height="8" fill="none" stroke="#4A90E2" stroke-width="1"/>
-                <rect x="20" y="20" width="8" height="8" fill="#4A90E2"/>
-                
-                <!-- Texto ELP -->
-                <text x="38" y="20" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333">ELP</text>
-                <text x="38" y="30" font-family="Arial, sans-serif" font-size="8" fill="#666">CONSULTORIA</text>
-            </svg>
+            <img src="data:image/jpeg;base64,{{ data.logo_base64 }}" alt="ELP Consultoria" class="elp-logo">
         </div>
         
         <h1 class="main-title">{{ data.titulo }}</h1>
@@ -246,18 +247,12 @@ class WeasyPrintReportGenerator:
     <!-- Rodapé ELP -->
     <div class="footer-section">
         <div class="footer-left">
-            <svg class="footer-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 30">
-                <rect x="4" y="6" width="18" height="18" fill="none" stroke="#4A90E2" stroke-width="1.5"/>
-                <rect x="7" y="9" width="6" height="6" fill="#4A90E2"/>
-                <rect x="13" y="9" width="6" height="6" fill="none" stroke="#4A90E2" stroke-width="0.8"/>
-                <rect x="7" y="15" width="6" height="6" fill="none" stroke="#4A90E2" stroke-width="0.8"/>
-                <rect x="13" y="15" width="6" height="6" fill="#4A90E2"/>
-                <text x="26" y="17" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">ELP</text>
-            </svg>
+            <img src="data:image/jpeg;base64,{{ data.logo_base64 }}" alt="ELP Consultoria" class="footer-logo">
             <div class="company-info">
                 <div class="company-name">ELP Consultoria</div>
                 <div>Rua Jaboticabal, 530 apto. 31 - São Paulo - SP - CEP: 03188-000</div>
                 <div><a href="mailto:leopoldo@elpconsultoria.eng.br">leopoldo@elpconsultoria.eng.br</a></div>
+                <div><a href="https://www.elpconsultoria.com" target="_blank">www.elpconsultoria.com</a></div>
                 <div>Telefone: (11) 99138-4517</div>
             </div>
         </div>
@@ -310,6 +305,7 @@ body {
 .elp-logo {
     width: 100%;
     height: 100%;
+    object-fit: contain;
 }
 
 .main-title {
@@ -546,6 +542,7 @@ body {
     width: 50px;
     height: 25px;
     flex-shrink: 0;
+    object-fit: contain;
 }
 
 .company-info {
