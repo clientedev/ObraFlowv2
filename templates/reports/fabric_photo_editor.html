@@ -186,6 +186,10 @@ body {
                     <option value="">Escolha uma legenda...</option>
                 </select>
             </div>
+            <!-- Campo de busca para filtrar legendas -->
+            <input type="text" id="legend-search" class="form-control" 
+                   placeholder="🔍 Digite para buscar legendas..." 
+                   style="margin-top: 8px;">
             <input type="text" id="custom-legend" class="form-control" 
                    placeholder="ou digite uma legenda personalizada..." 
                    style="margin-top: 8px;">
@@ -267,10 +271,27 @@ function setupControls() {
         loadLegendsForCategory(this.value);
     });
     
-    // Seletor de legenda predefinida
+    // Campo de busca de legendas
+    document.getElementById('legend-search').addEventListener('input', function() {
+        filterLegends(this.value);
+    });
+    
+    // Seletor de legenda predefinida - com funcionalidade aprimorada
     document.getElementById('predefined-legend').addEventListener('change', function() {
         if (this.value) {
-            document.getElementById('custom-legend').value = this.value;
+            const customField = document.getElementById('custom-legend');
+            const searchField = document.getElementById('legend-search');
+            
+            // Copiar legenda selecionada para o campo personalizado
+            customField.value = this.value;
+            
+            // Limpar campo de busca para próxima busca
+            searchField.value = '';
+            
+            // Resetar dropdown para estado inicial
+            this.selectedIndex = 0;
+            
+            console.log(`✅ Legenda selecionada: "${this.value}"`);
         }
     });
 }
@@ -333,11 +354,14 @@ async function loadPredefinedLegends() {
         if (data.success) {
             // Agrupar legendas por categoria
             const legendsByCategory = {};
+            const allLegends = []; // Array com todas as legendas para busca
+            
             data.legendas.forEach(legenda => {
                 if (!legendsByCategory[legenda.categoria]) {
                     legendsByCategory[legenda.categoria] = [];
                 }
                 legendsByCategory[legenda.categoria].push(legenda);
+                allLegends.push(legenda);
             });
             
             // Preencher select de categorias
@@ -351,6 +375,7 @@ async function loadPredefinedLegends() {
             
             // Armazenar para uso posterior
             window.legendsByCategory = legendsByCategory;
+            window.allLegends = allLegends; // Para busca global
         }
     } catch (error) {
         console.error('Erro ao carregar legendas:', error);
@@ -370,6 +395,71 @@ function loadLegendsForCategory(category) {
             option.textContent = legenda.texto;
             legendSelect.appendChild(option);
         });
+    }
+}
+
+function filterLegends(searchTerm) {
+    const legendSelect = document.getElementById('predefined-legend');
+    const categorySelect = document.getElementById('legend-category');
+    
+    // Limpar seleções anteriores
+    legendSelect.innerHTML = '<option value="">Escolha uma legenda...</option>';
+    
+    if (!searchTerm.trim()) {
+        // Se não há busca, carregar legendas da categoria selecionada
+        loadLegendsForCategory(categorySelect.value);
+        return;
+    }
+    
+    // Buscar em todas as legendas
+    if (window.allLegends) {
+        const filteredLegends = window.allLegends.filter(legenda => 
+            legenda.texto.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        
+        // Agrupar por categoria para melhor organização
+        const filteredByCategory = {};
+        filteredLegends.forEach(legenda => {
+            if (!filteredByCategory[legenda.categoria]) {
+                filteredByCategory[legenda.categoria] = [];
+            }
+            filteredByCategory[legenda.categoria].push(legenda);
+        });
+        
+        // Adicionar legendas filtradas com separadores de categoria
+        Object.keys(filteredByCategory).forEach(categoria => {
+            // Adicionar separador de categoria se há mais de uma categoria
+            if (Object.keys(filteredByCategory).length > 1) {
+                const categoryHeader = document.createElement('option');
+                categoryHeader.value = '';
+                categoryHeader.textContent = `--- ${categoria} ---`;
+                categoryHeader.disabled = true;
+                categoryHeader.style.fontWeight = 'bold';
+                categoryHeader.style.backgroundColor = '#f0f0f0';
+                legendSelect.appendChild(categoryHeader);
+            }
+            
+            // Adicionar legendas da categoria
+            filteredByCategory[categoria].forEach(legenda => {
+                const option = document.createElement('option');
+                option.value = legenda.texto;
+                option.textContent = legenda.texto;
+                legendSelect.appendChild(option);
+            });
+        });
+        
+        // Se encontrou resultados, mostrar quantidade
+        const resultCount = filteredLegends.length;
+        if (resultCount === 0) {
+            const noResults = document.createElement('option');
+            noResults.value = '';
+            noResults.textContent = 'Nenhuma legenda encontrada';
+            noResults.disabled = true;
+            noResults.style.fontStyle = 'italic';
+            legendSelect.appendChild(noResults);
+        } else {
+            console.log(`🔍 Busca: "${searchTerm}" - ${resultCount} legenda(s) encontrada(s)`);
+        }
     }
 }
 
