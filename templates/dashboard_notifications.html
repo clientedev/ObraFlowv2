@@ -40,9 +40,18 @@ function updateNotificationStatus() {
     const toggleBtn = document.getElementById('notification-toggle');
     const toggleText = document.getElementById('toggle-text');
     
+    // Verificar se notificações são suportadas
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        badge.innerHTML = '<i class="fas fa-info-circle me-1"></i>Não Disponível';
+        badge.className = 'badge bg-secondary me-2';
+        toggleBtn.style.display = 'none';
+        return;
+    }
+    
+    // Se ainda não há notification manager, aguardar
     if (!window.notificationManager) {
-        badge.innerHTML = '<i class="fas fa-times me-1"></i>Não Suportado';
-        badge.className = 'badge bg-danger me-2';
+        badge.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Carregando...';
+        badge.className = 'badge bg-info me-2';
         toggleBtn.disabled = true;
         return;
     }
@@ -133,8 +142,14 @@ function displayNearbyProjects(projects) {
 }
 
 async function toggleNotifications() {
+    // Verificar se notificações são suportadas
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        alert('Notificações não são suportadas neste navegador');
+        return;
+    }
+    
     if (!window.notificationManager) {
-        alert('Notificações não suportadas neste navegador');
+        alert('Sistema de notificações ainda está carregando. Tente novamente em instantes.');
         return;
     }
     
@@ -160,9 +175,11 @@ async function toggleNotifications() {
 // Inicializar quando a página carregar
 document.addEventListener('DOMContentLoaded', () => {
     // Aguardar carregamento do notification manager
-    setTimeout(updateNotificationStatus, 1000);
+    updateNotificationStatus();
+    setTimeout(updateNotificationStatus, 500);
+    setTimeout(updateNotificationStatus, 2000);
     
-    // Atualizar status periodicamente
-    setInterval(updateNotificationStatus, 5000);
+    // Atualizar status periodicamente (menos frequente)
+    setInterval(updateNotificationStatus, 10000);
 });
 </script>
