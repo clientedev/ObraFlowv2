@@ -23,7 +23,7 @@
         <div class="card">
             <div class="card-body py-3">
                 <div class="row g-3">
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-2 col-sm-6">
                         <label class="form-label small fw-bold">Status:</label>
                         <select class="form-select form-select-sm" id="filterStatus">
                             <option value="">Todos os Status</option>
@@ -33,23 +33,37 @@
                             <option value="Cancelado">Cancelado</option>
                         </select>
                     </div>
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-2 col-sm-6">
                         <label class="form-label small fw-bold">Tipo de Obra:</label>
                         <select class="form-select form-select-sm" id="filterTipo">
                             <option value="">Todos os Tipos</option>
                             <!-- Será preenchido dinamicamente -->
                         </select>
                     </div>
-                    <div class="col-md-3 col-sm-6">
-                        <label class="form-label small fw-bold">Pesquisar:</label>
-                        <input type="text" class="form-control form-control-sm" id="searchProject" placeholder="Nome ou número do projeto">
+                    <div class="col-md-2 col-sm-6">
+                        <label class="form-label small fw-bold">Construtora:</label>
+                        <select class="form-select form-select-sm" id="filterConstrutora">
+                            <option value="">Todas Construtoras</option>
+                            <!-- Será preenchido dinamicamente -->
+                        </select>
                     </div>
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-2 col-sm-6">
+                        <label class="form-label small fw-bold">Funcionário:</label>
+                        <select class="form-select form-select-sm" id="filterFuncionario">
+                            <option value="">Todos Funcionários</option>
+                            <!-- Será preenchido dinamicamente -->
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-sm-6">
                         <label class="form-label small fw-bold">Responsável:</label>
                         <select class="form-select form-select-sm" id="filterResponsavel">
                             <option value="">Todos Responsáveis</option>
                             <!-- Será preenchido dinamicamente -->
                         </select>
+                    </div>
+                    <div class="col-md-2 col-sm-6">
+                        <label class="form-label small fw-bold">Pesquisar:</label>
+                        <input type="text" class="form-control form-control-sm" id="searchProject" placeholder="Nome ou número do projeto">
                     </div>
                 </div>
                 <div class="row mt-2">
@@ -79,10 +93,10 @@
                                     <th>Número</th>
                                     <th>Nome</th>
                                     <th>Tipo de Obra</th>
+                                    <th>Construtora</th>
+                                    <th>Funcionário</th>
                                     <th>Responsável</th>
                                     <th>Status</th>
-                                    <th>Data Início</th>
-                                    <th>Previsão Fim</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
@@ -90,11 +104,15 @@
                                 {% for project in projects %}
                                 <tr data-status="{{ project.status }}" 
                                     data-tipo="{{ project.tipo_obra if project.tipo_obra else '' }}"
+                                    data-construtora="{{ project.construtora if project.construtora else '' }}"
+                                    data-funcionario="{{ project.nome_funcionario if project.nome_funcionario else '' }}"
                                     data-responsavel="{{ project.responsavel.nome_completo if project.responsavel else '' }}"
                                     data-search="{{ (project.numero + ' ' + project.nome)|lower }}">
                                     <td><strong>{{ project.numero }}</strong></td>
                                     <td>{{ project.nome }}</td>
                                     <td>{{ project.tipo_obra if project.tipo_obra else '-' }}</td>
+                                    <td>{{ project.construtora if project.construtora else '-' }}</td>
+                                    <td>{{ project.nome_funcionario if project.nome_funcionario else '-' }}</td>
                                     <td>{{ project.responsavel.nome_completo if project.responsavel else '-' }}</td>
                                     <td>
                                         {% if project.status == 'Ativo' %}
@@ -107,8 +125,6 @@
                                             <span class="badge bg-secondary">{{ project.status }}</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ project.data_inicio.strftime('%d/%m/%Y') if project.data_inicio else '-' }}</td>
-                                    <td>{{ project.data_previsao_fim.strftime('%d/%m/%Y') if project.data_previsao_fim else '-' }}</td>
                                     <td>
                                         <div class="btn-group" role="group">
                                             <a href="{{ url_for('project_view', project_id=project.id) }}" class="btn btn-sm btn-outline-info">
@@ -157,17 +173,25 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function fillFilterOptions() {
         const tipoSet = new Set();
+        const construtoraSet = new Set();
+        const funcionarioSet = new Set();
         const responsavelSet = new Set();
         
         rows.forEach(row => {
             const tipo = row.getAttribute('data-tipo');
+            const construtora = row.getAttribute('data-construtora');
+            const funcionario = row.getAttribute('data-funcionario');
             const responsavel = row.getAttribute('data-responsavel');
             
             if (tipo && tipo !== '' && tipo !== '-') tipoSet.add(tipo);
+            if (construtora && construtora !== '' && construtora !== '-') construtoraSet.add(construtora);
+            if (funcionario && funcionario !== '' && funcionario !== '-') funcionarioSet.add(funcionario);
             if (responsavel && responsavel !== '' && responsavel !== '-') responsavelSet.add(responsavel);
         });
         
         console.log('Tipos encontrados:', Array.from(tipoSet));
+        console.log('Construtoras encontradas:', Array.from(construtoraSet));
+        console.log('Funcionários encontrados:', Array.from(funcionarioSet));
         console.log('Responsáveis encontrados:', Array.from(responsavelSet));
         
         // Preencher select de tipos
@@ -178,6 +202,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 option.value = tipo;
                 option.textContent = tipo;
                 tipoSelect.appendChild(option);
+            });
+        }
+        
+        // Preencher select de construtoras
+        const construtoraSelect = document.getElementById('filterConstrutora');
+        if (construtoraSelect) {
+            Array.from(construtoraSet).sort().forEach(construtora => {
+                const option = document.createElement('option');
+                option.value = construtora;
+                option.textContent = construtora;
+                construtoraSelect.appendChild(option);
+            });
+        }
+        
+        // Preencher select de funcionários
+        const funcionarioSelect = document.getElementById('filterFuncionario');
+        if (funcionarioSelect) {
+            Array.from(funcionarioSet).sort().forEach(funcionario => {
+                const option = document.createElement('option');
+                option.value = funcionario;
+                option.textContent = funcionario;
+                funcionarioSelect.appendChild(option);
             });
         }
         
@@ -196,10 +242,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupFilters() {
         const filterStatus = document.getElementById('filterStatus');
         const filterTipo = document.getElementById('filterTipo');
+        const filterConstrutora = document.getElementById('filterConstrutora');
+        const filterFuncionario = document.getElementById('filterFuncionario');
         const filterResponsavel = document.getElementById('filterResponsavel');
         const searchInput = document.getElementById('searchProject');
         
-        [filterStatus, filterTipo, filterResponsavel].forEach(filter => {
+        [filterStatus, filterTipo, filterConstrutora, filterFuncionario, filterResponsavel].forEach(filter => {
             if (filter) filter.addEventListener('change', applyFilters);
         });
         
@@ -209,25 +257,31 @@ document.addEventListener('DOMContentLoaded', function() {
     function applyFilters() {
         const statusFilter = document.getElementById('filterStatus')?.value || '';
         const tipoFilter = document.getElementById('filterTipo')?.value || '';
+        const construtoraFilter = document.getElementById('filterConstrutora')?.value || '';
+        const funcionarioFilter = document.getElementById('filterFuncionario')?.value || '';
         const responsavelFilter = document.getElementById('filterResponsavel')?.value || '';
         const searchText = (document.getElementById('searchProject')?.value || '').toLowerCase();
         
-        console.log('Aplicando filtros:', { statusFilter, tipoFilter, responsavelFilter, searchText });
+        console.log('Aplicando filtros:', { statusFilter, tipoFilter, construtoraFilter, funcionarioFilter, responsavelFilter, searchText });
         
         let visibleCount = 0;
         
         rows.forEach(row => {
             const status = row.getAttribute('data-status') || '';
             const tipo = row.getAttribute('data-tipo') || '';
+            const construtora = row.getAttribute('data-construtora') || '';
+            const funcionario = row.getAttribute('data-funcionario') || '';
             const responsavel = row.getAttribute('data-responsavel') || '';
             const searchData = row.getAttribute('data-search') || '';
             
             const statusMatch = !statusFilter || status === statusFilter;
             const tipoMatch = !tipoFilter || tipo === tipoFilter;
+            const construtoraMatch = !construtoraFilter || construtora === construtoraFilter;
+            const funcionarioMatch = !funcionarioFilter || funcionario === funcionarioFilter;
             const responsavelMatch = !responsavelFilter || responsavel === responsavelFilter;
             const searchMatch = !searchText || searchData.includes(searchText);
             
-            if (statusMatch && tipoMatch && responsavelMatch && searchMatch) {
+            if (statusMatch && tipoMatch && construtoraMatch && funcionarioMatch && responsavelMatch && searchMatch) {
                 row.style.display = '';
                 visibleCount++;
             } else {
@@ -245,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.clearFilters = function() {
         console.log('Limpando filtros');
         
-        const filters = ['filterStatus', 'filterTipo', 'filterResponsavel', 'searchProject'];
+        const filters = ['filterStatus', 'filterTipo', 'filterConstrutora', 'filterFuncionario', 'filterResponsavel', 'searchProject'];
         filters.forEach(id => {
             const element = document.getElementById(id);
             if (element) element.value = '';
