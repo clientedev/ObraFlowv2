@@ -1187,6 +1187,8 @@ def project_new():
             projeto.latitude = float(form.latitude.data) if form.latitude.data else None
             projeto.longitude = float(form.longitude.data) if form.longitude.data else None
             projeto.tipo_obra = form.tipo_obra.data
+            projeto.construtora = form.construtora.data
+            projeto.nome_funcionario = form.nome_funcionario.data
             projeto.responsavel_id = form.responsavel_id.data
             projeto.email_principal = form.email_principal.data
             projeto.data_inicio = form.data_inicio.data
@@ -1248,6 +1250,8 @@ def project_edit(project_id):
         project.latitude = float(form.latitude.data) if form.latitude.data else None
         project.longitude = float(form.longitude.data) if form.longitude.data else None
         project.tipo_obra = form.tipo_obra.data
+        project.construtora = form.construtora.data
+        project.nome_funcionario = form.nome_funcionario.data
         project.responsavel_id = form.responsavel_id.data
         project.email_principal = form.email_principal.data
         project.data_inicio = form.data_inicio.data

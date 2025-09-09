@@ -38,6 +38,8 @@ class Projeto(db.Model):
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
     tipo_obra = db.Column(db.String(100), nullable=False)
+    construtora = db.Column(db.String(200), nullable=False)  # Nome da construtora
+    nome_funcionario = db.Column(db.String(200), nullable=False)  # Nome do funcionário responsável
     responsavel_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     email_principal = db.Column(db.String(255), nullable=False)  # E-mail principal obrigatório
     data_inicio = db.Column(db.Date)

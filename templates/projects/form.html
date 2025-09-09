@@ -97,6 +97,28 @@
                         </div>
                     </div>
                     
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.construtora.label(class="form-label") }}
+                                {{ form.construtora(class="form-control" + (" is-invalid" if form.construtora.errors else ""), placeholder="Nome da construtora responsável") }}
+                                {% for error in form.construtora.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.nome_funcionario.label(class="form-label") }}
+                                {{ form.nome_funcionario(class="form-control" + (" is-invalid" if form.nome_funcionario.errors else ""), placeholder="Nome do funcionário responsável") }}
+                                {% for error in form.nome_funcionario.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="mb-3">
                         {{ form.email_principal.label(class="form-label") }}
                         {{ form.email_principal(class="form-control" + (" is-invalid" if form.email_principal.errors else ""), placeholder="cliente@exemplo.com") }}
