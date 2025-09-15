@@ -451,6 +451,7 @@ def create_report():
     if request.method == 'POST':
         # Processar dados do formulário diretamente
         projeto_id = request.form.get('projeto_id')
+        titulo = request.form.get('titulo', 'Relatório de visita')
         conteudo = request.form.get('conteudo', '')
         aprovador_nome = request.form.get('aprovador_nome', '')
         data_relatorio_str = request.form.get('data_relatorio')

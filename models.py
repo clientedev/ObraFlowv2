@@ -147,6 +147,7 @@ class Relatorio(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     numero = db.Column(db.String(20), unique=True, nullable=False)
+    titulo = db.Column(db.String(300), nullable=False, default='Relatório de visita')
     projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
     visita_id = db.Column(db.Integer, db.ForeignKey('visitas.id'), nullable=True)
     autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -175,12 +176,6 @@ class Relatorio(db.Model):
     def visita(self):
         return Visita.query.get(self.visita_id) if self.visita_id else None
     
-    @property
-    def titulo(self):
-        """Gera título fixo do relatório com numeração automática"""
-        # Extrai o número sequencial do campo numero (ex: REL-001 -> 001)
-        numero_sequencial = self.numero.split('-')[-1] if '-' in self.numero else self.numero
-        return f"Relatório Fotográfico - {numero_sequencial}"
 
 class ChecklistTemplate(db.Model):
     __tablename__ = 'checklist_templates'
