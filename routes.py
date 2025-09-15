@@ -91,6 +91,58 @@ def api_user_data_counts():
         'reembolsos': reembolsos
     })
 
+@app.route('/api/projeto/<int:projeto_id>/funcionarios-emails')
+@login_required
+def api_projeto_funcionarios_emails(projeto_id):
+    """Retorna funcionários e e-mails de um projeto específico para seleção em relatórios"""
+    try:
+        projeto = Projeto.query.get_or_404(projeto_id)
+        
+        # Buscar funcionários do projeto
+        funcionarios = FuncionarioProjeto.query.filter_by(
+            projeto_id=projeto_id, 
+            ativo=True
+        ).all()
+        
+        # Buscar e-mails do projeto
+        emails = EmailCliente.query.filter_by(
+            projeto_id=projeto_id, 
+            ativo=True
+        ).all()
+        
+        funcionarios_data = []
+        for func in funcionarios:
+            funcionarios_data.append({
+                'id': func.id,
+                'nome_funcionario': func.nome_funcionario,
+                'cargo': func.cargo,
+                'empresa': func.empresa,
+                'is_responsavel_principal': func.is_responsavel_principal
+            })
+        
+        emails_data = []
+        for email in emails:
+            emails_data.append({
+                'id': email.id,
+                'email': email.email,
+                'nome_contato': email.nome_contato,
+                'cargo': email.cargo,
+                'is_principal': email.is_principal
+            })
+        
+        return jsonify({
+            'success': True,
+            'funcionarios': funcionarios_data,
+            'emails': emails_data
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar funcionários e e-mails: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/dashboard-stats')
 @login_required
 def api_dashboard_stats():

@@ -191,21 +191,48 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <!-- Informações Básicas -->
                         <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label" for="titulo">Título do Relatório</label>
-                                    <input type="text" name="titulo" id="titulo" class="form-control" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="form-group">
                                     <label class="form-label" for="projeto_id">Projeto</label>
-                                    <select name="projeto_id" id="projeto_id" class="form-control" required>
+                                    <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails()">
                                         <option value="">Selecione um projeto</option>
                                         {% for projeto in projetos %}
                                         <option value="{{ projeto.id }}">{{ projeto.numero }} - {{ projeto.nome }}</option>
                                         {% endfor %}
                                     </select>
+                                    <small class="form-text text-muted">O título do relatório será gerado automaticamente como "Relatório Fotográfico - XXX"</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Seleção de Funcionários e E-mails -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-users me-2"></i>Funcionários do Projeto
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="funcionarios-projeto">
+                                            <p class="text-muted">Selecione um projeto para ver os funcionários disponíveis</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-envelope me-2"></i>E-mails para Envio
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="emails-projeto">
+                                            <p class="text-muted">Selecione um projeto para ver os e-mails disponíveis</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -393,6 +420,84 @@
 // Variáveis globais
 let selectedPhotos = [];
 let selectedCategory = null;
+
+// Função para carregar funcionários e e-mails do projeto selecionado
+function carregarFuncionariosEmails() {
+    const projetoId = document.getElementById('projeto_id').value;
+    const funcionariosDiv = document.getElementById('funcionarios-projeto');
+    const emailsDiv = document.getElementById('emails-projeto');
+    
+    if (!projetoId) {
+        funcionariosDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os funcionários disponíveis</p>';
+        emailsDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os e-mails disponíveis</p>';
+        return;
+    }
+    
+    // Buscar funcionários e e-mails do projeto via AJAX
+    fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Renderizar funcionários
+            let funcionariosHtml = '';
+            if (data.funcionarios && data.funcionarios.length > 0) {
+                data.funcionarios.forEach(func => {
+                    const checked = func.is_responsavel_principal ? 'checked' : '';
+                    funcionariosHtml += `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="func_${func.id}" 
+                                   name="funcionarios_selecionados[]" value="${func.id}" ${checked}>
+                            <label class="form-check-label" for="func_${func.id}">
+                                <strong>${func.nome_funcionario}</strong><br>
+                                <small class="text-muted">${func.cargo || 'Sem cargo'} - ${func.empresa || 'Sem empresa'}</small>
+                                ${func.is_responsavel_principal ? '<span class="badge bg-primary">Principal</span>' : ''}
+                            </label>
+                        </div>
+                    `;
+                });
+            } else {
+                funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
+            }
+            funcionariosDiv.innerHTML = funcionariosHtml;
+            
+            // Renderizar e-mails
+            let emailsHtml = '';
+            if (data.emails && data.emails.length > 0) {
+                data.emails.forEach(email => {
+                    const checked = email.is_principal ? 'checked' : '';
+                    emailsHtml += `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="email_${email.id}" 
+                                   name="emails_selecionados[]" value="${email.id}" ${checked}>
+                            <label class="form-check-label" for="email_${email.id}">
+                                <strong>${email.email}</strong><br>
+                                <small class="text-muted">${email.nome_contato} - ${email.cargo || 'Sem cargo'}</small>
+                                ${email.is_principal ? '<span class="badge bg-success">Principal</span>' : ''}
+                            </label>
+                        </div>
+                    `;
+                });
+            } else {
+                emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para este projeto</p>';
+            }
+            emailsDiv.innerHTML = emailsHtml;
+        } else {
+            funcionariosDiv.innerHTML = '<p class="text-danger">Erro ao carregar funcionários</p>';
+            emailsDiv.innerHTML = '<p class="text-danger">Erro ao carregar e-mails</p>';
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        funcionariosDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
+        emailsDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
+    });
+}
 
 // Monitorar seleção de categoria
 document.querySelectorAll('input[name="photo_category"]').forEach(radio => {
