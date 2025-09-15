@@ -100,18 +100,7 @@ class VisitaForm(FlaskForm):
         from models import Projeto
         self.projeto_id.choices = [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
 
-class ReportForm(FlaskForm):
-    titulo = StringField('Título do Relatório', validators=[DataRequired(), Length(max=200)])
-    projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
-    data_relatorio = DateField('Data do Relatório', validators=[DataRequired()], default=datetime.date.today)
-    conteudo = TextAreaField('Conteúdo', validators=[DataRequired()], widget=TextArea())
-    aprovador_nome = StringField('Nome do Aprovador', validators=[DataRequired(), Length(max=200)])
-    observacoes = TextAreaField('Observações Gerais')
-    
-    def __init__(self, *args, **kwargs):
-        super(ReportForm, self).__init__(*args, **kwargs)
-        from models import Projeto
-        self.projeto_id.choices = [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
+# ReportForm removed - use RelatorioForm instead which doesn't have titulo field
 
 class ChecklistPadraoForm(FlaskForm):
     titulo = StringField('Título do Item', validators=[DataRequired(), Length(max=200)])
@@ -129,7 +118,6 @@ class ChecklistPadraoForm(FlaskForm):
     ativo = BooleanField('Ativo', default=True)
 
 class RelatorioForm(FlaskForm):
-    titulo = StringField('Título', validators=[DataRequired(), Length(max=200)])
     projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
     data_relatorio = DateField('Data do Relatório', validators=[DataRequired()], default=datetime.date.today)
     aprovador_nome = StringField('Nome do Aprovador', validators=[DataRequired(), Length(max=200)])

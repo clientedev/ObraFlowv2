@@ -95,6 +95,27 @@ class EmailCliente(db.Model):
     # Validação única para email + projeto
     __table_args__ = (db.UniqueConstraint('projeto_id', 'email', name='unique_email_por_projeto'),)
 
+class FuncionarioProjeto(db.Model):
+    __tablename__ = 'funcionarios_projetos'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    nome_funcionario = db.Column(db.String(200), nullable=False)
+    cargo = db.Column(db.String(100))
+    empresa = db.Column(db.String(200))
+    is_responsavel_principal = db.Column(db.Boolean, default=False)
+    ativo = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relacionamentos
+    projeto = db.relationship('Projeto', backref='funcionarios_projetos')
+    funcionario = db.relationship('User', backref='projetos_funcionario')
+    
+    # Validação única para funcionário + projeto
+    __table_args__ = (db.UniqueConstraint('projeto_id', 'user_id', name='unique_funcionario_por_projeto'),)
+
 class Visita(db.Model):
     __tablename__ = 'visitas'
     
@@ -126,7 +147,6 @@ class Relatorio(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     numero = db.Column(db.String(20), unique=True, nullable=False)
-    titulo = db.Column(db.String(200), nullable=False)
     projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
     visita_id = db.Column(db.Integer, db.ForeignKey('visitas.id'), nullable=True)
     autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -154,6 +174,13 @@ class Relatorio(db.Model):
     @property
     def visita(self):
         return Visita.query.get(self.visita_id) if self.visita_id else None
+    
+    @property
+    def titulo(self):
+        """Gera título fixo do relatório com numeração automática"""
+        # Extrai o número sequencial do campo numero (ex: REL-001 -> 001)
+        numero_sequencial = self.numero.split('-')[-1] if '-' in self.numero else self.numero
+        return f"Relatório Fotográfico - {numero_sequencial}"
 
 class ChecklistTemplate(db.Model):
     __tablename__ = 'checklist_templates'
@@ -374,6 +401,13 @@ class RelatorioExpress(db.Model):
     @property
     def fotos(self):
         return FotoRelatorioExpress.query.filter_by(relatorio_express_id=self.id).order_by(FotoRelatorioExpress.ordem).all()
+    
+    @property
+    def titulo(self):
+        """Gera título fixo do relatório express com numeração automática"""
+        # Extrai o número sequencial do campo numero (ex: EXP-001 -> 001)
+        numero_sequencial = self.numero.split('-')[-1] if '-' in self.numero else self.numero
+        return f"Relatório Fotográfico - {numero_sequencial}"
     
     def __repr__(self):
         return f'<RelatorioExpress {self.numero}>'

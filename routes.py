@@ -41,7 +41,7 @@ def health_check_full():
             'service': 'flask-app'
         }), 503
 
-from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress, LegendaPredefinida
+from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress, LegendaPredefinida, FuncionarioProjeto
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm, FirstLoginForm
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
 from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
@@ -334,7 +334,36 @@ def user_edit(user_id):
 @app.route('/projects')
 @login_required
 def projects_list():
+    # Try to get user location from session or request
+    user_lat = request.args.get('lat', type=float)
+    user_lon = request.args.get('lon', type=float)
+    
     projects = Projeto.query.all()
+    
+    # If user location is available, sort by distance
+    if user_lat and user_lon:
+        projects_with_distance = []
+        for project in projects:
+            if project.latitude and project.longitude:
+                distance = calculate_distance(
+                    user_lat, user_lon,
+                    float(project.latitude), float(project.longitude)
+                )
+                projects_with_distance.append({
+                    'project': project,
+                    'distance': round(distance, 1)
+                })
+            else:
+                # Projects without coordinates go to the end
+                projects_with_distance.append({
+                    'project': project,
+                    'distance': float('inf')
+                })
+        
+        # Sort by distance
+        projects_with_distance.sort(key=lambda x: x['distance'])
+        projects = [item['project'] for item in projects_with_distance]
+    
     return render_template('projects/list.html', projects=projects)
 
 # Reports routes
@@ -352,15 +381,14 @@ def reports():
 def create_report():
     if request.method == 'POST':
         # Processar dados do formulário diretamente
-        titulo = request.form.get('titulo')
         projeto_id = request.form.get('projeto_id')
         conteudo = request.form.get('conteudo', '')
         aprovador_nome = request.form.get('aprovador_nome', '')
         data_relatorio_str = request.form.get('data_relatorio')
         
         # Validações básicas
-        if not titulo or not projeto_id:
-            flash('Título e Projeto são obrigatórios.', 'error')
+        if not projeto_id:
+            flash('Projeto é obrigatório.', 'error')
             return redirect(url_for('create_report'))
         
         try:
@@ -655,7 +683,7 @@ def edit_report(id):
             action = request.form.get('action')
             
             if action == 'update':
-                relatorio.titulo = request.form.get('titulo', '').strip()
+                # título is now auto-generated via property - no need to set it
                 relatorio.conteudo = request.form.get('conteudo', '').strip()
                 relatorio.projeto_id = request.form.get('projeto_id', type=int)
                 relatorio.visita_id = request.form.get('visita_id', type=int) if request.form.get('visita_id') else None
@@ -1179,27 +1207,98 @@ def project_new():
     
     if form.validate_on_submit():
         try:
-            projeto = Projeto()
-            projeto.numero = generate_project_number()
-            projeto.nome = form.nome.data
-            projeto.descricao = form.descricao.data
-            projeto.endereco = form.endereco.data
-            projeto.latitude = float(form.latitude.data) if form.latitude.data else None
-            projeto.longitude = float(form.longitude.data) if form.longitude.data else None
-            projeto.tipo_obra = form.tipo_obra.data
-            projeto.construtora = form.construtora.data
-            projeto.nome_funcionario = form.nome_funcionario.data
-            projeto.responsavel_id = form.responsavel_id.data
-            projeto.email_principal = form.email_principal.data
-            projeto.data_inicio = form.data_inicio.data
-            projeto.data_previsao_fim = form.data_previsao_fim.data
-            projeto.status = form.status.data
+            # Check if project with same name already exists
+            existing_project = Projeto.query.filter_by(nome=form.nome.data).first()
+            
+            if existing_project:
+                # Project consolidation: add employee and email to existing project
+                print(f"🔍 DEBUG: Project '{form.nome.data}' already exists. Consolidating...")
+                projeto = existing_project
+                
+                # Add new employee to existing project if not already associated
+                existing_funcionario = FuncionarioProjeto.query.filter_by(
+                    projeto_id=projeto.id, 
+                    user_id=form.responsavel_id.data
+                ).first()
+                
+                if not existing_funcionario:
+                    novo_funcionario = FuncionarioProjeto(
+                        projeto_id=projeto.id,
+                        user_id=form.responsavel_id.data,
+                        nome_funcionario=form.nome_funcionario.data,
+                        is_responsavel_principal=False,  # Keep original responsible as main
+                        ativo=True
+                    )
+                    db.session.add(novo_funcionario)
+                    print(f"✅ DEBUG: Added new employee to existing project")
+                
+                # Add new email to existing project if not already associated
+                existing_email = EmailCliente.query.filter_by(
+                    projeto_id=projeto.id,
+                    email=form.email_principal.data
+                ).first()
+                
+                if not existing_email:
+                    novo_email = EmailCliente(
+                        projeto_id=projeto.id,
+                        email=form.email_principal.data,
+                        nome_contato="Contato Consolidado",
+                        is_principal=False,  # Keep original email as main
+                        ativo=True
+                    )
+                    db.session.add(novo_email)
+                    print(f"✅ DEBUG: Added new email to existing project")
+                
+                flash(f'Funcionário e e-mail adicionados ao projeto existente: {projeto.nome}', 'success')
+                
+            else:
+                # Create new project
+                print(f"🔍 DEBUG: Creating new project: {form.nome.data}")
+                projeto = Projeto()
+                projeto.numero = generate_project_number()
+                projeto.nome = form.nome.data
+                projeto.descricao = form.descricao.data
+                projeto.endereco = form.endereco.data
+                projeto.latitude = float(form.latitude.data) if form.latitude.data else None
+                projeto.longitude = float(form.longitude.data) if form.longitude.data else None
+                projeto.tipo_obra = form.tipo_obra.data
+                projeto.construtora = form.construtora.data
+                projeto.nome_funcionario = form.nome_funcionario.data
+                projeto.responsavel_id = form.responsavel_id.data
+                projeto.email_principal = form.email_principal.data
+                projeto.data_inicio = form.data_inicio.data
+                projeto.data_previsao_fim = form.data_previsao_fim.data
+                projeto.status = form.status.data
+                
+                db.session.add(projeto)
+                db.session.flush()  # Get the project ID
+                
+                # Create employee association
+                funcionario_projeto = FuncionarioProjeto(
+                    projeto_id=projeto.id,
+                    user_id=form.responsavel_id.data,
+                    nome_funcionario=form.nome_funcionario.data,
+                    is_responsavel_principal=True,
+                    ativo=True
+                )
+                db.session.add(funcionario_projeto)
+                
+                # Create email association
+                email_projeto = EmailCliente(
+                    projeto_id=projeto.id,
+                    email=form.email_principal.data,
+                    nome_contato="Contato Principal",
+                    is_principal=True,
+                    ativo=True
+                )
+                db.session.add(email_projeto)
+                
+                flash('Projeto cadastrado com sucesso!', 'success')
             
             print(f"🔍 DEBUG: Trying to save projeto: {projeto.nome}")
-            db.session.add(projeto)
+            # db.session.add(projeto)  # Already added above
             db.session.commit()
             print(f"✅ DEBUG: Projeto saved successfully!")
-            flash('Projeto cadastrado com sucesso!', 'success')
             return redirect(url_for('projects_list'))
         except Exception as e:
             print(f"❌ DEBUG: Error saving projeto: {e}")
