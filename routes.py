@@ -98,6 +98,22 @@ def api_projeto_funcionarios_emails(projeto_id):
     try:
         projeto = Projeto.query.get_or_404(projeto_id)
         
+        # Verificação de autorização: usuário deve ter acesso ao projeto
+        if not current_user.is_master:
+            # Verificar se o usuário está associado ao projeto
+            user_project_access = FuncionarioProjeto.query.filter_by(
+                projeto_id=projeto_id,
+                user_id=current_user.id,
+                ativo=True
+            ).first()
+            
+            # Se não for funcionário do projeto e não for responsável, negar acesso
+            if not user_project_access and projeto.responsavel_id != current_user.id:
+                return jsonify({
+                    'success': False,
+                    'error': 'Acesso negado ao projeto'
+                }), 403
+        
         # Buscar funcionários do projeto
         funcionarios = FuncionarioProjeto.query.filter_by(
             projeto_id=projeto_id, 
