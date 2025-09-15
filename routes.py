@@ -1207,6 +1207,43 @@ def project_new():
     
     if form.validate_on_submit():
         try:
+            # Extract additional employees and emails from form
+            funcionarios_adicionais = []
+            emails_adicionais = []
+            
+            # Process additional employees
+            for key in request.form.keys():
+                if key.startswith('funcionarios[') and key.endswith('][nome]'):
+                    index = key.split('[')[1].split(']')[0]
+                    nome = request.form.get(f'funcionarios[{index}][nome]')
+                    cargo = request.form.get(f'funcionarios[{index}][cargo]', '')
+                    empresa = request.form.get(f'funcionarios[{index}][empresa]', '')
+                    
+                    if nome:
+                        funcionarios_adicionais.append({
+                            'nome': nome,
+                            'cargo': cargo,
+                            'empresa': empresa
+                        })
+            
+            # Process additional emails
+            for key in request.form.keys():
+                if key.startswith('emails[') and key.endswith('][email]'):
+                    index = key.split('[')[1].split(']')[0]
+                    email = request.form.get(f'emails[{index}][email]')
+                    nome = request.form.get(f'emails[{index}][nome]')
+                    cargo = request.form.get(f'emails[{index}][cargo]', '')
+                    
+                    if email and nome:
+                        emails_adicionais.append({
+                            'email': email,
+                            'nome': nome,
+                            'cargo': cargo
+                        })
+            
+            print(f"🔍 DEBUG: Found {len(funcionarios_adicionais)} additional employees")
+            print(f"🔍 DEBUG: Found {len(emails_adicionais)} additional emails")
+            
             # Check if project with same name already exists
             existing_project = Projeto.query.filter_by(nome=form.nome.data).first()
             
@@ -1214,8 +1251,10 @@ def project_new():
                 # Project consolidation: add employee and email to existing project
                 print(f"🔍 DEBUG: Project '{form.nome.data}' already exists. Consolidating...")
                 projeto = existing_project
+                funcionarios_adicionados = 0
+                emails_adicionados = 0
                 
-                # Add new employee to existing project if not already associated
+                # Add main employee to existing project if not already associated
                 existing_funcionario = FuncionarioProjeto.query.filter_by(
                     projeto_id=projeto.id, 
                     user_id=form.responsavel_id.data
@@ -1230,9 +1269,31 @@ def project_new():
                         ativo=True
                     )
                     db.session.add(novo_funcionario)
-                    print(f"✅ DEBUG: Added new employee to existing project")
+                    funcionarios_adicionados += 1
+                    print(f"✅ DEBUG: Added main employee to existing project")
                 
-                # Add new email to existing project if not already associated
+                # Add additional employees
+                for func_data in funcionarios_adicionais:
+                    # Check if employee already exists (by name)
+                    existing_func = FuncionarioProjeto.query.filter_by(
+                        projeto_id=projeto.id,
+                        nome_funcionario=func_data['nome']
+                    ).first()
+                    
+                    if not existing_func:
+                        novo_funcionario = FuncionarioProjeto(
+                            projeto_id=projeto.id,
+                            user_id=form.responsavel_id.data,  # Associate with current user
+                            nome_funcionario=func_data['nome'],
+                            cargo=func_data['cargo'],
+                            empresa=func_data['empresa'],
+                            is_responsavel_principal=False,
+                            ativo=True
+                        )
+                        db.session.add(novo_funcionario)
+                        funcionarios_adicionados += 1
+                
+                # Add main email to existing project if not already associated
                 existing_email = EmailCliente.query.filter_by(
                     projeto_id=projeto.id,
                     email=form.email_principal.data
@@ -1247,9 +1308,30 @@ def project_new():
                         ativo=True
                     )
                     db.session.add(novo_email)
-                    print(f"✅ DEBUG: Added new email to existing project")
+                    emails_adicionados += 1
+                    print(f"✅ DEBUG: Added main email to existing project")
                 
-                flash(f'Funcionário e e-mail adicionados ao projeto existente: {projeto.nome}', 'success')
+                # Add additional emails
+                for email_data in emails_adicionais:
+                    # Check if email already exists
+                    existing_email = EmailCliente.query.filter_by(
+                        projeto_id=projeto.id,
+                        email=email_data['email']
+                    ).first()
+                    
+                    if not existing_email:
+                        novo_email = EmailCliente(
+                            projeto_id=projeto.id,
+                            email=email_data['email'],
+                            nome_contato=email_data['nome'],
+                            cargo=email_data['cargo'],
+                            is_principal=False,
+                            ativo=True
+                        )
+                        db.session.add(novo_email)
+                        emails_adicionados += 1
+                
+                flash(f'Projeto consolidado! Adicionados {funcionarios_adicionados} funcionário(s) e {emails_adicionados} e-mail(s) ao projeto existente: {projeto.nome}', 'success')
                 
             else:
                 # Create new project
@@ -1273,7 +1355,7 @@ def project_new():
                 db.session.add(projeto)
                 db.session.flush()  # Get the project ID
                 
-                # Create employee association
+                # Create main employee association
                 funcionario_projeto = FuncionarioProjeto(
                     projeto_id=projeto.id,
                     user_id=form.responsavel_id.data,
@@ -1283,7 +1365,20 @@ def project_new():
                 )
                 db.session.add(funcionario_projeto)
                 
-                # Create email association
+                # Add additional employees
+                for func_data in funcionarios_adicionais:
+                    funcionario_adicional = FuncionarioProjeto(
+                        projeto_id=projeto.id,
+                        user_id=form.responsavel_id.data,  # Associate with current user
+                        nome_funcionario=func_data['nome'],
+                        cargo=func_data['cargo'],
+                        empresa=func_data['empresa'],
+                        is_responsavel_principal=False,
+                        ativo=True
+                    )
+                    db.session.add(funcionario_adicional)
+                
+                # Create main email association
                 email_projeto = EmailCliente(
                     projeto_id=projeto.id,
                     email=form.email_principal.data,
@@ -1293,10 +1388,23 @@ def project_new():
                 )
                 db.session.add(email_projeto)
                 
-                flash('Projeto cadastrado com sucesso!', 'success')
+                # Add additional emails
+                for email_data in emails_adicionais:
+                    email_adicional = EmailCliente(
+                        projeto_id=projeto.id,
+                        email=email_data['email'],
+                        nome_contato=email_data['nome'],
+                        cargo=email_data['cargo'],
+                        is_principal=False,
+                        ativo=True
+                    )
+                    db.session.add(email_adicional)
+                
+                total_funcionarios = 1 + len(funcionarios_adicionais)
+                total_emails = 1 + len(emails_adicionais)
+                flash(f'Projeto cadastrado com sucesso! {total_funcionarios} funcionário(s) e {total_emails} e-mail(s) adicionados.', 'success')
             
             print(f"🔍 DEBUG: Trying to save projeto: {projeto.nome}")
-            # db.session.add(projeto)  # Already added above
             db.session.commit()
             print(f"✅ DEBUG: Projeto saved successfully!")
             return redirect(url_for('projects_list'))
