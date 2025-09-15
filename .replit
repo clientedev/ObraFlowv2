@@ -36,6 +36,10 @@ outputType = "webview"
 localPort = 5000
 externalPort = 80
 
+[[ports]]
+localPort = 46215
+externalPort = 3000
+
 [agent]
 integrations = ["flask_google_oauth==1.0.0", "python_openai==1.0.0", "python_database==1.0.0"]
 expertMode = true
