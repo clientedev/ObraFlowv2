@@ -1123,42 +1123,49 @@ def generate_pdf_report_legacy(id):
 
 @app.route('/api/nearby-projects')
 def get_nearby_projects():
-    """Get projects near user location"""
+    """Get ALL projects ordered by distance from user location"""
     try:
         lat = request.args.get('lat', type=float)
         lon = request.args.get('lon', type=float)
-        radius = request.args.get('radius', 50, type=float)  # radius in km
         
-        if not lat or not lon:
-            return jsonify({'success': False, 'error': 'Coordenadas não fornecidas'})
+        # Get ALL projects (not just those with coordinates)
+        projects = Projeto.query.all()
         
-        # Get all projects with coordinates
-        projects = Projeto.query.filter(
-            Projeto.latitude.isnot(None),
-            Projeto.longitude.isnot(None)
-        ).all()
+        all_projects = []
+        projects_with_distance = []
+        projects_without_distance = []
         
-        nearby_projects = []
         for project in projects:
-            if project.latitude and project.longitude:
-                # Calculate distance using Haversine formula
+            project_data = {
+                'id': project.id,
+                'nome': project.nome,
+                'endereco': project.endereco or 'Endereço não informado',
+                'status': project.status,
+                'tipo_obra': project.tipo_obra,
+                'latitude': project.latitude,
+                'longitude': project.longitude
+            }
+            
+            # If user provided coordinates and project has coordinates, calculate distance
+            if lat and lon and project.latitude and project.longitude:
                 distance = calculate_distance(lat, lon, project.latitude, project.longitude)
-                if distance <= radius:
-                    nearby_projects.append({
-                        'id': project.id,
-                        'nome': project.nome,
-                        'endereco': project.endereco,
-                        'status': project.status,
-                        'tipo_obra': project.tipo_obra,
-                        'distance': round(distance, 2),
-                        'latitude': project.latitude,
-                        'longitude': project.longitude
-                    })
+                project_data['distance'] = round(distance, 2)
+                projects_with_distance.append(project_data)
+            else:
+                # Projects without coordinates or user location not provided
+                project_data['distance'] = 'N/A'
+                projects_without_distance.append(project_data)
         
-        # Sort by distance
-        nearby_projects.sort(key=lambda x: x['distance'])
+        # Sort projects with distance by closest first
+        projects_with_distance.sort(key=lambda x: x['distance'])
         
-        return jsonify({'success': True, 'projects': nearby_projects})
+        # Sort projects without distance by name
+        projects_without_distance.sort(key=lambda x: x['nome'])
+        
+        # Combine: projects with distance first (closest first), then projects without distance
+        all_projects = projects_with_distance + projects_without_distance
+        
+        return jsonify({'success': True, 'projects': all_projects, 'total': len(all_projects)})
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
