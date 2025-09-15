@@ -430,7 +430,7 @@ def projects_list():
                 # Projects without coordinates go to the end
                 projects_with_distance.append({
                     'project': project,
-                    'distance': float('inf')
+                    'distance': 999999
                 })
         
         # Sort by distance
@@ -1222,7 +1222,7 @@ def api_nearby_projects():
                 projects_with_distance.append(project_data)
             else:
                 # Projetos sem coordenadas ou usuário sem localização
-                project_data['distance_km'] = float('inf')  # Coloca no final da lista
+                project_data['distance_km'] = 999999  # Coloca no final da lista
                 projects_without_distance.append(project_data)
         
         # Ordena projetos com distância do mais próximo
