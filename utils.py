@@ -3,12 +3,24 @@ import json
 
 def get_address_from_coordinates(latitude, longitude):
     """Convert GPS coordinates to readable address using OpenStreetMap Nominatim API"""
+    import time
+    
     try:
         if not latitude or not longitude:
             return None
-            
+        
+        # Railway-compatible headers
+        headers = {
+            'User-Agent': 'ELP-ConstructionTracker/1.0 (elp.contato@gmail.com)',
+            'Accept': 'application/json',
+            'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8'
+        }
+        
+        # Rate limiting
+        time.sleep(1.2)
+        
         # Use OpenStreetMap Nominatim API (free, no API key required)
-        url = f"https://nominatim.openstreetmap.org/reverse"
+        url = "https://nominatim.openstreetmap.org/reverse"
         params = {
             'format': 'json',
             'lat': float(latitude),
@@ -17,104 +29,162 @@ def get_address_from_coordinates(latitude, longitude):
             'language': 'pt-BR'
         }
         
-        headers = {
-            'User-Agent': 'ConstructionSiteReporting/1.0'
-        }
-        
-        response = requests.get(url, params=params, headers=headers, timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
+        try:
+            response = requests.get(url, params=params, headers=headers, timeout=15)
             
-            if 'display_name' in data:
-                # Extract key address components
-                address_parts = []
+            if response.status_code == 200:
+                data = response.json()
                 
-                if 'address' in data:
-                    addr = data['address']
+                if 'display_name' in data:
+                    # Extract key address components
+                    address_parts = []
                     
-                    # Street number and name
-                    street_parts = []
-                    if 'house_number' in addr:
-                        street_parts.append(addr['house_number'])
-                    if 'road' in addr:
-                        street_parts.append(addr['road'])
-                    elif 'pedestrian' in addr:
-                        street_parts.append(addr['pedestrian'])
+                    if 'address' in data:
+                        addr = data['address']
+                        
+                        # Street number and name
+                        street_parts = []
+                        if 'house_number' in addr:
+                            street_parts.append(addr['house_number'])
+                        if 'road' in addr:
+                            street_parts.append(addr['road'])
+                        elif 'pedestrian' in addr:
+                            street_parts.append(addr['pedestrian'])
+                        
+                        if street_parts:
+                            address_parts.append(' '.join(street_parts))
+                        
+                        # Neighborhood
+                        if 'neighbourhood' in addr:
+                            address_parts.append(addr['neighbourhood'])
+                        elif 'suburb' in addr:
+                            address_parts.append(addr['suburb'])
+                        
+                        # City
+                        if 'city' in addr:
+                            address_parts.append(addr['city'])
+                        elif 'town' in addr:
+                            address_parts.append(addr['town'])
+                        elif 'municipality' in addr:
+                            address_parts.append(addr['municipality'])
+                        
+                        # State
+                        if 'state' in addr:
+                            address_parts.append(addr['state'])
+                        
+                        # Country
+                        if 'country' in addr:
+                            address_parts.append(addr['country'])
                     
-                    if street_parts:
-                        address_parts.append(' '.join(street_parts))
-                    
-                    # Neighborhood
-                    if 'neighbourhood' in addr:
-                        address_parts.append(addr['neighbourhood'])
-                    elif 'suburb' in addr:
-                        address_parts.append(addr['suburb'])
-                    
-                    # City
-                    if 'city' in addr:
-                        address_parts.append(addr['city'])
-                    elif 'town' in addr:
-                        address_parts.append(addr['town'])
-                    elif 'municipality' in addr:
-                        address_parts.append(addr['municipality'])
-                    
-                    # State
-                    if 'state' in addr:
-                        address_parts.append(addr['state'])
-                    
-                    # Country
-                    if 'country' in addr:
-                        address_parts.append(addr['country'])
+                    if address_parts:
+                        return ', '.join(address_parts)
+                    else:
+                        return data['display_name']
+            
+            elif response.status_code == 429:
+                print(f"⚠️  REVERSE GEOCODING: Rate limited")
+            elif response.status_code == 403:
+                print(f"❌ REVERSE GEOCODING: Blocked by Nominatim")
+            else:
+                print(f"⚠️  REVERSE GEOCODING: HTTP {response.status_code}")
                 
-                if address_parts:
-                    return ', '.join(address_parts)
-                else:
-                    return data['display_name']
+        except requests.exceptions.Timeout:
+            print(f"⚠️  REVERSE GEOCODING: Timeout")
+        except requests.exceptions.ConnectionError:
+            print(f"⚠️  REVERSE GEOCODING: Connection error")
         
         return None
         
     except Exception as e:
-        print(f"Error converting coordinates to address: {e}")
+        print(f"❌ REVERSE GEOCODING: Erro: {e}")
         return None
 
 def get_coordinates_from_address(address):
     """Convert address to GPS coordinates using OpenStreetMap Nominatim API"""
+    import time
+    import os
+    
     try:
         if not address or not address.strip():
             return None, None
-            
+        
+        # Railway-compatible headers and rate limiting
+        headers = {
+            'User-Agent': 'ELP-ConstructionTracker/1.0 (elp.contato@gmail.com)',
+            'Accept': 'application/json',
+            'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8'
+        }
+        
+        # Rate limiting: Nominatim requires 1 second between requests
+        time.sleep(1.2)
+        
         # Use OpenStreetMap Nominatim API for forward geocoding
-        url = f"https://nominatim.openstreetmap.org/search"
+        url = "https://nominatim.openstreetmap.org/search"
         params = {
             'q': address.strip(),
             'format': 'json',
             'addressdetails': 1,
             'language': 'pt-BR',
             'countrycodes': 'br',  # Limit to Brazil for better accuracy
-            'limit': 1
+            'limit': 1,
+            'dedupe': 1  # Remove duplicates
         }
         
-        headers = {
-            'User-Agent': 'ConstructionSiteReporting/1.0'
-        }
-        
-        response = requests.get(url, params=params, headers=headers, timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
-            
-            if data and len(data) > 0:
-                result = data[0]
-                latitude = float(result['lat'])
-                longitude = float(result['lon'])
+        # Retry logic for Railway deployment
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(
+                    url, 
+                    params=params, 
+                    headers=headers, 
+                    timeout=15  # Increased timeout for Railway
+                )
                 
-                return latitude, longitude
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    if data and len(data) > 0:
+                        result = data[0]
+                        latitude = float(result['lat'])
+                        longitude = float(result['lon'])
+                        
+                        print(f"✅ GEOCODING: {address} → {latitude}, {longitude}")
+                        return latitude, longitude
+                        
+                elif response.status_code == 429:
+                    # Rate limited - wait longer
+                    print(f"⚠️  GEOCODING: Rate limited, waiting...")
+                    time.sleep(5)
+                    continue
+                    
+                elif response.status_code == 403:
+                    # Forbidden - likely blocked
+                    print(f"❌ GEOCODING: Blocked by Nominatim (403)")
+                    break
+                    
+                else:
+                    print(f"⚠️  GEOCODING: HTTP {response.status_code}")
+                    
+            except requests.exceptions.Timeout:
+                print(f"⚠️  GEOCODING: Timeout, tentativa {attempt + 1}/{max_retries}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    
+            except requests.exceptions.ConnectionError:
+                print(f"⚠️  GEOCODING: Connection error, tentativa {attempt + 1}/{max_retries}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    
+            except Exception as e:
+                print(f"❌ GEOCODING: Erro inesperado: {e}")
+                break
         
+        print(f"❌ GEOCODING: Falhou para '{address}' após {max_retries} tentativas")
         return None, None
         
     except Exception as e:
-        print(f"Error converting address to coordinates: {e}")
+        print(f"❌ GEOCODING: Erro crítico: {e}")
         return None, None
 
 def format_coordinates_display(latitude, longitude):
