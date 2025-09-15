@@ -2260,67 +2260,7 @@ def get_location():
     
     return jsonify({'success': False})
 
-# API routes for nearby projects
-@app.route('/api/projects/nearby', methods=['POST', 'GET'])
-@csrf.exempt
-def api_nearby_projects():
-    """Get projects ordered by distance from user location"""
-    try:
-        data = request.get_json()
-        user_lat = float(data['lat'])
-        user_lon = float(data['lon'])
-        
-        # Get all active projects with coordinates
-        projects = Projeto.query.filter(
-            Projeto.status == 'Ativo',
-            Projeto.latitude.isnot(None),
-            Projeto.longitude.isnot(None)
-        ).all()
-        
-        # Calculate distances and create response
-        projects_with_distance = []
-        for project in projects:
-            if project.latitude and project.longitude:
-                distance = calculate_distance(
-                    user_lat, user_lon,
-                    float(project.latitude), float(project.longitude)
-                )
-                
-                projects_with_distance.append({
-                    'id': project.id,
-                    'nome': project.nome,
-                    'endereco': project.endereco,
-                    'latitude': float(project.latitude),
-                    'longitude': float(project.longitude),
-                    'distance_km': round(distance, 1),
-                    'tipo_obra': project.tipo_obra,
-                    'numero': project.numero
-                })
-        
-        # Sort by distance
-        projects_with_distance.sort(key=lambda x: x['distance_km'])
-        
-        print(f"Returning {len(projects_with_distance)} projects with distances")
-        return jsonify(projects_with_distance)
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-def calculate_distance(lat1, lon1, lat2, lon2):
-    """Calculate distance between two points using Haversine formula"""
-    # Convert to radians
-    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
-    
-    # Haversine formula
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
-    c = 2 * math.asin(math.sqrt(a))
-    
-    # Earth radius in kilometers
-    r = 6371
-    
-    return c * r
+# Duplicate function removed - using the more comprehensive version above
 
 # Enhanced reporting features
 
