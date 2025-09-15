@@ -26,7 +26,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
+args = "python main_production.py"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
@@ -37,12 +37,12 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 37097
-externalPort = 3000
-
-[[ports]]
 localPort = 39049
 externalPort = 3001
+
+[[ports]]
+localPort = 40085
+externalPort = 3000
 
 [agent]
 integrations = ["flask_google_oauth==1.0.0", "python_openai==1.0.0", "python_database==1.0.0"]
