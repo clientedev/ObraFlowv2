@@ -18,15 +18,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Flask Server"
+args = "Construction Tracker"
 
 [[workflows.workflow]]
-name = "Flask Server"
+name = "Construction Tracker"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python main_production.py"
+args = "python replit_main.py"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
@@ -37,8 +37,8 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 39049
-externalPort = 3001
+localPort = 38287
+externalPort = 3000
 
 [agent]
 integrations = ["flask_google_oauth==1.0.0", "python_openai==1.0.0", "python_database==1.0.0"]

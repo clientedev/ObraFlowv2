@@ -28,9 +28,19 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # needed for url_for
 
 # configure the database, relative to the app instance folder
 database_url = os.environ.get("DATABASE_URL", "sqlite:///construction_tracker.db")
-# Railway provides DATABASE_URL for PostgreSQL, ensure compatibility
+
+# Handle Replit PostgreSQL environment
+# Replit provides DATABASE_URL for PostgreSQL when database is provisioned
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
+    logging.info(f"✅ Using PostgreSQL database")
+elif database_url.startswith("postgresql://"):
+    logging.info(f"✅ Using PostgreSQL database")  
+else:
+    # Fallback to SQLite for development or when PostgreSQL not available
+    database_url = "sqlite:///construction_tracker.db"
+    logging.info(f"📝 Using SQLite database: {database_url}")
+
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
