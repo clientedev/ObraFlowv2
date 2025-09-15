@@ -100,7 +100,7 @@ class FuncionarioProjeto(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     nome_funcionario = db.Column(db.String(200), nullable=False)
     cargo = db.Column(db.String(100))
     empresa = db.Column(db.String(200))
@@ -113,7 +113,7 @@ class FuncionarioProjeto(db.Model):
     projeto = db.relationship('Projeto', backref='funcionarios_projetos')
     funcionario = db.relationship('User', backref='projetos_funcionario')
     
-    # Validação única para funcionário + projeto
+    # Validação única para funcionário + projeto (somente quando user_id não for nulo)
     __table_args__ = (db.UniqueConstraint('projeto_id', 'user_id', name='unique_funcionario_por_projeto'),)
 
 class Visita(db.Model):
