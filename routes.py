@@ -1357,7 +1357,7 @@ def project_new():
                     if not existing_func:
                         novo_funcionario = FuncionarioProjeto(
                             projeto_id=projeto.id,
-                            user_id=form.responsavel_id.data,  # Associate with current user
+                            user_id=None,  # Additional employees are contacts, not system users
                             nome_funcionario=func_data['nome'],
                             cargo=func_data['cargo'],
                             empresa=func_data['empresa'],
@@ -1456,7 +1456,7 @@ def project_new():
                 for func_data in funcionarios_adicionais:
                     funcionario_adicional = FuncionarioProjeto(
                         projeto_id=projeto.id,
-                        user_id=form.responsavel_id.data,  # Associate with current user
+                        user_id=None,  # Additional employees are contacts, not system users
                         nome_funcionario=func_data['nome'],
                         cargo=func_data['cargo'],
                         empresa=func_data['empresa'],
