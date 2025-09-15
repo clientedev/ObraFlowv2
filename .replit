@@ -2,7 +2,7 @@ modules = ["web", "python-3.11", "nodejs-20"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["cairo", "fontconfig", "freetype", "fribidi", "gdk-pixbuf", "ghostscript", "glib", "glibcLocales", "harfbuzz", "lcms2", "libimagequant", "libjpeg", "libpng", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "pango", "postgresql", "tcl", "tk", "zlib"]
+packages = ["cairo", "fontconfig", "freetype", "fribidi", "gdk-pixbuf", "ghostscript", "glib", "glibcLocales", "harfbuzz", "lcms2", "libimagequant", "libjpeg", "libpng", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "pango", "postgresql", "tcl", "tk", "zlib", "libffi", "shared-mime-info"]
 
 [deployment]
 deploymentTarget = "autoscale"
