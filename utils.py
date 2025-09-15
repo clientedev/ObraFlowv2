@@ -78,6 +78,45 @@ def get_address_from_coordinates(latitude, longitude):
         print(f"Error converting coordinates to address: {e}")
         return None
 
+def get_coordinates_from_address(address):
+    """Convert address to GPS coordinates using OpenStreetMap Nominatim API"""
+    try:
+        if not address or not address.strip():
+            return None, None
+            
+        # Use OpenStreetMap Nominatim API for forward geocoding
+        url = f"https://nominatim.openstreetmap.org/search"
+        params = {
+            'q': address.strip(),
+            'format': 'json',
+            'addressdetails': 1,
+            'language': 'pt-BR',
+            'countrycodes': 'br',  # Limit to Brazil for better accuracy
+            'limit': 1
+        }
+        
+        headers = {
+            'User-Agent': 'ConstructionSiteReporting/1.0'
+        }
+        
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            if data and len(data) > 0:
+                result = data[0]
+                latitude = float(result['lat'])
+                longitude = float(result['lon'])
+                
+                return latitude, longitude
+        
+        return None, None
+        
+    except Exception as e:
+        print(f"Error converting address to coordinates: {e}")
+        return None, None
+
 def format_coordinates_display(latitude, longitude):
     """Format coordinates for display with address lookup"""
     try:
