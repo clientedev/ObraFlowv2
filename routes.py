@@ -1188,6 +1188,58 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     
     return r * c
 
+@app.route('/api/projects/nearby', methods=['POST'])
+@login_required
+def api_nearby_projects():
+    """API para dashboard - retorna TODAS as obras ordenadas por distância"""
+    try:
+        data = request.get_json()
+        user_lat = data.get('lat') if data else None
+        user_lon = data.get('lon') if data else None
+        
+        # Get ALL projects (não só os com coordenadas)
+        projects = Projeto.query.all()
+        
+        projects_with_distance = []
+        projects_without_distance = []
+        
+        for project in projects:
+            project_data = {
+                'id': project.id,
+                'nome': project.nome,
+                'numero': project.numero,
+                'endereco': project.endereco or 'Endereço não informado',
+                'status': project.status,
+                'tipo_obra': project.tipo_obra,
+                'latitude': project.latitude,
+                'longitude': project.longitude
+            }
+            
+            # Se usuário forneceu coordenadas E o projeto tem coordenadas, calcula distância
+            if user_lat and user_lon and project.latitude and project.longitude:
+                distance_km = calculate_distance(user_lat, user_lon, project.latitude, project.longitude)
+                project_data['distance_km'] = round(distance_km, 2)
+                projects_with_distance.append(project_data)
+            else:
+                # Projetos sem coordenadas ou usuário sem localização
+                project_data['distance_km'] = float('inf')  # Coloca no final da lista
+                projects_without_distance.append(project_data)
+        
+        # Ordena projetos com distância do mais próximo
+        projects_with_distance.sort(key=lambda x: x['distance_km'])
+        
+        # Ordena projetos sem distância por nome
+        projects_without_distance.sort(key=lambda x: x['nome'])
+        
+        # Combina: projetos com distância primeiro, depois sem distância
+        all_projects = projects_with_distance + projects_without_distance
+        
+        return jsonify(all_projects)
+        
+    except Exception as e:
+        print(f"❌ Erro na API de projetos próximos: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/save-annotated-photo', methods=['POST'])
 @login_required  
 def save_annotated_photo():
