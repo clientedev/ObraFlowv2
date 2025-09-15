@@ -119,6 +119,7 @@ class ChecklistPadraoForm(FlaskForm):
 
 class RelatorioForm(FlaskForm):
     projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
+    titulo = StringField('Título do Relatório', validators=[DataRequired(), Length(max=300)], default='Relatório de visita')
     data_relatorio = DateField('Data do Relatório', validators=[DataRequired()], default=datetime.date.today)
     aprovador_nome = StringField('Nome do Aprovador', validators=[DataRequired(), Length(max=200)])
     conteudo = TextAreaField('Conteúdo do Relatório', validators=[Optional()], widget=TextArea())
