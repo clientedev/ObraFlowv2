@@ -6,6 +6,7 @@ from flask import render_template, redirect, url_for, flash, request, current_ap
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import HTTPException
 from flask_mail import Message
 
 from app import app, db, mail, csrf
@@ -152,6 +153,9 @@ def api_projeto_funcionarios_emails(projeto_id):
             'emails': emails_data
         })
         
+    except HTTPException as e:
+        # Allow HTTP exceptions (like 404) to propagate correctly
+        raise
     except Exception as e:
         print(f"❌ Erro ao buscar funcionários e e-mails: {e}")
         return jsonify({
