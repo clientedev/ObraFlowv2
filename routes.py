@@ -47,7 +47,7 @@ from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
 from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
 from email_service import email_service
 from pdf_generator_express import gerar_pdf_relatorio_express, gerar_numero_relatorio_express
-from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total
+from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total, get_coordinates_from_address
 from pdf_generator import generate_visit_report_pdf
 from google_drive_backup import backup_to_drive, test_drive_connection
 import math
@@ -1412,6 +1412,19 @@ def project_new():
                 projeto.endereco = form.endereco.data
                 projeto.latitude = float(form.latitude.data) if form.latitude.data else None
                 projeto.longitude = float(form.longitude.data) if form.longitude.data else None
+                
+                # Automatic geocoding: if no GPS coordinates but address exists, convert address to coordinates
+                if not projeto.latitude or not projeto.longitude:
+                    if projeto.endereco and projeto.endereco.strip():
+                        print(f"🔍 GEOCODING: Tentando converter endereço '{projeto.endereco}' para coordenadas GPS...")
+                        lat, lng = get_coordinates_from_address(projeto.endereco)
+                        if lat and lng:
+                            projeto.latitude = lat
+                            projeto.longitude = lng
+                            print(f"✅ GEOCODING: Sucesso! Coordenadas: {lat}, {lng}")
+                        else:
+                            print(f"❌ GEOCODING: Não foi possível converter o endereço")
+                
                 projeto.tipo_obra = form.tipo_obra.data
                 projeto.construtora = form.construtora.data
                 projeto.nome_funcionario = form.nome_funcionario.data
@@ -1525,6 +1538,19 @@ def project_edit(project_id):
         project.endereco = form.endereco.data
         project.latitude = float(form.latitude.data) if form.latitude.data else None
         project.longitude = float(form.longitude.data) if form.longitude.data else None
+        
+        # Automatic geocoding: if no GPS coordinates but address exists, convert address to coordinates
+        if not project.latitude or not project.longitude:
+            if project.endereco and project.endereco.strip():
+                print(f"🔍 GEOCODING: Tentando converter endereço '{project.endereco}' para coordenadas GPS...")
+                lat, lng = get_coordinates_from_address(project.endereco)
+                if lat and lng:
+                    project.latitude = lat
+                    project.longitude = lng
+                    print(f"✅ GEOCODING: Sucesso! Coordenadas: {lat}, {lng}")
+                else:
+                    print(f"❌ GEOCODING: Não foi possível converter o endereço")
+        
         project.tipo_obra = form.tipo_obra.data
         project.construtora = form.construtora.data
         project.nome_funcionario = form.nome_funcionario.data
