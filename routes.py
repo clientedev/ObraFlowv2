@@ -143,6 +143,7 @@ def api_projeto_funcionarios_emails(projeto_id):
             'error': str(e)
         }), 500
 
+
 @app.route('/api/dashboard-stats')
 @login_required
 def api_dashboard_stats():

@@ -256,40 +256,47 @@ function loadNearbyProjects() {
         statusEl.className = 'alert alert-info';
     }
     
-    // Use GET request with query parameters
-    const url = `/api/nearby-projects?lat=${userLocation.lat}&lon=${userLocation.lon}&radius=50`;
+    // Use POST request with JSON data (matching existing API)
+    const url = `/api/projects/nearby`;
     
     fetch(url, {
-        method: 'GET',
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({
+            lat: userLocation.lat,
+            lon: userLocation.lon
+        })
     })
     .then(response => response.json())
     .then(data => {
         const projectsList = document.getElementById('projectsList');
         
-        if (data.success && data.projects) {
+        if (data && Array.isArray(data)) {
             if (statusEl) {
-                statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Encontradas ${data.projects.length} obras próximas`;
+                statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Encontradas ${data.length} obras próximas`;
                 statusEl.className = 'alert alert-success';
             }
             
-            if (data.projects.length === 0) {
+            if (data.length === 0) {
                 if (projectsList) {
-                    projectsList.innerHTML = '<div class="text-center text-muted p-3"><i class="fas fa-info-circle"></i><br>Nenhuma obra encontrada próxima à sua localização (raio de 50km)</div>';
+                    projectsList.innerHTML = '<div class="text-center text-muted p-3"><i class="fas fa-info-circle"></i><br>Nenhuma obra encontrada próxima à sua localização</div>';
                 }
             } else {
                 let projectsHtml = '';
-                data.projects.forEach((project, index) => {
+                
+                // Limit to top 10 and sort by distance
+                const topProjects = data.slice(0, 10);
+                
+                topProjects.forEach((project, index) => {
                     let rankingEmoji = '';
                     if (index === 0) rankingEmoji = '🥇';
                     else if (index === 1) rankingEmoji = '🥈';
                     else if (index === 2) rankingEmoji = '🥉';
                     else rankingEmoji = '📍';
                     
-                    const statusBadge = project.status === 'ativo' ? 'bg-success' : 
-                                      project.status === 'concluido' ? 'bg-primary' : 'bg-warning';
+                    const statusBadge = 'bg-success'; // Default to active since API returns active projects
                     
                     projectsHtml += `
                         <div class="list-group-item d-flex justify-content-between align-items-center">
@@ -297,10 +304,10 @@ function loadNearbyProjects() {
                                 <h6 class="mb-1">${rankingEmoji} ${project.nome}</h6>
                                 <p class="mb-1 text-muted small">${project.endereco || 'Endereço não informado'}</p>
                                 <small class="text-primary">${project.tipo_obra || 'Tipo não informado'}</small>
-                                <br><small class="badge ${statusBadge}">${project.status}</small>
+                                <br><small class="badge ${statusBadge}">Ativo</small>
                             </div>
                             <div class="text-end">
-                                <span class="badge bg-primary rounded-pill">${project.distance}km</span>
+                                <span class="badge bg-primary rounded-pill">${project.distance_km}km</span>
                                 <div class="mt-1">
                                     <a href="/projects/${project.id}" class="btn btn-sm btn-outline-primary">Ver Projeto</a>
                                 </div>
@@ -313,8 +320,9 @@ function loadNearbyProjects() {
                 }
             }
         } else {
+            const errorMsg = data && data.error ? data.error : 'Erro desconhecido';
             if (statusEl) {
-                statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erro: ${data.error || 'Erro desconhecido'}`;
+                statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erro: ${errorMsg}`;
                 statusEl.className = 'alert alert-danger';
             }
             if (projectsList) {
