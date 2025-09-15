@@ -1388,15 +1388,19 @@ def project_new():
                 emails_adicionados = 0
                 
                 # Add main employee to existing project if not already associated
+                # Sanitize user_id - convert empty/invalid values to None
+                user_id_raw = form.responsavel_id.data
+                user_id = int(user_id_raw) if user_id_raw and str(user_id_raw).isdigit() and int(user_id_raw) > 0 else None
+                
                 existing_funcionario = FuncionarioProjeto.query.filter_by(
                     projeto_id=projeto.id, 
-                    user_id=form.responsavel_id.data
+                    user_id=user_id
                 ).first()
                 
                 if not existing_funcionario:
                     novo_funcionario = FuncionarioProjeto(
                         projeto_id=projeto.id,
-                        user_id=form.responsavel_id.data,
+                        user_id=user_id,
                         nome_funcionario=form.nome_funcionario.data,
                         is_responsavel_principal=False,  # Keep original responsible as main
                         ativo=True
@@ -1502,9 +1506,13 @@ def project_new():
                 db.session.flush()  # Get the project ID
                 
                 # Create main employee association
+                # Sanitize user_id - convert empty/invalid values to None
+                user_id_raw = form.responsavel_id.data
+                user_id = int(user_id_raw) if user_id_raw and str(user_id_raw).isdigit() and int(user_id_raw) > 0 else None
+                
                 funcionario_projeto = FuncionarioProjeto(
                     projeto_id=projeto.id,
-                    user_id=form.responsavel_id.data,
+                    user_id=user_id,
                     nome_funcionario=form.nome_funcionario.data,
                     is_responsavel_principal=True,
                     ativo=True
