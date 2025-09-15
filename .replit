@@ -6,7 +6,7 @@ packages = ["cairo", "fontconfig", "freetype", "fribidi", "gdk-pixbuf", "ghostsc
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["python", "main_production.py"]
+run = ["python", "replit_main.py"]
 
 [workflows]
 runButton = "Project"
