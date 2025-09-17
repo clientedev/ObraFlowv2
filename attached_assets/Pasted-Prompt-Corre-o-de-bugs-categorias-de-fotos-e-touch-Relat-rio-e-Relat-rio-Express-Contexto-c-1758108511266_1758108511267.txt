@@ -1,0 +1,77 @@
+Prompt — Correção de bugs: categorias de fotos e touch (Relatório e Relatório Express)
+
+Contexto curto:
+- Sistema web/PWA mobile-first para gestão de visitas e relatórios em obras.
+- Existem dois fluxos que usam o mesmo módulo de fotos: **Relatório** e **Relatório Express**.
+- Foram anexadas duas imagens para referência:
+  - `eeee8618-6477-4dbc-8064-b8b6bd1f661b_1758108075263.jpg` → tela **Relatório Express** (área com problema: categorias com rolagem horizontal).
+  - `315ba7c8-fee1-4d9a-84eb-55cfa4952d42_1758108083415.jpg` → tela **Relatório normal** (layout desejado das categorias).
+- Objetivo: identificar e corrigir o problema de usabilidade/bug nas categorias de foto e no touch, e remover um emoji indesejado na tela normal. Todas as correções devem ser aplicadas **em ambos os fluxos** (Relatório e Relatório Express).
+
+Descrição detalhada (implemente exatamente isto):
+
+1) **Relatório Express — remover rolagem horizontal das categorias**
+- A apresentação das categorias na imagem `eeee...763.jpg` está com rolagem horizontal. Deve ficar **sem rolagem horizontal**, idêntica ao comportamento/visual do Relatório normal baseado na imagem `315b...415.jpg`.
+- Resultado esperado: as categorias devem quebrar em linhas ou ocupar layout sem overflow-x (não permitir scroll horizontal). Visual e espaçamento devem ficar coerentes com a tela do Relatório normal.
+
+2) **Relatório normal — remover emoji ao lado do título da imagem**
+- Na tela do Relatório normal há um emoji/badge tipo "new" ao lado do título da imagem. Remova esse emoji/badge. O título da imagem deve aparecer limpo, sem emoji.
+- Se houver lógica que insere o emoji condicionalmente, remover ou desativar essa inserção para a tela de imagens.
+
+3) **Correção do comportamento de touch na seção de categorias (crítico)**
+- Problema atual: ao tentar **arrastar/deslizar** a lista/área de categorias, o app interpreta sempre como **tap/click** e troca imediatamente a categoria — impossibilitando o scroll por arraste. Hoje só funciona o clique, não o deslizar.
+- Requisito funcional:
+  - Permitir **tap/click** em uma categoria para selecioná-la imediatamente.
+  - Permitir **arrastar/deslizar** (touch/gesture) para navegar/scrollar entre categorias, sem que um simples movimento de arraste seja interpretado como clique.
+  - O comportamento deve ser **perfeito** em ambos os relatórios (Relatório e Relatório Express), em navegadores móveis iOS (Safari) e Android (Chrome).
+- Implementação esperada (alto nível — seja preciso ao codificar):
+  - Use diferenciação entre **touchstart / touchmove / touchend** (ou pointer events) para detectar se o gesto foi um *tap* (movimento < threshold) ou *drag* (movimento >= threshold).
+  - Recomenda-se empregar um threshold de movimento (ex.: 8–15 pixels) e detectar direção (para evitar confundir scroll vertical com horizontal).
+  - Se `touchmove` exceder o threshold, marque `isDragging = true` e **não executar a ação de seleção**.
+  - Em `touchend`, se `isDragging === false` e o tempo do toque for curto, trate como tap e selecione a categoria.
+  - Evite `preventDefault()` em eventos que impeçam o scroll nativo; ajuste `touch-action` / CSS onde necessário (por exemplo, `touch-action: pan-y` ou apropriado ao componente) para permitir rolagens nativas quando desejado.
+  - Garanta compatibilidade com mouse events para desktop (mousedown/mousemove/mouseup) — comportamento equivalente.
+  - Corrigir qualquer handler que esteja acionando a mudança de categoria no `touchstart` ou sem checagem de movimento.
+
+4) **Consistência entre Relatório e Relatório Express**
+- As mudanças de layout e touch devem ser feitas **em ambos** os fluxos. Verifique se há componentes separados ou reutilizados e atualize ambos os pontos de uso.
+
+Expectativa de entrega (obrigatório):
+- Código com as alterações (frontend e, se necessário, pequenas alterações no backend), com **comentários claros** explicando o que foi alterado.
+- Lista de arquivos modificados e *diffs* ou trechos principais.
+- Explicação curta do **problema raiz** identificado (por que estava interpretando sempre como tap) e como foi corrigido.
+- Testes manuais para QA (passos claros, ver abaixo).
+- Screenshots/GIFs antes/depois mostrando: (a) Relatório Express sem scroll horizontal nas categorias; (b) Relatório normal sem emoji; (c) comportamento de touch: arrastar funciona e tap seleciona.
+- Instruções mínimas para rodar localmente e reproduzir (comandos e rotas/urls).
+
+Critérios de aceitação (QA — checklist):
+- [ ] No **Relatório Express** (imagem `eeee...763.jpg`) as categorias **não têm rolagem horizontal**; layout igual ao Relatório normal (`315b...415.jpg`).
+- [ ] No **Relatório normal**, o emoji/badge ao lado do título da imagem foi removido.
+- [ ] Em **ambos** os relatórios:
+  - [ ] Tap rápido em uma categoria seleciona essa categoria (ação de seleção é instantânea).
+  - [ ] Pressionar e **arrastar** na área de categorias permite deslizar/scroll sem selecionar categorias acidentalmente.
+  - [ ] Drag com deslocamento maior que o threshold não dispara seleção.
+  - [ ] Testado em iOS Safari e Android Chrome (navegador mobile).
+- [ ] Não foram introduzidos regressões (outras áreas de fotos continuam funcionando).
+- [ ] Entregue explicação do root cause e como foi resolvido.
+
+Passos sugeridos para QA (teste manual rápido):
+1. Abrir app no mobile → Dashboard → Abrir um projeto → Entrar em **Relatório Express**.
+2. Conferir visual das categorias: tentar arrastar lateralmente — **não** existir rolagem horizontal; categorias devem quebrar em linhas ou comportar-se como no Relatório normal.
+3. Repetir no **Relatório normal** e conferir que não há emoji ao lado do título da imagem.
+4. Na área de categorias (ambos os relatórios):
+   - Tentar **arrastar** a lista de categorias; verificar que o gesto desliza/scrolla a área sem selecionar categorias.
+   - Tentar **tapar** em uma categoria; verificar que ela é selecionada.
+5. Confirmar em dispositivos reais iPhone e Android (ou emuladores si necessário).
+
+Observações importantes:
+- Não altere fluxos não relacionados. Não transforme a criação de relatório na tela pós-login.
+- Seja objetivo no código e nos comentários; priorize uma solução que seja robusta para navegadores móveis.
+- Se for necessário modificar CSS global (ex.: `touch-action` ou `overflow-x`), explique por que e onde.
+- Caso não seja possível reproduzir em um ambiente específico, explique as limitações e passos alternativos de teste.
+
+Entrega final:
+- Cole aqui o diff/arquivos alterados, a explicação do root cause e os passos de QA que você seguiu.
+- Inclua instruções para deploy/local test.
+
+Trabalhe com precisão, clareza e foco em mobile. Obrigatório: explicar o que foi alterado e provar via passos de teste que o touch e layout estão corrigidos.
