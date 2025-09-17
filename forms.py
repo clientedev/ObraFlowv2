@@ -40,11 +40,9 @@ class UserForm(FlaskForm):
 
 class ProjetoForm(FlaskForm):
     nome = StringField('Nome do Projeto', validators=[DataRequired(), Length(max=200)])
-    descricao = TextAreaField('Descrição')
     endereco = TextAreaField('Endereço')
     latitude = HiddenField()
     longitude = HiddenField()
-    tipo_obra = StringField('Tipo de Obra', validators=[DataRequired(), Length(max=100)])
     construtora = StringField('Construtora', validators=[DataRequired(), Length(max=200)])
     nome_funcionario = StringField('Nome do Funcionário', validators=[DataRequired(), Length(max=200)])
     responsavel_id = SelectField('Responsável', coerce=int, validators=[DataRequired()])

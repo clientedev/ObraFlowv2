@@ -46,10 +46,6 @@
                     </div>
                     {% endif %}
                     
-                    <div class="mb-3">
-                        {{ form.descricao.label(class="form-label") }}
-                        {{ form.descricao(class="form-control", rows="3") }}
-                    </div>
                     
                     <div class="mb-3">
                         {{ form.endereco.label(class="form-label") }}
@@ -75,26 +71,12 @@
                         {{ form.longitude() }}
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.tipo_obra.label(class="form-label") }}
-                                {{ form.tipo_obra(class="form-control" + (" is-invalid" if form.tipo_obra.errors else ""), placeholder="Ex: Residencial, Comercial, Industrial...") }}
-                                {% for error in form.tipo_obra.errors %}
-                                    <div class="invalid-feedback">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.responsavel_id.label(class="form-label") }}
-                                {{ form.responsavel_id(class="form-select" + (" is-invalid" if form.responsavel_id.errors else "")) }}
-                                {% for error in form.responsavel_id.errors %}
-                                    <div class="invalid-feedback">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        </div>
+                    <div class="mb-3">
+                        {{ form.responsavel_id.label(class="form-label") }}
+                        {{ form.responsavel_id(class="form-select" + (" is-invalid" if form.responsavel_id.errors else "")) }}
+                        {% for error in form.responsavel_id.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
                     </div>
                     
                     <div class="row">
