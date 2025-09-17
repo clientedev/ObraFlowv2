@@ -348,8 +348,11 @@
                         
                         {% if current_user.is_master %}
                         <hr>
-                        <button onclick="confirmarExclusao({{ relatorio.id }}, '{{ relatorio.numero }}')" 
-                                class="btn btn-outline-danger">
+                        <button type="button" 
+                                class="btn btn-outline-danger"
+                                data-relatorio-id="{{ relatorio.id }}"
+                                data-relatorio-numero="{{ relatorio.numero }}"
+                                onclick="confirmarExclusao(this.dataset.relatorioId, this.dataset.relatorioNumero)">
                             <i class="fas fa-trash"></i> Excluir
                         </button>
                         {% endif %}
