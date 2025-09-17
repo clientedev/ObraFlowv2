@@ -196,23 +196,18 @@ class VisitaRealizadaForm(FlaskForm):
 class FotoRelatorioForm(FlaskForm):
     legenda = StringField('Legenda da Foto', validators=[Optional(), Length(max=500)])
     categoria = SelectField('Categoria', choices=[
-        ('Geral', 'Geral'),
-        ('Estrutural', 'Estrutural'),
-        ('Acabamentos', 'Acabamentos'),
-        ('Instalações', 'Instalações'),
-        ('Segurança', 'Segurança')
-    ], default='Geral')
+        ('Torre 1', 'Torre 1'),
+        ('Torre 2', 'Torre 2'),
+        ('Área Comum', 'Área Comum'),
+        ('Piscina', 'Piscina')
+    ], default='Torre 1')
 
 class LegendaPredefinidaForm(FlaskForm):
     texto = StringField('Texto da Legenda', validators=[DataRequired(), Length(max=500)])
     categoria = SelectField('Categoria', choices=[
-        ('Geral', 'Geral'),
-        ('Estrutural', 'Estrutural'),
-        ('Hidráulica', 'Hidráulica'),
-        ('Elétrica', 'Elétrica'),
-        ('Acabamentos', 'Acabamentos'),
-        ('Segurança', 'Segurança'),
-        ('Fachada', 'Fachada'),
-        ('Impermeabilização', 'Impermeabilização')
-    ], default='Geral', validators=[DataRequired()])
+        ('Torre 1', 'Torre 1'),
+        ('Torre 2', 'Torre 2'),
+        ('Área Comum', 'Área Comum'),
+        ('Piscina', 'Piscina')
+    ], default='Torre 1', validators=[DataRequired()])
     ativo = BooleanField('Ativo', default=True)

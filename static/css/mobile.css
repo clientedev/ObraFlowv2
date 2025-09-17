@@ -57,6 +57,103 @@ input, textarea, select, [contenteditable="true"] {
     user-select: none;
 }
 
+/* Categorias de foto - touch otimizado */
+.photo-category, .category-option, .category-card {
+    min-height: 80px;
+    min-width: 80px;
+    padding: 16px 8px;
+    cursor: pointer;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    background: #ffffff;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0,123,255,0.2);
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.photo-category:hover, .category-option:hover, .category-card:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+}
+
+.photo-category.selected, .category-option.selected, .category-card.selected {
+    border-color: #007bff;
+    background: #e3f2fd;
+    color: #007bff;
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0,123,255,0.25);
+}
+
+.photo-category i, .category-option i, .category-card i {
+    display: block;
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: #6c757d;
+    transition: color 0.2s ease;
+}
+
+.photo-category.selected i, .category-option.selected i, .category-card.selected i {
+    color: #007bff;
+}
+
+/* Grid de categorias mobile */
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+}
+
+@media (min-width: 576px) {
+    .category-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Garantir scroll fluido na área de categorias */
+.category-selector {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    scroll-behavior: smooth;
+    padding: 8px 0;
+}
+
+.category-selector .row {
+    flex-wrap: nowrap;
+    min-width: max-content;
+}
+
+/* Upload options for camera/gallery */
+.upload-options {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.upload-options .btn {
+    flex: 1;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    max-width: 120px;
+}
+
+.upload-options .btn i {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
 /* Botões com área de toque adequada */
 @media (max-width: 767.98px) {
     .btn, .tool-btn {

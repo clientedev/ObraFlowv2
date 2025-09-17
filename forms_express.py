@@ -99,16 +99,10 @@ class FotoExpressForm(FlaskForm):
     tipo_servico = SelectField('Tipo de Serviço',
                               choices=[
                                   ('', 'Selecione...'),
-                                  ('Geral', 'Geral'),
-                                  ('Estrutural', 'Estrutural'),
-                                  ('Hidráulica', 'Hidráulica'),
-                                  ('Elétrica', 'Elétrica'),
-                                  ('Acabamentos', 'Acabamentos'),
-                                  ('Segurança', 'Segurança'),
-                                  ('Fachada', 'Fachada'),
-                                  ('Impermeabilização', 'Impermeabilização'),
-                                  ('Problema', 'Problema'),
-                                  ('Vista Geral', 'Vista Geral')
+                                  ('Torre 1', 'Torre 1'),
+                                  ('Torre 2', 'Torre 2'),
+                                  ('Área Comum', 'Área Comum'),
+                                  ('Piscina', 'Piscina')
                               ],
                               validators=[Optional()])
 

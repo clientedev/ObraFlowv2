@@ -412,34 +412,28 @@
                             <div class="mb-3">
                                 <label class="form-label">Selecione a categoria antes de adicionar a foto:</label>
                                 <div class="row">
-                                    <div class="col-md-2">
-                                        <div class="photo-category text-center" data-category="Geral">
-                                            <i class="fas fa-camera fa-2x mb-2"></i>
-                                            <div>Geral</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="photo-category text-center" data-category="Estrutura">
+                                    <div class="col-md-3 col-6">
+                                        <div class="photo-category text-center" data-category="Torre 1">
                                             <i class="fas fa-building fa-2x mb-2"></i>
-                                            <div>Estrutura</div>
+                                            <div>Torre 1</div>
                                         </div>
                                     </div>
-                                    <div class="col-md-2">
-                                        <div class="photo-category text-center" data-category="Acabamento">
-                                            <i class="fas fa-paint-brush fa-2x mb-2"></i>
-                                            <div>Acabamento</div>
+                                    <div class="col-md-3 col-6">
+                                        <div class="photo-category text-center" data-category="Torre 2">
+                                            <i class="fas fa-building fa-2x mb-2"></i>
+                                            <div>Torre 2</div>
                                         </div>
                                     </div>
-                                    <div class="col-md-2">
-                                        <div class="photo-category text-center" data-category="Instalações">
-                                            <i class="fas fa-tools fa-2x mb-2"></i>
-                                            <div>Instalações</div>
+                                    <div class="col-md-3 col-6">
+                                        <div class="photo-category text-center" data-category="Área Comum">
+                                            <i class="fas fa-users fa-2x mb-2"></i>
+                                            <div>Área Comum</div>
                                         </div>
                                     </div>
-                                    <div class="col-md-2">
-                                        <div class="photo-category text-center" data-category="Problema">
-                                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                                            <div>Problema</div>
+                                    <div class="col-md-3 col-6">
+                                        <div class="photo-category text-center" data-category="Piscina">
+                                            <i class="fas fa-swimmer fa-2x mb-2"></i>
+                                            <div>Piscina</div>
                                         </div>
                                     </div>
                                 </div>
@@ -447,7 +441,16 @@
 
                             <!-- Upload de Fotos -->
                             <div class="mb-3">
-                                <input type="file" id="photoInput" class="form-control" multiple accept="image/*" disabled style="opacity: 0.5;">
+                                <div class="d-flex gap-2 mb-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="galleryBtn" disabled onclick="selectFromGallery()">
+                                        <i class="fas fa-images"></i> Galeria
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success btn-sm" id="cameraBtn" disabled onclick="captureFromCamera()">
+                                        <i class="fas fa-camera"></i> Câmera
+                                    </button>
+                                </div>
+                                <input type="file" id="photoInput" class="form-control" multiple accept="image/*" style="display: none;">
+                                <input type="file" id="cameraInput" class="form-control" accept="image/*" capture="environment" style="display: none;">
                                 <small class="text-muted">Selecione uma categoria antes de escolher as fotos. <strong style="color: red;">Máximo 200 fotos - Limite total: 3GB.</strong></small>
                             </div>
 

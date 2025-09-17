@@ -771,43 +771,37 @@ textarea {
                 <div id="categorySelection">
                     <label class="form-label">Selecione a categoria para as fotos:</label>
                     <div class="category-grid">
-                        <div class="category-card" data-category="Geral">
-                            <div class="category-icon"><i class="fas fa-eye"></i></div>
-                            <div class="category-name">Geral</div>
-                        </div>
-                        <div class="category-card" data-category="Estrutura">
+                        <div class="category-card" data-category="Torre 1">
                             <div class="category-icon"><i class="fas fa-building"></i></div>
-                            <div class="category-name">Estrutura</div>
+                            <div class="category-name">Torre 1</div>
                         </div>
-                        <div class="category-card" data-category="Acabamento">
-                            <div class="category-icon"><i class="fas fa-paint-brush"></i></div>
-                            <div class="category-name">Acabamento</div>
+                        <div class="category-card" data-category="Torre 2">
+                            <div class="category-icon"><i class="fas fa-building"></i></div>
+                            <div class="category-name">Torre 2</div>
                         </div>
-                        <div class="category-card" data-category="Instalações">
-                            <div class="category-icon"><i class="fas fa-tools"></i></div>
-                            <div class="category-name">Instalações</div>
+                        <div class="category-card" data-category="Área Comum">
+                            <div class="category-icon"><i class="fas fa-users"></i></div>
+                            <div class="category-name">Área Comum</div>
                         </div>
-                        <div class="category-card" data-category="Segurança">
-                            <div class="category-icon"><i class="fas fa-hard-hat"></i></div>
-                            <div class="category-name">Segurança</div>
-                        </div>
-                        <div class="category-card" data-category="Problema">
-                            <div class="category-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                            <div class="category-name">Problema</div>
+                        <div class="category-card" data-category="Piscina">
+                            <div class="category-icon"><i class="fas fa-swimmer"></i></div>
+                            <div class="category-name">Piscina</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Upload de Fotos -->
                 <div id="photoUploadZone" class="photo-upload-zone" style="display: none;">
-                    <div class="upload-icon">
-                        <i class="fas fa-camera"></i>
-                    </div>
-                    <div class="upload-text">
-                        <strong>Toque para adicionar fotos</strong><br>
-                        ou arraste arquivos aqui
+                    <div class="upload-options">
+                        <button type="button" class="btn btn-outline-primary" onclick="selectFromGallery()">
+                            <i class="fas fa-images"></i><br>Galeria
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="captureFromCamera()">
+                            <i class="fas fa-camera"></i><br>Câmera
+                        </button>
                     </div>
                     <input type="file" id="photoInput" multiple accept="image/*" style="display: none;">
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
                 </div>
 
                 <!-- Preview de Fotos -->
