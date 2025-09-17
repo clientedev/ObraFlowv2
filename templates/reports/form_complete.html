@@ -1731,26 +1731,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 {% endif %}
 
-// Sistema de touch ULTRA INTELIGENTE - scroll 100% natural
+// Sistema de touch SUPER PERMISSIVO - scroll sempre prioritário
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Sistema de touch ultra inteligente carregado');
+    console.log('🎯 Sistema de touch super permissivo carregado');
 
-    // Configurações mais agressivas para detectar scroll
-    const MOVEMENT_THRESHOLD = 8; // pixels - muito sensível ao movimento
-    const TAP_TIME_LIMIT = 200; // ms - tap deve ser muito rápido
-    const SCROLL_VELOCITY_THRESHOLD = 50; // pixels/100ms - velocidade de scroll
+    // Configurações SUPER PERMISSIVAS para priorizar scroll
+    const MINIMAL_MOVEMENT = 3; // pixels - qualquer movimento mínimo
+    const TAP_TIME_LIMIT = 150; // ms - tap deve ser MUITO rápido
+    const VERTICAL_PRIORITY = 1.2; // qualquer movimento vertical > horizontal
 
     let touchData = {
         startX: 0,
         startY: 0,
         startTime: 0,
-        lastX: 0,
-        lastY: 0,
-        lastTime: 0,
         moved: false,
-        scrolling: false,
-        element: null,
-        scrollStarted: false
+        isVerticalScroll: false,
+        element: null
     };
 
     // Função para seleção de categoria
@@ -1776,141 +1772,117 @@ document.addEventListener('DOMContentLoaded', function() {
         updatePhotoInput();
     }
 
-    // Detectar se há scroll ativo na página
-    let pageScrolling = false;
-    let scrollTimeout;
+    // Monitorar scroll global
+    let isPageScrolling = false;
+    let scrollResetTimeout;
 
     window.addEventListener('scroll', function() {
-        pageScrolling = true;
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-            pageScrolling = false;
-        }, 100);
+        isPageScrolling = true;
+        clearTimeout(scrollResetTimeout);
+        scrollResetTimeout = setTimeout(() => {
+            isPageScrolling = false;
+        }, 50);
     }, { passive: true });
 
-    // Event listeners para categorias - DETECÇÃO INTELIGENTE
+    // Event listeners para categorias - MÁXIMA PERMISSIVIDADE
     document.querySelectorAll('.photo-category').forEach(categoryElement => {
 
-        // Touch Start - registrar início SEM interferir
+        // Touch Start - registrar início PASSIVAMENTE
         categoryElement.addEventListener('touchstart', function(e) {
-            // NÃO prevenir - totalmente passivo
             const touch = e.touches[0];
             touchData.startX = touch.clientX;
             touchData.startY = touch.clientY;
-            touchData.lastX = touch.clientX;
-            touchData.lastY = touch.clientY;
             touchData.startTime = Date.now();
-            touchData.lastTime = Date.now();
             touchData.moved = false;
-            touchData.scrolling = pageScrolling; // Estado atual do scroll
-            touchData.scrollStarted = false;
+            touchData.isVerticalScroll = false;
             touchData.element = categoryElement;
 
-            console.log('👆 Touch registrado (passivo)');
+            console.log('👆 Touch start registrado');
         }, { passive: true });
 
-        // Touch Move - DETECÇÃO PRECISA de scroll vs tap
+        // Touch Move - DETECTAR QUALQUER MOVIMENTO
         categoryElement.addEventListener('touchmove', function(e) {
             if (!touchData.element) return;
 
             const touch = e.touches[0];
-            const currentTime = Date.now();
-            
             const deltaX = Math.abs(touch.clientX - touchData.startX);
             const deltaY = Math.abs(touch.clientY - touchData.startY);
-            
-            const moveX = Math.abs(touch.clientX - touchData.lastX);
-            const moveY = Math.abs(touch.clientY - touchData.lastY);
-            const timeDelta = currentTime - touchData.lastTime;
-            
-            // Calcular velocidade do movimento
-            const velocity = timeDelta > 0 ? (moveX + moveY) / timeDelta * 100 : 0;
 
-            // Critérios para detectar scroll:
-            // 1. Movimento total > threshold
-            // 2. OU velocidade alta (scroll rápido)
-            // 3. OU movimento predominantemente vertical
-            if (deltaX > MOVEMENT_THRESHOLD || deltaY > MOVEMENT_THRESHOLD) {
+            // QUALQUER movimento é considerado "moved"
+            if (deltaX > MINIMAL_MOVEMENT || deltaY > MINIMAL_MOVEMENT) {
                 touchData.moved = true;
-                
-                // Detectar se é scroll vertical
-                if (deltaY > deltaX * 1.5) {
-                    touchData.scrollStarted = true;
-                    console.log('📜 Scroll vertical detectado');
-                }
-            }
-            
-            // Velocidade alta = definitivamente scroll
-            if (velocity > SCROLL_VELOCITY_THRESHOLD) {
-                touchData.scrolling = true;
-                touchData.scrollStarted = true;
-                console.log('⚡ Scroll rápido detectado');
+                console.log('🔄 Movimento detectado - cancelando tap');
             }
 
-            // Atualizar posição anterior
-            touchData.lastX = touch.clientX;
-            touchData.lastY = touch.clientY;
-            touchData.lastTime = currentTime;
+            // Prioridade TOTAL para movimento vertical
+            if (deltaY > deltaX * VERTICAL_PRIORITY) {
+                touchData.isVerticalScroll = true;
+                console.log('📜 Scroll vertical detectado - ignorando tap');
+            }
 
         }, { passive: true });
 
-        // Touch End - DECIDIR se foi tap ou scroll
+        // Touch End - DECIDIR com MÁXIMA PERMISSIVIDADE
         categoryElement.addEventListener('touchend', function(e) {
             if (!touchData.element) return;
 
             const touchDuration = Date.now() - touchData.startTime;
-            const wasScrolling = touchData.scrolling || touchData.scrollStarted || pageScrolling;
 
             console.log('🎯 Touch End:', {
                 moved: touchData.moved,
                 duration: touchDuration,
-                wasScrolling: wasScrolling,
-                scrollStarted: touchData.scrollStarted
+                isVerticalScroll: touchData.isVerticalScroll,
+                isPageScrolling: isPageScrolling
             });
 
-            // Condições SUPER RESTRITIVAS para tap:
-            // - NÃO houve movimento significativo
-            // - Duração muito curta
-            // - NÃO estava em scroll
-            // - NÃO iniciou scroll durante o toque
-            if (!touchData.moved && 
-                touchDuration < TAP_TIME_LIMIT && 
-                !wasScrolling && 
-                !touchData.scrollStarted) {
-                
-                // Aguardar para garantir que o scroll parou
+            // Condições EXTREMAMENTE RESTRITIVAS para tap:
+            // - ZERO movimento detectado
+            // - Duração super curta
+            // - NÃO é scroll vertical
+            // - Página não está em scroll
+            const isValidTap = !touchData.moved && 
+                              !touchData.isVerticalScroll && 
+                              !isPageScrolling && 
+                              touchDuration < TAP_TIME_LIMIT;
+
+            if (isValidTap) {
+                // Aguardar um pouco mais para ter certeza
                 setTimeout(() => {
-                    // Verificar novamente se não há scroll ativo
-                    if (!pageScrolling) {
+                    // Verificação final
+                    if (!isPageScrolling) {
                         const category = categoryElement.getAttribute('data-category');
                         selectPhotoCategory(category, categoryElement);
-                        console.log('✅ TAP VÁLIDO - categoria selecionada');
+                        console.log('✅ TAP SUPER VÁLIDO - categoria selecionada');
                     } else {
-                        console.log('❌ Scroll detectado no timeout - ignorando');
+                        console.log('❌ Scroll detectado no timeout final');
                     }
-                }, 50);
+                }, 25);
             } else {
-                console.log('❌ NÃO é tap - scroll ou movimento detectado');
+                console.log('❌ NÃO é tap válido - respeitando scroll');
             }
 
-            // Reset completo
+            // Reset
             touchData = {
                 startX: 0, startY: 0, startTime: 0,
-                lastX: 0, lastY: 0, lastTime: 0,
-                moved: false, scrolling: false, 
-                element: null, scrollStarted: false
+                moved: false, isVerticalScroll: false, element: null
             };
         }, { passive: true });
 
         // Mouse events para desktop - funcionamento normal
         categoryElement.addEventListener('click', function(e) {
+            // Verificar se não foi um toque recente
+            if (touchData.startTime && (Date.now() - touchData.startTime) < 500) {
+                console.log('🖱️ Click ignorado - toque recente detectado');
+                return;
+            }
+
             const category = categoryElement.getAttribute('data-category');
             selectPhotoCategory(category, categoryElement);
             console.log('🖱️ Click desktop - categoria selecionada');
         });
     });
 
-    console.log('✅ Sistema ULTRA INTELIGENTE ativo - scroll 100% respeitado');
+    console.log('✅ Sistema SUPER PERMISSIVO ativo - scroll SEMPRE prioritário');
 });
 
 // Função global para compatibilidade
