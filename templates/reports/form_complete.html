@@ -205,6 +205,9 @@
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('create_report') }}" enctype="multipart/form-data" id="reportForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        {% if selected_project %}
+                        <input type="hidden" name="projeto_id" value="{{ selected_project.id }}">
+                        {% endif %}
                         <!-- Auto-preenchimento do Projeto (se selecionado) -->
                         {% if selected_project %}
                         <div class="alert alert-info mobile-project-info" role="alert">
@@ -219,8 +222,12 @@
                                     <div class="project-auto-info">
                                         <p class="mb-1"><strong>{{ selected_project.numero }} - {{ selected_project.nome }}</strong></p>
                                         {% if selected_project.endereco %}
-                                        <p class="mb-1"><small class="text-muted">
+                                        <p class="mb-1"><small class="text-success">
                                             <i class="fas fa-map-marker-alt me-1"></i>{{ selected_project.endereco }}
+                                        </small></p>
+                                        {% else %}
+                                        <p class="mb-1"><small class="text-warning">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Endereço não cadastrado — preencha para continuar
                                         </small></p>
                                         {% endif %}
                                         <p class="mb-0"><small class="text-muted">
@@ -1737,5 +1744,47 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 }
 </style>
+
+<!-- Auto-populate project coordinates script -->
+<script>
+// Auto-populate project coordinates and location info when coming from project view
+{% if selected_project %}
+document.addEventListener('DOMContentLoaded', function() {
+    // Ensure required elements exist
+    const latitudeEl = document.getElementById('latitude');
+    const longitudeEl = document.getElementById('longitude');
+    const localizacaoInfo = document.getElementById('localizacao-info');
+    
+    if (!latitudeEl || !longitudeEl || !localizacaoInfo) {
+        console.warn('Required form elements not found for auto-population');
+        return;
+    }
+    
+    {% if selected_project.latitude and selected_project.longitude %}
+    // Auto-populate coordinates if available from project (using tojson for safety)
+    latitudeEl.value = {{ selected_project.latitude | tojson }};
+    longitudeEl.value = {{ selected_project.longitude | tojson }};
+    
+    // Display project location info (escaped properly)
+    const endereco = {{ selected_project.endereco | tojson or "'Coordenadas do projeto'" }};
+    localizacaoInfo.innerHTML = `
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> Localização do projeto pré-carregada!<br>
+            <strong>📍 ${endereco}</strong>
+            <br><small class="text-muted">Você pode capturar nova localização se necessário</small>
+        </div>
+    `;
+    {% else %}
+    // Show message that project has no coordinates
+    localizacaoInfo.innerHTML = `
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i> Este projeto não possui coordenadas cadastradas.<br>
+            <small>Use o botão "Capturar Localização Atual" para definir a localização da visita.</small>
+        </div>
+    `;
+    {% endif %}
+});
+{% endif %}
+</script>
 
 {% endblock %}
