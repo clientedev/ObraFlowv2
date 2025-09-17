@@ -774,23 +774,30 @@ let photoCounter = 0;
         }
 
         console.log('📷 Categoria selecionada:', category);
+        
+        // Atualizar categoria global PRIMEIRO
+        window.selectedPhotoCategory = category;
+        
+        // Também atualizar variável local para compatibilidade
+        selectedCategory = category;
+        
+        console.log('✅ VARIÁVEIS DEFINIDAS: selectedCategory =', selectedCategory);
+        console.log('✅ VARIÁVEIS DEFINIDAS: window.selectedPhotoCategory =', window.selectedPhotoCategory);
 
         // Mostrar área de upload
         const uploadSection = document.getElementById('photoUploadSection');
         if (uploadSection) {
             uploadSection.style.display = 'block';
         }
-
-        // Atualizar categoria global - CORRIGIDO
-        window.selectedPhotoCategory = category;
-
-        // Também atualizar variável local para compatibilidade
-        selectedCategory = category;
     }
 
 // Camera and gallery functions with error handling
 function selectFromGallery() {
-    if (!selectedCategory) {
+    console.log('🔍 DEBUG: selectedCategory =', selectedCategory);
+    console.log('🔍 DEBUG: window.selectedPhotoCategory =', window.selectedPhotoCategory);
+    
+    // Usar tanto a variável local quanto a global para garantir
+    if (!selectedCategory && !window.selectedPhotoCategory) {
         alert('Selecione uma categoria antes de adicionar fotos.');
         return;
     }
@@ -803,7 +810,11 @@ function selectFromGallery() {
 }
 
 function captureFromCamera() {
-    if (!selectedCategory) {
+    console.log('🔍 DEBUG: selectedCategory =', selectedCategory);
+    console.log('🔍 DEBUG: window.selectedPhotoCategory =', window.selectedPhotoCategory);
+    
+    // Usar tanto a variável local quanto a global para garantir
+    if (!selectedCategory && !window.selectedPhotoCategory) {
         alert('Selecione uma categoria antes de adicionar fotos.');
         return;
     }
@@ -839,7 +850,11 @@ function resetPhotoCategories() {
 
 // Manipular upload de fotos
 function handlePhotoUpload(input) {
-    if (!selectedCategory) {
+    console.log('🔍 DEBUG upload: selectedCategory =', selectedCategory);
+    console.log('🔍 DEBUG upload: window.selectedPhotoCategory =', window.selectedPhotoCategory);
+    
+    // Usar tanto a variável local quanto a global para garantir
+    if (!selectedCategory && !window.selectedPhotoCategory) {
         document.getElementById('categoryWarning').style.display = 'block';
         input.value = '';
         return;
