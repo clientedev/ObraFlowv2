@@ -41,19 +41,25 @@
     border-color: #007bff;
 }
 
-/* Mobile Touch - SCROLL COMPLETAMENTE LIVRE */
+/* Mobile Touch - Sistema inteligente igual ao Express */
     @media (max-width: 768px) {
-        /* Categorias de fotos - scroll 100% natural */
+        /* Categorias de fotos - touch otimizado */
         .photo-category {
             min-height: 60px;
             min-width: 60px;
-            /* Remover TODAS as restrições de touch */
             touch-action: auto !important;
             -webkit-user-select: none;
             user-select: none;
             cursor: pointer;
-            /* Garantir que não há interferência */
             pointer-events: auto !important;
+            transition: all 0.15s ease;
+        }
+        
+        /* Feedback visual do touch - igual Express */
+        .photo-category.touching {
+            transform: scale(0.95);
+            background-color: rgba(0, 123, 255, 0.1);
+            border-color: #007bff;
         }
 
         /* Todos os inputs e controles - interação normal */
@@ -434,40 +440,32 @@ document.addEventListener('DOMContentLoaded', function() {
     canvas = document.getElementById('photoCanvas');
     ctx = canvas.getContext('2d');
 
-    // Event listeners para categorias - CORRIGIDO
-    function setupCategoryListeners() {
-        document.querySelectorAll('.photo-category').forEach(category => {
-            // Remover listeners antigos
-            category.removeEventListener('click', selectCategoryHandler);
-            category.removeEventListener('touchstart', selectCategoryHandler);
-
-            // Adicionar novos listeners
-            category.addEventListener('click', selectCategoryHandler);
-            category.addEventListener('touchstart', selectCategoryHandler);
-        });
-    }
-
-    function selectCategoryHandler(e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        console.log('📷 Categoria selecionada:', this.dataset.category);
-
+    // Event listener para função global
+    document.addEventListener('selectCategory', function(e) {
+        const { category, element } = e.detail;
+        
         // Remover seleção anterior
-        document.querySelectorAll('.photo-category').forEach(c => c.classList.remove('selected'));
-
-        // Selecionar nova categoria
-        this.classList.add('selected');
-        selectedCategory = this.dataset.category;
-
+        document.querySelectorAll('.photo-category').forEach(cat => {
+            cat.classList.remove('selected');
+        });
+        
+        // Adicionar seleção atual
+        element.classList.add('selected');
+        
+        // Atualizar categoria global
+        selectedCategory = category;
+        
+        // Habilitar botões de upload
+        const galleryBtn = document.getElementById('galleryBtn');
+        const cameraBtn = document.getElementById('cameraBtn');
+        if (galleryBtn) galleryBtn.disabled = false;
+        if (cameraBtn) cameraBtn.disabled = false;
+        
         // Atualizar input de fotos
         updatePhotoInput();
-
-        console.log('✅ Categoria atual:', selectedCategory);
-    }
-
-    // Chamar setup
-    setupCategoryListeners();
+        
+        console.log('📷 Categoria global selecionada:', category);
+    });
 
     // Event listeners para upload de fotos com error handling
     const photoInput = document.getElementById('photoInput');
@@ -1731,185 +1729,148 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 {% endif %}
 
-// Sistema de touch SUPER PERMISSIVO - scroll sempre prioritário
+// Sistema de touch inteligente IGUAL AO EXPRESS - funcional 100%
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Sistema de touch super permissivo carregado');
-
-    // Configurações SUPER PERMISSIVAS para priorizar scroll
-    const MINIMAL_MOVEMENT = 3; // pixels - qualquer movimento mínimo
-    const TAP_TIME_LIMIT = 150; // ms - tap deve ser MUITO rápido
-    const VERTICAL_PRIORITY = 1.2; // qualquer movimento vertical > horizontal
-
+    console.log('🎯 Sistema de touch inteligente carregado (igual express)');
+    
+    // Configurações EXATAS do Express
+    const TOUCH_THRESHOLD = 10; // pixels
+    const TOUCH_TIME_LIMIT = 500; // ms
+    
     let touchData = {
         startX: 0,
         startY: 0,
         startTime: 0,
-        moved: false,
-        isVerticalScroll: false,
+        isDragging: false,
         element: null
     };
-
-    // Função para seleção de categoria
+    
+    // Função para seleção de categoria IDÊNTICA ao Express
     function selectPhotoCategory(category, element) {
         // Remover seleção anterior
         document.querySelectorAll('.photo-category').forEach(cat => {
             cat.classList.remove('selected');
         });
-
+        
         // Adicionar seleção atual
         element.classList.add('selected');
-        selectedCategory = category; // Atualizar variável global
-
+        
+        // Feedback tátil
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+        
         console.log('📷 Categoria selecionada:', category);
-
+        
+        // Atualizar categoria global
+        selectedCategory = category;
+        
         // Habilitar botões de upload
         const galleryBtn = document.getElementById('galleryBtn');
         const cameraBtn = document.getElementById('cameraBtn');
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
-
+        
         // Atualizar input de fotos
         updatePhotoInput();
     }
-
-    // Monitorar scroll global
-    let isPageScrolling = false;
-    let scrollResetTimeout;
-
-    window.addEventListener('scroll', function() {
-        isPageScrolling = true;
-        clearTimeout(scrollResetTimeout);
-        scrollResetTimeout = setTimeout(() => {
-            isPageScrolling = false;
-        }, 50);
-    }, { passive: true });
-
-    // Event listeners para categorias - MÁXIMA PERMISSIVIDADE
+    
+    // Event listeners para categorias - CÓDIGO EXATO DO EXPRESS
     document.querySelectorAll('.photo-category').forEach(categoryElement => {
-
-        // Touch Start - registrar início PASSIVAMENTE
+        
+        // Touch Start
         categoryElement.addEventListener('touchstart', function(e) {
+            console.log('👆 TouchStart categoria');
+            
             const touch = e.touches[0];
             touchData.startX = touch.clientX;
             touchData.startY = touch.clientY;
             touchData.startTime = Date.now();
-            touchData.moved = false;
-            touchData.isVerticalScroll = false;
+            touchData.isDragging = false;
             touchData.element = categoryElement;
-
-            console.log('👆 Touch start registrado');
+            
+            // Feedback visual imediato
+            categoryElement.classList.add('touching');
         }, { passive: true });
-
-        // Touch Move - DETECTAR QUALQUER MOVIMENTO
+        
+        // Touch Move
         categoryElement.addEventListener('touchmove', function(e) {
             if (!touchData.element) return;
-
+            
             const touch = e.touches[0];
             const deltaX = Math.abs(touch.clientX - touchData.startX);
             const deltaY = Math.abs(touch.clientY - touchData.startY);
-
-            // QUALQUER movimento é considerado "moved"
-            if (deltaX > MINIMAL_MOVEMENT || deltaY > MINIMAL_MOVEMENT) {
-                touchData.moved = true;
-                console.log('🔄 Movimento detectado - cancelando tap');
+            const totalDelta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            // Se movimento exceder threshold, marcar como drag
+            if (totalDelta > TOUCH_THRESHOLD) {
+                touchData.isDragging = true;
+                categoryElement.classList.remove('touching');
+                console.log('🔄 Movimento detectado - modo drag ativado');
             }
-
-            // Prioridade TOTAL para movimento vertical
-            if (deltaY > deltaX * VERTICAL_PRIORITY) {
-                touchData.isVerticalScroll = true;
-                console.log('📜 Scroll vertical detectado - ignorando tap');
-            }
-
         }, { passive: true });
-
-        // Touch End - DECIDIR com MÁXIMA PERMISSIVIDADE
+        
+        // Touch End
         categoryElement.addEventListener('touchend', function(e) {
+            console.log('👆 TouchEnd categoria');
+            
+            // Remover feedback visual
+            categoryElement.classList.remove('touching');
+            
             if (!touchData.element) return;
-
+            
             const touchDuration = Date.now() - touchData.startTime;
-
-            console.log('🎯 Touch End:', {
-                moved: touchData.moved,
-                duration: touchDuration,
-                isVerticalScroll: touchData.isVerticalScroll,
-                isPageScrolling: isPageScrolling
-            });
-
-            // Condições EXTREMAMENTE RESTRITIVAS para tap:
-            // - ZERO movimento detectado
-            // - Duração super curta
-            // - NÃO é scroll vertical
-            // - Página não está em scroll
-            const isValidTap = !touchData.moved && 
-                              !touchData.isVerticalScroll && 
-                              !isPageScrolling && 
-                              touchDuration < TAP_TIME_LIMIT;
-
-            if (isValidTap) {
-                // Aguardar um pouco mais para ter certeza
-                setTimeout(() => {
-                    // Verificação final
-                    if (!isPageScrolling) {
-                        const category = categoryElement.getAttribute('data-category');
-                        selectPhotoCategory(category, categoryElement);
-                        console.log('✅ TAP SUPER VÁLIDO - categoria selecionada');
-                    } else {
-                        console.log('❌ Scroll detectado no timeout final');
-                    }
-                }, 25);
+            
+            // Apenas selecionar se foi um tap rápido e sem movimento
+            if (!touchData.isDragging && touchDuration < TOUCH_TIME_LIMIT) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const category = categoryElement.getAttribute('data-category');
+                selectPhotoCategory(category, categoryElement);
+                
+                console.log('✅ Tap válido - categoria selecionada');
             } else {
-                console.log('❌ NÃO é tap válido - respeitando scroll');
+                console.log('❌ Drag detectado - não selecionar categoria');
             }
-
+            
             // Reset
-            touchData = {
-                startX: 0, startY: 0, startTime: 0,
-                moved: false, isVerticalScroll: false, element: null
-            };
-        }, { passive: true });
-
-        // Mouse events para desktop - funcionamento normal
+            touchData.element = null;
+            touchData.isDragging = false;
+        }, { passive: false });
+        
+        // Mouse events para desktop (fallback)
         categoryElement.addEventListener('click', function(e) {
-            // Verificar se não foi um toque recente
-            if (touchData.startTime && (Date.now() - touchData.startTime) < 500) {
-                console.log('🖱️ Click ignorado - toque recente detectado');
-                return;
+            // Apenas processar se não houve toque recente
+            if (touchData.startTime && (Date.now() - touchData.startTime) < 300) {
+                return; // Ignorar click após touch
             }
-
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
             const category = categoryElement.getAttribute('data-category');
             selectPhotoCategory(category, categoryElement);
+            
             console.log('🖱️ Click desktop - categoria selecionada');
         });
     });
-
-    console.log('✅ Sistema SUPER PERMISSIVO ativo - scroll SEMPRE prioritário');
+    
+    console.log('✅ Sistema de touch inteligente ativo para', document.querySelectorAll('.photo-category').length, 'categorias');
 });
 
-// Função global para compatibilidade
+// Função global para compatibilidade - integrada com sistema de touch
 window.selectPhotoCategory = function(category, element) {
     if (!element) {
         element = document.querySelector(`[data-category="${category}"]`);
     }
 
     if (element) {
-        // Remover seleção anterior
-        document.querySelectorAll('.photo-category').forEach(cat => {
-            cat.classList.remove('selected');
+        // Usar a função interna que já tem toda a lógica
+        const selectEvent = new CustomEvent('selectCategory', { 
+            detail: { category: category, element: element } 
         });
-
-        // Adicionar seleção atual
-        element.classList.add('selected');
-
-        // Habilitar botões de upload
-        const galleryBtn = document.getElementById('galleryBtn');
-        const cameraBtn = document.getElementById('cameraBtn');
-        if (galleryBtn) galleryBtn.disabled = false;
-        if (cameraBtn) cameraBtn.disabled = false;
-
-        // Atualizar categoria global
-        window.selectedPhotoCategory = category;
-
-        console.log('📷 Categoria selecionada via função global:', category);
+        document.dispatchEvent(selectEvent);
     }
 };
 </script>
