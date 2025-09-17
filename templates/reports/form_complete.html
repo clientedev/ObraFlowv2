@@ -150,6 +150,15 @@
     }
 }
 
+/* Feedback tátil para categorias de fotos */
+.photo-category.touching {
+    background: #007bff !important;
+    color: white !important;
+    transform: scale(0.95) !important;
+    transition: all 0.1s ease !important;
+    border-color: #007bff !important;
+}
+
 /* Estilos para auto-preenchimento de projeto - Mobile-First */
 .mobile-project-info {
     border-left: 4px solid #17a2b8;
@@ -406,7 +415,7 @@
 
                         <!-- Sistema de Fotos -->
                         <div class="mb-4">
-                            <h5><i class="fas fa-camera"></i> Fotos (Até 200 fotos) 🆕</h5>
+                            <h5><i class="fas fa-camera"></i> Fotos (Até 200 fotos)</h5>
                             
                             <!-- Seleção de Categoria -->
                             <div class="mb-3">
@@ -1843,6 +1852,161 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 });
 {% endif %}
+
+// Gerenciamento de toque inteligente para categorias de fotos
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 Sistema de touch inteligente carregado - Relatório Normal');
+    
+    // Configurações de toque
+    const TOUCH_THRESHOLD = 10; // pixels
+    const TOUCH_TIME_LIMIT = 500; // ms
+    
+    let touchData = {
+        startX: 0,
+        startY: 0,
+        startTime: 0,
+        isDragging: false,
+        element: null
+    };
+    
+    // Função para seleção de categoria
+    function selectPhotoCategory(category, element) {
+        // Remover seleção anterior
+        document.querySelectorAll('.photo-category').forEach(cat => {
+            cat.classList.remove('selected');
+        });
+        
+        // Adicionar seleção atual
+        element.classList.add('selected');
+        
+        // Feedback tátil
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+        
+        console.log('📷 Categoria selecionada:', category);
+        
+        // Habilitar botões de upload
+        const galleryBtn = document.getElementById('galleryBtn');
+        const cameraBtn = document.getElementById('cameraBtn');
+        if (galleryBtn) galleryBtn.disabled = false;
+        if (cameraBtn) cameraBtn.disabled = false;
+        
+        // Atualizar categoria global
+        window.selectedPhotoCategory = category;
+    }
+    
+    // Event listeners para categorias
+    document.querySelectorAll('.photo-category').forEach(categoryElement => {
+        
+        // Touch Start
+        categoryElement.addEventListener('touchstart', function(e) {
+            console.log('👆 TouchStart categoria');
+            
+            const touch = e.touches[0];
+            touchData.startX = touch.clientX;
+            touchData.startY = touch.clientY;
+            touchData.startTime = Date.now();
+            touchData.isDragging = false;
+            touchData.element = categoryElement;
+            
+            // Feedback visual imediato
+            categoryElement.classList.add('touching');
+        }, { passive: true });
+        
+        // Touch Move
+        categoryElement.addEventListener('touchmove', function(e) {
+            if (!touchData.element) return;
+            
+            const touch = e.touches[0];
+            const deltaX = Math.abs(touch.clientX - touchData.startX);
+            const deltaY = Math.abs(touch.clientY - touchData.startY);
+            const totalDelta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            // Se movimento exceder threshold, marcar como drag
+            if (totalDelta > TOUCH_THRESHOLD) {
+                touchData.isDragging = true;
+                categoryElement.classList.remove('touching');
+                console.log('🔄 Movimento detectado - modo drag ativado');
+            }
+        }, { passive: true });
+        
+        // Touch End
+        categoryElement.addEventListener('touchend', function(e) {
+            console.log('👆 TouchEnd categoria');
+            
+            // Remover feedback visual
+            categoryElement.classList.remove('touching');
+            
+            if (!touchData.element) return;
+            
+            const touchDuration = Date.now() - touchData.startTime;
+            
+            // Apenas selecionar se foi um tap rápido e sem movimento
+            if (!touchData.isDragging && touchDuration < TOUCH_TIME_LIMIT) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const category = categoryElement.getAttribute('data-category');
+                selectPhotoCategory(category, categoryElement);
+                
+                console.log('✅ Tap válido - categoria selecionada');
+            } else {
+                console.log('❌ Drag detectado - não selecionar categoria');
+            }
+            
+            // Reset
+            touchData.element = null;
+            touchData.isDragging = false;
+        }, { passive: false });
+        
+        // Mouse events para desktop (fallback)
+        categoryElement.addEventListener('click', function(e) {
+            // Apenas processar se não houve toque recente
+            if (touchData.startTime && (Date.now() - touchData.startTime) < 300) {
+                return; // Ignorar click após touch
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const category = categoryElement.getAttribute('data-category');
+            selectPhotoCategory(category, categoryElement);
+            
+            console.log('🖱️ Click desktop - categoria selecionada');
+        });
+    });
+    
+    console.log('✅ Sistema de touch inteligente ativo para', document.querySelectorAll('.photo-category').length, 'categorias');
+});
+
+// Função global para compatibilidade
+window.selectPhotoCategory = function(category, element) {
+    if (!element) {
+        element = document.querySelector(`[data-category="${category}"]`);
+    }
+    
+    if (element) {
+        // Remover seleção anterior
+        document.querySelectorAll('.photo-category').forEach(cat => {
+            cat.classList.remove('selected');
+        });
+        
+        // Adicionar seleção atual
+        element.classList.add('selected');
+        
+        // Habilitar botões de upload
+        const galleryBtn = document.getElementById('galleryBtn');
+        const cameraBtn = document.getElementById('cameraBtn');
+        if (galleryBtn) galleryBtn.disabled = false;
+        if (cameraBtn) cameraBtn.disabled = false;
+        
+        // Atualizar categoria global
+        window.selectedPhotoCategory = category;
+        
+        console.log('📷 Categoria selecionada via função global:', category);
+    }
+};
 </script>
 
 {% endblock %}

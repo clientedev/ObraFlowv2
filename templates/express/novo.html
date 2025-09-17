@@ -254,6 +254,27 @@ input, textarea, select {
     border: 2px solid #e9ecef;
 }
 
+/* Grid de categorias - sem rolagem horizontal */
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+}
+
+@media (min-width: 576px) {
+    .category-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .category-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+}
+
 .category-option {
     display: flex;
     flex-direction: column;
@@ -457,6 +478,14 @@ input, textarea, select {
     transform: scale(1.2);
     box-shadow: 0 3px 12px rgba(0,123,255,0.4);
 }
+
+/* Feedback táctil melhorado para categorias */
+.category-option.touching {
+    background: #007bff !important;
+    color: white !important;
+    transform: scale(0.95) !important;
+    transition: all 0.1s ease !important;
+}
 </style>
 {% endblock %}
 
@@ -637,30 +666,22 @@ input, textarea, select {
                         <div class="mb-4">
                             <p class="mb-3 text-muted">Selecione a categoria antes de adicionar a foto:</p>
                             <div class="category-selector">
-                                <div class="row g-3">
-                                    <div class="col-6 col-md-6 col-lg-3">
-                                        <div class="category-option" data-category="Torre 1" onclick="selectPhotoCategory('Torre 1', this)">
-                                            <i class="fas fa-building category-icon"></i>
-                                            <div class="category-name">Torre 1</div>
-                                        </div>
+                                <div class="category-grid">
+                                    <div class="category-option" data-category="Torre 1">
+                                        <i class="fas fa-building category-icon"></i>
+                                        <div class="category-name">Torre 1</div>
                                     </div>
-                                    <div class="col-6 col-md-6 col-lg-3">
-                                        <div class="category-option" data-category="Torre 2" onclick="selectPhotoCategory('Torre 2', this)">
-                                            <i class="fas fa-building category-icon"></i>
-                                            <div class="category-name">Torre 2</div>
-                                        </div>
+                                    <div class="category-option" data-category="Torre 2">
+                                        <i class="fas fa-building category-icon"></i>
+                                        <div class="category-name">Torre 2</div>
                                     </div>
-                                    <div class="col-6 col-md-6 col-lg-3">
-                                        <div class="category-option" data-category="Área Comum" onclick="selectPhotoCategory('Área Comum', this)">
-                                            <i class="fas fa-users category-icon"></i>
-                                            <div class="category-name">Área Comum</div>
-                                        </div>
+                                    <div class="category-option" data-category="Área Comum">
+                                        <i class="fas fa-users category-icon"></i>
+                                        <div class="category-name">Área Comum</div>
                                     </div>
-                                    <div class="col-6 col-md-6 col-lg-3">
-                                        <div class="category-option" data-category="Piscina" onclick="selectPhotoCategory('Piscina', this)">
-                                            <i class="fas fa-swimmer category-icon"></i>
-                                            <div class="category-name">Piscina</div>
-                                        </div>
+                                    <div class="category-option" data-category="Piscina">
+                                        <i class="fas fa-swimmer category-icon"></i>
+                                        <div class="category-name">Piscina</div>
                                     </div>
                                 </div>
                             </div>
@@ -1763,5 +1784,160 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 2000);
 });
+
+// Gerenciamento de toque inteligente para categorias de fotos
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 Sistema de touch inteligente carregado');
+    
+    // Configurações de toque
+    const TOUCH_THRESHOLD = 10; // pixels
+    const TOUCH_TIME_LIMIT = 500; // ms
+    
+    let touchData = {
+        startX: 0,
+        startY: 0,
+        startTime: 0,
+        isDragging: false,
+        element: null
+    };
+    
+    // Função para seleção de categoria
+    function selectPhotoCategory(category, element) {
+        // Remover seleção anterior
+        document.querySelectorAll('.category-option').forEach(cat => {
+            cat.classList.remove('selected');
+        });
+        
+        // Adicionar seleção atual
+        element.classList.add('selected');
+        
+        // Feedback tátil
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+        
+        console.log('📷 Categoria selecionada:', category);
+        
+        // Mostrar área de upload
+        const uploadSection = document.getElementById('photoUploadSection');
+        if (uploadSection) {
+            uploadSection.style.display = 'block';
+        }
+        
+        // Atualizar categoria global
+        window.selectedPhotoCategory = category;
+    }
+    
+    // Event listeners para categorias
+    document.querySelectorAll('.category-option').forEach(categoryElement => {
+        
+        // Touch Start
+        categoryElement.addEventListener('touchstart', function(e) {
+            console.log('👆 TouchStart categoria');
+            
+            const touch = e.touches[0];
+            touchData.startX = touch.clientX;
+            touchData.startY = touch.clientY;
+            touchData.startTime = Date.now();
+            touchData.isDragging = false;
+            touchData.element = categoryElement;
+            
+            // Feedback visual imediato
+            categoryElement.classList.add('touching');
+        }, { passive: true });
+        
+        // Touch Move
+        categoryElement.addEventListener('touchmove', function(e) {
+            if (!touchData.element) return;
+            
+            const touch = e.touches[0];
+            const deltaX = Math.abs(touch.clientX - touchData.startX);
+            const deltaY = Math.abs(touch.clientY - touchData.startY);
+            const totalDelta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            // Se movimento exceder threshold, marcar como drag
+            if (totalDelta > TOUCH_THRESHOLD) {
+                touchData.isDragging = true;
+                categoryElement.classList.remove('touching');
+                console.log('🔄 Movimento detectado - modo drag ativado');
+            }
+        }, { passive: true });
+        
+        // Touch End
+        categoryElement.addEventListener('touchend', function(e) {
+            console.log('👆 TouchEnd categoria');
+            
+            // Remover feedback visual
+            categoryElement.classList.remove('touching');
+            
+            if (!touchData.element) return;
+            
+            const touchDuration = Date.now() - touchData.startTime;
+            
+            // Apenas selecionar se foi um tap rápido e sem movimento
+            if (!touchData.isDragging && touchDuration < TOUCH_TIME_LIMIT) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const category = categoryElement.getAttribute('data-category');
+                selectPhotoCategory(category, categoryElement);
+                
+                console.log('✅ Tap válido - categoria selecionada');
+            } else {
+                console.log('❌ Drag detectado - não selecionar categoria');
+            }
+            
+            // Reset
+            touchData.element = null;
+            touchData.isDragging = false;
+        }, { passive: false });
+        
+        // Mouse events para desktop (fallback)
+        categoryElement.addEventListener('click', function(e) {
+            // Apenas processar se não houve toque recente
+            if (touchData.startTime && (Date.now() - touchData.startTime) < 300) {
+                return; // Ignorar click após touch
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const category = categoryElement.getAttribute('data-category');
+            selectPhotoCategory(category, categoryElement);
+            
+            console.log('🖱️ Click desktop - categoria selecionada');
+        });
+    });
+    
+    console.log('✅ Sistema de touch inteligente ativo para', document.querySelectorAll('.category-option').length, 'categorias');
+});
+
+// Função global para compatibilidade (caso seja chamada de outros lugares)
+window.selectPhotoCategory = function(category, element) {
+    if (!element) {
+        element = document.querySelector(`[data-category="${category}"]`);
+    }
+    
+    if (element) {
+        // Remover seleção anterior
+        document.querySelectorAll('.category-option').forEach(cat => {
+            cat.classList.remove('selected');
+        });
+        
+        // Adicionar seleção atual
+        element.classList.add('selected');
+        
+        // Mostrar área de upload
+        const uploadSection = document.getElementById('photoUploadSection');
+        if (uploadSection) {
+            uploadSection.style.display = 'block';
+        }
+        
+        // Atualizar categoria global
+        window.selectedPhotoCategory = category;
+        
+        console.log('📷 Categoria selecionada via função global:', category);
+    }
+};
 </script>
 {% endblock %}

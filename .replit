@@ -5,7 +5,7 @@ channel = "stable-25_05"
 packages = ["cairo", "fontconfig", "freetype", "fribidi", "gdk-pixbuf", "ghostscript", "glib", "glibcLocales", "harfbuzz", "lcms2", "libffi", "libimagequant", "libjpeg", "libpng", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "pango", "postgresql", "shared-mime-info", "tcl", "tk", "zlib"]
 
 [deployment]
-deploymentTarget = "autoscale"
+deploymentTarget = "vm"
 run = ["python", "replit_main.py"]
 
 [workflows]
@@ -41,7 +41,7 @@ localPort = 40127
 externalPort = 3000
 
 [[ports]]
-localPort = 43473
+localPort = 41559
 externalPort = 3001
 
 [agent]
