@@ -41,165 +41,38 @@
     border-color: #007bff;
 }
 
-/* Mobile Touch Isolation - Evita conflitos com gestos nativos */
-@media (max-width: 768px) {
-    /* Isolar touch das divs principais de conteúdo */
-    .card-body,
-    .form-group,
-    .checklist-item,
-    .row.mb-4,
-    .mb-3,
-    .mb-4 {
-        touch-action: manipulation; /* Permite apenas pan e zoom */
-        -webkit-touch-callout: none; /* Desabilita callout no iOS */
-        -webkit-user-select: none; /* Desabilita seleção de texto */
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-    }
-    
-    /* Permitir interação normal apenas em inputs específicos */
-    input[type="text"],
-    input[type="date"], 
-    input[type="file"],
-    textarea,
-    select,
-    .form-control {
-        touch-action: auto;
-        -webkit-user-select: auto;
-        -moz-user-select: auto;
-        -ms-user-select: auto;
-        user-select: auto;
-        -webkit-touch-callout: default;
-    }
-    
-    /* Isolar categorias de fotos especificamente */
-    .photo-category {
-        touch-action: manipulation;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        /* Área de toque mínima */
-        min-height: 44px;
-        min-width: 44px;
-    }
-    
-    /* Evitar conflitos com scroll em containers */
-    .container-fluid,
-    .row {
-        touch-action: pan-y; /* Apenas scroll vertical */
-    }
-    
-    /* Preview de fotos - permitir apenas tap */
-    .photo-preview {
-        touch-action: manipulation;
-    }
-    
-    /* OTIMIZAÇÃO EXTREMA PARA BOTÕES DE FERRAMENTAS MOBILE */
-    .tool-btn,
-    .fabric-tool-btn {
-        min-height: 50px !important;
-        min-width: 50px !important;
-        padding: 12px !important;
-        margin: 2px !important;
-        font-size: 16px !important;
-        border-radius: 8px !important;
-        touch-action: manipulation !important;
-        -webkit-tap-highlight-color: rgba(0,123,255,0.3) !important;
-        -webkit-touch-callout: none !important;
-        position: relative !important;
-        z-index: 10 !important;
-    }
-    
-    /* Estado ativo mais visível */
-    .tool-btn.active,
-    .fabric-tool-btn.active {
-        background-color: #007bff !important;
-        color: white !important;
-        border-color: #007bff !important;
-        box-shadow: 0 0 0 2px rgba(0,123,255,0.25) !important;
-    }
-    
-    /* Hover/focus para mobile */
-    .tool-btn:active,
-    .fabric-tool-btn:active {
-        background-color: #0056b3 !important;
-        transform: scale(0.95) !important;
-        transition: transform 0.1s ease !important;
-    }
-    
-    /* Container das ferramentas otimizado */
-    .btn-group-vertical,
-    .tool-group,
-    .d-flex.gap-2 {
-        gap: 4px !important;
-    }
-    
-    /* Área expandida de toque */
-    .tool-btn::before,
-    .fabric-tool-btn::before {
-        content: '';
-        position: absolute;
-        top: -5px;
-        left: -5px;
-        right: -5px;
-        bottom: -5px;
-        z-index: -1;
-    }
-}
+/* Mobile Touch Simples - Permite scroll natural */
+    @media (max-width: 768px) {
+        /* Categorias de fotos - permitir scroll normal */
+        .photo-category {
+            /* Área de toque adequada para mobile */
+            min-height: 60px;
+            min-width: 60px;
+            /* Permitir scroll normal */
+            touch-action: auto;
+            -webkit-user-select: none;
+            user-select: none;
+            cursor: pointer;
+        }
 
-/* Feedback tátil para categorias de fotos */
-.photo-category.touching {
-    background: #007bff !important;
-    color: white !important;
-    transform: scale(0.95) !important;
-    transition: all 0.1s ease !important;
-    border-color: #007bff !important;
-}
+        /* Permitir interação normal em todos os inputs */
+        input[type="text"],
+        input[type="date"], 
+        input[type="file"],
+        textarea,
+        select,
+        .form-control {
+            touch-action: auto;
+            -webkit-user-select: auto;
+            user-select: auto;
+        }
 
-/* Estilos para auto-preenchimento de projeto - Mobile-First */
-.mobile-project-info {
-    border-left: 4px solid #17a2b8;
-    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 8px rgba(23, 162, 184, 0.1);
-}
-
-.project-auto-info p {
-    margin-bottom: 0.25rem;
-}
-
-.project-auto-info strong {
-    color: #0c5460;
-    font-size: 1.05rem;
-}
-
-/* Responsividade mobile para info do projeto */
-@media (max-width: 768px) {
-    .mobile-project-info {
-        padding: 1rem;
-        margin-bottom: 1rem;
-    }
-    
-    .mobile-project-info h6 {
-        font-size: 1rem;
-    }
-    
-    .mobile-project-info .fa-2x {
-        font-size: 1.5rem;
-    }
-    
-    .project-auto-info strong {
-        font-size: 0.95rem;
-    }
-    
-    .project-auto-info small {
-        font-size: 0.8rem;
-    }
-}
+        /* Containers permitem scroll normal */
+        .container-fluid,
+        .row,
+        .card-body {
+            touch-action: auto;
+        }
 </style>
 {% endblock %}
 
@@ -247,7 +120,7 @@
                             </div>
                         </div>
                         {% endif %}
-                        
+
                         <!-- Informações Básicas -->
                         <div class="row mb-4">
                             <div class="col-md-6">
@@ -272,7 +145,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Seleção de Funcionários e E-mails -->
                         <div class="row mb-4">
                             <div class="col-md-6">
@@ -304,7 +177,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -416,7 +289,7 @@
                         <!-- Sistema de Fotos -->
                         <div class="mb-4">
                             <h5><i class="fas fa-camera"></i> Fotos (Até 200 fotos)</h5>
-                            
+
                             <!-- Seleção de Categoria -->
                             <div class="mb-3">
                                 <label class="form-label">Selecione a categoria antes de adicionar a foto:</label>
@@ -516,17 +389,17 @@
                                 <i class="fas fa-font"></i> Texto
                             </button>
                         </div>
-                        
+
                         <h6>Cores</h6>
                         <div class="mb-3">
                             <input type="color" id="colorPicker" value="#ff0000" class="form-control">
                         </div>
-                        
+
                         <h6>Espessura</h6>
                         <div class="mb-3">
                             <input type="range" id="lineWidth" min="1" max="10" value="3" class="form-range">
                         </div>
-                        
+
                         <button type="button" class="btn btn-warning w-100 mb-2" onclick="clearCanvas()">
                             <i class="fas fa-eraser"></i> Limpar
                         </button>
@@ -555,82 +428,82 @@ let startX, startY;
 document.addEventListener('DOMContentLoaded', function() {
     canvas = document.getElementById('photoCanvas');
     ctx = canvas.getContext('2d');
-    
+
     // Event listeners para categorias - CORRIGIDO
     function setupCategoryListeners() {
         document.querySelectorAll('.photo-category').forEach(category => {
             // Remover listeners antigos
             category.removeEventListener('click', selectCategoryHandler);
             category.removeEventListener('touchstart', selectCategoryHandler);
-            
+
             // Adicionar novos listeners
             category.addEventListener('click', selectCategoryHandler);
             category.addEventListener('touchstart', selectCategoryHandler);
         });
     }
-    
+
     function selectCategoryHandler(e) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         console.log('📷 Categoria selecionada:', this.dataset.category);
-        
+
         // Remover seleção anterior
         document.querySelectorAll('.photo-category').forEach(c => c.classList.remove('selected'));
-        
+
         // Selecionar nova categoria
         this.classList.add('selected');
         selectedCategory = this.dataset.category;
-        
+
         // Atualizar input de fotos
         updatePhotoInput();
-        
+
         console.log('✅ Categoria atual:', selectedCategory);
     }
-    
+
     // Chamar setup
     setupCategoryListeners();
-    
+
     // Event listeners para upload de fotos com error handling
     const photoInput = document.getElementById('photoInput');
     const cameraInput = document.getElementById('cameraInput');
-    
+
     if (photoInput) {
         photoInput.addEventListener('change', handlePhotoUpload);
     } else {
         console.warn('Photo input element not found');
     }
-    
+
     if (cameraInput) {
         cameraInput.addEventListener('change', handlePhotoUpload);
     } else {
         console.warn('Camera input element not found');
     }
-    
+
     // Event listeners para ferramentas - OTIMIZADO PARA MOBILE
     document.querySelectorAll('.tool-btn').forEach(btn => {
         // Usar touchstart para resposta mais rápida no mobile
         const isMobile = window.innerWidth <= 768;
         const eventType = isMobile ? 'touchstart' : 'click';
-        
+
         btn.addEventListener(eventType, function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             // Feedback visual imediato
             this.style.transform = 'scale(0.95)';
             setTimeout(() => {
                 this.style.transform = '';
             }, 100);
-            
+
             // Atualizar ferramentas
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             currentTool = this.dataset.tool;
-            
+
             console.log('🔧 Ferramenta selecionada:', currentTool);
         });
-        
+
         // Prevenir eventos duplicados no mobile
         if (isMobile) {
             btn.addEventListener('click', function(e) {
@@ -639,13 +512,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
-    
+
     // Canvas events - Mouse
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', stopDrawing);
     canvas.addEventListener('mouseout', stopDrawing);
-    
+
     // Canvas events - Touch (mobile)
     canvas.addEventListener('touchstart', function(e) {
         e.preventDefault();
@@ -656,7 +529,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         canvas.dispatchEvent(mouseEvent);
     });
-    
+
     canvas.addEventListener('touchmove', function(e) {
         e.preventDefault();
         const touch = e.touches[0];
@@ -666,7 +539,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         canvas.dispatchEvent(mouseEvent);
     });
-    
+
     canvas.addEventListener('touchend', function(e) {
         e.preventDefault();
         const mouseEvent = new MouseEvent('mouseup', {});
@@ -679,13 +552,13 @@ function carregarFuncionariosEmails() {
     const projetoId = document.getElementById('projeto_id').value;
     const funcionariosDiv = document.getElementById('funcionarios-projeto');
     const emailsDiv = document.getElementById('emails-projeto');
-    
+
     if (!projetoId) {
         funcionariosDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os funcionários disponíveis</p>';
         emailsDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os e-mails disponíveis</p>';
         return;
     }
-    
+
     // Buscar funcionários e e-mails do projeto via AJAX
     fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
         method: 'GET',
@@ -718,7 +591,7 @@ function carregarFuncionariosEmails() {
                 funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
             }
             funcionariosDiv.innerHTML = funcionariosHtml;
-            
+
             // Renderizar e-mails
             let emailsHtml = '';
             if (data.emails && data.emails.length > 0) {
@@ -755,21 +628,21 @@ function carregarFuncionariosEmails() {
 function handlePhotoUpload(event) {
     console.log('📷 Upload de fotos iniciado');
     console.log('Categoria selecionada:', selectedCategory);
-    
+
     if (!selectedCategory) {
         alert('Selecione uma categoria antes de adicionar fotos.');
         event.target.value = '';
         return;
     }
-    
+
     const files = event.target.files;
     console.log('Arquivos selecionados:', files.length);
-    
+
     if (files.length + selectedPhotos.length > 200) {
         alert('Máximo de 200 fotos permitido.');
         return;
     }
-    
+
     // Processar cada arquivo
     for (let file of files) {
         if (selectedPhotos.length >= 200) {
@@ -779,7 +652,7 @@ function handlePhotoUpload(event) {
         console.log('Processando arquivo:', file.name);
         addPhotoPreview(file, selectedCategory);
     }
-    
+
     event.target.value = ''; // Reset input
     console.log('✅ Upload concluído. Total de fotos:', selectedPhotos.length);
 }
@@ -815,14 +688,14 @@ function captureFromCamera() {
 
 function addPhotoPreview(file, category) {
     console.log('🖼️ Adicionando preview da foto:', file.name, 'Categoria:', category);
-    
+
     const reader = new FileReader();
     reader.onload = function(e) {
         const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const src = e.target.result;
-        
+
         console.log('✨ Criando elemento da foto com ID:', photoId);
-        
+
         const photoDiv = document.createElement('div');
         photoDiv.className = 'col-md-4 mb-3';
         photoDiv.id = photoId;
@@ -847,9 +720,9 @@ function addPhotoPreview(file, category) {
                 </div>
             </div>
         `;
-        
+
         document.getElementById('photoPreview').appendChild(photoDiv);
-        
+
         selectedPhotos.push({
             id: photoId,
             file: file,
@@ -857,9 +730,9 @@ function addPhotoPreview(file, category) {
             element: photoDiv,
             originalSrc: src
         });
-        
+
         console.log('✅ Foto adicionada ao array. Total:', selectedPhotos.length);
-        
+
         loadPredefinedCaptionsForPhoto(photoId, category);
     };
     reader.readAsDataURL(file);
@@ -876,46 +749,46 @@ function removePhoto(photoId) {
 function loadPredefinedCaptionsForPhoto(photoId, category) {
     const select = document.getElementById(`predefined_${photoId}`);
     if (!select) return;
-    
+
     select.innerHTML = '<option value="">Carregando legendas...</option>';
-    
+
     // Carregar direto da API (PostgreSQL)
     const xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/legendas?categoria=all', true);
     xhr.timeout = 10000;
-    
+
     xhr.onload = function() {
         if (xhr.status === 200) {
             try {
                 const data = JSON.parse(xhr.responseText);
                 if (data.success && data.legendas && data.legendas.length > 0) {
                     select.innerHTML = '<option value="">Selecione uma legenda...</option>';
-                    
+
                     const cats = {
                         'Acabamentos': [],
                         'Estrutural': [],
                         'Geral': [],
                         'Segurança': []
                     };
-                    
+
                     data.legendas.forEach(leg => {
                         if (cats[leg.categoria]) {
                             cats[leg.categoria].push(leg);
                         }
                     });
-                    
+
                     Object.keys(cats).forEach(cat => {
                         if (cats[cat].length > 0) {
                             const optgroup = document.createElement('optgroup');
                             optgroup.label = cat + ' (' + cats[cat].length + ' itens)';
-                            
+
                             cats[cat].forEach(legenda => {
                                 const option = document.createElement('option');
                                 option.value = legenda.texto;
                                 option.textContent = legenda.texto;
                                 optgroup.appendChild(option);
                             });
-                            
+
                             select.appendChild(optgroup);
                         }
                     });
@@ -929,15 +802,15 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
             select.innerHTML = '<option value="">Erro: servidor indisponível</option>';
         }
     };
-    
+
     xhr.onerror = function() {
         select.innerHTML = '<option value="">Erro: falha de rede</option>';
     };
-    
+
     xhr.ontimeout = function() {
         select.innerHTML = '<option value="">Erro: tempo esgotado</option>';
     };
-    
+
     xhr.send();
 }
 
@@ -956,22 +829,22 @@ function mapCategoryToLegenda(photoCategory) {
 function updatePhotoInput() {
     const input = document.getElementById('photoInput');
     console.log('🔄 Atualizando input de fotos. Categoria:', selectedCategory);
-    
+
     if (selectedCategory) {
         input.disabled = false;
         input.style.opacity = '1';
         input.style.pointerEvents = 'auto';
-        
+
         // Enable camera and gallery buttons with null checks
         const galleryBtn = document.getElementById('galleryBtn');
         const cameraBtn = document.getElementById('cameraBtn');
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
-        
+
         console.log('✅ Input de fotos e botões habilitados');
     } else {
         input.disabled = true;
-        
+
         // Disable camera and gallery buttons with null checks
         const galleryBtn = document.getElementById('galleryBtn');
         const cameraBtn = document.getElementById('cameraBtn');
@@ -987,7 +860,7 @@ function updatePhotoInput() {
 function addCustomChecklistItem() {
     const checklistItems = document.getElementById('checklistItems');
     const itemId = 'custom_' + Date.now();
-    
+
     const itemDiv = document.createElement('div');
     itemDiv.className = 'checklist-item mb-3';
     itemDiv.innerHTML = `
@@ -1002,7 +875,7 @@ function addCustomChecklistItem() {
         </div>
         <textarea class="form-control mt-2" name="custom_obs_${itemId}" placeholder="Observações..." rows="2"></textarea>
     `;
-    
+
     checklistItems.appendChild(itemDiv);
 }
 
@@ -1022,31 +895,31 @@ document.addEventListener('change', function(e) {
 function openPhotoEditor(photoId) {
     try {
         console.log(`🎨 Abrindo editor para foto: ${photoId}`);
-        
+
         const card = document.querySelector(`[data-photo-id="${photoId}"]`);
         if (!card) {
             console.error(`❌ Card não encontrado para foto: ${photoId}`);
             return;
         }
-        
+
         const img = card.querySelector('img');
         if (!img || !img.src) {
             console.error(`❌ Imagem não encontrada para foto: ${photoId}`);
             return;
         }
-        
+
         // Callback para salvar a foto editada (definir primeiro)
         const saveCallback = async (data) => {
             console.log('💾 Salvando foto editada:', data.photoId);
-            
+
             // Atualizar preview da foto no card
             img.src = data.imageData;
             img.dataset.edited = 'true';
             img.dataset.legend = data.legend;
-            
+
             // Marcar visualmente como editada
             card.classList.add('edited');
-            
+
             // Adicionar badge de editado se não existir
             if (!card.querySelector('.edited-badge')) {
                 const badge = document.createElement('div');
@@ -1054,35 +927,35 @@ function openPhotoEditor(photoId) {
                 badge.innerHTML = '<i class="fas fa-edit"></i> Editado';
                 card.appendChild(badge);
             }
-            
+
             console.log('✅ Foto salva com sucesso');
         };
-        
+
         // Verificar se o editor modal está disponível  
         if (!window.fabricPhotoEditorModal) {
             console.error('❌ Editor modal não inicializado');
-            
+
             // Verificar se as dependências estão carregadas
             if (typeof fabric === 'undefined') {
                 alert('Fabric.js não está carregado. Recarregue a página.');
                 return;
             }
-            
+
             if (typeof bootstrap === 'undefined') {
                 alert('Bootstrap não está carregado. Recarregue a página.');
                 return;
             }
-            
+
             if (typeof FabricPhotoEditor === 'undefined') {
                 alert('Editor de fotos não está carregado. Recarregue a página.');
                 return;
             }
-            
+
             // Tentar inicializar o editor modal
             if (typeof initFabricPhotoEditorModal === 'function') {
                 console.log('🔄 Tentando inicializar editor modal...');
                 initFabricPhotoEditorModal();
-                
+
                 // Aguardar um momento para o editor ser inicializado
                 setTimeout(() => {
                     if (window.fabricPhotoEditorModal) {
@@ -1096,11 +969,11 @@ function openPhotoEditor(photoId) {
                 return;
             }
         }
-        
+
         // Editor disponível, abrir diretamente
         console.log('✅ Abrindo editor');
         window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
-        
+
     } catch (error) {
         console.error('❌ Erro ao abrir editor:', error);
         alert('Erro ao abrir editor de fotos. Tente novamente.');
@@ -1110,19 +983,19 @@ function openPhotoEditor(photoId) {
 // Função para auto-scroll centralizado
 function scrollToEditorCenter() {
     console.log('🎨 Executando auto-scroll para centro do editor');
-    
+
     const modal = document.getElementById('fabricPhotoEditorModal');
     if (!modal) {
         console.log('⚠️ Modal não encontrado');
         return;
     }
-    
+
     const canvasContainer = modal.querySelector('.canvas-container');
     if (!canvasContainer) {
         console.log('⚠️ Canvas container não encontrado');
         return;
     }
-    
+
     try {
         // Scroll suave para o centro do canvas
         canvasContainer.scrollIntoView({ 
@@ -1130,13 +1003,13 @@ function scrollToEditorCenter() {
             block: 'center',
             inline: 'center'
         });
-        
+
         // Centralizar o scroll na janela também
         window.scrollTo({
             top: window.innerHeight / 4,
             behavior: 'smooth'
         });
-        
+
         console.log('✅ Auto-scroll executado com sucesso');
     } catch (error) {
         console.error('❌ Erro no auto-scroll:', error);
@@ -1146,47 +1019,47 @@ function scrollToEditorCenter() {
 // Nova função para atualizar foto do Fabric Editor
 function updatePhotoFromFabricEditor(photoId, editedImageData) {
     console.log('💾 Atualizando foto editada:', photoId);
-    
+
     // Buscar elemento da foto diretamente pelo ID
     const photoElement = document.getElementById(photoId);
     if (!photoElement) {
         console.error('❌ Elemento da foto não encontrado:', photoId);
         return;
     }
-    
+
     // Atualizar imagem no preview
     const img = photoElement.querySelector('.photo-preview');
     if (img && editedImageData.imageData) {
         img.src = editedImageData.imageData;
         console.log('✅ Imagem do preview atualizada');
-        
+
         // Também atualizar onclick para manter funcionalidade
         img.setAttribute('onclick', `editPhoto('${photoId}', '${editedImageData.imageData}', '${img.getAttribute('data-category') || 'Geral'}')`);
     }
-    
+
     // Atualizar também em selectedPhotos se existir
     const photo = selectedPhotos.find(p => p.id === photoId);
     if (photo) {
         photo.annotatedSrc = editedImageData.imageData;
         console.log('✅ Dados da foto atualizados em selectedPhotos');
     }
-    
+
     // Adicionar indicador visual de foto editada
     const card = photoElement.querySelector('.card');
     if (card && !card.classList.contains('border-success')) {
         card.classList.add('border-success', 'border-2');
-        
+
         // Remover indicador anterior se existir
         const oldIndicator = card.querySelector('.edit-indicator');
         if (oldIndicator) oldIndicator.remove();
-        
+
         const indicator = document.createElement('small');
         indicator.className = 'text-success fw-bold edit-indicator d-block mt-1';
         indicator.innerHTML = '<i class="fas fa-check-circle"></i> Editada';
         photoElement.querySelector('.card-body').appendChild(indicator);
         console.log('✅ Indicador visual adicionado');
     }
-    
+
     console.log('✅ Foto atualizada com sucesso');
 }
 
@@ -1198,7 +1071,7 @@ function startDrawing(e) {
     const scaleY = canvas.height / rect.height;
     startX = (e.clientX - rect.left) * scaleX;
     startY = (e.clientY - rect.top) * scaleY;
-    
+
     if (currentTool === 'text') {
         const text = prompt('Digite o texto:');
         if (text) {
@@ -1210,7 +1083,7 @@ function startDrawing(e) {
         isDrawing = false;
         return;
     }
-    
+
     // Para caneta, começar o path
     if (currentTool === 'pen') {
         ctx.beginPath();
@@ -1220,17 +1093,17 @@ function startDrawing(e) {
 
 function draw(e) {
     if (!isDrawing) return;
-    
+
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     const currentX = (e.clientX - rect.left) * scaleX;
     const currentY = (e.clientY - rect.top) * scaleY;
-    
+
     ctx.strokeStyle = document.getElementById('colorPicker').value;
     ctx.lineWidth = document.getElementById('lineWidth').value;
     ctx.lineCap = 'round';
-    
+
     if (currentTool === 'pen') {
         ctx.globalCompositeOperation = 'source-over';
         ctx.lineTo(currentX, currentY);
@@ -1243,16 +1116,16 @@ function draw(e) {
 function stopDrawing(e) {
     if (!isDrawing) return;
     isDrawing = false;
-    
+
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     const currentX = (e.clientX - rect.left) * scaleX;
     const currentY = (e.clientY - rect.top) * scaleY;
-    
+
     ctx.strokeStyle = document.getElementById('colorPicker').value;
     ctx.lineWidth = document.getElementById('lineWidth').value;
-    
+
     if (currentTool === 'arrow') {
         drawArrow(startX, startY, currentX, currentY);
     } else if (currentTool === 'rectangle') {
@@ -1263,7 +1136,7 @@ function stopDrawing(e) {
         ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
         ctx.stroke();
     }
-    
+
     ctx.beginPath();
 }
 
@@ -1272,7 +1145,7 @@ function drawArrow(fromX, fromY, toX, toY) {
     const dx = toX - fromX;
     const dy = toY - fromY;
     const angle = Math.atan2(dy, dx);
-    
+
     ctx.beginPath();
     ctx.moveTo(fromX, fromY);
     ctx.lineTo(toX, toY);
@@ -1298,18 +1171,18 @@ function saveEditedPhoto() {
         const editedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
         const img = currentEditingPhoto.element.querySelector('img');
         img.src = editedDataUrl;
-        
+
         // Update the photo object - mark as edited and remove original file reference
         currentEditingPhoto.editedSrc = editedDataUrl;
         currentEditingPhoto.file = null; // Remove original file since we'll use only the edited version
-        
+
         // Add visual indicator that photo was edited
         const editButton = currentEditingPhoto.element.querySelector('.btn-primary');
         editButton.innerHTML = '<i class="fas fa-check"></i> Editada';
         editButton.classList.remove('btn-primary');
         editButton.classList.add('btn-success');
     }
-    
+
     const modal = bootstrap.Modal.getInstance(document.getElementById('photoEditorModal'));
     modal.hide();
 }
@@ -1317,10 +1190,10 @@ function saveEditedPhoto() {
 // Submissão do formulário
 document.getElementById('reportForm').addEventListener('submit', function(e) {
     e.preventDefault(); // Prevent default form submission
-    
+
     // Create FormData object for proper file handling
     const formData = new FormData(this);
-    
+
     // Coletar dados do checklist
     const checklistData = [];
     document.querySelectorAll('.checklist-item').forEach(item => {
@@ -1328,7 +1201,7 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
         const label = item.querySelector('.form-check-label');
         const customInput = item.querySelector('input[type="text"]');
         const textarea = item.querySelector('textarea');
-        
+
         if (checkbox) {
             const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
             if (itemText) {
@@ -1340,35 +1213,35 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
             }
         }
     });
-    
+
     // Add checklist data
     formData.append('checklist_data', JSON.stringify(checklistData));
-    
+
     // Add photo files and metadata
     selectedPhotos.forEach((photo, index) => {
         // Add the actual file
         formData.append(`photo_${index}`, photo.file);
-        
+
         // Add photo metadata
         formData.append(`photo_category_${index}`, photo.category);
-        
+
         const caption = document.querySelector(`select[name="photo_caption_${photo.id}"]`);
         if (caption && caption.value) {
             formData.append(`photo_caption_${index}`, caption.value);
         }
-        
+
         // Add edited photo data if exists
         if (photo.editedSrc) {
             formData.append(`edited_photo_${index}`, photo.editedSrc);
         }
     });
-    
+
     // Show loading state
     const submitBtn = this.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
     submitBtn.disabled = true;
-    
+
     // Submit via fetch
     fetch(this.action, {
         method: 'POST',
@@ -1400,30 +1273,30 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
 // Função para capturar localização
 function capturarLocalizacao() {
     const infoDiv = document.getElementById('localizacao-info');
-    
+
     if (!navigator.geolocation) {
         infoDiv.innerHTML = '<div class="alert alert-danger">Geolocalização não é suportada pelo navegador.</div>';
         return;
     }
-    
+
     infoDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Capturando localização...</div>';
-    
+
     navigator.geolocation.getCurrentPosition(
         function(position) {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             const accuracy = position.coords.accuracy;
-            
+
             document.getElementById('latitude').value = lat;
             document.getElementById('longitude').value = lng;
-            
+
             infoDiv.innerHTML = `
                 <div class="alert alert-success">
                     <i class="fas fa-check-circle"></i> Localização capturada com sucesso!<br>
                     <small id="addressDisplay">Obtendo endereço... (precisão: ${Math.round(accuracy)}m)</small>
                 </div>
             `;
-            
+
             // Obter endereço formatado via API
             fetch('/get_location', {
                 method: 'POST',
@@ -1481,7 +1354,7 @@ function toggleChecklistItem(checkbox) {
     const itemId = checkbox.id.replace('check_', '');
     const obsField = document.getElementById(`obs_${itemId}`);
     const parentItem = checkbox.closest('.checklist-item');
-    
+
     if (checkbox.checked) {
         if (obsField) {
             obsField.style.display = 'block';
@@ -1504,7 +1377,7 @@ function toggleChecklistItem(checkbox) {
     const itemId = checkbox.id.replace('check_', '');
     const obsSection = document.getElementById(`obs_${itemId}`);
     const checklistItem = checkbox.closest('.checklist-item');
-    
+
     if (checkbox.checked) {
         // Marcar como completo
         checklistItem.classList.add('completed');
@@ -1535,7 +1408,7 @@ function carregarChecklistPadrao() {
             if (data.success && data.checklist.length > 0) {
                 const container = document.getElementById('checklistItems');
                 container.innerHTML = ''; // Limpar conteúdo atual
-                
+
                 data.checklist.forEach(item => {
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'checklist-item mb-3';
@@ -1554,7 +1427,7 @@ function carregarChecklistPadrao() {
                     `;
                     container.appendChild(itemDiv);
                 });
-                
+
                 console.log(`${data.checklist.length} itens do checklist padrão carregados`);
             } else {
                 const container = document.getElementById('checklistItems');
@@ -1572,14 +1445,14 @@ function carregarChecklistPadrao() {
 document.addEventListener('DOMContentLoaded', function() {
     // Carregar checklist padrão automaticamente
     carregarChecklistPadrao();
-    
+
     // Auto-carregar dados do projeto se pre-selecionado
     const projetoSelect = document.getElementById('projeto_id');
     if (projetoSelect && projetoSelect.value) {
         console.log('🏗️ Projeto pré-selecionado detectado:', projetoSelect.value);
         carregarFuncionariosEmails();
     }
-    
+
     // Inicializar editor modal Fabric.js - exatamente como no Express
     if (typeof initFabricPhotoEditorModal === 'function') {
         initFabricPhotoEditorModal();
@@ -1609,7 +1482,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            
+
             <!-- Body -->
             <div class="modal-body p-0" style="height: calc(100vh - 160px);">
                 <div class="fabric-editor-container" style="height: 100%;">
@@ -1621,7 +1494,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <canvas id="fabricModalCanvas"></canvas>
                             </div>
                         </div>
-                        
+
                         <!-- Toolbar de ferramentas -->
                         <div class="fabric-toolbar" style="background: white; border-top: 1px solid #e1e5e9; padding: 16px;">
                             <!-- Ferramentas principais -->
@@ -1648,7 +1521,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <!-- Propriedades -->
                             <div class="row">
                                 <div class="col-md-4">
@@ -1668,7 +1541,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             </div>
-            
+
             <!-- Footer -->
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" id="modal-cancel-btn">
@@ -1761,12 +1634,12 @@ document.addEventListener('DOMContentLoaded', function() {
         max-height: 40vh;
         overflow-y: auto;
     }
-    
+
     .fabric-tool-btn {
         min-width: 40px;
         min-height: 40px;
     }
-    
+
     /* MOBILE: Otimizações específicas para legendas pré-definidas */
     select[name^="photo_caption_"], 
     select[id^="predefined_"] {
@@ -1782,7 +1655,7 @@ document.addEventListener('DOMContentLoaded', function() {
         -moz-appearance: menulist !important;
         appearance: menulist !important;
     }
-    
+
     /* Grupos de opções visíveis */
     optgroup {
         font-weight: bold !important;
@@ -1790,19 +1663,19 @@ document.addEventListener('DOMContentLoaded', function() {
         font-size: 15px !important;
         padding: 4px !important;
     }
-    
+
     option {
         font-size: 14px !important;
         padding: 8px !important;
         color: #333 !important;
         background: white !important;
     }
-    
+
     /* Cards de fotos otimizados */
     .card-body.p-2 {
         padding: 16px !important;
     }
-    
+
     /* Texto de categoria mais visível */
     .text-muted {
         font-size: 14px !important;
@@ -1821,17 +1694,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const latitudeEl = document.getElementById('latitude');
     const longitudeEl = document.getElementById('longitude');
     const localizacaoInfo = document.getElementById('localizacao-info');
-    
+
     if (!latitudeEl || !longitudeEl || !localizacaoInfo) {
         console.warn('Required form elements not found for auto-population');
         return;
     }
-    
+
     {% if selected_project.latitude and selected_project.longitude %}
     // Auto-populate coordinates if available from project (using tojson for safety)
     latitudeEl.value = {{ selected_project.latitude | tojson }};
     longitudeEl.value = {{ selected_project.longitude | tojson }};
-    
+
     // Display project location info (escaped properly)
     const endereco = {{ selected_project.endereco | tojson or "'Coordenadas do projeto'" }};
     localizacaoInfo.innerHTML = `
@@ -1856,11 +1729,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // Gerenciamento de toque inteligente para categorias de fotos
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Sistema de touch inteligente carregado - Relatório Normal');
-    
+
     // Configurações de toque
     const TOUCH_THRESHOLD = 10; // pixels
     const TOUCH_TIME_LIMIT = 500; // ms
-    
+
     let touchData = {
         startX: 0,
         startY: 0,
@@ -1868,61 +1741,61 @@ document.addEventListener('DOMContentLoaded', function() {
         isDragging: false,
         element: null
     };
-    
+
     // Função para seleção de categoria
     function selectPhotoCategory(category, element) {
         // Remover seleção anterior
         document.querySelectorAll('.photo-category').forEach(cat => {
             cat.classList.remove('selected');
         });
-        
+
         // Adicionar seleção atual
         element.classList.add('selected');
-        
+
         // Feedback tátil
         if (navigator.vibrate) {
             navigator.vibrate(50);
         }
-        
+
         console.log('📷 Categoria selecionada:', category);
-        
+
         // Habilitar botões de upload
         const galleryBtn = document.getElementById('galleryBtn');
         const cameraBtn = document.getElementById('cameraBtn');
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
-        
+
         // Atualizar categoria global
         window.selectedPhotoCategory = category;
     }
-    
+
     // Event listeners para categorias
     document.querySelectorAll('.photo-category').forEach(categoryElement => {
-        
+
         // Touch Start
         categoryElement.addEventListener('touchstart', function(e) {
             console.log('👆 TouchStart categoria');
-            
+
             const touch = e.touches[0];
             touchData.startX = touch.clientX;
             touchData.startY = touch.clientY;
             touchData.startTime = Date.now();
             touchData.isDragging = false;
             touchData.element = categoryElement;
-            
+
             // Feedback visual imediato
             categoryElement.classList.add('touching');
         }, { passive: true });
-        
+
         // Touch Move
         categoryElement.addEventListener('touchmove', function(e) {
             if (!touchData.element) return;
-            
+
             const touch = e.touches[0];
             const deltaX = Math.abs(touch.clientX - touchData.startX);
             const deltaY = Math.abs(touch.clientY - touchData.startY);
             const totalDelta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            
+
             // Se movimento exceder threshold, marcar como drag
             if (totalDelta > TOUCH_THRESHOLD) {
                 touchData.isDragging = true;
@@ -1930,53 +1803,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('🔄 Movimento detectado - modo drag ativado');
             }
         }, { passive: true });
-        
+
         // Touch End
         categoryElement.addEventListener('touchend', function(e) {
             console.log('👆 TouchEnd categoria');
-            
+
             // Remover feedback visual
             categoryElement.classList.remove('touching');
-            
+
             if (!touchData.element) return;
-            
+
             const touchDuration = Date.now() - touchData.startTime;
-            
+
             // Apenas selecionar se foi um tap rápido e sem movimento
             if (!touchData.isDragging && touchDuration < TOUCH_TIME_LIMIT) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const category = categoryElement.getAttribute('data-category');
                 selectPhotoCategory(category, categoryElement);
-                
+
                 console.log('✅ Tap válido - categoria selecionada');
             } else {
                 console.log('❌ Drag detectado - não selecionar categoria');
             }
-            
+
             // Reset
             touchData.element = null;
             touchData.isDragging = false;
         }, { passive: false });
-        
+
         // Mouse events para desktop (fallback)
         categoryElement.addEventListener('click', function(e) {
             // Apenas processar se não houve toque recente
             if (touchData.startTime && (Date.now() - touchData.startTime) < 300) {
                 return; // Ignorar click após touch
             }
-            
+
             e.preventDefault();
             e.stopPropagation();
-            
+
             const category = categoryElement.getAttribute('data-category');
             selectPhotoCategory(category, categoryElement);
-            
+
             console.log('🖱️ Click desktop - categoria selecionada');
         });
     });
-    
+
     console.log('✅ Sistema de touch inteligente ativo para', document.querySelectorAll('.photo-category').length, 'categorias');
 });
 
@@ -1985,25 +1858,25 @@ window.selectPhotoCategory = function(category, element) {
     if (!element) {
         element = document.querySelector(`[data-category="${category}"]`);
     }
-    
+
     if (element) {
         // Remover seleção anterior
         document.querySelectorAll('.photo-category').forEach(cat => {
             cat.classList.remove('selected');
         });
-        
+
         // Adicionar seleção atual
         element.classList.add('selected');
-        
+
         // Habilitar botões de upload
         const galleryBtn = document.getElementById('galleryBtn');
         const cameraBtn = document.getElementById('cameraBtn');
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
-        
+
         // Atualizar categoria global
         window.selectedPhotoCategory = category;
-        
+
         console.log('📷 Categoria selecionada via função global:', category);
     }
 };
