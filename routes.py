@@ -2730,6 +2730,196 @@ def visit_export_outlook(visit_id):
         return redirect(url_for('visits_list'))
 
 # =====================
+# ROTAS DE RELATÓRIOS EXPRESS
+# =====================
+
+@app.route('/express')
+@login_required
+def express_list():
+    """Lista relatórios express"""
+    relatorios = RelatorioExpress.query.order_by(RelatorioExpress.created_at.desc()).all()
+    return render_template('express/list.html', relatorios=relatorios)
+
+@app.route('/express/novo', methods=['GET', 'POST'])
+@login_required
+def express_new():
+    """Criar novo relatório express"""
+    from forms_express import RelatorioExpressForm
+    
+    form = RelatorioExpressForm()
+    
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            try:
+                # Criar novo relatório express
+                relatorio = RelatorioExpress()
+                relatorio.numero = gerar_numero_relatorio_express()
+                relatorio.autor_id = current_user.id
+                
+                # Dados da empresa
+                relatorio.empresa_nome = form.empresa_nome.data
+                relatorio.empresa_endereco = form.empresa_endereco.data
+                relatorio.empresa_telefone = form.empresa_telefone.data
+                relatorio.empresa_email = form.empresa_email.data
+                relatorio.empresa_responsavel = form.empresa_responsavel.data
+                
+                # Dados da visita
+                relatorio.data_visita = form.data_visita.data
+                relatorio.periodo_inicio = form.periodo_inicio.data
+                relatorio.periodo_fim = form.periodo_fim.data
+                relatorio.condicoes_climaticas = form.condicoes_climaticas.data
+                relatorio.temperatura = form.temperatura.data
+                relatorio.endereco_visita = form.endereco_visita.data
+                
+                # Localização
+                if form.latitude.data and form.longitude.data:
+                    relatorio.latitude = float(form.latitude.data)
+                    relatorio.longitude = float(form.longitude.data)
+                
+                # Observações
+                relatorio.observacoes_gerais = form.observacoes_gerais.data
+                relatorio.pendencias = form.pendencias.data
+                relatorio.recomendacoes = form.recomendacoes.data
+                
+                # Checklist
+                checklist_data = request.form.get('checklist_completo', '[]')
+                relatorio.checklist_completo = checklist_data
+                
+                # Status
+                action = request.form.get('action', 'save_draft')
+                if action == 'finalize':
+                    relatorio.status = 'finalizado'
+                else:
+                    relatorio.status = 'rascunho'
+                
+                db.session.add(relatorio)
+                db.session.flush()  # Get ID
+                
+                # Processar fotos
+                foto_configuracoes = request.form.get('foto_configuracoes')
+                if foto_configuracoes:
+                    try:
+                        import json
+                        fotos_data = json.loads(foto_configuracoes)
+                        
+                        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                        if not os.path.exists(upload_folder):
+                            os.makedirs(upload_folder)
+                        
+                        for i, foto_config in enumerate(fotos_data):
+                            # Processar base64 para arquivo
+                            if foto_config.get('data') and foto_config['data'].startswith('data:image'):
+                                try:
+                                    import base64
+                                    from io import BytesIO
+                                    from PIL import Image
+                                    
+                                    # Extrair dados base64
+                                    image_data = foto_config['data'].split(',')[1]
+                                    image_binary = base64.b64decode(image_data)
+                                    image = Image.open(BytesIO(image_binary))
+                                    
+                                    # Salvar arquivo
+                                    filename = f"express_{relatorio.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{i+1}.jpeg"
+                                    filepath = os.path.join(upload_folder, filename)
+                                    image.save(filepath, 'JPEG', quality=85)
+                                    
+                                    # Criar registro da foto
+                                    foto = FotoRelatorioExpress()
+                                    foto.relatorio_id = relatorio.id
+                                    foto.filename = filename
+                                    foto.legenda = foto_config.get('legenda', f'Foto {i+1}')
+                                    foto.categoria = foto_config.get('categoria', 'Geral')
+                                    foto.ordem = i + 1
+                                    
+                                    db.session.add(foto)
+                                    
+                                except Exception as e:
+                                    print(f"Erro ao processar foto {i}: {e}")
+                                    continue
+                                    
+                    except Exception as e:
+                        print(f"Erro ao processar configurações de fotos: {e}")
+                
+                db.session.commit()
+                
+                flash(f'Relatório express {relatorio.numero} criado com sucesso!', 'success')
+                return redirect(url_for('express_list'))
+                
+            except Exception as e:
+                db.session.rollback()
+                print(f"Erro ao criar relatório express: {e}")
+                flash(f'Erro ao criar relatório: {str(e)}', 'error')
+    
+    # GET request - mostrar formulário
+    return render_template('express/novo.html', form=form)
+
+@app.route('/express/<int:id>')
+@login_required
+def express_detail(id):
+    """Visualizar relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    fotos = FotoRelatorioExpress.query.filter_by(relatorio_id=id).order_by(FotoRelatorioExpress.ordem).all()
+    return render_template('express/detalhes.html', relatorio=relatorio, fotos=fotos)
+
+@app.route('/express/<int:id>/pdf')
+@login_required
+def express_pdf(id):
+    """Gerar PDF do relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    fotos = FotoRelatorioExpress.query.filter_by(relatorio_id=id).order_by(FotoRelatorioExpress.ordem).all()
+    
+    try:
+        pdf_data = gerar_pdf_relatorio_express(relatorio, fotos)
+        
+        filename = f"relatorio_express_{relatorio.numero.replace('/', '_')}.pdf"
+        
+        response = Response(
+            pdf_data,
+            mimetype='application/pdf',
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"',
+                'Content-Type': 'application/pdf'
+            }
+        )
+        
+        return response
+        
+    except Exception as e:
+        flash(f'Erro ao gerar PDF: {str(e)}', 'error')
+        return redirect(url_for('express_detail', id=id))
+
+@app.route('/api/checklist_express')
+@login_required
+def api_checklist_express():
+    """API para carregar checklist padrão para relatórios express"""
+    try:
+        # Usar mesmo checklist padrão dos relatórios normais
+        checklist_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+        
+        items_data = []
+        for item in checklist_items:
+            items_data.append({
+                'id': item.id,
+                'texto': item.texto,
+                'ordem': item.ordem or 0
+            })
+        
+        return jsonify({
+            'success': True,
+            'items': items_data,
+            'total': len(items_data)
+        })
+        
+    except Exception as e:
+        print(f"Erro ao carregar checklist express: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'items': []
+        }), 500
+
+# =====================
 # ROTAS DE GERENCIAMENTO DE E-MAILS DE CLIENTES
 # =====================
 
