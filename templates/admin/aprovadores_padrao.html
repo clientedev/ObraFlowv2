@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Configurar Aprovadores Padrão{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">⚙️ Aprovadores Padrão</h1>
+            <p class="text-muted">Configurar aprovadores automáticos para relatórios</p>
+        </div>
+        <a href="{{ url_for('admin_aprovador_padrao_novo') }}" class="btn btn-primary btn-mobile">
+            <i class="fas fa-plus"></i> Novo Aprovador
+        </a>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Configurações Globais -->
+    <div class="row">
+        <div class="col-lg-6 col-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-globe"></i> Aprovadores Globais
+                    </h5>
+                    <small>Aplicados a todos os projetos que não têm aprovador específico</small>
+                </div>
+                <div class="card-body">
+                    {% if aprovadores_globais %}
+                        {% for aprovador in aprovadores_globais %}
+                            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                <div>
+                                    <strong>{{ aprovador.aprovador.nome_completo }}</strong>
+                                    {% if aprovador.observacoes %}
+                                        <br><small class="text-muted">{{ aprovador.observacoes }}</small>
+                                    {% endif %}
+                                    <br><small class="text-info">
+                                        Criado em {{ aprovador.created_at.strftime('%d/%m/%Y às %H:%M') }}
+                                    </small>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('admin_aprovador_padrao_editar', id=aprovador.id) }}" 
+                                       class="btn btn-outline-primary btn-sm" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin_aprovador_padrao_desativar', id=aprovador.id) }}" 
+                                       class="btn btn-outline-danger btn-sm" title="Desativar"
+                                       onclick="return confirm('Tem certeza que deseja desativar este aprovador padrão?')">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-user-slash fa-3x mb-3"></i>
+                            <p>Nenhum aprovador global configurado</p>
+                            <small>Configure um aprovador global para aplicar automaticamente a todos os projetos</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Configurações por Projeto -->
+        <div class="col-lg-6 col-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-project-diagram"></i> Aprovadores por Projeto
+                    </h5>
+                    <small>Configurações específicas que sobrescrevem o aprovador global</small>
+                </div>
+                <div class="card-body">
+                    {% if aprovadores_por_projeto %}
+                        {% for aprovador in aprovadores_por_projeto %}
+                            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                <div>
+                                    <strong>{{ aprovador.projeto.nome }}</strong>
+                                    <br><span class="text-primary">→ {{ aprovador.aprovador.nome_completo }}</span>
+                                    {% if aprovador.observacoes %}
+                                        <br><small class="text-muted">{{ aprovador.observacoes }}</small>
+                                    {% endif %}
+                                    <br><small class="text-info">
+                                        Criado em {{ aprovador.created_at.strftime('%d/%m/%Y às %H:%M') }}
+                                    </small>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('admin_aprovador_padrao_editar', id=aprovador.id) }}" 
+                                       class="btn btn-outline-primary btn-sm" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin_aprovador_padrao_desativar', id=aprovador.id) }}" 
+                                       class="btn btn-outline-danger btn-sm" title="Desativar"
+                                       onclick="return confirm('Tem certeza que deseja desativar este aprovador padrão?')">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-folder-open fa-3x mb-3"></i>
+                            <p>Nenhum aprovador específico configurado</p>
+                            <small>Configure aprovadores específicos para projetos que precisam de aprovação personalizada</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações sobre funcionamento -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-light border-info">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle text-info"></i> Como funciona a aprovação automática
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">📋 Prioridade de Aprovação:</h6>
+                            <ol class="small">
+                                <li><strong>Aprovador específico do projeto</strong> (se configurado)</li>
+                                <li><strong>Aprovador global</strong> (se nenhum específico estiver configurado)</li>
+                                <li><strong>Seleção manual</strong> (se nenhum padrão estiver configurado)</li>
+                            </ol>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success">✅ Quando é aplicado:</h6>
+                            <ul class="small">
+                                <li>Ao criar novos relatórios completos</li>
+                                <li>Ao converter relatórios express para completos</li>
+                                <li>O aprovador é automaticamente pré-selecionado no formulário</li>
+                                <li>O usuário ainda pode alterar se necessário</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões de ação -->
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.btn-mobile {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+.card-header small {
+    opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 10px;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .d-flex.justify-content-between .btn {
+        margin-top: 10px;
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}

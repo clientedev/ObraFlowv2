@@ -289,6 +289,33 @@ class LegendaPredefinida(db.Model):
     # Relacionamento
     criador = db.relationship('User', backref='legendas_criadas')
 
+class AprovadorPadrao(db.Model):
+    """Configuração de aprovador padrão por projeto ou global"""
+    __tablename__ = 'aprovadores_padrao'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=True)  # NULL = configuração global
+    aprovador_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    ativo = db.Column(db.Boolean, default=True)
+    prioridade = db.Column(db.Integer, default=1)  # 1 = mais alta prioridade
+    observacoes = db.Column(db.Text)
+    criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relacionamentos
+    projeto = db.relationship('Projeto', backref='aprovadores_padrao')
+    aprovador = db.relationship('User', foreign_keys=[aprovador_id], backref='aprovacoes_padrao')
+    criador = db.relationship('User', foreign_keys=[criado_por], backref='configuracoes_aprovador_criadas')
+    
+    # Validação única: um aprovador por projeto (ou global se projeto_id for NULL)
+    __table_args__ = (db.UniqueConstraint('projeto_id', 'aprovador_id', name='unique_aprovador_projeto'),)
+    
+    def __repr__(self):
+        projeto_nome = self.projeto.nome if self.projeto else "Global"
+        aprovador_nome = self.aprovador.nome_completo if self.aprovador else "N/A"
+        return f'<AprovadorPadrao {projeto_nome} -> {aprovador_nome}>'
+
 class ChecklistPadrao(db.Model):
     __tablename__ = 'checklist_padrao'
     

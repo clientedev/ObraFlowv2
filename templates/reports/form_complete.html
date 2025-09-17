@@ -149,6 +149,48 @@
         z-index: -1;
     }
 }
+
+/* Estilos para auto-preenchimento de projeto - Mobile-First */
+.mobile-project-info {
+    border-left: 4px solid #17a2b8;
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(23, 162, 184, 0.1);
+}
+
+.project-auto-info p {
+    margin-bottom: 0.25rem;
+}
+
+.project-auto-info strong {
+    color: #0c5460;
+    font-size: 1.05rem;
+}
+
+/* Responsividade mobile para info do projeto */
+@media (max-width: 768px) {
+    .mobile-project-info {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .mobile-project-info h6 {
+        font-size: 1rem;
+    }
+    
+    .mobile-project-info .fa-2x {
+        font-size: 1.5rem;
+    }
+    
+    .project-auto-info strong {
+        font-size: 0.95rem;
+    }
+    
+    .project-auto-info small {
+        font-size: 0.8rem;
+    }
+}
 </style>
 {% endblock %}
 
@@ -163,12 +205,40 @@
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('create_report') }}" enctype="multipart/form-data" id="reportForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <!-- Auto-preenchimento do Projeto (se selecionado) -->
+                        {% if selected_project %}
+                        <div class="alert alert-info mobile-project-info" role="alert">
+                            <div class="row align-items-center">
+                                <div class="col-md-1 col-2 text-center">
+                                    <i class="fas fa-info-circle fa-2x"></i>
+                                </div>
+                                <div class="col-md-11 col-10">
+                                    <h6 class="mb-2 fw-bold">
+                                        <i class="fas fa-building me-2"></i>Projeto Pré-selecionado
+                                    </h6>
+                                    <div class="project-auto-info">
+                                        <p class="mb-1"><strong>{{ selected_project.numero }} - {{ selected_project.nome }}</strong></p>
+                                        {% if selected_project.endereco %}
+                                        <p class="mb-1"><small class="text-muted">
+                                            <i class="fas fa-map-marker-alt me-1"></i>{{ selected_project.endereco }}
+                                        </small></p>
+                                        {% endif %}
+                                        <p class="mb-0"><small class="text-muted">
+                                            <i class="fas fa-building me-1"></i>{{ selected_project.construtora }} - {{ selected_project.nome_funcionario }}
+                                        </small></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
                         <!-- Informações Básicas -->
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label" for="titulo">Título do Relatório *</label>
-                                    <input type="text" name="titulo" id="titulo" class="form-control" value="Relatório de visita" required>
+                                    <input type="text" name="titulo" id="titulo" class="form-control" 
+                                           value="{% if selected_project %}Relatório - {{ selected_project.nome }}{% else %}Relatório de visita{% endif %}" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -177,7 +247,10 @@
                                     <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails()">
                                         <option value="">Selecione um projeto</option>
                                         {% for projeto in projetos %}
-                                        <option value="{{ projeto.id }}">{{ projeto.numero }} - {{ projeto.nome }}</option>
+                                        <option value="{{ projeto.id }}" 
+                                                {% if selected_project and selected_project.id == projeto.id %}selected{% endif %}>
+                                            {{ projeto.numero }} - {{ projeto.nome }}
+                                        </option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -223,7 +296,7 @@
                                     <select name="aprovador_id" id="aprovador_id" class="form-control">
                                         <option value="">Selecione o aprovador</option>
                                         {% for admin in admin_users %}
-                                        <option value="{{ admin.id }}">{{ admin.nome_completo }}</option>
+                                        <option value="{{ admin.id }}" {% if selected_aprovador and admin.id == selected_aprovador.id %}selected{% endif %}>{{ admin.nome_completo }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -1425,6 +1498,13 @@ function carregarChecklistPadrao() {
 document.addEventListener('DOMContentLoaded', function() {
     // Carregar checklist padrão automaticamente
     carregarChecklistPadrao();
+    
+    // Auto-carregar dados do projeto se pre-selecionado
+    const projetoSelect = document.getElementById('projeto_id');
+    if (projetoSelect && projetoSelect.value) {
+        console.log('🏗️ Projeto pré-selecionado detectado:', projetoSelect.value);
+        carregarFuncionariosEmails();
+    }
     
     // Inicializar editor modal Fabric.js - exatamente como no Express
     if (typeof initFabricPhotoEditorModal === 'function') {

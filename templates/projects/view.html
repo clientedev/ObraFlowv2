@@ -23,6 +23,39 @@
                 </a>
             </div>
         </div>
+
+        <!-- Botão Destaque para Criação de Relatório - Mobile-First -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card bg-primary text-white shadow-lg mobile-cta-card">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-md-8 col-12">
+                                <div class="d-flex align-items-center mb-2 mb-md-0">
+                                    <i class="fas fa-file-alt fa-2x me-3"></i>
+                                    <div>
+                                        <h5 class="mb-1 fw-bold">Criar Relatório de Obra</h5>
+                                        <small class="opacity-75">Documente as atividades e progresso deste projeto</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-12">
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <a href="{{ url_for('create_report') }}?projeto_id={{ project.id }}" 
+                                       class="btn btn-light btn-lg fw-bold mobile-touch-target">
+                                        <i class="fas fa-plus me-2"></i>Criar Relatório
+                                    </a>
+                                    <a href="{{ url_for('express_new') }}?projeto_id={{ project.id }}" 
+                                       class="btn btn-success btn-lg fw-bold mobile-touch-target">
+                                        <i class="fas fa-bolt me-2"></i>Relatório Express
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -398,13 +431,76 @@
     </div>
 </div>
 
-<!-- CSS adicional para estilo dos relatórios express -->
+<!-- CSS adicional para estilo dos relatórios express e mobile CTA -->
 <style>
 .border-left-success {
     border-left: 4px solid #28a745 !important;
 }
 .text-success {
     color: #28a745 !important;
+}
+
+/* Mobile-First CTA Button Styles */
+.mobile-cta-card {
+    border: none;
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    transition: all 0.3s ease;
+}
+
+.mobile-cta-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
+}
+
+.mobile-touch-target {
+    min-height: 48px;
+    min-width: 120px;
+    font-size: 0.95rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+}
+
+.mobile-touch-target:hover {
+    transform: scale(1.02);
+}
+
+.mobile-touch-target:active {
+    transform: scale(0.98);
+}
+
+/* Responsividade para telas pequenas */
+@media (max-width: 768px) {
+    .mobile-cta-card .card-body {
+        padding: 1.5rem !important;
+    }
+    
+    .mobile-touch-target {
+        min-height: 56px;
+        font-size: 1rem;
+        font-weight: 600;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .mobile-cta-card h5 {
+        font-size: 1.1rem;
+    }
+    
+    .mobile-cta-card small {
+        font-size: 0.85rem;
+    }
+}
+
+/* Extra responsividade para telas muito pequenas */
+@media (max-width: 576px) {
+    .mobile-cta-card .fa-2x {
+        font-size: 1.5rem;
+    }
+    
+    .mobile-cta-card h5 {
+        font-size: 1rem;
+    }
 }
 </style>
 {% endblock %}

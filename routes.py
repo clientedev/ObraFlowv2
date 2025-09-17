@@ -42,7 +42,7 @@ def health_check_full():
             'service': 'flask-app'
         }), 503
 
-from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress, LegendaPredefinida, FuncionarioProjeto
+from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress, LegendaPredefinida, FuncionarioProjeto, AprovadorPadrao
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm, FirstLoginForm
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
 from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
@@ -740,7 +740,30 @@ def create_report():
     projetos = Projeto.query.filter_by(status='Ativo').all()
     # Get admin users for approver selection
     admin_users = User.query.filter_by(is_master=True).all()
-    return render_template('reports/form_complete.html', projetos=projetos, admin_users=admin_users, today=date.today().isoformat())
+    
+    # Auto-preenchimento: Verificar se projeto_id foi passado como parâmetro da URL
+    selected_project = None
+    selected_aprovador = None
+    projeto_id_param = request.args.get('projeto_id')
+    if projeto_id_param:
+        try:
+            projeto_id_param = int(projeto_id_param)
+            selected_project = Projeto.query.get(projeto_id_param)
+            # Buscar aprovador padrão para este projeto
+            if selected_project:
+                selected_aprovador = get_aprovador_padrao_para_projeto(selected_project.id)
+        except (ValueError, TypeError):
+            selected_project = None
+    else:
+        # Se não há projeto específico, buscar aprovador global
+        selected_aprovador = get_aprovador_padrao_para_projeto(None)
+    
+    return render_template('reports/form_complete.html', 
+                         projetos=projetos, 
+                         admin_users=admin_users, 
+                         selected_project=selected_project,
+                         selected_aprovador=selected_aprovador,
+                         today=date.today().isoformat())
 
 @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -4390,6 +4413,240 @@ def enviar_relatorio_express_por_email(relatorio, destinatarios, cc_emails, bcc_
             'sucessos': 0,
             'falhas': len(destinatarios)
         }
+
+# ==================== HELPER: Aprovador Padrão ====================
+
+def get_aprovador_padrao_para_projeto(projeto_id=None):
+    """
+    Buscar aprovador padrão para um projeto específico ou global
+    
+    Args:
+        projeto_id: ID do projeto (None para buscar apenas global)
+    
+    Returns:
+        User object do aprovador ou None se não encontrar
+    """
+    try:
+        # Primeiro, tentar encontrar aprovador específico do projeto
+        if projeto_id:
+            aprovador_especifico = AprovadorPadrao.query.filter_by(
+                projeto_id=projeto_id,
+                ativo=True
+            ).order_by(AprovadorPadrao.prioridade.asc(), AprovadorPadrao.created_at.desc()).first()
+            
+            if aprovador_especifico and aprovador_especifico.aprovador:
+                return aprovador_especifico.aprovador
+        
+        # Se não encontrou específico, buscar aprovador global
+        aprovador_global = AprovadorPadrao.query.filter_by(
+            projeto_id=None,
+            ativo=True
+        ).order_by(AprovadorPadrao.prioridade.asc(), AprovadorPadrao.created_at.desc()).first()
+        
+        if aprovador_global and aprovador_global.aprovador:
+            return aprovador_global.aprovador
+            
+        return None
+        
+    except Exception as e:
+        print(f"Erro ao buscar aprovador padrão: {e}")
+        return None
+
+# ==================== ADMIN: Aprovadores Padrão ====================
+
+@app.route('/admin/aprovadores-padrao')
+@login_required
+def admin_aprovadores_padrao():
+    """Gerenciar aprovadores padrão - apenas usuários master"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem acessar esta funcionalidade.', 'error')
+        return redirect(url_for('index'))
+    
+    # Buscar aprovadores configurados
+    aprovadores_globais = AprovadorPadrao.query.filter_by(projeto_id=None, ativo=True).all()
+    aprovadores_por_projeto = AprovadorPadrao.query.filter(
+        AprovadorPadrao.projeto_id.isnot(None),
+        AprovadorPadrao.ativo == True
+    ).all()
+    
+    # Buscar projetos ativos para seleção
+    projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
+    
+    # Buscar usuários master para seleção como aprovadores
+    usuarios_master = User.query.filter_by(is_master=True, ativo=True).all()
+    
+    return render_template('admin/aprovadores_padrao.html',
+                         aprovadores_globais=aprovadores_globais,
+                         aprovadores_por_projeto=aprovadores_por_projeto,
+                         projetos_ativos=projetos_ativos,
+                         usuarios_master=usuarios_master)
+
+@app.route('/admin/aprovadores-padrao/novo', methods=['GET', 'POST'])
+@login_required
+def admin_aprovador_padrao_novo():
+    """Adicionar novo aprovador padrão - apenas usuários master"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem acessar esta funcionalidade.', 'error')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        projeto_id = request.form.get('projeto_id')
+        aprovador_id = request.form.get('aprovador_id')
+        observacoes = request.form.get('observacoes', '').strip()
+        
+        # Validações
+        if not aprovador_id:
+            flash('Aprovador é obrigatório.', 'error')
+            return redirect(url_for('admin_aprovador_padrao_novo'))
+        
+        try:
+            aprovador_id = int(aprovador_id)
+            projeto_id = int(projeto_id) if projeto_id else None
+            
+            # Verificar se já existe configuração para este projeto/aprovador
+            existing = AprovadorPadrao.query.filter_by(
+                projeto_id=projeto_id,
+                aprovador_id=aprovador_id,
+                ativo=True
+            ).first()
+            
+            if existing:
+                projeto_nome = existing.projeto.nome if existing.projeto else "Configuração Global"
+                flash(f'Já existe um aprovador padrão configurado para {projeto_nome}.', 'warning')
+                return redirect(url_for('admin_aprovadores_padrao'))
+            
+            # Criar nova configuração
+            novo_aprovador = AprovadorPadrao(
+                projeto_id=projeto_id,
+                aprovador_id=aprovador_id,
+                observacoes=observacoes,
+                criado_por=current_user.id
+            )
+            
+            db.session.add(novo_aprovador)
+            db.session.commit()
+            
+            projeto_nome = novo_aprovador.projeto.nome if novo_aprovador.projeto else "Global"
+            flash(f'Aprovador padrão configurado com sucesso para {projeto_nome}!', 'success')
+            return redirect(url_for('admin_aprovadores_padrao'))
+            
+        except ValueError:
+            flash('Dados inválidos no formulário.', 'error')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar aprovador padrão: {str(e)}', 'error')
+    
+    # GET request - mostrar formulário
+    projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
+    usuarios_master = User.query.filter_by(is_master=True, ativo=True).all()
+    
+    return render_template('admin/aprovador_padrao_form.html',
+                         projetos_ativos=projetos_ativos,
+                         usuarios_master=usuarios_master,
+                         is_edit=False)
+
+@app.route('/admin/aprovadores-padrao/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+def admin_aprovador_padrao_editar(id):
+    """Editar aprovador padrão - apenas usuários master"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem acessar esta funcionalidade.', 'error')
+        return redirect(url_for('index'))
+    
+    aprovador_padrao = AprovadorPadrao.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        projeto_id = request.form.get('projeto_id')
+        aprovador_id = request.form.get('aprovador_id')
+        observacoes = request.form.get('observacoes', '').strip()
+        
+        if not aprovador_id:
+            flash('Aprovador é obrigatório.', 'error')
+            return redirect(url_for('admin_aprovador_padrao_editar', id=id))
+        
+        try:
+            aprovador_id = int(aprovador_id)
+            projeto_id = int(projeto_id) if projeto_id else None
+            
+            # Atualizar configuração
+            aprovador_padrao.projeto_id = projeto_id
+            aprovador_padrao.aprovador_id = aprovador_id
+            aprovador_padrao.observacoes = observacoes
+            aprovador_padrao.updated_at = datetime.utcnow()
+            
+            db.session.commit()
+            
+            projeto_nome = aprovador_padrao.projeto.nome if aprovador_padrao.projeto else "Global"
+            flash(f'Aprovador padrão atualizado com sucesso para {projeto_nome}!', 'success')
+            return redirect(url_for('admin_aprovadores_padrao'))
+            
+        except ValueError:
+            flash('Dados inválidos no formulário.', 'error')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar aprovador padrão: {str(e)}', 'error')
+    
+    # GET request - mostrar formulário preenchido
+    projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
+    usuarios_master = User.query.filter_by(is_master=True, ativo=True).all()
+    
+    return render_template('admin/aprovador_padrao_form.html',
+                         aprovador_padrao=aprovador_padrao,
+                         projetos_ativos=projetos_ativos,
+                         usuarios_master=usuarios_master,
+                         is_edit=True)
+
+@app.route('/admin/aprovadores-padrao/<int:id>/desativar')
+@login_required
+def admin_aprovador_padrao_desativar(id):
+    """Desativar aprovador padrão - apenas usuários master"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem acessar esta funcionalidade.', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        aprovador_padrao = AprovadorPadrao.query.get_or_404(id)
+        aprovador_padrao.ativo = False
+        aprovador_padrao.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        projeto_nome = aprovador_padrao.projeto.nome if aprovador_padrao.projeto else "Global"
+        flash(f'Aprovador padrão desativado para {projeto_nome}.', 'info')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao desativar aprovador padrão: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_aprovadores_padrao'))
+
+# ==================== API: Aprovador Padrão ====================
+
+@app.route('/api/aprovador-padrao/<int:projeto_id>')
+@login_required
+def api_get_aprovador_padrao(projeto_id):
+    """API para buscar aprovador padrão de um projeto - AJAX"""
+    try:
+        aprovador = get_aprovador_padrao_para_projeto(projeto_id)
+        
+        if aprovador:
+            return jsonify({
+                'success': True,
+                'aprovador_id': aprovador.id,
+                'aprovador_nome': aprovador.nome,
+                'aprovador_username': aprovador.username
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Nenhum aprovador padrão configurado'
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao buscar aprovador padrão: {str(e)}'
+        })
 
 # Error handlers
 @app.errorhandler(404)
