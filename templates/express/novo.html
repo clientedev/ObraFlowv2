@@ -1502,11 +1502,37 @@ function handleTouch(e) {
     }
 }
 
-// Inicialização
+// Adicionar event listeners para categorias de foto
 document.addEventListener('DOMContentLoaded', function() {
     updatePhotoCounter();
     loadDefaultChecklist();
+    
+    // Adicionar event listeners para as categorias de foto
+    document.querySelectorAll('.category-option').forEach(option => {
+        // Remover eventos antigos para evitar duplicação
+        option.removeEventListener('click', handleCategoryClick);
+        option.removeEventListener('touchend', handleCategoryTouch);
+        
+        // Adicionar novos event listeners
+        option.addEventListener('click', handleCategoryClick);
+        option.addEventListener('touchend', handleCategoryTouch);
+    });
 });
+
+// Handler para clique em categoria
+function handleCategoryClick(e) {
+    e.preventDefault();
+    const category = this.getAttribute('data-category');
+    selectPhotoCategory(category, this);
+}
+
+// Handler para touch em categoria - melhorado para mobile
+function handleCategoryTouch(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const category = this.getAttribute('data-category');
+    selectPhotoCategory(category, this);
+}
 
 // Localização GPS
 document.getElementById('getLocationBtn').addEventListener('click', function() {

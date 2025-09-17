@@ -135,6 +135,109 @@
     }
 }
 
+/* Estilos para seletor de categorias (Copiado do Express Report) */
+.category-selector {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+}
+
+/* Grid de categorias - sem rolagem horizontal */
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+}
+
+@media (min-width: 576px) {
+    .category-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .category-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+}
+
+.category-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+    background: white;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: none !important;
+    text-align: center;
+    min-height: 100px;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    touch-action: manipulation !important;
+}
+
+.category-option:hover {
+    border-color: #007bff;
+    background: #f8f9ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+}
+
+.category-option.selected {
+    border-color: #28a745;
+    background: #f8fff8;
+    color: #155724;
+    font-weight: 600;
+}
+
+.category-option.selected .category-icon {
+    color: #28a745;
+}
+
+.category-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+    transition: color 0.3s ease;
+}
+
+.category-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* Responsivo mobile para categorias */
+@media (max-width: 768px) {
+    .category-option {
+        min-height: 80px;
+        padding: 1rem 0.5rem;
+    }
+    
+    .category-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .category-name {
+        font-size: 0.8rem;
+    }
+}
+
+/* Feedback táctil melhorado para categorias */
+.category-option.touching {
+    background: #007bff !important;
+    color: white !important;
+    transform: scale(0.95) !important;
+    transition: all 0.1s ease !important;
+}
+
 /* Garantir que checkboxes checked mantenham formato */
 .form-check-input:checked {
     width: 20px !important;
@@ -326,55 +429,55 @@
                             </div>
                         </div>
 
-                        <!-- Upload de Fotos -->
+                        <!-- Upload de Fotos (Melhorado com grid como Express Report) -->
                         <div class="card mb-4">
-                            <div class="card-header">
-                                <h5><i class="fas fa-camera"></i> Documentação Fotográfica</h5>
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5><i class="fas fa-camera"></i> Fotos <span class="badge bg-info ms-2" id="photoCount">(Até 200 fotos)</span></h5>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="resetPhotoCategories()">
+                                        <i class="fas fa-undo"></i> Limpar Seleção
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body">
-                                <!-- Seletor de Categoria -->
-                                <div class="mb-3">
-                                    <label class="form-label">Categoria da Foto:</label>
-                                    <div class="btn-group-toggle d-flex flex-wrap gap-2" data-toggle="buttons">
-                                        <input type="radio" class="btn-check" name="photo_category" id="cat_fundacao" value="Fundação">
-                                        <label class="btn btn-outline-primary" for="cat_fundacao">
-                                            <i class="fas fa-hammer"></i> Fundação
-                                        </label>
-
-                                        <input type="radio" class="btn-check" name="photo_category" id="cat_estrutura" value="Estrutura">
-                                        <label class="btn btn-outline-primary" for="cat_estrutura">
-                                            <i class="fas fa-building"></i> Estrutura
-                                        </label>
-
-                                        <input type="radio" class="btn-check" name="photo_category" id="cat_alvenaria" value="Alvenaria">
-                                        <label class="btn btn-outline-primary" for="cat_alvenaria">
-                                            <i class="fas fa-layer-group"></i> Alvenaria
-                                        </label>
-
-                                        <input type="radio" class="btn-check" name="photo_category" id="cat_instalacoes" value="Instalações">
-                                        <label class="btn btn-outline-primary" for="cat_instalacoes">
-                                            <i class="fas fa-plug"></i> Instalações
-                                        </label>
-
-                                        <input type="radio" class="btn-check" name="photo_category" id="cat_cobertura" value="Cobertura">
-                                        <label class="btn btn-outline-primary" for="cat_cobertura">
-                                            <i class="fas fa-home"></i> Cobertura
-                                        </label>
-
-                                        <input type="radio" class="btn-check" name="photo_category" id="cat_acabamento" value="Acabamento">
-                                        <label class="btn btn-outline-primary" for="cat_acabamento">
-                                            <i class="fas fa-paint-brush"></i> Acabamento
-                                        </label>
-
-                                        <input type="radio" class="btn-check" name="photo_category" id="cat_problema" value="Problema">
-                                        <label class="btn btn-outline-warning" for="cat_problema">
-                                            <i class="fas fa-exclamation-triangle"></i> Problema
-                                        </label>
-
-                                        <input type="radio" class="btn-check" name="photo_category" id="cat_geral" value="Geral">
-                                        <label class="btn btn-outline-info" for="cat_geral">
-                                            <i class="fas fa-eye"></i> Vista Geral
-                                        </label>
+                                <!-- Seletor de Categoria (Copiar do Express Report) -->
+                                <div class="mb-4">
+                                    <p class="mb-3 text-muted">Selecione a categoria antes de adicionar a foto:</p>
+                                    <div class="category-selector">
+                                        <div class="category-grid">
+                                            <div class="category-option" data-category="Fundação">
+                                                <i class="fas fa-hammer category-icon"></i>
+                                                <div class="category-name">Fundação</div>
+                                            </div>
+                                            <div class="category-option" data-category="Estrutura">
+                                                <i class="fas fa-building category-icon"></i>
+                                                <div class="category-name">Estrutura</div>
+                                            </div>
+                                            <div class="category-option" data-category="Alvenaria">
+                                                <i class="fas fa-layer-group category-icon"></i>
+                                                <div class="category-name">Alvenaria</div>
+                                            </div>
+                                            <div class="category-option" data-category="Instalações">
+                                                <i class="fas fa-plug category-icon"></i>
+                                                <div class="category-name">Instalações</div>
+                                            </div>
+                                            <div class="category-option" data-category="Cobertura">
+                                                <i class="fas fa-home category-icon"></i>
+                                                <div class="category-name">Cobertura</div>
+                                            </div>
+                                            <div class="category-option" data-category="Acabamento">
+                                                <i class="fas fa-paint-brush category-icon"></i>
+                                                <div class="category-name">Acabamento</div>
+                                            </div>
+                                            <div class="category-option" data-category="Problema">
+                                                <i class="fas fa-exclamation-triangle category-icon"></i>
+                                                <div class="category-name">Problema</div>
+                                            </div>
+                                            <div class="category-option" data-category="Vista Geral">
+                                                <i class="fas fa-eye category-icon"></i>
+                                                <div class="category-name">Vista Geral</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -499,11 +602,89 @@ function carregarFuncionariosEmails() {
     });
 }
 
-// Monitorar seleção de categoria
-document.querySelectorAll('input[name="photo_category"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        selectedCategory = this.value;
-        updatePhotoInput();
+// Funções para seleção de categoria (Copiado e adaptado do Express Report)
+function selectPhotoCategory(category, element) {
+    // Remover seleção anterior
+    document.querySelectorAll('.category-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Selecionar nova categoria
+    element.classList.add('selected');
+    selectedCategory = category;
+    
+    console.log(`Categoria selecionada: ${category}`);
+    updatePhotoInput();
+}
+
+// Resetar seleção de categoria
+function resetPhotoCategories() {
+    selectedCategory = null;
+    document.querySelectorAll('.category-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Limpar input de fotos
+    const fileInput = document.getElementById('photoInput');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+    
+    // Limpar preview
+    document.getElementById('photoPreview').innerHTML = '';
+    selectedPhotos = [];
+}
+
+// Handler para clique em categoria
+function handleCategoryClick(e) {
+    e.preventDefault();
+    const category = this.getAttribute('data-category');
+    selectPhotoCategory(category, this);
+}
+
+// Handler para touch em categoria - melhorado para mobile
+function handleCategoryTouch(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const category = this.getAttribute('data-category');
+    selectPhotoCategory(category, this);
+}
+
+// Função updatePhotoInput para habilitar/desabilitar upload
+function updatePhotoInput() {
+    const input = document.getElementById('photoInput');
+    if (selectedCategory) {
+        input.disabled = false;
+        input.title = `Upload fotos para categoria: ${selectedCategory}`;
+    } else {
+        input.disabled = true;
+        input.title = 'Selecione uma categoria primeiro';
+    }
+}
+
+// Função updatePhotoCounter para atualizar badge de contador
+function updatePhotoCounter() {
+    const counter = document.getElementById('photoCount');
+    if (counter && selectedPhotos) {
+        counter.textContent = `(${selectedPhotos.length}/200 fotos)`;
+    }
+}
+
+// Adicionar event listeners para categorias (similar ao Express Report)
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar estado
+    updatePhotoInput();
+    updatePhotoCounter();
+    
+    // Adicionar event listeners para as categorias de foto
+    document.querySelectorAll('.category-option').forEach(option => {
+        // Remover eventos antigos para evitar duplicação
+        option.removeEventListener('click', handleCategoryClick);
+        option.removeEventListener('touchend', handleCategoryTouch);
+        
+        // Adicionar novos event listeners
+        option.addEventListener('click', handleCategoryClick);
+        option.addEventListener('touchend', handleCategoryTouch);
     });
 });
 
@@ -570,6 +751,9 @@ function addPhotoPreview(file, src, category) {
     
     // Carregar legendas pré-definidas para esta categoria
     setTimeout(() => loadPredefinedCaptionsForPhoto(photoId, category), 100);
+    
+    // Atualizar contador de fotos
+    updatePhotoCounter();
 }
 
 function removePhoto(photoId) {
@@ -577,17 +761,8 @@ function removePhoto(photoId) {
     if (photo) {
         photo.element.remove();
         selectedPhotos = selectedPhotos.filter(p => p.id !== photoId);
-    }
-}
-
-function updatePhotoInput() {
-    const input = document.getElementById('photoInput');
-    if (selectedCategory) {
-        input.disabled = false;
-        input.style.opacity = '1';
-    } else {
-        input.disabled = true;
-        input.style.opacity = '0.5';
+        // Atualizar contador após remover foto
+        updatePhotoCounter();
     }
 }
 
