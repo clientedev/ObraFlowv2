@@ -3877,7 +3877,7 @@ def express_list():
                          relatorios_rascunho=relatorios_rascunho,
                          relatorios_finalizados=relatorios_finalizados)
 
-@app.route('/express/new', methods=['GET', 'POST'])
+@app.route('/express/novo', methods=['GET', 'POST'])
 @login_required
 def express_new():
     """Criar novo relatório express"""
