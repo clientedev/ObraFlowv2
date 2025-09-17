@@ -222,24 +222,5 @@ def gerar_pdf_relatorio_express(relatorio_express, output_path):
 
 def gerar_numero_relatorio_express():
     """Gera número sequencial para relatórios express"""
-    from models import RelatorioExpress
-    from datetime import datetime
-    
-    # Buscar último número do ano atual
-    ano_atual = datetime.now().year
-    prefixo = f"EXP{ano_atual}"
-    
-    ultimo_relatorio = RelatorioExpress.query.filter(
-        RelatorioExpress.numero.like(f"{prefixo}%")
-    ).order_by(RelatorioExpress.numero.desc()).first()
-    
-    if ultimo_relatorio:
-        try:
-            ultimo_numero = int(ultimo_relatorio.numero.replace(prefixo, ''))
-            novo_numero = ultimo_numero + 1
-        except:
-            novo_numero = 1
-    else:
-        novo_numero = 1
-    
-    return f"{prefixo}{novo_numero:03d}"
+    from utils import generate_express_report_number
+    return generate_express_report_number()

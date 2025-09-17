@@ -4,21 +4,21 @@ import json
 def get_address_from_coordinates(latitude, longitude):
     """Convert GPS coordinates to readable address using OpenStreetMap Nominatim API"""
     import time
-    
+
     try:
         if not latitude or not longitude:
             return None
-        
+
         # Railway-compatible headers
         headers = {
             'User-Agent': 'ELP-ConstructionTracker/1.0 (elp.contato@gmail.com)',
             'Accept': 'application/json',
             'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8'
         }
-        
+
         # Rate limiting
         time.sleep(1.2)
-        
+
         # Use OpenStreetMap Nominatim API (free, no API key required)
         url = "https://nominatim.openstreetmap.org/reverse"
         params = {
@@ -28,20 +28,20 @@ def get_address_from_coordinates(latitude, longitude):
             'addressdetails': 1,
             'language': 'pt-BR'
         }
-        
+
         try:
             response = requests.get(url, params=params, headers=headers, timeout=15)
-            
+
             if response.status_code == 200:
                 data = response.json()
-                
+
                 if 'display_name' in data:
                     # Extract key address components
                     address_parts = []
-                    
+
                     if 'address' in data:
                         addr = data['address']
-                        
+
                         # Street number and name
                         street_parts = []
                         if 'house_number' in addr:
@@ -50,16 +50,16 @@ def get_address_from_coordinates(latitude, longitude):
                             street_parts.append(addr['road'])
                         elif 'pedestrian' in addr:
                             street_parts.append(addr['pedestrian'])
-                        
+
                         if street_parts:
                             address_parts.append(' '.join(street_parts))
-                        
+
                         # Neighborhood
                         if 'neighbourhood' in addr:
                             address_parts.append(addr['neighbourhood'])
                         elif 'suburb' in addr:
                             address_parts.append(addr['suburb'])
-                        
+
                         # City
                         if 'city' in addr:
                             address_parts.append(addr['city'])
@@ -67,34 +67,34 @@ def get_address_from_coordinates(latitude, longitude):
                             address_parts.append(addr['town'])
                         elif 'municipality' in addr:
                             address_parts.append(addr['municipality'])
-                        
+
                         # State
                         if 'state' in addr:
                             address_parts.append(addr['state'])
-                        
+
                         # Country
                         if 'country' in addr:
                             address_parts.append(addr['country'])
-                    
+
                     if address_parts:
                         return ', '.join(address_parts)
                     else:
                         return data['display_name']
-            
+
             elif response.status_code == 429:
                 print(f"⚠️  REVERSE GEOCODING: Rate limited")
             elif response.status_code == 403:
                 print(f"❌ REVERSE GEOCODING: Blocked by Nominatim")
             else:
                 print(f"⚠️  REVERSE GEOCODING: HTTP {response.status_code}")
-                
+
         except requests.exceptions.Timeout:
             print(f"⚠️  REVERSE GEOCODING: Timeout")
         except requests.exceptions.ConnectionError:
             print(f"⚠️  REVERSE GEOCODING: Connection error")
-        
+
         return None
-        
+
     except Exception as e:
         print(f"❌ REVERSE GEOCODING: Erro: {e}")
         return None
@@ -103,21 +103,21 @@ def get_coordinates_from_address(address):
     """Convert address to GPS coordinates using OpenStreetMap Nominatim API"""
     import time
     import os
-    
+
     try:
         if not address or not address.strip():
             return None, None
-        
+
         # Railway-compatible headers and rate limiting
         headers = {
             'User-Agent': 'ELP-ConstructionTracker/1.0 (elp.contato@gmail.com)',
             'Accept': 'application/json',
             'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8'
         }
-        
+
         # Rate limiting: Nominatim requires 1 second between requests
         time.sleep(1.2)
-        
+
         # Use OpenStreetMap Nominatim API for forward geocoding
         url = "https://nominatim.openstreetmap.org/search"
         params = {
@@ -129,7 +129,7 @@ def get_coordinates_from_address(address):
             'limit': 1,
             'dedupe': 1  # Remove duplicates
         }
-        
+
         # Retry logic for Railway deployment
         max_retries = 3
         for attempt in range(max_retries):
@@ -140,49 +140,49 @@ def get_coordinates_from_address(address):
                     headers=headers, 
                     timeout=15  # Increased timeout for Railway
                 )
-                
+
                 if response.status_code == 200:
                     data = response.json()
-                    
+
                     if data and len(data) > 0:
                         result = data[0]
                         latitude = float(result['lat'])
                         longitude = float(result['lon'])
-                        
+
                         print(f"✅ GEOCODING: {address} → {latitude}, {longitude}")
                         return latitude, longitude
-                        
+
                 elif response.status_code == 429:
                     # Rate limited - wait longer
                     print(f"⚠️  GEOCODING: Rate limited, waiting...")
                     time.sleep(5)
                     continue
-                    
+
                 elif response.status_code == 403:
                     # Forbidden - likely blocked
                     print(f"❌ GEOCODING: Blocked by Nominatim (403)")
                     break
-                    
+
                 else:
                     print(f"⚠️  GEOCODING: HTTP {response.status_code}")
-                    
+
             except requests.exceptions.Timeout:
                 print(f"⚠️  GEOCODING: Timeout, tentativa {attempt + 1}/{max_retries}")
                 if attempt < max_retries - 1:
                     time.sleep(2 ** attempt)  # Exponential backoff
-                    
+
             except requests.exceptions.ConnectionError:
                 print(f"⚠️  GEOCODING: Connection error, tentativa {attempt + 1}/{max_retries}")
                 if attempt < max_retries - 1:
                     time.sleep(2 ** attempt)
-                    
+
             except Exception as e:
                 print(f"❌ GEOCODING: Erro inesperado: {e}")
                 break
-        
+
         print(f"❌ GEOCODING: Falhou para '{address}' após {max_retries} tentativas")
         return None, None
-        
+
     except Exception as e:
         print(f"❌ GEOCODING: Erro crítico: {e}")
         return None, None
@@ -192,15 +192,15 @@ def format_coordinates_display(latitude, longitude):
     try:
         if not latitude or not longitude:
             return "Localização não capturada"
-        
+
         # Try to get readable address
         address = get_address_from_coordinates(latitude, longitude)
-        
+
         if address:
             return f"{address}\n(Coordenadas: {latitude}, {longitude})"
         else:
             return f"Latitude: {latitude}, Longitude: {longitude}"
-            
+
     except Exception as e:
         print(f"Error formatting coordinates: {e}")
         return f"Latitude: {latitude}, Longitude: {longitude}"
@@ -210,7 +210,7 @@ def generate_project_number():
     """Generate sequential project number"""
     from models import Projeto
     from app import db
-    
+
     try:
         last_project = Projeto.query.order_by(Projeto.id.desc()).first()
         if last_project:
@@ -221,7 +221,7 @@ def generate_project_number():
                     return f"PROJ-{last_num + 1:04d}"
                 except:
                     pass
-        
+
         # Default start
         return "PROJ-0001"
     except:
@@ -231,11 +231,11 @@ def generate_report_number():
     """Generate sequential report number"""
     from models import Relatorio
     from app import db
-    
+
     try:
         # Buscar todos os relatórios com números no formato REL-XXXX
         relatorios = Relatorio.query.filter(Relatorio.numero.like('REL-%')).all()
-        
+
         max_num = 0
         for relatorio in relatorios:
             if relatorio.numero and 'REL-' in relatorio.numero:
@@ -245,42 +245,69 @@ def generate_report_number():
                         max_num = num
                 except:
                     continue
-        
+
         # Retornar próximo número disponível
         return f"REL-{max_num + 1:04d}"
-        
+
     except:
         return "REL-0001"
 
 def generate_visit_number():
-    """Generate sequential visit number"""
+    """Gera número sequencial para visitas"""
     from models import Visita
-    from app import db
-    
-    try:
-        last_visit = Visita.query.order_by(Visita.id.desc()).first()
-        if last_visit:
-            # Extract number from existing format like "VIS-0001"
-            if last_visit.numero and 'VIS-' in last_visit.numero:
-                try:
-                    last_num = int(last_visit.numero.split('-')[1])
-                    return f"VIS-{last_num + 1:04d}"
-                except:
-                    pass
-        
-        # Default start
-        return "VIS-0001"
-    except:
-        return "VIS-0001"
+    from datetime import datetime
+
+    # Buscar último número do ano atual
+    ano_atual = datetime.now().year
+    prefixo = f"VIS{ano_atual}"
+
+    ultima_visita = Visita.query.filter(
+        Visita.numero.like(f"{prefixo}%")
+    ).order_by(Visita.numero.desc()).first()
+
+    if ultima_visita:
+        try:
+            ultimo_numero = int(ultima_visita.numero.replace(prefixo, ''))
+            novo_numero = ultimo_numero + 1
+        except:
+            novo_numero = 1
+    else:
+        novo_numero = 1
+
+    return f"{prefixo}{novo_numero:03d}"
+
+def generate_express_report_number():
+    """Gera número sequencial para relatórios express"""
+    from models import RelatorioExpress
+    from datetime import datetime
+
+    # Buscar último número do ano atual
+    ano_atual = datetime.now().year
+    prefixo = f"EXP{ano_atual}"
+
+    ultimo_relatorio = RelatorioExpress.query.filter(
+        RelatorioExpress.numero.like(f"{prefixo}%")
+    ).order_by(RelatorioExpress.numero.desc()).first()
+
+    if ultimo_relatorio:
+        try:
+            ultimo_numero = int(ultimo_relatorio.numero.replace(prefixo, ''))
+            novo_numero = ultimo_numero + 1
+        except:
+            novo_numero = 1
+    else:
+        novo_numero = 1
+
+    return f"{prefixo}{novo_numero:03d}"
 
 def send_report_email(report, email, name):
     """Send report via email"""
     from flask import current_app
     from flask_mail import Message, Mail
-    
+
     try:
         mail = Mail(current_app)
-        
+
         msg = Message(
             subject=f'Relatório {report.numero} - {report.projeto.nome if report.projeto else "Projeto"}',
             recipients=[email],
@@ -296,7 +323,7 @@ Atenciosamente,
 Sistema de Relatórios
 """
         )
-        
+
         mail.send(msg)
         return True
     except Exception as e:
@@ -307,11 +334,11 @@ def calculate_reimbursement_total(reembolso):
     """Calculate total reimbursement amount"""
     try:
         total = 0
-        
+
         # Kilometragem
         if reembolso.quilometragem and reembolso.valor_km:
             total += reembolso.quilometragem * reembolso.valor_km
-        
+
         # Other expenses
         if reembolso.alimentacao:
             total += reembolso.alimentacao
@@ -319,7 +346,7 @@ def calculate_reimbursement_total(reembolso):
             total += reembolso.hospedagem
         if reembolso.outros_gastos:
             total += reembolso.outros_gastos
-        
+
         return total
     except:
         return 0

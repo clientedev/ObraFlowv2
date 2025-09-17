@@ -92,23 +92,23 @@ input, textarea, select {
         padding: 8px 10px;
         margin: 2px;
     }
-    
+
     .btn-group-sm {
         justify-content: flex-start !important;
         flex-wrap: wrap !important;
         gap: 4px !important;
     }
-    
+
     .table td {
         padding: 8px 4px !important;
         vertical-align: middle;
     }
-    
+
     .table th {
         padding: 8px 4px !important;
         font-size: 14px;
     }
-    
+
     .badge {
         font-size: 11px;
         padding: 4px 6px;
@@ -122,11 +122,11 @@ input, textarea, select {
         padding: 6px 8px;
         font-size: 12px;
     }
-    
+
     .table {
         font-size: 13px;
     }
-    
+
     .card-body {
         padding: 12px;
     }
@@ -232,7 +232,7 @@ input, textarea, select {
                                                 <i class="fas fa-eye"></i>
                                                 <span class="d-none d-lg-inline ms-1">Ver</span>
                                             </a>
-                                            
+
                                             {% if relatorio.status == 'rascunho' %}
                                             <a href="{{ url_for('express_edit', id=relatorio.id) }}" 
                                                class="btn btn-outline-secondary btn-sm" title="Editar">
@@ -240,7 +240,7 @@ input, textarea, select {
                                                 <span class="d-none d-xl-inline ms-1">Editar</span>
                                             </a>
                                             {% endif %}
-                                            
+
                                             {% if relatorio.status == 'finalizado' %}
                                             <a href="{{ url_for('express_pdf', id=relatorio.id) }}" 
                                                class="btn btn-outline-danger btn-sm" title="Baixar PDF">
@@ -248,7 +248,7 @@ input, textarea, select {
                                                 <span class="d-none d-xl-inline ms-1">PDF</span>
                                             </a>
                                             {% endif %}
-                                            
+
                                             {% if current_user.is_master %}
                                             <button onclick="confirmarExclusao({{ relatorio.id }}, '{{ relatorio.numero }}')" 
                                                     class="btn btn-outline-danger btn-sm" title="Excluir">
@@ -294,7 +294,7 @@ input, textarea, select {
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-6">
             <div class="card border-primary">
                 <div class="card-header bg-primary text-white">
@@ -345,7 +345,7 @@ input, textarea, select {
 function confirmarExclusao(id, numero) {
     document.getElementById('relatorioNumero').textContent = numero;
     document.getElementById('formExcluir').action = `/express/${id}/delete`;
-    
+
     const modal = new bootstrap.Modal(document.getElementById('modalExcluir'));
     modal.show();
 }
