@@ -11,7 +11,7 @@ from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 class Base(DeclarativeBase):
     pass
@@ -23,7 +23,11 @@ csrf = CSRFProtect()
 
 # create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-change-in-production")
+# Require SESSION_SECRET for production security
+session_secret = os.environ.get("SESSION_SECRET")
+if not session_secret:
+    raise ValueError("SESSION_SECRET environment variable is required for production security")
+app.secret_key = session_secret
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # needed for url_for to generate with https
 
 # configure the database, relative to the app instance folder
@@ -47,12 +51,12 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 app.config["UPLOAD_FOLDER"] = "uploads"
-app.config["MAX_CONTENT_LENGTH"] = 3 * 1024 * 1024 * 1024  # 3GB max file size
+app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50MB max file size
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # File upload configuration
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
 # Ensure upload directory exists
 os.makedirs('uploads', exist_ok=True)
@@ -66,9 +70,9 @@ app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
 
-# CSRF Configuration - Disable for specific routes
+# CSRF Configuration - Enable for security
 app.config['WTF_CSRF_ENABLED'] = True
-app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Don't check CSRF by default
+app.config['WTF_CSRF_CHECK_DEFAULT'] = True  # Check CSRF by default for security
 app.config['WTF_CSRF_METHODS'] = ['POST', 'PUT', 'PATCH', 'DELETE']
 
 # initialize the app with the extension, flask-sqlalchemy >= 3.0.x
