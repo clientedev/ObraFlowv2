@@ -1,0 +1,55 @@
+Contexto curto:
+- Sistema web/PWA mobile-first para gestão de visitas e relatórios em obras. 
+- NÃO altere telas ou fluxos além do descrito abaixo.  
+- Objetivo: implementar, com profissionalismo e clareza 
+- Foque em responsividade e experiência mobile 
+
+Requisitos (implemente exatamente o que está descrito):
+
+7) Tela de Usuários (Administração)
+- Ajustar layout para remover rolagem horizontal (responsividade obrigatória).
+- Exibir todos os campos da tabela/listagem de usuários de forma acessível com rolagem somente vertical.
+- Garantir que colunas, textos e ações fiquem visíveis e legíveis em dispositivos mobile, sem cortar informações.
+- Manter consistência visual com demais telas de administração.
+
+8) Página de cadastro de obra
+- Remover os campos “Descrição” e “Tipos de Obra” do formulário e do backend.
+- Ajustar a tela para que a ausência desses campos não quebre o layout.
+- Backend: remover referências a esses campos (models, validações, APIs). Caso existam no banco, preparar migração para eliminar ou ignorar as colunas.
+
+9) Responsável pelo relatório (campo automático)
+- Remover o campo manual “Responsável” da tela de criação de relatório.
+- Implementar lógica: o sistema deve registrar automaticamente como “responsável” o nome do usuário logado que criou o relatório.
+- Este valor deve ser salvo no banco de dados junto ao relatório (sem necessidade de preenchimento manual).
+- O campo pode ser exibido em modo somente leitura nas telas de consulta/visualização, mas não editável.
+
+Expectativa de entrega (o que quero que você entregue junto com o código)
+- Frontend:
+  - Ajuste de layout para tela de usuários sem rolagem horizontal, apenas vertical.
+  - Formulário de cadastro de obra sem os campos “Descrição” e “Tipos de Obra”.
+  - Tela de criação de relatório sem o campo “Responsável”.
+- Backend:
+  - Atualização das rotas/validações de cadastro de obra (removendo campos).
+  - Ajuste na criação de relatório para preencher automaticamente o campo “Responsável” com base no usuário logado.
+  - Sugestão de migração para remover/ignorar as colunas `descricao` e `tipo_obra` (se existirem).
+- Segurança/Permissões:  o sistema deve usar o ID do usuário logado para identificar o responsável.
+
+Critérios de aceitação (QA)
+- Tela de usuários(tela de administrador) não apresenta rolagem horizontal em mobile (apenas vertical). 
+- Cadastro de obra não exibe nem aceita os campos “Descrição” e “Tipos de Obra”.
+- Criação de relatório não exibe campo manual “Responsável”.
+- Novo relatório criado registra automaticamente como responsável o usuário logado.
+- Nas telas de listagem/consulta de relatórios, o campo “Responsável” é exibido corretamente (não editável).
+- Todas as alterações funcionam em navegadores mobile (iOS/Android).
+
+Observações para implementação:
+- Seja preciso e claro no código e comentários.  
+- Evite alterações desnecessárias em fluxos já existentes.  
+- Teste em resoluções típicas de smartphones (mín. 360px de largura).  
+
+Entrega final:
+- Código atualizado (frontend + backend).  
+- Script/migração para remoção dos campos de obra (quando aplicável).  
+
+
+Trabalhe com profissionalismo e foco em eficiência. Obrigatório: clareza no que foi alterado e como validar.
