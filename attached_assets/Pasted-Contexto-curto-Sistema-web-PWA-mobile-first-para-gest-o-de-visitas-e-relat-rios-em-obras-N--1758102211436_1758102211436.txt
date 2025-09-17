@@ -1,0 +1,63 @@
+Contexto curto:
+- Sistema web/PWA mobile-first para gestão de visitas e relatórios em obras. 
+- NÃO altere o comportamento atual: a primeira tela após login continua sendo o DASHBOARD.
+- Objetivo: implementar, com profissionalismo e clareza, as 3 melhorias descritas abaixo. Peço código claro e minimalista, focado em responsividade/mobile, e instruções de teste.
+
+Requisitos (implemente exatamente o que está descrito):
+
+1) Botão direto para criação de relatório (comportamento correto)
+- Ao ABRIR a tela de VISUALIZAÇÃO de um projeto (ou seja, quando o usuário clicar para ver os detalhes do projeto a partir do dashboard), deve existir, no INÍCIO/topo da visualização do projeto, um botão primário e destacado: "Criar Relatório".
+- Não troque a tela inicial do sistema: manter o dashboard como primeira tela após login.
+- O botão deve ser claramente visível em telas mobile (tamanho, contraste, posição fixa no topo do conteúdo), e ser o primeiro CTA lógico da página de detalhes.
+- Ao clicar no botão, o sistema deve redirecionar para a tela de criação de relatório com o projeto identificado (veja item 2).
+
+2) Identificação automática de Projeto e Endereço na criação de relatório
+- Ao acionar "Criar Relatório" a partir da VIEW do projeto, a tela de criação deve abrir com:
+  - project_id preenchido (oculto) e project_name exibido (não-editável ou editável conforme UX), e
+  - endereço do projeto (campo de endereço preenchido com os dados cadastrados).
+- Não deve ser necessário procurar o projeto em lista nem clicar na localização para puxar o endereço: preencher automaticamente.
+- Comportamento de fallback: se o projeto não tiver endereço cadastrado, mostrar o campo endereço vazio e indicar "Endereço não cadastrado — preencha para continuar".
+- A navegação pode usar querystring (ex: /relatorios/novo?project_id=123) ou qualquer método seguro; o resultado final deve ser o mesmo: auto-populado e pronto para edição/assinatura.
+
+3) Configuração de Aprovador Padrão no Admin
+- Adicionar no menu de administração uma seção nova: "Configurações do Sistema → Aprovador Padrão".
+- A página deve:
+  - exibir o aprovador atual (se houver) e permitir buscar/selecionar um usuário ativo para ser o aprovador padrão;
+  - salvar a escolha como configuração global (ex: chave `default_report_approver_id` em tabela de configurações/genéricas).
+- Regras aplicadas ao criar relatório:
+  - Ao criar um novo relatório, se o campo "Aprovador" não for manualmente alterado, o sistema deve preencher automaticamente com o aprovador padrão configurado.
+  - O campo "Aprovador" na criação do relatório deve ser editável — o usuário pode sobrescrever o padrão se necessário.
+- Permissões: apenas usuários com perfil administrador/master podem acessar e alterar esta configuração.
+
+Expectativa de entrega (o que quero que você entregue junto com o código)
+- Frontend: os componentes/HTML/CSS/JS necessários para:
+  - botão "Criar Relatório" na view do projeto (mobile-first);
+  - tela de criação de relatório que aceita project_id e auto-popula nome e endereço;
+  - painel admin com interface para definir aprovador padrão.
+- Backend: mínima lógica necessária para:
+  - rota/endpoint que abra a criação de relatório com project_id (seguro);
+  - leitura do aprovador padrão nas configs e aplicação como valor inicial no relatório;
+  - migração/alteração de schema sugerida para armazenar `default_report_approver_id` (ex.: SQL ou ORM migration).
+- Segurança/Permissões: validação para garantir que apenas administradores alterem aprovador padrão e que o redirecionamento para criação de relatório respeite permissões do projeto.
+- Testes manuais rápidos: lista curta de passos para validar (ex.: 1. Login -> Dashboard -> abrir projeto X -> ver botão -> clicar -> ver campos preenchidos; 2. Admin -> Settings -> definir aprovador Y -> criar relatório -> confirmar aprovador Y pré-selecionado).
+- Critérios de aceitação (checklist) para cada item (ver abaixo).
+
+Critérios de aceitação (para QA)
+- Dashboard permanece a tela inicial após login.
+- Ao abrir um projeto (mobile), existe um botão visível "Criar Relatório" no topo da view do projeto.
+- Ao clicar no botão, a tela de criação abre com project_id, nome do projeto e endereço já preenchidos (ou campo vazio com aviso se endereço não cadastrado).
+- Admin > Configurações do Sistema permite definir aprovador padrão; apenas admins conseguem acessar.
+- Ao criar relatório, o campo "Aprovador" vem preenchido com o valor padrão (se existir) mas pode ser alterado pelo usuário.
+- Todas as mudanças funcionam em telas mobile (iPhone/Android em navegador), layout responsivo e botões tocáveis.
+
+Observações para implementação:
+- Seja preciso e claro no código e comentários. Evite mudanças de fluxo desnecessárias (ex: não tornar a criação de relatório a tela pós-login).
+- Otimize para mobile: botões com área de toque alta, texto legível e carregamento rápido.
+- Ao entregar, inclua instruções de deploy/como aplicar a migração e endpoints para teste.
+
+Entrega final:
+- Cole aqui os arquivos modificados/trechos principais (frontend + backend + migration).
+- Liste os comandos para aplicar migração e testar localmente.
+- Forneça o mini-plano de teste (passos 1–5) para que eu valide rapidamente no mobile.
+
+Trabalhe com profissionalismo e foco em eficiência e responsividade. Obrigatório: clareza no que foi alterado e como validar.
