@@ -875,12 +875,20 @@ function handlePhotoUpload(input) {
 
 // Mostrar modal de configuração de fotos
 function showPhotoConfigurationModal(files, category) {
+    console.log('🔧 MODAL DEBUG: category recebida =', category);
+    console.log('🔧 MODAL DEBUG: selectedCategory atual =', selectedCategory);
+    console.log('🔧 MODAL DEBUG: window.selectedPhotoCategory atual =', window.selectedPhotoCategory);
+    
+    // Garantir que temos uma categoria válida
+    const finalCategory = category || selectedCategory || window.selectedPhotoCategory;
+    console.log('🔧 MODAL DEBUG: categoria final =', finalCategory);
+    
     const preview = document.getElementById('selectedPhotosPreview');
     preview.innerHTML = `
         <div class="card border-primary">
             <div class="card-header bg-primary text-white">
                 <h6 class="mb-0">
-                    <i class="fas fa-cog"></i> Configurar ${files.length} foto(s) - Categoria: ${category}
+                    <i class="fas fa-cog"></i> Configurar ${files.length} foto(s) - Categoria: ${finalCategory}
                 </h6>
             </div>
             <div class="card-body">
@@ -908,7 +916,7 @@ function showPhotoConfigurationModal(files, category) {
                 const col = document.createElement('div');
                 col.className = 'col-md-6 col-lg-4 mb-4';
                 col.innerHTML = `
-                    <div class="card photo-config-card" data-photo-id="${photoId}" data-file-name="${file.name}" data-category="${category}">
+                    <div class="card photo-config-card" data-photo-id="${photoId}" data-file-name="${file.name}" data-category="${finalCategory}">
                         <img src="${e.target.result}" class="card-img-top" style="height: 200px; object-fit: cover;">
                         <div class="card-body p-3">
                             <div class="mb-2">
@@ -931,7 +939,9 @@ function showPhotoConfigurationModal(files, category) {
                 grid.appendChild(col);
 
                 // Carregar legendas para a categoria
-                loadLegends(photoId, category);
+                loadLegends(photoId, finalCategory);
+                
+                console.log('🔧 CARD DEBUG: photoId =', photoId, 'categoria =', finalCategory);
             };
             reader.readAsDataURL(file);
         }
@@ -1278,16 +1288,21 @@ function confirmPhotoConfiguration() {
     let validPhotos = 0;
     let photoConfigurations = [];
 
+    console.log('🔧 CONFIRM DEBUG: Encontrados', photoCards.length, 'cards de foto');
+
     photoCards.forEach(card => {
         const legendSelect = card.querySelector('.legend-select');
         const legend = legendSelect.value;
         const img = card.querySelector('img');
+        
+        console.log('🔧 CONFIRM DEBUG: card.dataset.category =', card.dataset.category);
+        console.log('🔧 CONFIRM DEBUG: legend =', legend);
 
         if (legend && img) {
             const photoConfig = {
                 data: img.src,  // Base64 da imagem (editada ou original)
                 legenda: legend,
-                categoria: card.dataset.category,
+                categoria: card.dataset.category || selectedCategory || window.selectedPhotoCategory,
                 originalName: card.dataset.fileName
             };
 
@@ -1298,10 +1313,12 @@ function confirmPhotoConfiguration() {
             const photoData = {
                 id: card.dataset.photoId,
                 fileName: card.dataset.fileName,
-                category: card.dataset.category,
+                category: card.dataset.category || selectedCategory || window.selectedPhotoCategory,
                 legend: legend,
                 imageData: img.src
             };
+            
+            console.log('🔧 CONFIRM DEBUG: photoData.category =', photoData.category);
 
             configuredPhotos.push(photoData);
         }
