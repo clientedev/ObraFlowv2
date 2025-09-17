@@ -41,37 +41,42 @@
     border-color: #007bff;
 }
 
-/* Mobile Touch Simples - Permite scroll natural */
+/* Mobile Touch - SCROLL COMPLETAMENTE LIVRE */
     @media (max-width: 768px) {
-        /* Categorias de fotos - permitir scroll normal */
+        /* Categorias de fotos - scroll 100% natural */
         .photo-category {
-            /* Área de toque adequada para mobile */
             min-height: 60px;
             min-width: 60px;
-            /* Permitir scroll normal */
-            touch-action: auto;
+            /* Remover TODAS as restrições de touch */
+            touch-action: auto !important;
             -webkit-user-select: none;
             user-select: none;
             cursor: pointer;
+            /* Garantir que não há interferência */
+            pointer-events: auto !important;
         }
 
-        /* Permitir interação normal em todos os inputs */
+        /* Todos os inputs e controles - interação normal */
         input[type="text"],
         input[type="date"], 
         input[type="file"],
         textarea,
         select,
         .form-control {
-            touch-action: auto;
+            touch-action: auto !important;
             -webkit-user-select: auto;
             user-select: auto;
         }
 
-        /* Containers permitem scroll normal */
+        /* Containers - scroll completamente livre */
         .container-fluid,
         .row,
-        .card-body {
-            touch-action: auto;
+        .card-body,
+        body,
+        html {
+            touch-action: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            overflow: auto !important;
         }
 </style>
 {% endblock %}
@@ -1726,21 +1731,20 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 {% endif %}
 
-// Sistema de touch otimizado para permitir scroll natural sobre categorias
+// Sistema de touch COMPLETAMENTE PASSIVO - permite scroll natural
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Sistema de touch natural carregado - Permitindo scroll');
+    console.log('🎯 Sistema de touch passivo carregado - SCROLL LIVRE');
 
-    // Configurações mais permissivas para permitir scroll
-    const TOUCH_THRESHOLD = 25; // pixels - aumentado para permitir mais movimento
-    const TOUCH_TIME_LIMIT = 800; // ms - aumentado para taps mais lentos
+    // Configurações super restritivas para evitar conflitos
+    const TOUCH_THRESHOLD = 15; // pixels - menor threshold
+    const TOUCH_TIME_LIMIT = 300; // ms - tempo muito restrito para tap
 
     let touchData = {
         startX: 0,
         startY: 0,
         startTime: 0,
-        isDragging: false,
-        element: null,
-        scrollStarted: false
+        moved: false,
+        element: null
     };
 
     // Função para seleção de categoria
@@ -1754,11 +1758,6 @@ document.addEventListener('DOMContentLoaded', function() {
         element.classList.add('selected');
         selectedCategory = category; // Atualizar variável global
 
-        // Feedback tátil suave
-        if (navigator.vibrate) {
-            navigator.vibrate(30);
-        }
-
         console.log('📷 Categoria selecionada:', category);
 
         // Habilitar botões de upload
@@ -1771,85 +1770,69 @@ document.addEventListener('DOMContentLoaded', function() {
         updatePhotoInput();
     }
 
-    // Event listeners para categorias - MODO HÍBRIDO
+    // Event listeners para categorias - APENAS OBSERVAÇÃO
     document.querySelectorAll('.photo-category').forEach(categoryElement => {
 
-        // Touch Start - Não bloquear scroll
+        // Touch Start - APENAS registrar início
         categoryElement.addEventListener('touchstart', function(e) {
-            // NÃO prevenir o comportamento padrão - permitir scroll
-            
+            // NUNCA prevenir - 100% passivo
             const touch = e.touches[0];
             touchData.startX = touch.clientX;
             touchData.startY = touch.clientY;
             touchData.startTime = Date.now();
-            touchData.isDragging = false;
-            touchData.scrollStarted = false;
+            touchData.moved = false;
             touchData.element = categoryElement;
 
-            // Feedback visual suave
-            categoryElement.style.transform = 'scale(0.98)';
-            
-            console.log('👆 TouchStart - modo híbrido');
-        }, { passive: true }); // Passive = true permite scroll nativo
+            console.log('👆 TouchStart passivo registrado');
+        }, { passive: true });
 
-        // Touch Move - Detectar intenção de scroll
+        // Touch Move - APENAS detectar movimento
         categoryElement.addEventListener('touchmove', function(e) {
             if (!touchData.element) return;
 
             const touch = e.touches[0];
             const deltaX = Math.abs(touch.clientX - touchData.startX);
             const deltaY = Math.abs(touch.clientY - touchData.startY);
-            const totalDelta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-            // Se movimento significativo (scroll), marcar como drag
-            if (totalDelta > TOUCH_THRESHOLD) {
-                touchData.isDragging = true;
-                touchData.scrollStarted = true;
-                
-                // Remover feedback visual
-                categoryElement.style.transform = '';
-                
-                console.log('🔄 Scroll detectado - permitindo navegação');
+            
+            // Qualquer movimento > threshold = não é tap
+            if (deltaX > TOUCH_THRESHOLD || deltaY > TOUCH_THRESHOLD) {
+                touchData.moved = true;
+                console.log('🔄 Movimento detectado - NÃO é tap');
             }
         }, { passive: true });
 
-        // Touch End - Selecionar apenas se não houve scroll
+        // Touch End - Processar apenas se foi tap estatico
         categoryElement.addEventListener('touchend', function(e) {
-            // Remover feedback visual
-            categoryElement.style.transform = '';
-            
             if (!touchData.element) return;
 
             const touchDuration = Date.now() - touchData.startTime;
 
-            // Selecionar APENAS se foi um tap rápido SEM scroll
-            if (!touchData.isDragging && !touchData.scrollStarted && touchDuration < TOUCH_TIME_LIMIT) {
-                // Pequeno delay para não interferir com scroll
+            // Condições MUITO restritivas para considerar tap
+            if (!touchData.moved && touchDuration < TOUCH_TIME_LIMIT) {
+                // Aguardar um pouco para garantir que não há scroll em andamento
                 setTimeout(() => {
                     const category = categoryElement.getAttribute('data-category');
                     selectPhotoCategory(category, categoryElement);
-                    console.log('✅ Tap válido sem scroll - categoria selecionada');
-                }, 50);
+                    console.log('✅ Tap estático detectado - categoria selecionada');
+                }, 100);
             } else {
-                console.log('✅ Scroll permitido - categoria não alterada');
+                console.log('✅ Movimento/tempo excedido - ignorando seleção');
             }
 
             // Reset
             touchData.element = null;
-            touchData.isDragging = false;
-            touchData.scrollStarted = false;
-        }, { passive: true }); // Passive = true é crucial para não bloquear scroll
+            touchData.moved = false;
+        }, { passive: true });
 
-        // Mouse events para desktop (sem mudanças)
+        // Mouse events para desktop - sem mudanças
         categoryElement.addEventListener('click', function(e) {
-            // Desktop sempre funciona normalmente
             const category = categoryElement.getAttribute('data-category');
             selectPhotoCategory(category, categoryElement);
             console.log('🖱️ Click desktop - categoria selecionada');
         });
     });
 
-    console.log('✅ Sistema híbrido ativo - scroll PERMITIDO sobre', document.querySelectorAll('.photo-category').length, 'categorias');
+    console.log('✅ Sistema PASSIVO ativo - scroll LIVRE sobre', document.querySelectorAll('.photo-category').length, 'categorias');
 });
 
 // Função global para compatibilidade
