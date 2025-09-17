@@ -582,8 +582,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Chamar setup
     setupCategoryListeners();
     
-    // Event listener para upload de fotos
-    document.getElementById('photoInput').addEventListener('change', handlePhotoUpload);
+    // Event listeners para upload de fotos com error handling
+    const photoInput = document.getElementById('photoInput');
+    const cameraInput = document.getElementById('cameraInput');
+    
+    if (photoInput) {
+        photoInput.addEventListener('change', handlePhotoUpload);
+    } else {
+        console.warn('Photo input element not found');
+    }
+    
+    if (cameraInput) {
+        cameraInput.addEventListener('change', handlePhotoUpload);
+    } else {
+        console.warn('Camera input element not found');
+    }
     
     // Event listeners para ferramentas - OTIMIZADO PARA MOBILE
     document.querySelectorAll('.tool-btn').forEach(btn => {
@@ -762,6 +775,35 @@ function handlePhotoUpload(event) {
     console.log('✅ Upload concluído. Total de fotos:', selectedPhotos.length);
 }
 
+// Camera and gallery functions with error handling
+function selectFromGallery() {
+    if (!selectedCategory) {
+        alert('Selecione uma categoria antes de adicionar fotos.');
+        return;
+    }
+    const photoInput = document.getElementById('photoInput');
+    if (photoInput) {
+        photoInput.click();
+    } else {
+        console.warn('Photo input element not found');
+    }
+}
+
+function captureFromCamera() {
+    if (!selectedCategory) {
+        alert('Selecione uma categoria antes de adicionar fotos.');
+        return;
+    }
+    const cameraInput = document.getElementById('cameraInput');
+    if (cameraInput) {
+        cameraInput.click();
+    } else {
+        console.warn('Camera input element not found');
+    }
+}
+
+// Remove duplicate updatePhotoInput function (already exists below)
+
 function addPhotoPreview(file, category) {
     console.log('🖼️ Adicionando preview da foto:', file.name, 'Categoria:', category);
     
@@ -910,9 +952,22 @@ function updatePhotoInput() {
         input.disabled = false;
         input.style.opacity = '1';
         input.style.pointerEvents = 'auto';
-        console.log('✅ Input de fotos habilitado');
+        
+        // Enable camera and gallery buttons with null checks
+        const galleryBtn = document.getElementById('galleryBtn');
+        const cameraBtn = document.getElementById('cameraBtn');
+        if (galleryBtn) galleryBtn.disabled = false;
+        if (cameraBtn) cameraBtn.disabled = false;
+        
+        console.log('✅ Input de fotos e botões habilitados');
     } else {
         input.disabled = true;
+        
+        // Disable camera and gallery buttons with null checks
+        const galleryBtn = document.getElementById('galleryBtn');
+        const cameraBtn = document.getElementById('cameraBtn');
+        if (galleryBtn) galleryBtn.disabled = true;
+        if (cameraBtn) cameraBtn.disabled = true;
         input.style.opacity = '0.5';
         input.style.pointerEvents = 'none';
         console.log('⚠️ Input de fotos desabilitado');

@@ -755,13 +755,18 @@ function selectPhotoCategory(category, element) {
     console.log(`Categoria selecionada: ${category}`);
 }
 
-// Camera and gallery functions
+// Camera and gallery functions with error handling
 function selectFromGallery() {
     if (!selectedCategory) {
         alert('Selecione uma categoria antes de adicionar fotos.');
         return;
     }
-    document.getElementById('photoInput').click();
+    const photoInput = document.getElementById('photoInput');
+    if (photoInput) {
+        photoInput.click();
+    } else {
+        console.warn('Photo input element not found');
+    }
 }
 
 function captureFromCamera() {
@@ -769,7 +774,12 @@ function captureFromCamera() {
         alert('Selecione uma categoria antes de adicionar fotos.');
         return;
     }
-    document.getElementById('cameraInput').click();
+    const cameraInput = document.getElementById('cameraInput');
+    if (cameraInput) {
+        cameraInput.click();
+    } else {
+        console.warn('Camera input element not found');
+    }
 }
 
 function handleCameraCapture(input) {

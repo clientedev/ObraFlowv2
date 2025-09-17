@@ -1010,8 +1010,33 @@ function selectCategory(category) {
     
     // Show upload zone
     document.getElementById('photoUploadZone').style.display = 'block';
-    
-    console.log(`Categoria selecionada: ${category}`);
+}
+
+// Camera and gallery functions with error handling
+function selectFromGallery() {
+    if (!selectedCategory) {
+        alert('Selecione uma categoria antes de adicionar fotos.');
+        return;
+    }
+    const photoInput = document.getElementById('photoInput');
+    if (photoInput) {
+        photoInput.click();
+    } else {
+        console.warn('Photo input element not found');
+    }
+}
+
+function captureFromCamera() {
+    if (!selectedCategory) {
+        alert('Selecione uma categoria antes de adicionar fotos.');
+        return;
+    }
+    const cameraInput = document.getElementById('cameraInput');
+    if (cameraInput) {
+        cameraInput.click();
+    } else {
+        console.warn('Camera input element not found');
+    }
 }
 
 function handlePhotoUpload(files) {
