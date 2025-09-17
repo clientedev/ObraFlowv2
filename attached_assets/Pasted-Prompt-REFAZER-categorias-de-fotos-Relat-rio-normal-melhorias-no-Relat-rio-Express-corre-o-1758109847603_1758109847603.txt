@@ -1,0 +1,84 @@
+Prompt — REFAZER: categorias de fotos (Relatório normal) + melhorias no Relatório Express — correção touch, remoção de emoji e garantia de 100% funcionamento
+
+Contexto curto:
+- Sistema web/PWA mobile-first para gestão de visitas e relatórios em obras.
+- Existem dois fluxos: **Relatório** (normal) e **Relatório Express**. Ambos usam seção de categorias de fotos.
+- Foram anexadas imagens de referência:
+  - `eeee8618-6477-4dbc-8064-b8b6bd1f661b_1758108075263.jpg` → Relatório Express (categoria com rolagem horizontal indesejada).
+  - `315ba7c8-fee1-4d9a-84eb-55cfa4952d42_1758108083415.jpg` → Relatório normal (visual desejado).
+- Observação crítica: a seção de categorias do **Relatório normal** está com comportamento de scroll/touch quebrado — **peça expressa**: **apagar e refazer do zero** essa componente/feature, não apenas tentar consertar handlers existentes. Depois, aplique as mesmas melhorias e correções ao Relatório Express, garantindo 100% de funcionamento em ambos.
+
+Requisitos obrigatórios (implemente exatamente isto):
+
+1) Apagar e refazer a componente de categorias do **Relatório normal** (do zero)
+- Excluir o componente/JS/CSS atual responsável pela lista de categorias do Relatório normal.
+- Recriar a componente com comportamento mobile-first, sem rolagem horizontal (ou com comportamento controlado que não cause overflow-x).
+- A componente deve suportar:
+  - Listagem de categorias (ex.: Torre 1, Torre 2, Área Comum, Piscina) exibidas de forma responsiva (quebrando em linhas ou layout compatível com design).
+  - Seleção via **tap/click**.
+  - Scroll por **arraste/drag** quando aplicável (se houver overflow controlado), sem que o gesto seja interpretado como seleção.
+- Se houver duplicação de código entre Relatório normal e Relatório Express, centralize a lógica em um componente reutilizável e importe nos dois fluxos.
+
+2) Aplicar mesmas melhorias e garantir funcionamento 100% no **Relatório Express**
+- Fazer as alterações necessárias no Relatório Express para que a seção de categorias tenha comportamento idêntico/consistente com o Relatório normal (visual + touch).
+- Eliminar rolagem horizontal indesejada e renderizar categorias seguindo o mesmo padrão do Relatório normal (usar a imagem `315b...415.jpg` como referência).
+
+3) Correção e robustez do touch (tap vs drag) — solução robusta e cross-browser
+- Detectar e diferenciar claramente **tap** e **drag** usando pointer/touch events (ou biblioteca leve), com threshold de movimento (ex.: 8–15px) e tratamento de direção para evitar false positives (vertical vs horizontal).
+- Lógica esperada:
+  - touchstart / pointerdown: registrar posição inicial e timestamp.
+  - touchmove / pointermove: calcular deslocamento; se > threshold => isDragging = true (não disparar seleção).
+  - touchend / pointerup: se isDragging === false e duração curta => trigger seleção (tap).
+- Ajustar CSS/atributos para permitir rolagem nativa quando necessário (`touch-action` apropriado, evitar preventDefault() que bloqueie scroll).
+- Garantir suporte a mouse events (desktop) e pointer events (recomendado) para compatibilidade.
+- Testar e ajustar para iOS Safari e Android Chrome.
+
+4) Remoção do emoji no Relatório normal
+- Remover o emoji/badge (ex.: “new”/emoji) que aparece ao lado do título da imagem no Relatório normal.
+- Se a inserção for condicional, desative essa inserção para o módulo de imagens; mantenha lógica somente se houver justificativa UX documentada.
+
+5) Qualidade e garantia (garanta funcionamento 100%)
+- O módulo refatorado deve funcionar sem falhas em ambos os relatórios, em navegadores móveis reais (iOS Safari, Android Chrome).
+- Não aceitar soluções “parciais” — o requisito é funcionamento correto de **tap** e **drag** e aparência sem scroll horizontal onde não desejado.
+- Se houver limitações técnicas (ex.: devido a biblioteca/framework), documentar e propor alternativa viável com justificativa.
+
+Expectativa de entrega (obrigatório):
+- Código completo da componente refatorada + alterações nos pontos de uso (Relatório normal e Express).
+- Lista dos arquivos modificados e um **diff** curto ou trechos principais.
+- Explicação clara do **root cause** (por que o antigo comportamento estava falhando) e descrição das mudanças feitas.
+- Antes/depois: screenshots ou GIFs mostrando comportamento prévio e pós-implementação.
+- Passos de QA manuais e automatizados (se aplicável).
+- Instruções para rodar localmente e reproduzir (comandos, URLs).
+- Nota sobre compatibilidade (iOS/Android) e ajustes feitos para cada plataforma, se houver.
+
+Critérios de aceitação (QA — checklist obrigatório):
+- [ ] O componente do **Relatório normal** foi apagado e refeito do zero.
+- [ ] Em **Relatório normal** e **Relatório Express**:
+  - [ ] As categorias aparecem sem rolagem horizontal indesejada (layout coerente com referência).
+  - [ ] Tap rápido em uma categoria seleciona a categoria.
+  - [ ] Pressionar e **arrastar** permite deslizar/scroll sem selecionar categorias acidentalmente.
+  - [ ] Drag que excede o threshold não dispara seleção.
+  - [ ] Testado e funcionando em iOS Safari e Android Chrome reais.
+- [ ] Emoji/badge ao lado do título da imagem no Relatório normal foi removido.
+- [ ] Entregues diffs, root cause e imagens/GIFs antes/depois.
+- [ ] Testes manuais documentados e validados.
+
+Passos sugeridos para QA (teste manual rápido):
+1. Login → Dashboard → Abrir projeto → Entrar em **Relatório normal**.
+2. Confirmar que a componente antiga foi substituída (visual novo). Verificar ausência de rolagem horizontal na área de categorias.
+3. Tocar uma categoria (tap): categoria é selecionada.
+4. Pressionar e arrastar na área de categorias: a área desliza/scroll sem seleção.
+5. Repetir no **Relatório Express** (usar `eeee...763.jpg` como referência) e confirmar comportamento idêntico.
+6. Verificar que o título da imagem no Relatório normal não mostra emoji.
+7. Anexar screenshots/GIFs do fluxo completo.
+
+Observações finais:
+- Não altere outros fluxos além dos especificados. Não torne a criação de relatório a tela pós-login.  
+- Se for necessário migrar ou atualizar dependência, avise e documente comando de deploy.  
+- Trabalhe com clareza no código e comentários; priorize uma solução robusta e testável.
+
+Entrega final:
+- Cole aqui os arquivos alterados/diffs, a explicação do root cause, screenshots/GIFs antes/depois e instruções de teste.
+- Confirmar por mensagem que ambos os relatórios estão 100% funcionais no mobile.
+
+Trabalhe com precisão e foco em mobile — obrigatório: apagar e refazer o componente do Relatório normal e garantir o mesmo padrão e funcionamento perfeito no Relatório Express.
