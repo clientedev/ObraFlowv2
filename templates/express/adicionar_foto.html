@@ -11,12 +11,14 @@
     border-radius: 10px;
     margin-bottom: 2rem;
 }
+
 .upload-form {
     background-color: #f8f9fa;
     border: 1px solid #dee2e6;
     border-radius: 10px;
     padding: 2rem;
 }
+
 .photo-preview {
     display: none;
     max-width: 100%;
@@ -26,6 +28,7 @@
     border-radius: 8px;
     margin: 10px 0;
 }
+
 .file-drop-zone {
     border: 2px dashed #28a745;
     border-radius: 10px;
@@ -34,14 +37,30 @@
     transition: all 0.3s ease;
     cursor: pointer;
 }
+
 .file-drop-zone:hover {
     background-color: #f0f8f0;
     border-color: #20c997;
 }
+
 .file-drop-zone.dragover {
     background-color: #e8f5e8;
     border-color: #1e7e34;
 }
+
+.category-selection {
+    background: white;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.category-selection.selected {
+    border-color: #28a745;
+    background-color: #f8fff8;
+}
+
 @media (max-width: 768px) {
     .express-header {
         padding: 1rem;
@@ -65,7 +84,7 @@
                     <p class="mb-0">Relatório Express: <strong>{{ relatorio.numero }}</strong></p>
                 </div>
                 <div>
-                    <a href="{{ url_for('relatorio_express_detalhes', relatorio_id=relatorio.id) }}" 
+                    <a href="{{ url_for('express_detail', id=relatorio.id) }}" 
                        class="btn btn-light">
                         <i class="fas fa-arrow-left me-2"></i>Voltar
                     </a>
@@ -78,8 +97,25 @@
             <form method="POST" enctype="multipart/form-data" id="uploadForm">
                 {{ form.hidden_tag() }}
                 
+                <!-- Seleção de Categoria OBRIGATÓRIA -->
+                <div class="category-selection">
+                    <h5><i class="fas fa-tag me-2"></i>Categoria da Foto *</h5>
+                    <p class="text-muted mb-3">Selecione a categoria antes de adicionar a foto:</p>
+                    
+                    {{ form.tipo_servico.label(class="form-label") }}
+                    {{ form.tipo_servico(class="form-select form-select-lg", id="categoria") }}
+                    
+                    {% if form.tipo_servico.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.tipo_servico.errors %}
+                                <small><i class="fas fa-exclamation-triangle me-1"></i>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
                 <!-- Zona de Upload -->
-                <div class="file-drop-zone mb-4" onclick="document.getElementById('foto').click()" 
+                <div class="file-drop-zone mb-4" id="dropZone" onclick="document.getElementById('foto').click()" 
                      ondrop="dropHandler(event)" ondragover="dragOverHandler(event)" ondragenter="dragEnterHandler(event)" ondragleave="dragLeaveHandler(event)">
                     
                     <i class="fas fa-cloud-upload-alt fa-3x text-success mb-3"></i>
@@ -89,26 +125,32 @@
                         Sem limite individual de arquivo
                     </p>
                     
-                    {{ form.foto(class="d-none", id="foto", onchange="previewImage(this)") }}
+                    <input type="file" id="foto" name="foto" class="d-none" accept="image/*" onchange="previewImage(this)" required>
                 </div>
-
-                {% if form.foto.errors %}
-                    <div class="alert alert-danger">
-                        {% for error in form.foto.errors %}
-                            <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}<br>
-                        {% endfor %}
-                    </div>
-                {% endif %}
 
                 <!-- Preview da Imagem -->
                 <div class="text-center mb-4">
                     <img id="imagePreview" class="photo-preview" alt="Preview da foto">
                 </div>
 
+                <!-- Campo de Título -->
+                <div class="mb-3">
+                    {{ form.titulo.label(class="form-label") }}
+                    {{ form.titulo(class="form-control", placeholder="Ex: Vista geral da fachada", id="titulo") }}
+                    
+                    {% if form.titulo.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.titulo.errors %}
+                                <small><i class="fas fa-exclamation-triangle me-1"></i>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
                 <!-- Campo de Legenda -->
-                <div class="mb-4">
+                <div class="mb-3">
                     {{ form.legenda.label(class="form-label") }}
-                    {{ form.legenda(class="form-control", placeholder="Ex: Vista geral da fachada principal") }}
+                    {{ form.legenda(class="form-control", placeholder="Ex: Detalhe da estrutura de concreto", id="legenda") }}
                     
                     {% if form.legenda.errors %}
                         <div class="text-danger mt-1">
@@ -124,13 +166,27 @@
                     </small>
                 </div>
 
+                <!-- Campo de Descrição -->
+                <div class="mb-4">
+                    {{ form.descricao.label(class="form-label") }}
+                    {{ form.descricao(class="form-control", placeholder="Descrição detalhada da foto...", id="descricao") }}
+                    
+                    {% if form.descricao.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.descricao.errors %}
+                                <small><i class="fas fa-exclamation-triangle me-1"></i>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
                 <!-- Botões -->
                 <div class="d-flex justify-content-between">
-                    <a href="{{ url_for('relatorio_express_detalhes', relatorio_id=relatorio.id) }}" 
+                    <a href="{{ url_for('express_detail', id=relatorio.id) }}" 
                        class="btn btn-secondary">
                         <i class="fas fa-times me-2"></i>Cancelar
                     </a>
-                    <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled>
+                    <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
                         <i class="fas fa-check me-2"></i>Adicionar Foto
                     </button>
                 </div>
@@ -140,8 +196,9 @@
         <!-- Dicas -->
         <div class="mt-4">
             <div class="alert alert-info">
-                <h6><i class="fas fa-lightbulb me-2"></i>Dicas para boas fotos:</h6>
+                <h6><i class="fas fa-lightbulb me-2"></i>Dicas para Express Reports:</h6>
                 <ul class="mb-0">
+                    <li><strong>Categoria obrigatória:</strong> Selecione sempre uma categoria antes de adicionar</li>
                     <li>Use boa iluminação natural quando possível</li>
                     <li>Mantenha a câmera estável para evitar borramento</li>
                     <li>Capture detalhes importantes e visões gerais</li>
@@ -156,8 +213,9 @@
 
 {% block extra_scripts %}
 <script>
-// Variável para controlar se temos imagem selecionada
+// Variáveis para controlar estado
 let hasImage = false;
+let hasCategory = false;
 
 // Função de preview da imagem
 function previewImage(input) {
@@ -174,13 +232,54 @@ function previewImage(input) {
     }
 }
 
+// Verificar seleção de categoria
+function checkCategory() {
+    const categoria = document.getElementById('categoria');
+    hasCategory = categoria.value !== '';
+    
+    const categoryBox = document.querySelector('.category-selection');
+    if (hasCategory) {
+        categoryBox.classList.add('selected');
+    } else {
+        categoryBox.classList.remove('selected');
+    }
+    
+    updateSubmitButton();
+}
+
+// Atualizar estado do botão de submit
+function updateSubmitButton() {
+    const submitBtn = document.getElementById('submitBtn');
+    const dropZone = document.getElementById('dropZone');
+    
+    // Habilitar zona de upload apenas se categoria for selecionada
+    if (hasCategory) {
+        dropZone.style.opacity = '1';
+        dropZone.style.pointerEvents = 'all';
+    } else {
+        dropZone.style.opacity = '0.5';
+        dropZone.style.pointerEvents = 'none';
+    }
+    
+    // Habilitar submit apenas se tiver categoria E imagem
+    submitBtn.disabled = !(hasImage && hasCategory);
+}
+
 // Funções de drag and drop
 function dragOverHandler(ev) {
+    if (!hasCategory) {
+        ev.preventDefault();
+        return false;
+    }
     ev.preventDefault();
     ev.currentTarget.classList.add('dragover');
 }
 
 function dragEnterHandler(ev) {
+    if (!hasCategory) {
+        ev.preventDefault();
+        return false;
+    }
     ev.preventDefault();
 }
 
@@ -189,6 +288,12 @@ function dragLeaveHandler(ev) {
 }
 
 function dropHandler(ev) {
+    if (!hasCategory) {
+        ev.preventDefault();
+        alert('Por favor, selecione uma categoria antes de adicionar fotos.');
+        return false;
+    }
+    
     ev.preventDefault();
     ev.currentTarget.classList.remove('dragover');
     
@@ -209,64 +314,49 @@ function dropHandler(ev) {
     }
 }
 
-// Função para atualizar estado do botão de submit
-function updateSubmitButton() {
-    const submitBtn = document.getElementById('submitBtn');
-    const legenda = document.getElementById('legenda').value.trim();
-    
-    submitBtn.disabled = !(hasImage && legenda.length > 0);
-}
-
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Listener para mudanças na legenda
-    document.getElementById('legenda').addEventListener('input', updateSubmitButton);
-    
-    // Contador de caracteres para legenda
-    const legendaField = document.getElementById('legenda');
-    const maxLength = 500;
-    
-    const counter = document.createElement('small');
-    counter.className = 'form-text text-muted float-end';
-    legendaField.parentNode.appendChild(counter);
-    
-    function updateCounter() {
-        const remaining = maxLength - legendaField.value.length;
-        counter.textContent = `${legendaField.value.length}/${maxLength} caracteres`;
-        
-        if (remaining < 50) {
-            counter.className = 'form-text text-warning float-end';
-        } else if (remaining < 0) {
-            counter.className = 'form-text text-danger float-end';
-        } else {
-            counter.className = 'form-text text-muted float-end';
-        }
-        
-        updateSubmitButton();
+    // Listener para mudanças na categoria
+    const categoriaEl = document.getElementById('categoria');
+    if (categoriaEl) {
+        categoriaEl.addEventListener('change', checkCategory);
     }
     
-    legendaField.addEventListener('input', updateCounter);
-    updateCounter();
+    // Listener para mudanças na legenda
+    const legendaEl = document.getElementById('legenda');
+    if (legendaEl) {
+        legendaEl.addEventListener('input', updateSubmitButton);
+    }
+    
+    // Verificar estado inicial
+    checkCategory();
+    updateSubmitButton();
+    
+    // Interceptar clique na zona de upload
+    const dropZoneEl = document.getElementById('dropZone');
+    if (dropZoneEl) {
+        dropZoneEl.addEventListener('click', function(e) {
+            if (!hasCategory) {
+                e.preventDefault();
+                alert('Selecione uma categoria antes de adicionar fotos.');
+                return false;
+            }
+        });
+    }
 });
 
 // Validação do formulário
 document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    if (!hasCategory) {
+        e.preventDefault();
+        alert('Por favor, selecione uma categoria antes de continuar.');
+        document.getElementById('categoria').focus();
+        return false;
+    }
+    
     if (!hasImage) {
         e.preventDefault();
         alert('Por favor, selecione uma foto antes de continuar.');
-        return false;
-    }
-    
-    const legenda = document.getElementById('legenda').value.trim();
-    if (!legenda) {
-        e.preventDefault();
-        alert('Por favor, adicione uma legenda para a foto.');
-        return false;
-    }
-    
-    if (legenda.length < 5) {
-        e.preventDefault();
-        alert('A legenda deve ter pelo menos 5 caracteres.');
         return false;
     }
     

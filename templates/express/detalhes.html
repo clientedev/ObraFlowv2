@@ -335,6 +335,9 @@
                         <a href="{{ url_for('express_edit', id=relatorio.id) }}" class="btn btn-primary">
                             <i class="fas fa-edit"></i> Editar Relatório
                         </a>
+                        <a href="{{ url_for('relatorio_express_adicionar_foto', relatorio_id=relatorio.id) }}" class="btn btn-success">
+                            <i class="fas fa-camera"></i> Adicionar Foto
+                        </a>
                         {% endif %}
                         
                         {% if relatorio.status == 'finalizado' %}

@@ -4205,6 +4205,70 @@ def express_delete(id):
 
 # Rotas antigas removidas - sistema express agora é standalone
 
+@app.route('/relatorio-express/<int:relatorio_id>/adicionar-foto', methods=['GET', 'POST'])
+@login_required
+def relatorio_express_adicionar_foto(relatorio_id):
+    """Adicionar foto individual a um relatório express existente"""
+    relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_list'))
+    
+    # Apenas rascunhos podem ter fotos adicionadas
+    if relatorio.status != 'rascunho':
+        flash('Apenas rascunhos podem ter fotos adicionadas.', 'warning')
+        return redirect(url_for('express_detail', id=relatorio_id))
+    
+    form = FotoExpressForm()
+    
+    if form.validate_on_submit():
+        foto_file = request.files.get('foto')
+        if foto_file and foto_file.filename:
+            try:
+                # Validar se é uma categoria válida
+                if not form.tipo_servico.data:
+                    flash('Por favor, selecione uma categoria para a foto.', 'error')
+                    return render_template('express/adicionar_foto.html', form=form, relatorio=relatorio)
+                
+                # Salvar arquivo
+                filename = secure_filename(foto_file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_filename = f"express_{relatorio_id}_{timestamp}_{filename}"
+                
+                upload_folder = os.path.join(current_app.static_folder, 'uploads')
+                if not os.path.exists(upload_folder):
+                    os.makedirs(upload_folder)
+                
+                foto_path = os.path.join(upload_folder, unique_filename)
+                foto_file.save(foto_path)
+                
+                # Criar registro da foto
+                foto_express = FotoRelatorioExpress()
+                foto_express.relatorio_express_id = relatorio_id
+                foto_express.filename = unique_filename
+                foto_express.filename_original = filename
+                foto_express.ordem = FotoRelatorioExpress.query.filter_by(relatorio_express_id=relatorio_id).count() + 1
+                foto_express.titulo = form.titulo.data or ''
+                foto_express.legenda = form.legenda.data or ''
+                foto_express.descricao = form.descricao.data or ''
+                foto_express.tipo_servico = form.tipo_servico.data
+                
+                db.session.add(foto_express)
+                db.session.commit()
+                
+                flash('Foto adicionada com sucesso!', 'success')
+                return redirect(url_for('express_detail', id=relatorio_id))
+                
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Erro ao adicionar foto: {str(e)}', 'error')
+        else:
+            flash('Por favor, selecione uma foto válida.', 'error')
+    
+    return render_template('express/adicionar_foto.html', form=form, relatorio=relatorio)
+
 @app.route('/relatorio-express/<int:relatorio_id>/remover-foto/<int:foto_id>', methods=['POST'])
 @login_required
 @csrf.exempt
