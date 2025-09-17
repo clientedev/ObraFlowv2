@@ -1,0 +1,59 @@
+Contexto curto:
+- Sistema web/PWA mobile-first para gestão de visitas e relatórios em obras. 
+- Existem dois fluxos principais: Relatório padrão e Relatório Express.  
+- Todas as melhorias descritas abaixo DEVEM ser aplicadas de forma idêntica nos dois fluxos.  
+- Foi enviada uma imagem com a seção de categorias de fotos destacada em rosa: esta é a área exata com falha de toque que deve ser corrigida.  
+- Objetivo: corrigir e aprimorar o módulo de fotos com profissionalismo, clareza e foco em usabilidade mobile.  
+
+Requisitos (implemente exatamente o que está descrito):
+
+4) Ajustar categorias de fotos
+- Substituir categorias atuais (ex: Geral, Estrutura, Acabamento, etc.) por categorias personalizadas: Torre 1, Torre 2, Área Comum, Piscina.  
+- Corrigir falhas de toque na seção de categorias (destacada em rosa na imagem anexada): hoje o app não desliza corretamente quando o usuário interage.  
+- Garantir que:
+  - O toque em uma categoria funcione de forma responsiva.  
+  - O scroll horizontal/vertical da tela continue funcionando normalmente.  
+  - A mudança de categoria seja imediata e sem travamentos.  
+- Implementar navegação fluida entre categorias em mobile (gestos e cliques devem responder rapidamente).  
+
+5) Captura de foto direto no app
+- Incluir funcionalidade para capturar fotos diretamente pela câmera do dispositivo.  
+- O usuário deve ter duas opções ao adicionar foto:  
+  1. Selecionar da galeria.  
+  2. Tirar foto na hora.  
+- O fluxo de captura deve abrir a câmera nativa do dispositivo e, após confirmar a foto, integrá-la ao relatório.  
+- Garantir compatibilidade com dispositivos iOS e Android.  
+
+6) Legenda de fotos – correção de bug
+- Corrigir bug atual: ao adicionar legenda em uma foto, a mesma legenda está sendo aplicada em todas.  
+- Ajustar para que cada foto mantenha sua legenda independente, vinculada somente àquela imagem.  
+- Tornar legenda opcional (não obrigatória).  
+- A edição de legenda deve afetar apenas a foto selecionada.  
+
+Expectativa de entrega (o que deve ser entregue junto ao código)
+- Frontend:
+  - Seção de categorias de fotos corrigida, funcional e responsiva (conforme área em rosa da imagem).
+  - Interface de captura de foto via câmera implementada, além da seleção da galeria.
+  - Tela de edição de fotos corrigida, com legendas independentes e opcionais.
+- Backend:
+  - Persistência correta de categorias personalizadas (Torre 1, Torre 2, Área Comum, Piscina).
+  - Registro individual de legenda por foto.
+  - Suporte a upload de fotos capturadas pela câmera.  
+
+Critérios de aceitação (QA)
+- Categorias personalizadas aparecem em ambos os fluxos (Relatório e Relatório Express).  
+- O problema de toque na área destacada em rosa está resolvido: usuário consegue deslizar normalmente e selecionar categorias.  
+- Usuário consegue escolher entre abrir câmera ou galeria ao adicionar foto.  
+- Cada foto pode ter sua própria legenda; alterar uma não afeta as outras.  
+- É possível salvar fotos sem legenda (campo opcional).  
+- Testado em dispositivos móveis (iOS e Android), em ambos os fluxos de relatório.  
+
+Observações finais:
+- Ser específico e claro nas alterações.  
+- Não alterar fluxos que não estejam descritos aqui.  
+- Testar usabilidade em tela pequena (360px de largura).  
+
+Entrega final:
+- Código atualizado (frontend + backend).  
+- Passos de teste manuais (1. Acessar relatório → validar categorias de fotos → tocar e deslizar; 2. Adicionar foto → capturar via câmera ou galeria; 3. Adicionar legendas independentes em cada foto → validar comportamento).  
+- Confirmação de que alterações funcionam tanto em Relatório quanto em Relatório Express.
