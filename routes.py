@@ -1499,7 +1499,7 @@ def project_new():
                 projeto = Projeto()
                 projeto.numero = generate_project_number()
                 projeto.nome = form.nome.data
-                projeto.descricao = form.descricao.data
+                projeto.descricao = 'Projeto criado através do sistema ELP'  # Default value since field was removed
                 projeto.endereco = form.endereco.data
                 projeto.latitude = float(form.latitude.data) if form.latitude.data else None
                 projeto.longitude = float(form.longitude.data) if form.longitude.data else None
@@ -1516,7 +1516,7 @@ def project_new():
                         else:
                             print(f"❌ GEOCODING: Não foi possível converter o endereço")
                 
-                projeto.tipo_obra = form.tipo_obra.data
+                projeto.tipo_obra = 'Geral'  # Default value since field was removed
                 projeto.construtora = form.construtora.data
                 projeto.nome_funcionario = form.nome_funcionario.data
                 projeto.responsavel_id = form.responsavel_id.data
@@ -1629,7 +1629,7 @@ def project_edit(project_id):
     
     if form.validate_on_submit():
         project.nome = form.nome.data
-        project.descricao = form.descricao.data
+        project.descricao = 'Projeto atualizado através do sistema ELP'  # Default value since field was removed
         project.endereco = form.endereco.data
         project.latitude = float(form.latitude.data) if form.latitude.data else None
         project.longitude = float(form.longitude.data) if form.longitude.data else None
@@ -1646,7 +1646,7 @@ def project_edit(project_id):
                 else:
                     print(f"❌ GEOCODING: Não foi possível converter o endereço")
         
-        project.tipo_obra = form.tipo_obra.data
+        project.tipo_obra = 'Geral'  # Default value since field was removed
         project.construtora = form.construtora.data
         project.nome_funcionario = form.nome_funcionario.data
         project.responsavel_id = form.responsavel_id.data
