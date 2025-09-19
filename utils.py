@@ -1,4 +1,5 @@
 import requests
+import re
 import json
 
 def get_address_from_coordinates(latitude, longitude):
@@ -99,6 +100,53 @@ def get_address_from_coordinates(latitude, longitude):
         print(f"❌ REVERSE GEOCODING: Erro: {e}")
         return None
 
+def normalize_address(address):
+    """Normalize address by expanding common abbreviations"""
+    if not address or not isinstance(address, str):
+        return address
+    
+    # Dictionary of common Brazilian address abbreviations
+    rules = {
+        # Street types
+        r'\bR\s+': 'Rua ',
+        r'\bR\.': 'Rua',
+        r'\bAv\s+': 'Avenida ',
+        r'\bAv\.': 'Avenida',
+        r'\bPç\s+': 'Praça ',
+        r'\bPça\s+': 'Praça ',
+        r'\bPç\.': 'Praça',
+        r'\bPça\.': 'Praça',
+        r'\bRod\.': 'Rodovia',
+        r'\bEstr\.': 'Estrada',
+        r'\bAl\.': 'Alameda',
+        r'\bTv\.': 'Travessa',
+        r'\bVl\.': 'Vila',
+        r'\bJd\.': 'Jardim',
+        r'\bPq\.': 'Parque',
+        r'\bCj\.': 'Conjunto',
+        r'\bRes\.': 'Residencial',
+        r'\bBl\.': 'Bloco',
+        r'\bQt\.': 'Quadra',
+        r'\bLt\.': 'Lote',
+    }
+    
+    normalized = address.strip()
+    original = normalized
+    
+    # Apply normalization rules
+    for pattern, replacement in rules.items():
+        normalized = re.sub(pattern, replacement, normalized, flags=re.IGNORECASE)
+    
+    # Clean up multiple spaces
+    normalized = re.sub(r'\s+', ' ', normalized).strip()
+    
+    # Log transformation if there was a change
+    if original != normalized:
+        print(f"📍 ENDEREÇO NORMALIZADO: '{original}' → '{normalized}'")
+    
+    return normalized
+
+
 def get_coordinates_from_address(address):
     """Convert address to GPS coordinates using OpenStreetMap Nominatim API"""
     import time
@@ -121,7 +169,7 @@ def get_coordinates_from_address(address):
         # Use OpenStreetMap Nominatim API for forward geocoding
         url = "https://nominatim.openstreetmap.org/search"
         params = {
-            'q': address.strip(),
+            'q': normalize_address(address),
             'format': 'json',
             'addressdetails': 1,
             'language': 'pt-BR',
@@ -149,7 +197,7 @@ def get_coordinates_from_address(address):
                         latitude = float(result['lat'])
                         longitude = float(result['lon'])
                         
-                        print(f"✅ GEOCODING: {address} → {latitude}, {longitude}")
+                        print(f"✅ GEOCODING: {normalize_address(address)} → {latitude}, {longitude}")
                         return latitude, longitude
                         
                 elif response.status_code == 429:
