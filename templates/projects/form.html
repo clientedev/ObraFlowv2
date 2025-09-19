@@ -503,10 +503,124 @@ function removerEmail(id) {
         emailDiv.remove();
     }
 }
+
+// Aplicar normalização de endereços quando carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    const enderecoField = document.querySelector('textarea[name="endereco"]') || document.getElementById('endereco');
+    
+    if (enderecoField && window.normalizeAddress) {
+        // Normalizar quando o usuário sair do campo
+        enderecoField.addEventListener('blur', function() {
+            const originalValue = this.value;
+            const normalizedValue = window.normalizeAddress(originalValue);
+            
+            if (originalValue !== normalizedValue) {
+                this.value = normalizedValue;
+                
+                // Mostrar feedback visual
+                const statusElement = document.getElementById('locationStatus');
+                if (statusElement) {
+                    statusElement.innerHTML = '<i class="fas fa-check text-success"></i> Endereço normalizado automaticamente';
+                    setTimeout(() => {
+                        statusElement.innerHTML = '';
+                    }, 3000);
+                }
+            }
+        });
+        
+        // Adicionar botão para geocodificação com normalização
+        const buttonContainer = enderecoField.parentElement.querySelector('.mt-2');
+        if (buttonContainer) {
+            const geocodeBtn = document.createElement('button');
+            geocodeBtn.type = 'button';
+            geocodeBtn.className = 'btn btn-outline-info btn-sm ms-2';
+            geocodeBtn.title = 'Buscar coordenadas para este endereço';
+            geocodeBtn.innerHTML = '<i class="fas fa-search-location"></i> Buscar no Mapa';
+            
+            geocodeBtn.addEventListener('click', function() {
+                geocodeAddressToCoordinates();
+            });
+            
+            buttonContainer.appendChild(geocodeBtn);
+        }
+    }
+});
+
+// Função para geocodificar endereço digitado para coordenadas
+function geocodeAddressToCoordinates() {
+    const enderecoField = document.querySelector('textarea[name="endereco"]') || document.getElementById('endereco');
+    const statusElement = document.getElementById('locationStatus');
+    
+    if (!enderecoField || !enderecoField.value.trim()) {
+        if (statusElement) {
+            statusElement.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i> Por favor, digite um endereço primeiro';
+        }
+        return;
+    }
+    
+    const originalAddress = enderecoField.value.trim();
+    const normalizedAddress = window.normalizeAddress ? window.normalizeAddress(originalAddress) : originalAddress;
+    
+    // Update field with normalized address if different
+    if (originalAddress !== normalizedAddress) {
+        enderecoField.value = normalizedAddress;
+    }
+    
+    if (statusElement) {
+        statusElement.innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i> Buscando coordenadas...';
+    }
+    
+    // Create a simple geocoding API call to backend
+    fetch('/api/geocode-address', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+        },
+        body: JSON.stringify({
+            address: normalizedAddress
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.latitude && data.longitude) {
+            // Fill coordinate fields
+            const latField = document.querySelector('input[name="latitude"]');
+            const lngField = document.querySelector('input[name="longitude"]');
+            if (latField) latField.value = data.latitude;
+            if (lngField) lngField.value = data.longitude;
+            
+            if (statusElement) {
+                statusElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> Coordenadas encontradas!';
+            }
+            
+            // Show address preview
+            const addressPreview = document.getElementById('addressPreview');
+            const capturedAddress = document.getElementById('capturedAddress');
+            if (addressPreview && capturedAddress) {
+                addressPreview.style.display = 'block';
+                capturedAddress.textContent = `Coords: ${data.latitude}, ${data.longitude}`;
+            }
+        } else {
+            if (statusElement) {
+                statusElement.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i> Não foi possível encontrar as coordenadas';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erro no geocoding:', error);
+        if (statusElement) {
+            statusElement.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i> Erro de conexão';
+        }
+    });
+}
 </script>
 
 <!-- Load Leaflet CSS and JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Load Address Normalizer -->
+<script src="{{ url_for('static', filename='js/address-normalizer.js') }}"></script>
 
 {% endblock %}

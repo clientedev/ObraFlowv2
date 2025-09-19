@@ -4689,3 +4689,43 @@ def first_login():
     return render_template('auth/first_login.html', form=form)
 
 
+
+
+# API endpoint for address geocoding (convert address to coordinates)
+@app.route('/api/geocode-address', methods=['POST'])
+@csrf.exempt
+def geocode_address():
+    """Convert address to GPS coordinates using address normalization"""
+    try:
+        data = request.get_json()
+        address = data.get('address')
+        
+        if not address or not address.strip():
+            return jsonify({
+                'success': False, 
+                'message': 'Endereço é obrigatório'
+            })
+        
+        # Use the utility function which now includes address normalization
+        latitude, longitude = get_coordinates_from_address(address.strip())
+        
+        if latitude and longitude:
+            return jsonify({
+                'success': True,
+                'latitude': latitude,
+                'longitude': longitude,
+                'message': f'Coordenadas encontradas para o endereço'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Não foi possível encontrar coordenadas para este endereço'
+            })
+            
+    except Exception as e:
+        print(f'Erro no geocoding de endereço: {e}')
+        return jsonify({
+            'success': False,
+            'message': 'Erro interno do servidor'
+        })
+
