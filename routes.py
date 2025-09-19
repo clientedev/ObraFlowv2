@@ -178,16 +178,16 @@ def api_dashboard_stats():
         
         # Reembolsos com verificação de tabela
         try:
-            reembolsos_pendentes = Reembolso.query.filter_by(status='Pendente').count()
+            usuarios_ativos = User.query.filter_by(ativo=True).count()
         except:
-            reembolsos_pendentes = 0
+            usuarios_ativos = 0
         
         response_data = {
             'success': True,
             'projetos_ativos': projetos_ativos,
             'visitas_agendadas': visitas_agendadas,
             'relatorios_pendentes': relatorios_pendentes,
-            'reembolsos_pendentes': reembolsos_pendentes,
+            'usuarios_ativos': usuarios_ativos,
             'timestamp': datetime.utcnow().isoformat(),
             'user_id': current_user.id,
             'source': 'postgresql'
@@ -209,7 +209,7 @@ def api_dashboard_stats():
             'projetos_ativos': 6,
             'visitas_agendadas': 4,
             'relatorios_pendentes': 0,
-            'reembolsos_pendentes': 0,
+            'usuarios_ativos': 2,
             'source': 'fallback'
         }), 500
 
@@ -313,15 +313,15 @@ def index():
         
         # Usuários ativos
         try:
-            reembolsos_pendentes = Reembolso.query.filter_by(status='Pendente').count()
+            usuarios_ativos = User.query.filter_by(ativo=True).count()
         except:
-            reembolsos_pendentes = 0
+            usuarios_ativos = 0
         
         stats = {
             'projetos_ativos': projetos_ativos,
             'visitas_agendadas': visitas_agendadas,
             'relatorios_pendentes': relatorios_pendentes,
-            'reembolsos_pendentes': reembolsos_pendentes
+            'usuarios_ativos': usuarios_ativos
         }
         
         # Log para monitoramento
@@ -340,7 +340,7 @@ def index():
             'projetos_ativos': 6,
             'visitas_agendadas': 4,
             'relatorios_pendentes': 0,
-            'reembolsos_pendentes': 0
+            'usuarios_ativos': 2
         }
         relatorios_recentes = []
     
