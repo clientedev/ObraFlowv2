@@ -311,7 +311,7 @@ def index():
             Relatorio.status.in_(['Rascunho', 'Aguardando Aprovacao'])
         ).count()
         
-        # Reembolsos pendentes (com verificação se tabela existe)
+        # Usuários ativos
         try:
             reembolsos_pendentes = Reembolso.query.filter_by(status='Pendente').count()
         except:
@@ -325,7 +325,7 @@ def index():
         }
         
         # Log para monitoramento
-        print(f"REAL STATS FROM DB: P={projetos_ativos}, V={visitas_agendadas}, R={relatorios_pendentes}, D={reembolsos_pendentes}")
+        print(f"REAL STATS FROM DB: P={projetos_ativos}, V={visitas_agendadas}, R={relatorios_pendentes}, U={usuarios_ativos}")
         
         # Get recent reports com fallback
         try:

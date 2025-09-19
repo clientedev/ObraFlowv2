@@ -24,75 +24,83 @@
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2" style="border-left: 0.25rem solid #4e73df;">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Projetos Ativos
+            <a href="{{ url_for('projects_list') }}" class="text-decoration-none" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver todos os projetos" aria-label="Acessar lista de projetos">
+                <div class="card border-left-primary shadow h-100 py-2 card-clickable" style="border-left: 0.25rem solid #4e73df; cursor: pointer;">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Projetos Ativos
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.projetos_ativos }}</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.projetos_ativos }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-project-diagram fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-project-diagram fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2" style="border-left: 0.25rem solid #1cc88a;">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Visitas Agendadas
+            <a href="{{ url_for('visits_list') }}" class="text-decoration-none" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver todas as visitas" aria-label="Acessar lista de visitas">
+                <div class="card border-left-success shadow h-100 py-2 card-clickable" style="border-left: 0.25rem solid #1cc88a; cursor: pointer;">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Visitas Agendadas
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.visitas_agendadas }}</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.visitas_agendadas }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2" style="border-left: 0.25rem solid #36b9cc;">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Relatórios Pendentes
+            <a href="{{ url_for('reports') }}" class="text-decoration-none" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver todos os relatórios" aria-label="Acessar lista de relatórios">
+                <div class="card border-left-info shadow h-100 py-2 card-clickable" style="border-left: 0.25rem solid #36b9cc; cursor: pointer;">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    Relatórios Pendentes
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.relatorios_pendentes }}</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.relatorios_pendentes }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2" style="border-left: 0.25rem solid #f6c23e;">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Reembolsos Pendentes
+            <a href="{{ url_for('users_list') }}" class="text-decoration-none" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver todos os usuários" aria-label="Acessar lista de usuários">
+                <div class="card border-left-warning shadow h-100 py-2 card-clickable" style="border-left: 0.25rem solid #f6c23e; cursor: pointer;">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    Usuários Ativos
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.usuarios_ativos }}</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.reembolsos_pendentes }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-users fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 
@@ -156,6 +164,35 @@
         </div>
     </div>
 </div>
+
+<style>
+.card-clickable {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+.card-clickable:active {
+    transform: translateY(-1px);
+}
+
+a.text-decoration-none:hover .card-clickable .text-gray-800 {
+    color: inherit !important;
+}
+</style>
+
+<script>
+// Initialize Bootstrap tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 
 <script>
 let userLocation = null;
