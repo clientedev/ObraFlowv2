@@ -43,9 +43,23 @@ def create_fallback_app():
     return fallback_app
 
 def main():
-    """Main application startup with robust error handling"""
+    """Main application startup with robust error handling and auto-migration"""
     try:
         logger.info("🚀 INICIANDO SISTEMA COMPLETO...")
+        
+        # Run database migrations automatically on Railway
+        if os.environ.get("RAILWAY_ENVIRONMENT"):
+            logger.info("🔄 Executando migrações automáticas...")
+            try:
+                import subprocess
+                result = subprocess.run(['alembic', 'upgrade', 'head'], 
+                                      capture_output=True, text=True, timeout=60)
+                if result.returncode == 0:
+                    logger.info("✅ Migrações aplicadas com sucesso")
+                else:
+                    logger.warning(f"⚠️ Migração falhou: {result.stderr}")
+            except Exception as e:
+                logger.warning(f"⚠️ Erro nas migrações (continuando): {e}")
         
         # Import main application
         from main import app as main_app

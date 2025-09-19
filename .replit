@@ -6,7 +6,7 @@ packages = ["cairo", "fontconfig", "freetype", "fribidi", "gdk-pixbuf", "ghostsc
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "-w", "2", "-k", "gthread", "--timeout", "120", "main:app"]
+run = ["gunicorn", "-w", "2", "-k", "gthread", "-b", "0.0.0.0:5000", "--timeout", "120", "main:app"]
 
 [workflows]
 runButton = "Project"
@@ -39,10 +39,6 @@ externalPort = 80
 [[ports]]
 localPort = 33453
 externalPort = 3001
-
-[[ports]]
-localPort = 36621
-externalPort = 3002
 
 [[ports]]
 localPort = 40127

@@ -7,11 +7,16 @@ from app import db
 
 def generate_project_report_number(project_id):
     """
-    Generate sequential report number for a specific project
-    Returns the next available number (1, 2, 3...) for the given project
+    Generate sequential report number for a specific project with concurrency safety
+    Uses PostgreSQL advisory lock to prevent race conditions in production
     """
     try:
         from models import Relatorio
+        from sqlalchemy.exc import IntegrityError
+        
+        # Use PostgreSQL advisory lock to prevent concurrent number generation
+        # Lock is automatically released at transaction end
+        db.session.execute(db.text("SELECT pg_advisory_xact_lock(:lock_key)"), {"lock_key": project_id})
         
         # Find the highest numero_relatorio for this project
         ultimo_numero = db.session.query(
@@ -20,12 +25,32 @@ def generate_project_report_number(project_id):
         
         # Return next available number (start at 1 if no reports exist)
         proximo_numero = (ultimo_numero or 0) + 1
-        logging.info(f"Generated project report number {proximo_numero} for project {project_id}")
+        logging.info(f"Generated project report number {proximo_numero} for project {project_id} (with lock)")
         return proximo_numero
         
     except Exception as e:
         logging.error(f"Error generating project report number: {e}")
         return 1
+
+def generate_project_report_number_with_retry(project_id, max_retries=3):
+    """
+    Generate project report number with automatic retry on IntegrityError
+    Alternative approach for concurrency safety
+    """
+    from models import Relatorio
+    from sqlalchemy.exc import IntegrityError
+    
+    for attempt in range(max_retries):
+        try:
+            return generate_project_report_number(project_id)
+        except IntegrityError as e:
+            if attempt < max_retries - 1:
+                logging.warning(f"IntegrityError on attempt {attempt + 1}, retrying...")
+                db.session.rollback()
+                continue
+            else:
+                logging.error(f"Max retries reached for project {project_id}")
+                raise e
 
 def get_display_report_number(relatorio):
     """
