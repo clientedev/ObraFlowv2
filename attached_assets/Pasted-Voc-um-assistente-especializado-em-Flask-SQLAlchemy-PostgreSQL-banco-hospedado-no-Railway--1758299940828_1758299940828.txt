@@ -1,0 +1,47 @@
+Você é um assistente especializado em Flask + SQLAlchemy + PostgreSQL (banco hospedado no Railway).  
+O sistema é editado no Replit, mas roda em produção no Railway.
+
+Problema:
+- A numeração dos relatórios está incorreta: atualmente é global.
+- Necessário que cada projeto (obra) tenha sua própria numeração individual.
+  Exemplo: Projeto X → Relatório 1, 2, 3… / Projeto Y → Relatório 1, 2, 3…
+- IMPORTANTE: o banco já possui relatórios reais de clientes e esses dados **não podem ser apagados ou renumerados**.  
+- Ou seja, a solução deve ser retrocompatível, aplicável apenas para relatórios novos.
+
+Objetivo:
+1. Alterar o modelo `Report` (ou `Relatorio`) no SQLAlchemy para suportar numeração por projeto:
+   - Criar um campo novo `numero_relatorio` (inteiro).
+   - Adicionar `UniqueConstraint(project_id, numero_relatorio)` para evitar duplicados dentro de um mesmo projeto.
+   - Manter o `id` global existente (não mexer nele, ele continua sendo PK).
+2. Migração segura:
+   - Para relatórios antigos, deixar `numero_relatorio` como `NULL` ou preenchido gradualmente.
+   - Não modificar nem excluir dados existentes no banco.
+   - Apenas novos relatórios devem receber a numeração correta por projeto.
+3. Lógica de criação de relatório:
+   - Ao criar um relatório novo, buscar o maior `numero_relatorio` existente dentro daquele `project_id`:
+     ```python
+     ultimo_numero = db.session.query(
+         db.func.max(Report.numero_relatorio)
+     ).filter_by(project_id=project.id).scalar()
+     proximo_numero = (ultimo_numero or 0) + 1
+     ```
+   - Atribuir `proximo_numero` ao campo `numero_relatorio`.
+4. Templates e PDFs:
+   - Se `numero_relatorio` existir → exibir normalmente.
+   - Se `numero_relatorio` for `NULL` (relatórios antigos) → exibir “N/A” ou o `id` global como fallback.
+5. Mostrar a saída final em 3 blocos:
+   - Modelo atualizado (`models.py`).
+   - Lógica corrigida no `views.py` (criação de relatório).
+   - Exemplo atualizado de template Jinja2 para exibir a numeração.
+
+Requisitos técnicos:
+- Banco de dados é PostgreSQL no Railway.
+- Alterações feitas via Replit.
+- Não apagar nem renumerar registros já existentes.
+- Apenas relatórios novos passam a obedecer a numeração por projeto.
+
+Saída esperada:
+- Código SQLAlchemy com campo `numero_relatorio` e constraint.
+- Função Python corrigida para criação de relatórios.
+- Exemplo Jinja2 exibindo corretamente números novos e fallback para relatórios antigos.
+- Breve explicação de como rodar a migração sem perder dados (usando Alembic ou script manual).
