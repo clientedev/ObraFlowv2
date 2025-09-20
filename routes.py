@@ -464,7 +464,28 @@ def projects_list():
 @login_required
 def reports():
     page = request.args.get('page', 1, type=int)
-    relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).paginate(
+    
+    # Get search query parameter
+    q = request.args.get('q')
+    
+    # Start with base query
+    query = Relatorio.query
+    
+    # Apply intelligent search if query provided
+    if q and q.strip():
+        from sqlalchemy import or_
+        search_term = f"%{q.strip()}%"
+        # Join with related tables for searching
+        query = query.join(Projeto, Relatorio.projeto_id == Projeto.id).join(User, Relatorio.autor_id == User.id)
+        query = query.filter(or_(
+            Relatorio.numero.ilike(search_term),
+            Relatorio.titulo.ilike(search_term),
+            Projeto.nome.ilike(search_term),
+            Projeto.numero.ilike(search_term),
+            User.nome_completo.ilike(search_term)
+        ))
+    
+    relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
         page=page, per_page=10, error_out=False
     )
     return render_template('reports/list.html', relatorios=relatorios)
@@ -1742,8 +1763,28 @@ def visits_list():
     if view_type == 'calendar':
         return render_template('visits/calendar.html')
     
+    # Get search query parameter
+    q = request.args.get('q')
+    
+    # Start with base query
+    query = Visita.query
+    
+    # Apply intelligent search if query provided
+    if q and q.strip():
+        from sqlalchemy import or_
+        search_term = f"%{q.strip()}%"
+        # Join with related tables for searching
+        query = query.join(Projeto, Visita.projeto_id == Projeto.id).join(User, Visita.responsavel_id == User.id)
+        query = query.filter(or_(
+            Visita.numero.ilike(search_term),
+            Visita.objetivo.ilike(search_term),
+            Projeto.nome.ilike(search_term),
+            Projeto.numero.ilike(search_term),
+            User.nome_completo.ilike(search_term)
+        ))
+    
     # Default list view
-    visits = Visita.query.order_by(Visita.data_agendada.desc()).all()
+    visits = query.order_by(Visita.data_agendada.desc()).all()
     return render_template('visits/list.html', visits=visits)
 
 @app.route('/visits/calendar')
@@ -2033,7 +2074,26 @@ def report_send(report_id):
 @app.route('/reimbursements')
 @login_required
 def reimbursements_list():
-    reembolsos = Reembolso.query.filter_by(usuario_id=current_user.id).order_by(Reembolso.created_at.desc()).all()
+    # Get search query parameter
+    q = request.args.get('q')
+    
+    # Start with base query for current user's reimbursements
+    query = Reembolso.query.filter_by(usuario_id=current_user.id)
+    
+    # Apply intelligent search if query provided
+    if q and q.strip():
+        from sqlalchemy import or_
+        search_term = f"%{q.strip()}%"
+        # Left join with project table for searching (since projeto_id can be null)
+        query = query.outerjoin(Projeto, Reembolso.projeto_id == Projeto.id)
+        query = query.filter(or_(
+            Reembolso.descricao_outros.ilike(search_term),
+            Reembolso.observacoes.ilike(search_term),
+            Projeto.nome.ilike(search_term),
+            Projeto.numero.ilike(search_term)
+        ))
+    
+    reembolsos = query.order_by(Reembolso.created_at.desc()).all()
     return render_template('reimbursements/list.html', reembolsos=reembolsos)
 
 @app.route('/reimbursements/request', methods=['GET', 'POST'])
