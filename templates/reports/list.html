@@ -165,11 +165,15 @@
                                                     </a>
 
                                                     <!-- Dropdown PDF -->
-                                                    <div class="btn-group w-100">
-                                                        <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
-                                                            <i class="fas fa-file-pdf me-1"></i>PDF
+                                                    <div class="btn-group w-100" style="position: relative;">
+                                                        <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle w-100" 
+                                                                data-bs-toggle="dropdown" 
+                                                                aria-expanded="false"
+                                                                style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                                            <i class="fas fa-file-pdf"></i>
+                                                            <span>PDF</span>
                                                         </button>
-                                                        <ul class="dropdown-menu">
+                                                        <ul class="dropdown-menu dropdown-menu-end" style="min-width: 160px; z-index: 1050;">
                                                             <li><a class="dropdown-item" href="{{ url_for('generate_pdf_report', id=report.id) }}" target="_blank">
                                                                 <i class="fas fa-eye me-2"></i>Visualizar PDF
                                                             </a></li>

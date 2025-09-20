@@ -469,9 +469,67 @@ img {
 /* Container da coluna de ações - controle de overflow */
 .report-card .col-4 {
     max-width: 33.333333% !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     padding-left: 4px !important;
     padding-right: 8px !important;
+    z-index: 1;
+}
+
+/* Dropdown específico para cards de relatórios */
+.report-card .btn-group {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+}
+
+.report-card .dropdown-menu {
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    z-index: 1050 !important;
+    min-width: 160px !important;
+    padding: 8px 0 !important;
+    margin: 2px 0 0 !important;
+    background-color: #ffffff !important;
+    border: 1px solid rgba(0,0,0,.15) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 6px 12px rgba(0,0,0,.175) !important;
+    transform: translateZ(0) !important;
+}
+
+.report-card .dropdown-item {
+    display: block !important;
+    width: 100% !important;
+    padding: 8px 16px !important;
+    clear: both !important;
+    font-weight: 400 !important;
+    color: #212529 !important;
+    text-align: inherit !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    font-size: 0.875rem !important;
+}
+
+.report-card .dropdown-item:hover,
+.report-card .dropdown-item:focus {
+    color: #1e2125 !important;
+    background-color: #f8f9fa !important;
+}
+
+.report-card .dropdown-toggle {
+    border-radius: 6px !important;
+    font-size: 0.8rem !important;
+    padding: 6px 12px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+}
+
+.report-card .dropdown-toggle::after {
+    margin-left: 6px !important;
+    vertical-align: middle !important;
 }
 
 /* Mobile específico */
