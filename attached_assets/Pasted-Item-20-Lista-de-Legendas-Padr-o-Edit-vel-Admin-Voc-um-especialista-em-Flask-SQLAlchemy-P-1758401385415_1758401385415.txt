@@ -1,0 +1,104 @@
+Item 20 – Lista de Legendas Padrão Editável (Admin)
+Você é um especialista em Flask + SQLAlchemy + PostgreSQL (Railway) + Jinja2 + JavaScript.  
+Preciso implementar corretamente o **Item 20 – Lista de legendas padrão deve ser editável** no sistema de relatórios de obras.
+
+### Regras do cliente
+1. A tela de legendas já existe hoje para desenvolvedores.  
+   - Se já existir, deve ser visível e acessível para **administradores também**.  
+   - Se não existir, criar tela em `/admin/legendas/` com CRUD completo.
+2. Administradores devem poder:
+   - Incluir novas legendas.
+   - Editar legendas existentes.
+   - Excluir legendas desnecessárias.
+3. Sugestões obrigatórias do cliente:
+   - Campo de **numeração de organização** (`numero_ordem`), apenas para ordenação interna, **não aparece no PDF**.
+   - Campo de **pesquisa** para filtrar legendas por palavra-chave (em tempo real).
+4. Categorias já devem existir (Geral, Estrutural, Elétrica, etc.), mas devem ser opcionais no cadastro de legendas.
+
+---
+
+### Tarefas técnicas
+
+#### 1. Model (SQLAlchemy)
+- Verifique se já existe `LegendaPredefinida`.  
+  Caso exista, apenas adicionar o campo `numero_ordem` (nullable=True).  
+  Caso não exista, criar modelo:
+  ```python
+  class LegendaPredefinida(db.Model):
+      id = db.Column(db.Integer, primary_key=True)
+      texto = db.Column(db.String(255), nullable=False)
+      categoria = db.Column(db.String(100), nullable=True)
+      numero_ordem = db.Column(db.Integer, nullable=True)  # apenas para organização
+      criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+      atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+2. Rotas Flask (Admin)
+
+Criar/ajustar rotas em /admin/legendas/ protegidas por @admin_required.
+
+Funções necessárias:
+
+Listar legendas (GET /admin/legendas/).
+
+Criar nova (POST /admin/legendas/new).
+
+Editar existente (POST /admin/legendas/<id>/edit).
+
+Excluir (POST /admin/legendas/<id>/delete).
+
+A listagem deve permitir busca por texto via query param ?q=:
+
+@app.route("/admin/legendas")
+@login_required
+@admin_required
+def list_legendas():
+    q = request.args.get("q", "")
+    query = LegendaPredefinida.query
+    if q:
+        query = query.filter(LegendaPredefinida.texto.ilike(f"%{q}%"))
+    legendas = query.order_by(LegendaPredefinida.numero_ordem.asc().nullslast()).all()
+    return render_template("admin/legendas.html", legendas=legendas, q=q)
+
+3. Frontend (Jinja2 + Bootstrap + JS)
+
+Criar tela responsiva mobile-first (admin/legendas.html):
+
+Campo de busca no topo (input + botão pesquisar).
+
+Lista em tabela ou cards mostrando: texto, categoria, numero_ordem, botões editar/excluir.
+
+Botão “Nova legenda”.
+
+Modal ou formulário inline para criar/editar legendas.
+
+Botão excluir deve confirmar antes de deletar.
+
+Garantir que numero_ordem não apareça em relatórios/PDF.
+
+4. Integração com relatórios
+
+Campo select de legenda pré-definida (na tela de relatório) deve carregar dados de /api/legendas.
+
+Ordem exibida deve respeitar numero_ordem quando preenchido.
+
+Saída esperada
+
+Código atualizado do modelo LegendaPredefinida (adicionando numero_ordem se não existir).
+
+Rotas Flask para /admin/legendas/ com CRUD completo, acessível por administradores.
+
+Template admin/legendas.html com:
+
+Campo de busca funcional.
+
+Lista de legendas.
+
+Botões para adicionar, editar e excluir.
+
+Suporte mobile-first (inputs grandes, botões com área de toque ≥ 48px).
+
+Garantir que numero_ordem organize a listagem, mas não apareça no PDF.
+
+Ajuste no carregamento de legendas no relatório para usar a nova ordenação e permitir busca por categoria.
+
+⚠️ Reforço: a tela deve ser mobile-first, já que administradores podem acessar via celular.
