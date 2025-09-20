@@ -1,0 +1,50 @@
+Você é um especialista em Flask + SQLAlchemy + PostgreSQL (Railway) + JavaScript.  
+Tenho um sistema de relatórios de obras, hospedado no Railway (PostgreSQL) e desenvolvido no Replit.  
+O modelo `Report` já possui um campo `status` (varchar), que hoje recebe valores como "Aprovado".  
+Quero corrigir dois problemas e implementar uma melhoria:
+
+1. Rota `/reports/` está retornando 404.
+   - Crie/ajuste rota Flask que liste todos os relatórios:
+     ```python
+     @app.route("/reports")
+     @login_required
+     def list_reports():
+         reports = Report.query.all()
+         return render_template("reports.html", reports=reports)
+     ```
+   - Garanta que os links nos templates usem `url_for("list_reports")`.
+
+2. Auto save dos relatórios deve funcionar 100%.
+   - Criar rota AJAX `POST /reports/autosave/<int:report_id>`:
+     * Requer login.
+     * Recebe JSON com dados parciais (título, observações, localização, etc.).
+     * Atualiza somente os campos enviados.
+     * Se o relatório ainda não tiver `status="Aprovado"`, atualizar `report.status = "preenchimento"`.
+     * Commit no banco e retornar JSON `{ "success": true, "status": report.status }`.
+   - Se houver erro (ex.: JSON inválido), retornar `{ "success": false, "error": "mensagem" }`.
+
+3. Frontend (JavaScript):
+   - Implementar auto save confiável:
+     * Capturar alterações em `input`, `textarea`, `select`.
+     * Debounce de 3 segundos após digitação ou salvar a cada 10s.
+     * Enviar JSON via `fetch` para `/reports/autosave/<id>`.
+     * Mostrar mensagens: “Salvando…”, “Salvo automaticamente” ou erro.
+   - Se o usuário sair/recarregar a página, os dados devem estar salvos.
+
+4. Listagem de relatórios (`reports.html`):
+   - Exibir um badge de acordo com o `status`:
+     - Se `status == "preenchimento"` → mostrar `<span class="badge bg-warning text-dark">Em preenchimento</span>`.
+     - Se `status == "Aprovado"` → mostrar `<span class="badge bg-success">Aprovado</span>`.
+     - Caso contrário, exibir valor do campo `status`.
+
+5. Debug:
+   - Verificar porque `/reports/` retornava 404 (provavelmente rota inexistente ou chamada incorreta).
+   - Garantir que não haja conflito entre `/reports` e `/reports/` (usar sempre um único padrão).
+   - Mostrar logs (`current_app.logger.exception`) se ocorrer erro no auto save.
+
+Saída esperada:
+- Código Python da rota `/reports`.
+- Código Python da rota `/reports/autosave/<id>`.
+- Snippet JS do auto save com debounce.
+- Trecho atualizado do `reports.html` exibindo os badges de status.
+- Explicação de onde colar cada parte.
