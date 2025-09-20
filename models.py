@@ -458,3 +458,45 @@ class FotoRelatorioExpress(db.Model):
     
     def __repr__(self):
         return f'<FotoRelatorioExpress {self.filename}>'
+
+class ChecklistObra(db.Model):
+    """Checklist personalizado por projeto/obra"""
+    __tablename__ = "checklist_obra"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    projeto_id = db.Column(db.Integer, db.ForeignKey("projetos.id"), nullable=False)
+    texto = db.Column(db.String(500), nullable=False)
+    ordem = db.Column(db.Integer, default=0)
+    ativo = db.Column(db.Boolean, default=True)
+    criado_por = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relacionamentos
+    projeto = db.relationship("Projeto", backref="checklist_personalizado")
+    criador = db.relationship("User", backref="checklists_criados")
+    
+    # Validação única para ordem dentro do projeto
+    __table_args__ = (db.UniqueConstraint("projeto_id", "ordem", name="unique_ordem_por_projeto"),)
+    
+    def __repr__(self):
+        return f"<ChecklistObra {self.projeto.nome}: {self.texto}>"
+
+class ProjetoChecklistConfig(db.Model):
+    """Configuração de checklist por projeto - usar padrão ou personalizado"""
+    __tablename__ = "projeto_checklist_config"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    projeto_id = db.Column(db.Integer, db.ForeignKey("projetos.id"), nullable=False, unique=True)
+    tipo_checklist = db.Column(db.String(20), nullable=False, default="padrao")  # "padrao" ou "personalizado"
+    criado_por = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relacionamentos
+    projeto = db.relationship("Projeto", backref=db.backref("checklist_config", uselist=False))
+    criador = db.relationship("User", backref="configs_checklist_criadas")
+    
+    def __repr__(self):
+        return f"<ProjetoChecklistConfig {self.projeto.nome}: {self.tipo_checklist}>"
+
