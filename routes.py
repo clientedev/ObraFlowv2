@@ -3268,19 +3268,20 @@ def admin_emails():
 @app.route('/admin/legendas')
 @login_required
 def admin_legendas():
-    """Painel de administração de legendas - apenas Administradores"""
+    """Painel de administração de legendas - apenas Administradores Master"""
     if not current_user.is_master:
-        flash('Acesso negado. Apenas administradores podem gerenciar legendas.', 'error')
+        flash('Acesso negado. Apenas usuários master podem gerenciar legendas.', 'error')
         return redirect(url_for('index'))
     
     from models import LegendaPredefinida
     
     # Implementar busca conforme especificação
     q = request.args.get("q", "")
-    query = LegendaPredefinida.query
+    query = LegendaPredefinida.query.filter_by(ativo=True)
     
-    if q:
-        query = query.filter(LegendaPredefinida.texto.ilike(f"%{q}%"))
+    if q and q.strip():
+        search_term = f"%{q.strip()}%"
+        query = query.filter(LegendaPredefinida.texto.ilike(search_term))
     
     # Ordenação por numero_ordem (nulls last) depois categoria e data de criação
     legendas = query.order_by(
@@ -3294,9 +3295,9 @@ def admin_legendas():
 @app.route('/admin/legendas/nova', methods=['GET', 'POST'])
 @login_required
 def admin_legenda_nova():
-    """Criar nova legenda predefinida - apenas Administradores"""
+    """Criar nova legenda predefinida - apenas Usuários Master"""
     if not current_user.is_master:
-        flash('Acesso negado. Apenas administradores podem gerenciar legendas.', 'error')
+        flash('Acesso negado. Apenas usuários master podem gerenciar legendas.', 'error')
         return redirect(url_for('index'))
     
     from forms import LegendaPredefinidaForm
@@ -3327,9 +3328,9 @@ def admin_legenda_nova():
 @app.route('/admin/legendas/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 def admin_legenda_editar(id):
-    """Editar legenda predefinida - apenas Administradores"""
+    """Editar legenda predefinida - apenas Usuários Master"""
     if not current_user.is_master:
-        flash('Acesso negado. Apenas administradores podem gerenciar legendas.', 'error')
+        flash('Acesso negado. Apenas usuários master podem gerenciar legendas.', 'error')
         return redirect(url_for('index'))
     
     from models import LegendaPredefinida
@@ -3359,9 +3360,9 @@ def admin_legenda_editar(id):
 @app.route('/admin/legendas/<int:id>/excluir', methods=['POST'])
 @login_required
 def admin_legenda_excluir(id):
-    """Excluir legenda predefinida - apenas Administradores"""
+    """Excluir legenda predefinida - apenas Usuários Master"""
     if not current_user.is_master:
-        flash('Acesso negado. Apenas administradores podem gerenciar legendas.', 'error')
+        flash('Acesso negado. Apenas usuários master podem gerenciar legendas.', 'error')
         return redirect(url_for('index'))
     
     try:
@@ -3432,7 +3433,8 @@ def api_legendas():
                     'id': getattr(legenda, 'id', 0),
                     'texto': getattr(legenda, 'texto', ''),
                     'categoria': getattr(legenda, 'categoria', 'Geral'),
-                    'ativo': getattr(legenda, 'ativo', True)
+                    'ativo': getattr(legenda, 'ativo', True),
+                    'numero_ordem': getattr(legenda, 'numero_ordem', None)
                 })
             except Exception as proc_error:
                 print(f"ERRO PROCESSAMENTO: {proc_error}")

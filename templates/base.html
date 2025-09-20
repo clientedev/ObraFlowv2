@@ -136,38 +136,32 @@
                     </li>
                     {% if current_user.is_master %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-cog me-1"></i>Administração
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-cog"></i> Administração
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('users_list') }}">
-                                <i class="fas fa-users me-2"></i>Usuários
+                                <i class="fas fa-users"></i> Usuários
                             </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('register') }}">
-                                <i class="fas fa-user-plus me-2"></i>Novo Usuário
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin_emails') }}">
-                                <i class="fas fa-envelope me-2"></i>E-mails de Clientes
+                                <i class="fas fa-envelope"></i> E-mails de Clientes
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_legendas') }}">
+                                <i class="fas fa-tags"></i> Legendas Pré-definidas
                             </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('configuracao_email_list') }}">
-                                <i class="fas fa-envelope-open-text me-2"></i>Configurações de E-mail
+                                <i class="fas fa-mail-bulk"></i> Config. E-mail
                             </a></li>
-                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_aprovadores_padrao') }}">
+                                <i class="fas fa-user-check"></i> Aprovadores Padrão
+                            </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin_checklist_padrao') }}">
-                                <i class="fas fa-tasks me-2"></i>Checklist Padrão
+                                <i class="fas fa-list-check"></i> Checklist Padrão
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin_drive_test') }}">
                                 <i class="fas fa-cloud"></i> Testar Google Drive
                             </a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('admin_backup_all') }}">
-                            <i class="fas fa-sync"></i> Backup Todos Relatórios
-                        </a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{{ url_for('admin_aprovadores_padrao') }}">
-                            <i class="fas fa-user-check"></i> Gerenciar Aprovadores
-                        </a></li>
                         </ul>
                     </li>
                     {% endif %}
@@ -381,6 +375,7 @@
         return toastElement;
     }
     </script>
+    <script src="{{ url_for('static', filename='js/legendas-selector.js') }}"></script>
 
     {% block extra_scripts %}{% endblock %}
 </body>
