@@ -1,0 +1,15 @@
+🔄 REAL-TIME SYNC: Sistema pronto
+/api/legendas?categoria=all&_t=1758405140887&sync=realtime:1  Failed to load resource: the server responded with a status of 500 ()Understand this error
+realtime-sync.js:149 ❌ ERRO SYNC: Error: HTTP 500
+    at RealTimeSync.syncNow (realtime-sync.js:116:23)
+syncNow @ realtime-sync.js:149Understand this error
+realtime-sync.js:216 🔄 RETRY 1/3 em 2s
+/api/legendas?categoria=all&_t=1758405142018:1  Failed to load resource: the server responded with a status of 500 ()Understand this error
+legendas-selector.js:47 ❌ HTTP 500: {"error":"Erro interno: (psycopg2.errors.UndefinedColumn) column legendas_predefinidas.numero_ordem does not exist\nLINE 1: ...das.categoria AS legendas_predefinidas_categoria, legendas_p...\n                                                             ^\n\n[SQL: SELECT legendas_predefinidas.id AS legendas_predefinidas_id, legendas_predefinidas.texto AS legendas_predefinidas_texto, legendas_predefinidas.categoria AS legendas_predefinidas_categoria, legendas_predefinidas.numero_ordem AS legendas_predefinidas_numero_ordem, legendas_predefinidas.ativo AS legendas_predefinidas_ativo, legendas_predefinidas.criado_por AS legendas_predefinidas_criado_por, legendas_predefinidas.created_at AS legendas_predefinidas_created_at, legendas_predefinidas.updated_at AS legendas_predefinidas_updated_at \nFROM legendas_predefinidas \nWHERE legendas_predefinidas.ativo = true ORDER BY legendas_predefinidas.categoria ASC, legendas_predefinidas.id ASC]\n(Background on this error at: https://sqlalche.me/e/20/f405)","fonte":"error_definitivo","legendas":[],"success":false,"timestamp":"2025-09-20T21:52:25.606264","total":0}
+
+loadLegendas @ legendas-selector.js:47Understand this error
+legendas-selector.js:70 ❌ Erro ao carregar legendas (tentativa 2/3): Error: HTTP 500
+    at LegendasSelector.loadLegendas (legendas-selector.js:48:23)
+loadLegendas @ legendas-selector.js:70Understand this error
+legendas-selector.js:76 🔄 Retry 2/3 em 4s...
+realtime-sync.js:105  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758405143027&sync=realtime 500 (Internal Server Error)
