@@ -1,0 +1,77 @@
+Failed to load resource: the server responded with a status of 500 ()Understand this error
+realtime-sync.js:149 ❌ ERRO SYNC: Error: HTTP 500
+    at RealTimeSync.syncNow (realtime-sync.js:116:23)
+syncNow @ realtime-sync.js:149Understand this error
+realtime-sync.js:216 🔄 RETRY 1/3 em 2s
+legendas-selector.js:34  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758403792888 500 (Internal Server Error)
+loadLegendas @ legendas-selector.js:34
+loadLegendas @ legendas-selector.js:79Understand this error
+legendas-selector.js:47 ❌ HTTP 500: {"error":"(psycopg2.errors.UndefinedColumn) column legendas_predefinidas.numero_ordem does not exist\nLINE 1: ...das.categoria AS legendas_predefinidas_categoria, legendas_p...\n                                                             ^\n\n[SQL: SELECT legendas_predefinidas.id AS legendas_predefinidas_id, legendas_predefinidas.texto AS legendas_predefinidas_texto, legendas_predefinidas.categoria AS legendas_predefinidas_categoria, legendas_predefinidas.numero_ordem AS legendas_predefinidas_numero_ordem, legendas_predefinidas.ativo AS legendas_predefinidas_ativo, legendas_predefinidas.criado_por AS legendas_predefinidas_criado_por, legendas_predefinidas.created_at AS legendas_predefinidas_created_at, legendas_predefinidas.updated_at AS legendas_predefinidas_updated_at \nFROM legendas_predefinidas \nWHERE legendas_predefinidas.ativo = true ORDER BY legendas_predefinidas.categoria ASC, legendas_predefinidas.numero_ordem ASC, legendas_predefinidas.texto ASC]\n(Background on this error at: https://sqlalche.me/e/20/f405)","fonte":"error","legendas":[],"success":false,"timestamp":"2025-09-20T21:29:56.427409","total":0}
+
+loadLegendas @ legendas-selector.js:47
+await in loadLegendas
+loadLegendas @ legendas-selector.js:79Understand this error
+legendas-selector.js:70 ❌ Erro ao carregar legendas (tentativa 2/3): Error: HTTP 500
+    at LegendasSelector.loadLegendas (legendas-selector.js:48:23)
+loadLegendas @ legendas-selector.js:70
+await in loadLegendas
+loadLegendas @ legendas-selector.js:79Understand this error
+legendas-selector.js:76 🔄 Retry 2/3 em 4s...
+realtime-sync.js:105  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758403793896&sync=realtime 500 (Internal Server Error)
+syncNow @ realtime-sync.js:105
+(anonymous) @ realtime-sync.js:217Understand this error
+realtime-sync.js:149 ❌ ERRO SYNC: Error: HTTP 500
+    at RealTimeSync.syncNow (realtime-sync.js:116:23)
+syncNow @ realtime-sync.js:149
+await in syncNow
+(anonymous) @ realtime-sync.js:217Understand this error
+realtime-sync.js:216 🔄 RETRY 2/3 em 2s
+realtime-sync.js:105  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758403796027&sync=realtime 500 (Internal Server Error)
+syncNow @ realtime-sync.js:105
+(anonymous) @ realtime-sync.js:217
+setTimeout
+handleSyncError @ realtime-sync.js:217
+syncNow @ realtime-sync.js:150
+await in syncNow
+(anonymous) @ realtime-sync.js:217Understand this error
+realtime-sync.js:149 ❌ ERRO SYNC: Error: HTTP 500
+    at RealTimeSync.syncNow (realtime-sync.js:116:23)
+syncNow @ realtime-sync.js:149
+await in syncNow
+(anonymous) @ realtime-sync.js:217
+setTimeout
+handleSyncError @ realtime-sync.js:217
+syncNow @ realtime-sync.js:150
+await in syncNow
+(anonymous) @ realtime-sync.js:217Understand this error
+realtime-sync.js:216 🔄 RETRY 3/3 em 2s
+realtime-sync.js:105  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758403796771&sync=realtime 500 (Internal Server Error)
+syncNow @ realtime-sync.js:105
+(anonymous) @ realtime-sync.js:75Understand this error
+realtime-sync.js:149 ❌ ERRO SYNC: Error: HTTP 500
+    at RealTimeSync.syncNow (realtime-sync.js:116:23)
+syncNow @ realtime-sync.js:149
+await in syncNow
+(anonymous) @ realtime-sync.js:75Understand this error
+realtime-sync.js:219 ❌ MAX RETRIES atingido - pausando sync por 30s
+realtime-sync.js:85 ⏸️ SYNC PAUSADO
+legendas-selector.js:34  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758403797018 500 (Internal Server Error)
+loadLegendas @ legendas-selector.js:34
+loadLegendas @ legendas-selector.js:79
+await in loadLegendas
+loadLegendas @ legendas-selector.js:79Understand this error
+legendas-selector.js:47 ❌ HTTP 500: {"error":"(psycopg2.errors.UndefinedColumn) column legendas_predefinidas.numero_ordem does not exist\nLINE 1: ...das.categoria AS legendas_predefinidas_categoria, legendas_p...\n                                                             ^\n\n[SQL: SELECT legendas_predefinidas.id AS legendas_predefinidas_id, legendas_predefinidas.texto AS legendas_predefinidas_texto, legendas_predefinidas.categoria AS legendas_predefinidas_categoria, legendas_predefinidas.numero_ordem AS legendas_predefinidas_numero_ordem, legendas_predefinidas.ativo AS legendas_predefinidas_ativo, legendas_predefinidas.criado_por AS legendas_predefinidas_criado_por, legendas_predefinidas.created_at AS legendas_predefinidas_created_at, legendas_predefinidas.updated_at AS legendas_predefinidas_updated_at \nFROM legendas_predefinidas \nWHERE legendas_predefinidas.ativo = true ORDER BY legendas_predefinidas.categoria ASC, legendas_predefinidas.numero_ordem ASC, legendas_predefinidas.texto ASC]\n(Background on this error at: https://sqlalche.me/e/20/f405)","fonte":"error","legendas":[],"success":false,"timestamp":"2025-09-20T21:30:00.557743","total":0}
+
+loadLegendas @ legendas-selector.js:47
+await in loadLegendas
+loadLegendas @ legendas-selector.js:79
+await in loadLegendas
+loadLegendas @ legendas-selector.js:79Understand this error
+legendas-selector.js:70 ❌ Erro ao carregar legendas (tentativa 3/3): Error: HTTP 500
+    at LegendasSelector.loadLegendas (legendas-selector.js:48:23)
+loadLegendas @ legendas-selector.js:70
+await in loadLegendas
+loadLegendas @ legendas-selector.js:79
+await in loadLegendas
+loadLegendas @ legendas-selector.js:79Understand this error
+legendas-selector.
