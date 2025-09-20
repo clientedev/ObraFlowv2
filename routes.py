@@ -4827,3 +4827,232 @@ def geocode_address():
             'message': 'Erro interno do servidor'
         })
 
+
+
+# ====== PROJECT CHECKLIST ROUTES ======
+
+@app.route("/projects/<int:project_id>/checklist")
+@login_required 
+def project_checklist_view(project_id):
+    """View project checklist configuration"""
+    project = Projeto.query.get_or_404(project_id)
+    
+    # Get or create checklist config for this project
+    config = ProjetoChecklistConfig.query.filter_by(projeto_id=project_id).first()
+    if not config:
+        # Default to standard checklist
+        config = ProjetoChecklistConfig(
+            projeto_id=project_id,
+            tipo_checklist="padrao",
+            criado_por=current_user.id
+        )
+        db.session.add(config)
+        db.session.commit()
+    
+    # Get appropriate checklist items
+    if config.tipo_checklist == "personalizado":
+        checklist_items = ChecklistObra.query.filter_by(
+            projeto_id=project_id, 
+            ativo=True
+        ).order_by(ChecklistObra.ordem).all()
+    else:
+        checklist_items = ChecklistPadrao.query.filter_by(
+            ativo=True
+        ).order_by(ChecklistPadrao.ordem).all()
+    
+    return render_template("projects/checklist_view.html", 
+                         project=project, 
+                         config=config,
+                         checklist_items=checklist_items)
+
+@app.route("/projects/<int:project_id>/checklist/config", methods=["POST"])
+@login_required
+@csrf.exempt
+def project_checklist_config(project_id):
+    """Configure checklist type for project"""
+    project = Projeto.query.get_or_404(project_id)
+    
+    try:
+        data = request.get_json()
+        tipo_checklist = data.get("tipo_checklist")
+        
+        if tipo_checklist not in ["padrao", "personalizado"]:
+            return jsonify({"error": "Tipo de checklist inválido"}), 400
+        
+        # Get or create config
+        config = ProjetoChecklistConfig.query.filter_by(projeto_id=project_id).first()
+        if not config:
+            config = ProjetoChecklistConfig(
+                projeto_id=project_id,
+                tipo_checklist=tipo_checklist,
+                criado_por=current_user.id
+            )
+            db.session.add(config)
+        else:
+            config.tipo_checklist = tipo_checklist
+            config.updated_at = datetime.utcnow()
+        
+        # If switching to personalizado and no custom items exist, create from padrao
+        if tipo_checklist == "personalizado":
+            existing_custom = ChecklistObra.query.filter_by(projeto_id=project_id).count()
+            if existing_custom == 0:
+                # Copy from standard checklist
+                padrao_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+                for item in padrao_items:
+                    custom_item = ChecklistObra(
+                        projeto_id=project_id,
+                        texto=item.texto,
+                        ordem=item.ordem,
+                        criado_por=current_user.id
+                    )
+                    db.session.add(custom_item)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Checklist configurado para usar modelo {personalizado if tipo_checklist == personalizado else padrão}",
+            "tipo_checklist": tipo_checklist,
+            "redirect": url_for("project_checklist_edit", project_id=project_id) if tipo_checklist == "personalizado" else None
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
+@app.route("/projects/<int:project_id>/checklist/edit")
+@login_required
+def project_checklist_edit(project_id):
+    """Edit custom checklist for project"""
+    project = Projeto.query.get_or_404(project_id)
+    
+    # Check if project uses custom checklist
+    config = ProjetoChecklistConfig.query.filter_by(projeto_id=project_id).first()
+    if not config or config.tipo_checklist != "personalizado":
+        flash("Este projeto não está configurado para usar checklist personalizado", "warning")
+        return redirect(url_for("project_view", project_id=project_id))
+    
+    # Get custom checklist items
+    checklist_items = ChecklistObra.query.filter_by(
+        projeto_id=project_id,
+        ativo=True
+    ).order_by(ChecklistObra.ordem).all()
+    
+    return render_template("projects/checklist_edit.html", 
+                         project=project,
+                         checklist_items=checklist_items)
+
+@app.route("/projects/<int:project_id>/checklist/items", methods=["POST"])
+@login_required
+@csrf.exempt  
+def project_checklist_add_item(project_id):
+    """Add new item to custom checklist"""
+    project = Projeto.query.get_or_404(project_id)
+    
+    try:
+        data = request.get_json()
+        texto = data.get("texto", "").strip()
+        
+        if not texto:
+            return jsonify({"error": "Texto é obrigatório"}), 400
+        
+        # Check if project uses custom checklist
+        config = ProjetoChecklistConfig.query.filter_by(projeto_id=project_id).first()
+        if not config or config.tipo_checklist != "personalizado":
+            return jsonify({"error": "Projeto não configurado para checklist personalizado"}), 400
+        
+        # Get next order
+        last_item = ChecklistObra.query.filter_by(
+            projeto_id=project_id,
+            ativo=True
+        ).order_by(ChecklistObra.ordem.desc()).first()
+        nova_ordem = (last_item.ordem + 1) if last_item else 1
+        
+        # Create new item
+        new_item = ChecklistObra(
+            projeto_id=project_id,
+            texto=texto,
+            ordem=nova_ordem,
+            criado_por=current_user.id
+        )
+        
+        db.session.add(new_item)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Item adicionado com sucesso",
+            "item": {
+                "id": new_item.id,
+                "texto": new_item.texto,
+                "ordem": new_item.ordem
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
+@app.route("/projects/<int:project_id>/checklist/items/<int:item_id>", methods=["PUT"])
+@login_required
+@csrf.exempt
+def project_checklist_edit_item(project_id, item_id):
+    """Edit checklist item"""
+    project = Projeto.query.get_or_404(project_id)
+    item = ChecklistObra.query.filter_by(
+        id=item_id, 
+        projeto_id=project_id
+    ).first_or_404()
+    
+    try:
+        data = request.get_json()
+        texto = data.get("texto", "").strip()
+        
+        if not texto:
+            return jsonify({"error": "Texto é obrigatório"}), 400
+        
+        item.texto = texto
+        item.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Item atualizado com sucesso",
+            "item": {
+                "id": item.id,
+                "texto": item.texto,
+                "ordem": item.ordem
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
+@app.route("/projects/<int:project_id>/checklist/items/<int:item_id>", methods=["DELETE"]) 
+@login_required
+@csrf.exempt
+def project_checklist_delete_item(project_id, item_id):
+    """Delete checklist item"""
+    project = Projeto.query.get_or_404(project_id)
+    item = ChecklistObra.query.filter_by(
+        id=item_id,
+        projeto_id=project_id
+    ).first_or_404()
+    
+    try:
+        item.ativo = False
+        item.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Item removido com sucesso"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
