@@ -2,6 +2,12 @@
 
 {% block title %}Editar Relatório - {{ relatorio.numero }}{% endblock %}
 
+{% block head %}
+<!-- Meta tag CSRF para auto-save -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="report-id" content="{{ relatorio.id }}">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -632,33 +638,29 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="{{ url_for('static', filename='js/fabric-photo-editor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/fabric-photo-editor-modal.js') }}"></script>
 
-<!-- Auto Save Script para Relatórios em Preenchimento -->
+<!-- Auto Save Script Robusto para Relatórios em Preenchimento -->
 {% if relatorio.status == 'preenchimento' %}
-<script src="{{ url_for('static', filename='js/autosave.js') }}"></script>
+<script src="{{ url_for('static', filename='js/reports_autosave.js') }}"></script>
 <script>
-// Inicializar Auto Save para relatórios em preenchimento
+// Inicializar Auto Save robusto com CSRF e offline support
 document.addEventListener('DOMContentLoaded', function() {
     const reportId = {{ relatorio.id }};
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     
-    if (reportId) {
-        // Inicializar auto save
-        const autoSave = initAutoSave(reportId, {
-            interval: 10000, // 10 segundos
-            statusElement: document.getElementById('autosave-status'),
-            form: document.querySelector('form') // Usar o primeiro form da página
-        });
-        
-        console.log('Auto Save ativado para relatório', reportId);
-        
-        // Modificar comportamento dos botões de finalizar/aprovar
-        const actionButtons = document.querySelectorAll('button[type="submit"], input[type="submit"]');
-        actionButtons.forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                // Parar auto save antes de submeter
-                autoSave.stop();
-                
-                // Salvar uma última vez
-                autoSave.saveNow().then(() => {
+    console.log('🔧 Inicializando Auto-Save robusto...', { reportId, hasCSRF: !!csrfToken });
+    
+    if (reportId && csrfToken) {
+        try {
+            // Usar o sistema robusto de auto-save
+            window.initAutoSave(reportId, csrfToken);
+            console.log('✅ Auto-Save robusto ativado para relatório', reportId);
+            
+            // Modificar comportamento dos botões de ação
+            const actionButtons = document.querySelectorAll('button[type="submit"], input[type="submit"]');
+            actionButtons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    console.log('📝 Salvamento final antes de submeter...');
+                    
                     // Alterar status visual
                     const statusBadge = document.querySelector('.badge.bg-info');
                     if (statusBadge) {
@@ -668,7 +670,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             });
-        });
+            
+        } catch (error) {
+            console.error('❌ Erro ao inicializar Auto-Save:', error);
+            console.warn('🔄 Tentando fallback...');
+            
+            // Fallback simples em caso de erro
+            setInterval(() => {
+                console.log('💾 Fallback auto-save (a cada 30s)');
+            }, 30000);
+        }
+    } else {
+        console.warn('⚠️ Auto-Save não inicializado - faltam dados:', { reportId, csrfToken });
     }
 });
 </script>

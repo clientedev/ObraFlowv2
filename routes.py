@@ -21,6 +21,45 @@ def health_check():
         'service': 'flask-app'
     }), 200
 
+# Teste simples para Railway
+@app.route('/test-reports')
+def test_reports_route():
+    """Teste simples para verificar se as rotas de reports funcionam"""
+    return jsonify({
+        'status': 'success',
+        'message': 'Rota de teste funcionando',
+        'reports_route_exists': True,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
+# Diagnóstico específico para Railway
+@app.route('/debug/routes')
+def debug_routes():
+    """Endpoint de diagnóstico para verificar rotas disponíveis"""
+    try:
+        routes_info = []
+        for rule in app.url_map.iter_rules():
+            if rule.endpoint != 'static':
+                routes_info.append({
+                    'endpoint': rule.endpoint,
+                    'methods': list(rule.methods),
+                    'rule': str(rule)
+                })
+        
+        return jsonify({
+            'status': 'success',
+            'total_routes': len(routes_info),
+            'routes': sorted(routes_info, key=lambda x: x['rule']),
+            'reports_routes': [r for r in routes_info if 'reports' in r['rule']],
+            'timestamp': datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+
 @app.route('/health/full')
 def health_check_full():
     """Full health check with database connectivity"""
@@ -459,60 +498,129 @@ def projects_list():
     
     return render_template('projects/list.html', projects=projects)
 
-# Reports routes
+# Reports routes - Versão robusta para Railway + Replit
 @app.route('/reports')
+@app.route('/reports/')  # Adicionar versão com trailing slash para Railway
 @login_required
 def reports():
-    """Listar relatórios com tratamento de erros e logs temporários para debug"""
-    page = request.args.get('page', 1, type=int)
-    
+    """
+    Listar relatórios com tratamento robusto de erros
+    Funciona tanto no Replit quanto no Railway com PostgreSQL
+    """
     try:
-        current_app.logger.info(f"📋 RELATÓRIOS: Usuário {current_user.username} acessando /reports página {page}")
+        # Log de acesso
+        page = request.args.get('page', 1, type=int)
+        current_app.logger.info(f"📋 RELATÓRIOS: {current_user.username} acessando página {page}")
         
-        # Get search query parameter
-        q = request.args.get('q')
+        # Verificar conexão com banco
+        try:
+            # Teste simples de conectividade
+            db.session.execute(db.text('SELECT 1'))
+            current_app.logger.info(f"✅ DB CONECTADO: PostgreSQL respondendo")
+        except Exception as db_error:
+            current_app.logger.error(f"❌ DB ERRO: {str(db_error)}")
+            flash('Problema de conectividade com banco de dados', 'error')
+            return render_template('reports/list.html', relatorios=None), 503
         
-        # Start with base query
+        # Construir query de busca
+        q = request.args.get('q', '').strip()
         query = Relatorio.query
         
-        # Apply intelligent search if query provided
-        if q and q.strip():
+        if q:
             from sqlalchemy import or_
-            search_term = f"%{q.strip()}%"
-            current_app.logger.info(f"🔍 SEARCH: Buscando por '{search_term}'")
+            search_term = f"%{q}%"
+            current_app.logger.info(f"🔍 BUSCA: '{search_term}'")
             
-            # Join with related tables for searching
-            query = query.join(Projeto, Relatorio.projeto_id == Projeto.id).join(User, Relatorio.autor_id == User.id)
-            query = query.filter(or_(
-                Relatorio.numero.ilike(search_term),
-                Relatorio.titulo.ilike(search_term),
-                Projeto.nome.ilike(search_term),
-                Projeto.numero.ilike(search_term),
-                User.nome_completo.ilike(search_term)
-            ))
+            try:
+                # Join com tratamento de erro
+                query = query.join(Projeto, Relatorio.projeto_id == Projeto.id, isouter=True)
+                query = query.join(User, Relatorio.autor_id == User.id, isouter=True)
+                query = query.filter(or_(
+                    Relatorio.numero.ilike(search_term),
+                    Relatorio.titulo.ilike(search_term),
+                    Projeto.nome.ilike(search_term),
+                    Projeto.numero.ilike(search_term),
+                    User.nome_completo.ilike(search_term)
+                ))
+            except Exception as search_error:
+                current_app.logger.warning(f"⚠️ BUSCA ERRO: {str(search_error)} - usando query simples")
+                query = Relatorio.query.filter(Relatorio.titulo.ilike(search_term))
         
-        current_app.logger.info(f"📊 QUERY: Executando consulta de relatórios...")
-        relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
-            page=page, per_page=10, error_out=False
-        )
-        
-        current_app.logger.info(f"✅ SUCCESS: {relatorios.total} relatórios encontrados")
-        return render_template('reports/list.html', relatorios=relatorios)
-        
-    except Exception as e:
-        # Log completo do erro com traceback
-        current_app.logger.exception(f"❌ ERRO 500 em /reports: {str(e)}")
-        
-        # Tentar retornar lista vazia em caso de erro para evitar crash
+        # Executar paginação com fallback
         try:
-            from flask_sqlalchemy import Pagination
-            relatorios_vazio = Pagination(query=None, page=1, per_page=10, total=0, items=[])
-            flash('Erro ao carregar relatórios. Dados podem estar corrompidos.', 'error')
-            return render_template('reports/list.html', relatorios=relatorios_vazio)
+            current_app.logger.info(f"📊 EXECUTANDO: Consulta paginada...")
+            relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
+                page=page, 
+                per_page=10, 
+                error_out=False,
+                max_per_page=50  # Limitar para evitar sobrecarga
+            )
+            
+            current_app.logger.info(f"✅ SUCESSO: {relatorios.total} relatórios | página {page}")
+            
+            # Verificar se há dados
+            if relatorios.total == 0:
+                current_app.logger.info("ℹ️ VAZIO: Nenhum relatório encontrado")
+            
+            return render_template('reports/list.html', relatorios=relatorios)
+            
+        except Exception as query_error:
+            current_app.logger.error(f"❌ QUERY ERRO: {str(query_error)}")
+            
+            # Fallback com query simples
+            try:
+                current_app.logger.info("🔄 FALLBACK: Tentando query básica...")
+                relatorios_simples = Relatorio.query.limit(10).all()
+                
+                # Criar paginação manual simples
+                from collections import namedtuple
+                PaginationFallback = namedtuple('Pagination', ['items', 'total', 'page', 'pages', 'has_prev', 'has_next'])
+                relatorios = PaginationFallback(
+                    items=relatorios_simples,
+                    total=len(relatorios_simples),
+                    page=1,
+                    pages=1,
+                    has_prev=False,
+                    has_next=False
+                )
+                
+                flash('Listagem em modo simplificado devido a problema técnico', 'warning')
+                return render_template('reports/list.html', relatorios=relatorios)
+                
+            except Exception as fallback_error:
+                current_app.logger.error(f"❌ FALLBACK ERRO: {str(fallback_error)}")
+                flash('Erro ao carregar relatórios. Tente novamente.', 'error')
+                return render_template('reports/list.html', relatorios=None), 500
+    
+    except Exception as critical_error:
+        # Log crítico do erro
+        current_app.logger.exception(f"💥 ERRO CRÍTICO /reports: {str(critical_error)}")
+        
+        # Resposta de emergência
+        error_response = {
+            'error': 'Erro interno do servidor',
+            'timestamp': datetime.utcnow().isoformat(),
+            'user': getattr(current_user, 'username', 'unknown') if current_user.is_authenticated else 'anonymous'
+        }
+        
+        # Se requisição é AJAX, retornar JSON
+        if request.headers.get('Content-Type') == 'application/json':
+            return jsonify(error_response), 500
+        
+        # Senão, tentar renderizar página de erro
+        try:
+            flash('Erro crítico no sistema. Contate o administrador.', 'error')
+            return render_template('reports/list.html', relatorios=None), 500
         except:
-            # Se nem isso funcionar, retornar erro 500
-            current_app.logger.exception(f"❌ ERRO CRÍTICO: Não foi possível renderizar template")
-            return f"Erro interno do servidor ao carregar relatórios: {str(e)}", 500
+            # Última opção: resposta HTML simples
+            return f"""
+            <html><body>
+                <h1>Erro no Sistema</h1>
+                <p>Erro interno do servidor ao carregar relatórios.</p>
+                <p>Timestamp: {error_response['timestamp']}</p>
+                <a href="/">Voltar ao início</a>
+            </body></html>
+            """, 500
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
 @login_required
@@ -1188,60 +1296,7 @@ def pending_reports():
     
     return render_template('reports/pending.html', relatorios=relatorios)
 
-@app.route('/reports/autosave/<int:report_id>', methods=['POST'])
-@login_required
-def autosave_report(report_id):
-    """Auto save para relatórios em preenchimento"""
-    try:
-        relatorio = Relatorio.query.get_or_404(report_id)
-        
-        # Verificar permissões
-        if not current_user.is_master and relatorio.autor_id != current_user.id:
-            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
-        
-        # Verificar se o relatório está em status de preenchimento
-        if relatorio.status != 'preenchimento':
-            return jsonify({'success': False, 'error': 'Relatório não está em preenchimento'}), 400
-        
-        data = request.get_json()
-        
-        # Atualizar campos permitidos para auto save
-        if 'titulo' in data:
-            relatorio.titulo = data['titulo']
-        
-        if 'conteudo' in data:
-            relatorio.conteudo = data['conteudo']
-        
-        if 'latitude' in data:
-            try:
-                relatorio.latitude = float(data['latitude']) if data['latitude'] else None
-            except (ValueError, TypeError):
-                pass
-                
-        if 'longitude' in data:
-            try:
-                relatorio.longitude = float(data['longitude']) if data['longitude'] else None
-            except (ValueError, TypeError):
-                pass
-        
-        if 'checklist_data' in data:
-            relatorio.checklist_data = data['checklist_data']
-        
-        # Atualizar timestamp de última modificação
-        relatorio.updated_at = datetime.utcnow()
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Dados salvos automaticamente',
-            'timestamp': datetime.utcnow().isoformat()
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        print(f"Erro no auto save: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+# Função autosave_report duplicada removida - mantendo apenas a implementação principal robusta (linha ~625)
 
 @app.route('/reports/<int:report_id>/finalize', methods=['POST'])
 @login_required
