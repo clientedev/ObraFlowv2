@@ -3,6 +3,7 @@ This project is a comprehensive construction site visit tracking system built wi
 
 # User Preferences
 Preferred communication style: Simple, everyday language.
+Mobile-first design: Date field should be the first input field in report forms.
 
 # System Architecture
 
