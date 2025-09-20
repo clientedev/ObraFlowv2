@@ -15,13 +15,13 @@
     -webkit-user-select: none !important;
     user-select: none !important;
     touch-action: manipulation !important;
-    
+
     /* ELIMINAR TODAS ANIMAÇÕES */
     -webkit-transition: none !important;
     -moz-transition: none !important;
     -o-transition: none !important;
     transition: none !important;
-    
+
     /* ELIMINAR TRANSFORMAÇÕES */
     -webkit-transform: none !important;
     -moz-transform: none !important;
@@ -653,6 +653,47 @@ textarea {
 .checklist-item {
     background: white;
 }
+
+/* Estilos específicos para controle de tamanho de imagem nos relatórios express */
+.express-photo-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    background-color: #f8f9fa;
+    padding: 5px;
+    border: 1px solid #dee2e6;
+}
+
+.express-photo-container .photo-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-height: 300px; /* Limita a altura máxima da prévia */
+    overflow: hidden;
+}
+
+.express-photo-container img {
+    width: 100%;
+    height: auto; /* Mantém a proporção */
+    max-height: 100%; /* Garante que não exceda o contêiner */
+    object-fit: cover; /* Cobre a área do contêiner, mantendo a proporção */
+    border-radius: 8px; /* Arredonda as bordas da imagem */
+}
+
+.express-photo-container .photo-info {
+    padding: 10px;
+    background-color: #fff;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.express-photo-container .photo-actions {
+    display: flex;
+    gap: 8px;
+}
 </style>
 {% endblock %}
 
@@ -813,6 +854,11 @@ textarea {
                     <div id="configuredPhotoGrid" class="configured-photo-grid"></div>
                 </div>
 
+                <!-- Container para fotos enviadas -->
+                <div class="uploaded-photos" id="uploadedPhotos">
+                        <!-- Fotos aparecerão aqui com controle de tamanho -->
+                    </div>
+
                 <input type="hidden" id="fotoConfiguracoes" name="foto_configuracoes">
             </div>
         </div>
@@ -896,7 +942,7 @@ textarea {
                         <div class="color-option" data-color="#000000" style="background: #000000;"></div>
                     </div>
                 </div>
-                
+
                 <div class="tool-section">
                     <div class="tool-title">Ferramentas</div>
                     <div class="drawing-tools">
@@ -914,7 +960,7 @@ textarea {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="mobile-grid two-col">
                     <button type="button" class="btn btn-outline-primary" onclick="undoLastAction()">
                         <i class="fas fa-undo"></i> Desfazer
@@ -966,9 +1012,9 @@ function initializeMobileInterface() {
     // Photo upload
     const photoInput = document.getElementById('photoInput');
     const uploadZone = document.getElementById('photoUploadZone');
-    
+
     uploadZone.addEventListener('click', () => photoInput.click());
-    
+
     photoInput.addEventListener('change', function(e) {
         handlePhotoUpload(e.target.files);
     });
@@ -1001,13 +1047,13 @@ function initializeMobileInterface() {
 
 function selectCategory(category) {
     selectedCategory = category;
-    
+
     // Update visual selection
     document.querySelectorAll('.category-card').forEach(card => {
         card.classList.remove('selected');
     });
     document.querySelector(`[data-category="${category}"]`).classList.add('selected');
-    
+
     // Show upload zone
     document.getElementById('photoUploadZone').style.display = 'block';
 }
@@ -1058,7 +1104,7 @@ function handlePhotoUpload(files) {
                     fileName: file.name,
                     configured: false
                 };
-                
+
                 uploadedPhotos.push(photoData);
                 showPhotoConfigurationModal();
             };
@@ -1070,15 +1116,15 @@ function handlePhotoUpload(files) {
 function showPhotoConfigurationModal() {
     const modal = new bootstrap.Modal(document.getElementById('photoConfigModal'));
     const configList = document.getElementById('photoConfigList');
-    
+
     configList.innerHTML = '';
-    
+
     uploadedPhotos.filter(photo => !photo.configured).forEach(photo => {
         const configItem = createPhotoConfigItem(photo);
         configList.appendChild(configItem);
         loadLegendsForPhoto(photo.id, photo.category);
     });
-    
+
     modal.show();
 }
 
@@ -1088,7 +1134,7 @@ function createPhotoConfigItem(photo) {
     item.dataset.photoId = photo.id;
     item.dataset.category = photo.category;
     item.dataset.fileName = photo.fileName;
-    
+
     item.innerHTML = `
         <img src="${photo.dataUrl}" alt="Preview" class="photo-preview">
         <div class="form-group">
@@ -1101,22 +1147,22 @@ function createPhotoConfigItem(photo) {
             </select>
         </div>
         <div class="photo-actions">
-            <button type="button" class="btn btn-outline-primary" onclick="editPhoto('${photo.id}')">
+            <button type="button" class="btn btn-primary btn-sm edit-photo-btn" onclick="editPhoto('${photo.id}')">
                 <i class="fas fa-edit"></i> Editar
             </button>
-            <button type="button" class="btn btn-outline-danger" onclick="removePhoto('${photo.id}')">
+            <button type="button" class="btn btn-danger btn-sm" onclick="removePhoto('${photo.id}')">
                 <i class="fas fa-trash"></i> Remover
             </button>
         </div>
     `;
-    
+
     return item;
 }
 
 async function loadLegendsForPhoto(photoId, category) {
     try {
         console.log(`Carregando legendas para foto ${photoId}, categoria: ${category}`);
-        
+
         const categoryMap = {
             'Geral': 'Geral',
             'Estrutura': 'Estrutural',
@@ -1125,27 +1171,27 @@ async function loadLegendsForPhoto(photoId, category) {
             'Segurança': 'Segurança',
             'Problema': 'Geral'
         };
-        
+
         const mappedCategory = categoryMap[category] || 'Geral';
         console.log(`Categoria mapeada: ${mappedCategory}`);
-        
+
         const response = await fetch(`/api/legendas?categoria=${mappedCategory}`);
         const data = await response.json();
         console.log('Dados recebidos:', data);
-        
+
         const select = document.getElementById(`legend_${photoId}`);
         console.log('Select element:', select);
-        
+
         if (select && data.success && data.legendas) {
             select.innerHTML = '<option value="">Selecione uma legenda...</option>';
-            
+
             data.legendas.forEach(legenda => {
                 const option = document.createElement('option');
                 option.value = legenda.texto;
                 option.textContent = legenda.texto;
                 select.appendChild(option);
             });
-            
+
             console.log(`${data.legendas.length} legendas carregadas para categoria ${mappedCategory}`);
         }
     } catch (error) {
@@ -1160,7 +1206,7 @@ async function loadLegendsForPhoto(photoId, category) {
 function editPhoto(photoId) {
     currentEditingPhoto = photoId;
     const photo = uploadedPhotos.find(p => p.id === photoId);
-    
+
     if (photo) {
         initializePhotoEditor(photo.dataUrl);
         const modal = new bootstrap.Modal(document.getElementById('photoEditorModal'));
@@ -1171,16 +1217,16 @@ function editPhoto(photoId) {
 function initializePhotoEditor(imageSrc) {
     canvas = document.getElementById('photoCanvas');
     ctx = canvas.getContext('2d');
-    
+
     const img = new Image();
     img.onload = function() {
         // Set canvas size to fit the container while maintaining aspect ratio
         const containerWidth = canvas.parentElement.clientWidth - 20;
         const containerHeight = canvas.parentElement.clientHeight - 20;
-        
+
         const aspectRatio = img.width / img.height;
         let canvasWidth, canvasHeight;
-        
+
         if (containerWidth / containerHeight > aspectRatio) {
             canvasHeight = containerHeight;
             canvasWidth = canvasHeight * aspectRatio;
@@ -1188,25 +1234,25 @@ function initializePhotoEditor(imageSrc) {
             canvasWidth = containerWidth;
             canvasHeight = canvasWidth / aspectRatio;
         }
-        
+
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
-        
+
         // Draw image
         ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
-        
+
         // Save initial state
         drawingHistory = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
     };
     img.src = imageSrc;
-    
+
     setupCanvasEvents();
     setupToolEvents();
 }
 
 function setupCanvasEvents() {
     let lastX, lastY;
-    
+
     // Touch events for mobile
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
@@ -1216,16 +1262,16 @@ function setupCanvasEvents() {
         lastX = touch.clientX - rect.left;
         lastY = touch.clientY - rect.top;
     });
-    
+
     canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();
         if (!isDrawing) return;
-        
+
         const touch = e.touches[0];
         const rect = canvas.getBoundingClientRect();
         const currentX = touch.clientX - rect.left;
         const currentY = touch.clientY - rect.top;
-        
+
         if (currentTool === 'brush') {
             ctx.strokeStyle = currentColor;
             ctx.lineWidth = 3;
@@ -1235,11 +1281,11 @@ function setupCanvasEvents() {
             ctx.lineTo(currentX, currentY);
             ctx.stroke();
         }
-        
+
         lastX = currentX;
         lastY = currentY;
     });
-    
+
     canvas.addEventListener('touchend', (e) => {
         e.preventDefault();
         isDrawing = false;
@@ -1247,7 +1293,7 @@ function setupCanvasEvents() {
         drawingHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
         if (drawingHistory.length > 10) drawingHistory.shift(); // Keep only last 10 states
     });
-    
+
     // Mouse events for desktop compatibility
     canvas.addEventListener('mousedown', (e) => {
         isDrawing = true;
@@ -1255,14 +1301,14 @@ function setupCanvasEvents() {
         lastX = e.clientX - rect.left;
         lastY = e.clientY - rect.top;
     });
-    
+
     canvas.addEventListener('mousemove', (e) => {
         if (!isDrawing) return;
-        
+
         const rect = canvas.getBoundingClientRect();
         const currentX = e.clientX - rect.left;
         const currentY = e.clientY - rect.top;
-        
+
         if (currentTool === 'brush') {
             ctx.strokeStyle = currentColor;
             ctx.lineWidth = 3;
@@ -1272,11 +1318,11 @@ function setupCanvasEvents() {
             ctx.lineTo(currentX, currentY);
             ctx.stroke();
         }
-        
+
         lastX = currentX;
         lastY = currentY;
     });
-    
+
     canvas.addEventListener('mouseup', () => {
         isDrawing = false;
         drawingHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
@@ -1294,7 +1340,7 @@ function setupToolEvents() {
             console.log(`Cor selecionada: ${currentColor}`);
         });
     });
-    
+
     // Tool selection
     document.querySelectorAll('.tool-button').forEach(button => {
         button.addEventListener('click', function() {
@@ -1333,21 +1379,21 @@ function clearCanvas() {
 function saveEditedPhoto() {
     const editedImageData = canvas.toDataURL('image/png');
     const photo = uploadedPhotos.find(p => p.id === currentEditingPhoto);
-    
+
     if (photo) {
         photo.dataUrl = editedImageData;
         photo.edited = true;
-        
+
         // Update preview in configuration modal
         const configItem = document.querySelector(`[data-photo-id="${currentEditingPhoto}"]`);
         if (configItem) {
             const img = configItem.querySelector('img');
             img.src = editedImageData;
         }
-        
+
         console.log(`Foto ${currentEditingPhoto} editada e salva`);
     }
-    
+
     // Close editor modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('photoEditorModal'));
     modal.hide();
@@ -1368,20 +1414,20 @@ function confirmPhotoConfiguration() {
     const photoConfigItems = document.querySelectorAll('.photo-config-item');
     let validPhotos = 0;
     let photoConfigurations = [];
-    
+
     photoConfigItems.forEach(item => {
         const photoId = item.dataset.photoId;
         const legendSelect = item.querySelector('.legend-select');
         const legend = legendSelect.value.trim();
         const img = item.querySelector('img');
-        
+
         if (!legend) {
             legendSelect.style.borderColor = '#dc3545';
             legendSelect.focus();
             alert('Por favor, selecione uma legenda predefinida para todas as fotos.');
             return;
         }
-        
+
         if (legend && img) {
             const photo = uploadedPhotos.find(p => p.id === photoId);
             if (photo) {
@@ -1391,56 +1437,56 @@ function confirmPhotoConfiguration() {
                     categoria: photo.category,
                     originalName: photo.fileName
                 };
-                
+
                 photoConfigurations.push(photoConfig);
                 photo.configured = true;
                 photo.legend = legend;
                 validPhotos++;
-                
+
                 console.log(`Foto ${photoId} configurada com legenda: ${legend}`);
             }
         }
     });
-    
+
     if (validPhotos !== photoConfigItems.length) {
         alert('Por favor, selecione legendas predefinidas para todas as fotos.');
         return;
     }
-    
+
     if (validPhotos === 0) {
         alert('Por favor, configure pelo menos uma foto com legenda predefinida.');
         return;
     }
-    
+
     // Save configurations
     document.getElementById('fotoConfiguracoes').value = JSON.stringify(photoConfigurations);
     console.log(`Configurações das fotos salvas: ${photoConfigurations.length} fotos`);
-    
+
     // Update configured photos display
     displayConfiguredPhotos();
     updatePhotoCounter();
-    
+
     // Close modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('photoConfigModal'));
     modal.hide();
-    
+
     // Reset for next category
     resetCategorySelection();
-    
+
     alert(`${validPhotos} foto(s) configurada(s) com sucesso!`);
 }
 
 function displayConfiguredPhotos() {
     const display = document.getElementById('configuredPhotosDisplay');
     const grid = document.getElementById('configuredPhotoGrid');
-    
+
     grid.innerHTML = '';
-    
+
     const configured = uploadedPhotos.filter(p => p.configured);
-    
+
     if (configured.length > 0) {
         display.style.display = 'block';
-        
+
         configured.forEach(photo => {
             const item = document.createElement('div');
             item.className = 'configured-photo-item';
@@ -1474,10 +1520,10 @@ function resetCategorySelection() {
 async function loadDefaultChecklist() {
     try {
         console.log('Carregando checklist padrão...');
-        
+
         const response = await fetch('/api/checklist_express');
         const data = await response.json();
-        
+
         if (data.success && data.items) {
             renderChecklist(data.items);
             console.log(`${data.items.length} itens do checklist padrão carregados`);
@@ -1498,22 +1544,22 @@ async function loadDefaultChecklist() {
 function renderChecklist(items) {
     const container = document.getElementById('checklistContainer');
     container.innerHTML = '';
-    
+
     items.forEach((item, index) => {
         const checklistItem = document.createElement('div');
         checklistItem.className = 'checklist-item';
-        
+
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'checklist-checkbox';
         checkbox.id = `checklist_${index}`;
         checkbox.addEventListener('change', updateChecklistData);
-        
+
         const label = document.createElement('label');
         label.className = 'checklist-label';
         label.htmlFor = `checklist_${index}`;
         label.textContent = item.texto;
-        
+
         checklistItem.appendChild(checkbox);
         checklistItem.appendChild(label);
         container.appendChild(checklistItem);
@@ -1523,14 +1569,14 @@ function renderChecklist(items) {
 function updateChecklistData() {
     const checkboxes = document.querySelectorAll('.checklist-checkbox');
     const checklistData = [];
-    
+
     checkboxes.forEach((checkbox, index) => {
         const label = document.querySelector(`label[for="${checkbox.id}"]`);
         checklistData.push({
             titulo: label.textContent,
             concluido: checkbox.checked
         });
-        
+
         // Update visual state
         const item = checkbox.closest('.checklist-item');
         if (checkbox.checked) {
@@ -1539,33 +1585,33 @@ function updateChecklistData() {
             item.classList.remove('completed');
         }
     });
-    
+
     document.getElementById('checklistData').value = JSON.stringify(checklistData);
 }
 
 function validateForm() {
     const empresaNome = document.getElementById('empresa_nome');
     const dataVisita = document.getElementById('data_visita');
-    
+
     let isValid = true;
-    
+
     // Clear previous validation
     document.querySelectorAll('.form-control, .form-select').forEach(el => {
         el.classList.remove('invalid');
     });
     document.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
-    
+
     // Validate required fields
     if (!empresaNome.value.trim()) {
         showFieldError(empresaNome, 'Nome da empresa é obrigatório');
         isValid = false;
     }
-    
+
     if (!dataVisita.value) {
         showFieldError(dataVisita, 'Data da visita é obrigatória');
         isValid = false;
     }
-    
+
     if (!isValid) {
         // Scroll to first error
         const firstError = document.querySelector('.form-control.invalid, .form-select.invalid');
@@ -1573,17 +1619,17 @@ function validateForm() {
             firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }
-    
+
     return isValid;
 }
 
 function showFieldError(field, message) {
     field.classList.add('invalid');
-    
+
     const feedback = document.createElement('div');
     feedback.className = 'invalid-feedback';
     feedback.textContent = message;
-    
+
     field.parentNode.appendChild(feedback);
 }
 

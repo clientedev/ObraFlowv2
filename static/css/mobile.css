@@ -154,6 +154,81 @@ input, textarea, select, [contenteditable="true"] {
     margin-bottom: 8px;
 }
 
+/* Controle de tamanho das imagens - MOBILE FIRST */
+.photo-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+.photo-container img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 300px !important;
+    object-fit: cover !important;
+    display: block !important;
+    border-radius: 8px;
+}
+
+/* Para tablets e desktop */
+@media (min-width: 768px) {
+    .photo-container {
+        max-width: 400px;
+        margin: 0 auto 15px auto;
+    }
+    
+    .photo-container img {
+        max-height: 400px !important;
+    }
+}
+
+/* Imagens em relatórios express específicamente */
+.express-photo-container,
+.photo-item,
+.uploaded-photo {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+.express-photo-container img,
+.photo-item img,
+.uploaded-photo img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 300px !important;
+    object-fit: cover !important;
+    display: block !important;
+    border-radius: 8px;
+}
+
+/* Preview de fotos durante upload */
+.photo-preview {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 10px;
+}
+
+.photo-preview img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 250px !important;
+    object-fit: cover !important;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
 /* Botões com área de toque adequada */
 @media (max-width: 767.98px) {
     .btn, .tool-btn {

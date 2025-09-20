@@ -419,6 +419,51 @@ body {
     transform: scale(1.05);
 }
 
+/* Controle global de imagens para prevenir quebra de layout */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Específico para imagens em containers de fotos */
+.photo-container,
+.express-photo-container,
+.photo-item,
+.uploaded-photo,
+.photo-preview {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+
+.photo-container img,
+.express-photo-container img,
+.photo-item img,
+.uploaded-photo img,
+.photo-preview img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 300px !important;
+    object-fit: cover !important;
+    display: block !important;
+    border-radius: 8px;
+}
+
+/* Para relatórios express - área específica */
+.express-photos .photo-container img,
+.relatorio-express .photo-container img {
+    max-height: 250px !important;
+}
+
+/* Controle para modais e editores */
+.modal .photo-container img,
+.editor-container img {
+    max-height: 400px !important;
+}
+
 /* Progress indicators */
 .progress {
     height: 1rem;
