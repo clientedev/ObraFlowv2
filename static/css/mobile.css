@@ -475,95 +475,40 @@ img {
     z-index: 1;
 }
 
-/* Dropdown específico para cards de relatórios - FORÇAR VISIBILIDADE */
-.report-card .btn-group.dropdown {
-    position: relative !important;
-    z-index: 100 !important;
-    width: 100% !important;
+/* Dropdown específico para cards de relatórios */
+.report-card .dropdown {
+    position: relative;
+    width: 100%;
+    z-index: 1050;
 }
 
 .report-card .dropdown-menu {
-    position: absolute !important;
-    top: 100% !important;
-    right: 0 !important;
-    left: auto !important;
-    z-index: 9999 !important;
-    min-width: 180px !important;
-    padding: 8px 0 !important;
-    margin: 2px 0 0 !important;
-    background-color: #ffffff !important;
-    border: 1px solid #ccc !important;
-    border-radius: 8px !important;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
-    transform: translateZ(0) !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: block !important;
-}
-
-/* Garantir que o dropdown apareça quando clicado */
-.report-card .btn-group.dropdown .dropdown-menu.show,
-.report-card .btn-group.dropdown.show .dropdown-menu {
-    display: block !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    z-index: 9999 !important;
+    min-width: 160px;
+    z-index: 1050;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 .report-card .dropdown-item {
-    display: block !important;
-    width: 100% !important;
-    padding: 10px 16px !important;
-    clear: both !important;
-    font-weight: 400 !important;
-    color: #333 !important;
-    text-align: inherit !important;
-    text-decoration: none !important;
-    white-space: nowrap !important;
-    background-color: transparent !important;
-    border: 0 !important;
-    font-size: 0.875rem !important;
-    cursor: pointer !important;
-}
-
-.report-card .dropdown-item:hover,
-.report-card .dropdown-item:focus {
-    color: #1e2125 !important;
-    background-color: #f8f9fa !important;
-    text-decoration: none !important;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
 }
 
 .report-card .dropdown-toggle {
-    border-radius: 6px !important;
-    font-size: 0.8rem !important;
-    padding: 6px 12px !important;
-    font-weight: 600 !important;
-    white-space: nowrap !important;
-    position: relative !important;
-    z-index: 1 !important;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    font-weight: 600;
+    border-radius: 6px;
 }
 
-.report-card .dropdown-toggle::after {
-    margin-left: 6px !important;
-    vertical-align: middle !important;
-}
-
-/* Forçar overflow visível para cards de relatórios */
-.report-card {
-    overflow: visible !important;
-}
-
-.report-card .card {
-    overflow: visible !important;
-}
-
-.report-card .card-body {
-    overflow: visible !important;
-}
-
+/* Garantir que dropdown apareça acima de outros elementos */
 .report-card .col-4 {
-    overflow: visible !important;
-    z-index: 10 !important;
+    z-index: 1050;
+    position: relative;
+}
+
+.report-card {
+    overflow: visible;
 }
 
 /* Mobile específico */
