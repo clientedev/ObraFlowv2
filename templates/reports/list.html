@@ -215,15 +215,17 @@ input, textarea, select {
                                         </td>
                                         <td>{{ report.data_relatorio.strftime('%d/%m/%Y') if report.data_relatorio else '-' }}</td>
                                         <td>
-                                            <span class="badge 
-                                                {% if report.status == 'Aprovado' %}bg-success
-                                                {% elif report.status == 'Rejeitado' %}bg-danger
-                                                {% elif report.status == 'Aguardando Aprovação' %}bg-warning
-                                                {% elif report.status == 'preenchimento' %}bg-info
-                                                {% else %}bg-secondary{% endif %}">
-                                                {% if report.status == 'preenchimento' %}Em preenchimento
-                                                {% else %}{{ report.status or 'Indefinido' }}{% endif %}
-                                            </span>
+                                            {% if report.status == 'preenchimento' %}
+                                                <span class="badge bg-warning text-dark">Em preenchimento</span>
+                                            {% elif report.status == 'Aprovado' %}
+                                                <span class="badge bg-success">Aprovado</span>
+                                            {% elif report.status == 'Rejeitado' %}
+                                                <span class="badge bg-danger">Rejeitado</span>
+                                            {% elif report.status == 'Aguardando Aprovação' %}
+                                                <span class="badge bg-warning">Aguardando Aprovação</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ report.status or 'Indefinido' }}</span>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             <div class="btn-group me-1">
