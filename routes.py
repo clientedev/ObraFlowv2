@@ -500,127 +500,48 @@ def projects_list():
 
 # Reports routes - Versão robusta para Railway + Replit
 @app.route('/reports')
-@app.route('/reports/')  # Adicionar versão com trailing slash para Railway
 @login_required
 def reports():
-    """
-    Listar relatórios com tratamento robusto de erros
-    Funciona tanto no Replit quanto no Railway com PostgreSQL
-    """
+    """Listar relatórios de forma simples e robusta"""
     try:
-        # Log de acesso
         page = request.args.get('page', 1, type=int)
-        current_app.logger.info(f"📋 RELATÓRIOS: {current_user.username} acessando página {page}")
-        
-        # Verificar conexão com banco
-        try:
-            # Teste simples de conectividade
-            db.session.execute(db.text('SELECT 1'))
-            current_app.logger.info(f"✅ DB CONECTADO: PostgreSQL respondendo")
-        except Exception as db_error:
-            current_app.logger.error(f"❌ DB ERRO: {str(db_error)}")
-            flash('Problema de conectividade com banco de dados', 'error')
-            return render_template('reports/list.html', relatorios=None), 503
-        
-        # Construir query de busca
         q = request.args.get('q', '').strip()
+        
+        # Query básica
         query = Relatorio.query
         
+        # Busca simples se fornecida
         if q:
-            from sqlalchemy import or_
-            search_term = f"%{q}%"
-            current_app.logger.info(f"🔍 BUSCA: '{search_term}'")
-            
-            try:
-                # Join com tratamento de erro
-                query = query.join(Projeto, Relatorio.projeto_id == Projeto.id, isouter=True)
-                query = query.join(User, Relatorio.autor_id == User.id, isouter=True)
-                query = query.filter(or_(
-                    Relatorio.numero.ilike(search_term),
-                    Relatorio.titulo.ilike(search_term),
-                    Projeto.nome.ilike(search_term),
-                    Projeto.numero.ilike(search_term),
-                    User.nome_completo.ilike(search_term)
-                ))
-            except Exception as search_error:
-                current_app.logger.warning(f"⚠️ BUSCA ERRO: {str(search_error)} - usando query simples")
-                query = Relatorio.query.filter(Relatorio.titulo.ilike(search_term))
-        
-        # Executar paginação com fallback
-        try:
-            current_app.logger.info(f"📊 EXECUTANDO: Consulta paginada...")
-            relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
-                page=page, 
-                per_page=10, 
-                error_out=False,
-                max_per_page=50  # Limitar para evitar sobrecarga
-            )
-            
-            current_app.logger.info(f"✅ SUCESSO: {relatorios.total} relatórios | página {page}")
-            
-            # Verificar se há dados
-            if relatorios.total == 0:
-                current_app.logger.info("ℹ️ VAZIO: Nenhum relatório encontrado")
-            
-            return render_template('reports/list.html', relatorios=relatorios)
-            
-        except Exception as query_error:
-            current_app.logger.error(f"❌ QUERY ERRO: {str(query_error)}")
-            
-            # Fallback com query simples
-            try:
-                current_app.logger.info("🔄 FALLBACK: Tentando query básica...")
-                relatorios_simples = Relatorio.query.limit(10).all()
-                
-                # Criar paginação manual simples
-                from collections import namedtuple
-                PaginationFallback = namedtuple('Pagination', ['items', 'total', 'page', 'pages', 'has_prev', 'has_next'])
-                relatorios = PaginationFallback(
-                    items=relatorios_simples,
-                    total=len(relatorios_simples),
-                    page=1,
-                    pages=1,
-                    has_prev=False,
-                    has_next=False
+            query = query.filter(
+                db.or_(
+                    Relatorio.numero.ilike(f'%{q}%'),
+                    Relatorio.titulo.ilike(f'%{q}%')
                 )
-                
-                flash('Listagem em modo simplificado devido a problema técnico', 'warning')
-                return render_template('reports/list.html', relatorios=relatorios)
-                
-            except Exception as fallback_error:
-                current_app.logger.error(f"❌ FALLBACK ERRO: {str(fallback_error)}")
-                flash('Erro ao carregar relatórios. Tente novamente.', 'error')
-                return render_template('reports/list.html', relatorios=None), 500
-    
-    except Exception as critical_error:
-        # Log crítico do erro
-        current_app.logger.exception(f"💥 ERRO CRÍTICO /reports: {str(critical_error)}")
+            )
         
-        # Resposta de emergência
-        error_response = {
-            'error': 'Erro interno do servidor',
-            'timestamp': datetime.utcnow().isoformat(),
-            'user': getattr(current_user, 'username', 'unknown') if current_user.is_authenticated else 'anonymous'
-        }
+        # Paginação
+        relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
+            page=page, 
+            per_page=10, 
+            error_out=False
+        )
         
-        # Se requisição é AJAX, retornar JSON
-        if request.headers.get('Content-Type') == 'application/json':
-            return jsonify(error_response), 500
+        return render_template('reports/list.html', relatorios=relatorios)
         
-        # Senão, tentar renderizar página de erro
-        try:
-            flash('Erro crítico no sistema. Contate o administrador.', 'error')
-            return render_template('reports/list.html', relatorios=None), 500
-        except:
-            # Última opção: resposta HTML simples
-            return f"""
-            <html><body>
-                <h1>Erro no Sistema</h1>
-                <p>Erro interno do servidor ao carregar relatórios.</p>
-                <p>Timestamp: {error_response['timestamp']}</p>
-                <a href="/">Voltar ao início</a>
-            </body></html>
-            """, 500
+    except Exception as e:
+        print(f"❌ ERRO /reports: {str(e)}")
+        flash('Erro ao carregar relatórios. Tente novamente.', 'error')
+        
+        # Criar objeto vazio para evitar erro no template
+        class EmptyPagination:
+            items = []
+            total = 0
+            page = 1
+            pages = 0
+            has_prev = False
+            has_next = False
+        
+        return render_template('reports/list.html', relatorios=EmptyPagination())
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
 @login_required
