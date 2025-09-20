@@ -2,149 +2,6 @@
 
 {% block title %}Relatórios Express{% endblock %}
 
-{% block head %}
-<style>
-/* CSS específico para eliminar tremida na página express */
-* {
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-}
-
-/* Permitir seleção apenas em inputs */
-input, textarea, select {
-    -webkit-user-select: text !important;
-    user-select: text !important;
-}
-
-/* Estabilizar tabela express COM scroll horizontal */
-.table-responsive {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 4px;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-touch-callout: none !important;
-    overflow-x: auto !important;
-    overflow-y: visible !important;
-    -webkit-overflow-scrolling: touch !important;
-    touch-action: pan-x pan-y !important;
-    width: 100%;
-    border: 2px solid #20c1e8;
-    margin: 10px 0;
-}
-
-.table, .table th, .table td {
-    margin-bottom: 0;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-touch-callout: none !important;
-    min-width: 150px;
-    white-space: nowrap;
-}
-
-.table {
-    min-width: 900px !important;
-    width: max-content;
-}
-
-/* Eliminar tremida em botões e cards */
-.btn, .card, .card-header, .card-body {
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-touch-callout: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-}
-
-/* Parar qualquer animação que cause tremida EXCETO scroll */
-.container-fluid, .row, .col-12 {
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    transform: translate3d(0,0,0);
-    -webkit-transform: translate3d(0,0,0);
-}
-
-/* Indicador visual de scroll */
-.table-responsive::-webkit-scrollbar {
-    height: 8px;
-}
-
-.table-responsive::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.table-responsive::-webkit-scrollbar-thumb {
-    background: #20c1e8;
-    border-radius: 4px;
-}
-
-.table-responsive::-webkit-scrollbar-thumb:hover {
-    background: #17a2b8;
-}
-
-/* Mobile optimizations for express reports table */
-@media (max-width: 768px) {
-    .btn-group-sm .btn {
-        min-width: 40px;
-        min-height: 40px;
-        padding: 8px 10px;
-        margin: 2px;
-    }
-
-    .btn-group-sm {
-        justify-content: flex-start !important;
-        flex-wrap: wrap !important;
-        gap: 4px !important;
-    }
-
-    .table td {
-        padding: 8px 4px !important;
-        vertical-align: middle;
-    }
-
-    .table th {
-        padding: 8px 4px !important;
-        font-size: 14px;
-    }
-
-    .badge {
-        font-size: 11px;
-        padding: 4px 6px;
-    }
-}
-
-@media (max-width: 576px) {
-    .btn-group-sm .btn {
-        min-width: 36px;
-        min-height: 36px;
-        padding: 6px 8px;
-        font-size: 12px;
-    }
-
-    .table {
-        font-size: 13px;
-    }
-
-    .card-body {
-        padding: 12px;
-    }
-}
-
-/* Ensure action buttons don't overflow */
-.table td:last-child {
-    white-space: nowrap;
-    width: 1%;
-}
-
-.btn-group-sm {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 2px !important;
-}
-</style>
-{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -170,98 +27,112 @@ input, textarea, select {
                 </div>
                 <div class="card-body">
                     {% if relatorios %}
-                    <div class="table-responsive mobile-scroll-table">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="min-width: 80px;">Número</th>
-                                    <th style="min-width: 150px;">Empresa</th>
-                                    <th style="min-width: 110px;">Data da Visita</th>
-                                    <th style="min-width: 100px;">Autor</th>
-                                    <th style="min-width: 100px;">Status</th>
-                                    <th style="min-width: 120px;">Criado em</th>
-                                    <th style="min-width: 180px;">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for relatorio in relatorios %}
-                                <tr>
-                                    <td>
-                                        <strong class="text-primary">{{ relatorio.numero }}</strong>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <strong>{{ relatorio.empresa_nome }}</strong>
-                                            {% if relatorio.empresa_responsavel %}
-                                            <br><small class="text-muted">{{ relatorio.empresa_responsavel }}</small>
-                                            {% endif %}
+                        <!-- Layout de cards mobile-first sem rolagem horizontal -->
+                        <div class="mobile-express-list" id="expressTable">
+                            {% for relatorio in relatorios %}
+                            <div class="express-card mb-2" 
+                                 data-status="{{ relatorio.status }}"
+                                 data-empresa="{{ relatorio.empresa_nome }}"
+                                 data-autor="{{ relatorio.autor.nome_completo }}"
+                                 data-search="{{ (relatorio.numero + ' ' + relatorio.empresa_nome)|lower }}">
+                                
+                                <div class="card border-0 shadow-sm h-100" style="background: #f8f9fa;">
+                                    <div class="card-body p-3">
+                                        <div class="row align-items-center">
+                                            <!-- Coluna principal com informações -->
+                                            <div class="col-8">
+                                                <!-- Número do relatório -->
+                                                <div class="fw-bold text-primary mb-1" style="font-size: 0.9rem;">
+                                                    <i class="fas fa-bolt me-1"></i>{{ relatorio.numero }}
+                                                </div>
+                                                
+                                                <!-- Nome da empresa -->
+                                                <div class="fw-semibold text-dark mb-1" style="font-size: 0.95rem; line-height: 1.2;">
+                                                    {{ relatorio.empresa_nome }}
+                                                </div>
+                                                
+                                                <!-- Responsável da empresa -->
+                                                {% if relatorio.empresa_responsavel %}
+                                                <div class="text-muted mb-1" style="font-size: 0.8rem;">
+                                                    Responsável: {{ relatorio.empresa_responsavel }}
+                                                </div>
+                                                {% endif %}
+                                                
+                                                <!-- Informações adicionais -->
+                                                <div class="text-muted" style="font-size: 0.8rem;">
+                                                    {% if relatorio.data_visita %}
+                                                        Visita: {{ relatorio.data_visita.strftime('%d/%m/%Y') }}
+                                                    {% endif %}
+                                                    {% if relatorio.data_visita and relatorio.created_at %} • {% endif %}
+                                                    Criado: {{ relatorio.created_at.strftime('%d/%m/%Y') }}
+                                                </div>
+                                                
+                                                <!-- Autor -->
+                                                <div class="text-muted" style="font-size: 0.75rem;">
+                                                    Por: {{ relatorio.autor.nome_completo }}
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Coluna lateral com status e ações -->
+                                            <div class="col-4 text-end">
+                                                <!-- Status -->
+                                                <div class="mb-2">
+                                                    {% if relatorio.status == 'rascunho' %}
+                                                        <span class="badge bg-warning" style="font-size: 0.7rem;">
+                                                            <i class="fas fa-edit me-1"></i>Rascunho
+                                                        </span>
+                                                    {% elif relatorio.status == 'finalizado' %}
+                                                        <span class="badge bg-success" style="font-size: 0.7rem;">
+                                                            <i class="fas fa-check me-1"></i>Finalizado
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ relatorio.status|title }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <!-- Ações -->
+                                                <div class="d-flex flex-column gap-1">
+                                                    <!-- Botão Visualizar -->
+                                                    <a href="{{ url_for('express_detail', id=relatorio.id) }}" 
+                                                       class="btn btn-sm btn-outline-primary" 
+                                                       title="Visualizar">
+                                                        <i class="fas fa-eye me-1"></i>Ver
+                                                    </a>
+                                                    
+                                                    <!-- Botão Editar (apenas rascunhos) -->
+                                                    {% if relatorio.status == 'rascunho' %}
+                                                    <a href="{{ url_for('express_edit', id=relatorio.id) }}" 
+                                                       class="btn btn-sm btn-outline-secondary" 
+                                                       title="Editar">
+                                                        <i class="fas fa-edit me-1"></i>Editar
+                                                    </a>
+                                                    {% endif %}
+                                                    
+                                                    <!-- Botão PDF (apenas finalizados) -->
+                                                    {% if relatorio.status == 'finalizado' %}
+                                                    <a href="{{ url_for('express_pdf', id=relatorio.id) }}" 
+                                                       class="btn btn-sm btn-outline-danger" 
+                                                       title="Baixar PDF">
+                                                        <i class="fas fa-file-pdf me-1"></i>PDF
+                                                    </a>
+                                                    {% endif %}
+                                                    
+                                                    <!-- Botão Excluir (apenas masters) -->
+                                                    {% if current_user.is_master %}
+                                                    <button onclick="confirmarExclusao({{ relatorio.id }}, '{{ relatorio.numero }}')" 
+                                                            class="btn btn-sm btn-outline-danger" 
+                                                            title="Excluir">
+                                                        <i class="fas fa-trash me-1"></i>Excluir
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </td>
-                                    <td>
-                                        {% if relatorio.data_visita %}
-                                            {{ relatorio.data_visita.strftime('%d/%m/%Y') }}
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <small>{{ relatorio.autor.nome_completo }}</small>
-                                    </td>
-                                    <td>
-                                        {% if relatorio.status == 'rascunho' %}
-                                            <span class="badge bg-warning">
-                                                <i class="fas fa-edit"></i> Rascunho
-                                            </span>
-                                        {% elif relatorio.status == 'finalizado' %}
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check"></i> Finalizado
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">{{ relatorio.status|title }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">
-                                            {{ relatorio.created_at.strftime('%d/%m/%Y %H:%M') }}
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group-sm d-flex flex-wrap gap-1">
-                                            <a href="{{ url_for('express_detail', id=relatorio.id) }}" 
-                                               class="btn btn-outline-primary btn-sm" title="Visualizar">
-                                                <i class="fas fa-eye"></i>
-                                                <span class="d-none d-lg-inline ms-1">Ver</span>
-                                            </a>
-
-                                            {% if relatorio.status == 'rascunho' %}
-                                            <a href="{{ url_for('express_edit', id=relatorio.id) }}" 
-                                               class="btn btn-outline-secondary btn-sm" title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                                <span class="d-none d-xl-inline ms-1">Editar</span>
-                                            </a>
-                                            {% endif %}
-
-                                            {% if relatorio.status == 'finalizado' %}
-                                            <a href="{{ url_for('express_pdf', id=relatorio.id) }}" 
-                                               class="btn btn-outline-danger btn-sm" title="Baixar PDF">
-                                                <i class="fas fa-file-pdf"></i>
-                                                <span class="d-none d-xl-inline ms-1">PDF</span>
-                                            </a>
-                                            {% endif %}
-
-                                            {% if current_user.is_master %}
-                                            <button onclick="confirmarExclusao({{ relatorio.id }}, '{{ relatorio.numero }}')" 
-                                                    class="btn btn-outline-danger btn-sm" title="Excluir">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
                     {% else %}
                     <div class="text-center py-5">
                         <i class="fas fa-bolt fa-3x text-muted mb-3"></i>
