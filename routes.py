@@ -463,32 +463,153 @@ def projects_list():
 @app.route('/reports')
 @login_required
 def reports():
+    """Listar relatórios com tratamento de erros e logs temporários para debug"""
     page = request.args.get('page', 1, type=int)
     
-    # Get search query parameter
-    q = request.args.get('q')
-    
-    # Start with base query
-    query = Relatorio.query
-    
-    # Apply intelligent search if query provided
-    if q and q.strip():
-        from sqlalchemy import or_
-        search_term = f"%{q.strip()}%"
-        # Join with related tables for searching
-        query = query.join(Projeto, Relatorio.projeto_id == Projeto.id).join(User, Relatorio.autor_id == User.id)
-        query = query.filter(or_(
-            Relatorio.numero.ilike(search_term),
-            Relatorio.titulo.ilike(search_term),
-            Projeto.nome.ilike(search_term),
-            Projeto.numero.ilike(search_term),
-            User.nome_completo.ilike(search_term)
-        ))
-    
-    relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
-        page=page, per_page=10, error_out=False
-    )
-    return render_template('reports/list.html', relatorios=relatorios)
+    try:
+        current_app.logger.info(f"📋 RELATÓRIOS: Usuário {current_user.username} acessando /reports página {page}")
+        
+        # Get search query parameter
+        q = request.args.get('q')
+        
+        # Start with base query
+        query = Relatorio.query
+        
+        # Apply intelligent search if query provided
+        if q and q.strip():
+            from sqlalchemy import or_
+            search_term = f"%{q.strip()}%"
+            current_app.logger.info(f"🔍 SEARCH: Buscando por '{search_term}'")
+            
+            # Join with related tables for searching
+            query = query.join(Projeto, Relatorio.projeto_id == Projeto.id).join(User, Relatorio.autor_id == User.id)
+            query = query.filter(or_(
+                Relatorio.numero.ilike(search_term),
+                Relatorio.titulo.ilike(search_term),
+                Projeto.nome.ilike(search_term),
+                Projeto.numero.ilike(search_term),
+                User.nome_completo.ilike(search_term)
+            ))
+        
+        current_app.logger.info(f"📊 QUERY: Executando consulta de relatórios...")
+        relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
+            page=page, per_page=10, error_out=False
+        )
+        
+        current_app.logger.info(f"✅ SUCCESS: {relatorios.total} relatórios encontrados")
+        return render_template('reports/list.html', relatorios=relatorios)
+        
+    except Exception as e:
+        # Log completo do erro com traceback
+        current_app.logger.exception(f"❌ ERRO 500 em /reports: {str(e)}")
+        
+        # Tentar retornar lista vazia em caso de erro para evitar crash
+        try:
+            from flask_sqlalchemy import Pagination
+            relatorios_vazio = Pagination(query=None, page=1, per_page=10, total=0, items=[])
+            flash('Erro ao carregar relatórios. Dados podem estar corrompidos.', 'error')
+            return render_template('reports/list.html', relatorios=relatorios_vazio)
+        except:
+            # Se nem isso funcionar, retornar erro 500
+            current_app.logger.exception(f"❌ ERRO CRÍTICO: Não foi possível renderizar template")
+            return f"Erro interno do servidor ao carregar relatórios: {str(e)}", 500
+
+@app.route('/reports/autosave/<int:report_id>', methods=['POST'])
+@login_required
+def autosave_report(report_id):
+    """
+    Rota AJAX segura e idempotente para auto-save de relatórios
+    Aceita JSON e atualiza apenas campos permitidos (whitelist)
+    """
+    try:
+        current_app.logger.info(f"💾 AUTOSAVE: Usuário {current_user.username} salvando relatório {report_id}")
+        
+        # Verificar se o JSON é válido
+        try:
+            data = request.get_json(force=True)
+            if not data:
+                return jsonify({"success": False, "error": "JSON vazio ou inválido"}), 400
+        except Exception as e:
+            current_app.logger.error(f"❌ AUTOSAVE: JSON inválido - {str(e)}")
+            return jsonify({"success": False, "error": "Formato JSON inválido"}), 400
+        
+        # Buscar o relatório
+        relatorio = Relatorio.query.get(report_id)
+        if not relatorio:
+            current_app.logger.warning(f"⚠️ AUTOSAVE: Relatório {report_id} não encontrado")
+            return jsonify({"success": False, "error": "Relatório não encontrado"}), 404
+        
+        # Verificar permissão (autor ou master)
+        if relatorio.autor_id != current_user.id and not current_user.is_master:
+            current_app.logger.warning(f"🚫 AUTOSAVE: Usuário {current_user.username} sem permissão para relatório {report_id}")
+            return jsonify({"success": False, "error": "Sem permissão para editar este relatório"}), 403
+        
+        # Whitelist de campos permitidos para auto-save
+        allowed_fields = [
+            'titulo', 'observacoes', 'latitude', 'longitude', 
+            'endereco', 'checklist_json', 'last_edited_at', 'conteudo'
+        ]
+        
+        # Aplicar updates apenas nos campos permitidos
+        changes_made = False
+        for field, value in data.items():
+            if field in allowed_fields:
+                # Validações específicas por campo
+                if field == 'checklist_json':
+                    # Validar se é um JSON válido
+                    if value is not None:
+                        try:
+                            if isinstance(value, dict):
+                                import json
+                                value = json.dumps(value)
+                            elif isinstance(value, str):
+                                # Verificar se é JSON válido
+                                json.loads(value)
+                            else:
+                                current_app.logger.warning(f"⚠️ AUTOSAVE: checklist_json tipo inválido: {type(value)}")
+                                continue
+                        except json.JSONDecodeError:
+                            current_app.logger.warning(f"⚠️ AUTOSAVE: checklist_json JSON inválido")
+                            continue
+                
+                # Aplicar a mudança se o valor for diferente
+                current_value = getattr(relatorio, field, None)
+                if current_value != value:
+                    setattr(relatorio, field, value)
+                    changes_made = True
+                    current_app.logger.info(f"📝 AUTOSAVE: Campo '{field}' atualizado")
+        
+        # Atualizar status apenas se não estiver finalizado
+        if relatorio.status != 'finalizado':
+            if relatorio.status != 'preenchimento':
+                relatorio.status = 'preenchimento'
+                changes_made = True
+                current_app.logger.info(f"📝 AUTOSAVE: Status atualizado para 'preenchimento'")
+        
+        # Salvar no banco se houve mudanças
+        if changes_made:
+            try:
+                db.session.commit()
+                current_app.logger.info(f"✅ AUTOSAVE: Relatório {report_id} salvo com sucesso")
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f"❌ AUTOSAVE: Erro ao salvar no banco - {str(e)}")
+                return jsonify({"success": False, "error": "Erro ao salvar no banco de dados"}), 500
+        else:
+            current_app.logger.info(f"ℹ️ AUTOSAVE: Nenhuma mudança detectada para relatório {report_id}")
+        
+        return jsonify({
+            "success": True, 
+            "status": relatorio.status,
+            "changes_made": changes_made,
+            "message": "Dados salvos automaticamente" if changes_made else "Sem alterações"
+        })
+        
+    except Exception as e:
+        # Log completo do erro
+        current_app.logger.exception(f"❌ AUTOSAVE CRÍTICO: Erro inesperado no relatório {report_id}")
+        db.session.rollback()
+        return jsonify({"success": False, "error": "Erro interno do servidor"}), 500
 
 @app.route('/reports/new', methods=['GET', 'POST'])
 @login_required

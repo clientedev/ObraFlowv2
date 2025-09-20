@@ -18,10 +18,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Construction Tracker"
+args = "Flask Server"
 
 [[workflows.workflow]]
-name = "Construction Tracker"
+name = "Flask Server"
 author = "agent"
 
 [workflows.workflow.metadata]
@@ -37,14 +37,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 36727
-externalPort = 5000
-
-[[ports]]
-localPort = 38477
-externalPort = 3003
-
-[[ports]]
 localPort = 39453
 externalPort = 3001
 
@@ -55,6 +47,10 @@ externalPort = 3000
 [[ports]]
 localPort = 44177
 externalPort = 3002
+
+[[ports]]
+localPort = 44305
+externalPort = 3003
 
 [[ports]]
 localPort = 45391

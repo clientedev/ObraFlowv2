@@ -1,0 +1,75 @@
+Você é um assistente sênior especializado em Flask + SQLAlchemy + PostgreSQL (Railway) + JavaScript.  
+Contexto curto: aplicação rodando no Replit (desenvolvimento) com banco PostgreSQL hospedado no Railway (produção). A tela GET /reports está retornando 500 (Internal Server Error) desde que implementamos/ajustamos o auto-save. Preciso que você:
+
+1) INVESTIGUE possíveis causas do erro 500 na rota GET /reports (listar relatórios) e proponha correções seguras.
+   - Mostre como obter o stacktrace no Replit e nos logs do Railway e quais padrões procurar (ex.: erro de coluna inexistente, JSON inválido em coluna JSON, erro de constraint, erro de serialização).
+   - Implemente handlers de logging temporários em `views.py` para capturar `traceback` e enviar para logs (ex.: `current_app.logger.exception()`), e explique como reproduzir o erro para coletar a stack.
+   - Se encontrar causa provável (ex.: autosave gravando tipo errado em coluna JSON ou salvando campo inesperado), proponha e aplique correção.
+
+2) GARANTA a funcionalidade sólida de AUTO-SAVE:
+   - Crie/ajuste uma rota AJAX segura e idempotente: `POST /reports/autosave/<int:report_id>` que:
+     * Exija autenticação (`@login_required`).
+     * Aceite JSON (com `request.get_json(force=True)`), com tratamento de erro se JSON inválido.
+     * Atualize somente um conjunto permitido de campos (whitelist) para evitar sobrescrever campos críticos. Exemplo de whitelist: `['titulo','observacoes','latitude','longitude','endereco','checklist_json','last_edited_at']`.
+     * Não sobrescreva campos que não sejam da whitelist.
+     * Se `report` não existir, retorne 404 (não crie registros novos automaticamente).
+     * Ao atualizar, defina `report.status = 'preenchimento'` **somente** se status atual não for `'finalizado'`.
+     * Use transação segura e `db.session.commit()`; faça `db.session.rollback()` em caso de exceção e logue o erro.
+     * Retorne JSON claro `{ "success": True, "status": report.status }`.
+   - Implemente tratamento/considerações de CSRF:
+     * Se o app usa `Flask-WTF` com `CSRFProtect`, mostrar duas opções:
+       - Preferida: enviar o token CSRF no header `X-CSRFToken` (pegar token do meta tag no template); exemplo de JS inclui esse header.
+       - Alternativa: marcar a rota autosave com `@csrf.exempt` (aplicar apenas se for aceitável para sua política de segurança).
+   - Forneça o código completo pronto para colar (rota Flask) com logs/try-except e mensagens de erro amigáveis.
+
+3) FRONTEND: script de auto-save confiável
+   - Forneça um snippet JS para incluir na página de edição do relatório:
+     * Debounce (ex.: 3s após última alteração) ou intervalo (ex.: a cada 10s) — use debounce para não sobrecarregar.
+     * Colete apenas os campos da whitelist.
+     * Envie via `fetch` para `/reports/autosave/{{ report.id }}` com headers `Content-Type: application/json` e `X-CSRFToken` (se aplicável).
+     * Tratamento de resposta: mostrar indicador “Salvando…”, “Salvo automaticamente” ou erro (com retry exponencial simples).
+     * Em caso de falha de rede, manter cache local (localStorage) e tentar re-enviar ao recuperar conexão.
+   - Código JS pronto para colar, com instruções de como definir `REPORT_ID` e `CSRF_TOKEN` (ex.: via template Jinja2).
+
+4) LISTAGEM DE RELATÓRIOS: mostrar estado “Em preenchimento” e permitir continuação
+   - Ajuste a rota `GET /reports` (ou onde lista relatórios) para buscar e exibir `status` de cada relatório.
+   - Se o campo `status` não existe no modelo, forneça um script de migração Alembic (upgrade/downgrade) que:
+     * Adicione coluna `status VARCHAR` nullable True com `server_default='finalizado'` (para preservar comportamento dos relatórios antigos).
+     * Não altere dados existentes.
+     * Instruções para rodar `alembic upgrade head` apontando `DATABASE_URL` Railway.
+   - No template de listagem (`reports.html`), exiba um badge quando `report.status == 'preenchimento'`:
+     ```html
+     {% if report.status == 'preenchimento' %}
+       <span class="badge bg-warning text-dark">Em preenchimento</span>
+     {% endif %}
+     ```
+   - Ao clicar no relatório com status `preenchimento`, abrir a tela de edição com os dados salvos e permitir finalizar (botão "Finalizar" que salva e coloca `status='finalizado'`).
+
+5) PREVENÇÃO: consistência e validações
+   - Valide tipos antes de salvar: se `checklist_json` for esperado como JSON, só grave se `isinstance(data['checklist_json'], dict)` ou faça `json.dumps()` com try/except.
+   - Proteja contra campos imprevistos: ignore qualquer campo não whitelist.
+   - Em `GET /reports`, trate possíveis entradas malformadas (ex.: JSON inválido em coluna) com try/except para evitar 500; logue o erro e mostre fallback (ex.: "dados corrompidos").
+
+6) DELIVERABLES: quero que a resposta do assistente gere diretamente:
+   - Patch pronto do `views.py` contendo:
+     * rota `/reports/autosave/<int:report_id>` completa.
+     * ajustes na rota `GET /reports` para lidar com exceções e exibir status.
+   - Snippet JS para inclusão no template do formulário de relatório (com debounce, CSRF header e feedback visual).
+   - (Se necessário) arquivo de migração Alembic `migrations/versions/xxxx_add_report_status.py`.
+   - Instruções passo-a-passo para:
+     * coletar stacktrace no Replit/Railway,
+     * aplicar a migração no Railway com segurança,
+     * testar auto-save localmente e em staging antes de produção.
+   - Sugestões de logs a procurar e como confirmar que o 500 foi resolvido (ex.: acessar /reports para ver status HTTP 200 e visualizar badges “Em preenchimento”).
+
+IMPORTANTE:
+- Não altere a PK do relatório (`id`) nem apague dados existentes.
+- Se for necessário tocar no schema (adicionar coluna `status`), faça via alembic com nullable/default que não quebre dados antigos.
+- Seja explícito nos locais dos arquivos (ex.: `app/models.py`, `app/views/reports.py`, `templates/reports/form.html`, `static/js/reports_autosave.js`).
+
+Saída esperada do seu trabalho aqui:
+- Código pronto (rotas, migration, JS) com comentários explicativos para colar no repositório Replit.
+- Passo-a-passo claro para aplicar e verificar em Railway.
+- Diagnóstico provável do erro 500 e como confirmar que foi resolvido.
+
+Execute as correções propostas no código gerado e indique claramente quais linhas foram alteradas. Se alguma mudança exigir atenção extra (ex.: CSRF, CORS, permissões), detalhe o motivo e a mitigação.
