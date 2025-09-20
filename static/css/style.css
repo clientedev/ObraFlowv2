@@ -135,6 +135,39 @@ body {
     font-size: 1.2rem;
 }
 
+/* Logo text styling - responsive */
+.logo-text {
+    font-size: 1.25rem; /* Desktop default - 20px aproximadamente */
+    white-space: nowrap;
+    color: white !important;
+    text-decoration: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    letter-spacing: 0.5px;
+}
+
+/* Mobile responsive logo */
+@media (max-width: 767.98px) {
+    .logo-text {
+        font-size: 1rem; /* Mobile - 16px aproximadamente */
+    }
+    
+    /* Reduce logo image size on mobile if needed */
+    .navbar-brand img {
+        height: 30px !important;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 575.98px) {
+    .logo-text {
+        font-size: 0.9rem; /* Extra small screens - 14.4px aproximadamente */
+    }
+    
+    .navbar-brand img {
+        height: 28px !important;
+    }
+}
+
 .navbar-dark .navbar-nav .nav-link {
     color: rgba(255, 255, 255, 0.9);
     transition: color 0.3s ease;
