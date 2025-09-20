@@ -1464,7 +1464,8 @@ def project_new():
                 
                 existing_funcionario = FuncionarioProjeto.query.filter_by(
                     projeto_id=projeto.id, 
-                    user_id=user_id
+                    user_id=user_id,
+                    ativo=True
                 ).first()
                 
                 if not existing_funcionario:
@@ -1481,10 +1482,11 @@ def project_new():
                 
                 # Add additional employees
                 for func_data in funcionarios_adicionais:
-                    # Check if employee already exists (by name)
+                    # Check if employee already exists (by name, apenas funcionários ativos)
                     existing_func = FuncionarioProjeto.query.filter_by(
                         projeto_id=projeto.id,
-                        nome_funcionario=func_data['nome']
+                        nome_funcionario=func_data['nome'],
+                        ativo=True
                     ).first()
                     
                     if not existing_func:
@@ -2844,19 +2846,24 @@ def novo_email_cliente(projeto_id):
     form = EmailClienteForm()
     
     if form.validate_on_submit():
-        # Verificar se o e-mail já existe para este projeto
+        # Verificar se o e-mail já existe para este projeto (apenas e-mails ativos)
         email_existente = EmailCliente.query.filter_by(
             projeto_id=projeto_id,
-            email=form.email.data.lower().strip()
+            email=form.email.data.lower().strip(),
+            ativo=True
         ).first()
         
         if email_existente:
             flash('Este e-mail já está cadastrado para esta obra.', 'error')
             return render_template('emails/form.html', form=form, projeto=projeto, titulo='Novo E-mail de Cliente')
         
-        # Se marcou como principal, desmarcar outros como principal
+        # Se marcou como principal, desmarcar outros como principal (apenas e-mails ativos)
         if form.is_principal.data:
-            EmailCliente.query.filter_by(projeto_id=projeto_id, is_principal=True).update({
+            EmailCliente.query.filter_by(
+                projeto_id=projeto_id, 
+                is_principal=True,
+                ativo=True
+            ).update({
                 'is_principal': False
             })
         
@@ -2893,20 +2900,25 @@ def editar_email_cliente(email_id):
     form = EmailClienteForm(obj=email_cliente)
     
     if form.validate_on_submit():
-        # Verificar se mudou o e-mail e se já existe outro com o mesmo e-mail
+        # Verificar se mudou o e-mail e se já existe outro com o mesmo e-mail (apenas e-mails ativos)
         if form.email.data.lower().strip() != email_cliente.email:
             email_existente = EmailCliente.query.filter_by(
                 projeto_id=projeto.id,
-                email=form.email.data.lower().strip()
+                email=form.email.data.lower().strip(),
+                ativo=True
             ).filter(EmailCliente.id != email_id).first()
             
             if email_existente:
                 flash('Este e-mail já está cadastrado para esta obra.', 'error')
                 return render_template('emails/form.html', form=form, projeto=projeto, titulo='Editar E-mail de Cliente')
         
-        # Se marcou como principal, desmarcar outros como principal
+        # Se marcou como principal, desmarcar outros como principal (apenas e-mails ativos)
         if form.is_principal.data and not email_cliente.is_principal:
-            EmailCliente.query.filter_by(projeto_id=projeto.id, is_principal=True).update({
+            EmailCliente.query.filter_by(
+                projeto_id=projeto.id, 
+                is_principal=True,
+                ativo=True
+            ).update({
                 'is_principal': False
             })
         

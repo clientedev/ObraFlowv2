@@ -1,0 +1,41 @@
+Você é um especialista em Flask + SQLAlchemy + PostgreSQL (Railway), ajudando a corrigir inconsistências de listagem de e-mails no sistema de gestão de obras.
+
+Contexto:
+- O sistema usa Flask + SQLAlchemy, com PostgreSQL hospedado no Railway.
+- Cada projeto (obra) pode ter vários funcionários associados, cada um com nome e e-mail.
+- Atualmente ocorrem problemas:
+  1. Na página de cadastro de clientes, só aparece o e-mail do funcionário principal.
+  2. No preenchimento de relatórios, aparecem 3 nomes de funcionários, mas apenas 1 e-mail, porque os outros foram excluídos. Funcionários excluídos não devem aparecer.
+  3. Na lista de e-mails por projeto, o número exibido está incorreto (mostra 3 cadastrados, mas apenas 1 aparece). Deve exibir corretamente apenas os ativos.
+
+Tarefas:
+1. Ajustar a query SQLAlchemy que busca funcionários/e-mails por projeto:
+   - Incluir condição `is_active=True` ou `deleted_at IS NULL` (dependendo do modelo existente).
+   - Garantir que funcionários excluídos não sejam retornados.
+   - Exemplo:
+     ```python
+     emails = Email.query.filter_by(project_id=project.id, is_active=True).all()
+     ```
+2. Corrigir a página de cadastro de clientes:
+   - Permitir visualizar e adicionar **todos os e-mails ativos**, não apenas o principal.
+   - Usar um loop Jinja2 para renderizar a lista de e-mails:
+     ```html
+     {% for email in emails %}
+       <li>{{ email.endereco }}</li>
+     {% endfor %}
+     ```
+3. Corrigir a tela de preenchimento de relatórios:
+   - Garantir que sejam exibidos apenas funcionários ativos e seus e-mails corretos.
+   - Não mostrar funcionários excluídos.
+4. Corrigir a listagem de e-mails por projeto:
+   - Exibir o número correto (usar `len(emails)` da query já filtrada).
+   - Exibir todos os endereços ativos associados ao projeto.
+5. Mostrar a saída final em três partes:
+   - Query SQLAlchemy corrigida (`models.py` ou `views.py`).
+   - Exemplo de template Jinja2 para exibir apenas e-mails ativos.
+   - Ajuste na contagem de e-mails por projeto.
+
+Saída esperada:
+- Código Python corrigido para consultas de e-mails/funcionários.
+- Código Jinja2 corrigido para listar apenas os e-mails ativos.
+- Explicação curta de como isso corrige os problemas relatados (cadastro, relatórios e contagem).
