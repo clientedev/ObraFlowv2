@@ -84,6 +84,52 @@
             -webkit-overflow-scrolling: touch !important;
             overflow: auto !important;
         }
+
+        /* Data do Relatório no topo - Mobile First */
+        .alert.border-primary {
+            border-width: 2px !important;
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+        }
+        
+        #data_relatorio {
+            font-size: 18px;
+            font-weight: 600;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+        }
+        
+        #data_relatorio:focus {
+            border-color: #0056b3;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        #data_relatorio {
+            font-size: 20px !important;
+            min-height: 56px !important;
+            padding: 16px !important;
+        }
+        
+        .form-label {
+            font-size: 16px !important;
+            margin-bottom: 8px !important;
+        }
+        
+        .alert.border-primary {
+            margin-bottom: 20px !important;
+            padding: 20px !important;
+            border-radius: 12px !important;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        #data_relatorio {
+            font-size: 18px !important;
+            min-height: 52px !important;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -96,11 +142,25 @@
                     <h3><i class="fas fa-file-alt"></i> Relatório de Obra</h3>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('create_report') }}" enctype="multipart/form-data" id="reportForm">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        {% if selected_project %}
-                        <input type="hidden" name="projeto_id" value="{{ selected_project.id }}">
-                        {% endif %}
+                    <!-- Data do Relatório - PRIMEIRO CAMPO NO TOPO -->
+                    <div class="alert alert-light border-primary mb-4">
+                        <div class="row align-items-center">
+                            <div class="col-12">
+                                <form method="POST" action="{{ url_for('create_report') }}" enctype="multipart/form-data" id="reportForm">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    {% if selected_project %}
+                                    <input type="hidden" name="projeto_id" value="{{ selected_project.id }}">
+                                    {% endif %}
+                                    
+                                    <div class="form-group mb-0">
+                                        <label class="form-label fw-bold text-primary mb-2" for="data_relatorio">
+                                            <i class="fas fa-calendar-alt me-2"></i>Data do Relatório *
+                                        </label>
+                                        <input type="date" name="data_relatorio" id="data_relatorio" class="form-control form-control-lg" value="{{ today }}" required>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
                         <!-- Auto-preenchimento do Projeto (se selecionado) -->
                         {% if selected_project %}
                         <div class="alert alert-info mobile-project-info" role="alert">
@@ -217,12 +277,6 @@
                                         <option value="{{ admin.id }}" {% if selected_aprovador and admin.id == selected_aprovador.id %}selected{% endif %}>{{ admin.nome_completo }}</option>
                                         {% endfor %}
                                     </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label" for="data_relatorio">Data do Relatório</label>
-                                    <input type="date" name="data_relatorio" id="data_relatorio" class="form-control" value="{{ today }}">
                                 </div>
                             </div>
                         </div>
