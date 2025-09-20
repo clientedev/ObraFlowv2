@@ -14,34 +14,64 @@
                     </a>
                 </div>
                 
-                <!-- Filtros de Reembolsos -->
+                <!-- Busca Simples -->
                 <div class="card-body border-bottom">
-                    <div class="row g-3">
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold">Status:</label>
-                            <select class="form-select form-select-sm" id="filterStatusReemb">
-                                <option value="">Todos os Status</option>
-                                <option value="Pendente">Pendente</option>
-                                <option value="Aprovado">Aprovado</option>
-                                <option value="Rejeitado">Rejeitado</option>
-                            </select>
+                    <form method="GET" action="{{ url_for('reimbursements_list') }}">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold">🔍 Busca Rápida</label>
+                                <input type="text" class="form-control" name="q" value="{{ request.args.get('q', '') }}" 
+                                       placeholder="Digite projeto, descrição ou observações...">
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search me-1"></i>Buscar
+                                    </button>
+                                    {% if request.args.get('q') %}
+                                    <a href="{{ url_for('reimbursements_list') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i>Limpar
+                                    </a>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#filtrosAvancadosReemb">
+                                        <i class="fas fa-filter me-1"></i>Filtros Avançados
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold">Projeto:</label>
-                            <select class="form-select form-select-sm" id="filterProjetoReemb">
-                                <option value="">Todos os Projetos</option>
-                                <!-- Será preenchido dinamicamente -->
-                            </select>
+                    </form>
+                </div>
+                
+                <!-- Filtros Avançados (Colapsáveis) -->
+                <div class="collapse" id="filtrosAvancadosReemb">
+                    <div class="card-body border-bottom">
+                        <h6 class="mb-3"><i class="fas fa-filter me-2"></i>Filtros Avançados</h6>
+                        <div class="row g-3">
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label small fw-bold">Status:</label>
+                                <select class="form-select form-select-sm" id="filterStatusReemb">
+                                    <option value="">Todos os Status</option>
+                                    <option value="Pendente">Pendente</option>
+                                    <option value="Aprovado">Aprovado</option>
+                                    <option value="Rejeitado">Rejeitado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label small fw-bold">Projeto:</label>
+                                <select class="form-select form-select-sm" id="filterProjetoReemb">
+                                    <option value="">Todos os Projetos</option>
+                                    <!-- Será preenchido dinamicamente -->
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label small fw-bold">Período:</label>
+                                <input type="month" class="form-control form-control-sm" id="filterPeriodo">
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label small fw-bold">Pesquisar nos filtros:</label>
+                                <input type="text" class="form-control form-control-sm" id="searchReembolso" placeholder="Número ou projeto">
+                            </div>
                         </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold">Período:</label>
-                            <input type="month" class="form-control form-control-sm" id="filterPeriodo">
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold">Pesquisar:</label>
-                            <input type="text" class="form-control form-control-sm" id="searchReembolso" placeholder="Número ou projeto">
-                        </div>
-                    </div>
                     <div class="row mt-2">
                         <div class="col-12">
                             <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearReembFilters()">

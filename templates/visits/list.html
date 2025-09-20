@@ -28,12 +28,24 @@
         <div class="card">
             <div class="card-body py-3">
                 <!-- Campo de pesquisa principal - 100% em mobile -->
-                <div class="row g-2 mb-3">
-                    <div class="col-12">
-                        <label class="form-label small fw-bold">Pesquisar:</label>
-                        <input type="text" class="form-control" id="searchVisit" placeholder="Pesquisar por projeto ou objetivo..." style="min-height: 44px; font-size: 16px;">
+                <form method="GET" action="{{ url_for('visits_list') }}">
+                    <div class="row g-2 mb-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">🔍 Busca Rápida:</label>
+                            <div class="d-flex gap-2">
+                                <input type="text" class="form-control" name="q" value="{{ request.args.get('q', '') }}" placeholder="Pesquisar por projeto, objetivo ou responsável..." style="min-height: 44px; font-size: 16px;">
+                                <button type="submit" class="btn btn-primary" style="min-height: 44px;">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                                {% if request.args.get('q') %}
+                                <a href="{{ url_for('visits_list') }}" class="btn btn-outline-secondary" style="min-height: 44px;">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </form>
                 
                 <!-- Filtros em linha para desktop, ocultos em mobile -->
                 <div class="row g-2 d-none d-md-flex">
