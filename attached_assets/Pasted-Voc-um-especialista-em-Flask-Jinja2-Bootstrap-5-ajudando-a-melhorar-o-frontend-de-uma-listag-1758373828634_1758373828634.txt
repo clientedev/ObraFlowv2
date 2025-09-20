@@ -1,0 +1,39 @@
+Você é um especialista em Flask + Jinja2 + Bootstrap 5, ajudando a melhorar o frontend de uma listagem no sistema de gestão de obras.
+
+Contexto:
+- O sistema usa Flask (backend) com SQLAlchemy, templates Jinja2 e Bootstrap 5 (frontend).
+- Na tela de listagem de projetos (`projects.html`), existe uma tabela muito larga que causa **rolagem horizontal**.
+- O cliente pediu que a página só tenha rolagem **vertical**, e que informações menos relevantes sejam ocultadas da tabela principal (ex.: tipo de obra, funcionário, responsável).
+- Essas informações podem continuar disponíveis em outra visualização (tooltip, modal ou página de detalhes).
+
+Tarefas:
+1. Editar o template `projects.html`:
+   - Reduzir o número de colunas visíveis na tabela principal.
+   - Exibir apenas informações essenciais: número do projeto, nome, status, data.
+   - Ocultar colunas menos relevantes (tipo de obra, funcionário, responsável) da tabela principal.
+2. Implementar um link ou botão “Detalhes” em cada linha:
+   - Ao clicar, redirecionar para `/projects/<id>` (já existente ou criar rota placeholder).
+   - Na tela de detalhes, mostrar todas as informações completas do projeto.
+3. Ajustar responsividade:
+   - Usar classes do Bootstrap (`table-responsive`, `text-truncate`, `d-none d-md-table-cell`) para controlar visibilidade.
+   - Exemplo:  
+     ```html
+     <td class="d-none d-md-table-cell">{{ project.tipo_obra }}</td>
+     ```
+     Isso oculta a coluna em telas pequenas.
+4. Garantir que a tabela não use `overflow-x: scroll`.
+   - Se necessário, adicionar CSS:
+     ```css
+     table {
+       table-layout: auto;
+       white-space: normal;
+     }
+     ```
+5. Mostrar a saída final em duas partes:
+   - Trecho HTML atualizado da tabela (`projects.html`).
+   - Rotas Flask necessárias para exibir detalhes do projeto (`views.py`).
+
+Saída esperada:
+- Tabela simplificada no template `projects.html`, sem rolagem horizontal.
+- Botão/link “Detalhes” funcionando para acessar informações completas.
+- Explicação curta de onde colar o código.
