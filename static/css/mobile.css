@@ -475,11 +475,11 @@ img {
     z-index: 1;
 }
 
-/* Dropdown específico para cards de relatórios */
-.report-card .btn-group {
-    position: relative;
-    z-index: 10;
-    width: 100%;
+/* Dropdown específico para cards de relatórios - FORÇAR VISIBILIDADE */
+.report-card .btn-group.dropdown {
+    position: relative !important;
+    z-index: 100 !important;
+    width: 100% !important;
 }
 
 .report-card .dropdown-menu {
@@ -487,36 +487,50 @@ img {
     top: 100% !important;
     right: 0 !important;
     left: auto !important;
-    z-index: 1050 !important;
-    min-width: 160px !important;
+    z-index: 9999 !important;
+    min-width: 180px !important;
     padding: 8px 0 !important;
     margin: 2px 0 0 !important;
     background-color: #ffffff !important;
-    border: 1px solid rgba(0,0,0,.15) !important;
+    border: 1px solid #ccc !important;
     border-radius: 8px !important;
-    box-shadow: 0 6px 12px rgba(0,0,0,.175) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
     transform: translateZ(0) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
+/* Garantir que o dropdown apareça quando clicado */
+.report-card .btn-group.dropdown .dropdown-menu.show,
+.report-card .btn-group.dropdown.show .dropdown-menu {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 9999 !important;
 }
 
 .report-card .dropdown-item {
     display: block !important;
     width: 100% !important;
-    padding: 8px 16px !important;
+    padding: 10px 16px !important;
     clear: both !important;
     font-weight: 400 !important;
-    color: #212529 !important;
+    color: #333 !important;
     text-align: inherit !important;
     text-decoration: none !important;
     white-space: nowrap !important;
     background-color: transparent !important;
     border: 0 !important;
     font-size: 0.875rem !important;
+    cursor: pointer !important;
 }
 
 .report-card .dropdown-item:hover,
 .report-card .dropdown-item:focus {
     color: #1e2125 !important;
     background-color: #f8f9fa !important;
+    text-decoration: none !important;
 }
 
 .report-card .dropdown-toggle {
@@ -525,11 +539,31 @@ img {
     padding: 6px 12px !important;
     font-weight: 600 !important;
     white-space: nowrap !important;
+    position: relative !important;
+    z-index: 1 !important;
 }
 
 .report-card .dropdown-toggle::after {
     margin-left: 6px !important;
     vertical-align: middle !important;
+}
+
+/* Forçar overflow visível para cards de relatórios */
+.report-card {
+    overflow: visible !important;
+}
+
+.report-card .card {
+    overflow: visible !important;
+}
+
+.report-card .card-body {
+    overflow: visible !important;
+}
+
+.report-card .col-4 {
+    overflow: visible !important;
+    z-index: 10 !important;
 }
 
 /* Mobile específico */
