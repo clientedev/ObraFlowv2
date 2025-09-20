@@ -50,7 +50,7 @@ body {
     
     /* Optimize forms for mobile */
     .form-control {
-        font-size: 16px; /* Prevents zoom on iOS */
+        font-size: 11px; /* Prevents zoom on iOS (reduzido -5px) */
         padding: 12px;
         border-radius: 8px;
     }
@@ -62,7 +62,7 @@ body {
     
     /* Table responsiveness */
     .table-responsive {
-        font-size: 14px;
+        font-size: 9px;
     }
     
     /* Navigation improvements for mobile */
@@ -79,7 +79,7 @@ body {
     
     .navbar-nav .nav-link {
         padding: 15px 20px;
-        font-size: 16px;
+        font-size: 11px;
     }
     
     /* Photo editor mobile optimizations */
@@ -114,7 +114,7 @@ body {
     
     .btn-group .btn {
         min-height: 48px;
-        font-size: 14px;
+        font-size: 9px;
     }
     
     /* Improve form spacing on very small screens */
@@ -132,12 +132,12 @@ body {
 /* Custom navbar */
 .navbar-brand {
     font-weight: bold;
-    font-size: 1.2rem;
+    font-size: 0.9rem;
 }
 
 /* Logo text styling - responsive */
 .logo-text {
-    font-size: 1.25rem; /* Desktop default - 20px aproximadamente */
+    font-size: 1.5rem; /* Desktop default - 24px aproximadamente (aumentado +5px) */
     white-space: nowrap;
     color: white !important;
     text-decoration: none;
@@ -148,23 +148,23 @@ body {
 /* Mobile responsive logo */
 @media (max-width: 767.98px) {
     .logo-text {
-        font-size: 1rem; /* Mobile - 16px aproximadamente */
+        font-size: 1.25rem; /* Mobile - 20px aproximadamente (aumentado +5px) */
     }
     
     /* Reduce logo image size on mobile if needed */
     .navbar-brand img {
-        height: 30px !important;
+        height: 35px !important;
     }
 }
 
 /* Very small screens */
 @media (max-width: 575.98px) {
     .logo-text {
-        font-size: 0.9rem; /* Extra small screens - 14.4px aproximadamente */
+        font-size: 1.15rem; /* Extra small screens - 18.4px aproximadamente (aumentado +5px) */
     }
     
     .navbar-brand img {
-        height: 28px !important;
+        height: 33px !important;
     }
 }
 
