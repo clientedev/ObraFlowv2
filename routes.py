@@ -507,13 +507,14 @@ def reports():
         page = request.args.get('page', 1, type=int)
         q = request.args.get('q', '').strip()
         
-        # Query básica
+        # Query básica com join eager loading para evitar problemas de lazy loading
         query = Relatorio.query
         
         # Busca simples se fornecida
         if q:
+            from sqlalchemy import or_
             query = query.filter(
-                db.or_(
+                or_(
                     Relatorio.numero.ilike(f'%{q}%'),
                     Relatorio.titulo.ilike(f'%{q}%')
                 )
@@ -526,10 +527,15 @@ def reports():
             error_out=False
         )
         
+        current_app.logger.info(f"✅ /reports: {len(relatorios.items) if relatorios.items else 0} relatórios carregados")
         return render_template('reports/list.html', relatorios=relatorios)
         
     except Exception as e:
+        import traceback
+        current_app.logger.error(f"❌ ERRO /reports: {str(e)}")
+        current_app.logger.error(f"❌ TRACEBACK: {traceback.format_exc()}")
         print(f"❌ ERRO /reports: {str(e)}")
+        print(f"❌ TRACEBACK: {traceback.format_exc()}")
         flash('Erro ao carregar relatórios. Tente novamente.', 'error')
         
         # Criar objeto vazio para evitar erro no template
@@ -540,6 +546,8 @@ def reports():
             pages = 0
             has_prev = False
             has_next = False
+            def iter_pages(self):
+                return []
         
         return render_template('reports/list.html', relatorios=EmptyPagination())
 
