@@ -411,27 +411,7 @@ def projects_list():
     user_lat = request.args.get('lat', type=float)
     user_lon = request.args.get('lon', type=float)
     
-    # Get search query parameter
-    q = request.args.get('q')
-    
-    # Start with base query
-    query = Projeto.query
-    
-    # Apply intelligent search if query provided
-    if q and q.strip():
-        from sqlalchemy import or_
-        search_term = f"%{q.strip()}%"
-        query = query.filter(or_(
-            Projeto.nome.ilike(search_term),
-            Projeto.numero.ilike(search_term),
-            Projeto.endereco.ilike(search_term),
-            Projeto.construtora.ilike(search_term),
-            Projeto.nome_funcionario.ilike(search_term),
-            Projeto.descricao.ilike(search_term),
-            Projeto.tipo_obra.ilike(search_term)
-        ))
-    
-    projects = query.all()
+    projects = Projeto.query.all()
     
     # If user location is available, sort by distance
     if user_lat and user_lon:
@@ -1172,7 +1152,7 @@ def get_nearby_projects():
         lon = request.args.get('lon', type=float)
         
         # Get ALL projects (not just those with coordinates)
-        projects = query.all()
+        projects = Projeto.query.all()
         
         all_projects = []
         projects_with_distance = []
@@ -1241,7 +1221,7 @@ def api_nearby_projects():
         user_lon = data.get('lon') if data else None
         
         # Get ALL projects (não só os com coordenadas)
-        projects = query.all()
+        projects = Projeto.query.all()
         
         projects_with_distance = []
         projects_without_distance = []
