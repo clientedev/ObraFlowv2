@@ -137,22 +137,40 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label" for="titulo">Título do Relatório *</label>
-                                    <input type="text" name="titulo" id="titulo" class="form-control" 
-                                           value="{% if selected_project %}Relatório - {{ selected_project.nome }}{% else %}Relatório de visita{% endif %}" required>
+                                    {% if disable_fields %}
+                                        <input type="text" name="titulo" id="titulo" class="form-control" 
+                                               value="Relatório - {{ selected_project.nome }}" readonly>
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-lock me-1"></i>Título gerado automaticamente a partir do projeto selecionado
+                                        </small>
+                                    {% else %}
+                                        <input type="text" name="titulo" id="titulo" class="form-control" 
+                                               value="{% if selected_project %}Relatório - {{ selected_project.nome }}{% else %}Relatório de visita{% endif %}" required>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label" for="projeto_id">Projeto *</label>
-                                    <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails()">
-                                        <option value="">Selecione um projeto</option>
-                                        {% for projeto in projetos %}
-                                        <option value="{{ projeto.id }}" 
-                                                {% if selected_project and selected_project.id == projeto.id %}selected{% endif %}>
-                                            {{ projeto.numero }} - {{ projeto.nome }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
+                                    {% if disable_fields %}
+                                        <input type="hidden" name="projeto_id" value="{{ selected_project.id }}">
+                                        <div class="form-control-plaintext bg-light border rounded p-2">
+                                            <strong>{{ selected_project.numero }} - {{ selected_project.nome }}</strong>
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-lock me-1"></i>Projeto pré-selecionado - não editável
+                                        </small>
+                                    {% else %}
+                                        <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails()">
+                                            <option value="">Selecione um projeto</option>
+                                            {% for projeto in projetos %}
+                                            <option value="{{ projeto.id }}" 
+                                                    {% if selected_project and selected_project.id == projeto.id %}selected{% endif %}>
+                                                {{ projeto.numero }} - {{ projeto.nome }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -553,6 +571,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // Função para carregar funcionários e e-mails do projeto selecionado
 function carregarFuncionariosEmails() {
     const projetoId = document.getElementById('projeto_id').value;
+    carregarFuncionariosEmailsPorId(projetoId);
+}
+
+function carregarFuncionariosEmailsPorId(projetoId) {
     const funcionariosDiv = document.getElementById('funcionarios-projeto');
     const emailsDiv = document.getElementById('emails-projeto');
 
@@ -1450,11 +1472,18 @@ document.addEventListener('DOMContentLoaded', function() {
     carregarChecklistPadrao();
 
     // Auto-carregar dados do projeto se pre-selecionado
+    {% if disable_fields and preselected_project_id %}
+    // Para projeto pré-selecionado com campos desabilitados
+    console.log('🏗️ Projeto pré-selecionado detectado (campos desabilitados):', {{ preselected_project_id }});
+    carregarFuncionariosEmailsPorId({{ preselected_project_id }});
+    {% else %}
+    // Para projeto selecionado normalmente
     const projetoSelect = document.getElementById('projeto_id');
     if (projetoSelect && projetoSelect.value) {
         console.log('🏗️ Projeto pré-selecionado detectado:', projetoSelect.value);
         carregarFuncionariosEmails();
     }
+    {% endif %}
 
     // Inicializar editor modal Fabric.js - exatamente como no Express
     if (typeof initFabricPhotoEditorModal === 'function') {

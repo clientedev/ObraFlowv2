@@ -493,6 +493,10 @@ def reports():
 @app.route('/reports/new', methods=['GET', 'POST'])
 @login_required
 def create_report():
+    # Verificar se há projeto pré-selecionado via URL
+    preselected_project_id = request.args.get('project_id', type=int)
+    disable_fields = bool(preselected_project_id)
+    
     if request.method == 'POST':
         # Processar dados do formulário diretamente
         projeto_id = request.form.get('projeto_id')
@@ -804,6 +808,8 @@ def create_report():
                          admin_users=admin_users, 
                          selected_project=selected_project,
                          selected_aprovador=selected_aprovador,
+                         disable_fields=disable_fields,
+                         preselected_project_id=preselected_project_id,
                          today=date.today().isoformat())
 
 @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])

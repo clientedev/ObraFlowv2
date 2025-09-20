@@ -174,16 +174,14 @@
                                             <div class="d-flex flex-column gap-1">
                                                 <!-- Botão Ver Detalhes -->
                                                 <a href="{{ url_for('project_view', project_id=project.id) }}" 
-                                                   class="btn btn-sm btn-outline-info py-1 px-2" 
-                                                   title="Ver detalhes"
-                                                   style="font-size: 0.7rem;">
+                                                   class="btn btn-sm btn-outline-info" 
+                                                   title="Ver detalhes">
                                                     <i class="fas fa-eye me-1"></i>Ver
                                                 </a>
                                                 <!-- Botão Editar -->
                                                 <a href="{{ url_for('project_edit', project_id=project.id) }}" 
-                                                   class="btn btn-sm btn-outline-primary py-1 px-2"
-                                                   title="Editar"
-                                                   style="font-size: 0.7rem;">
+                                                   class="btn btn-sm btn-outline-primary"
+                                                   title="Editar">
                                                     <i class="fas fa-edit me-1"></i>Edit
                                                 </a>
                                             </div>

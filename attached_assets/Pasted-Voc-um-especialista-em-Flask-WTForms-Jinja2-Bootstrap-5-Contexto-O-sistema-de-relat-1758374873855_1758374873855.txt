@@ -1,0 +1,41 @@
+Você é um especialista em Flask + WTForms + Jinja2 + Bootstrap 5.
+
+Contexto:
+- O sistema de relatórios usa Flask, com formulários baseados em WTForms e templates Jinja2.
+- Na página de preenchimento do relatório (`report_form.html`), existem os campos:
+  - `titulo` (Título do relatório)
+  - `project_id` (seleção de Projeto)
+- O cliente pediu que esses dois campos não sejam editáveis quando o relatório já tiver um projeto pré-selecionado (exemplo: quando o relatório é criado a partir de uma obra já definida ou de um agendamento).
+
+Tarefas:
+1. Alterar a lógica no `views.py` (ou controller que cria o relatório):
+   - Verificar se existe `project_id` vindo do contexto (pré-definido).
+   - Se existir, passar uma flag para o template (ex.: `disable_fields=True`).
+2. No template `report_form.html`:
+   - Se `disable_fields=True`, renderizar:
+     - O campo `titulo` como `readonly`.
+     - O campo `project_id` como `disabled` (ou exibir apenas o nome do projeto em `<span>`).
+   - Caso contrário (novo relatório), manter os campos editáveis normalmente.
+   - Exemplo Jinja2:
+     ```html
+     {% if disable_fields %}
+       <input type="text" class="form-control" name="titulo" value="{{ form.titulo.data }}" readonly>
+       <input type="hidden" name="project_id" value="{{ form.project_id.data }}">
+       <span class="form-control-plaintext">{{ form.project_id.data }}</span>
+     {% else %}
+       {{ form.titulo(class="form-control") }}
+       {{ form.project_id(class="form-select") }}
+     {% endif %}
+     ```
+3. Garantir compatibilidade com PostgreSQL no Railway:
+   - Não alterar o modelo ou dados já existentes.
+   - Apenas controlar a renderização e submissão do formulário.
+4. Mostrar a saída final em três partes:
+   - Código Python no `views.py` para definir a flag `disable_fields`.
+   - Trecho atualizado do `report_form.html` (Jinja2).
+   - Explicação curta de como o formulário deve se comportar nos dois cenários.
+
+Saída esperada:
+- Código do backend (`views.py`) com a flag `disable_fields`.
+- Código Jinja2/HTML atualizado para bloquear os campos.
+- Orientações de integração sem afetar relatórios antigos.
