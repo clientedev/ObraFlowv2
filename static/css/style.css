@@ -65,22 +65,39 @@ body {
         font-size: 14px;
     }
     
-    /* Improved table without horizontal scroll */
-    .table-responsive-stack {
+    /* Mobile-first projects list layout */
+    .mobile-projects-list {
         overflow-x: hidden !important;
-        overflow-y: visible;
-    }
-    
-    .table-responsive-stack table {
-        table-layout: fixed;
         width: 100%;
-        word-wrap: break-word;
     }
     
-    .table-responsive-stack td,
-    .table-responsive-stack th {
-        white-space: normal !important;
-        word-break: break-word;
+    .project-card {
+        width: 100%;
+        max-width: 100%;
+        margin-bottom: 8px !important;
+    }
+    
+    .project-card .card {
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        transition: box-shadow 0.15s ease-in-out;
+    }
+    
+    .project-card .card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    /* Ensure no horizontal scroll on cards */
+    .project-card .card-body {
+        padding: 12px !important;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    .project-card .col-8,
+    .project-card .col-4 {
+        padding-left: 8px;
+        padding-right: 8px;
     }
     
     /* Navigation improvements for mobile */
