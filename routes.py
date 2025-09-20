@@ -494,7 +494,7 @@ def reports():
 @login_required
 def create_report():
     # Verificar se há projeto pré-selecionado via URL
-    preselected_project_id = request.args.get('project_id', type=int)
+    preselected_project_id = request.args.get('projeto_id', type=int)
     disable_fields = bool(preselected_project_id)
     
     if request.method == 'POST':
