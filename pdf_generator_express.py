@@ -123,31 +123,9 @@ class ExpressReportGenerator(WeasyPrintReportGenerator if WEASYPRINT_AVAILABLE e
                 self.conteudo = "\n\n".join(conteudo_partes) if conteudo_partes else "Relatório Express"
                     
             def _process_checklist(self, express_data):
-                """Processa dados do checklist para inclusão no PDF"""
-                try:
-                    import json
-                    checklist_json = express_data.checklist_dados or express_data.checklist_completo
-                    
-                    if not checklist_json:
-                        return ""
-                    
-                    checklist_data = json.loads(checklist_json)
-                    
-                    if not checklist_data or len(checklist_data) == 0:
-                        return ""
-                    
-                    checklist_lines = ["ITENS OBSERVADOS:"]
-                    
-                    for item in checklist_data:
-                        if item.get('concluido', False):
-                            titulo = item.get('titulo', '')
-                            checklist_lines.append(f"• {titulo}")
-                    
-                    return "\n".join(checklist_lines) if len(checklist_lines) > 1 else ""
-                    
-                except Exception as e:
-                    print(f"Erro ao processar checklist: {e}")
-                    return ""
+                """CHECKLIST REMOVIDO DO PDF - retorna string vazia"""
+                # Checklist não deve aparecer no PDF
+                return ""
                 
         return MockReport(relatorio_express)
     

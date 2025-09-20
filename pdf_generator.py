@@ -1060,46 +1060,26 @@ class ReportPDFGenerator:
         story.append(Spacer(1, 20))
     
     def _add_template_items_section(self, story, relatorio):
-        """Add items observados section following template with improved checklist formatting"""
+        """Add items observados section following template - CHECKLIST REMOVIDO DO PDF"""
         story.append(Paragraph("Itens observados", self.styles['SectionHeader']))
         story.append(Spacer(1, 10))
         
         if relatorio.conteudo:
-            # Process content to handle line breaks properly and format different sections
+            # Process content but SKIP checklist items entirely
             content_lines = relatorio.conteudo.split('\n')
             in_checklist = False
-            in_location = False
+            non_checklist_content = []
             
             for line in content_lines:
-                if line.strip():
-                    # Check if this is checklist section
+                line = line.strip()
+                if line:
+                    # Skip checklist sections entirely
                     if 'CHECKLIST DA OBRA:' in line:
                         in_checklist = True
-                        in_location = False
-                        story.append(Spacer(1, 10))
-                        
-                        # Create beautiful checklist header with border
-                        checklist_table = Table([['📋 CHECKLIST DA OBRA']], colWidths=[18*cm])
-                        checklist_table.setStyle(TableStyle([
-                            ('BACKGROUND', (0, 0), (-1, -1), '#f0f8ff'),
-                            ('BORDER', (0, 0), (-1, -1), 1, '#4169e1'),
-                            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-                            ('FONTSIZE', (0, 0), (-1, -1), 12),
-                            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                            ('TOPPADDING', (0, 0), (-1, -1), 8),
-                            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                        ]))
-                        story.append(checklist_table)
-                        story.append(Spacer(1, 8))
-                        
-                    # Check if this is location information
+                        continue
                     elif 'LOCALIZAÇÃO DO RELATÓRIO:' in line:
                         in_checklist = False
-                        in_location = True
-                        story.append(Spacer(1, 10))
-                        
-                        # Create beautiful location header with border
+                        # Add location header
                         location_table = Table([['📍 LOCALIZAÇÃO DO RELATÓRIO']], colWidths=[18*cm])
                         location_table.setStyle(TableStyle([
                             ('BACKGROUND', (0, 0), (-1, -1), '#f0fff0'),
@@ -1113,114 +1093,29 @@ class ReportPDFGenerator:
                         ]))
                         story.append(location_table)
                         story.append(Spacer(1, 8))
-                        
-                    # Format checklist items with PROFESSIONAL ELP design
+                        continue
                     elif in_checklist and (line.startswith('✓') or line.startswith('○')):
-                        status_symbol = "✓" if line.startswith('✓') else "○"
-                        item_text = line[1:].strip()  # Remove status symbol
-                        
-                        # Create ENHANCED checklist item with ELP branding
-                        if status_symbol == "✓":
-                            # APPROVED item - Professional green with ELP styling
-                            status_icon = "✅ CONFORME"
-                            item_table = Table([[status_icon, item_text]], colWidths=[3*cm, 15*cm])
-                            item_table.setStyle(TableStyle([
-                                ('BACKGROUND', (0, 0), (0, 0), '#28a745'),  # Professional green
-                                ('BACKGROUND', (1, 0), (1, 0), '#d4edda'),  # Light green background
-                                ('BORDER', (0, 0), (-1, -1), 2, '#20c1e8'),  # ELP cyan border
-                                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-                                ('FONTNAME', (1, 0), (1, 0), 'Helvetica-Bold'),
-                                ('FONTSIZE', (0, 0), (0, 0), 9),
-                                ('FONTSIZE', (1, 0), (1, 0), 11),
-                                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
-                                ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-                                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                ('TOPPADDING', (0, 0), (-1, -1), 12),
-                                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-                                ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                                ('TEXTCOLOR', (0, 0), (0, 0), white),  # White text on green
-                                ('TEXTCOLOR', (1, 0), (1, 0), '#155724'),  # Dark green text
-                            ]))
-                        else:
-                            # NON-COMPLIANT item - Professional red with ELP styling  
-                            status_icon = "❌ NÃO CONFORME"
-                            item_table = Table([[status_icon, item_text]], colWidths=[3*cm, 15*cm])
-                            item_table.setStyle(TableStyle([
-                                ('BACKGROUND', (0, 0), (0, 0), '#dc3545'),  # Professional red
-                                ('BACKGROUND', (1, 0), (1, 0), '#f8d7da'),  # Light red background
-                                ('BORDER', (0, 0), (-1, -1), 2, '#343a40'),  # ELP dark border
-                                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-                                ('FONTNAME', (1, 0), (1, 0), 'Helvetica-Bold'),
-                                ('FONTSIZE', (0, 0), (0, 0), 9),
-                                ('FONTSIZE', (1, 0), (1, 0), 11),
-                                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
-                                ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-                                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                ('TOPPADDING', (0, 0), (-1, -1), 12),
-                                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-                                ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                                ('TEXTCOLOR', (0, 0), (0, 0), white),  # White text on red
-                                ('TEXTCOLOR', (1, 0), (1, 0), '#721c24'),  # Dark red text
-                            ]))
-                        
-                        story.append(item_table)
-                        story.append(Spacer(1, 8))
-                        
-                    # Format checklist observations with improved styling
+                        # Skip checklist items completely
+                        continue
                     elif in_checklist and line.strip().startswith('Observações:'):
-                        obs_text = line.replace('Observações:', '').strip()
-                        if obs_text:
-                            obs_table = Table([['💬 OBSERVAÇÕES', obs_text]], colWidths=[4*cm, 14*cm])
-                            obs_table.setStyle(TableStyle([
-                                ('BACKGROUND', (0, 0), (0, 0), '#20c1e8'),  # ELP cyan header
-                                ('BACKGROUND', (1, 0), (1, 0), '#f0f9ff'),  # Light blue background
-                                ('BORDER', (0, 0), (-1, -1), 2, '#343a40'),  # ELP dark border
-                                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-                                ('FONTNAME', (1, 0), (1, 0), 'Helvetica'),
-                                ('FONTSIZE', (0, 0), (0, 0), 10),
-                                ('FONTSIZE', (1, 0), (1, 0), 11),
-                                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
-                                ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-                                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                ('TOPPADDING', (0, 0), (-1, -1), 10),
-                                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-                                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-                                ('TEXTCOLOR', (0, 0), (0, 0), white),  # White text on cyan
-                                ('TEXTCOLOR', (1, 0), (1, 0), '#343a40'),  # Dark text
-                            ]))
-                            story.append(obs_table)
-                            story.append(Spacer(1, 8))
-                            
-                    # Format GPS coordinates
-                    elif line.startswith('Latitude:') or line.startswith('Longitude:') or '(Coordenadas:' in line:
-                        story.append(Paragraph(f"<i>{line.strip()}</i>", self.styles['Info']))
-                    # Format addresses in bold
-                    elif any(keyword in line for keyword in ['Rua', 'Avenida', 'Estrada', 'Brasil', 'São Paulo', 'Rodovia']):
-                        story.append(Paragraph(f"<b>{line.strip()}</b>", self.styles['Info']))
-                    # Regular content
-                    else:
-                        story.append(Paragraph(line.strip(), self.styles['Info']))
+                        # Skip checklist observations
+                        continue
+                    elif not in_checklist:
+                        # Only process non-checklist content
+                        if line.startswith('Latitude:') or line.startswith('Longitude:') or '(Coordenadas:' in line:
+                            story.append(Paragraph(f"<i>{line.strip()}</i>", self.styles['Info']))
+                        elif any(keyword in line for keyword in ['Rua', 'Avenida', 'Estrada', 'Brasil', 'São Paulo', 'Rodovia']):
+                            story.append(Paragraph(f"<b>{line.strip()}</b>", self.styles['Info']))
+                        else:
+                            story.append(Paragraph(line.strip(), self.styles['Info']))
                 else:
-                    story.append(Spacer(1, 6))
+                    if not in_checklist:
+                        story.append(Spacer(1, 6))
             
             story.append(Spacer(1, 20))
         else:
-            # No content - show empty state
-            empty_table = Table([['📝 Nenhum item observado foi registrado neste relatório.']], colWidths=[18*cm])
-            empty_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), '#f5f5f5'),
-                ('BORDER', (0, 0), (-1, -1), 1, gray),
-                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Oblique'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('TOPPADDING', (0, 0), (-1, -1), 20),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
-            ]))
-            story.append(empty_table)
+            # Show simple message when no content
+            story.append(Paragraph("Vide fotos.", self.styles['Info']))
             story.append(Spacer(1, 20))
     
     def _add_project_info(self, story, relatorio):

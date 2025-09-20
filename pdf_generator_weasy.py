@@ -90,7 +90,28 @@ class WeasyPrintReportGenerator:
         except Exception as e:
             print(f"Erro ao carregar logo: {e}")
         
-        # Dados básicos
+        # Dados básicos - CHECKLIST REMOVIDO
+        observacoes_filtradas = None
+        if hasattr(relatorio, 'conteudo') and relatorio.conteudo:
+            # Filtrar conteúdo para remover checklist
+            content_lines = relatorio.conteudo.split('\n')
+            filtered_lines = []
+            in_checklist = False
+            
+            for line in content_lines:
+                if 'CHECKLIST DA OBRA:' in line:
+                    in_checklist = True
+                    continue
+                elif 'LOCALIZAÇÃO DO RELATÓRIO:' in line:
+                    in_checklist = False
+                    filtered_lines.append(line)
+                    continue
+                elif not in_checklist or not (line.startswith('✓') or line.startswith('○') or line.strip().startswith('Observações:')):
+                    if not in_checklist:
+                        filtered_lines.append(line)
+            
+            observacoes_filtradas = '\n'.join(filtered_lines).strip()
+        
         data = {
             'titulo': 'Relatório de Visita',
             'data_atual': datetime.now().strftime('%d/%m/%Y %H:%M'),
@@ -98,7 +119,7 @@ class WeasyPrintReportGenerator:
             'empresa': projeto.responsavel.nome_completo if projeto.responsavel else "ELP Consultoria",
             'obra': projeto.nome,
             'endereco': projeto.endereco or "Não informado",
-            'observacoes': relatorio.conteudo if hasattr(relatorio, 'conteudo') and relatorio.conteudo else None,
+            'observacoes': observacoes_filtradas,
             'preenchido_por': relatorio.autor.nome_completo if relatorio.autor else "Não informado",
             'liberado_por': "Eng. José Leopoldo Pugliese",
             'responsavel': projeto.responsavel.nome_completo if projeto.responsavel else "Não informado",
