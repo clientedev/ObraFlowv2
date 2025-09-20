@@ -3298,6 +3298,17 @@ def clear_pwa_cache():
     """
 
 # Rotas administrativas para Checklist Padrão
+@app.route('/admin/checklist-padrao')
+@login_required
+def admin_checklist_padrao():
+    """Página para administradores gerenciarem checklist padrão"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas administradores podem acessar esta página.', 'error')
+        return redirect(url_for('index'))
+    
+    checklist_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+    return render_template('admin/checklist_padrao.html', checklist_items=checklist_items)
+
 @app.route('/developer/checklist-padrao')
 @login_required
 def developer_checklist_padrao():

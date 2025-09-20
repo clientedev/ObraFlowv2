@@ -153,9 +153,13 @@
                                 <i class="fas fa-envelope-open-text me-2"></i>Configurações de E-mail
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_checklist_padrao') }}">
+                                <i class="fas fa-tasks me-2"></i>Checklist Padrão
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin_drive_test') }}">
-                            <i class="fas fa-cloud"></i> Testar Google Drive
-                        </a></li>
+                                <i class="fas fa-cloud"></i> Testar Google Drive
+                            </a></li>
                         <li><a class="dropdown-item" href="{{ url_for('admin_backup_all') }}">
                             <i class="fas fa-sync"></i> Backup Todos Relatórios
                         </a></li>
