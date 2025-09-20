@@ -129,77 +129,119 @@
         <div class="card">
             <div class="card-body">
                 {% if visits %}
-                    <div class="table-responsive">
-                        <table class="table table-striped" id="visitsTable">
-                            <thead>
-                                <tr>
-                                    <th>Projeto</th>
-                                    <th>Data Agendada</th>
-                                    <th>Data Realizada</th>
-                                    <th>Responsável</th>
-                                    <th>Status</th>
-                                    <th>Objetivo</th>
-                                    <th>Localização</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for visit in visits %}
-                                <tr data-status="{{ visit.status }}">
-                                    <td>
-                                        <strong>{{ visit.projeto.numero }}</strong><br>
-                                        <small class="text-muted">{{ visit.projeto.nome }}</small>
-                                    </td>
-                                    <td>{{ visit.data_agendada.strftime('%d/%m/%Y às %H:%M') }}</td>
-                                    <td>{{ visit.data_realizada.strftime('%d/%m/%Y às %H:%M') if visit.data_realizada else '-' }}</td>
-                                    <td>{{ visit.responsavel.nome_completo }}</td>
-                                    <td>
-                                        {% if visit.status == 'Realizada' %}
-                                            <span class="badge bg-success">{{ visit.status }}</span>
-                                        {% elif visit.status == 'Agendada' %}
-                                            <span class="badge bg-warning">{{ visit.status }}</span>
-                                        {% elif visit.status == 'Cancelada' %}
-                                            <span class="badge bg-danger">{{ visit.status }}</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">{{ visit.status }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div style="max-width: 180px; word-wrap: break-word; overflow-wrap: break-word;">
-                                            {{ visit.objetivo[:60] if visit.objetivo else '' }}{{ '...' if visit.objetivo and visit.objetivo|length > 60 else '' }}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {% if visit.latitude and visit.longitude %}
-                                            <a href="https://www.google.com/maps?q={{ visit.latitude }},{{ visit.longitude }}" target="_blank" class="btn btn-sm btn-outline-info">
-                                                <i class="fas fa-map-marker-alt"></i>
-                                            </a>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td style="min-width: 160px;">
-                                        <div class="btn-group d-flex flex-column flex-sm-row gap-1" role="group">
-                                            {% if visit.status == 'Agendada' %}
-                                                <a href="{{ url_for('visit_realize', visit_id=visit.id) }}" class="btn btn-sm btn-success flex-shrink-0" title="Realizar Visita" style="min-height: 32px; min-width: 32px;">
-                                                    <i class="fas fa-check"></i>
-                                                </a>
+                    <!-- Layout de cards mobile-first sem rolagem horizontal -->
+                    <div class="mobile-visits-list" id="visitsTable">
+                        {% for visit in visits %}
+                        <div class="visit-card mb-2" 
+                             data-status="{{ visit.status }}"
+                             data-projeto="{{ visit.projeto.numero }} {{ visit.projeto.nome }}"
+                             data-responsavel="{{ visit.responsavel.nome_completo }}"
+                             data-search="{{ (visit.projeto.numero + ' ' + visit.projeto.nome + ' ' + (visit.objetivo or ''))|lower }}">
+                            
+                            <div class="card border-0 shadow-sm h-100" style="background: #f8f9fa;">
+                                <div class="card-body p-3">
+                                    <div class="row align-items-center">
+                                        <!-- Coluna principal com informações -->
+                                        <div class="col-8">
+                                            <!-- Projeto -->
+                                            <div class="fw-bold text-primary mb-1" style="font-size: 0.9rem;">
+                                                <i class="fas fa-calendar-check me-1"></i>{{ visit.projeto.numero }}
+                                            </div>
+                                            
+                                            <!-- Nome do projeto -->
+                                            <div class="fw-semibold text-dark mb-1" style="font-size: 0.95rem; line-height: 1.2;">
+                                                {{ visit.projeto.nome }}
+                                            </div>
+                                            
+                                            <!-- Datas -->
+                                            <div class="text-muted mb-1" style="font-size: 0.8rem;">
+                                                <i class="fas fa-clock me-1"></i>Agendada: {{ visit.data_agendada.strftime('%d/%m/%Y às %H:%M') }}
+                                            </div>
+                                            
+                                            {% if visit.data_realizada %}
+                                            <div class="text-success mb-1" style="font-size: 0.8rem;">
+                                                <i class="fas fa-check me-1"></i>Realizada: {{ visit.data_realizada.strftime('%d/%m/%Y às %H:%M') }}
+                                            </div>
                                             {% endif %}
-                                            <a href="{{ url_for('visit_communication', visit_id=visit.id) }}" class="btn btn-sm btn-primary flex-shrink-0" title="Comunicação" style="min-height: 32px; min-width: 32px;">
-                                                <i class="fas fa-comments"></i>
-                                            </a>
-                                            <a href="{{ url_for('visit_checklist', visit_id=visit.id) }}" class="btn btn-sm btn-outline-info flex-shrink-0" title="Ver Checklist" style="min-height: 32px; min-width: 32px;">
-                                                <i class="fas fa-list-check"></i>
-                                            </a>
-                                            <a href="{{ url_for('project_view', project_id=visit.projeto.id) }}" class="btn btn-sm btn-outline-secondary flex-shrink-0" title="Ver Projeto" style="min-height: 32px; min-width: 32px;">
-                                                <i class="fas fa-building"></i>
-                                            </a>
+                                            
+                                            <!-- Objetivo (truncado) -->
+                                            {% if visit.objetivo %}
+                                            <div class="text-muted" style="font-size: 0.75rem;">
+                                                <i class="fas fa-target me-1"></i>{{ visit.objetivo[:50] }}{{ '...' if visit.objetivo|length > 50 else '' }}
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <!-- Responsável -->
+                                            <div class="text-muted" style="font-size: 0.75rem;">
+                                                <i class="fas fa-user me-1"></i>{{ visit.responsavel.nome_completo }}
+                                            </div>
                                         </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                                        
+                                        <!-- Coluna lateral com status e ações -->
+                                        <div class="col-4 text-end">
+                                            <!-- Status -->
+                                            <div class="mb-2">
+                                                {% if visit.status == 'Realizada' %}
+                                                    <span class="badge bg-success" style="font-size: 0.7rem;">{{ visit.status }}</span>
+                                                {% elif visit.status == 'Agendada' %}
+                                                    <span class="badge bg-warning" style="font-size: 0.7rem;">{{ visit.status }}</span>
+                                                {% elif visit.status == 'Cancelada' %}
+                                                    <span class="badge bg-danger" style="font-size: 0.7rem;">{{ visit.status }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ visit.status }}</span>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <!-- Localização -->
+                                            {% if visit.latitude and visit.longitude %}
+                                            <div class="mb-2">
+                                                <a href="https://www.google.com/maps?q={{ visit.latitude }},{{ visit.longitude }}" target="_blank" 
+                                                   class="btn btn-sm btn-outline-info" title="Ver no mapa">
+                                                    <i class="fas fa-map-marker-alt"></i>
+                                                </a>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <!-- Ações -->
+                                            <div class="d-flex flex-column gap-1">
+                                                <!-- Botão Realizar (apenas agendadas) -->
+                                                {% if visit.status == 'Agendada' %}
+                                                <a href="{{ url_for('visit_realize', visit_id=visit.id) }}" 
+                                                   class="btn btn-sm btn-success" 
+                                                   title="Realizar Visita">
+                                                    <i class="fas fa-check me-1"></i>Realizar
+                                                </a>
+                                                {% endif %}
+                                                
+                                                <!-- Botão Comunicação -->
+                                                <a href="{{ url_for('visit_communication', visit_id=visit.id) }}" 
+                                                   class="btn btn-sm btn-primary" 
+                                                   title="Comunicação">
+                                                    <i class="fas fa-comments me-1"></i>Chat
+                                                </a>
+                                                
+                                                <div class="d-flex gap-1">
+                                                    <!-- Botão Checklist -->
+                                                    <a href="{{ url_for('visit_checklist', visit_id=visit.id) }}" 
+                                                       class="btn btn-sm btn-outline-info flex-fill" 
+                                                       title="Ver Checklist">
+                                                        <i class="fas fa-list-check"></i>
+                                                    </a>
+                                                    
+                                                    <!-- Botão Projeto -->
+                                                    <a href="{{ url_for('project_view', project_id=visit.projeto.id) }}" 
+                                                       class="btn btn-sm btn-outline-secondary flex-fill" 
+                                                       title="Ver Projeto">
+                                                        <i class="fas fa-building"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
                     </div>
                 {% else %}
                     <div class="text-center py-5">
@@ -217,149 +259,6 @@
 </div>
 {% endblock %}
 
-{% block extra_styles %}
-<style>
-/* Responsividade para tabela de visitas */
-@media (max-width: 768px) {
-    .table-responsive {
-        border: none;
-    }
-    
-    #visitsTable {
-        font-size: 14px;
-    }
-    
-    #visitsTable th,
-    #visitsTable td {
-        padding: 8px 4px;
-        vertical-align: middle;
-    }
-    
-    #visitsTable th {
-        font-size: 12px;
-        font-weight: 600;
-    }
-    
-    /* Ocultar colunas menos importantes em mobile */
-    #visitsTable th:nth-child(3), /* Data Realizada */
-    #visitsTable td:nth-child(3),
-    #visitsTable th:nth-child(6), /* Objetivo - ocultar em mobile */
-    #visitsTable td:nth-child(6) {
-        display: none;
-    }
-    
-    /* Ajustar largura das colunas para evitar quebra */
-    #visitsTable th:nth-child(8), /* Ações */
-    #visitsTable td:nth-child(8) {
-        min-width: 140px;
-        width: 140px;
-    }
-    
-    /* Reduzir largura de colunas específicas */
-    #visitsTable th:nth-child(7), /* Localização */
-    #visitsTable td:nth-child(7) {
-        width: 60px;
-        text-align: center;
-    }
-    
-    /* Ajustar botões de ação */
-    .btn-group {
-        gap: 2px !important;
-    }
-    
-    .btn-sm {
-        padding: 4px 6px !important;
-        font-size: 12px !important;
-        min-height: 32px !important;
-        min-width: 32px !important;
-    }
-}
-
-@media (max-width: 576px) {
-    /* Ocultar mais colunas em telas muito pequenas */
-    #visitsTable th:nth-child(4), /* Responsável */
-    #visitsTable td:nth-child(4) {
-        display: none;
-    }
-    
-    #visitsTable {
-        font-size: 12px;
-    }
-    
-    #visitsTable th,
-    #visitsTable td {
-        padding: 6px 2px;
-    }
-    
-    /* Melhorar badges de status */
-    .badge {
-        font-size: 10px;
-        padding: 4px 6px;
-    }
-    
-    /* Empilhar botões de ação verticalmente em telas muito pequenas */
-    .btn-group {
-        flex-direction: column !important;
-    }
-    
-    /* Ajustar largura da coluna de ações */
-    #visitsTable th:nth-child(8), /* Ações */
-    #visitsTable td:nth-child(8) {
-        min-width: 50px;
-        width: 50px;
-    }
-}
-
-/* Melhorias gerais de UX */
-.btn-group .btn {
-    transition: all 0.2s ease-in-out;
-}
-
-.btn-group .btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* Ajustes para botões de filtro mobile */
-.overflow-x-auto {
-    -webkit-overflow-scrolling: touch;
-}
-
-.overflow-x-auto::-webkit-scrollbar {
-    height: 4px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 2px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 2px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-thumb:hover {
-    background: #a1a1a1;
-}
-
-/* Garantir altura mínima adequada para toque */
-.btn, .form-control, .form-select {
-    min-height: 44px;
-}
-
-@media (max-width: 768px) {
-    .btn:not(.btn-sm) {
-        min-height: 44px;
-        font-size: 16px; /* Previne zoom no iOS */
-    }
-    
-    .form-control, .form-select {
-        font-size: 16px; /* Previne zoom no iOS */
-    }
-}
-</style>
-{% endblock %}
 
 {% block extra_scripts %}
 <script>
@@ -369,19 +268,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const rows = table.querySelectorAll('tbody tr');
     
-    // Adicionar atributos de dados adicionais
-    rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length >= 4) {
-            const projetoText = cells[0].textContent.trim();
-            const responsavelText = cells[3].textContent.trim();
-            const objetivoText = cells[5] ? cells[5].textContent.trim() : '';
-            
-            row.setAttribute('data-projeto', projetoText);
-            row.setAttribute('data-responsavel', responsavelText);
-            row.setAttribute('data-search', (projetoText + ' ' + objetivoText).toLowerCase());
-        }
-    });
+    const visitCards = table.querySelectorAll('.visit-card');
+    console.log('Visitas: encontrados', visitCards.length, 'cards');
     
     // Preencher filtros dinamicamente
     fillVisitFilterOptions();
@@ -391,13 +279,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const projetoSet = new Set();
         const responsavelSet = new Set();
         
-        rows.forEach(row => {
-            const projeto = row.getAttribute('data-projeto');
-            const responsavel = row.getAttribute('data-responsavel');
+        visitCards.forEach(card => {
+            const projeto = card.getAttribute('data-projeto');
+            const responsavel = card.getAttribute('data-responsavel');
             
             if (projeto) projetoSet.add(projeto);
             if (responsavel) responsavelSet.add(responsavel);
         });
+        
+        console.log('Projetos encontrados:', Array.from(projetoSet));
+        console.log('Responsáveis encontrados:', Array.from(responsavelSet));
         
         // Preencher select de projetos
         const projetoSelect = document.getElementById('filterProjetoVisit');
@@ -459,11 +350,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         let visibleCount = 0;
         
-        rows.forEach(row => {
-            const status = row.getAttribute('data-status') || '';
-            const projeto = row.getAttribute('data-projeto') || '';
-            const responsavel = row.getAttribute('data-responsavel') || '';
-            const searchData = row.getAttribute('data-search') || '';
+        visitCards.forEach(card => {
+            const status = card.getAttribute('data-status') || '';
+            const projeto = card.getAttribute('data-projeto') || '';
+            const responsavel = card.getAttribute('data-responsavel') || '';
+            const searchData = card.getAttribute('data-search') || '';
             
             const statusMatch = !statusFilter || status === statusFilter;
             const projetoMatch = !projetoFilter || projeto.includes(projetoFilter);
@@ -471,10 +362,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const searchMatch = !searchText || searchData.includes(searchText);
             
             if (statusMatch && projetoMatch && responsavelMatch && searchMatch) {
-                row.style.display = '';
+                card.style.display = '';
                 visibleCount++;
             } else {
-                row.style.display = 'none';
+                card.style.display = 'none';
             }
         });
         
@@ -495,12 +386,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const allButton = document.getElementById('filterAllMobile');
         if (allButton) allButton.checked = true;
         
-        rows.forEach(row => {
-            row.style.display = '';
+        visitCards.forEach(card => {
+            card.style.display = '';
         });
         
         const countElement = document.getElementById('visitFilteredCount');
-        if (countElement) countElement.textContent = rows.length;
+        if (countElement) countElement.textContent = visitCards.length;
     };
 });
 </script>
