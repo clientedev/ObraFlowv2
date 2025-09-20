@@ -1,0 +1,102 @@
+ at LegendasSelector.loadLegendas (legendas-selector.js:43:23)
+loadLegendas @ legendas-selector.js:59
+await in loadLegendas
+loadLegendas @ legendas-selector.js:67Understand this error
+legendas-selector.js:64 🔄 Retry 2/3 em 2s...
+realtime-sync.js:105  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758402319559&sync=realtime 500 (Internal Server Error)
+syncNow @ realtime-sync.js:105
+(anonymous) @ realtime-sync.js:217Understand this error
+realtime-sync.js:149 ❌ ERRO SYNC: Error: HTTP 500
+    at RealTimeSync.syncNow (realtime-sync.js:116:23)
+syncNow @ realtime-sync.js:149
+await in syncNow
+(anonymous) @ realtime-sync.js:217Understand this error
+realtime-sync.js:216 🔄 RETRY 2/3 em 2s
+legendas-selector.js:34  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758402320680 500 (Internal Server Error)
+loadLegendas @ legendas-selector.js:34
+loadLegendas @ legendas-selector.js:67
+await in loadLegendas
+loadLegendas @ legendas-selector.js:67Understand this error
+legendas-selector.js:59 ❌ Erro ao carregar legendas: Error: HTTP 500
+    at LegendasSelector.loadLegendas (legendas-selector.js:43:23)
+loadLegendas @ legendas-selector.js:59
+await in loadLegendas
+loadLegendas @ legendas-selector.js:67
+await in loadLegendas
+loadLegendas @ legendas-selector.js:67Understand this error
+legendas-selector.js:64 🔄 Retry 3/3 em 2s...
+realtime-sync.js:105  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758402321694&sync=realtime 500 (Internal Server Error)
+syncNow @ realtime-sync.js:105
+(anonymous) @ realtime-sync.js:217
+setTimeout
+handleSyncError @ realtime-sync.js:217
+syncNow @ realtime-sync.js:150
+await in syncNow
+(anonymous) @ realtime-sync.js:217Understand this error
+realtime-sync.js:149 ❌ ERRO SYNC: Error: HTTP 500
+    at RealTimeSync.syncNow (realtime-sync.js:116:23)
+syncNow @ realtime-sync.js:149
+await in syncNow
+(anonymous) @ realtime-sync.js:217
+setTimeout
+handleSyncError @ realtime-sync.js:217
+syncNow @ realtime-sync.js:150
+await in syncNow
+(anonymous) @ realtime-sync.js:217Understand this error
+realtime-sync.js:216 🔄 RETRY 3/3 em 2s
+realtime-sync.js:105  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758402322423&sync=realtime 500 (Internal Server Error)
+syncNow @ realtime-sync.js:105
+(anonymous) @ realtime-sync.js:75Understand this error
+realtime-sync.js:149 ❌ ERRO SYNC: Error: HTTP 500
+    at RealTimeSync.syncNow (realtime-sync.js:116:23)
+syncNow @ realtime-sync.js:149
+await in syncNow
+(anonymous) @ realtime-sync.js:75Understand this error
+realtime-sync.js:219 ❌ MAX RETRIES atingido - pausando sync por 30s
+realtime-sync.js:85 ⏸️ SYNC PAUSADO
+legendas-selector.js:34  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758402322812 500 (Internal Server Error)
+loadLegendas @ legendas-selector.js:34
+loadLegendas @ legendas-selector.js:67
+await in loadLegendas
+loadLegendas @ legendas-selector.js:67
+await in loadLegendas
+loadLegendas @ legendas-selector.js:67Understand this error
+legendas-selector.js:59 ❌ Erro ao carregar legendas: Error: HTTP 500
+    at LegendasSelector.loadLegendas (legendas-selector.js:43:23)
+loadLegendas @ legendas-selector.js:59
+await in loadLegendas
+loadLegendas @ legendas-selector.js:67
+await in loadLegendas
+loadLegendas @ legendas-selector.js:67
+await in loadLegendas
+loadLegendas @ legendas-selector.js:67Understand this error
+realtime-sync.js:105  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758402323825&sync=realtime 500 (Internal Server Error)
+syncNow @ realtime-sync.js:105
+(anonymous) @ realtime-sync.js:217
+setTimeout
+handleSyncError @ realtime-sync.js:217
+syncNow @ realtime-sync.js:150
+await in syncNow
+(anonymous) @ realtime-sync.js:217
+setTimeout
+handleSyncError @ realtime-sync.js:217
+syncNow @ realtime-sync.js:150
+await in syncNow
+(anonymous) @ realtime-sync.js:217Understand this error
+realtime-sync.js:149 ❌ ERRO SYNC: Error: HTTP 500
+    at RealTimeSync.syncNow (realtime-sync.js:116:23)
+syncNow @ realtime-sync.js:149
+await in syncNow
+(anonymous) @ realtime-sync.js:217
+setTimeout
+handleSyncError @ realtime-sync.js:217
+syncNow @ realtime-sync.js:150
+await in syncNow
+(anonymous) @ realtime-sync.js:217
+setTimeout
+handleSyncError @ realtime-sync.js:217
+syncNow @ realtime-sync.js:150
+await in syncNow
+(anonymous) @ realtime-sync.js:217Understand this error
+realtime-sync.js:219 ❌ MAX RETRIES atingido - pausando sync por 30s
+realtime-sync.js:85 ⏸️ SYNC PAUSADO
