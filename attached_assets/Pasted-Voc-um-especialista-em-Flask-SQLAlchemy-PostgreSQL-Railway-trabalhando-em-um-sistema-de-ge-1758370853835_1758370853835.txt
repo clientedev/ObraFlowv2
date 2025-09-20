@@ -1,0 +1,40 @@
+Você é um especialista em Flask + SQLAlchemy + PostgreSQL (Railway), trabalhando em um sistema de gestão de obras.
+
+Contexto:
+- O sistema já possui um campo de busca simples no topo da listagem, além dos filtros avançados que ficam ocultos em um botão “Busca avançada” (collapse).
+- O campo de busca simples não está funcionando corretamente: ele não retorna resultados.
+- O cliente pediu que esse campo seja transformado em um **campo de pesquisa inteligente**, capaz de procurar em múltiplos campos ao mesmo tempo.
+
+Tarefas:
+1. Atualizar a rota Flask da listagem (`views.py`):
+   - Capturar o parâmetro `q` da URL:  
+     ```python
+     q = request.args.get("q")
+     ```
+   - Se `q` existir, aplicar um filtro que busque em múltiplas colunas ao mesmo tempo:
+     ```python
+     from sqlalchemy import or_
+
+     if q:
+         query = query.filter(or_(
+             Project.nome.ilike(f"%{q}%"),
+             Project.codigo.ilike(f"%{q}%"),
+             Project.endereco.ilike(f"%{q}%"),
+             Project.responsavel.ilike(f"%{q}%")
+         ))
+     ```
+   - Manter compatibilidade com os filtros avançados já existentes (os dois devem funcionar juntos).
+2. Atualizar o template Jinja2 (`obras.html` ou `relatorios.html`):
+   - Garantir que o campo de busca simples envie o valor de `q` via GET.
+   - Se não houver resultados, exibir mensagem: **"Nenhum resultado encontrado para a busca: {{ q }}"**.
+3. Garantir compatibilidade com PostgreSQL (Railway):
+   - Usar `ilike` (case-insensitive) em vez de `like`.
+   - Proteger contra valores vazios (`if q and q.strip():`).
+4. Mostrar a saída em duas partes:
+   - Código Flask atualizado da rota (`views.py`) com busca inteligente.
+   - Trecho Jinja2 para exibir campo de busca + mensagem de "nenhum resultado".
+
+Saída esperada:
+- Trecho de código Python para a rota corrigida.
+- Trecho HTML/Jinja2 para campo de busca com feedback ao usuário.
+- Explicação curta de como integrar isso sem quebrar os filtros avançados.
