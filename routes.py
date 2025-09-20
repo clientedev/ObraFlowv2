@@ -3274,8 +3274,22 @@ def admin_legendas():
         return redirect(url_for('index'))
     
     from models import LegendaPredefinida
-    legendas = LegendaPredefinida.query.order_by(LegendaPredefinida.categoria, LegendaPredefinida.created_at.desc()).all()
-    return render_template('admin/legendas.html', legendas=legendas)
+    
+    # Implementar busca conforme especificação
+    q = request.args.get("q", "")
+    query = LegendaPredefinida.query
+    
+    if q:
+        query = query.filter(LegendaPredefinida.texto.ilike(f"%{q}%"))
+    
+    # Ordenação por numero_ordem (nulls last) depois categoria e data de criação
+    legendas = query.order_by(
+        LegendaPredefinida.numero_ordem.asc().nullslast(),
+        LegendaPredefinida.categoria.asc(),
+        LegendaPredefinida.created_at.desc()
+    ).all()
+    
+    return render_template('admin/legendas.html', legendas=legendas, q=q)
 
 @app.route('/admin/legendas/nova', methods=['GET', 'POST'])
 @login_required
@@ -3294,6 +3308,7 @@ def admin_legenda_nova():
             legenda = LegendaPredefinida()
             legenda.texto = form.texto.data
             legenda.categoria = form.categoria.data
+            legenda.numero_ordem = form.numero_ordem.data if hasattr(form, 'numero_ordem') else None
             legenda.ativo = form.ativo.data
             legenda.criado_por = current_user.id
             
@@ -3327,6 +3342,7 @@ def admin_legenda_editar(id):
         try:
             legenda.texto = form.texto.data
             legenda.categoria = form.categoria.data
+            legenda.numero_ordem = form.numero_ordem.data if hasattr(form, 'numero_ordem') else None
             legenda.ativo = form.ativo.data
             
             db.session.commit()

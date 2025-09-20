@@ -208,9 +208,14 @@ class FotoRelatorioForm(FlaskForm):
 class LegendaPredefinidaForm(FlaskForm):
     texto = StringField('Texto da Legenda', validators=[DataRequired(), Length(max=500)])
     categoria = SelectField('Categoria', choices=[
-        ('Torre 1', 'Torre 1'),
-        ('Torre 2', 'Torre 2'),
-        ('Área Comum', 'Área Comum'),
-        ('Piscina', 'Piscina')
-    ], default='Torre 1', validators=[DataRequired()])
+        ('Geral', 'Geral'),
+        ('Estrutural', 'Estrutural'), 
+        ('Hidráulica', 'Hidráulica'),
+        ('Elétrica', 'Elétrica'),
+        ('Acabamentos', 'Acabamentos'),
+        ('Segurança', 'Segurança'),
+        ('Fachada', 'Fachada'),
+        ('Impermeabilização', 'Impermeabilização')
+    ], default='Geral', validators=[DataRequired()])
+    numero_ordem = IntegerField('Número de Ordem (para organização)', validators=[Optional()], description='Campo opcional para organizar a ordem das legendas')
     ativo = BooleanField('Ativo', default=True)
