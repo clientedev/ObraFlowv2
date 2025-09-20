@@ -5,7 +5,7 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
             <h1>
                 <i class="fas fa-file-alt me-2"></i>
                 {{ report.titulo }}
@@ -43,6 +43,20 @@
                 <a href="{{ url_for('reports') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left me-2"></i>Voltar
                 </a>
+            </div>
+        </div>
+        
+        <!-- Data do Relatório no Topo da Página -->
+        <div class="mb-4">
+            <div class="alert alert-light border-0 mb-0 py-2">
+                <strong class="text-primary">
+                    <i class="fas fa-calendar-alt me-2"></i>Data: 
+                    {% if report.data_relatorio %}
+                        {{ report.data_relatorio.strftime('%d/%m/%Y') }}
+                    {% else %}
+                        {{ report.created_at.strftime('%d/%m/%Y') }}
+                    {% endif %}
+                </strong>
             </div>
         </div>
     </div>
