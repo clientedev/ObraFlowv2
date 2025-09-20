@@ -591,6 +591,19 @@
                             <!-- Preview das Fotos com Cards Mobile-First -->
                             <div id="mobilePhotoCards" class="row g-3"></div>
                             
+                            <!-- Quick Action Bar para adicionar mais fotos -->
+                            <div id="quickPhotoActions" class="text-center mt-3 p-3 bg-light rounded" style="display: none;">
+                                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                    <button type="button" class="btn btn-success" onclick="mobileCaptureFromCamera()" style="min-height: 48px; border-radius: 24px;">
+                                        <i class="fas fa-camera me-2"></i>Adicionar da Câmera
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success" onclick="mobileSelectFromGallery()" style="min-height: 48px; border-radius: 24px;">
+                                        <i class="fas fa-images me-2"></i>Adicionar da Galeria
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mt-2">Total: <span id="quickPhotoCount">0</span> fotos (máximo 200)</small>
+                            </div>
+                            
                             <!-- Fotos antigas (mantido para compatibilidade) -->
                             <div id="photoPreview" class="row" style="display: none;"></div>
                         </div>
@@ -2380,6 +2393,23 @@ function createMobilePhotoCard(file, category) {
         // Setup event listeners for this card
         setupPhotoCardEvents(photoId);
         
+        // Immediately scroll to the new photo and focus on caption for better UX
+        setTimeout(() => {
+            const newCard = cardCol.querySelector('.mobile-photo-card');
+            if (newCard) {
+                newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Auto-focus on caption input for immediate editing
+                const captionInput = newCard.querySelector('.caption-input');
+                if (captionInput) {
+                    setTimeout(() => {
+                        captionInput.focus();
+                        captionInput.select();
+                    }, 600);
+                }
+            }
+        }, 300);
+        
         console.log(`📷 Foto adicionada: ${file.name} (${category})`);
     };
     
@@ -2391,39 +2421,55 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
     const legendaSelectHTML = createLegendaSelectHTML(photoId);
     
     return `
-        <div class="mobile-photo-card" data-photo-id="${photoId}">
-            <img src="${imageSrc}" alt="${filename}" class="photo-card-image">
-            <div class="photo-card-content">
-                <div class="category-badge">${category}</div>
-                
-                <!-- Legenda Manual -->
-                <input type="text" 
-                       class="caption-input" 
-                       id="manual_caption_${photoId}" 
-                       placeholder="Digite uma legenda personalizada..."
-                       data-photo-id="${photoId}">
-                
-                <!-- Legenda Pré-definida -->
-                <select class="caption-select" 
-                        id="predefined_caption_${photoId}" 
-                        data-photo-id="${photoId}">
-                    <option value="">Selecione uma legenda pré-definida...</option>
-                    ${legendaSelectHTML}
-                </select>
-                
-                <!-- Status da Legenda -->
-                <div class="caption-status pending" id="caption_status_${photoId}">
-                    ⚠️ Legenda obrigatória - preencha pelo menos um campo
+        <div class="mobile-photo-card enhanced" data-photo-id="${photoId}" style="border: 2px solid #007bff; border-radius: 12px; padding: 12px; background: white; box-shadow: 0 4px 12px rgba(0,123,255,0.15); margin-bottom: 16px;">
+            <div class="d-flex align-items-start gap-3">
+                <!-- Foto Thumbnail -->
+                <div class="flex-shrink-0" style="width: 80px; height: 80px;">
+                    <img src="${imageSrc}" alt="${filename}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef;">
                 </div>
                 
-                <!-- Ações -->
-                <div class="photo-card-actions">
-                    <button type="button" class="photo-card-btn edit" onclick="editMobilePhoto('${photoId}')">
-                        <i class="fas fa-edit"></i> Editar
-                    </button>
-                    <button type="button" class="photo-card-btn delete" onclick="deleteMobilePhoto('${photoId}')">
-                        <i class="fas fa-trash"></i> Excluir
-                    </button>
+                <!-- Conteúdo Principal -->
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-primary">${category}</span>
+                        <small class="text-muted">${filename.substring(0, 20)}${filename.length > 20 ? '...' : ''}</small>
+                    </div>
+                    
+                    <!-- Legenda Manual com destaque -->
+                    <div class="mb-2">
+                        <input type="text" 
+                               class="form-control caption-input" 
+                               id="manual_caption_${photoId}" 
+                               placeholder="✏️ Digite uma legenda (obrigatório)..."
+                               data-photo-id="${photoId}"
+                               style="border: 2px solid #28a745; font-size: 14px; padding: 8px; background-color: #f8fff9;">
+                    </div>
+                    
+                    <!-- Legenda Pré-definida -->
+                    <div class="mb-2">
+                        <select class="form-select form-select-sm caption-select" 
+                                id="predefined_caption_${photoId}" 
+                                data-photo-id="${photoId}"
+                                style="font-size: 12px;">
+                            <option value="">📋 Ou escolha uma legenda pré-definida...</option>
+                            ${legendaSelectHTML}
+                        </select>
+                    </div>
+                    
+                    <!-- Status da Legenda -->
+                    <div class="caption-status pending alert alert-warning py-1 px-2 mb-2" id="caption_status_${photoId}" style="font-size: 12px; margin: 0;">
+                        ⚠️ Legenda obrigatória - preencha o campo acima
+                    </div>
+                    
+                    <!-- Ações -->
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="editMobilePhoto('${photoId}')">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMobilePhoto('${photoId}')">
+                            <i class="fas fa-trash"></i> Excluir
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2538,11 +2584,30 @@ function deleteMobilePhoto(photoId) {
     console.log(`🗑️ Foto ${photoId} excluída`);
 }
 
-// Update photo counter
+// Update photo counter and show quick actions
 function updatePhotoCounter() {
+    const count = mobilePhotoData.length;
+    
+    // Update main counter
     const counter = document.getElementById('photoCount');
     if (counter) {
-        counter.textContent = mobilePhotoData.length;
+        counter.textContent = count;
+    }
+    
+    // Update quick action counter
+    const quickCounter = document.getElementById('quickPhotoCount');
+    if (quickCounter) {
+        quickCounter.textContent = count;
+    }
+    
+    // Show quick action bar after first photo
+    const quickActionBar = document.getElementById('quickPhotoActions');
+    if (quickActionBar) {
+        if (count > 0) {
+            quickActionBar.style.display = 'block';
+        } else {
+            quickActionBar.style.display = 'none';
+        }
     }
 }
 
