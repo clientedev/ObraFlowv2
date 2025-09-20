@@ -57,6 +57,61 @@ from google_drive_backup import backup_to_drive, test_drive_connection
 import math
 import json
 
+# API para legendas pré-definidas (FALTAVA ESTA IMPLEMENTAÇÃO)
+@app.route('/api/legendas')
+def api_legendas():
+    """API para carregar legendas pré-definidas do PostgreSQL Railway"""
+    try:
+        current_app.logger.info("📋 API LEGENDAS: Buscando categoria='all'")
+        
+        # Buscar todas as legendas ativas do PostgreSQL
+        legendas_query = LegendaPredefinida.query.filter_by(ativo=True).order_by(
+            LegendaPredefinida.categoria.asc(),
+            LegendaPredefinida.numero_ordem.asc(),
+            LegendaPredefinida.texto.asc()
+        ).all()
+        
+        # Converter para JSON
+        legendas_data = []
+        for legenda in legendas_query:
+            legendas_data.append({
+                'id': legenda.id,
+                'texto': legenda.texto,
+                'categoria': legenda.categoria,
+                'numero_ordem': legenda.numero_ordem,
+                'ativo': legenda.ativo
+            })
+        
+        current_app.logger.info(f"✅ API LEGENDAS: {len(legendas_data)} legendas retornadas (categoria=all)")
+        
+        # Resposta JSON padronizada
+        response_data = {
+            'success': True,
+            'legendas': legendas_data,
+            'total': len(legendas_data),
+            'fonte': 'railway_postgresql',
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        # Headers para evitar cache
+        response = jsonify(response_data)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ ERRO API LEGENDAS: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'legendas': [],
+            'total': 0,
+            'fonte': 'error',
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+
 # Debug routes para identificar diferenças de dados
 @app.route('/api/current-user')
 @login_required
