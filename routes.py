@@ -636,8 +636,9 @@ def create_report():
             
             relatorio.conteudo = final_content
             relatorio.data_relatorio = data_relatorio
-            relatorio.status = 'Aguardando Aprovação'
+            relatorio.status = 'preenchimento'  # Criar sempre em preenchimento primeiro
             relatorio.created_at = datetime.utcnow()
+            relatorio.updated_at = datetime.utcnow()
             
             # Set approver if provided
             aprovador_id = request.form.get('aprovador_id')
@@ -765,7 +766,12 @@ def create_report():
             
             # Return JSON response for AJAX submission
             if request.content_type and 'multipart/form-data' in request.content_type:
-                return jsonify({'success': True, 'redirect': '/reports'})
+                return jsonify({
+                    'success': True, 
+                    'redirect': '/reports',
+                    'report_id': relatorio.id,
+                    'report_number': relatorio.numero
+                })
             else:
                 return redirect(url_for('reports'))
             
@@ -1060,6 +1066,93 @@ def pending_reports():
         page=page, per_page=10, error_out=False)
     
     return render_template('reports/pending.html', relatorios=relatorios)
+
+@app.route('/reports/autosave/<int:report_id>', methods=['POST'])
+@login_required
+def autosave_report(report_id):
+    """Auto save para relatórios em preenchimento"""
+    try:
+        relatorio = Relatorio.query.get_or_404(report_id)
+        
+        # Verificar permissões
+        if not current_user.is_master and relatorio.autor_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        
+        # Verificar se o relatório está em status de preenchimento
+        if relatorio.status != 'preenchimento':
+            return jsonify({'success': False, 'error': 'Relatório não está em preenchimento'}), 400
+        
+        data = request.get_json()
+        
+        # Atualizar campos permitidos para auto save
+        if 'titulo' in data:
+            relatorio.titulo = data['titulo']
+        
+        if 'conteudo' in data:
+            relatorio.conteudo = data['conteudo']
+        
+        if 'latitude' in data:
+            try:
+                relatorio.latitude = float(data['latitude']) if data['latitude'] else None
+            except (ValueError, TypeError):
+                pass
+                
+        if 'longitude' in data:
+            try:
+                relatorio.longitude = float(data['longitude']) if data['longitude'] else None
+            except (ValueError, TypeError):
+                pass
+        
+        if 'checklist_data' in data:
+            relatorio.checklist_data = data['checklist_data']
+        
+        # Atualizar timestamp de última modificação
+        relatorio.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Dados salvos automaticamente',
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erro no auto save: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/reports/<int:report_id>/finalize', methods=['POST'])
+@login_required
+def finalize_report(report_id):
+    """Finalizar relatório em preenchimento"""
+    try:
+        relatorio = Relatorio.query.get_or_404(report_id)
+        
+        # Verificar permissões
+        if not current_user.is_master and relatorio.autor_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        
+        # Verificar se o relatório está em preenchimento
+        if relatorio.status != 'preenchimento':
+            return jsonify({'success': False, 'error': 'Relatório não está em preenchimento'}), 400
+        
+        # Alterar status para aguardando aprovação
+        relatorio.status = 'Aguardando Aprovação'
+        relatorio.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Relatório finalizado e enviado para aprovação',
+            'redirect': url_for('reports')
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erro ao finalizar relatório: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/reports/<int:id>/delete')
 @login_required

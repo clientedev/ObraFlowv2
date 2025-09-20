@@ -1267,9 +1267,59 @@ function saveEditedPhoto() {
     modal.hide();
 }
 
+// Função para criar relatório inicial em preenchimento
+async function createInitialReport() {
+    const formData = new FormData(document.getElementById('reportForm'));
+    
+    try {
+        const response = await fetch('{{ url_for("create_report") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.report_id) {
+            console.log('✅ Relatório inicial criado:', result.report_id);
+            return result.report_id;
+        } else {
+            throw new Error(result.error || 'Erro ao criar relatório');
+        }
+    } catch (error) {
+        console.error('❌ Erro ao criar relatório inicial:', error);
+        throw error;
+    }
+}
+
 // Submissão do formulário
 document.getElementById('reportForm').addEventListener('submit', function(e) {
     e.preventDefault(); // Prevent default form submission
+
+    // Se há um reportId global, finalizar o relatório
+    if (window.currentReportId) {
+        fetch(`/reports/${window.currentReportId}/finalize`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Relatório finalizado com sucesso!');
+                window.location.href = data.redirect;
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao finalizar:', error);
+            alert('Erro ao finalizar relatório: ' + error.message);
+        });
+        
+        return;
+    }
 
     // Create FormData object for proper file handling
     const formData = new FormData(this);
@@ -1546,6 +1596,54 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('✅ Editor modal inicializado');
     } else {
         console.error('❌ Editor modal não disponível');
+    }
+    
+    // Criar relatório inicial e ativar auto save após preencher dados básicos
+    let autoSaveInitialized = false;
+    
+    // Função para inicializar auto save quando houver dados suficientes
+    function tryInitializeAutoSave() {
+        if (autoSaveInitialized) return;
+        
+        const titulo = document.getElementById('titulo').value;
+        const projetoId = document.getElementById('projeto_id').value;
+        
+        if (titulo && projetoId) {
+            console.log('📝 Dados básicos preenchidos, criando relatório inicial...');
+            
+            // Criar relatório inicial
+            createInitialReport().then(reportId => {
+                window.currentReportId = reportId;
+                
+                // Inicializar auto save
+                if (typeof initAutoSave === 'function') {
+                    window.autoSaveInstance = initAutoSave(reportId, {
+                        interval: 10000, // 10 segundos
+                        statusElement: document.getElementById('autosave-status'),
+                        form: document.getElementById('reportForm')
+                    });
+                    
+                    autoSaveInitialized = true;
+                    console.log('✅ Auto save ativado para relatório', reportId);
+                } else {
+                    console.error('❌ Função initAutoSave não encontrada');
+                }
+            }).catch(error => {
+                console.error('❌ Erro ao criar relatório inicial:', error);
+            });
+        }
+    }
+    
+    // Observar mudanças nos campos básicos
+    const tituloField = document.getElementById('titulo');
+    const projetoField = document.getElementById('projeto_id');
+    
+    if (tituloField) {
+        tituloField.addEventListener('blur', tryInitializeAutoSave);
+    }
+    
+    if (projetoField) {
+        projetoField.addEventListener('change', tryInitializeAutoSave);
     }
 });
 
