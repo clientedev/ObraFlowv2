@@ -2422,55 +2422,53 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
     
     return `
         <div class="mobile-photo-card enhanced" data-photo-id="${photoId}" style="border: 2px solid #007bff; border-radius: 12px; padding: 12px; background: white; box-shadow: 0 4px 12px rgba(0,123,255,0.15); margin-bottom: 16px;">
-            <div class="d-flex align-items-start gap-3">
-                <!-- Foto Thumbnail -->
-                <div class="flex-shrink-0" style="width: 80px; height: 80px;">
-                    <img src="${imageSrc}" alt="${filename}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef;">
-                </div>
-                
-                <!-- Conteúdo Principal -->
-                <div class="flex-grow-1">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="badge bg-primary">${category}</span>
-                        <small class="text-muted">${filename.substring(0, 20)}${filename.length > 20 ? '...' : ''}</small>
-                    </div>
-                    
-                    <!-- Legenda Manual com destaque -->
-                    <div class="mb-2">
-                        <input type="text" 
-                               class="form-control caption-input" 
-                               id="manual_caption_${photoId}" 
-                               placeholder="✏️ Digite uma legenda (obrigatório)..."
-                               data-photo-id="${photoId}"
-                               style="border: 2px solid #28a745; font-size: 14px; padding: 8px; background-color: #f8fff9;">
-                    </div>
-                    
-                    <!-- Legenda Pré-definida -->
-                    <div class="mb-2">
-                        <select class="form-select form-select-sm caption-select" 
-                                id="predefined_caption_${photoId}" 
-                                data-photo-id="${photoId}"
-                                style="font-size: 12px;">
-                            <option value="">📋 Ou escolha uma legenda pré-definida...</option>
-                            ${legendaSelectHTML}
-                        </select>
-                    </div>
-                    
-                    <!-- Status da Legenda -->
-                    <div class="caption-status pending alert alert-warning py-1 px-2 mb-2" id="caption_status_${photoId}" style="font-size: 12px; margin: 0;">
-                        ⚠️ Legenda obrigatória - preencha o campo acima
-                    </div>
-                    
-                    <!-- Ações -->
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="editMobilePhoto('${photoId}')">
-                            <i class="fas fa-edit"></i> Editar
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMobilePhoto('${photoId}')">
-                            <i class="fas fa-trash"></i> Excluir
-                        </button>
-                    </div>
-                </div>
+            <!-- Layout Vertical: IMAGEM EM CIMA -->
+            <div class="text-center mb-3">
+                <img src="${imageSrc}" 
+                     alt="${filename}" 
+                     data-photo-id="${photoId}"
+                     style="width: 100%; max-width: 200px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef; cursor: pointer;">
+            </div>
+            
+            <!-- Categoria (SEM nome do arquivo) -->
+            <div class="text-center mb-2">
+                <span class="badge bg-primary">${category}</span>
+            </div>
+            
+            <!-- LEGENDA EM BAIXO -->
+            <div class="mb-2">
+                <input type="text" 
+                       class="form-control caption-input" 
+                       id="manual_caption_${photoId}" 
+                       placeholder="✏️ Digite uma legenda (obrigatório)..."
+                       data-photo-id="${photoId}"
+                       style="border: 2px solid #28a745; font-size: 14px; padding: 8px; background-color: #f8fff9;">
+            </div>
+            
+            <!-- Legenda Pré-definida -->
+            <div class="mb-2">
+                <select class="form-select form-select-sm caption-select" 
+                        id="predefined_caption_${photoId}" 
+                        data-photo-id="${photoId}"
+                        style="font-size: 12px;">
+                    <option value="">📋 Ou escolha uma legenda pré-definida...</option>
+                    ${legendaSelectHTML}
+                </select>
+            </div>
+            
+            <!-- Status da Legenda -->
+            <div class="caption-status pending alert alert-warning py-1 px-2 mb-2" id="caption_status_${photoId}" style="font-size: 12px; margin: 0;">
+                ⚠️ Legenda obrigatória - preencha o campo acima
+            </div>
+            
+            <!-- Ações -->
+            <div class="d-flex gap-2 justify-content-center">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editMobilePhoto('${photoId}')">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMobilePhoto('${photoId}')">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
             </div>
         </div>
     `;
@@ -2556,15 +2554,22 @@ async function saveCaptionData(photoId) {
     console.log(`💾 Caption saved for ${photoId}: "${manualCaption}"`);
 }
 
-// Edit mobile photo
+// Edit mobile photo - RESTAURADO como funcionava antes
 function editMobilePhoto(photoId) {
     const photoData = mobilePhotoData.find(p => p.id === photoId);
     if (!photoData) return;
     
-    // Open photo editor (using existing fabric editor)
-    const imageUrl = URL.createObjectURL(photoData.file);
-    const editorUrl = `/photo-editor?photoId=${photoId}&imageUrl=${encodeURIComponent(imageUrl)}`;
-    window.open(editorUrl, '_blank');
+    // Encontrar o elemento img da foto
+    const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
+    const imgElement = photoCard.querySelector('img');
+    
+    if (!imgElement) {
+        console.error('Imagem não encontrada para edição');
+        return;
+    }
+    
+    // Abrir editor modal como funcionava antes
+    openPhotoEditorFromElement(imgElement);
 }
 
 // Delete mobile photo
