@@ -102,46 +102,77 @@ input, textarea, select {
                     </a>
                 </div>
                 
-                <!-- Filtros de Relatórios -->
+                <!-- Busca Simples -->
                 <div class="card-body border-bottom">
-                    <div class="row g-3">
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold">Status:</label>
-                            <select class="form-select form-select-sm" id="filterStatus">
-                                <option value="">Todos os Status</option>
-                                <option value="Aprovado">Aprovado</option>
-                                <option value="Rejeitado">Rejeitado</option>
-                                <option value="Aguardando Aprovação">Aguardando Aprovação</option>
-                                <option value="Rascunho">Rascunho</option>
-                            </select>
+                    <form method="GET" action="{{ url_for('reports') }}">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold">🔍 Busca Rápida</label>
+                                <input type="text" class="form-control" name="q" value="{{ request.args.get('q', '') }}" 
+                                       placeholder="Digite o número, título ou projeto do relatório...">
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search me-1"></i>Buscar
+                                    </button>
+                                    {% if request.args.get('q') %}
+                                    <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i>Limpar
+                                    </a>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#filtrosAvancadosReports">
+                                        <i class="fas fa-filter me-1"></i>Busca Avançada
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold">Projeto:</label>
-                            <select class="form-select form-select-sm" id="filterProjeto">
-                                <option value="">Todos os Projetos</option>
-                                <!-- Será preenchido dinamicamente -->
-                            </select>
+                    </form>
+                </div>
+                
+                <!-- Filtros Avançados (Colapsáveis) -->
+                <div class="collapse" id="filtrosAvancadosReports">
+                    <div class="card-body border-bottom">
+                        <h6 class="mb-3"><i class="fas fa-filter me-2"></i>Filtros Avançados</h6>
+                        <div class="row g-3">
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label small fw-bold">Status:</label>
+                                <select class="form-select form-select-sm" id="filterStatus">
+                                    <option value="">Todos os Status</option>
+                                    <option value="Aprovado">Aprovado</option>
+                                    <option value="Rejeitado">Rejeitado</option>
+                                    <option value="Aguardando Aprovação">Aguardando Aprovação</option>
+                                    <option value="Rascunho">Rascunho</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label small fw-bold">Projeto:</label>
+                                <select class="form-select form-select-sm" id="filterProjeto">
+                                    <option value="">Todos os Projetos</option>
+                                    <!-- Será preenchido dinamicamente -->
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label small fw-bold">Autor:</label>
+                                <select class="form-select form-select-sm" id="filterAutor">
+                                    <option value="">Todos Autores</option>
+                                    <!-- Será preenchido dinamicamente -->
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label small fw-bold">Pesquisar nos filtros:</label>
+                                <input type="text" class="form-control form-control-sm" id="searchReport" placeholder="Número ou título">
+                            </div>
                         </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold">Autor:</label>
-                            <select class="form-select form-select-sm" id="filterAutor">
-                                <option value="">Todos Autores</option>
-                                <!-- Será preenchido dinamicamente -->
-                            </select>
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold">Pesquisar:</label>
-                            <input type="text" class="form-control form-control-sm" id="searchReport" placeholder="Número ou título">
-                        </div>
-                    </div>
-                    <div class="row mt-2">
-                        <div class="col-12">
-                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearReportFilters()">
-                                <i class="fas fa-times"></i> Limpar Filtros
-                            </button>
-                            <small class="text-muted">
-                                <span id="reportFilteredCount">{{ relatorios.items|length if relatorios and relatorios.items else 0 }}</span> relatório(s) encontrado(s)
-                            </small>
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearReportFilters()">
+                                    <i class="fas fa-times"></i> Limpar Filtros Avançados
+                                </button>
+                                <small class="text-muted">
+                                    <span id="reportFilteredCount">{{ relatorios.items|length if relatorios and relatorios.items else 0 }}</span> relatório(s) encontrado(s)
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>

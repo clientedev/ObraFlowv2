@@ -17,64 +17,99 @@
     </div>
 </div>
 
-<!-- Filtros -->
-<div class="row mb-4">
+<!-- Busca Simples -->
+<div class="row mb-3">
     <div class="col-12">
         <div class="card">
             <div class="card-body py-3">
-                <div class="row g-3">
-                    <div class="col-md-2 col-sm-6">
-                        <label class="form-label small fw-bold">Status:</label>
-                        <select class="form-select form-select-sm" id="filterStatus">
-                            <option value="">Todos os Status</option>
-                            <option value="Ativo">Ativo</option>
-                            <option value="Pausado">Pausado</option>
-                            <option value="Concluído">Concluído</option>
-                            <option value="Cancelado">Cancelado</option>
-                        </select>
+                <form method="GET" action="{{ url_for('projects_list') }}">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">🔍 Busca Rápida</label>
+                            <input type="text" class="form-control" name="q" value="{{ request.args.get('q', '') }}" 
+                                   placeholder="Digite o nome, número ou palavra-chave do projeto...">
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i>Buscar
+                                </button>
+                                {% if request.args.get('q') %}
+                                <a href="{{ url_for('projects_list') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>Limpar
+                                </a>
+                                {% endif %}
+                                <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#filtrosAvancados">
+                                    <i class="fas fa-filter me-1"></i>Busca Avançada
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-2 col-sm-6">
-                        <label class="form-label small fw-bold">Tipo de Obra:</label>
-                        <select class="form-select form-select-sm" id="filterTipo">
-                            <option value="">Todos os Tipos</option>
-                            <!-- Será preenchido dinamicamente -->
-                        </select>
-                    </div>
-                    <div class="col-md-2 col-sm-6">
-                        <label class="form-label small fw-bold">Construtora:</label>
-                        <select class="form-select form-select-sm" id="filterConstrutora">
-                            <option value="">Todas Construtoras</option>
-                            <!-- Será preenchido dinamicamente -->
-                        </select>
-                    </div>
-                    <div class="col-md-2 col-sm-6">
-                        <label class="form-label small fw-bold">Funcionário:</label>
-                        <select class="form-select form-select-sm" id="filterFuncionario">
-                            <option value="">Todos Funcionários</option>
-                            <!-- Será preenchido dinamicamente -->
-                        </select>
-                    </div>
-                    <div class="col-md-2 col-sm-6">
-                        <label class="form-label small fw-bold">Responsável:</label>
-                        <select class="form-select form-select-sm" id="filterResponsavel">
-                            <option value="">Todos Responsáveis</option>
-                            <!-- Será preenchido dinamicamente -->
-                        </select>
-                    </div>
-                    <div class="col-md-2 col-sm-6">
-                        <label class="form-label small fw-bold">Pesquisar:</label>
-                        <input type="text" class="form-control form-control-sm" id="searchProject" placeholder="Nome ou número do projeto">
-                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros Avançados (Colapsáveis) -->
+<div class="collapse mb-4" id="filtrosAvancados">
+    <div class="card">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filtros Avançados</h6>
+        </div>
+        <div class="card-body py-3">
+            <div class="row g-3">
+                <div class="col-md-2 col-sm-6">
+                    <label class="form-label small fw-bold">Status:</label>
+                    <select class="form-select form-select-sm" id="filterStatus">
+                        <option value="">Todos os Status</option>
+                        <option value="Ativo">Ativo</option>
+                        <option value="Pausado">Pausado</option>
+                        <option value="Concluído">Concluído</option>
+                        <option value="Cancelado">Cancelado</option>
+                    </select>
                 </div>
-                <div class="row mt-2">
-                    <div class="col-12">
-                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearFilters()">
-                            <i class="fas fa-times"></i> Limpar Filtros
-                        </button>
-                        <small class="text-muted">
-                            <span id="filteredCount">{{ projects|length }}</span> projeto(s) encontrado(s)
-                        </small>
-                    </div>
+                <div class="col-md-2 col-sm-6">
+                    <label class="form-label small fw-bold">Tipo de Obra:</label>
+                    <select class="form-select form-select-sm" id="filterTipo">
+                        <option value="">Todos os Tipos</option>
+                        <!-- Será preenchido dinamicamente -->
+                    </select>
+                </div>
+                <div class="col-md-2 col-sm-6">
+                    <label class="form-label small fw-bold">Construtora:</label>
+                    <select class="form-select form-select-sm" id="filterConstrutora">
+                        <option value="">Todas Construtoras</option>
+                        <!-- Será preenchido dinamicamente -->
+                    </select>
+                </div>
+                <div class="col-md-2 col-sm-6">
+                    <label class="form-label small fw-bold">Funcionário:</label>
+                    <select class="form-select form-select-sm" id="filterFuncionario">
+                        <option value="">Todos Funcionários</option>
+                        <!-- Será preenchido dinamicamente -->
+                    </select>
+                </div>
+                <div class="col-md-2 col-sm-6">
+                    <label class="form-label small fw-bold">Responsável:</label>
+                    <select class="form-select form-select-sm" id="filterResponsavel">
+                        <option value="">Todos Responsáveis</option>
+                        <!-- Será preenchido dinamicamente -->
+                    </select>
+                </div>
+                <div class="col-md-2 col-sm-6">
+                    <label class="form-label small fw-bold">Pesquisar nos filtros:</label>
+                    <input type="text" class="form-control form-control-sm" id="searchProject" placeholder="Nome ou número do projeto">
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-12">
+                    <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearFilters()">
+                        <i class="fas fa-times"></i> Limpar Filtros Avançados
+                    </button>
+                    <small class="text-muted">
+                        <span id="filteredCount">{{ projects|length }}</span> projeto(s) encontrado(s)
+                    </small>
                 </div>
             </div>
         </div>

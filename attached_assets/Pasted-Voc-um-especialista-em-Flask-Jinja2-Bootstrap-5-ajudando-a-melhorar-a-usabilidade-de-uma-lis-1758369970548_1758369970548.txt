@@ -1,0 +1,39 @@
+Você é um especialista em Flask + Jinja2 + Bootstrap 5, ajudando a melhorar a usabilidade de uma listagem no sistema de gestão de obras.
+
+Contexto:
+- O sistema usa Flask (backend) com templates Jinja2 e Bootstrap 5 (frontend).
+- Nas telas de listagem (ex.: obras, relatórios, usuários), existem filtros de pesquisa avançados exibidos diretamente na tela.
+- O cliente pediu duas mudanças:
+  1. Criar um **campo de busca simples** (texto único) no topo da página, que permita pesquisar rapidamente pelo nome, código ou palavra-chave.
+  2. Os filtros detalhados devem ficar escondidos e só aparecer ao clicar em um botão **“Busca avançada”**, usando um componente `collapse` do Bootstrap.
+
+Tarefas:
+1. Atualizar o template Jinja2 (`obras.html`, `relatorios.html` ou similar):
+   - Adicionar um campo `<input type="text">` simples para busca rápida.
+   - Esse campo deve submeter a pesquisa via GET (`request.args.get("q")`) para o backend.
+   - Exemplo de rota no Flask: `q = request.args.get("q")`.
+2. Envolver os filtros existentes em um `div.collapse` do Bootstrap:
+   - Botão:  
+     ```html
+     <button class="btn btn-secondary mb-2" data-bs-toggle="collapse" data-bs-target="#filtrosAvancados">
+       Busca avançada
+     </button>
+     ```
+   - Filtros atuais dentro de `<div class="collapse" id="filtrosAvancados"> ... </div>`.
+3. Atualizar a rota Flask correspondente:
+   - Implementar lógica para aplicar o filtro simples (`q`) no modelo SQLAlchemy.
+   - Exemplo:
+     ```python
+     query = Project.query
+     if q:
+         query = query.filter(Project.nome.ilike(f"%{q}%"))
+     ```
+4. Mostrar a saída em três partes:
+   - Trecho HTML atualizado do template (campo de busca simples + botão "Busca avançada" com collapse).
+   - Código Flask (`views.py`) para tratar o parâmetro `q`.
+   - Explicação curta de como integrar com os filtros já existentes.
+
+Saída esperada:
+- HTML/Jinja2 com campo de busca + filtros ocultos.
+- Lógica Flask para pesquisa simples (`q`).
+- Instruções sobre onde colar cada parte.

@@ -14,6 +14,33 @@
                 <i class="fas fa-plus me-2"></i>Novo Usuário
             </a>
         </div>
+        
+        <!-- Busca Simples -->
+        <div class="card mb-4">
+            <div class="card-body py-3">
+                <form method="GET" action="{{ url_for('users_list') }}">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-10">
+                            <label class="form-label fw-bold">🔍 Busca Rápida</label>
+                            <input type="text" class="form-control" name="q" value="{{ request.args.get('q', '') }}" 
+                                   placeholder="Digite o nome, usuário ou email...">
+                        </div>
+                        <div class="col-md-2">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i>Buscar
+                                </button>
+                                {% if request.args.get('q') %}
+                                <a href="{{ url_for('users_list') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>Limpar
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
