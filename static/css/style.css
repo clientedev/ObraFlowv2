@@ -77,12 +77,12 @@ body {
         padding: 0;
         margin: 0;
     }
-    
+
     .container-fluid, .container {
         padding-left: 10px;
         padding-right: 10px;
     }
-    
+
     /* Improve touch targets */
     .btn {
         min-height: 44px;
@@ -90,59 +90,59 @@ body {
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
     }
-    
+
     /* Optimize forms for mobile */
     .form-control {
         font-size: 16px; /* Prevents zoom on iOS */
         padding: 12px;
         border-radius: 8px;
     }
-    
+
     /* Card spacing for mobile */
     .card {
         margin-bottom: 15px;
     }
-    
+
     /* Table responsiveness */
     .table-responsive {
         font-size: 14px;
     }
-    
+
     /* Mobile-first projects list layout */
     .mobile-projects-list {
         overflow-x: hidden !important;
         width: 100%;
     }
-    
+
     .project-card {
         width: 100%;
         max-width: 100%;
         margin-bottom: 8px !important;
     }
-    
+
     .project-card .card {
         border-radius: 8px;
         border: 1px solid #e9ecef;
         transition: box-shadow 0.15s ease-in-out;
     }
-    
+
     .project-card .card:hover {
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
     }
-    
+
     /* Ensure no horizontal scroll on cards */
     .project-card .card-body {
         padding: 12px !important;
         word-wrap: break-word;
         overflow-wrap: break-word;
     }
-    
+
     .project-card .col-8,
     .project-card .col-4 {
         padding-left: 8px;
         padding-right: 8px;
     }
-    
+
     /* Better button text sizing for mobile */
     .project-card .btn {
         font-size: 0.8rem !important;
@@ -151,28 +151,28 @@ body {
         padding: 6px 12px !important;
         line-height: 1.2;
     }
-    
+
     .project-card .btn i {
         font-size: 0.75rem;
     }
-    
+
     /* Navigation improvements for mobile */
     .navbar-nav {
         flex-direction: column;
         width: 100%;
     }
-    
+
     .navbar-nav .nav-item {
         width: 100%;
         text-align: center;
         border-bottom: 1px solid rgba(255,255,255,0.1);
     }
-    
+
     .navbar-nav .nav-link {
         padding: 15px 20px;
         font-size: 16px;
     }
-    
+
     /* Photo editor mobile optimizations */
     #photoCanvas {
         width: 100%;
@@ -180,7 +180,7 @@ body {
         max-height: 50vh;
         touch-action: none;
     }
-    
+
     .tools-panel {
         position: sticky;
         top: 10px;
@@ -197,22 +197,22 @@ body {
     .container-fluid {
         padding: 5px;
     }
-    
+
     .card {
         margin-bottom: 10px;
         border-radius: 15px;
     }
-    
+
     .btn-group .btn {
         min-height: 48px;
         font-size: 14px;
     }
-    
+
     /* Improve form spacing on very small screens */
     .form-group, .mb-3 {
         margin-bottom: 20px;
     }
-    
+
     /* Make modals more mobile-friendly */
     .modal-dialog {
         margin: 10px;
@@ -241,7 +241,7 @@ body {
     .logo-text {
         font-size: 0.75rem; /* Mobile - 12px aproximadamente (reduzido -5px) */
     }
-    
+
     /* Reduce logo image size on mobile if needed */
     .navbar-brand img {
         height: 40px !important;
@@ -253,7 +253,7 @@ body {
     .logo-text {
         font-size: 0.65rem; /* Extra small screens - 10.4px aproximadamente (reduzido -5px) */
     }
-    
+
     .navbar-brand img {
         height: 38px !important;
     }
@@ -581,11 +581,11 @@ img {
         max-width: 100% !important;
         height: auto !important;
     }
-    
+
     .card-img-top {
         height: 160px !important;
     }
-    
+
     .photo-container img,
     .express-photo-container img,
     .photo-item img,
@@ -593,7 +593,7 @@ img {
     .photo-preview img {
         max-height: 200px !important;
     }
-    
+
     .express-photos img,
     .relatorio-express img {
         max-height: 180px !important;
@@ -615,16 +615,16 @@ img {
     .navbar-brand {
         font-size: 1rem;
     }
-    
+
     .btn-group .btn {
         font-size: 0.875rem;
         padding: 0.375rem 0.5rem;
     }
-    
+
     .table-responsive {
         font-size: 0.875rem;
     }
-    
+
     .card-body {
         padding: 1rem;
     }
@@ -635,11 +635,11 @@ img {
         padding-left: 10px;
         padding-right: 10px;
     }
-    
+
     .btn {
         font-size: 0.875rem;
     }
-    
+
     .h1, h1 {
         font-size: 1.75rem;
     }
@@ -706,16 +706,16 @@ footer {
     .no-print {
         display: none !important;
     }
-    
+
     .card {
         box-shadow: none;
         border: 1px solid #dee2e6;
     }
-    
+
     .btn {
         display: none;
     }
-    
+
     .navbar {
         display: none;
     }
@@ -772,4 +772,86 @@ footer {
 .card-hover:hover {
     transform: translateY(-2px);
     box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12);
+}
+
+/* Mobile-First CTA Button Styles */
+.mobile-cta-card {
+    border: none;
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+}
+
+.mobile-cta-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
+}
+
+.mobile-touch-target {
+    min-height: 48px;
+    min-width: 120px;
+    font-size: 0.95rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    font-weight: 600;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.mobile-touch-target:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.mobile-touch-target:active {
+    transform: translateY(0);
+}
+
+/* Botões de navegação superior */
+.nav-buttons .btn {
+    border-radius: 10px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: none;
+}
+
+/* Botões de busca */
+.search-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.search-buttons .btn {
+    flex: 1;
+    border-radius: 8px;
+    font-weight: 600;
+    min-height: 44px;
+}
+
+/* Responsividade melhorada para CTAs */
+@media (max-width: 768px) {
+    .mobile-touch-target {
+        min-height: 52px;
+        font-size: 1rem;
+        padding: 14px 20px;
+    }
+
+    .search-buttons {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .nav-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 20px;
+    }
 }

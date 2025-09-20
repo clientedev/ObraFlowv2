@@ -35,7 +35,7 @@
                                  data-empresa="{{ relatorio.empresa_nome }}"
                                  data-autor="{{ relatorio.autor.nome_completo }}"
                                  data-search="{{ (relatorio.numero + ' ' + relatorio.empresa_nome)|lower }}">
-                                
+
                                 <div class="card border-0 shadow-sm h-100" style="background: #f8f9fa;">
                                     <div class="card-body p-3">
                                         <div class="row align-items-center">
@@ -45,19 +45,19 @@
                                                 <div class="fw-bold text-primary mb-1" style="font-size: 0.9rem;">
                                                     <i class="fas fa-bolt me-1"></i>{{ relatorio.numero }}
                                                 </div>
-                                                
+
                                                 <!-- Nome da empresa -->
                                                 <div class="fw-semibold text-dark mb-1" style="font-size: 0.95rem; line-height: 1.2;">
                                                     {{ relatorio.empresa_nome }}
                                                 </div>
-                                                
+
                                                 <!-- Responsável da empresa -->
                                                 {% if relatorio.empresa_responsavel %}
                                                 <div class="text-muted mb-1" style="font-size: 0.8rem;">
                                                     Responsável: {{ relatorio.empresa_responsavel }}
                                                 </div>
                                                 {% endif %}
-                                                
+
                                                 <!-- Informações adicionais -->
                                                 <div class="text-muted" style="font-size: 0.8rem;">
                                                     {% if relatorio.data_visita %}
@@ -66,13 +66,13 @@
                                                     {% if relatorio.data_visita and relatorio.created_at %} • {% endif %}
                                                     Criado: {{ relatorio.created_at.strftime('%d/%m/%Y') }}
                                                 </div>
-                                                
+
                                                 <!-- Autor -->
                                                 <div class="text-muted" style="font-size: 0.75rem;">
                                                     Por: {{ relatorio.autor.nome_completo }}
                                                 </div>
                                             </div>
-                                            
+
                                             <!-- Coluna lateral com status e ações -->
                                             <div class="col-4 text-end">
                                                 <!-- Status -->
@@ -89,7 +89,7 @@
                                                         <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ relatorio.status|title }}</span>
                                                     {% endif %}
                                                 </div>
-                                                
+
                                                 <!-- Ações -->
                                                 <div class="d-flex flex-column gap-1">
                                                     <!-- Botão Visualizar -->
@@ -98,7 +98,7 @@
                                                        title="Visualizar">
                                                         <i class="fas fa-eye me-1"></i>Ver
                                                     </a>
-                                                    
+
                                                     <!-- Botão Editar (apenas rascunhos) -->
                                                     {% if relatorio.status == 'rascunho' %}
                                                     <a href="{{ url_for('express_edit', id=relatorio.id) }}" 
@@ -107,7 +107,7 @@
                                                         <i class="fas fa-edit me-1"></i>Editar
                                                     </a>
                                                     {% endif %}
-                                                    
+
                                                     <!-- Botão PDF (apenas finalizados) -->
                                                     {% if relatorio.status == 'finalizado' %}
                                                     <a href="{{ url_for('express_pdf', id=relatorio.id) }}" 
@@ -116,7 +116,7 @@
                                                         <i class="fas fa-file-pdf me-1"></i>PDF
                                                     </a>
                                                     {% endif %}
-                                                    
+
                                                     <!-- Botão Excluir (apenas masters) -->
                                                     {% if current_user.is_master %}
                                                     <button onclick="confirmarExclusao({{ relatorio.id }}, '{{ relatorio.numero }}')" 

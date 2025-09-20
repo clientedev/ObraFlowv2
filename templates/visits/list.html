@@ -33,7 +33,7 @@
                         <div class="row g-3 align-items-end">
                             <div class="col-md-8">
                                 <label class="form-label fw-bold">🔍 Busca Rápida</label>
-                                <input type="text" class="form-control" name="q" value="{{ request.args.get('q', '') }}" 
+                                <input type="text" class="form-control" name="q" value="{{ request.args.get('q', '') }}"
                                        placeholder="Digite projeto, objetivo ou responsável..." style="min-height: 44px; font-size: 16px;">
                             </div>
                             <div class="col-md-4">
@@ -54,12 +54,12 @@
                         </div>
                     </form>
                 </div>
-                
+
                 <!-- Filtros Avançados (Colapsáveis) -->
                 <div class="collapse" id="filtrosAvancadosVisit">
                     <div class="card-body border-bottom">
                         <h6 class="mb-3"><i class="fas fa-filter me-2"></i>Filtros Avançados</h6>
-                        
+
                         <!-- Filtros Desktop -->
                         <div class="row g-3 d-none d-md-flex">
                             <div class="col-md-4">
@@ -86,25 +86,25 @@
                                 </select>
                             </div>
                         </div>
-                        
+
                         <!-- Filtros Mobile -->
                         <div class="d-md-none mb-3">
                             <label class="form-label small fw-bold d-block mb-2">Filtrar por Status:</label>
                             <div class="d-flex gap-2 overflow-x-auto pb-2" style="scrollbar-width: thin;">
                                 <input type="radio" class="btn-check" name="statusFilterMobile" id="filterAllMobile" autocomplete="off" checked>
                                 <label class="btn btn-outline-secondary flex-shrink-0" for="filterAllMobile" style="min-height: 44px; min-width: 80px;">Todas</label>
-                                
+
                                 <input type="radio" class="btn-check" name="statusFilterMobile" id="filterAgendadaMobile" autocomplete="off">
                                 <label class="btn btn-outline-warning flex-shrink-0" for="filterAgendadaMobile" style="min-height: 44px; min-width: 100px;">Agendadas</label>
-                                
+
                                 <input type="radio" class="btn-check" name="statusFilterMobile" id="filterRealizadaMobile" autocomplete="off">
                                 <label class="btn btn-outline-success flex-shrink-0" for="filterRealizadaMobile" style="min-height: 44px; min-width: 100px;">Realizadas</label>
-                                
+
                                 <input type="radio" class="btn-check" name="statusFilterMobile" id="filterCanceladaMobile" autocomplete="off">
                                 <label class="btn btn-outline-danger flex-shrink-0" for="filterCanceladaMobile" style="min-height: 44px; min-width: 110px;">Canceladas</label>
                             </div>
                         </div>
-                        
+
                         <div class="row mt-2">
                             <div class="col-12">
                                 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
@@ -132,12 +132,12 @@
                     <!-- Layout de cards mobile-first sem rolagem horizontal -->
                     <div class="mobile-visits-list" id="visitsTable">
                         {% for visit in visits %}
-                        <div class="visit-card mb-2" 
+                        <div class="visit-card mb-2"
                              data-status="{{ visit.status }}"
                              data-projeto="{{ visit.projeto.numero }} {{ visit.projeto.nome }}"
                              data-responsavel="{{ visit.responsavel.nome_completo }}"
                              data-search="{{ (visit.projeto.numero + ' ' + visit.projeto.nome + ' ' + (visit.objetivo or ''))|lower }}">
-                            
+
                             <div class="card border-0 shadow-sm h-100" style="background: #f8f9fa;">
                                 <div class="card-body p-3">
                                     <div class="row align-items-center">
@@ -147,36 +147,36 @@
                                             <div class="fw-bold text-primary mb-1" style="font-size: 0.9rem;">
                                                 <i class="fas fa-calendar-check me-1"></i>{{ visit.projeto.numero }}
                                             </div>
-                                            
+
                                             <!-- Nome do projeto -->
                                             <div class="fw-semibold text-dark mb-1" style="font-size: 0.95rem; line-height: 1.2;">
                                                 {{ visit.projeto.nome }}
                                             </div>
-                                            
+
                                             <!-- Datas -->
                                             <div class="text-muted mb-1" style="font-size: 0.8rem;">
                                                 <i class="fas fa-clock me-1"></i>Agendada: {{ visit.data_agendada.strftime('%d/%m/%Y às %H:%M') }}
                                             </div>
-                                            
+
                                             {% if visit.data_realizada %}
                                             <div class="text-success mb-1" style="font-size: 0.8rem;">
                                                 <i class="fas fa-check me-1"></i>Realizada: {{ visit.data_realizada.strftime('%d/%m/%Y às %H:%M') }}
                                             </div>
                                             {% endif %}
-                                            
+
                                             <!-- Objetivo (truncado) -->
                                             {% if visit.objetivo %}
                                             <div class="text-muted" style="font-size: 0.75rem;">
                                                 <i class="fas fa-target me-1"></i>{{ visit.objetivo[:50] }}{{ '...' if visit.objetivo|length > 50 else '' }}
                                             </div>
                                             {% endif %}
-                                            
+
                                             <!-- Responsável -->
                                             <div class="text-muted" style="font-size: 0.75rem;">
                                                 <i class="fas fa-user me-1"></i>{{ visit.responsavel.nome_completo }}
                                             </div>
                                         </div>
-                                        
+
                                         <!-- Coluna lateral com status e ações -->
                                         <div class="col-4 text-end">
                                             <!-- Status -->
@@ -191,46 +191,46 @@
                                                     <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ visit.status }}</span>
                                                 {% endif %}
                                             </div>
-                                            
+
                                             <!-- Localização -->
                                             {% if visit.latitude and visit.longitude %}
                                             <div class="mb-2">
-                                                <a href="https://www.google.com/maps?q={{ visit.latitude }},{{ visit.longitude }}" target="_blank" 
+                                                <a href="https://www.google.com/maps?q={{ visit.latitude }},{{ visit.longitude }}" target="_blank"
                                                    class="btn btn-sm btn-outline-info" title="Ver no mapa">
                                                     <i class="fas fa-map-marker-alt"></i>
                                                 </a>
                                             </div>
                                             {% endif %}
-                                            
+
                                             <!-- Ações -->
                                             <div class="d-flex flex-column gap-1">
                                                 <!-- Botão Realizar (apenas agendadas) -->
                                                 {% if visit.status == 'Agendada' %}
-                                                <a href="{{ url_for('visit_realize', visit_id=visit.id) }}" 
-                                                   class="btn btn-sm btn-success" 
+                                                <a href="{{ url_for('visit_realize', visit_id=visit.id) }}"
+                                                   class="btn btn-sm btn-success"
                                                    title="Realizar Visita">
                                                     <i class="fas fa-check me-1"></i>Realizar
                                                 </a>
                                                 {% endif %}
-                                                
+
                                                 <!-- Botão Comunicação -->
-                                                <a href="{{ url_for('visit_communication', visit_id=visit.id) }}" 
-                                                   class="btn btn-sm btn-primary" 
+                                                <a href="{{ url_for('visit_communication', visit_id=visit.id) }}"
+                                                   class="btn btn-sm btn-primary"
                                                    title="Comunicação">
                                                     <i class="fas fa-comments me-1"></i>Chat
                                                 </a>
-                                                
+
                                                 <div class="d-flex gap-1">
                                                     <!-- Botão Checklist -->
-                                                    <a href="{{ url_for('visit_checklist', visit_id=visit.id) }}" 
-                                                       class="btn btn-sm btn-outline-info flex-fill" 
+                                                    <a href="{{ url_for('visit_checklist', visit_id=visit.id) }}"
+                                                       class="btn btn-sm btn-outline-info flex-fill"
                                                        title="Ver Checklist">
                                                         <i class="fas fa-list-check"></i>
                                                     </a>
-                                                    
+
                                                     <!-- Botão Projeto -->
-                                                    <a href="{{ url_for('project_view', project_id=visit.projeto.id) }}" 
-                                                       class="btn btn-sm btn-outline-secondary flex-fill" 
+                                                    <a href="{{ url_for('project_view', project_id=visit.projeto.id) }}"
+                                                       class="btn btn-sm btn-outline-secondary flex-fill"
                                                        title="Ver Projeto">
                                                         <i class="fas fa-building"></i>
                                                     </a>
@@ -265,31 +265,31 @@
 document.addEventListener('DOMContentLoaded', function() {
     const table = document.getElementById('visitsTable');
     if (!table) return;
-    
+
     const rows = table.querySelectorAll('tbody tr');
-    
+
     const visitCards = table.querySelectorAll('.visit-card');
     console.log('Visitas: encontrados', visitCards.length, 'cards');
-    
+
     // Preencher filtros dinamicamente
     fillVisitFilterOptions();
     setupVisitFilters();
-    
+
     function fillVisitFilterOptions() {
         const projetoSet = new Set();
         const responsavelSet = new Set();
-        
+
         visitCards.forEach(card => {
             const projeto = card.getAttribute('data-projeto');
             const responsavel = card.getAttribute('data-responsavel');
-            
+
             if (projeto) projetoSet.add(projeto);
             if (responsavel) responsavelSet.add(responsavel);
         });
-        
+
         console.log('Projetos encontrados:', Array.from(projetoSet));
         console.log('Responsáveis encontrados:', Array.from(responsavelSet));
-        
+
         // Preencher select de projetos
         const projetoSelect = document.getElementById('filterProjetoVisit');
         if (projetoSelect) {
@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 projetoSelect.appendChild(option);
             });
         }
-        
+
         // Preencher select de responsáveis
         const responsavelSelect = document.getElementById('filterResponsavelVisit');
         if (responsavelSelect) {
@@ -312,20 +312,20 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    
+
     function setupVisitFilters() {
         // Filtros desktop
         const filterStatus = document.getElementById('filterStatusVisit');
         const filterProjeto = document.getElementById('filterProjetoVisit');
         const filterResponsavel = document.getElementById('filterResponsavelVisit');
         const searchInput = document.getElementById('searchVisit');
-        
+
         [filterStatus, filterProjeto, filterResponsavel].forEach(filter => {
             if (filter) filter.addEventListener('change', applyVisitFilters);
         });
-        
+
         if (searchInput) searchInput.addEventListener('input', applyVisitFilters);
-        
+
         // Filtros mobile (botões de status)
         const mobileButtons = document.querySelectorAll('input[name="statusFilterMobile"]');
         mobileButtons.forEach(button => {
@@ -341,26 +341,26 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     function applyVisitFilters() {
         const statusFilter = document.getElementById('filterStatusVisit')?.value || '';
         const projetoFilter = document.getElementById('filterProjetoVisit')?.value || '';
         const responsavelFilter = document.getElementById('filterResponsavelVisit')?.value || '';
         const searchText = (document.getElementById('searchVisit')?.value || '').toLowerCase();
-        
+
         let visibleCount = 0;
-        
+
         visitCards.forEach(card => {
             const status = card.getAttribute('data-status') || '';
             const projeto = card.getAttribute('data-projeto') || '';
             const responsavel = card.getAttribute('data-responsavel') || '';
             const searchData = card.getAttribute('data-search') || '';
-            
+
             const statusMatch = !statusFilter || status === statusFilter;
             const projetoMatch = !projetoFilter || projeto.includes(projetoFilter);
             const responsavelMatch = !responsavelFilter || responsavel === responsavelFilter;
             const searchMatch = !searchText || searchData.includes(searchText);
-            
+
             if (statusMatch && projetoMatch && responsavelMatch && searchMatch) {
                 card.style.display = '';
                 visibleCount++;
@@ -368,11 +368,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 card.style.display = 'none';
             }
         });
-        
+
         const countElement = document.getElementById('visitFilteredCount');
         if (countElement) countElement.textContent = visibleCount;
     }
-    
+
     // Expor função global para o botão de limpar
     window.clearVisitFilters = function() {
         // Limpar filtros desktop
@@ -381,15 +381,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const element = document.getElementById(id);
             if (element) element.value = '';
         });
-        
+
         // Limpar filtros mobile
         const allButton = document.getElementById('filterAllMobile');
         if (allButton) allButton.checked = true;
-        
+
         visitCards.forEach(card => {
             card.style.display = '';
         });
-        
+
         const countElement = document.getElementById('visitFilteredCount');
         if (countElement) countElement.textContent = visitCards.length;
     };
