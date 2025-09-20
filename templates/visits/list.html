@@ -27,55 +27,67 @@
     <div class="col-12">
         <div class="card">
             <div class="card-body py-3">
-                <!-- Campo de pesquisa principal - 100% em mobile -->
-                <form method="GET" action="{{ url_for('visits_list') }}">
-                    <div class="row g-2 mb-3">
-                        <div class="col-12">
-                            <label class="form-label small fw-bold">🔍 Busca Rápida:</label>
-                            <div class="d-flex gap-2">
-                                <input type="text" class="form-control" name="q" value="{{ request.args.get('q', '') }}" placeholder="Pesquisar por projeto, objetivo ou responsável..." style="min-height: 44px; font-size: 16px;">
-                                <button type="submit" class="btn btn-primary" style="min-height: 44px;">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                                {% if request.args.get('q') %}
-                                <a href="{{ url_for('visits_list') }}" class="btn btn-outline-secondary" style="min-height: 44px;">
-                                    <i class="fas fa-times"></i>
-                                </a>
-                                {% endif %}
+                <!-- Busca Simples -->
+                <div class="card-body border-bottom">
+                    <form method="GET" action="{{ url_for('visits_list') }}">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold">🔍 Busca Rápida</label>
+                                <input type="text" class="form-control" name="q" value="{{ request.args.get('q', '') }}" 
+                                       placeholder="Digite projeto, objetivo ou responsável..." style="min-height: 44px; font-size: 16px;">
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary" style="min-height: 44px;">
+                                        <i class="fas fa-search me-1"></i>Buscar
+                                    </button>
+                                    {% if request.args.get('q') %}
+                                    <a href="{{ url_for('visits_list') }}" class="btn btn-outline-secondary" style="min-height: 44px;">
+                                        <i class="fas fa-times me-1"></i>Limpar
+                                    </a>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#filtrosAvancadosVisit" style="min-height: 44px;">
+                                        <i class="fas fa-filter me-1"></i>Filtros Avançados
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </form>
-                
-                <!-- Filtros em linha para desktop, ocultos em mobile -->
-                <div class="row g-2 d-none d-md-flex">
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold">Status:</label>
-                        <select class="form-select form-select-sm" id="filterStatusVisit" style="min-height: 38px;">
-                            <option value="">Todos os Status</option>
-                            <option value="Agendada">Agendadas</option>
-                            <option value="Realizada">Realizadas</option>
-                            <option value="Cancelada">Canceladas</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold">Projeto:</label>
-                        <select class="form-select form-select-sm" id="filterProjetoVisit" style="min-height: 38px;">
-                            <option value="">Todos os Projetos</option>
-                            <!-- Será preenchido dinamicamente -->
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold">Responsável:</label>
-                        <select class="form-select form-select-sm" id="filterResponsavelVisit" style="min-height: 38px;">
-                            <option value="">Todos Responsáveis</option>
-                            <!-- Será preenchido dinamicamente -->
-                        </select>
-                    </div>
+                    </form>
                 </div>
-                <div class="row mt-2">
-                    <div class="col-12">
-                        <!-- Botões de status para mobile - responsivos com rolagem horizontal -->
+                
+                <!-- Filtros Avançados (Colapsáveis) -->
+                <div class="collapse" id="filtrosAvancadosVisit">
+                    <div class="card-body border-bottom">
+                        <h6 class="mb-3"><i class="fas fa-filter me-2"></i>Filtros Avançados</h6>
+                        
+                        <!-- Filtros Desktop -->
+                        <div class="row g-3 d-none d-md-flex">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Status:</label>
+                                <select class="form-select form-select-sm" id="filterStatusVisit" style="min-height: 38px;">
+                                    <option value="">Todos os Status</option>
+                                    <option value="Agendada">Agendadas</option>
+                                    <option value="Realizada">Realizadas</option>
+                                    <option value="Cancelada">Canceladas</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Projeto:</label>
+                                <select class="form-select form-select-sm" id="filterProjetoVisit" style="min-height: 38px;">
+                                    <option value="">Todos os Projetos</option>
+                                    <!-- Será preenchido dinamicamente -->
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Responsável:</label>
+                                <select class="form-select form-select-sm" id="filterResponsavelVisit" style="min-height: 38px;">
+                                    <option value="">Todos Responsáveis</option>
+                                    <!-- Será preenchido dinamicamente -->
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Filtros Mobile -->
                         <div class="d-md-none mb-3">
                             <label class="form-label small fw-bold d-block mb-2">Filtrar por Status:</label>
                             <div class="d-flex gap-2 overflow-x-auto pb-2" style="scrollbar-width: thin;">
@@ -93,13 +105,17 @@
                             </div>
                         </div>
                         
-                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
-                            <button type="button" class="btn btn-outline-secondary" onclick="clearVisitFilters()" style="min-height: 44px;">
-                                <i class="fas fa-times"></i> Limpar Filtros
-                            </button>
-                            <small class="text-muted">
-                                <span id="visitFilteredCount">{{ visits|length if visits else 0 }}</span> visita(s) encontrada(s)
-                            </small>
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="clearVisitFilters()" style="min-height: 44px;">
+                                        <i class="fas fa-times"></i> Limpar Filtros
+                                    </button>
+                                    <small class="text-muted">
+                                        <span id="visitFilteredCount">{{ visits|length if visits else 0 }}</span> visita(s) encontrada(s)
+                                    </small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
