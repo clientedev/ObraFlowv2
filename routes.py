@@ -2,7 +2,7 @@ import os
 import uuid
 from datetime import datetime, date, timedelta
 from urllib.parse import urlparse
-from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response
+from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response, session
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -58,6 +58,104 @@ def debug_routes():
             'status': 'error',
             'error': str(e),
             'timestamp': datetime.utcnow().isoformat()
+        }), 500
+
+@app.route('/debug/test-login')
+def debug_test_login():
+    """Rota temporária para fazer login de teste e reproduzir erro 500"""
+    from models import User
+    try:
+        # Fazer login com usuário teste
+        user = User.query.filter_by(username='teste').first()
+        if user:
+            login_result = login_user(user)
+            current_app.logger.info(f"🔓 DEBUG LOGIN: Usuário {user.username} logado - result: {login_result}")
+            current_app.logger.info(f"🔓 DEBUG: is_authenticated: {user.is_authenticated}")
+            current_app.logger.info(f"🔓 DEBUG: user active: {user.ativo}")
+            return jsonify({
+                'status': 'logged_in',
+                'user': user.username,
+                'is_authenticated': user.is_authenticated,
+                'login_result': login_result,
+                'user_active': user.ativo,
+                'redirect_to': url_for('reports')
+            })
+        else:
+            current_app.logger.error("❌ DEBUG LOGIN: Usuário teste não encontrado")
+            return jsonify({'error': 'Usuário teste não encontrado'}), 404
+    except Exception as e:
+        current_app.logger.error(f"❌ DEBUG LOGIN ERROR: {str(e)}")
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/debug/test-session')
+def debug_test_session():
+    """Teste completo de sessão e autenticação"""
+    from models import User
+    try:
+        # Verificar sessão atual
+        session_info = {
+            'has_session': 'user_id' in session,
+            'session_keys': list(session.keys()),
+            'current_user_authenticated': current_user.is_authenticated if current_user else False,
+            'current_user_id': current_user.get_id() if current_user.is_authenticated else None
+        }
+        
+        current_app.logger.info(f"🔍 DEBUG SESSION: {session_info}")
+        
+        # Fazer login
+        user = User.query.filter_by(username='teste').first()
+        if user:
+            login_result = login_user(user, remember=True)
+            current_app.logger.info(f"🔓 LOGIN ATTEMPT: {login_result}")
+            
+            # Verificar sessão após login
+            post_login_info = {
+                'login_result': login_result,
+                'has_session_after': 'user_id' in session,
+                'session_keys_after': list(session.keys()),
+                'current_user_authenticated_after': current_user.is_authenticated,
+                'current_user_id_after': current_user.get_id() if current_user.is_authenticated else None,
+                'user_active': user.ativo,
+                'session_cookie_name': current_app.session_cookie_name,
+                'session_id': session.get('_id', 'No _id in session')
+            }
+            
+            current_app.logger.info(f"✅ POST LOGIN: {post_login_info}")
+            
+            # Testar reports diretamente
+            try:
+                from models import Relatorio
+                query = Relatorio.query
+                relatorios = query.order_by(Relatorio.created_at.desc()).limit(5).all()
+                reports_test = {
+                    'can_query_reports': True,
+                    'reports_count': len(relatorios),
+                    'first_report': relatorios[0].numero if relatorios else None
+                }
+            except Exception as e:
+                reports_test = {
+                    'can_query_reports': False,
+                    'error': str(e)
+                }
+            
+            return jsonify({
+                'session_before': session_info,
+                'session_after': post_login_info,
+                'reports_test': reports_test
+            })
+        else:
+            return jsonify({'error': 'Usuario teste nao encontrado'}), 404
+            
+    except Exception as e:
+        current_app.logger.error(f"❌ DEBUG SESSION ERROR: {str(e)}")
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
         }), 500
 
 @app.route('/health/full')
