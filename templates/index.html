@@ -17,6 +17,33 @@
     </div>
 </div>
 
+<!-- Obras Próximas - Movido para o topo -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-map-marker-alt me-2"></i>Obras Próximas</h5>
+                <button class="btn btn-sm btn-primary" onclick="getCurrentLocation()">
+                    <i class="fas fa-crosshairs me-1"></i>Atualizar Localização
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="locationStatus" class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Clique em "Atualizar Localização" para ver obras próximas ordenadas por distância
+                </div>
+                <div id="nearbyProjects">
+                    <div id="projectsList" class="list-group">
+                        <div class="text-center text-muted p-3">
+                            <i class="fas fa-map-marker-alt"></i><br>
+                            Capture sua localização para ver obras próximas
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Statistics Cards -->
 <div class="row mb-4">
     <div class="col-md-3">
@@ -77,33 +104,6 @@
                     </div>
                     <div class="text-info-emphasis">
                         <i class="fas fa-file-alt fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Nearby Projects List -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5><i class="fas fa-map-marker-alt me-2"></i>Obras Próximas</h5>
-                <button class="btn btn-sm btn-primary" onclick="getCurrentLocation()">
-                    <i class="fas fa-crosshairs me-1"></i>Atualizar Localização
-                </button>
-            </div>
-            <div class="card-body">
-                <div id="locationStatus" class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> Clique em "Atualizar Localização" para ver obras próximas ordenadas por distância
-                </div>
-                <div id="nearbyProjects">
-                    <div id="projectsList" class="list-group">
-                        <div class="text-center text-muted p-3">
-                            <i class="fas fa-map-marker-alt"></i><br>
-                            Capture sua localização para ver obras próximas
-                        </div>
                     </div>
                 </div>
             </div>
