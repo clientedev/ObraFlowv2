@@ -465,7 +465,7 @@ def projects_list():
 # Reports routes - Versão robusta para Railway + Replit
 @app.route('/reports')
 def reports():
-    """Listar relatórios de forma simples e robusta - VERSÃO COMPLETA CORRIGIDA"""
+    """Listar relatórios de forma simples e robusta - VERSÃO CORRIGIDA COM ROLLBACK"""
     try:
         # Verificação de autenticação manual mais robusta
         if not current_user or not current_user.is_authenticated:
@@ -480,7 +480,13 @@ def reports():
         from models import Relatorio
         from sqlalchemy import or_
         
-        # Query básica com eager loading das relações
+        # Forçar rollback da transação em caso de erro anterior
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        
+        # Query básica
         query = Relatorio.query
         
         # Busca simples se fornecida
@@ -493,8 +499,9 @@ def reports():
             )
             current_app.logger.info(f"🔍 /reports: Busca por '{q}'")
         
-        # Paginação com tratamento de erro
+        # Paginação com tratamento de erro e fallback
         try:
+            # Tentar ordenação apenas por created_at para evitar problemas com updated_at
             relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
                 page=page, 
                 per_page=10, 
@@ -502,8 +509,24 @@ def reports():
             )
         except Exception as paginate_error:
             current_app.logger.error(f"❌ Erro na paginação: {str(paginate_error)}")
+            
+            # Forçar rollback da transação
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            
             # Fallback para query simples sem paginação
-            relatorios_list = query.order_by(Relatorio.created_at.desc()).limit(10).all()
+            try:
+                relatorios_list = query.order_by(Relatorio.created_at.desc()).limit(10).all()
+            except Exception as fallback_error:
+                current_app.logger.error(f"❌ Erro no fallback: {str(fallback_error)}")
+                # Se ainda der erro, tentar query mais simples
+                try:
+                    db.session.rollback()
+                    relatorios_list = Relatorio.query.limit(10).all()
+                except Exception:
+                    relatorios_list = []
             
             # Criar objeto de paginação manual
             class ManualPagination:
@@ -540,6 +563,12 @@ def reports():
         error_trace = traceback.format_exc()
         current_app.logger.error(f"❌ ERRO COMPLETO /reports: {str(e)}")
         current_app.logger.error(f"❌ TRACEBACK COMPLETO: {error_trace}")
+        
+        # Forçar rollback da transação
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
         
         # Se for problema de autenticação, redirecionar para login
         if "authentication" in str(e).lower() or "login" in str(e).lower():
