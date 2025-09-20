@@ -1,0 +1,47 @@
+Você é um especialista em Flask + SQLAlchemy + PostgreSQL (Railway) + JavaScript, ajudando a corrigir um problema crítico no sistema de relatórios.
+
+Contexto:
+- O sistema usa Flask no backend, SQLAlchemy (com PostgreSQL no Railway), templates Jinja2 e JavaScript no frontend.
+- Atualmente, quando o usuário está preenchendo um relatório e sai/volta, os dados são perdidos porque só são salvos no "Salvar/Finalizar".
+- O cliente pediu que relatórios tenham:
+  1. **Auto save** durante o preenchimento (sem precisar clicar manualmente).
+  2. Um status intermediário chamado **"preenchimento"**, para diferenciar relatórios em andamento dos finalizados.
+
+Tarefas:
+1. Banco de dados:
+   - No modelo `Report`, garantir que exista um campo `status` (`String` ou `Enum`).
+   - Valores possíveis: `"preenchimento"`, `"finalizado"`, `"revisao"`, etc.
+   - Relatórios novos começam em `"preenchimento"`.
+2. Backend Flask:
+   - Criar uma rota API (`/reports/autosave/<id>`) que receba via AJAX os dados parciais do formulário e atualize no banco.
+   - Essa rota deve atualizar apenas campos já preenchidos, mantendo o `status="preenchimento"`.
+   - Exemplo:
+     ```python
+     @app.route("/reports/autosave/<int:report_id>", methods=["POST"])
+     @login_required
+     def autosave_report(report_id):
+         report = Report.query.get_or_404(report_id)
+         data = request.json
+         for key, value in data.items():
+             setattr(report, key, value)
+         report.status = "preenchimento"
+         db.session.commit()
+         return jsonify({"success": True})
+     ```
+3. Frontend (JavaScript):
+   - Capturar alterações no formulário (`input`, `textarea`, `select`) e enviar via `fetch` ou `axios` para `/reports/autosave/<id>`.
+   - Implementar auto save periódico (ex.: a cada 10 segundos, enviar dados do formulário).
+   - Mostrar feedback visual discreto: “Salvando...” → “Salvo automaticamente”.
+4. Templates Jinja2:
+   - Quando o relatório estiver em status `"preenchimento"`, exibir rótulo **"Em preenchimento"** ao lado do título.
+   - Usuário pode depois finalizar → muda para `"finalizado"`.
+5. Mostrar a saída final em três partes:
+   - Código SQLAlchemy atualizado (`models.py`).
+   - Rota Flask `/reports/autosave/<id>` no `views.py`.
+   - Código JavaScript para auto save + feedback.
+
+Saída esperada:
+- Código Python (modelo + rota Flask).
+- Código JavaScript para auto save.
+- Exemplo de template mostrando o status "Em preenchimento".
+- Explicação curta de como isso evita perda de dados.
