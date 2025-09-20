@@ -64,11 +64,11 @@ def api_legendas():
     try:
         current_app.logger.info("📋 API LEGENDAS: Buscando categoria='all'")
         
-        # Buscar todas as legendas ativas do PostgreSQL
+        # Buscar todas as legendas ativas do PostgreSQL (sem numero_ordem)
         legendas_query = LegendaPredefinida.query.filter_by(ativo=True).order_by(
             LegendaPredefinida.categoria.asc(),
-            LegendaPredefinida.numero_ordem.asc(),
-            LegendaPredefinida.texto.asc()
+            LegendaPredefinida.texto.asc(),
+            LegendaPredefinida.created_at.desc()
         ).all()
         
         # Converter para JSON
@@ -78,7 +78,6 @@ def api_legendas():
                 'id': legenda.id,
                 'texto': legenda.texto,
                 'categoria': legenda.categoria,
-                'numero_ordem': legenda.numero_ordem,
                 'ativo': legenda.ativo
             })
         
@@ -3342,19 +3341,13 @@ def admin_legendas():
             search_term = f"%{q.strip()}%"
             query = query.filter(LegendaPredefinida.texto.ilike(search_term))
         
-        # Ordenação otimizada para Railway PostgreSQL
+        # Ordenação segura sem numero_ordem (coluna pode não existir)
         try:
-            if db.engine.dialect.name == 'postgresql':
-                legendas = query.order_by(
-                    LegendaPredefinida.numero_ordem.asc().nullslast(),
-                    LegendaPredefinida.categoria.asc(),
-                    LegendaPredefinida.created_at.desc()
-                ).all()
-            else:
-                legendas = query.order_by(
-                    LegendaPredefinida.categoria.asc(),
-                    LegendaPredefinida.created_at.desc()
-                ).all()
+            legendas = query.order_by(
+                LegendaPredefinida.categoria.asc(),
+                LegendaPredefinida.texto.asc(),
+                LegendaPredefinida.created_at.desc()
+            ).all()
         except Exception as query_error:
             current_app.logger.error(f"❌ Erro na query de legendas: {query_error}")
             # Fallback: query mais simples
