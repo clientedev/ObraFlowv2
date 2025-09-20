@@ -120,8 +120,8 @@ def debug_test_session():
                 'current_user_authenticated_after': current_user.is_authenticated,
                 'current_user_id_after': current_user.get_id() if current_user.is_authenticated else None,
                 'user_active': user.ativo,
-                'session_cookie_name': current_app.session_cookie_name,
-                'session_id': session.get('_id', 'No _id in session')
+                'session_cookie_name': app.config.get('SESSION_COOKIE_NAME', 'session'),
+                'session_permanent': app.config.get('PERMANENT_SESSION_LIFETIME', 'Not set')
             }
             
             current_app.logger.info(f"✅ POST LOGIN: {post_login_info}")
@@ -598,56 +598,97 @@ def projects_list():
 
 # Reports routes - Versão robusta para Railway + Replit
 @app.route('/reports')
-@login_required
 def reports():
-    """Listar relatórios de forma simples e robusta"""
+    """Listar relatórios de forma simples e robusta - VERSÃO COMPLETA CORRIGIDA"""
     try:
+        # Verificação de autenticação manual mais robusta
+        if not current_user or not current_user.is_authenticated:
+            current_app.logger.warning("⚠️ /reports: Usuário não autenticado, redirecionando para login")
+            return redirect(url_for('login', next=request.url))
+        
+        current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
+        
         page = request.args.get('page', 1, type=int)
         q = request.args.get('q', '').strip()
         
-        # Query básica com join eager loading para evitar problemas de lazy loading
+        from models import Relatorio
+        from sqlalchemy import or_
+        
+        # Query básica com eager loading das relações
         query = Relatorio.query
         
         # Busca simples se fornecida
         if q:
-            from sqlalchemy import or_
             query = query.filter(
                 or_(
                     Relatorio.numero.ilike(f'%{q}%'),
                     Relatorio.titulo.ilike(f'%{q}%')
                 )
             )
+            current_app.logger.info(f"🔍 /reports: Busca por '{q}'")
         
-        # Paginação
-        relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
-            page=page, 
-            per_page=10, 
-            error_out=False
-        )
+        # Paginação com tratamento de erro
+        try:
+            relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
+                page=page, 
+                per_page=10, 
+                error_out=False
+            )
+        except Exception as paginate_error:
+            current_app.logger.error(f"❌ Erro na paginação: {str(paginate_error)}")
+            # Fallback para query simples sem paginação
+            relatorios_list = query.order_by(Relatorio.created_at.desc()).limit(10).all()
+            
+            # Criar objeto de paginação manual
+            class ManualPagination:
+                def __init__(self, items):
+                    self.items = items
+                    self.total = len(items)
+                    self.page = 1
+                    self.pages = 1
+                    self.has_prev = False
+                    self.has_next = False
+                    self.per_page = 10
+                
+                def iter_pages(self):
+                    return [1]
+            
+            relatorios = ManualPagination(relatorios_list)
         
-        current_app.logger.info(f"✅ /reports: {len(relatorios.items) if relatorios.items else 0} relatórios carregados")
-        return render_template('reports/list.html', relatorios=relatorios)
+        current_app.logger.info(f"✅ /reports: {len(relatorios.items) if relatorios.items else 0} relatórios carregados para {current_user.username}")
+        
+        # Verificar se o template existe
+        try:
+            return render_template('reports/list.html', relatorios=relatorios)
+        except Exception as template_error:
+            current_app.logger.error(f"❌ Erro no template: {str(template_error)}")
+            return jsonify({
+                'error': 'Erro no template',
+                'details': str(template_error),
+                'reports_count': len(relatorios.items) if relatorios.items else 0,
+                'user': current_user.username
+            }), 500
         
     except Exception as e:
         import traceback
-        current_app.logger.error(f"❌ ERRO /reports: {str(e)}")
-        current_app.logger.error(f"❌ TRACEBACK: {traceback.format_exc()}")
-        print(f"❌ ERRO /reports: {str(e)}")
-        print(f"❌ TRACEBACK: {traceback.format_exc()}")
-        flash('Erro ao carregar relatórios. Tente novamente.', 'error')
+        error_trace = traceback.format_exc()
+        current_app.logger.error(f"❌ ERRO COMPLETO /reports: {str(e)}")
+        current_app.logger.error(f"❌ TRACEBACK COMPLETO: {error_trace}")
         
-        # Criar objeto vazio para evitar erro no template
-        class EmptyPagination:
-            items = []
-            total = 0
-            page = 1
-            pages = 0
-            has_prev = False
-            has_next = False
-            def iter_pages(self):
-                return []
+        # Se for problema de autenticação, redirecionar para login
+        if "authentication" in str(e).lower() or "login" in str(e).lower():
+            current_app.logger.warning("🔄 Redirecionando para login por erro de autenticação")
+            return redirect(url_for('login'))
         
-        return render_template('reports/list.html', relatorios=EmptyPagination())
+        # Para outros erros, mostrar página de erro com informações
+        return jsonify({
+            'error': 'Erro interno no servidor',
+            'message': 'Falha ao carregar lista de relatórios',
+            'details': str(e),
+            'authenticated': current_user.is_authenticated if current_user else False,
+            'traceback': error_trace
+        }), 500
+
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
 @login_required
