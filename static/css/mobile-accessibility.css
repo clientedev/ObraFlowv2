@@ -40,17 +40,18 @@
     transition: border-color 0.1s ease !important;
 }
 
-/* Tabelas - SCROLL horizontal SEM conflitos */
+/* Tabelas - SCROLL horizontal controlado APENAS dentro do container */
 .table-responsive {
     -webkit-user-select: none !important;
     user-select: none !important;
     -webkit-touch-callout: none !important;
     
-    /* FORÇA scroll horizontal */
+    /* FORÇA scroll horizontal APENAS dentro do container table-responsive */
     overflow-x: auto !important;
     overflow-y: visible !important;
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-x pan-y !important;
+    max-width: 100% !important;
     
     /* SEM ANIMAÇÕES NA TABELA */
     -webkit-transition: none !important;
@@ -92,7 +93,12 @@
         transform: none !important;
     }
     
-    /* FORÇA estabilidade total */
+    /* FORÇA estabilidade total e previne overflow horizontal */
+    body, html {
+        overflow-x: hidden !important;
+        max-width: 100% !important;
+    }
+    
     .card:hover, .btn:hover, .table-responsive:hover {
         -webkit-transform: none !important;
         transform: none !important;
