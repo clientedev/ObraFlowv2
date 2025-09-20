@@ -65,6 +65,24 @@ body {
         font-size: 14px;
     }
     
+    /* Improved table without horizontal scroll */
+    .table-responsive-stack {
+        overflow-x: hidden !important;
+        overflow-y: visible;
+    }
+    
+    .table-responsive-stack table {
+        table-layout: fixed;
+        width: 100%;
+        word-wrap: break-word;
+    }
+    
+    .table-responsive-stack td,
+    .table-responsive-stack th {
+        white-space: normal !important;
+        word-break: break-word;
+    }
+    
     /* Navigation improvements for mobile */
     .navbar-nav {
         flex-direction: column;
