@@ -1,0 +1,109 @@
+Você é um especialista em Flask + SQLAlchemy + PostgreSQL (Railway) + Jinja2 + JavaScript.  
+Preciso que você implemente corretamente as melhorias abaixo no sistema de relatórios de obras.  
+⚠️ IMPORTANTE: todo o desenvolvimento deve ser **MOBILE-FIRST**, com foco em **facilidade de uso em celulares**, pois o sistema é utilizado principalmente em campo.  
+A interface deve ser otimizada para telas pequenas, com botões grandes, áreas de toque de no mínimo 48px, navegação fluida e responsiva.  
+
+---
+
+### Contexto atual
+- O sistema usa Flask (backend) + PostgreSQL (Railway).
+- Frontend com Bootstrap + Jinja2 e JavaScript vanilla.
+- Existe uma seção "Fotos" em cada relatório, mas o fluxo atual é ruim: o usuário tira foto, precisa rolar a tela para baixo para colocar legenda, depois rolar para cima para tirar outra.  
+- Campo de legenda está escondido no botão "Editar", o que atrapalha.
+- Já existe sistema de legendas pré-definidas, hoje restrito a desenvolvedor. Preciso mover para **administrador** com tela própria no painel admin.
+
+---
+
+### Itens a implementar
+
+#### Item 18 – Fotos mais intuitivas (MOBILE-FIRST)
+1. Após o usuário tirar ou selecionar uma foto:
+   - Mostrar imediatamente a **foto tirada** em um card responsivo.
+   - Abaixo da foto devem aparecer, em ordem:
+     * Campo de legenda manual (input grande e fácil de digitar em celular).
+     * Campo de seleção de legenda pré-definida (select com opções filtráveis).
+   - Usuário pode alterar legenda a qualquer momento.
+2. Os botões **“Câmera”** e **“Galeria”** devem estar **fixos no topo da seção de fotos**, sempre visíveis, com área de toque ampla (48px+) para facilitar no mobile.
+3. Interface deve ser 100% responsiva:
+   - Layout em **grid de uma coluna** para celulares (cada foto ocupa a largura total).
+   - Ajustar para múltiplas colunas em telas maiores.
+4. Legenda deve ser salva imediatamente via AJAX ao digitar ou selecionar.
+
+#### Item 19 – Legendas obrigatórias (MOBILE-FIRST)
+1. Campo de legenda **sempre visível embaixo da foto** (nunca escondido no botão editar).
+2. Ordem no card:
+   - Foto
+   - Legenda manual
+   - Legenda pré-definida
+3. Usuário só pode avançar/finalizar relatório se pelo menos um campo estiver preenchido (manual ou pré-definida).
+4. Backend Flask deve validar isso também (segurança e consistência).
+5. No mobile, inputs devem ter padding suficiente e fonte legível para digitação fácil.
+
+#### Item 20 – Administração de legendas pré-definidas (ADMIN, MOBILE-FIRST)
+1. Mover tela de gerenciamento de legendas para **administrador**:
+   - Apenas administradores têm acesso (rotas com `@admin_required`).
+   - CRUD completo de legendas pré-definidas.
+2. Campos de legenda:
+   - `texto`
+   - `categoria` (Geral, Estrutural, Elétrica, etc.)
+   - `numero_ordem` (apenas para organização, não aparece no PDF)
+   - timestamps (`criado_em`, `atualizado_em`)
+3. Funcionalidades na tela admin:
+   - Adicionar, editar e excluir legendas.
+   - Campo de busca para localizar legendas rapidamente.
+   - Interface mobile-first: botões grandes, inputs em tela cheia, listagem em cards responsivos.
+4. Integração com editor de fotos:
+   - Campo “Legenda pré-definida” deve carregar opções da API `/api/legendas`.
+   - Opções filtráveis por categoria.
+   - Se legenda foi excluída depois, fotos antigas devem continuar exibindo o texto salvo.
+
+---
+
+### Tarefas técnicas
+
+1. **Backend Flask**
+   - Ajustar modelo `LegendaPredefinida` (se não existir, criar).
+   - Criar rotas admin `/admin/legendas/` (CRUD).
+   - Criar endpoint `/api/legendas` que retorna JSON filtrado por categoria.
+   - Ajustar rota de salvamento de fotos para validar obrigatoriedade de legenda.
+
+2. **Frontend (Jinja2 + JavaScript)**
+   - Criar card de foto responsivo:
+     ```html
+     <div class="card mb-3">
+       <img src="{{ foto.url }}" class="card-img-top img-fluid" alt="Foto">
+       <div class="card-body">
+         <input type="text" class="form-control mb-2 legenda-manual" placeholder="Digite legenda manual">
+         <select class="form-select legenda-predefinida">
+           <option value="">Selecione legenda pré-definida</option>
+         </select>
+       </div>
+     </div>
+     ```
+   - Botões fixos de **Câmera** e **Galeria** no topo da seção, estilo mobile.
+   - JS para:
+     * Salvar legendas via AJAX em tempo real.
+     * Validar que pelo menos uma legenda foi preenchida antes de salvar/avançar.
+
+3. **Validação**
+   - Frontend: bloquear botão de avançar se nenhum campo preenchido.
+   - Backend: validar novamente na submissão do relatório.
+
+4. **UX Mobile**
+   - Inputs com fonte ≥ 16px.
+   - Botões grandes com ícones (ex.: FontAwesome: 📷 para câmera, 🖼️ para galeria).
+   - Feedback visual: “Legenda salva ✓” ou “Erro ❌”.
+
+---
+
+### Saída esperada
+- Código Python para rotas admin + endpoint `/api/legendas`.
+- Código Flask ajustado para salvar fotos com legenda obrigatória.
+- Template Jinja2 atualizado para seção de fotos responsiva, mobile-first.
+- JS com auto-save de legendas e botões fixos sempre visíveis.
+- Validações frontend + backend funcionando.
+- CRUD mobile-first de legendas padrão no painel admin.
+
+---
+
+⚠️ Reforce: toda a interface deve ser **pensada para celular**, com **botões grandes, inputs claros e interação mínima de rolagem**.
