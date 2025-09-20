@@ -9,7 +9,7 @@ deploymentTarget = "autoscale"
 run = ["python", "replit_main.py"]
 
 [workflows]
-runButton = "Flask Server Definitivo"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"
@@ -29,7 +29,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python replit_main.py"
+args = "python -c \"from app import app; app.run(host='0.0.0.0', port=5000, debug=True)\""
 waitForPort = 5000
 
 [[workflows.workflow]]
@@ -53,14 +53,6 @@ args = "python main.py"
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 39453
-externalPort = 3001
-
-[[ports]]
-localPort = 40127
-externalPort = 3000
 
 [[ports]]
 localPort = 43681
