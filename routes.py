@@ -3404,7 +3404,12 @@ def api_legendas():
             if categoria and categoria != 'all':
                 query = query.filter_by(categoria=categoria)
             
-            legendas = query.order_by(LegendaPredefinida.categoria, LegendaPredefinida.texto).all()
+            # Ordenação conforme especificação: numero_ordem > categoria > created_at
+            legendas = query.order_by(
+                LegendaPredefinida.numero_ordem.asc().nullslast(),
+                LegendaPredefinida.categoria.asc(),
+                LegendaPredefinida.created_at.desc()
+            ).all()
         except Exception as db_error:
             print(f"ERRO BD: {db_error}")
             return jsonify({

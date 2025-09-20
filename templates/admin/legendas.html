@@ -16,6 +16,40 @@
                 </a>
             </div>
 
+            <!-- Campo de Busca Mobile-First -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <form method="GET" class="d-flex gap-2">
+                                <div class="flex-grow-1">
+                                    <input type="text" name="q" value="{{ q or '' }}" 
+                                           class="form-control form-control-lg" 
+                                           placeholder="🔍 Buscar legendas por texto..."
+                                           style="min-height: 48px; font-size: 16px;">
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-lg" style="min-height: 48px; min-width: 120px;">
+                                    <i class="fas fa-search"></i> Buscar
+                                </button>
+                                {% if q %}
+                                <a href="{{ url_for('admin_legendas') }}" class="btn btn-outline-secondary btn-lg" style="min-height: 48px;">
+                                    <i class="fas fa-times"></i> Limpar
+                                </a>
+                                {% endif %}
+                            </form>
+                            {% if q %}
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    Mostrando resultados para: <strong>"{{ q }}"</strong> 
+                                    ({{ legendas|length }} encontrada{{ 's' if legendas|length != 1 else '' }})
+                                </small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Estatísticas -->
             <div class="row mb-4">
                 <div class="col-md-3">
@@ -105,6 +139,7 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Legenda</th>
+                                        <th width="80">Ordem</th>
                                         <th width="120">Status</th>
                                         <th width="150">Criado em</th>
                                         <th width="120">Ações</th>
@@ -117,6 +152,13 @@
                                             <div class="text-wrap" style="max-width: 400px;">
                                                 {{ legenda.texto }}
                                             </div>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if legenda.numero_ordem %}
+                                                <span class="badge bg-info">{{ legenda.numero_ordem }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             {% if legenda.ativo %}
