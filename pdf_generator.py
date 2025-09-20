@@ -198,8 +198,9 @@ class ReportPDFGenerator:
         # 2. ONLY FILLED REPORT DATA
         self._add_filled_report_info(story, relatorio)
         
-        # 3. CLEAN CHECKLIST - ONLY CHECKED ITEMS WITH OBSERVATIONS
-        self._add_clean_checklist(story, relatorio)
+        # 3. CHECKLIST REMOVED FROM PDF AS PER REQUIREMENT
+        # Checklist should not appear in PDF - only in web view
+        # self._add_clean_checklist(story, relatorio)
         
         # 4. PHOTOS IF ANY
         if fotos:
