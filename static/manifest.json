@@ -6,8 +6,8 @@
     "display": "standalone",
     "background_color": "#343a40",
     "theme_color": "#20c1e8",
-    "orientation": "portrait-primary",
-    "display_override": ["fullscreen", "standalone"],
+    "orientation": "any",
+    "display_override": ["window-controls-overlay", "standalone"],
     "scope": "/",
     "icons": [
         {

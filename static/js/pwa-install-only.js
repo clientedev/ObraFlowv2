@@ -21,7 +21,10 @@ class PWAInstaller {
             console.log('PWA: Install prompt disponível');
             e.preventDefault();
             this.deferredPrompt = e;
-            this.showInstallButton();
+            // Mostrar botão apenas se não estiver instalado
+            if (!this.isInstalled) {
+                this.showInstallButton();
+            }
         });
 
         // Escutar quando é instalado
@@ -47,10 +50,27 @@ class PWAInstaller {
         const isIOSStandalone = window.navigator.standalone === true;
         
         this.isInstalled = isStandalone || (isIOS && isIOSStandalone);
+        
+        if (this.isInstalled) {
+            console.log('✅ PWA: App detectado como instalado');
+        } else {
+            console.log('📱 PWA: App não instalado, aguardando prompt');
+        }
+        
+        return this.isInstalled;
     }
 
     showInstallButton() {
-        if (this.isInstalled) return;
+        if (this.isInstalled) {
+            console.log('PWA: App já instalado, não mostrando botão');
+            return;
+        }
+        
+        // Verificar se já temos o prompt disponível
+        if (!this.deferredPrompt) {
+            console.log('PWA: Prompt não disponível ainda');
+            return;
+        }
         
         // Remover botão existente
         const existingBtn = document.getElementById('pwa-install-btn');
@@ -138,12 +158,14 @@ class PWAInstaller {
     async installPWA() {
         if (!this.deferredPrompt) {
             console.log('❌ Prompt de instalação não disponível');
+            this.showManualInstructions();
             return;
         }
 
         try {
             // Mostrar prompt de instalação
-            this.deferredPrompt.prompt();
+            console.log('🚀 PWA: Mostrando prompt de instalação');
+            const promptResult = this.deferredPrompt.prompt();
             
             // Aguardar escolha do usuário
             const { outcome } = await this.deferredPrompt.userChoice;
@@ -153,15 +175,36 @@ class PWAInstaller {
             if (outcome === 'accepted') {
                 console.log('✅ PWA: Instalação aceita');
                 this.hideInstallButton();
+                this.showInstalledMessage();
             } else {
                 console.log('❌ PWA: Instalação recusada');
+                this.hideInstallButton();
             }
             
+            // Limpar o prompt
             this.deferredPrompt = null;
             
         } catch (error) {
             console.error('Erro na instalação PWA:', error);
+            this.showManualInstructions();
         }
+    }
+
+    showManualInstructions() {
+        console.log('📖 PWA: Mostrando instruções manuais');
+        const userAgent = navigator.userAgent.toLowerCase();
+        
+        let message = 'Para instalar o app:\n\n';
+        
+        if (userAgent.includes('android')) {
+            message += '1. Toque no menu do Chrome (⋮)\n2. Selecione "Instalar app"\n3. Confirme a instalação';
+        } else if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+            message += '1. Toque no botão de compartilhar (📤)\n2. Selecione "Adicionar à Tela de Início"\n3. Toque em "Adicionar"';
+        } else {
+            message += '1. Procure pelo ícone de instalação na barra de endereços\n2. Clique em "Instalar ELP Relatórios"\n3. Confirme a instalação';
+        }
+        
+        alert(message);
     }
 
     hideInstallButton() {
@@ -250,6 +293,17 @@ class PWAInstaller {
 document.addEventListener('DOMContentLoaded', function() {
     if ('serviceWorker' in navigator) {
         window.pwaInstaller = new PWAInstaller();
+        
+        // Timeout para mostrar botão se prompt não aparecer
+        setTimeout(() => {
+            if (window.pwaInstaller && !window.pwaInstaller.isInstalled && !window.pwaInstaller.deferredPrompt) {
+                console.log('⏰ PWA: Timeout - prompt não disponível, mas pode ser instalável');
+                // Ainda assim mostrar opções manuais
+                window.pwaInstaller.showInstallButton();
+            }
+        }, 3000);
+    } else {
+        console.log('❌ PWA: Service Workers não suportados');
     }
 });
 
