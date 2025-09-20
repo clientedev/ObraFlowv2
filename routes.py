@@ -81,9 +81,10 @@ import json
 # API para legendas pré-definidas (IMPLEMENTAÇÃO ÚNICA)
 @app.route('/api/legendas')
 def api_legendas():
-    """API para carregar legendas pré-definidas do PostgreSQL Railway - VERSÃO DEFINITIVA"""
+    """API para carregar legendas pré-definidas do PostgreSQL Railway - VERSÃO CORRIGIDA"""
     try:
-        current_app.logger.info("📋 API LEGENDAS: Iniciando busca")
+        categoria = request.args.get('categoria', 'all')
+        current_app.logger.info(f"📋 API LEGENDAS: Buscando categoria='{categoria}'")
         
         # Forçar rollback para evitar transações pendentes
         try:
@@ -91,10 +92,20 @@ def api_legendas():
         except Exception:
             pass
 
-        # Buscar legendas com ordenação APENAS pelo ID (mais confiável)
-        legendas_query = LegendaPredefinida.query.filter_by(ativo=True).order_by(LegendaPredefinida.id.asc()).all()
+        # Query básica sem usar numero_ordem (coluna não existe)
+        query = LegendaPredefinida.query.filter_by(ativo=True)
+        
+        # Filtrar por categoria se especificado
+        if categoria and categoria != 'all':
+            query = query.filter_by(categoria=categoria)
 
-        # Converter para JSON
+        # Buscar legendas com ordenação APENAS por campos que existem
+        legendas_query = query.order_by(
+            LegendaPredefinida.categoria.asc(),
+            LegendaPredefinida.id.asc()
+        ).all()
+
+        # Converter para JSON usando apenas campos que existem
         legendas_data = []
         for legenda in legendas_query:
             legendas_data.append({
@@ -104,14 +115,14 @@ def api_legendas():
                 'ativo': legenda.ativo
             })
 
-        current_app.logger.info(f"✅ API LEGENDAS: {len(legendas_data)} legendas carregadas com sucesso")
+        current_app.logger.info(f"✅ API LEGENDAS: {len(legendas_data)} legendas retornadas (categoria={categoria})")
 
         # Resposta JSON final
         response_data = {
             'success': True,
             'legendas': legendas_data,
             'total': len(legendas_data),
-            'fonte': 'postgresql_railway_definitivo',
+            'fonte': 'railway_postgresql',
             'timestamp': datetime.utcnow().isoformat()
         }
 
@@ -3370,17 +3381,11 @@ def admin_legendas():
             search_term = f"%{q.strip()}%"
             query = query.filter(LegendaPredefinida.texto.ilike(search_term))
 
-        # Ordenação segura sem numero_ordem (coluna pode não existir)
-        try:
-            legendas = query.order_by(
-                LegendaPredefinida.categoria.asc(),
-                LegendaPredefinida.texto.asc(),
-                LegendaPredefinida.created_at.desc()
-            ).all()
-        except Exception as query_error:
-            current_app.logger.error(f"❌ Erro na query de legendas: {query_error}")
-            # Fallback: query mais simples
-            legendas = LegendaPredefinida.query.filter_by(ativo=True).limit(100).all()
+        # Ordenação usando apenas campos que existem
+        legendas = query.order_by(
+            LegendaPredefinida.categoria.asc(),
+            LegendaPredefinida.id.asc()
+        ).all()
 
         current_app.logger.info(f"✅ Admin legendas: {len(legendas)} legendas carregadas")
 
@@ -3409,7 +3414,6 @@ def admin_legenda_nova():
             legenda = LegendaPredefinida()
             legenda.texto = form.texto.data
             legenda.categoria = form.categoria.data
-            legenda.numero_ordem = form.numero_ordem.data if hasattr(form, 'numero_ordem') else None
             legenda.ativo = form.ativo.data
             legenda.criado_por = current_user.id
 
@@ -3443,7 +3447,6 @@ def admin_legenda_editar(id):
         try:
             legenda.texto = form.texto.data
             legenda.categoria = form.categoria.data
-            legenda.numero_ordem = form.numero_ordem.data if hasattr(form, 'numero_ordem') else None
             legenda.ativo = form.ativo.data
 
             db.session.commit()
