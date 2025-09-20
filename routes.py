@@ -5160,47 +5160,5 @@ def project_checklist_delete_item(project_id, item_id):
         db.session.rollback()
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
 
-# Auto Save para Relatórios
-@app.route("/reports/autosave/<int:report_id>", methods=["POST"])
-@login_required
-@csrf.exempt
-def autosave_report(report_id):
-    """Auto save de dados parciais do relatório"""
-    try:
-        relatorio = Relatorio.query.get_or_404(report_id)
-        
-        # Verificar se o usuário pode editar este relatório
-        if relatorio.autor_id != current_user.id and not current_user.is_master:
-            return jsonify({"success": False, "error": "Sem permissão para editar este relatório"}), 403
-        
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "Dados não recebidos"}), 400
-        
-        # Campos permitidos para auto save
-        allowed_fields = ['titulo', 'conteudo', 'checklist_data', 'latitude', 'longitude']
-        
-        # Atualizar apenas campos válidos e não vazios
-        for key, value in data.items():
-            if key in allowed_fields and hasattr(relatorio, key):
-                if value is not None and value != '':
-                    setattr(relatorio, key, value)
-        
-        # Manter status como "preenchimento" durante auto save
-        relatorio.status = "preenchimento"
-        
-        db.session.commit()
-        
-        return jsonify({
-            "success": True,
-            "message": "Dados salvos automaticamente",
-            "timestamp": datetime.utcnow().isoformat()
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            "success": False, 
-            "error": f"Erro ao salvar: {str(e)}"
-        }), 500
+
 
