@@ -9,7 +9,7 @@ deploymentTarget = "autoscale"
 run = ["python", "replit_main.py"]
 
 [workflows]
-runButton = "Flask Server Fixed"
+runButton = "Flask Server Definitivo"
 
 [[workflows.workflow]]
 name = "Project"
@@ -34,6 +34,15 @@ waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Flask Server Fixed"
+author = 47827592
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+
+[[workflows.workflow]]
+name = "Flask Server Definitivo"
 author = 47827592
 mode = "sequential"
 

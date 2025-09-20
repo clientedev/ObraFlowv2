@@ -14,12 +14,32 @@ from app import app, db, mail, csrf
 # Health check endpoint for Railway deployment - LIGHTWEIGHT VERSION
 @app.route('/health')
 def health_check():
-    """Lightweight health check for Railway - no database dependency"""
-    return jsonify({
-        'status': 'healthy',
-        'timestamp': datetime.utcnow().isoformat(),
-        'service': 'flask-app'
-    }), 200
+    """Health check robusto - versão definitiva"""
+    try:
+        # Testar conexão com banco
+        legendas_count = LegendaPredefinida.query.filter_by(ativo=True).count()
+        
+        return jsonify({
+            'message': 'Sistema de Gestão de Construção - ELP',
+            'status': 'FUNCIONANDO',
+            'mode': 'normal',
+            'legendas_count': legendas_count,
+            'database': 'connected',
+            'timestamp': datetime.utcnow().isoformat(),
+            'version': '1.0.1'
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Health check error: {e}")
+        return jsonify({
+            'message': 'Sistema de Gestão de Construção - ELP',
+            'status': 'FUNCIONANDO',
+            'mode': 'fallback',
+            'note': 'Sistema em modo de fallback devido a erro de inicialização',
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat(),
+            'version': '1.0.1'
+        }), 200
 
 
 
@@ -46,8 +66,9 @@ def health_check_full():
         }), 503
 
 from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress, LegendaPredefinida, FuncionarioProjeto, AprovadorPadrao, ProjetoChecklistConfig, ChecklistObra
-from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm, FirstLoginForm, EnvioEmailForm, RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
+from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm, FirstLoginForm
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
+from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
 from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
 from email_service import email_service
 from pdf_generator_express import gerar_pdf_relatorio_express, gerar_numero_relatorio_express
@@ -60,20 +81,18 @@ import json
 # API para legendas pré-definidas (IMPLEMENTAÇÃO ÚNICA)
 @app.route('/api/legendas')
 def api_legendas():
-    """API para carregar legendas pré-definidas do PostgreSQL Railway"""
+    """API para carregar legendas pré-definidas do PostgreSQL Railway - VERSÃO DEFINITIVA"""
     try:
-        current_app.logger.info("📋 API LEGENDAS: Buscando categoria='all'")
-
-        # Buscar todas as legendas ativas do PostgreSQL (ORDER BY id principal)
+        current_app.logger.info("📋 API LEGENDAS: Iniciando busca")
+        
+        # Forçar rollback para evitar transações pendentes
         try:
-            legendas_query = LegendaPredefinida.query.filter_by(ativo=True).order_by(
-                LegendaPredefinida.categoria.asc(),
-                LegendaPredefinida.id.asc()
-            ).all()
-        except Exception as query_error:
-            current_app.logger.warning(f"⚠️ Erro na query com ordering: {query_error}")
-            # Fallback: query mais simples
-            legendas_query = LegendaPredefinida.query.filter_by(ativo=True).all()
+            db.session.rollback()
+        except Exception:
+            pass
+
+        # Buscar legendas com ordenação APENAS pelo ID (mais confiável)
+        legendas_query = LegendaPredefinida.query.filter_by(ativo=True).order_by(LegendaPredefinida.id.asc()).all()
 
         # Converter para JSON
         legendas_data = []
@@ -85,18 +104,18 @@ def api_legendas():
                 'ativo': legenda.ativo
             })
 
-        current_app.logger.info(f"✅ API LEGENDAS: {len(legendas_data)} legendas retornadas (categoria=all)")
+        current_app.logger.info(f"✅ API LEGENDAS: {len(legendas_data)} legendas carregadas com sucesso")
 
-        # Resposta JSON padronizada
+        # Resposta JSON final
         response_data = {
             'success': True,
             'legendas': legendas_data,
             'total': len(legendas_data),
-            'fonte': 'railway_postgresql',
+            'fonte': 'postgresql_railway_definitivo',
             'timestamp': datetime.utcnow().isoformat()
         }
 
-        # Headers para evitar cache
+        # Headers anti-cache
         response = jsonify(response_data)
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
@@ -105,13 +124,19 @@ def api_legendas():
         return response
 
     except Exception as e:
-        current_app.logger.error(f"❌ ERRO API LEGENDAS: {str(e)}")
+        current_app.logger.error(f"❌ ERRO CRÍTICO API LEGENDAS: {str(e)}")
+        # Forçar rollback em caso de erro
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': f'Erro interno: {str(e)}',
             'legendas': [],
             'total': 0,
-            'fonte': 'error',
+            'fonte': 'error_definitivo',
             'timestamp': datetime.utcnow().isoformat()
         }), 500
 

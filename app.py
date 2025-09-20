@@ -189,7 +189,7 @@ def create_default_checklists():
         db.session.rollback()
 
 def create_default_legendas():
-    """Criar legendas padrão no Railway PostgreSQL"""
+    """Criar legendas padrão no Railway PostgreSQL - VERSÃO DEFINITIVA"""
     try:
         from models import LegendaPredefinida, User
 
@@ -199,31 +199,26 @@ def create_default_legendas():
         except Exception:
             pass
 
-        # Verificar se já existem legendas
+        # Verificar se já existem legendas (query mais simples)
         try:
-            count = LegendaPredefinida.query.filter_by(ativo=True).count()
-            if count >= 42:
+            count = LegendaPredefinida.query.count()
+            if count >= 20:
                 logging.info(f"✅ Legendas já existem: {count} encontradas")
                 return
         except Exception as count_error:
             logging.warning(f"⚠️ Erro ao contar legendas: {count_error}")
-            # Continuar mesmo assim
 
-        # Buscar usuário admin
-        admin_user = User.query.filter_by(is_master=True).first()
+        # Buscar usuário admin de forma mais robusta
+        try:
+            admin_user = User.query.filter_by(is_master=True).first()
+        except Exception:
+            admin_user = None
+            
         if not admin_user:
-            logging.error("❌ Admin user não encontrado - criando legendas sem criador")
-            # Criar um usuário temporário se necessário
-            temp_admin = User(
-                username='temp_admin',
-                email='temp@example.com',
-                password_hash='temp',
-                nome_completo='Admin Temporário',
-                is_master=True
-            )
-            db.session.add(temp_admin)
-            db.session.flush()
-            admin_user = temp_admin
+            logging.error("❌ Admin user não encontrado - usando ID 1")
+            admin_user_id = 1  # Usar ID direto
+        else:
+            admin_user_id = admin_user.id
 
         # Definir legendas padrão
         legendas_padrao = [
@@ -298,9 +293,8 @@ def create_default_legendas():
                         nova_legenda = LegendaPredefinida(
                             texto=texto,
                             categoria=categoria,
-                            numero_ordem=ordem,
                             ativo=True,
-                            criado_por=admin_user.id
+                            criado_por=admin_user_id
                         )
                         db.session.add(nova_legenda)
                         legendas_criadas += 1
