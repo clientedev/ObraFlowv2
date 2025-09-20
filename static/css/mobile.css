@@ -154,25 +154,48 @@ input, textarea, select, [contenteditable="true"] {
     margin-bottom: 8px;
 }
 
-/* Controle de tamanho das imagens - MOBILE FIRST */
-.photo-container {
+/* Controle ABSOLUTO de tamanho das imagens - MOBILE FIRST */
+img {
+    max-width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+}
+
+.photo-container,
+.express-photo-container,
+.photo-item,
+.uploaded-photo,
+.mobile-photo-card {
     position: relative;
     width: 100%;
     max-width: 100%;
     margin-bottom: 15px;
     border-radius: 8px;
-    overflow: hidden;
+    overflow: hidden !important;
     background: #f8f9fa;
     border: 1px solid #e9ecef;
 }
 
-.photo-container img {
+.photo-container img,
+.express-photo-container img,
+.photo-item img,
+.uploaded-photo img,
+.mobile-photo-card img,
+.photo-card-image {
     width: 100% !important;
     height: auto !important;
     max-height: 300px !important;
     object-fit: cover !important;
     display: block !important;
     border-radius: 8px;
+}
+
+/* Cards de imagens específicos */
+.card-img-top {
+    width: 100% !important;
+    height: 200px !important;
+    object-fit: cover !important;
+    display: block !important;
 }
 
 /* Para tablets e desktop */
@@ -185,31 +208,10 @@ input, textarea, select, [contenteditable="true"] {
     .photo-container img {
         max-height: 400px !important;
     }
-}
-
-/* Imagens em relatórios express específicamente */
-.express-photo-container,
-.photo-item,
-.uploaded-photo {
-    position: relative;
-    width: 100%;
-    max-width: 100%;
-    margin-bottom: 15px;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
-}
-
-.express-photo-container img,
-.photo-item img,
-.uploaded-photo img {
-    width: 100% !important;
-    height: auto !important;
-    max-height: 300px !important;
-    object-fit: cover !important;
-    display: block !important;
-    border-radius: 8px;
+    
+    .card-img-top {
+        height: 220px !important;
+    }
 }
 
 /* Preview de fotos durante upload */
@@ -218,6 +220,7 @@ input, textarea, select, [contenteditable="true"] {
     width: 100%;
     max-width: 100%;
     margin-bottom: 10px;
+    overflow: hidden !important;
 }
 
 .photo-preview img {
@@ -227,6 +230,33 @@ input, textarea, select, [contenteditable="true"] {
     object-fit: cover !important;
     border-radius: 6px;
     border: 1px solid #dee2e6;
+}
+
+/* Controle extra para galeria de fotos */
+.photo-gallery img,
+.photo-gallery .card-img-top {
+    width: 100% !important;
+    height: 200px !important;
+    object-fit: cover !important;
+}
+
+/* Mobile específico - controle rigoroso */
+@media (max-width: 768px) {
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    
+    .card-img-top {
+        height: 160px !important;
+    }
+    
+    .photo-container img,
+    .express-photo-container img,
+    .photo-item img,
+    .uploaded-photo img {
+        max-height: 200px !important;
+    }
 }
 
 /* Botões com área de toque adequada */

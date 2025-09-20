@@ -419,10 +419,19 @@ body {
     transform: scale(1.05);
 }
 
-/* Controle global de imagens para prevenir quebra de layout */
+/* Controle RIGOROSO de imagens para prevenir quebra de layout */
 img {
-    max-width: 100%;
-    height: auto;
+    max-width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+}
+
+/* Controle específico para cards de imagens */
+.card-img-top {
+    width: 100% !important;
+    height: 200px !important;
+    object-fit: cover !important;
+    display: block !important;
 }
 
 /* Específico para imagens em containers de fotos */
@@ -430,7 +439,8 @@ img {
 .express-photo-container,
 .photo-item,
 .uploaded-photo,
-.photo-preview {
+.photo-preview,
+.mobile-photo-card {
     position: relative;
     width: 100%;
     max-width: 100%;
@@ -443,7 +453,9 @@ img {
 .express-photo-container img,
 .photo-item img,
 .uploaded-photo img,
-.photo-preview img {
+.photo-preview img,
+.mobile-photo-card img,
+.photo-card-image {
     width: 100% !important;
     height: auto !important;
     max-height: 300px !important;
@@ -452,16 +464,67 @@ img {
     border-radius: 8px;
 }
 
-/* Para relatórios express - área específica */
+/* Para relatórios express - controle mais rígido */
 .express-photos .photo-container img,
-.relatorio-express .photo-container img {
+.relatorio-express .photo-container img,
+.express-photos img,
+.relatorio-express img {
     max-height: 250px !important;
+    width: 100% !important;
+    object-fit: cover !important;
+}
+
+/* Para relatórios normais - galeria de fotos */
+.photo-gallery .card-img-top,
+.photo-gallery img {
+    height: 200px !important;
+    width: 100% !important;
+    object-fit: cover !important;
 }
 
 /* Controle para modais e editores */
 .modal .photo-container img,
 .editor-container img {
     max-height: 400px !important;
+    width: 100% !important;
+    object-fit: contain !important;
+}
+
+/* Controle para imagens em visualização de relatórios */
+.relatorio-view img,
+.report-view img,
+.report-detail img {
+    max-width: 100% !important;
+    max-height: 400px !important;
+    height: auto !important;
+    object-fit: contain !important;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+/* Mobile - controle extra para prevenir overflow */
+@media (max-width: 768px) {
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    
+    .card-img-top {
+        height: 160px !important;
+    }
+    
+    .photo-container img,
+    .express-photo-container img,
+    .photo-item img,
+    .uploaded-photo img,
+    .photo-preview img {
+        max-height: 200px !important;
+    }
+    
+    .express-photos img,
+    .relatorio-express img {
+        max-height: 180px !important;
+    }
 }
 
 /* Progress indicators */

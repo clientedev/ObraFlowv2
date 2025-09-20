@@ -56,12 +56,13 @@
                     {% if relatorio.fotos %}
                         <div class="mb-4">
                             <h5>Fotos do Relatório ({{ relatorio.fotos|length }})</h5>
-                            <div class="row">
+                            <div class="row photo-gallery">
                                 {% for foto in relatorio.fotos %}
                                     <div class="col-md-4 mb-3">
-                                        <div class="card">
+                                        <div class="card photo-container">
                                             <img src="{{ url_for('uploaded_file', filename=foto.filename) }}" 
-                                                 class="card-img-top" style="height: 200px; object-fit: cover;" 
+                                                 class="card-img-top" 
+                                                 style="height: 200px !important; object-fit: cover !important; width: 100% !important;" 
                                                  alt="{{ foto.legenda }}">
                                             <div class="card-body p-2">
                                                 <small class="card-title">{{ foto.legenda }}</small>

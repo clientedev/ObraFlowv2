@@ -221,11 +221,14 @@
             </div>
             <div class="card-body">
                 {% if fotos %}
-                    <div class="row g-3">
+                    <div class="row g-3 photo-gallery">
                         {% for foto in fotos %}
                         <div class="col-md-6 col-lg-4">
-                            <div class="card">
-                                <img src="{{ url_for('uploaded_file', filename=foto.filename) }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="{{ foto.titulo or 'Foto do relatório' }}">
+                            <div class="card photo-container">
+                                <img src="{{ url_for('uploaded_file', filename=foto.filename) }}" 
+                                     class="card-img-top" 
+                                     style="height: 200px !important; object-fit: cover !important; width: 100% !important;" 
+                                     alt="{{ foto.titulo or 'Foto do relatório' }}">
                                 <div class="card-body p-2">
                                     {% if foto.titulo %}
                                         <h6 class="card-title small mb-1">{{ foto.titulo }}</h6>
