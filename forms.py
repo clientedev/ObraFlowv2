@@ -76,7 +76,10 @@ class ContatoProjetoForm(FlaskForm):
     
     def __init__(self, *args, **kwargs):
         super(ContatoProjetoForm, self).__init__(*args, **kwargs)
-        self.contato_id.choices = [(c.id, f"{c.nome} - {c.empresa or 'Sem empresa'}") for c in Contato.query.all()]
+        # Filtrar apenas contatos ativos
+        from models import Contato
+        contatos_ativos = Contato.query.filter_by(ativo=True).all() if hasattr(Contato, 'ativo') else Contato.query.all()
+        self.contato_id.choices = [(c.id, f"{c.nome} - {c.empresa or 'Sem empresa'}") for c in contatos_ativos]
 
 class EmailClienteForm(FlaskForm):
     email = StringField('E-mail', validators=[DataRequired(), Email(), Length(max=255)])
