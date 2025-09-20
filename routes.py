@@ -57,7 +57,7 @@ from google_drive_backup import backup_to_drive, test_drive_connection
 import math
 import json
 
-# API para legendas pré-definidas (FALTAVA ESTA IMPLEMENTAÇÃO)
+# API para legendas pré-definidas (IMPLEMENTAÇÃO ÚNICA)
 @app.route('/api/legendas')
 def api_legendas():
     """API para carregar legendas pré-definidas do PostgreSQL Railway"""
@@ -3458,101 +3458,6 @@ def admin_legenda_excluir(id):
     
     return redirect(url_for('admin_legendas'))
 
-# API para buscar legendas predefinidas (para todos os usuários)
-@app.route('/api/legendas')
-def api_legendas():
-    """API para buscar legendas predefinidas por categoria - Railway PostgreSQL"""
-    try:
-        # Forçar rollback de transações pendentes
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-            
-        categoria = request.args.get('categoria', 'all')
-        current_app.logger.info(f"📋 API LEGENDAS: Buscando categoria='{categoria}'")
-        
-        # Buscar legendas no PostgreSQL
-        try:
-            from models import LegendaPredefinida
-            
-            # Query otimizada para Railway PostgreSQL
-            query = LegendaPredefinida.query.filter_by(ativo=True)
-            
-            if categoria and categoria != 'all':
-                query = query.filter_by(categoria=categoria)
-            
-            # Ordenação otimizada para PostgreSQL
-            if db.engine.dialect.name == 'postgresql':
-                # PostgreSQL syntax
-                legendas = query.order_by(
-                    LegendaPredefinida.numero_ordem.asc().nullslast(),
-                    LegendaPredefinida.categoria.asc(),
-                    LegendaPredefinida.created_at.desc()
-                ).all()
-            else:
-                # Fallback para outros bancos
-                legendas = query.order_by(
-                    LegendaPredefinida.categoria.asc(),
-                    LegendaPredefinida.created_at.desc()
-                ).all()
-                
-        except Exception as db_error:
-            current_app.logger.error(f"❌ ERRO BD LEGENDAS: {str(db_error)}")
-            db.session.rollback()
-            
-            # Fallback: retornar dados vazios mas válidos
-            return jsonify({
-                'success': True,
-                'total': 0,
-                'legendas': [],
-                'error': 'Dados não disponíveis',
-                'timestamp': datetime.utcnow().isoformat()
-            }), 200
-        
-        # Processar legendas de forma segura
-        response_data = {
-            'success': True,
-            'total': len(legendas),
-            'legendas': [],
-            'timestamp': datetime.utcnow().isoformat(),
-            'fonte': 'railway_postgresql'
-        }
-        
-        for legenda in legendas:
-            try:
-                legenda_data = {
-                    'id': legenda.id,
-                    'texto': legenda.texto or '',
-                    'categoria': legenda.categoria or 'Geral',
-                    'ativo': bool(legenda.ativo),
-                    'numero_ordem': legenda.numero_ordem
-                }
-                response_data['legendas'].append(legenda_data)
-            except Exception as proc_error:
-                current_app.logger.warning(f"⚠️ Erro processando legenda ID={getattr(legenda, 'id', '?')}: {proc_error}")
-                continue
-        
-        current_app.logger.info(f"✅ API LEGENDAS: {response_data['total']} legendas retornadas (categoria={categoria})")
-        
-        # Criar resposta otimizada
-        response = jsonify(response_data)
-        
-        # Headers para Railway
-        response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-        
-        return response
-        
-    except Exception as e:
-        # Log completo do erro
-        current_app.logger.exception(f"❌ ERRO CRÍTICO API LEGENDAS: {str(e)}")
-
 # Rota de diagnóstico para Railway PostgreSQL
 @app.route('/api/legendas/diagnostico')
 def api_legendas_diagnostico():
@@ -3617,21 +3522,7 @@ def api_legendas_diagnostico():
         }), 500
 
         
-        # Forçar rollback
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
         
-        # Retorno de erro estruturado
-        return jsonify({
-            'success': False,
-            'error': 'Erro interno do servidor',
-            'details': str(e),
-            'total': 0,
-            'legendas': [],
-            'timestamp': datetime.utcnow().isoformat()
-        }), 500
 
 @app.route('/api/legendas', methods=['OPTIONS'])
 def api_legendas_options():
