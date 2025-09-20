@@ -507,7 +507,7 @@ def create_report():
         
         # Validações básicas
         if not projeto_id:
-            flash('Projeto é obrigatório.', 'error')
+            flash('Obra é obrigatória.', 'error')
             return redirect(url_for('create_report'))
         
         try:
@@ -1538,7 +1538,7 @@ def project_new():
                         db.session.add(novo_email)
                         emails_adicionados += 1
                 
-                flash(f'Projeto consolidado! Adicionados {funcionarios_adicionados} funcionário(s) e {emails_adicionados} e-mail(s) ao projeto existente: {projeto.nome}', 'success')
+                flash(f'Obra consolidada! Adicionados {funcionarios_adicionados} funcionário(s) e {emails_adicionados} e-mail(s) à obra existente: {projeto.nome}', 'success')
                 
             else:
                 # Create new project
@@ -1626,7 +1626,7 @@ def project_new():
                 
                 total_funcionarios = 1 + len(funcionarios_adicionais)
                 total_emails = 1 + len(emails_adicionais)
-                flash(f'Projeto cadastrado com sucesso! {total_funcionarios} funcionário(s) e {total_emails} e-mail(s) adicionados.', 'success')
+                flash(f'Obra cadastrada com sucesso! {total_funcionarios} funcionário(s) e {total_emails} e-mail(s) adicionados.', 'success')
             
             print(f"🔍 DEBUG: Trying to save projeto: {projeto.nome}")
             db.session.commit()
@@ -1635,7 +1635,7 @@ def project_new():
         except Exception as e:
             print(f"❌ DEBUG: Error saving projeto: {e}")
             db.session.rollback()
-            flash(f'Erro ao salvar projeto: {str(e)}', 'error')
+            flash(f'Erro ao salvar obra: {str(e)}', 'error')
     
     return render_template('projects/form.html', form=form)
 
@@ -1703,7 +1703,7 @@ def project_edit(project_id):
         project.status = form.status.data
         
         db.session.commit()
-        flash('Projeto atualizado com sucesso!', 'success')
+        flash('Obra atualizada com sucesso!', 'success')
         return redirect(url_for('project_view', project_id=project.id))
     
     return render_template('projects/form.html', form=form, project=project)
@@ -2047,7 +2047,7 @@ def report_send(report_id):
     ).all()
     
     if not contatos_projeto:
-        flash('Nenhum contato configurado para receber relatórios neste projeto.', 'error')
+        flash('Nenhum contato configurado para receber relatórios nesta obra.', 'error')
         return redirect(url_for('report_view', report_id=report_id))
     
     emails_enviados = 0
@@ -2851,7 +2851,7 @@ def novo_email_cliente(projeto_id):
         ).first()
         
         if email_existente:
-            flash('Este e-mail já está cadastrado para este projeto.', 'error')
+            flash('Este e-mail já está cadastrado para esta obra.', 'error')
             return render_template('emails/form.html', form=form, projeto=projeto, titulo='Novo E-mail de Cliente')
         
         # Se marcou como principal, desmarcar outros como principal
@@ -2901,7 +2901,7 @@ def editar_email_cliente(email_id):
             ).filter(EmailCliente.id != email_id).first()
             
             if email_existente:
-                flash('Este e-mail já está cadastrado para este projeto.', 'error')
+                flash('Este e-mail já está cadastrado para esta obra.', 'error')
                 return render_template('emails/form.html', form=form, projeto=projeto, titulo='Editar E-mail de Cliente')
         
         # Se marcou como principal, desmarcar outros como principal
@@ -3836,7 +3836,7 @@ def relatorio_enviar_email(relatorio_id):
     emails_projeto = email_service.buscar_emails_projeto(relatorio.projeto.id)
     
     if not emails_projeto:
-        flash('Nenhum e-mail cadastrado para este projeto. Cadastre e-mails na seção de clientes.', 'warning')
+        flash('Nenhuma e-mail cadastrado para esta obra. Cadastre e-mails na seção de clientes.', 'warning')
         return redirect(url_for('report_view', report_id=relatorio_id))
     
     # Configurar escolhas do formulário
@@ -4362,7 +4362,7 @@ def relatorio_express_enviar_email(relatorio_id):
     emails_projeto = email_service.buscar_emails_projeto(relatorio.projeto.id)
     
     if not emails_projeto:
-        flash('Nenhum e-mail cadastrado para este projeto. Cadastre e-mails na seção de clientes.', 'warning')
+        flash('Nenhuma e-mail cadastrado para esta obra. Cadastre e-mails na seção de clientes.', 'warning')
         return redirect(url_for('relatorio_express_detalhes', relatorio_id=relatorio_id))
     
     # Configurar formulário
