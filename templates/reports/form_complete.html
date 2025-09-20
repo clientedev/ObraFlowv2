@@ -139,7 +139,15 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3><i class="fas fa-file-alt"></i> Relatório de Obra</h3>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3><i class="fas fa-file-alt"></i> Relatório de Obra</h3>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge bg-warning">
+                                <i class="fas fa-edit me-1"></i>Em preenchimento
+                            </span>
+                            <div id="autosave-status"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('create_report') }}" enctype="multipart/form-data" id="reportForm">
@@ -1949,6 +1957,48 @@ window.selectPhotoCategory = function(category, element) {
         document.dispatchEvent(selectEvent);
     }
 };
+</script>
+
+<!-- Auto Save Script -->
+<script src="{{ url_for('static', filename='js/autosave.js') }}"></script>
+<script>
+// Inicializar Auto Save apenas se estivermos editando um relatório existente
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar se temos um ID de relatório para auto save
+    const urlParams = new URLSearchParams(window.location.search);
+    const reportId = urlParams.get('report_id') || document.querySelector('input[name="report_id"]')?.value;
+    
+    if (reportId) {
+        // Inicializar auto save
+        const autoSave = initAutoSave(reportId, {
+            interval: 10000, // 10 segundos
+            statusElement: document.getElementById('autosave-status'),
+            form: document.getElementById('reportForm')
+        });
+        
+        console.log('Auto Save ativado para relatório', reportId);
+        
+        // Modificar o comportamento do botão de finalizar
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', function(e) {
+                // Parar auto save antes de finalizar
+                autoSave.stop();
+                
+                // Salvar uma última vez e depois prosseguir
+                autoSave.saveNow().then(() => {
+                    // Alterar status para finalizado
+                    const statusBadge = document.querySelector('.badge.bg-warning');
+                    if (statusBadge) {
+                        statusBadge.innerHTML = '<i class="fas fa-check me-1"></i>Finalizando...';
+                        statusBadge.classList.remove('bg-warning');
+                        statusBadge.classList.add('bg-success');
+                    }
+                });
+            });
+        }
+    }
+});
 </script>
 
 {% endblock %}
