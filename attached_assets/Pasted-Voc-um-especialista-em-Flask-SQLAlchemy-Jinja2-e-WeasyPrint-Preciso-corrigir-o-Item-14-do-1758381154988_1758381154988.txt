@@ -1,0 +1,44 @@
+Você é um especialista em Flask, SQLAlchemy, Jinja2 e WeasyPrint.
+
+Preciso corrigir o **Item 14 do documento de atualizações**:
+
+"Check-list: Não deve aparecer no PDF gerado. Deve existir página para modificação dos itens da lista. Cada projeto deve ter opção de usar um check-list padrão ou personalizado. Se escolher personalizado, deve abrir a página de edição e salvar só para aquela obra. Cada obra pode ter check-lists diferentes."
+
+### O que fazer:
+
+1. **Remover do PDF**
+   - O conteúdo do check-list não deve ser incluído no HTML que gera o PDF via WeasyPrint.  
+   - Apenas a visualização web deve continuar exibindo o check-list.  
+   - Conferir os templates para condicionar a renderização (`if not export_pdf` ou similar).
+
+2. **Modelo de Dados**
+   - Criar/ajustar modelos:
+     - `ChecklistTemplate` (check-list padrão, global)
+     - `ChecklistItem` (itens do template)
+     - `ChecklistObra` (versão personalizada de um projeto específico)
+   - Relacionar `ChecklistObra` com `Project` (`project_id`).
+
+3. **Funcionalidade de escolha**
+   - Na página do projeto, incluir opção:
+     - **Usar checklist padrão** → vincular o `ChecklistTemplate` existente.
+     - **Criar checklist personalizado** → abrir página de edição específica.
+   - Ao criar personalizado, salvar apenas para aquele projeto (`ChecklistObra`).
+
+4. **Página de Modificação**
+   - Nova rota Flask `/project/<id>/checklist/edit`
+   - Permitir:
+     - Adicionar itens
+     - Editar texto dos itens
+     - Excluir itens
+   - Salvar alterações apenas para aquele projeto.
+
+5. **Interface**
+   - Usar Bootstrap (já existe no sistema).
+   - Exibir botões “Usar checklist padrão” / “Criar checklist personalizado”.
+   - Para personalizado: formulário com campos dinâmicos para adicionar/remover itens.
+
+### Objetivo final
+- O check-list **não aparece mais no PDF**.  
+- Cada projeto tem a opção de usar um checklist padrão ou criar seu próprio checklist.  
+- O checklist personalizado pode ser editado e é salvo apenas para aquela obra.  
+- O sistema continua responsivo e integrado ao restante do fluxo.
