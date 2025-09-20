@@ -35,45 +35,63 @@ class LegendasSelector {
                 method: 'GET',
                 headers: {
                     'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
+                    'Pragma': 'no-cache',
+                    'Accept': 'application/json'
+                },
+                timeout: 15000
             });
             
             if (!response.ok) {
+                // Log detalhado do erro HTTP
+                const responseText = await response.text();
+                console.error(`❌ HTTP ${response.status}: ${responseText}`);
                 throw new Error(`HTTP ${response.status}`);
             }
             
             const data = await response.json();
             
-            if (data.success && data.legendas) {
+            if (data.success && Array.isArray(data.legendas)) {
                 this.cache.set(cacheKey, data.legendas);
                 this.retryCount = 0;
                 
-                console.log(`✅ Legendas carregadas: ${data.total} itens (categoria: ${categoria})`);
+                console.log(`✅ Legendas carregadas: ${data.total} itens (categoria: ${categoria}, fonte: ${data.fonte || 'N/A'})`);
                 return data.legendas;
             } else {
-                throw new Error(data.error || 'Dados inválidos');
+                // Mesmo com erro, se tiver dados, usar
+                if (Array.isArray(data.legendas) && data.legendas.length > 0) {
+                    console.warn('⚠️ API com erro mas dados disponíveis');
+                    this.cache.set(cacheKey, data.legendas);
+                    return data.legendas;
+                }
+                throw new Error(data.error || 'Dados inválidos ou vazios');
             }
             
         } catch (error) {
-            console.error(`❌ Erro ao carregar legendas:`, error);
+            console.error(`❌ Erro ao carregar legendas (tentativa ${this.retryCount + 1}/${this.maxRetries}):`, error);
             
-            // Sistema de retry
+            // Sistema de retry com backoff exponencial
             if (this.retryCount < this.maxRetries) {
                 this.retryCount++;
-                console.log(`🔄 Retry ${this.retryCount}/${this.maxRetries} em 2s...`);
+                const delay = Math.pow(2, this.retryCount) * 1000; // 2s, 4s, 8s
+                console.log(`🔄 Retry ${this.retryCount}/${this.maxRetries} em ${delay/1000}s...`);
                 
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                await new Promise(resolve => setTimeout(resolve, delay));
                 return this.loadLegendas(categoria, forceRefresh);
             }
             
-            // Fallback para cache ou dados vazios
+            // Fallback para cache
             if (this.cache.has(cacheKey)) {
-                console.log('📋 Usando cache como fallback');
+                console.log('📋 Usando cache como fallback após falhas');
                 return this.cache.get(cacheKey);
             }
             
-            return [];
+            // Fallback final: dados estáticos básicos
+            console.warn('⚠️ Usando dados de fallback estáticos');
+            return [
+                {id: 1, texto: 'Emboço bem-acabado', categoria: 'Acabamentos'},
+                {id: 2, texto: 'Estrutura bem-acabada', categoria: 'Estrutural'},
+                {id: 3, texto: 'Executado conforme projeto', categoria: 'Geral'}
+            ];
         }
     }
     

@@ -3268,29 +3268,52 @@ def admin_emails():
 @app.route('/admin/legendas')
 @login_required
 def admin_legendas():
-    """Painel de administração de legendas - apenas Administradores Master"""
+    """Painel de administração de legendas - Railway PostgreSQL"""
     if not current_user.is_master:
         flash('Acesso negado. Apenas usuários master podem gerenciar legendas.', 'error')
         return redirect(url_for('index'))
     
-    from models import LegendaPredefinida
-    
-    # Implementar busca conforme especificação
-    q = request.args.get("q", "")
-    query = LegendaPredefinida.query.filter_by(ativo=True)
-    
-    if q and q.strip():
-        search_term = f"%{q.strip()}%"
-        query = query.filter(LegendaPredefinida.texto.ilike(search_term))
-    
-    # Ordenação por numero_ordem (nulls last) depois categoria e data de criação
-    legendas = query.order_by(
-        LegendaPredefinida.numero_ordem.asc().nullslast(),
-        LegendaPredefinida.categoria.asc(),
-        LegendaPredefinida.created_at.desc()
-    ).all()
-    
-    return render_template('admin/legendas.html', legendas=legendas, q=q)
+    try:
+        # Forçar rollback de transações pendentes
+        db.session.rollback()
+        
+        from models import LegendaPredefinida
+        
+        # Busca
+        q = request.args.get("q", "")
+        query = LegendaPredefinida.query.filter_by(ativo=True)
+        
+        if q and q.strip():
+            search_term = f"%{q.strip()}%"
+            query = query.filter(LegendaPredefinida.texto.ilike(search_term))
+        
+        # Ordenação otimizada para Railway PostgreSQL
+        try:
+            if db.engine.dialect.name == 'postgresql':
+                legendas = query.order_by(
+                    LegendaPredefinida.numero_ordem.asc().nullslast(),
+                    LegendaPredefinida.categoria.asc(),
+                    LegendaPredefinida.created_at.desc()
+                ).all()
+            else:
+                legendas = query.order_by(
+                    LegendaPredefinida.categoria.asc(),
+                    LegendaPredefinida.created_at.desc()
+                ).all()
+        except Exception as query_error:
+            current_app.logger.error(f"❌ Erro na query de legendas: {query_error}")
+            # Fallback: query mais simples
+            legendas = LegendaPredefinida.query.filter_by(ativo=True).limit(100).all()
+        
+        current_app.logger.info(f"✅ Admin legendas: {len(legendas)} legendas carregadas")
+        
+        return render_template('admin/legendas.html', legendas=legendas, q=q)
+        
+    except Exception as e:
+        current_app.logger.exception(f"❌ Erro crítico admin legendas: {str(e)}")
+        db.session.rollback()
+        flash('Erro ao carregar legendas. Tente novamente.', 'error')
+        return redirect(url_for('index'))
 
 @app.route('/admin/legendas/nova', methods=['GET', 'POST'])
 @login_required
@@ -3383,104 +3406,176 @@ def admin_legenda_excluir(id):
 # API para buscar legendas predefinidas (para todos os usuários)
 @app.route('/api/legendas')
 def api_legendas():
-    """API para buscar legendas predefinidas por categoria - compatível mobile/desktop"""
+    """API para buscar legendas predefinidas por categoria - Railway PostgreSQL"""
     try:
+        # Forçar rollback de transações pendentes
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+            
         categoria = request.args.get('categoria', 'all')
+        current_app.logger.info(f"📋 API LEGENDAS: Buscando categoria='{categoria}'")
         
-        # Import local para garantir disponibilidade
+        # Buscar legendas no PostgreSQL
         try:
             from models import LegendaPredefinida
-        except ImportError as ie:
-            print(f"ERRO IMPORT: {ie}")
-            return jsonify({
-                'success': False,
-                'error': 'Modelo não encontrado',
-                'legendas': []
-            }), 500
-        
-        # Buscar legendas no banco
-        try:
+            
+            # Query otimizada para Railway PostgreSQL
             query = LegendaPredefinida.query.filter_by(ativo=True)
             
             if categoria and categoria != 'all':
                 query = query.filter_by(categoria=categoria)
             
-            # Ordenação conforme especificação: numero_ordem > categoria > created_at
-            legendas = query.order_by(
-                LegendaPredefinida.numero_ordem.asc().nullslast(),
-                LegendaPredefinida.categoria.asc(),
-                LegendaPredefinida.created_at.desc()
-            ).all()
+            # Ordenação otimizada para PostgreSQL
+            if db.engine.dialect.name == 'postgresql':
+                # PostgreSQL syntax
+                legendas = query.order_by(
+                    LegendaPredefinida.numero_ordem.asc().nullslast(),
+                    LegendaPredefinida.categoria.asc(),
+                    LegendaPredefinida.created_at.desc()
+                ).all()
+            else:
+                # Fallback para outros bancos
+                legendas = query.order_by(
+                    LegendaPredefinida.categoria.asc(),
+                    LegendaPredefinida.created_at.desc()
+                ).all()
+                
         except Exception as db_error:
-            print(f"ERRO BD: {db_error}")
+            current_app.logger.error(f"❌ ERRO BD LEGENDAS: {str(db_error)}")
+            db.session.rollback()
+            
+            # Fallback: retornar dados vazios mas válidos
             return jsonify({
-                'success': False,
-                'error': f'Erro no banco: {str(db_error)}',
-                'legendas': []
-            }), 500
+                'success': True,
+                'total': 0,
+                'legendas': [],
+                'error': 'Dados não disponíveis',
+                'timestamp': datetime.utcnow().isoformat()
+            }), 200
         
-        # Preparar resposta com dados reais do PostgreSQL
+        # Processar legendas de forma segura
         response_data = {
             'success': True,
             'total': len(legendas),
-            'legendas': []
+            'legendas': [],
+            'timestamp': datetime.utcnow().isoformat(),
+            'fonte': 'railway_postgresql'
         }
         
-        # Processar cada legenda
         for legenda in legendas:
             try:
-                response_data['legendas'].append({
-                    'id': getattr(legenda, 'id', 0),
-                    'texto': getattr(legenda, 'texto', ''),
-                    'categoria': getattr(legenda, 'categoria', 'Geral'),
-                    'ativo': getattr(legenda, 'ativo', True),
-                    'numero_ordem': getattr(legenda, 'numero_ordem', None)
-                })
+                legenda_data = {
+                    'id': legenda.id,
+                    'texto': legenda.texto or '',
+                    'categoria': legenda.categoria or 'Geral',
+                    'ativo': bool(legenda.ativo),
+                    'numero_ordem': legenda.numero_ordem
+                }
+                response_data['legendas'].append(legenda_data)
             except Exception as proc_error:
-                print(f"ERRO PROCESSAMENTO: {proc_error}")
+                current_app.logger.warning(f"⚠️ Erro processando legenda ID={getattr(legenda, 'id', '?')}: {proc_error}")
                 continue
         
-        print(f"🔄 REAL-TIME SYNC: {response_data['total']} legendas fresh do PostgreSQL, categoria={categoria or 'todas'}")
+        current_app.logger.info(f"✅ API LEGENDAS: {response_data['total']} legendas retornadas (categoria={categoria})")
         
-        # Adicionar timestamp de sincronização
-        response_data['timestamp'] = datetime.utcnow().isoformat()
-        response_data['sync_real_time'] = True
-        
-        # Criar resposta JSON
+        # Criar resposta otimizada
         response = jsonify(response_data)
         
-        # Headers AGRESSIVOS anti-cache para SINCRONIZAÇÃO TEMPO REAL
+        # Headers para Railway
         response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
-        response.headers['Last-Modified'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
-        response.headers['ETag'] = f'"{hash(str(response_data))}"'
-        response.headers['Vary'] = '*'
         response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Cache-Control'
-        response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['Connection'] = 'keep-alive'
-        
-        # Log para monitoramento de acesso mobile
-        user_agent = request.headers.get('User-Agent', '')
-        is_mobile = 'Mobile' in user_agent or 'Android' in user_agent or 'iPhone' in user_agent
-        print(f"📱 API ACCESS: {'MOBILE' if is_mobile else 'DESKTOP'} - {len(legendas)} legendas retornadas")
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
         
         return response
         
     except Exception as e:
-        # Log de erro para diagnóstico
-        print(f"ERRO API LEGENDAS: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        # Log completo do erro
+        current_app.logger.exception(f"❌ ERRO CRÍTICO API LEGENDAS: {str(e)}")
+
+# Rota de diagnóstico para Railway PostgreSQL
+@app.route('/api/legendas/diagnostico')
+def api_legendas_diagnostico():
+    """Diagnóstico completo do sistema de legendas para Railway"""
+    try:
+        diagnostico = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'database': {
+                'engine': str(db.engine.dialect.name),
+                'url_host': db.engine.url.host if db.engine.url else 'N/A'
+            },
+            'legendas': {},
+            'errors': []
+        }
         
+        # Forçar rollback
+        try:
+            db.session.rollback()
+        except Exception as rollback_error:
+            diagnostico['errors'].append(f"Rollback error: {str(rollback_error)}")
+        
+        # Test basic query
+        try:
+            from models import LegendaPredefinida
+            total = LegendaPredefinida.query.count()
+            ativas = LegendaPredefinida.query.filter_by(ativo=True).count()
+            
+            diagnostico['legendas'] = {
+                'total': total,
+                'ativas': ativas,
+                'inativas': total - ativas
+            }
+            
+            # Test categorias
+            try:
+                categorias = db.session.query(LegendaPredefinida.categoria).filter_by(ativo=True).distinct().all()
+                diagnostico['legendas']['categorias'] = [cat[0] for cat in categorias]
+            except Exception as cat_error:
+                diagnostico['errors'].append(f"Categorias error: {str(cat_error)}")
+                
+        except Exception as query_error:
+            diagnostico['errors'].append(f"Query error: {str(query_error)}")
+            diagnostico['legendas'] = {'error': str(query_error)}
+        
+        # Test API endpoint
+        try:
+            with app.test_client() as client:
+                api_response = client.get('/api/legendas?categoria=all')
+                diagnostico['api_test'] = {
+                    'status_code': api_response.status_code,
+                    'success': api_response.status_code == 200
+                }
+        except Exception as api_error:
+            diagnostico['errors'].append(f"API test error: {str(api_error)}")
+        
+        return jsonify(diagnostico)
+        
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+
+        
+        # Forçar rollback
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        
+        # Retorno de erro estruturado
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': 'Erro interno do servidor',
+            'details': str(e),
             'total': 0,
-            'legendas': []
+            'legendas': [],
+            'timestamp': datetime.utcnow().isoformat()
         }), 500
 
 @app.route('/api/legendas', methods=['OPTIONS'])

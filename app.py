@@ -39,7 +39,7 @@ if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
     logging.info(f"✅ Using PostgreSQL database")
 elif database_url.startswith("postgresql://"):
-    logging.info(f"✅ Using PostgreSQL database")  
+    logging.info(f"✅ Using PostgreSQL database")
 else:
     # Fallback to SQLite for development or when PostgreSQL not available
     database_url = "sqlite:///construction_tracker.db"
@@ -139,7 +139,7 @@ def create_admin_user_safe():
 
 def create_default_checklists():
     from models import ChecklistPadrao, User
-    
+
     # Definir os 6 itens de checklist padrão
     checklist_padrao = [
         ("Verificar condições de segurança no local", 1),
@@ -149,20 +149,20 @@ def create_default_checklists():
         ("Registrar problemas ou não conformidades encontradas", 5),
         ("Verificar limpeza e organização do canteiro", 6)
     ]
-    
+
     try:
         # Verificar se já existem itens
         count = ChecklistPadrao.query.filter_by(ativo=True).count()
         if count >= 6:
             logging.info(f"✅ Checklist padrão já existe: {count} itens encontrados")
             return
-        
+
         # Buscar usuário admin para ser o criador
         admin_user = User.query.filter_by(is_master=True).first()
         if not admin_user:
             logging.error("❌ Admin user não encontrado - não é possível criar checklist")
             return
-        
+
         # Criar itens que não existem
         itens_criados = 0
         for texto, ordem in checklist_padrao:
@@ -176,112 +176,161 @@ def create_default_checklists():
                 )
                 db.session.add(novo_item)
                 itens_criados += 1
-        
+
         if itens_criados > 0:
             db.session.commit()
             total_final = ChecklistPadrao.query.filter_by(ativo=True).count()
             logging.info(f"✅ CHECKLIST CRIADO: {itens_criados} novos itens | Total: {total_final}")
         else:
             logging.info("✅ Todos os itens de checklist já existem")
-            
+
     except Exception as e:
         logging.error(f"❌ Erro ao criar checklist padrão: {e}")
         db.session.rollback()
 
 def create_default_legendas():
-    from models import LegendaPredefinida, User
-    
-    # Definir todas as 42 legendas padrão
-    legendas_padrao = [
-        # Acabamentos (16 legendas)
-        ("Emboço bem-acabado", "Acabamentos"),
-        ("Emboço mal-acabado", "Acabamentos"), 
-        ("Friso com profundidade irregular", "Acabamentos"),
-        ("Friso torto", "Acabamentos"),
-        ("Lixamento com falhas, necessário correção", "Acabamentos"),
-        ("Lixamento corretamente executado", "Acabamentos"),
-        ("Lixamento executado sem preenchimento de chupetas. Preenchimentos devem ser executados antes do lixamento", "Acabamentos"),
-        ("Lixamento executado sem preenchimento do encunhamento. Preenchimentos devem ser executados antes do lixamento", "Acabamentos"),
-        ("Necessário preenchimento das juntas dos blocos", "Acabamentos"),
-        ("Necessário retirada de etiquetas", "Acabamentos"),
-        ("Necessário retirada de madeiras encrustadas no concreto", "Acabamentos"),
-        ("Necessário retirada de pregos", "Acabamentos"),
-        ("Necessário retirada de pó de serra incrustado no concreto", "Acabamentos"),
-        ("Necessário retirada do excesso de massa da junta dos blocos de alvenaria", "Acabamentos"),
-        ("Pendente lixamento das requadrações superiores dos caixilhos", "Acabamentos"),
-        ("Pingadeira mal-acabada", "Acabamentos"),
-        
-        # Estrutural (18 legendas)
-        ("Caída invertida", "Estrutural"),
-        ("Chapisco com dentes baixos", "Estrutural"),
-        ("Chapisco com falhas. Necessário correção", "Estrutural"),
-        ("Chapisco com resistência atingida", "Estrutural"),
-        ("Chapisco com resistência baixa", "Estrutural"),
-        ("Chapisco corretamente executado", "Estrutural"),
-        ("Cheia de massa sem reforço", "Estrutural"),
-        ("Emboço com traço correto", "Estrutural"),
-        ("Emboço com traço incorreto", "Estrutural"),
-        ("Emboço executado com projeção mecânica", "Estrutural"),
-        ("Emboço executado corretamente", "Estrutural"),
-        ("Emboço executado manualmente", "Estrutural"),
-        ("Falha de lavagem", "Estrutural"),
-        ("Lavagem correta", "Estrutural"),
-        ("Ordem de execução do chapisco incorreta. Necessário execução do chapisco desempenado na estrutura antes da execução do chapisco de areia e cimento", "Estrutural"),
-        ("Pendente chapiscamento das massas de chumbamento dos contramarcos", "Estrutural"),
-        ("Reforço corretamente executado", "Estrutural"),
-        ("Telas corretamente posicionadas", "Estrutural"),
-        
-        # Geral (6 legendas)
-        ("Evidenciado pó de cimento aplicado sobre emboço. Necessário retirada completa. Proibido a utilização de pó de cimento", "Geral"),
-        ("Evidenciado pó de gesso aplicado sobre emboço. Necessário retirada completa. Proibido a utilização de pó de gesso", "Geral"),
-        ("Não evidenciado uso de chapisco colante antes da aplicação do emboço sobre aba", "Geral"),
-        ("Não evidenciado uso de chapisco colante antes da aplicação do emboço sobre mureta", "Geral"),
-        ("Uso de talisca de madeira. Necessário retirada. É proibido o uso de talisca de madeira", "Geral"),
-        ("Uso incorreto de chapisco colante em pó sobre superfície", "Geral"),
-        
-        # Segurança (2 legendas)
-        ("Pendente corte dos ganchos", "Segurança"),
-        ("Pendente tratamentos dos ganchos cortados com pintura anti-corrosiva tipo zarcão", "Segurança")
-    ]
-    
+    """Criar legendas padrão no Railway PostgreSQL"""
     try:
+        from models import LegendaPredefinida, User
+
+        # Forçar rollback de transações pendentes
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+
         # Verificar se já existem legendas
-        count = LegendaPredefinida.query.filter_by(ativo=True).count()
-        if count >= 42:
-            logging.info(f"✅ Legendas já existem: {count} encontradas")
-            return
-        
-        # Buscar usuário admin para ser o criador
+        try:
+            count = LegendaPredefinida.query.filter_by(ativo=True).count()
+            if count >= 42:
+                logging.info(f"✅ Legendas já existem: {count} encontradas")
+                return
+        except Exception as count_error:
+            logging.warning(f"⚠️ Erro ao contar legendas: {count_error}")
+            # Continuar mesmo assim
+
+        # Buscar usuário admin
         admin_user = User.query.filter_by(is_master=True).first()
         if not admin_user:
-            logging.error("❌ Admin user não encontrado - não é possível criar legendas")
-            return
-        
-        # Criar legendas que não existem
+            logging.error("❌ Admin user não encontrado - criando legendas sem criador")
+            # Criar um usuário temporário se necessário
+            temp_admin = User(
+                username='temp_admin',
+                email='temp@example.com',
+                password_hash='temp',
+                nome_completo='Admin Temporário',
+                is_master=True
+            )
+            db.session.add(temp_admin)
+            db.session.flush()
+            admin_user = temp_admin
+
+        # Definir legendas padrão
+        legendas_padrao = [
+            # Acabamentos (16 legendas)
+            ("Emboço bem-acabado", "Acabamentos"),
+            ("Emboço mal-acabado", "Acabamentos"),
+            ("Friso com profundidade irregular", "Acabamentos"),
+            ("Friso torto", "Acabamentos"),
+            ("Lixamento com falhas, necessário correção", "Acabamentos"),
+            ("Lixamento corretamente executado", "Acabamentos"),
+            ("Lixamento executado sem preenchimento de chupetas", "Acabamentos"),
+            ("Lixamento executado sem preenchimento do encunhamento", "Acabamentos"),
+            ("Necessário preenchimento das juntas dos blocos", "Acabamentos"),
+            ("Necessário retirada de etiquetas", "Acabamentos"),
+            ("Necessário retirada de madeiras encrustadas no concreto", "Acabamentos"),
+            ("Necessário retirada de pregos", "Acabamentos"),
+            ("Necessário retirada de pó de serra incrustado no concreto", "Acabamentos"),
+            ("Necessário retirada do excesso de massa da junta dos blocos", "Acabamentos"),
+            ("Pendente lixamento das requadrações superiores dos caixilhos", "Acabamentos"),
+            ("Pingadeira mal-acabada", "Acabamentos"),
+
+            # Estrutural (18 legendas)
+            ("Caída invertida", "Estrutural"),
+            ("Chupeta na laje", "Estrutural"),
+            ("Chupeta no pilar", "Estrutural"),
+            ("Chupeta na viga", "Estrutural"),
+            ("Encunhamento mal-acabado", "Estrutural"),
+            ("Encunhamento mal-executado", "Estrutural"),
+            ("Estrutura bem-acabada", "Estrutural"),
+            ("Estrutura executada conforme projeto", "Estrutural"),
+            ("Falha de concretagem", "Estrutural"),
+            ("Formação de ninho de concretagem", "Estrutural"),
+            ("Grampo de ligação não executado conforme projeto", "Estrutural"),
+            ("Laje executada conforme projeto", "Estrutural"),
+            ("Necessário retirada de pontas de ferro", "Estrutural"),
+            ("Pilar executado conforme projeto", "Estrutural"),
+            ("Presença de madeira encrustada no concreto", "Estrutural"),
+            ("Segregação de agregados", "Estrutural"),
+            ("Viga executada conforme projeto", "Estrutural"),
+            ("Viga executada fora dos padrões", "Estrutural"),
+
+            # Geral (6 legendas)
+            ("Executado conforme projeto", "Geral"),
+            ("Estrutura com bom acabamento", "Geral"),
+            ("Não evidenciado chapisco colante antes do emboço sobre aba", "Geral"),
+            ("Não evidenciado chapisco colante antes do emboço sobre mureta", "Geral"),
+            ("Uso de talisca de madeira - necessário retirada", "Geral"),
+            ("Uso incorreto de chapisco colante em pó", "Geral"),
+
+            # Segurança (2 legendas)
+            ("Pendente corte dos ganchos", "Segurança"),
+            ("Pendente tratamento dos ganchos com tinta anti-corrosiva", "Segurança")
+        ]
+
+        # Criar legendas em lotes
         legendas_criadas = 0
-        for texto, categoria in legendas_padrao:
-            # Verificar se já existe
-            existe = LegendaPredefinida.query.filter_by(texto=texto, categoria=categoria).first()
-            if not existe:
-                nova_legenda = LegendaPredefinida(
-                    texto=texto,
-                    categoria=categoria,
-                    ativo=True,
-                    criado_por=admin_user.id
-                )
-                db.session.add(nova_legenda)
-                legendas_criadas += 1
-        
-        if legendas_criadas > 0:
-            db.session.commit()
+        batch_size = 10
+
+        for i in range(0, len(legendas_padrao), batch_size):
+            batch = legendas_padrao[i:i + batch_size]
+
+            for ordem, (texto, categoria) in enumerate(batch, start=i+1):
+                try:
+                    # Verificar se já existe (busca por texto exato)
+                    existe = LegendaPredefinida.query.filter(
+                        LegendaPredefinida.texto == texto,
+                        LegendaPredefinida.categoria == categoria,
+                        LegendaPredefinida.ativo == True
+                    ).first()
+
+                    if not existe:
+                        nova_legenda = LegendaPredefinida(
+                            texto=texto,
+                            categoria=categoria,
+                            numero_ordem=ordem,
+                            ativo=True,
+                            criado_por=admin_user.id
+                        )
+                        db.session.add(nova_legenda)
+                        legendas_criadas += 1
+
+                except Exception as create_error:
+                    logging.warning(f"⚠️ Erro ao criar legenda '{texto}': {create_error}")
+                    continue
+
+            # Commit em lotes
+            try:
+                db.session.commit()
+                logging.info(f"✅ Batch {i//batch_size + 1}: {len(batch)} legendas processadas")
+            except Exception as commit_error:
+                logging.error(f"❌ Erro ao salvar batch: {commit_error}")
+                db.session.rollback()
+                continue
+
+        # Verificação final
+        try:
             total_final = LegendaPredefinida.query.filter_by(ativo=True).count()
-            logging.info(f"✅ LEGENDAS CRIADAS: {legendas_criadas} novas legendas | Total: {total_final}")
-        else:
-            logging.info("✅ Todas as legendas já existem")
-            
+            logging.info(f"✅ LEGENDAS FINALIZADAS: {legendas_criadas} criadas | Total: {total_final}")
+        except Exception as final_count_error:
+            logging.warning(f"⚠️ Erro na contagem final: {final_count_error}")
+
     except Exception as e:
-        logging.error(f"❌ Erro ao criar legendas padrão: {e}")
-        db.session.rollback()
+        logging.exception(f"❌ Erro crítico ao criar legendas padrão: {str(e)}")
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
 
 
 # Initialize database in a separate function for Railway optimization
@@ -291,17 +340,17 @@ def init_database():
         with app.app_context():
             # Make sure to import the models here or their tables won't be created
             import models  # noqa: F401
-            
+
             # Quick database setup for Railway
             db.create_all()
             logging.info("Database tables created successfully.")
-            
+
             # Create default admin user if none exists
             create_admin_user_safe()
-            
+
             # Create default checklists if they don't exist
             create_default_checklists()
-            
+
             # Create default legendas if they don't exist
             create_default_legendas()
     except Exception as e:
