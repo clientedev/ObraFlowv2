@@ -874,6 +874,53 @@ def create_report():
                 except Exception as e:
                     pass  # Ignore session storage errors
             
+            # Process mobile photos with mandatory caption validation
+            mobile_photos_data = request.form.get('mobile_photos_data')
+            if mobile_photos_data:
+                try:
+                    import json
+                    mobile_photos = json.loads(mobile_photos_data)
+                    photos_list = mobile_photos.get('photos', [])
+                    
+                    # Validate that all photos have captions (Item 19 - Mandatory captions)
+                    for photo_data in photos_list:
+                        caption = photo_data.get('caption', '').strip()
+                        if not caption:
+                            db.session.rollback()
+                            flash('❌ ERRO: Todas as fotos devem ter uma legenda. Verifique se todas as fotos têm pelo menos uma legenda (manual ou pré-definida).', 'error')
+                            return render_template('reports/form_complete.html', 
+                                                 form=form, 
+                                                 projetos=projetos, 
+                                                 admin_users=admin_users,
+                                                 selected_project=selected_project,
+                                                 selected_aprovador=selected_aprovador,
+                                                 today=today)
+                    
+                    # If validation passes, save mobile photos
+                    for i, photo_data in enumerate(photos_list):
+                        foto = FotoRelatorio()
+                        foto.relatorio_id = relatorio.id
+                        foto.filename = photo_data.get('filename', f'mobile_foto_{i+1}.jpg')
+                        foto.legenda = photo_data.get('caption')  # Already validated as non-empty
+                        foto.tipo_servico = photo_data.get('category', 'Geral')
+                        foto.ordem = photo_count + i + 1
+                        
+                        db.session.add(foto)
+                        print(f"✅ Foto mobile {i+1} salva com legenda: {foto.legenda}")
+                    
+                    photo_count += len(photos_list)
+                except Exception as e:
+                    db.session.rollback()
+                    flash('Erro ao processar fotos mobile. Tente novamente.', 'error')
+                    print(f"Erro ao processar mobile photos: {e}")
+                    return render_template('reports/form_complete.html', 
+                                         form=form, 
+                                         projetos=projetos, 
+                                         admin_users=admin_users,
+                                         selected_project=selected_project,
+                                         selected_aprovador=selected_aprovador,
+                                         today=today)
+            
             # Process regular file uploads
             for i in range(50):  # Support up to 50 photos
                 photo_key = f'photo_{i}'
@@ -3217,13 +3264,13 @@ def admin_emails():
                          emails_principais=emails_principais,
                          projetos_sem_email=projetos_sem_email)
 
-# Rotas para Legendas Pré-definidas (exclusivo para Desenvolvedor)
+# Rotas para Legendas Pré-definidas (exclusivo para Administradores)
 @app.route('/admin/legendas')
 @login_required
 def admin_legendas():
-    """Painel de administração de legendas - apenas Desenvolvedor"""
-    if not current_user.is_developer:
-        flash('Acesso negado. Apenas o usuário Desenvolvedor pode gerenciar legendas.', 'error')
+    """Painel de administração de legendas - apenas Administradores"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas administradores podem gerenciar legendas.', 'error')
         return redirect(url_for('index'))
     
     from models import LegendaPredefinida
@@ -3233,9 +3280,9 @@ def admin_legendas():
 @app.route('/admin/legendas/nova', methods=['GET', 'POST'])
 @login_required
 def admin_legenda_nova():
-    """Criar nova legenda predefinida - apenas Desenvolvedor"""
-    if not current_user.is_developer:
-        flash('Acesso negado. Apenas o usuário Desenvolvedor pode gerenciar legendas.', 'error')
+    """Criar nova legenda predefinida - apenas Administradores"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas administradores podem gerenciar legendas.', 'error')
         return redirect(url_for('index'))
     
     from forms import LegendaPredefinidaForm
@@ -3265,9 +3312,9 @@ def admin_legenda_nova():
 @app.route('/admin/legendas/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 def admin_legenda_editar(id):
-    """Editar legenda predefinida - apenas Desenvolvedor"""
-    if not current_user.is_developer:
-        flash('Acesso negado. Apenas o usuário Desenvolvedor pode gerenciar legendas.', 'error')
+    """Editar legenda predefinida - apenas Administradores"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas administradores podem gerenciar legendas.', 'error')
         return redirect(url_for('index'))
     
     from models import LegendaPredefinida
@@ -3296,9 +3343,9 @@ def admin_legenda_editar(id):
 @app.route('/admin/legendas/<int:id>/excluir', methods=['POST'])
 @login_required
 def admin_legenda_excluir(id):
-    """Excluir legenda predefinida - apenas Desenvolvedor"""
-    if not current_user.is_developer:
-        flash('Acesso negado. Apenas o usuário Desenvolvedor pode gerenciar legendas.', 'error')
+    """Excluir legenda predefinida - apenas Administradores"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas administradores podem gerenciar legendas.', 'error')
         return redirect(url_for('index'))
     
     try:

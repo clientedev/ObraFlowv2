@@ -130,6 +130,180 @@
             min-height: 44px !important;
         }
     }
+
+    /* Mobile-First Photo System Styles */
+    .mobile-photo-btn {
+        border-radius: 12px !important;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .mobile-photo-btn:hover, .mobile-photo-btn:focus {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .mobile-photo-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+
+    .mobile-photo-card:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+    }
+
+    .photo-card-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: #f8f9fa;
+    }
+
+    .photo-card-content {
+        padding: 16px;
+    }
+
+    .caption-input {
+        width: 100%;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 16px;
+        margin-bottom: 12px;
+        min-height: 48px;
+        transition: all 0.3s ease;
+    }
+
+    .caption-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+
+    .caption-select {
+        width: 100%;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 16px;
+        margin-bottom: 12px;
+        min-height: 48px;
+        background: white;
+        transition: all 0.3s ease;
+    }
+
+    .caption-select:focus {
+        outline: none;
+        border-color: #28a745;
+        box-shadow: 0 0 0 3px rgba(40,167,69,0.1);
+    }
+
+    .photo-card-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .photo-card-btn {
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        min-height: 42px;
+        border: 2px solid;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .photo-card-btn.edit {
+        background: white;
+        color: #007bff;
+        border-color: #007bff;
+    }
+
+    .photo-card-btn.edit:hover {
+        background: #007bff;
+        color: white;
+    }
+
+    .photo-card-btn.delete {
+        background: white;
+        color: #dc3545;
+        border-color: #dc3545;
+    }
+
+    .photo-card-btn.delete:hover {
+        background: #dc3545;
+        color: white;
+    }
+
+    .category-badge {
+        display: inline-block;
+        background: #e3f2fd;
+        color: #1976d2;
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .photo-count-badge {
+        background: #28a745;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .caption-status {
+        font-size: 12px;
+        margin-top: 8px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        text-align: center;
+    }
+
+    .caption-status.complete {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .caption-status.pending {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .fixed-photo-buttons {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Mobile responsive adjustments */
+    @media (max-width: 768px) {
+        .mobile-photo-card {
+            margin-bottom: 20px;
+        }
+        
+        .photo-card-image {
+            height: 160px;
+        }
+        
+        .photo-card-content {
+            padding: 12px;
+        }
+        
+        .caption-input, .caption-select {
+            font-size: 16px !important; /* Prevent zoom on iOS */
+        }
+    }
 </style>
 {% endblock %}
 
@@ -370,58 +544,55 @@
                             </div>
                         </div>
 
-                        <!-- Sistema de Fotos -->
+                        <!-- Sistema de Fotos Mobile-First -->
                         <div class="mb-4">
-                            <h5><i class="fas fa-camera"></i> Fotos (Até 200 fotos)</h5>
+                            <h5><i class="fas fa-camera"></i> Fotos (Até 200 fotos) <span id="photoCount" class="badge bg-primary ms-2">0</span></h5>
 
-                            <!-- Seleção de Categoria -->
-                            <div class="mb-3">
-                                <label class="form-label">Selecione a categoria antes de adicionar a foto:</label>
-                                <div class="row">
-                                    <div class="col-md-3 col-6">
-                                        <div class="photo-category text-center" data-category="Torre 1">
-                                            <i class="fas fa-building fa-2x mb-2"></i>
-                                            <div>Torre 1</div>
-                                        </div>
+                            <!-- Botões Fixos de Câmera e Galeria (Mobile-First) -->
+                            <div class="fixed-photo-buttons sticky-top bg-white p-3 mb-3 border rounded" style="z-index: 10;">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button type="button" class="btn btn-outline-primary w-100 mobile-photo-btn" 
+                                                id="mobileCameraBtn" onclick="mobileCaptureFromCamera()" style="min-height: 56px;">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-camera fa-lg mb-1"></i>
+                                                <small>Câmera</small>
+                                            </div>
+                                        </button>
                                     </div>
-                                    <div class="col-md-3 col-6">
-                                        <div class="photo-category text-center" data-category="Torre 2">
-                                            <i class="fas fa-building fa-2x mb-2"></i>
-                                            <div>Torre 2</div>
-                                        </div>
+                                    <div class="col-6">
+                                        <button type="button" class="btn btn-outline-success w-100 mobile-photo-btn" 
+                                                id="mobileGalleryBtn" onclick="mobileSelectFromGallery()" style="min-height: 56px;">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-images fa-lg mb-1"></i>
+                                                <small>Galeria</small>
+                                            </div>
+                                        </button>
                                     </div>
-                                    <div class="col-md-3 col-6">
-                                        <div class="photo-category text-center" data-category="Área Comum">
-                                            <i class="fas fa-users fa-2x mb-2"></i>
-                                            <div>Área Comum</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <div class="photo-category text-center" data-category="Piscina">
-                                            <i class="fas fa-swimmer fa-2x mb-2"></i>
-                                            <div>Piscina</div>
-                                        </div>
-                                    </div>
+                                </div>
+                                <input type="file" id="mobilePhotoInput" class="form-control" multiple accept="image/*" style="display: none;">
+                                <input type="file" id="mobileCameraInput" class="form-control" accept="image/*" capture="environment" style="display: none;">
+                                <div class="text-center mt-2">
+                                    <small class="text-muted"><strong>Máximo 200 fotos - Limite total: 3GB</strong></small>
                                 </div>
                             </div>
 
-                            <!-- Upload de Fotos -->
+                            <!-- Seleção de Categoria (Simplificada) -->
                             <div class="mb-3">
-                                <div class="d-flex gap-2 mb-2">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" id="galleryBtn" disabled onclick="selectFromGallery()">
-                                        <i class="fas fa-images"></i> Galeria
-                                    </button>
-                                    <button type="button" class="btn btn-outline-success btn-sm" id="cameraBtn" disabled onclick="captureFromCamera()">
-                                        <i class="fas fa-camera"></i> Câmera
-                                    </button>
-                                </div>
-                                <input type="file" id="photoInput" class="form-control" multiple accept="image/*" style="display: none;">
-                                <input type="file" id="cameraInput" class="form-control" accept="image/*" capture="environment" style="display: none;">
-                                <small class="text-muted">Selecione uma categoria antes de escolher as fotos. <strong style="color: red;">Máximo 200 fotos - Limite total: 3GB.</strong></small>
+                                <label class="form-label fw-bold">Categoria padrão para novas fotos:</label>
+                                <select id="defaultCategory" class="form-select" style="min-height: 48px;">
+                                    <option value="Torre 1">Torre 1</option>
+                                    <option value="Torre 2">Torre 2</option>
+                                    <option value="Área Comum">Área Comum</option>
+                                    <option value="Piscina">Piscina</option>
+                                </select>
                             </div>
 
-                            <!-- Preview das Fotos -->
-                            <div id="photoPreview" class="row"></div>
+                            <!-- Preview das Fotos com Cards Mobile-First -->
+                            <div id="mobilePhotoCards" class="row g-3"></div>
+                            
+                            <!-- Fotos antigas (mantido para compatibilidade) -->
+                            <div id="photoPreview" class="row" style="display: none;"></div>
                         </div>
 
                         <div class="d-flex justify-content-between">
@@ -2097,6 +2268,361 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+</script>
+
+<!-- Mobile-First Photo System JavaScript -->
+<script>
+// Global variables for mobile photo system
+let mobilePhotoCounter = 0;
+let predefinedLegendas = [];
+let mobilePhotoData = [];
+
+// Load predefined captions on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadPredefinedLegendas();
+    setupMobilePhotoSystem();
+});
+
+// Load predefined captions from API
+async function loadPredefinedLegendas() {
+    try {
+        console.log('📋 Carregando legendas predefinidas...');
+        const response = await fetch('/api/legendas?categoria=all');
+        const data = await response.json();
+        
+        if (data.success) {
+            predefinedLegendas = data.legendas;
+            console.log(`✅ ${predefinedLegendas.length} legendas carregadas`);
+        }
+    } catch (error) {
+        console.error('❌ Erro ao carregar legendas:', error);
+    }
+}
+
+// Setup mobile photo system
+function setupMobilePhotoSystem() {
+    console.log('📱 Configurando sistema de fotos mobile-first...');
+    
+    // Setup file input event listeners
+    const mobilePhotoInput = document.getElementById('mobilePhotoInput');
+    const mobileCameraInput = document.getElementById('mobileCameraInput');
+    
+    if (mobilePhotoInput) {
+        mobilePhotoInput.addEventListener('change', handleMobilePhotoSelection);
+    }
+    
+    if (mobileCameraInput) {
+        mobileCameraInput.addEventListener('change', handleMobilePhotoSelection);
+    }
+}
+
+// Mobile gallery selection
+function mobileSelectFromGallery() {
+    console.log('📸 Selecionando da galeria (mobile)...');
+    const input = document.getElementById('mobilePhotoInput');
+    if (input) {
+        input.click();
+    }
+}
+
+// Mobile camera capture
+function mobileCaptureFromCamera() {
+    console.log('📷 Capturando da câmera (mobile)...');
+    const input = document.getElementById('mobileCameraInput');
+    if (input) {
+        input.click();
+    }
+}
+
+// Handle photo selection from mobile inputs
+function handleMobilePhotoSelection(event) {
+    console.log('📋 Processando fotos selecionadas...');
+    const files = event.target.files;
+    const defaultCategory = document.getElementById('defaultCategory').value;
+    
+    if (files.length === 0) return;
+    
+    Array.from(files).forEach(file => {
+        createMobilePhotoCard(file, defaultCategory);
+    });
+    
+    // Clear input for next selection
+    event.target.value = '';
+    
+    updatePhotoCounter();
+}
+
+// Create mobile photo card with immediate display
+function createMobilePhotoCard(file, category) {
+    const photoId = 'mobile_photo_' + (++mobilePhotoCounter);
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        const photoCard = createPhotoCardHTML(photoId, e.target.result, category, file.name);
+        
+        // Add to DOM
+        const container = document.getElementById('mobilePhotoCards');
+        const cardCol = document.createElement('div');
+        cardCol.className = 'col-12 col-md-6 col-lg-4';
+        cardCol.innerHTML = photoCard;
+        container.appendChild(cardCol);
+        
+        // Store photo data
+        mobilePhotoData.push({
+            id: photoId,
+            file: file,
+            category: category,
+            manualCaption: '',
+            predefinedCaption: '',
+            filename: file.name
+        });
+        
+        // Setup event listeners for this card
+        setupPhotoCardEvents(photoId);
+        
+        console.log(`📷 Foto adicionada: ${file.name} (${category})`);
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+// Create photo card HTML
+function createPhotoCardHTML(photoId, imageSrc, category, filename) {
+    const legendaSelectHTML = createLegendaSelectHTML(photoId);
+    
+    return `
+        <div class="mobile-photo-card" data-photo-id="${photoId}">
+            <img src="${imageSrc}" alt="${filename}" class="photo-card-image">
+            <div class="photo-card-content">
+                <div class="category-badge">${category}</div>
+                
+                <!-- Legenda Manual -->
+                <input type="text" 
+                       class="caption-input" 
+                       id="manual_caption_${photoId}" 
+                       placeholder="Digite uma legenda personalizada..."
+                       data-photo-id="${photoId}">
+                
+                <!-- Legenda Pré-definida -->
+                <select class="caption-select" 
+                        id="predefined_caption_${photoId}" 
+                        data-photo-id="${photoId}">
+                    <option value="">Selecione uma legenda pré-definida...</option>
+                    ${legendaSelectHTML}
+                </select>
+                
+                <!-- Status da Legenda -->
+                <div class="caption-status pending" id="caption_status_${photoId}">
+                    ⚠️ Legenda obrigatória - preencha pelo menos um campo
+                </div>
+                
+                <!-- Ações -->
+                <div class="photo-card-actions">
+                    <button type="button" class="photo-card-btn edit" onclick="editMobilePhoto('${photoId}')">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button type="button" class="photo-card-btn delete" onclick="deleteMobilePhoto('${photoId}')">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Create legend select HTML
+function createLegendaSelectHTML(photoId) {
+    let html = '';
+    
+    // Group legends by category
+    const legendsByCategory = {};
+    predefinedLegendas.forEach(legenda => {
+        if (!legendsByCategory[legenda.categoria]) {
+            legendsByCategory[legenda.categoria] = [];
+        }
+        legendsByCategory[legenda.categoria].push(legenda);
+    });
+    
+    // Create optgroups
+    Object.keys(legendsByCategory).forEach(categoria => {
+        html += `<optgroup label="${categoria}">`;
+        legendsByCategory[categoria].forEach(legenda => {
+            html += `<option value="${legenda.texto}">${legenda.texto}</option>`;
+        });
+        html += `</optgroup>`;
+    });
+    
+    return html;
+}
+
+// Setup event listeners for photo card
+function setupPhotoCardEvents(photoId) {
+    const manualInput = document.getElementById(`manual_caption_${photoId}`);
+    const predefinedSelect = document.getElementById(`predefined_caption_${photoId}`);
+    
+    if (manualInput) {
+        manualInput.addEventListener('input', () => saveCaptionData(photoId));
+        manualInput.addEventListener('blur', () => saveCaptionData(photoId));
+    }
+    
+    if (predefinedSelect) {
+        predefinedSelect.addEventListener('change', function() {
+            if (this.value) {
+                // Copy predefined to manual field
+                manualInput.value = this.value;
+                saveCaptionData(photoId);
+                
+                // Reset select for next use
+                setTimeout(() => {
+                    this.selectedIndex = 0;
+                }, 500);
+            }
+        });
+    }
+}
+
+// Save caption data via AJAX
+async function saveCaptionData(photoId) {
+    const manualInput = document.getElementById(`manual_caption_${photoId}`);
+    const predefinedSelect = document.getElementById(`predefined_caption_${photoId}`);
+    const statusDiv = document.getElementById(`caption_status_${photoId}`);
+    
+    const manualCaption = manualInput.value.trim();
+    const predefinedCaption = predefinedSelect.value.trim();
+    
+    // Update local data
+    const photoData = mobilePhotoData.find(p => p.id === photoId);
+    if (photoData) {
+        photoData.manualCaption = manualCaption;
+        photoData.predefinedCaption = predefinedCaption;
+    }
+    
+    // Update status
+    const hasCaption = manualCaption || predefinedCaption;
+    if (hasCaption) {
+        statusDiv.className = 'caption-status complete';
+        statusDiv.innerHTML = '✅ Legenda definida';
+    } else {
+        statusDiv.className = 'caption-status pending';
+        statusDiv.innerHTML = '⚠️ Legenda obrigatória - preencha pelo menos um campo';
+    }
+    
+    console.log(`💾 Caption saved for ${photoId}: "${manualCaption}"`);
+}
+
+// Edit mobile photo
+function editMobilePhoto(photoId) {
+    const photoData = mobilePhotoData.find(p => p.id === photoId);
+    if (!photoData) return;
+    
+    // Open photo editor (using existing fabric editor)
+    const imageUrl = URL.createObjectURL(photoData.file);
+    const editorUrl = `/photo-editor?photoId=${photoId}&imageUrl=${encodeURIComponent(imageUrl)}`;
+    window.open(editorUrl, '_blank');
+}
+
+// Delete mobile photo
+function deleteMobilePhoto(photoId) {
+    if (!confirm('Deseja excluir esta foto?')) return;
+    
+    // Remove from data array
+    mobilePhotoData = mobilePhotoData.filter(p => p.id !== photoId);
+    
+    // Remove from DOM
+    const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
+    if (photoCard) {
+        photoCard.closest('.col-12, .col-md-6, .col-lg-4').remove();
+    }
+    
+    updatePhotoCounter();
+    console.log(`🗑️ Foto ${photoId} excluída`);
+}
+
+// Update photo counter
+function updatePhotoCounter() {
+    const counter = document.getElementById('photoCount');
+    if (counter) {
+        counter.textContent = mobilePhotoData.length;
+    }
+}
+
+// Validate captions before form submission
+function validateCaptions() {
+    let hasInvalidPhotos = false;
+    
+    mobilePhotoData.forEach(photoData => {
+        const hasCaption = photoData.manualCaption || photoData.predefinedCaption;
+        if (!hasCaption) {
+            hasInvalidPhotos = true;
+            
+            // Highlight invalid photo
+            const statusDiv = document.getElementById(`caption_status_${photoData.id}`);
+            if (statusDiv) {
+                statusDiv.className = 'caption-status pending';
+                statusDiv.innerHTML = '❌ OBRIGATÓRIO: Adicione uma legenda';
+                statusDiv.style.animation = 'pulse 2s infinite';
+            }
+        }
+    });
+    
+    return !hasInvalidPhotos;
+}
+
+// Prepare form data for submission
+function prepareMobilePhotoFormData() {
+    // Create form data for mobile photos
+    const formData = {
+        photos: mobilePhotoData.map(photoData => ({
+            id: photoData.id,
+            filename: photoData.filename,
+            category: photoData.category,
+            caption: photoData.manualCaption || photoData.predefinedCaption,
+            file: photoData.file
+        }))
+    };
+    
+    // Add hidden input with photo data
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'mobile_photos_data';
+    hiddenInput.value = JSON.stringify(formData);
+    
+    const form = document.getElementById('reportForm');
+    if (form) {
+        form.appendChild(hiddenInput);
+    }
+    
+    console.log(`📤 Preparados ${mobilePhotoData.length} fotos para envio`);
+}
+
+// Form submission validation
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('reportForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Validate captions
+            if (!validateCaptions()) {
+                e.preventDefault();
+                alert('⚠️ ATENÇÃO: Todas as fotos devem ter pelo menos uma legenda (manual ou pré-definida). Verifique as fotos marcadas em vermelho.');
+                
+                // Scroll to first invalid photo
+                const firstInvalid = document.querySelector('.caption-status.pending');
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                
+                return false;
+            }
+            
+            // Prepare mobile photo data
+            prepareMobilePhotoFormData();
+            
+            console.log('✅ Formulário validado - enviando...');
+        });
+    }
+});
+
+console.log('📱 Sistema de fotos mobile-first carregado');
 </script>
 
 {% endblock %}
