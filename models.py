@@ -156,7 +156,7 @@ class Relatorio(db.Model):
     data_aprovacao = db.Column(db.DateTime, nullable=True)
     conteudo = db.Column(db.Text)
     checklist_data = db.Column(db.Text)  # JSON string for checklist data
-    status = db.Column(db.String(50), default='Rascunho')
+    status = db.Column(db.String(50), default='preenchimento')
     comentario_aprovacao = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
