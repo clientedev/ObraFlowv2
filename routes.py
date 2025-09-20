@@ -99,7 +99,7 @@ def api_legendas():
         if categoria and categoria != 'all':
             query = query.filter_by(categoria=categoria)
 
-        # Buscar legendas com ordenação APENAS por campos que existem
+        # Buscar legendas usando apenas campos que existem na tabela
         legendas_query = query.order_by(
             LegendaPredefinida.categoria.asc(),
             LegendaPredefinida.id.asc()

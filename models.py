@@ -282,7 +282,6 @@ class LegendaPredefinida(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     texto = db.Column(db.String(500), nullable=False)
     categoria = db.Column(db.String(100), nullable=False, default='Geral')
-    numero_ordem = db.Column(db.Integer, nullable=True)  # Para organização interna apenas
     ativo = db.Column(db.Boolean, default=True)
     criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

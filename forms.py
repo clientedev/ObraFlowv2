@@ -1,7 +1,7 @@
 import datetime
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
-from wtforms import StringField, TextAreaField, PasswordField, BooleanField, SelectField, DateField, FloatField, IntegerField, DateTimeField, HiddenField
+from wtforms import StringField, TextAreaField, PasswordField, BooleanField, SelectField, DateField, FloatField, IntegerField, DateTimeField, HiddenField, SubmitField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange, Optional
 from wtforms.widgets import TextArea
 from models import User, TipoObra, Contato
@@ -55,7 +55,7 @@ class ProjetoForm(FlaskForm):
         ('Concluído', 'Concluído'),
         ('Cancelado', 'Cancelado')
     ], default='Ativo')
-    
+
     def __init__(self, *args, **kwargs):
         super(ProjetoForm, self).__init__(*args, **kwargs)
         self.responsavel_id.choices = [(u.id, u.nome_completo) for u in User.query.filter_by(ativo=True).all()]
@@ -73,7 +73,7 @@ class ContatoProjetoForm(FlaskForm):
     tipo_relacionamento = StringField('Tipo de Relacionamento', validators=[Length(max=100)])
     is_aprovador = BooleanField('É Aprovador')
     receber_relatorios = BooleanField('Receber Relatórios por Email')
-    
+
     def __init__(self, *args, **kwargs):
         super(ContatoProjetoForm, self).__init__(*args, **kwargs)
         # Filtrar apenas contatos ativos
@@ -95,7 +95,7 @@ class VisitaForm(FlaskForm):
     projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
     data_agendada = DateTimeField('Data e Hora Agendada', validators=[DataRequired()])
     objetivo = TextAreaField('Objetivo da Visita', validators=[DataRequired()])
-    
+
     def __init__(self, *args, **kwargs):
         super(VisitaForm, self).__init__(*args, **kwargs)
         from models import Projeto
@@ -131,7 +131,7 @@ class RelatorioForm(FlaskForm):
         ('Aprovado', 'Aprovado'),
         ('Rejeitado', 'Rejeitado')
     ], default='Rascunho')
-    
+
     def __init__(self, *args, **kwargs):
         super(RelatorioForm, self).__init__(*args, **kwargs)
         from models import Projeto
@@ -142,31 +142,31 @@ class ReembolsoForm(FlaskForm):
     projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
     data_solicitacao = DateField('Data da Solicitação', validators=[DataRequired()], default=datetime.date.today)
     descricao = TextAreaField('Descrição/Justificativa', validators=[DataRequired()])
-    
+
     # Categoria gastos com tratamento robusto
     quilometragem = FloatField('Quilometragem', validators=[Optional(), NumberRange(min=0)], default=0)
     valor_km = FloatField('Valor por KM (R$)', validators=[Optional(), NumberRange(min=0)], default=0)
     alimentacao = FloatField('Alimentação (R$)', validators=[Optional(), NumberRange(min=0)], default=0)
     hospedagem = FloatField('Hospedagem (R$)', validators=[Optional(), NumberRange(min=0)], default=0)
     outros_gastos = FloatField('Outros Gastos (R$)', validators=[Optional(), NumberRange(min=0)], default=0)
-    
+
     status = SelectField('Status', choices=[
         ('Pendente', 'Pendente'),
         ('Aprovado', 'Aprovado'),
         ('Rejeitado', 'Rejeitado'),
         ('Pago', 'Pago')
     ], default='Pendente')
-    
+
     def __init__(self, *args, **kwargs):
         super(ReembolsoForm, self).__init__(*args, **kwargs)
         from models import Projeto
         self.projeto_id.choices = [(0, 'Selecione um projeto')] + [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
-    
+
     def validate(self, extra_validators=None):
         """Validação personalizada para garantir que pelo menos um valor seja preenchido"""
         if not super().validate(extra_validators):
             return False
-        
+
         # Verificar se pelo menos um campo de valor foi preenchido
         valores = [
             self.quilometragem.data or 0,
@@ -174,11 +174,11 @@ class ReembolsoForm(FlaskForm):
             self.hospedagem.data or 0,
             self.outros_gastos.data or 0
         ]
-        
+
         if all(v == 0 for v in valores):
             self.quilometragem.errors.append('Pelo menos um valor de gasto deve ser informado.')
             return False
-        
+
         return True
 
 class ConfiguracaoEmailForm(FlaskForm):
@@ -217,5 +217,5 @@ class LegendaPredefinidaForm(FlaskForm):
         ('Fachada', 'Fachada'),
         ('Impermeabilização', 'Impermeabilização')
     ], default='Geral', validators=[DataRequired()])
-    numero_ordem = IntegerField('Número de Ordem (para organização)', validators=[Optional()], description='Campo opcional para organizar a ordem das legendas')
     ativo = BooleanField('Ativo', default=True)
+    submit = SubmitField('Salvar')
