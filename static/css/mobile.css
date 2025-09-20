@@ -445,6 +445,35 @@ img {
     letter-spacing: 0.5px;
 }
 
+/* Status badges específicos para relatórios - evitar overflow */
+.report-card .badge {
+    max-width: 100% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: inline-block !important;
+    word-break: keep-all !important;
+    font-size: 0.65rem !important;
+    padding: 3px 8px !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+}
+
+/* Específico para badge de "Aguardando Aprovação" */
+.report-card .badge.bg-warning {
+    max-width: 85px !important;
+    font-size: 0.6rem !important;
+}
+
+/* Container da coluna de ações - controle de overflow */
+.report-card .col-4 {
+    max-width: 33.333333% !important;
+    overflow: hidden !important;
+    padding-left: 4px !important;
+    padding-right: 8px !important;
+}
+
 /* Mobile específico */
 @media (max-width: 767.98px) {
     /* Botões em cards de lista */
