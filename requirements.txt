@@ -164,3 +164,15 @@ SQLAlchemy
 weasyprint
 Werkzeug
 WTForms
+flask
+flask-login
+flask-mail
+flask-sqlalchemy
+flask-wtf
+geopy
+googletrans==4.0.0rc1
+pillow
+reportlab
+requests
+weasyprint
+werkzeug

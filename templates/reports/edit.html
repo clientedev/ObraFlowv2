@@ -46,7 +46,17 @@
                 <div class="col-md-8">
                     <div class="card">
                         <div class="card-header">
-                            <h5>Informações do Relatório</h5>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5>Informações do Relatório</h5>
+                                <div class="d-flex align-items-center gap-3">
+                                    {% if relatorio.status == 'preenchimento' %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-edit me-1"></i>Em preenchimento
+                                    </span>
+                                    {% endif %}
+                                    <div id="autosave-status"></div>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -63,8 +73,10 @@
                                             {% if relatorio.status == 'Aprovado' %}bg-success
                                             {% elif relatorio.status == 'Rejeitado' %}bg-danger
                                             {% elif relatorio.status == 'Aguardando Aprovacao' %}bg-warning
+                                            {% elif relatorio.status == 'preenchimento' %}bg-info
                                             {% else %}bg-secondary{% endif %}">
-                                            {{ relatorio.status }}
+                                            {% if relatorio.status == 'preenchimento' %}Em preenchimento
+                                            {% else %}{{ relatorio.status }}{% endif %}
                                         </span>
                                     </p>
                                 </div>
@@ -619,5 +631,47 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Fabric Photo Editor CSS e JS -->
 <script src="{{ url_for('static', filename='js/fabric-photo-editor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/fabric-photo-editor-modal.js') }}"></script>
+
+<!-- Auto Save Script para Relatórios em Preenchimento -->
+{% if relatorio.status == 'preenchimento' %}
+<script src="{{ url_for('static', filename='js/autosave.js') }}"></script>
+<script>
+// Inicializar Auto Save para relatórios em preenchimento
+document.addEventListener('DOMContentLoaded', function() {
+    const reportId = {{ relatorio.id }};
+    
+    if (reportId) {
+        // Inicializar auto save
+        const autoSave = initAutoSave(reportId, {
+            interval: 10000, // 10 segundos
+            statusElement: document.getElementById('autosave-status'),
+            form: document.querySelector('form') // Usar o primeiro form da página
+        });
+        
+        console.log('Auto Save ativado para relatório', reportId);
+        
+        // Modificar comportamento dos botões de finalizar/aprovar
+        const actionButtons = document.querySelectorAll('button[type="submit"], input[type="submit"]');
+        actionButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                // Parar auto save antes de submeter
+                autoSave.stop();
+                
+                // Salvar uma última vez
+                autoSave.saveNow().then(() => {
+                    // Alterar status visual
+                    const statusBadge = document.querySelector('.badge.bg-info');
+                    if (statusBadge) {
+                        statusBadge.innerHTML = '<i class="fas fa-check me-1"></i>Finalizando...';
+                        statusBadge.classList.remove('bg-info');
+                        statusBadge.classList.add('bg-success');
+                    }
+                });
+            });
+        });
+    }
+});
+</script>
+{% endif %}
 
 {% endblock %}

@@ -139,6 +139,7 @@ input, textarea, select {
                                 <label class="form-label small fw-bold">Status:</label>
                                 <select class="form-select form-select-sm" id="filterStatus">
                                     <option value="">Todos os Status</option>
+                                    <option value="preenchimento">Em preenchimento</option>
                                     <option value="Aprovado">Aprovado</option>
                                     <option value="Rejeitado">Rejeitado</option>
                                     <option value="Aguardando Aprovação">Aguardando Aprovação</option>
@@ -204,14 +205,20 @@ input, textarea, select {
                                                 {% if report.status == 'Aprovado' %}bg-success
                                                 {% elif report.status == 'Rejeitado' %}bg-danger
                                                 {% elif report.status == 'Aguardando Aprovação' %}bg-warning
+                                                {% elif report.status == 'preenchimento' %}bg-info
                                                 {% else %}bg-secondary{% endif %}">
-                                                {{ report.status }}
+                                                {% if report.status == 'preenchimento' %}Em preenchimento
+                                                {% else %}{{ report.status }}{% endif %}
                                             </span>
                                         </td>
                                         <td>
                                             <div class="btn-group me-1">
                                                 <a href="{{ url_for('edit_report', id=report.id) }}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-eye"></i> Ver
+                                                    {% if report.status == 'preenchimento' %}
+                                                        <i class="fas fa-edit"></i> Continuar
+                                                    {% else %}
+                                                        <i class="fas fa-eye"></i> Ver
+                                                    {% endif %}
                                                 </a>
                                                 <div class="btn-group">
                                                     <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
