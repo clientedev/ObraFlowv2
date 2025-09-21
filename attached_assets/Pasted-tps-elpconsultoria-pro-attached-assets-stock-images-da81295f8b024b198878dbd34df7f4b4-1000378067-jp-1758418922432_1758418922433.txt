@@ -1,0 +1,129 @@
+tps://elpconsultoria.pro/attached_assets/stock_images/da81295f8b024b198878dbd34df7f4b4_1000378067.jpg 404 (Not Found)
+Image
+tryNextPath @ image-error-handler.js:58
+testImg.onerror @ image-error-handler.js:56Understand this error
+058537767906491a81c61d9df2ea6a21_1000378009.jpg:1  GET https://elpconsultoria.pro/attached_assets/stock_images/058537767906491a81c61d9df2ea6a21_1000378009.jpg 404 (Not Found)
+Image
+tryNextPath @ image-error-handler.js:58
+testImg.onerror @ image-error-handler.js:56Understand this error
+b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg:1  GET https://elpconsultoria.pro/attached_assets/stock_images/b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg 404 (Not Found)
+Image
+tryNextPath @ image-error-handler.js:58
+testImg.onerror @ image-error-handler.js:56Understand this error
+19995201f1274659bdb1d2f517cb73d6_1000377851.jpg:1  GET https://elpconsultoria.pro/attached_assets/stock_images/19995201f1274659bdb1d2f517cb73d6_1000377851.jpg 404 (Not Found)
+Image
+tryNextPath @ image-error-handler.js:58
+testImg.onerror @ image-error-handler.js:56Understand this error
+4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg:1  GET https://elpconsultoria.pro/attached_assets/stock_images/4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg 404 (Not Found)
+Image
+tryNextPath @ image-error-handler.js:58
+testImg.onerror @ image-error-handler.js:56Understand this error
+51933dc5852c4783b5d6375396771891_1000378006.jpg:1  GET https://elpconsultoria.pro/attached_assets/generated_images/51933dc5852c4783b5d6375396771891_1000378006.jpg 404 (Not Found)
+Image
+tryNextPath @ image-error-handler.js:58
+testImg.onerror @ image-error-handler.js:56Understand this error
+5fa4bf105d814ca496dac6b42e8e86cf_1000377799.jpg:1  GET https://elpconsultoria.pro/attached_assets/generated_images/5fa4bf105d814ca496dac6b42e8e86cf_1000377799.jpg 404 (Not Found)
+Image
+tryNextPath @ image-error-handler.js:58
+testImg.onerror @ image-error-handler.js:56Understand this error
+da81295f8b024b198878dbd34df7f4b4_1000378067.jpg:1  GET https://elpconsultoria.pro/attached_assets/generated_images/da81295f8b024b198878dbd34df7f4b4_1000378067.jpg 404 (Not Found)
+Image
+tryNextPath @ image-error-handler.js:58
+testImg.onerror @ image-error-handler.js:56Understand this error
+058537767906491a81c61d9df2ea6a21_1000378009.jpg:1  GET https://elpconsultoria.pro/attached_assets/generated_images/058537767906491a81c61d9df2ea6a21_1000378009.jpg 404 (Not Found)
+Image
+tryNextPath @ image-error-handler.js:58
+testImg.onerror @ image-error-handler.js:56Understand this error
+b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg:1  GET https://elpconsultoria.pro/attached_assets/generated_images/b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg 404 (Not Found)
+Image
+tryNextPath @ image-error-handler.js:58
+testImg.onerror @ image-error-handler.js:56Understand this error
+19995201f1274659bdb1d2f517cb73d6_1000377851.jpg:1  GET https://elpconsultoria.pro/attached_assets/generated_images/19995201f1274659bdb1d2f517cb73d6_1000377851.jpg 404 (Not Found)
+Image
+tryNextPath @ image-error-handler.js:58
+testImg.onerror @ image-error-handler.js:56Understand this error
+4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg:1  GET https://elpconsultoria.pro/attached_assets/generated_images/4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg 404 (Not Found)
+Image
+tryNextPath @ image-error-handler.js:58
+testImg.onerror @ image-error-handler.js:56Understand this error
+image-error-handler.js:77 ⚠️ Imagem perdida: 51933dc5852c4783b5d6...
+useImagePlaceholder @ image-error-handler.js:77
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:78 📍 Caminhos testados: (8) ['/uploads/51933dc5852c4783b5d6375396771891_1000378006.jpg', '/attached_assets/51933dc5852c4783b5d6375396771891_1000378006.jpg', '/static/uploads/51933dc5852c4783b5d6375396771891_1000378006.jpg', '/static/img/51933dc5852c4783b5d6375396771891_1000378006.jpg', '/attached_assets/stock_images/51933dc5852c4783b5d6375396771891_1000378006.jpg', '/attached_assets/generated_images/51933dc5852c4783b5d6375396771891_1000378006.jpg', '/uploads/express_51933dc5852c4783b5d6375396771891_1000378006.jpg', '/uploads/relatorio_51933dc5852c4783b5d6375396771891_1000378006.jpg']
+useImagePlaceholder @ image-error-handler.js:78
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:79 🔗 URL original tentada: https://elpconsultoria.pro/uploads/51933dc5852c4783b5d6375396771891_1000378006.jpg
+useImagePlaceholder @ image-error-handler.js:79
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:77 ⚠️ Imagem perdida: 058537767906491a81c6...
+useImagePlaceholder @ image-error-handler.js:77
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:78 📍 Caminhos testados: (8) ['/uploads/058537767906491a81c61d9df2ea6a21_1000378009.jpg', '/attached_assets/058537767906491a81c61d9df2ea6a21_1000378009.jpg', '/static/uploads/058537767906491a81c61d9df2ea6a21_1000378009.jpg', '/static/img/058537767906491a81c61d9df2ea6a21_1000378009.jpg', '/attached_assets/stock_images/058537767906491a81c61d9df2ea6a21_1000378009.jpg', '/attached_assets/generated_images/058537767906491a81c61d9df2ea6a21_1000378009.jpg', '/uploads/express_058537767906491a81c61d9df2ea6a21_1000378009.jpg', '/uploads/relatorio_058537767906491a81c61d9df2ea6a21_1000378009.jpg']
+useImagePlaceholder @ image-error-handler.js:78
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:79 🔗 URL original tentada: https://elpconsultoria.pro/uploads/058537767906491a81c61d9df2ea6a21_1000378009.jpg
+useImagePlaceholder @ image-error-handler.js:79
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:77 ⚠️ Imagem perdida: da81295f8b024b198878...
+useImagePlaceholder @ image-error-handler.js:77
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:78 📍 Caminhos testados: (8) ['/uploads/da81295f8b024b198878dbd34df7f4b4_1000378067.jpg', '/attached_assets/da81295f8b024b198878dbd34df7f4b4_1000378067.jpg', '/static/uploads/da81295f8b024b198878dbd34df7f4b4_1000378067.jpg', '/static/img/da81295f8b024b198878dbd34df7f4b4_1000378067.jpg', '/attached_assets/stock_images/da81295f8b024b198878dbd34df7f4b4_1000378067.jpg', '/attached_assets/generated_images/da81295f8b024b198878dbd34df7f4b4_1000378067.jpg', '/uploads/express_da81295f8b024b198878dbd34df7f4b4_1000378067.jpg', '/uploads/relatorio_da81295f8b024b198878dbd34df7f4b4_1000378067.jpg']
+useImagePlaceholder @ image-error-handler.js:78
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:79 🔗 URL original tentada: https://elpconsultoria.pro/uploads/da81295f8b024b198878dbd34df7f4b4_1000378067.jpg
+useImagePlaceholder @ image-error-handler.js:79
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:77 ⚠️ Imagem perdida: 5fa4bf105d814ca496da...
+useImagePlaceholder @ image-error-handler.js:77
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:78 📍 Caminhos testados: (8) ['/uploads/5fa4bf105d814ca496dac6b42e8e86cf_1000377799.jpg', '/attached_assets/5fa4bf105d814ca496dac6b42e8e86cf_1000377799.jpg', '/static/uploads/5fa4bf105d814ca496dac6b42e8e86cf_1000377799.jpg', '/static/img/5fa4bf105d814ca496dac6b42e8e86cf_1000377799.jpg', '/attached_assets/stock_images/5fa4bf105d814ca496dac6b42e8e86cf_1000377799.jpg', '/attached_assets/generated_images/5fa4bf105d814ca496dac6b42e8e86cf_1000377799.jpg', '/uploads/express_5fa4bf105d814ca496dac6b42e8e86cf_1000377799.jpg', '/uploads/relatorio_5fa4bf105d814ca496dac6b42e8e86cf_1000377799.jpg']
+useImagePlaceholder @ image-error-handler.js:78
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:79 🔗 URL original tentada: https://elpconsultoria.pro/uploads/5fa4bf105d814ca496dac6b42e8e86cf_1000377799.jpg
+useImagePlaceholder @ image-error-handler.js:79
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:77 ⚠️ Imagem perdida: b9d5a21275b04e16a540...
+useImagePlaceholder @ image-error-handler.js:77
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:78 📍 Caminhos testados: (8) ['/uploads/b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg', '/attached_assets/b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg', '/static/uploads/b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg', '/static/img/b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg', '/attached_assets/stock_images/b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg', '/attached_assets/generated_images/b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg', '/uploads/express_b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg', '/uploads/relatorio_b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg']
+useImagePlaceholder @ image-error-handler.js:78
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:79 🔗 URL original tentada: https://elpconsultoria.pro/uploads/b9d5a21275b04e16a54055c0498ee33b_1000377796.jpg
+useImagePlaceholder @ image-error-handler.js:79
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:77 ⚠️ Imagem perdida: 4ba1e47d0f7543ff82e5...
+useImagePlaceholder @ image-error-handler.js:77
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:78 📍 Caminhos testados: (8) ['/uploads/4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg', '/attached_assets/4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg', '/static/uploads/4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg', '/static/img/4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg', '/attached_assets/stock_images/4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg', '/attached_assets/generated_images/4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg', '/uploads/express_4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg', '/uploads/relatorio_4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg']
+useImagePlaceholder @ image-error-handler.js:78
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:79 🔗 URL original tentada: https://elpconsultoria.pro/uploads/4ba1e47d0f7543ff82e58f5f5769e5cd_1000377853.jpg
+useImagePlaceholder @ image-error-handler.js:79
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:77 ⚠️ Imagem perdida: 19995201f1274659bdb1...
+useImagePlaceholder @ image-error-handler.js:77
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:78 📍 Caminhos testados: (8) ['/uploads/19995201f1274659bdb1d2f517cb73d6_1000377851.jpg', '/attached_assets/19995201f1274659bdb1d2f517cb73d6_1000377851.jpg', '/static/uploads/19995201f1274659bdb1d2f517cb73d6_1000377851.jpg', '/static/img/19995201f1274659bdb1d2f517cb73d6_1000377851.jpg', '/attached_assets/stock_images/19995201f1274659bdb1d2f517cb73d6_1000377851.jpg', '/attached_assets/generated_images/19995201f1274659bdb1d2f517cb73d6_1000377851.jpg', '/uploads/express_19995201f1274659bdb1d2f517cb73d6_1000377851.jpg', '/uploads/relatorio_19995201f1274659bdb1d2f517cb73d6_1000377851.jpg']
+useImagePlaceholder @ image-error-handler.js:78
+tryNextPath @ image-error-handler.js:61
+testImg.onerror @ image-error-handler.js:56Understand this warning
+image-error-handler.js:79 🔗 URL original tentada: 
