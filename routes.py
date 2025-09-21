@@ -1951,6 +1951,75 @@ def debug_image(filename):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/recover-image', methods=['POST'])
+@login_required
+def api_recover_image():
+    """API para recuperação automática de imagens"""
+    try:
+        data = request.get_json()
+        filename = data.get('filename')
+        
+        if not filename:
+            return jsonify({'success': False, 'error': 'Filename não fornecido'})
+        
+        current_app.logger.info(f"🔄 TENTATIVA DE RECUPERAÇÃO: {filename}")
+        
+        # Diretórios para buscar
+        uploads_dir = app.config.get('UPLOAD_FOLDER', 'uploads')
+        attached_assets_dir = 'attached_assets'
+        
+        uploads_path = os.path.join(uploads_dir, filename)
+        
+        # Se já existe em uploads, retornar sucesso
+        if os.path.exists(uploads_path):
+            return jsonify({
+                'success': True,
+                'message': 'Arquivo já existe em uploads',
+                'source': 'already_exists'
+            })
+        
+        # Buscar em attached_assets
+        if os.path.exists(attached_assets_dir):
+            for root, dirs, files in os.walk(attached_assets_dir):
+                if filename in files:
+                    source_path = os.path.join(root, filename)
+                    try:
+                        import shutil
+                        # Garantir que diretório uploads existe
+                        os.makedirs(uploads_dir, exist_ok=True)
+                        
+                        # Copiar arquivo
+                        shutil.copy2(source_path, uploads_path)
+                        
+                        current_app.logger.info(f"✅ IMAGEM RECUPERADA: {filename} de {root}")
+                        
+                        return jsonify({
+                            'success': True,
+                            'message': f'Arquivo migrado de {root}',
+                            'source': 'migrated_from_attached_assets'
+                        })
+                    except Exception as copy_error:
+                        current_app.logger.error(f"❌ Erro ao copiar {filename}: {copy_error}")
+                        return jsonify({
+                            'success': False,
+                            'error': f'Erro ao copiar arquivo: {str(copy_error)}'
+                        })
+        
+        # Arquivo não encontrado
+        current_app.logger.warning(f"❌ ARQUIVO NÃO ENCONTRADO PARA RECUPERAÇÃO: {filename}")
+        return jsonify({
+            'success': False,
+            'error': 'Arquivo não encontrado em nenhum local',
+            'searched_locations': [uploads_dir, attached_assets_dir]
+        })
+        
+    except Exception as e:
+        current_app.logger.exception(f"❌ ERRO NA API DE RECUPERAÇÃO")
+        return jsonify({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }), 500
+
 @app.route('/check-specific-image')
 @login_required
 def check_specific_image():
@@ -3194,94 +3263,120 @@ def reimbursement_new():
 # File serving (unique function)
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    """Servir imagens do banco PostgreSQL Railway - VERSÃO CORRIGIDA"""
+    """Servir imagens com verificação manual de autenticação - VERSÃO RAILWAY OTIMIZADA"""
     try:
-        # Verificação de autenticação
+        # Verificação manual de autenticação (sem decorator para evitar 302)
         from flask_login import current_user
-        if not current_user.is_authenticated:
-            return serve_placeholder_image(filename, "Faça login para ver imagens")
+        import logging
+        
+        # Log detalhado para debugging
+        current_app.logger.info(f"🔍 SOLICITAÇÃO IMAGEM: {filename}")
+        current_app.logger.info(f"🔐 STATUS AUTH: authenticated={current_user.is_authenticated if current_user else False}")
+        
+        # Se não autenticado, servir placeholder sem redirecionar
+        if not current_user or not current_user.is_authenticated:
+            current_app.logger.warning(f"⚠️ USUÁRIO NÃO AUTENTICADO para imagem: {filename}")
+            return serve_placeholder_image(filename, "Login necessário para visualizar imagens")
 
         # Validar filename
         if not filename or filename in ['undefined', 'null', '', 'None']:
+            current_app.logger.error(f"❌ FILENAME INVÁLIDO: {repr(filename)}")
             return serve_placeholder_image('arquivo_invalido', "Nome de arquivo inválido")
 
-        current_app.logger.info(f"🔍 BUSCANDO NO BANCO: {filename}")
+        current_app.logger.info(f"🔍 INICIANDO BUSCA: {filename}")
 
         # Buscar no banco PostgreSQL primeiro
         from models import FotoRelatorio, FotoRelatorioExpress
 
+        # Definir diretórios de busca (priorizar uploads)
+        search_directories = [
+            ('uploads', app.config.get('UPLOAD_FOLDER', 'uploads')),
+            ('attached_assets', 'attached_assets'),
+            ('static_uploads', os.path.join('static', 'uploads'))
+        ]
+
         # Tentar encontrar nos relatórios normais
-        foto_normal = FotoRelatorio.query.filter_by(filename=filename).first()
-        if foto_normal:
-            current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Relatório {foto_normal.relatorio_id}): {filename}")
-
-            # Verificar múltiplos locais para o arquivo
-            search_paths = [
-                os.path.join(app.config.get('UPLOAD_FOLDER', 'uploads'), filename),
-                os.path.join('attached_assets', filename),
-                os.path.join('static', 'uploads', filename)
-            ]
-
-            for filepath in search_paths:
-                if os.path.exists(filepath):
-                    current_app.logger.info(f"✅ ARQUIVO ENCONTRADO EM: {filepath}")
-                    content_type = get_content_type(filename)
-                    response = send_from_directory(os.path.dirname(filepath), os.path.basename(filename))
-                    response.headers['Content-Type'] = content_type
-                    response.headers['Cache-Control'] = 'public, max-age=3600'
-                    return response
-
-            # Arquivo não encontrado em nenhum local
-            current_app.logger.warning(f"⚠️ ARQUIVO NO BANCO MAS NÃO ENCONTRADO EM NENHUM LOCAL: {filename}")
-            return serve_placeholder_image(filename, f"Imagem existe no banco mas arquivo físico não encontrado")
+        try:
+            foto_normal = FotoRelatorio.query.filter_by(filename=filename).first()
+            if foto_normal:
+                current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Relatório {foto_normal.relatorio_id}): {filename}")
+                
+                # Buscar arquivo físico
+                for dir_name, dir_path in search_directories:
+                    filepath = os.path.join(dir_path, filename)
+                    if os.path.exists(filepath):
+                        current_app.logger.info(f"✅ ARQUIVO FÍSICO ENCONTRADO EM {dir_name}: {filepath}")
+                        try:
+                            content_type = get_content_type(filename)
+                            response = send_from_directory(dir_path, filename)
+                            response.headers['Content-Type'] = content_type
+                            response.headers['Cache-Control'] = 'public, max-age=3600'
+                            response.headers['X-Image-Source'] = f'normal_report_{dir_name}'
+                            return response
+                        except Exception as send_error:
+                            current_app.logger.error(f"❌ Erro ao enviar arquivo de {dir_path}: {send_error}")
+                            continue
+                
+                # Se chegou aqui, arquivo existe no banco mas não no filesystem
+                current_app.logger.warning(f"⚠️ ARQUIVO NO BANCO MAS NÃO ENCONTRADO FISICAMENTE: {filename}")
+                return serve_placeholder_image(filename, "Imagem registrada no banco mas arquivo físico perdido")
+        except Exception as db_error:
+            current_app.logger.error(f"❌ Erro ao buscar foto normal no banco: {db_error}")
 
         # Tentar encontrar nos relatórios express
-        foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
-        if foto_express:
-            current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Express {foto_express.relatorio_express_id}): {filename}")
+        try:
+            foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
+            if foto_express:
+                current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Express {foto_express.relatorio_express_id}): {filename}")
+                
+                # Buscar arquivo físico
+                for dir_name, dir_path in search_directories:
+                    filepath = os.path.join(dir_path, filename)
+                    if os.path.exists(filepath):
+                        current_app.logger.info(f"✅ ARQUIVO EXPRESS FÍSICO ENCONTRADO EM {dir_name}: {filepath}")
+                        try:
+                            content_type = get_content_type(filename)
+                            response = send_from_directory(dir_path, filename)
+                            response.headers['Content-Type'] = content_type
+                            response.headers['Cache-Control'] = 'public, max-age=3600'
+                            response.headers['X-Image-Source'] = f'express_report_{dir_name}'
+                            return response
+                        except Exception as send_error:
+                            current_app.logger.error(f"❌ Erro ao enviar arquivo express de {dir_path}: {send_error}")
+                            continue
+                
+                # Se chegou aqui, arquivo existe no banco mas não no filesystem
+                current_app.logger.warning(f"⚠️ ARQUIVO EXPRESS NO BANCO MAS NÃO ENCONTRADO FISICAMENTE: {filename}")
+                return serve_placeholder_image(filename, "Imagem express registrada no banco mas arquivo físico perdido")
+        except Exception as db_error:
+            current_app.logger.error(f"❌ Erro ao buscar foto express no banco: {db_error}")
 
-            # Verificar múltiplos locais para o arquivo
-            search_paths = [
-                os.path.join(app.config.get('UPLOAD_FOLDER', 'uploads'), filename),
-                os.path.join('attached_assets', filename),
-                os.path.join('static', 'uploads', filename)
-            ]
-
-            for filepath in search_paths:
-                if os.path.exists(filepath):
-                    current_app.logger.info(f"✅ ARQUIVO ENCONTRADO EM: {filepath}")
-                    content_type = get_content_type(filename)
-                    response = send_from_directory(os.path.dirname(filepath), os.path.basename(filename))
-                    response.headers['Content-Type'] = content_type
-                    response.headers['Cache-Control'] = 'public, max-age=3600'
-                    return response
-
-            # Arquivo não encontrado em nenhum local
-            current_app.logger.warning(f"⚠️ ARQUIVO EXPRESS NO BANCO MAS NÃO ENCONTRADO EM NENHUM LOCAL: {filename}")
-            return serve_placeholder_image(filename, f"Imagem express existe no banco mas arquivo físico não encontrado")
-
-        # Não encontrado no banco
+        # Não encontrado no banco - tentar busca física direta
         current_app.logger.warning(f"❌ IMAGEM NÃO ENCONTRADA NO BANCO: {filename}")
+        
+        # Busca física direta como fallback
+        for dir_name, dir_path in search_directories:
+            if os.path.exists(dir_path):
+                filepath = os.path.join(dir_path, filename)
+                if os.path.exists(filepath):
+                    current_app.logger.info(f"🔄 ARQUIVO ENCONTRADO SEM REGISTRO NO BANCO em {dir_name}: {filepath}")
+                    try:
+                        content_type = get_content_type(filename)
+                        response = send_from_directory(dir_path, filename)
+                        response.headers['Content-Type'] = content_type
+                        response.headers['Cache-Control'] = 'public, max-age=1800'  # Cache menor para arquivos órfãos
+                        response.headers['X-Image-Source'] = f'orphan_{dir_name}'
+                        return response
+                    except Exception as send_error:
+                        current_app.logger.error(f"❌ Erro ao enviar arquivo órfão: {send_error}")
 
-        # Tentar buscar em attached_assets como fallback
-        attached_assets_path = os.path.join('attached_assets', filename)
-        if os.path.exists(attached_assets_path):
-            try:
-                current_app.logger.info(f"🔄 TENTANDO RECUPERAR DE attached_assets: {filename}")
-                content_type = get_content_type(filename)
-                response = send_from_directory('attached_assets', filename)
-                response.headers['Content-Type'] = content_type
-                response.headers['Cache-Control'] = 'public, max-age=3600'
-                return response
-            except Exception as recover_error:
-                current_app.logger.error(f"❌ Erro ao servir de attached_assets: {str(recover_error)}")
-
-        # Arquivo não encontrado em lugar nenhum
-        return serve_placeholder_image(filename, f"Imagem não encontrada no banco nem no filesystem")
+        # Arquivo completamente não encontrado
+        current_app.logger.error(f"❌ ARQUIVO COMPLETAMENTE NÃO ENCONTRADO: {filename}")
+        return serve_placeholder_image(filename, "Imagem não encontrada em nenhum local")
 
     except Exception as e:
-        current_app.logger.error(f"❌ ERRO CRÍTICO ao servir {filename}: {str(e)}")
-        return serve_placeholder_image(filename, f"Erro do servidor: {str(e)}")
+        current_app.logger.exception(f"❌ ERRO CRÍTICO ao servir imagem {filename}")
+        return serve_placeholder_image(filename, f"Erro interno do servidor: {str(e)}")
 
 def get_content_type(filename):
     """Determinar content type baseado na extensão"""
