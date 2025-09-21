@@ -17,13 +17,13 @@
                 <a href="{{ url_for('generate_pdf_report', id=relatorio.id) }}" class="btn btn-outline-info btn-sm btn-md-normal" target="_blank">
                     <i class="fas fa-file-pdf me-1 me-md-2"></i><span class="d-none d-sm-inline">Visualizar </span>PDF
                 </a>
-                
+
                 <a href="{{ url_for('reports') }}" class="btn btn-secondary btn-sm btn-md-normal">
                     <i class="fas fa-arrow-left me-1 me-md-2"></i>Voltar
                 </a>
             </div>
         </div>
-        
+
         <!-- Data do Relatório no Topo da Página -->
         <div class="mb-4">
             <div class="alert alert-light border-0 mb-0 py-2">
@@ -60,7 +60,7 @@
                             <span class="badge bg-secondary fs-6">{{ relatorio.status }}</span>
                         {% endif %}
                     </div>
-                    
+
                     <div>
                         {% if relatorio.status == 'Aguardando Aprovação' %}
                             <span class="text-warning">
@@ -115,7 +115,7 @@
                         <p><strong>Criado em:</strong> {{ relatorio.created_at.strftime('%d/%m/%Y às %H:%M') }}</p>
                     </div>
                 </div>
-                
+
                 {% if relatorio.conteudo %}
                 <div class="mt-3">
                     <strong>Conteúdo:</strong>
@@ -127,7 +127,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-4">
         <div class="card">
             <div class="card-header">
@@ -259,7 +259,7 @@
                         <strong>Atenção:</strong> Ao reprovar este relatório, ele voltará para o status "Em edição" 
                         e o autor receberá uma notificação com o motivo da reprovação.
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="comentario_reprovacao" class="form-label">
                             <strong>Motivo da reprovação *</strong>
@@ -291,7 +291,7 @@
 // Image modal functionality
 document.addEventListener('DOMContentLoaded', function() {
     const images = document.querySelectorAll('.card-img-top');
-    
+
     images.forEach(img => {
         img.style.cursor = 'pointer';
         img.addEventListener('click', function() {
@@ -310,11 +310,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             `;
-            
+
             document.body.appendChild(modal);
             const bootstrapModal = new bootstrap.Modal(modal);
             bootstrapModal.show();
-            
+
             modal.addEventListener('hidden.bs.modal', function() {
                 document.body.removeChild(modal);
             });
@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('comentario_reprovacao').focus();
                 return false;
             }
-            
+
             if (!confirm('Tem certeza que deseja REPROVAR este relatório? O autor será notificado e o relatório voltará para edição.')) {
                 e.preventDefault();
                 return false;

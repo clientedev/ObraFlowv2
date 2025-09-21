@@ -2835,32 +2835,34 @@ def uploaded_file(filename):
                 return send_from_directory(directory, basename)
         
         # Se não encontrou o arquivo em lugar nenhum
-        current_app.logger.warning(f"⚠️ Arquivo não encontrado em nenhuma localização: {filename}")
+        current_app.logger.warning(f"⚠️ Arquivo não encontrado: {filename}")
         
-        # Buscar no banco se a foto existe
+        # Buscar no banco se a foto existe e sugerir recuperação
         try:
             from models import FotoRelatorio, FotoRelatorioExpress
             
             # Verificar se existe no banco de relatórios normais
             foto_normal = FotoRelatorio.query.filter_by(filename=filename).first()
             if foto_normal:
-                current_app.logger.info(f"📸 Foto existe no BD (relatório {foto_normal.relatorio_id}) mas arquivo físico não encontrado: {filename}")
+                current_app.logger.info(f"📸 Foto no BD (relatório {foto_normal.relatorio_id}) - arquivo perdido: {filename}")
+                current_app.logger.info(f"💡 Sugestão: Execute 'python recovery_script.py' para recuperar")
             
             # Verificar se existe no banco de relatórios express
             foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
             if foto_express:
-                current_app.logger.info(f"📸 Foto existe no BD (relatório express {foto_express.relatorio_express_id}) mas arquivo físico não encontrado: {filename}")
+                current_app.logger.info(f"📸 Foto no BD (express {foto_express.relatorio_express_id}) - arquivo perdido: {filename}")
+                current_app.logger.info(f"💡 Sugestão: Execute 'python recovery_script.py' para recuperar")
                 
         except Exception as db_error:
-            current_app.logger.error(f"Erro ao verificar foto no BD: {str(db_error)}")
+            current_app.logger.error(f"❌ Erro ao verificar foto no BD: {str(db_error)}")
         
-        return serve_placeholder_image()
+        return serve_placeholder_image(filename)
         
     except Exception as e:
         current_app.logger.error(f"❌ Erro crítico ao servir arquivo {filename}: {str(e)}")
         return serve_placeholder_image()
 
-def serve_placeholder_image():
+def serve_placeholder_image(filename=None):
     """Serve uma imagem placeholder quando o arquivo não é encontrado"""
     try:
         # Tentar placeholder estático primeiro
@@ -2875,12 +2877,16 @@ def serve_placeholder_image():
             from flask import Response
             return Response(placeholder_data, mimetype='image/png')
         
-        # SVG placeholder como último recurso
-        svg_placeholder = '''
+        # SVG placeholder como último recurso com nome do arquivo se disponível
+        file_info = f"Arquivo: {filename[:30]}..." if filename and len(filename) > 30 else f"Arquivo: {filename}" if filename else "Imagem não encontrada"
+        
+        svg_placeholder = f'''
         <svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
             <rect width="100%" height="100%" fill="#f8f9fa"/>
-            <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="14" 
+            <text x="50%" y="40%" font-family="Arial, sans-serif" font-size="12" 
                   fill="#6c757d" text-anchor="middle" dy=".3em">Imagem não encontrada</text>
+            <text x="50%" y="60%" font-family="Arial, sans-serif" font-size="10" 
+                  fill="#6c757d" text-anchor="middle" dy=".3em">{file_info}</text>
         </svg>
         '''
         from flask import Response
