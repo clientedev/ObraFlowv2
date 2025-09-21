@@ -22,20 +22,52 @@ function handleImageError(img) {
         img.dataset.originalSrc = originalSrc;
     }
 
-    // Tentar placeholder local primeiro
-    img.src = '/static/img/no-image.png';
-    img.alt = `Imagem não encontrada: ${filename}`;
-    img.title = `Arquivo de imagem não localizado: ${filename}`;
+    // Tentar diferentes caminhos antes do placeholder
+    const alternativePaths = [
+        `/attached_assets/${filename}`,
+        `/static/uploads/${filename}`,
+        `/uploads/${filename}`
+    ];
 
-    // Adicionar classe de erro e informações visuais
-    img.classList.add('image-error');
-    img.style.border = '2px dashed #dc3545';
-    img.style.opacity = '0.7';
+    let pathIndex = 0;
     
-    // Log para admin/debug
-    if (filename.length > 20) {
-        console.warn(`⚠️ Imagem perdida: ${filename.substring(0, 20)}...`);
+    function tryNextPath() {
+        if (pathIndex < alternativePaths.length) {
+            const testImg = new Image();
+            testImg.onload = function() {
+                // Sucesso - usar este caminho
+                img.src = alternativePaths[pathIndex];
+                console.log(`✅ Imagem encontrada em: ${alternativePaths[pathIndex]}`);
+            };
+            testImg.onerror = function() {
+                pathIndex++;
+                tryNextPath();
+            };
+            testImg.src = alternativePaths[pathIndex];
+        } else {
+            // Nenhum caminho funcionou - usar placeholder
+            useImagePlaceholder();
+        }
     }
+    
+    function useImagePlaceholder() {
+        img.src = '/static/img/no-image.png';
+        img.alt = `Imagem não encontrada: ${filename}`;
+        img.title = `Arquivo de imagem não localizado: ${filename}`;
+
+        // Adicionar classe de erro e informações visuais
+        img.classList.add('image-error');
+        img.style.border = '2px dashed #dc3545';
+        img.style.opacity = '0.7';
+        
+        // Log para admin/debug
+        if (filename.length > 20) {
+            console.warn(`⚠️ Imagem perdida: ${filename.substring(0, 20)}...`);
+        }
+    }
+    
+    // Iniciar tentativas de caminhos alternativos
+    tryNextPath();
 }
 
 // Aplicar handler global quando DOM carregar

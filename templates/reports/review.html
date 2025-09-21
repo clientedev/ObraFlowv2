@@ -211,11 +211,14 @@
                                 <img src="{{ url_for('uploaded_file', filename=foto.filename) }}" 
                                      class="card-img-top" 
                                      style="height: 150px !important; object-fit: cover !important; width: 100% !important;" 
-                                     alt="{{ foto.titulo or 'Foto do relatório' }}"
-                                     onerror="this.onerror=null; this.src='/static/img/no-image.png'; this.alt='Imagem não encontrada'; console.log('Imagem não encontrada: ' + this.dataset.originalSrc || this.src);" 
+                                     alt="{{ foto.legenda or foto.titulo or 'Foto do relatório' }}"
+                                     onerror="handleImageError(this);" 
                                      data-original-src="{{ url_for('uploaded_file', filename=foto.filename) }}"
+                                     loading="lazy">
                                 <div class="card-body p-2">
-                                    {% if foto.titulo %}
+                                    {% if foto.legenda %}
+                                        <h6 class="card-title small mb-1">{{ foto.legenda }}</h6>
+                                    {% elif foto.titulo %}
                                         <h6 class="card-title small mb-1">{{ foto.titulo }}</h6>
                                     {% endif %}
                                     {% if foto.tipo_servico %}

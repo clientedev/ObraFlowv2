@@ -2819,12 +2819,12 @@ def uploaded_file(filename):
         
         upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
         
-        # Tentar diferentes localizações
+        # Tentar diferentes localizações na ordem de prioridade
         possible_paths = [
             os.path.join(upload_folder, filename),
             os.path.join('uploads', filename),
-            os.path.join('static', 'uploads', filename),
-            os.path.join('attached_assets', filename)
+            os.path.join('attached_assets', filename),
+            os.path.join('static', 'uploads', filename)
         ]
         
         for file_path in possible_paths:
@@ -2832,7 +2832,13 @@ def uploaded_file(filename):
                 directory = os.path.dirname(file_path)
                 basename = os.path.basename(file_path)
                 current_app.logger.info(f"✅ Arquivo encontrado: {file_path}")
-                return send_from_directory(directory, basename)
+                
+                # Verificar se é uma imagem válida
+                if basename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                    return send_from_directory(directory, basename)
+                else:
+                    current_app.logger.warning(f"⚠️ Arquivo não é uma imagem válida: {filename}")
+                    return serve_placeholder_image(filename)
         
         # Se não encontrou o arquivo em lugar nenhum
         current_app.logger.warning(f"⚠️ Arquivo não encontrado: {filename}")

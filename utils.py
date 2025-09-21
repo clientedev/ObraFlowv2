@@ -104,7 +104,7 @@ def normalize_address(address):
     """Normalize address by expanding common abbreviations"""
     if not address or not isinstance(address, str):
         return address
-    
+
     # Dictionary of common Brazilian address abbreviations
     rules = {
         # Street types
@@ -129,21 +129,21 @@ def normalize_address(address):
         r'\bQt\.': 'Quadra',
         r'\bLt\.': 'Lote',
     }
-    
+
     normalized = address.strip()
     original = normalized
-    
+
     # Apply normalization rules
     for pattern, replacement in rules.items():
         normalized = re.sub(pattern, replacement, normalized, flags=re.IGNORECASE)
-    
+
     # Clean up multiple spaces
     normalized = re.sub(r'\s+', ' ', normalized).strip()
-    
+
     # Log transformation if there was a change
     if original != normalized:
         print(f"📍 ENDEREÇO NORMALIZADO: '{original}' → '{normalized}'")
-    
+
     return normalized
 
 
@@ -254,46 +254,6 @@ def format_coordinates_display(latitude, longitude):
         return f"Latitude: {latitude}, Longitude: {longitude}"
 
 # Utility functions for number generation
-def generate_placeholder_image():
-    """Gera uma imagem placeholder dinamicamente"""
-    try:
-        from PIL import Image, ImageDraw, ImageFont
-        import io
-        
-        # Criar imagem de 200x150 pixels
-        img = Image.new('RGB', (200, 150), color='#f8f9fa')
-        draw = ImageDraw.Draw(img)
-        
-        # Tentar usar fonte padrão
-        try:
-            font = ImageFont.load_default()
-        except:
-            font = None
-        
-        # Adicionar texto
-        text = "Imagem não\nencontrada"
-        if font:
-            # Calcular posição para centralizar o texto
-            text_bbox = draw.textbbox((0, 0), text, font=font)
-            text_width = text_bbox[2] - text_bbox[0]
-            text_height = text_bbox[3] - text_bbox[1]
-            position = ((200 - text_width) // 2, (150 - text_height) // 2)
-            draw.text(position, text, fill='#6c757d', font=font)
-        else:
-            # Fallback sem fonte
-            draw.text((50, 65), text, fill='#6c757d')
-        
-        # Converter para bytes
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
-        img_bytes.seek(0)
-        
-        return img_bytes.getvalue()
-        
-    except Exception as e:
-        print(f"Erro ao gerar placeholder: {e}")
-        return None
-
 def generate_project_number():
     """Generate sequential project number"""
     from models import Projeto
@@ -413,38 +373,76 @@ def calculate_reimbursement_total(reembolso):
         return 0
 
 
-def generate_placeholder_image():
-    """Gerar imagem placeholder dinamicamente se não existir"""
+def generate_placeholder_image(filename=None):
+    """Gerar placeholder dinâmico se não existir arquivo estático"""
     try:
         from PIL import Image, ImageDraw, ImageFont
         import io
-        
-        # Criar imagem 200x150
-        img = Image.new('RGB', (200, 150), color='#f8f9fa')
+
+        # Criar imagem placeholder
+        width, height = 200, 150
+        img = Image.new('RGB', (width, height), color='#f8f9fa')
         draw = ImageDraw.Draw(img)
-        
-        # Adicionar texto
+
+        # Texto principal
+        main_text = "Imagem não encontrada"
+
+        # Texto do arquivo
+        if filename:
+            file_text = filename[:30] + "..." if len(filename) > 30 else filename
+        else:
+            file_text = "Arquivo não localizado"
+
+        # Desenhar textos
         try:
-            font = ImageFont.truetype('arial.ttf', 14)
+            # Tentar usar fonte padrão
+            font_main = ImageFont.load_default()
+            font_small = ImageFont.load_default()
         except:
-            font = ImageFont.load_default()
-        
-        text = "Imagem não encontrada"
-        bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-        
-        x = (200 - text_width) // 2
-        y = (150 - text_height) // 2
-        
-        draw.text((x, y), text, fill='#6c757d', font=font)
-        
-        # Salvar em buffer
-        buffer = io.BytesIO()
-        img.save(buffer, format='PNG')
-        buffer.seek(0)
-        
-        return buffer.getvalue()
-    except ImportError:
-        # Fallback se PIL não estiver disponível
-        return None
+            font_main = font_small = None
+
+        # Calcular posições centralizadas
+        if font_main:
+            bbox_main = draw.textbbox((0, 0), main_text, font=font_main)
+            text_width_main = bbox_main[2] - bbox_main[0]
+            text_height_main = bbox_main[3] - bbox_main[1]
+
+            bbox_small = draw.textbbox((0, 0), file_text, font=font_small)
+            text_width_small = bbox_small[2] - bbox_small[0]
+            text_height_small = bbox_small[3] - bbox_small[1]
+        else:
+            text_width_main = len(main_text) * 6
+            text_height_main = 12
+            text_width_small = len(file_text) * 5
+            text_height_small = 10
+
+        x_main = (width - text_width_main) // 2
+        y_main = (height - text_height_main) // 2 - 10
+
+        x_small = (width - text_width_small) // 2
+        y_small = y_main + text_height_main + 5
+
+        # Desenhar textos
+        draw.text((x_main, y_main), main_text, fill='#6c757d', font=font_main)
+        draw.text((x_small, y_small), file_text, fill='#6c757d', font=font_small)
+
+        # Salvar em bytes
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format='PNG')
+        img_bytes.seek(0)
+
+        return img_bytes.getvalue()
+
+    except Exception as e:
+        # Fallback para SVG se PIL não estiver disponível
+        file_info = filename[:30] + "..." if filename and len(filename) > 30 else filename if filename else "Arquivo não localizado"
+
+        svg_placeholder = f'''<svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="#f8f9fa"/>
+            <text x="50%" y="40%" font-family="Arial, sans-serif" font-size="12" 
+                  fill="#6c757d" text-anchor="middle" dy=".3em">Imagem não encontrada</text>
+            <text x="50%" y="60%" font-family="Arial, sans-serif" font-size="10" 
+                  fill="#6c757d" text-anchor="middle" dy=".3em">{file_info}</text>
+        </svg>'''
+
+        return svg_placeholder.encode('utf-8')
