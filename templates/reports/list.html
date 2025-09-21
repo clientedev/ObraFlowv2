@@ -187,8 +187,8 @@
                                                         </ul>
                                                     </div>
 
-                                                    <!-- Ações de administrador -->
-                                                    {% if current_user.is_master %}
+                                                    <!-- Ações de aprovação -->
+                                                    {% if current_user_is_aprovador(report.projeto_id) %}
                                                         {% if report.status == 'Aguardando Aprovação' %}
                                                         <div class="d-flex gap-1">
                                                             <a href="{{ url_for('approve_report', id=report.id) }}" class="btn btn-sm btn-success flex-fill" title="Aprovar">
@@ -199,6 +199,10 @@
                                                             </a>
                                                         </div>
                                                         {% endif %}
+                                                    {% endif %}
+                                                    
+                                                    <!-- Ações de administrador -->
+                                                    {% if current_user.is_master %}
                                                         <a href="{{ url_for('delete_report', id=report.id) }}" class="btn btn-sm btn-outline-danger w-100"
                                                            onclick="return confirm('Excluir relatório {{ report.numero or 'este' }}? Esta ação não pode ser desfeita.')">
                                                             <i class="fas fa-trash me-1"></i>Excluir

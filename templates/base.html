@@ -98,7 +98,7 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('reports') }}">Listar Relatórios</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('create_report') }}">Novo Relatório</a></li>
-                            {% if current_user.is_master %}
+                            {% if current_user_is_aprovador() %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('pending_reports') }}">
                                 <i class="fas fa-clock me-1"></i>Aguardando Aprovação
