@@ -2809,209 +2809,42 @@ def reimbursement_new():
 # File serving (unique function)
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    """Servir arquivos de upload com verificação robusta e fallback melhorado"""
+    """Servir arquivos de upload de forma simplificada"""
     try:
-        # Verificação de autenticação mais flexível para debugging
+        # Verificação de autenticação
         from flask_login import current_user
         if not current_user.is_authenticated:
-            current_app.logger.warning(f"⚠️ Tentativa de acesso não autenticada para: {filename}")
-            current_app.logger.warning(f"⚠️ User-Agent: {request.headers.get('User-Agent', 'N/A')}")
-            current_app.logger.warning(f"⚠️ Referer: {request.headers.get('Referer', 'N/A')}")
-            current_app.logger.warning(f"⚠️ Remote Addr: {request.remote_addr}")
-            
-            # Em ambiente Railway, pode haver problemas de proxy/session
-            # Vamos servir um placeholder em vez de redirecionar para login
+            # Para imagens, servir placeholder em vez de redirecionar
             if request.headers.get('Accept', '').startswith('image/') or filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-                current_app.logger.info(f"🖼️ Servindo placeholder para imagem não autenticada: {filename}")
                 return serve_placeholder_image(filename)
             else:
-                # Para outros tipos de arquivo, redireciona para login
                 return redirect(url_for('login', next=request.url))
-        
-        current_app.logger.info(f"✅ Usuário autenticado acessando: {filename}")
         
         # Verificar se filename é válido
         if not filename or filename == 'undefined' or filename == 'null':
-            current_app.logger.warning(f"Filename inválido: {filename}")
             return serve_placeholder_image()
         
-        current_app.logger.info(f"🔍 Buscando arquivo: {filename}")
-        
         upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+        file_path = os.path.join(upload_folder, filename)
         
-        # Lista expandida de localizações possíveis
-        possible_paths = [
-            # Localizações padrão
-            os.path.join(upload_folder, filename),
-            os.path.join('uploads', filename),
-            os.path.join('attached_assets', filename),
-            os.path.join('static', 'uploads', filename),
-            
-            # Subpastas do attached_assets
-            os.path.join('attached_assets', 'stock_images', filename),
-            os.path.join('attached_assets', 'generated_images', filename),
-            
-            # Busca com prefixos comuns
-            os.path.join(upload_folder, f'express_{filename}'),
-            os.path.join(upload_folder, f'relatorio_{filename}'),
-            
-            # Busca recursiva em attached_assets
-            *_find_file_recursively('attached_assets', filename),
-            
-            # Busca adicional em todas as subpastas de attached_assets
-            *_scan_attached_assets_for_file(filename)
-        ]
+        # Verificar se arquivo existe no local correto
+        if os.path.exists(file_path):
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                return send_from_directory(upload_folder, filename)
+            else:
+                return serve_placeholder_image(filename)
         
-        # Log dos caminhos sendo testados para debug
-        current_app.logger.debug(f"📁 Testando {len(possible_paths)} caminhos para {filename}")
-        
-        for file_path in possible_paths:
-            if os.path.exists(file_path):
-                directory = os.path.dirname(file_path)
-                basename = os.path.basename(file_path)
-                current_app.logger.info(f"✅ Arquivo encontrado: {file_path}")
-                
-                # Verificar se é uma imagem válida
-                if basename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-                    return send_from_directory(directory, basename)
-                else:
-                    current_app.logger.warning(f"⚠️ Arquivo não é uma imagem válida: {filename}")
-                    return serve_placeholder_image(filename)
-        
-        # Se não encontrou o arquivo, fazer busca mais intensiva
-        current_app.logger.warning(f"⚠️ Arquivo não encontrado nos caminhos padrão: {filename}")
-        
-        # Busca intensiva por parte do nome do arquivo
-        intensive_search_result = _intensive_file_search(filename)
-        if intensive_search_result:
-            current_app.logger.info(f"✅ Arquivo encontrado na busca intensiva: {intensive_search_result}")
-            directory = os.path.dirname(intensive_search_result)
-            basename = os.path.basename(intensive_search_result)
-            return send_from_directory(directory, basename)
-        
-        # Verificar no banco de dados para informações adicionais
-        _log_database_info(filename)
-        
+        # Se não encontrou, retornar placeholder
+        current_app.logger.warning(f"⚠️ Arquivo não encontrado: {filename}")
         return serve_placeholder_image(filename)
         
     except Exception as e:
-        current_app.logger.error(f"❌ Erro crítico ao servir arquivo {filename}: {str(e)}")
+        current_app.logger.error(f"❌ Erro ao servir arquivo {filename}: {str(e)}")
         return serve_placeholder_image()
 
-# Rota adicional para compatibilidade com attached_assets
-@app.route('/attached_assets/<filename>')
-def attached_assets_file(filename):
-    """Rota de compatibilidade para attached_assets - redireciona para uploads"""
-    current_app.logger.info(f"🔄 Redirecionando attached_assets/{filename} para uploads/")
-    return redirect(url_for('uploaded_file', filename=filename))
+# Rotas de compatibilidade removidas - sistema simplificado
 
-# Rota adicional para compatibilidade com static/uploads
-@app.route('/static/uploads/<filename>')
-def static_uploads_file(filename):
-    """Rota de compatibilidade para static/uploads - redireciona para uploads"""
-    current_app.logger.info(f"🔄 Redirecionando static/uploads/{filename} para uploads/")
-    return redirect(url_for('uploaded_file', filename=filename))
-
-def _find_file_recursively(directory, filename):
-    """Busca recursiva melhorada por arquivo em diretório"""
-    found_paths = []
-    try:
-        if os.path.exists(directory):
-            for root, dirs, files in os.walk(directory):
-                # Limitar a 3 níveis de profundidade
-                level = root.replace(directory, '').count(os.sep)
-                if level < 3 and filename in files:
-                    found_paths.append(os.path.join(root, filename))
-    except Exception as e:
-        current_app.logger.error(f"Erro na busca recursiva: {str(e)}")
-    return found_paths
-
-def _scan_attached_assets_for_file(filename):
-    """Busca específica em attached_assets com todas as subpastas"""
-    found_paths = []
-    attached_dir = 'attached_assets'
-    
-    if not os.path.exists(attached_dir):
-        return found_paths
-    
-    try:
-        # Listar todas as subpastas conhecidas
-        known_subdirs = [
-            'stock_images',
-            'generated_images',
-            'uploads',
-            'temp',
-            'backup'
-        ]
-        
-        # Buscar em subpastas conhecidas
-        for subdir in known_subdirs:
-            subpath = os.path.join(attached_dir, subdir)
-            if os.path.exists(subpath):
-                file_path = os.path.join(subpath, filename)
-                if os.path.exists(file_path):
-                    found_paths.append(file_path)
-        
-        # Buscar em todas as subpastas (descoberta dinâmica)
-        for item in os.listdir(attached_dir):
-            item_path = os.path.join(attached_dir, item)
-            if os.path.isdir(item_path):
-                file_path = os.path.join(item_path, filename)
-                if os.path.exists(file_path) and file_path not in found_paths:
-                    found_paths.append(file_path)
-                    
-    except Exception as e:
-        current_app.logger.error(f"Erro ao escanear attached_assets: {str(e)}")
-    
-    return found_paths
-
-def _intensive_file_search(filename):
-    """Busca intensiva por arquivo usando padrões do nome"""
-    try:
-        # Extrair partes do filename para busca parcial
-        if len(filename) > 20:
-            # Buscar por hash inicial (primeiros 20 caracteres)
-            hash_part = filename[:20]
-            
-            # Buscar em todos os diretórios conhecidos
-            search_dirs = ['uploads', 'attached_assets', 'static/uploads']
-            
-            for search_dir in search_dirs:
-                if os.path.exists(search_dir):
-                    for root, dirs, files in os.walk(search_dir):
-                        for file in files:
-                            if hash_part in file and file.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
-                                full_path = os.path.join(root, file)
-                                current_app.logger.info(f"🔍 Arquivo similar encontrado: {full_path}")
-                                return full_path
-    except Exception as e:
-        current_app.logger.error(f"Erro na busca intensiva: {str(e)}")
-    
-    return None
-
-def _log_database_info(filename):
-    """Log informações do banco de dados sobre o arquivo"""
-    try:
-        from models import FotoRelatorio, FotoRelatorioExpress
-        
-        # Verificar se existe no banco de relatórios normais
-        foto_normal = FotoRelatorio.query.filter_by(filename=filename).first()
-        if foto_normal:
-            current_app.logger.info(f"📸 Foto no BD (relatório {foto_normal.relatorio_id}) - arquivo perdido: {filename}")
-            current_app.logger.info(f"💡 Legenda: {foto_normal.legenda}")
-            current_app.logger.info(f"💡 Ordem: {foto_normal.ordem}")
-        
-        # Verificar se existe no banco de relatórios express
-        foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
-        if foto_express:
-            current_app.logger.info(f"📸 Foto no BD (express {foto_express.relatorio_express_id}) - arquivo perdido: {filename}")
-            current_app.logger.info(f"💡 Legenda: {foto_express.legenda}")
-            
-        if not foto_normal and not foto_express:
-            current_app.logger.warning(f"❌ Arquivo {filename} não encontrado no banco de dados")
-            
-    except Exception as db_error:
-        current_app.logger.error(f"❌ Erro ao verificar foto no BD: {str(db_error)}")
+# Funções de busca complexa removidas - sistema simplificado
 
 def serve_placeholder_image(filename=None):
     """Serve uma imagem placeholder quando o arquivo não é encontrado"""
@@ -3021,23 +2854,12 @@ def serve_placeholder_image(filename=None):
         if os.path.exists(placeholder_path):
             return send_from_directory('static/img', 'no-image.png')
         
-        # Gerar placeholder dinamicamente se não existir
-        from utils import generate_placeholder_image
-        placeholder_data = generate_placeholder_image()
-        if placeholder_data:
-            from flask import Response
-            return Response(placeholder_data, mimetype='image/png')
-        
-        # SVG placeholder como último recurso com nome do arquivo se disponível
-        file_info = f"Arquivo: {filename[:30]}..." if filename and len(filename) > 30 else f"Arquivo: {filename}" if filename else "Imagem não encontrada"
-        
-        svg_placeholder = f'''
+        # SVG placeholder simples
+        svg_placeholder = '''
         <svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
             <rect width="100%" height="100%" fill="#f8f9fa"/>
-            <text x="50%" y="40%" font-family="Arial, sans-serif" font-size="12" 
+            <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="12" 
                   fill="#6c757d" text-anchor="middle" dy=".3em">Imagem não encontrada</text>
-            <text x="50%" y="60%" font-family="Arial, sans-serif" font-size="10" 
-                  fill="#6c757d" text-anchor="middle" dy=".3em">{file_info}</text>
         </svg>
         '''
         from flask import Response

@@ -1,13 +1,13 @@
-
 /**
- * Sistema global robusto para lidar com erros de imagem
+ * Sistema simplificado para lidar com erros de imagem
+ * Remove tentativas de recuperação desnecessárias
  */
 
-// Função para lidar com erros de imagem
+// Função simplificada para lidar com erros de imagem
 function handleImageError(img) {
     const originalSrc = img.src;
     const filename = originalSrc.split('/').pop();
-    
+
     console.log('🖼️ Erro ao carregar imagem:', originalSrc);
 
     // Evitar loop infinito
@@ -23,45 +23,9 @@ function handleImageError(img) {
         img.dataset.originalSrc = originalSrc;
     }
 
-    // Tentar diferentes caminhos antes do placeholder
-    const alternativePaths = [
-        `/uploads/${filename}`,
-        `/attached_assets/${filename}`,
-        `/static/uploads/${filename}`,
-        `/static/img/${filename}`,
-        // Caminhos adicionais para recuperação
-        `/attached_assets/stock_images/${filename}`,
-        `/attached_assets/generated_images/${filename}`,
-        // Tentar com prefixos comuns
-        `/uploads/express_${filename}`,
-        `/uploads/relatorio_${filename}`
-    ];
+    // Usar placeholder diretamente sem tentativas de recuperação
+    useImagePlaceholder();
 
-    let pathIndex = 0;
-    
-    function tryNextPath() {
-        if (pathIndex < alternativePaths.length) {
-            const testImg = new Image();
-            testImg.onload = function() {
-                // Sucesso - usar este caminho
-                img.src = alternativePaths[pathIndex];
-                console.log(`✅ Imagem encontrada em: ${alternativePaths[pathIndex]}`);
-                // Remover indicadores de erro
-                img.classList.remove('image-error');
-                img.style.border = '';
-                img.style.opacity = '';
-            };
-            testImg.onerror = function() {
-                pathIndex++;
-                tryNextPath();
-            };
-            testImg.src = alternativePaths[pathIndex];
-        } else {
-            // Nenhum caminho funcionou - usar placeholder
-            useImagePlaceholder();
-        }
-    }
-    
     function useImagePlaceholder() {
         img.src = '/static/img/no-image.png';
         img.alt = `Imagem não encontrada: ${filename}`;
@@ -71,29 +35,11 @@ function handleImageError(img) {
         img.classList.add('image-error');
         img.style.border = '2px dashed #dc3545';
         img.style.opacity = '0.7';
-        
-        // Log detalhado para admin/debug
-        const shortFilename = filename && filename.length > 20 ? `${filename.substring(0, 20)}...` : filename;
-        console.warn(`⚠️ Imagem perdida: ${shortFilename}`);
-        console.warn(`📍 Caminhos testados:`, alternativePaths);
-        console.warn(`🔗 URL original tentada:`, originalSrc);
-        
-        // Reportar ao servidor para análise (opcional)
-        if (typeof fetch !== 'undefined') {
-            fetch('/admin/report-missing-image', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    filename: filename,
-                    originalSrc: originalSrc,
-                    timestamp: new Date().toISOString()
-                })
-            }).catch(() => {}); // Silenciar erros para não impactar UX
-        }
-        
-        // Adicionar evento de clique para tentar recuperar
+
+        // Log simplificado
+        console.warn(`⚠️ Imagem não encontrada: ${filename}`);
+
+        // Adicionar evento de clique para tentar recarregar
         img.addEventListener('click', function() {
             if (confirm('Imagem não encontrada. Tentar recarregar?')) {
                 img.dataset.errorHandled = '';
@@ -101,15 +47,12 @@ function handleImageError(img) {
             }
         });
     }
-    
-    // Iniciar tentativas de caminhos alternativos
-    tryNextPath();
 }
 
 // Aplicar handler global quando DOM carregar
 document.addEventListener('DOMContentLoaded', function() {
     // Adicionar handler para imagens existentes
-    const images = document.querySelectorAll('img[src*="/uploads/"], img[src*="/attached_assets/"], img[src*="/static/uploads/"]');
+    const images = document.querySelectorAll('img[src*="/uploads/"]');
     images.forEach(img => {
         img.onerror = function() {
             handleImageError(this);
@@ -123,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 mutation.addedNodes.forEach(function(node) {
                     if (node.nodeType === 1) {
                         const newImages = node.querySelectorAll ?
-                            node.querySelectorAll('img[src*="/uploads/"], img[src*="/attached_assets/"], img[src*="/static/uploads/"]') : [];
+                            node.querySelectorAll('img[src*="/uploads/"]') : [];
 
                         newImages.forEach(img => {
                             img.onerror = function() {
@@ -132,8 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
 
                         // Se o próprio node for uma imagem
-                        if (node.tagName === 'IMG' && node.src && 
-                            (node.src.includes('/uploads/') || node.src.includes('/attached_assets/') || node.src.includes('/static/uploads/'))) {
+                        if (node.tagName === 'IMG' && node.src && node.src.includes('/uploads/')) {
                             node.onerror = function() {
                                 handleImageError(this);
                             };
@@ -150,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
         subtree: true
     });
 
-    console.log('🖼️ Sistema de tratamento de erros de imagem inicializado');
+    console.log('🖼️ Sistema simplificado de tratamento de erros de imagem inicializado');
 });
 
 // Função global para forçar recarregamento de imagens
