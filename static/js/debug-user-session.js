@@ -47,8 +47,8 @@ function debugUserSession() {
     });
 }
 
-// Executar debug ao carregar
-document.addEventListener('DOMContentLoaded', debugUserSession);
+// DEBUG AUTOMÁTICO DESABILITADO
+// document.addEventListener('DOMContentLoaded', debugUserSession);
 
-// Expor globalmente para debug manual
-window.debugUserSession = debugUserSession;
+// Debug manual ainda disponível se necessário (mas seguro)
+// window.debugUserSession = debugUserSession;
