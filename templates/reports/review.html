@@ -212,7 +212,8 @@
                                      class="card-img-top" 
                                      style="height: 150px !important; object-fit: cover !important; width: 100% !important;" 
                                      alt="{{ foto.titulo or 'Foto do relatório' }}"
-                                     onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzZjNzU3ZCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlbSBuP28gZW5jb250cmFkYTwvdGV4dD48L3N2Zz4='; console.error('Erro ao carregar imagem: ' + this.src);">
+                                     onerror="this.onerror=null; this.src='/static/img/no-image.png'; this.alt='Imagem não encontrada'; console.log('Imagem não encontrada: ' + this.dataset.originalSrc || this.src);" 
+                                     data-original-src="{{ url_for('uploaded_file', filename=foto.filename) }}"
                                 <div class="card-body p-2">
                                     {% if foto.titulo %}
                                         <h6 class="card-title small mb-1">{{ foto.titulo }}</h6>

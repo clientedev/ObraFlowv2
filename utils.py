@@ -371,3 +371,40 @@ def calculate_reimbursement_total(reembolso):
         return total
     except:
         return 0
+
+
+def generate_placeholder_image():
+    """Gerar imagem placeholder dinamicamente se não existir"""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        import io
+        
+        # Criar imagem 200x150
+        img = Image.new('RGB', (200, 150), color='#f8f9fa')
+        draw = ImageDraw.Draw(img)
+        
+        # Adicionar texto
+        try:
+            font = ImageFont.truetype('arial.ttf', 14)
+        except:
+            font = ImageFont.load_default()
+        
+        text = "Imagem não encontrada"
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        
+        x = (200 - text_width) // 2
+        y = (150 - text_height) // 2
+        
+        draw.text((x, y), text, fill='#6c757d', font=font)
+        
+        # Salvar em buffer
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        return buffer.getvalue()
+    except ImportError:
+        # Fallback se PIL não estiver disponível
+        return None

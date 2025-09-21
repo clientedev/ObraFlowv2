@@ -2810,7 +2810,34 @@ def reimbursement_new():
 @app.route('/uploads/<filename>')
 @login_required
 def uploaded_file(filename):
-    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+    """Servir arquivos de upload com verificação de existência"""
+    try:
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+        file_path = os.path.join(upload_folder, filename)
+        
+        # Verificar se o arquivo existe
+        if not os.path.exists(file_path):
+            current_app.logger.warning(f"Arquivo não encontrado: {filename}")
+            
+            # Tentar placeholder estático primeiro
+            placeholder_path = os.path.join('static', 'img', 'no-image.png')
+            if os.path.exists(placeholder_path):
+                return send_from_directory('static/img', 'no-image.png')
+            
+            # Gerar placeholder dinamicamente
+            from utils import generate_placeholder_image
+            placeholder_data = generate_placeholder_image()
+            if placeholder_data:
+                from flask import Response
+                return Response(placeholder_data, mimetype='image/png')
+            
+            # Fallback final - retornar erro 404
+            return "Arquivo não encontrado", 404
+        
+        return send_from_directory(upload_folder, filename)
+    except Exception as e:
+        current_app.logger.error(f"Erro ao servir arquivo {filename}: {str(e)}")
+        return "Erro interno", 500
 
 # GPS location endpoint
 @app.route('/get_location', methods=['POST', 'GET'])
