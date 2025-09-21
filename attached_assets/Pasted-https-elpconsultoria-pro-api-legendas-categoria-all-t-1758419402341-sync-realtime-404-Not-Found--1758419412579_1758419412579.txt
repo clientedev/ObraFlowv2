@@ -1,0 +1,46 @@
+https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758419402341&sync=realtime 404 (Not Found)
+syncNow @ realtime-sync.js:105
+forceSyncNow @ realtime-sync.js:90
+(anonymous) @ realtime-sync.js:36Understand this error
+realtime-sync.js:149 ❌ ERRO SYNC: Error: HTTP 404
+    at RealTimeSync.syncNow (realtime-sync.js:116:23)
+    at async RealTimeSync.forceSyncNow (realtime-sync.js:90:9)
+syncNow @ realtime-sync.js:149
+await in syncNow
+forceSyncNow @ realtime-sync.js:90
+(anonymous) @ realtime-sync.js:36Understand this error
+realtime-sync.js:105  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758419402341&sync=realtime 404 (Not Found)
+syncNow @ realtime-sync.js:105
+forceSyncNow @ realtime-sync.js:90
+(anonymous) @ realtime-sync.js:42Understand this error
+realtime-sync.js:149 ❌ ERRO SYNC: Error: HTTP 404
+    at RealTimeSync.syncNow (realtime-sync.js:116:23)
+    at async RealTimeSync.forceSyncNow (realtime-sync.js:90:9)
+syncNow @ realtime-sync.js:149
+await in syncNow
+forceSyncNow @ realtime-sync.js:90
+(anonymous) @ realtime-sync.js:42Understand this error
+realtime-sync.js:105  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758419402345&sync=realtime 404 (Not Found)
+syncNow @ realtime-sync.js:105
+startSync @ realtime-sync.js:71
+(anonymous) @ realtime-sync.js:223Understand this error
+realtime-sync.js:149 ❌ ERRO SYNC: Error: HTTP 404
+    at RealTimeSync.syncNow (realtime-sync.js:116:23)
+syncNow @ realtime-sync.js:149
+await in syncNow
+startSync @ realtime-sync.js:71
+(anonymous) @ realtime-sync.js:223Understand this error
+legendas-selector.js:34  GET https://elpconsultoria.pro/api/legendas?categoria=all&_t=1758419402345 404 (Not Found)
+loadLegendas @ legendas-selector.js:34
+loadLegendas @ legendas-selector.js:79Understand this error
+legendas-selector.js:47 ❌ HTTP 404: <!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
+
+loadLegendas @ legendas-selector.js:47
+await in loadLegendas
+loadLegendas @ legendas-selector.js:79Understand this error
+legendas-selector.js:70 ❌ Erro ao carregar legendas (tentativa 4/3): Error: HTTP 404
+    at LegendasSelector.loadLegendas (legendas-selector.js:48:23)
