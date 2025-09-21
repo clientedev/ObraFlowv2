@@ -78,6 +78,37 @@ from google_drive_backup import backup_to_drive, test_drive_connection
 import math
 import json
 
+# Função helper para verificar se usuário é aprovador
+def current_user_is_aprovador(projeto_id=None):
+    """Verifica se o usuário atual é aprovador para um projeto específico ou globalmente"""
+    if not current_user.is_authenticated:
+        return False
+    
+    # Primeiro verifica se há configuração específica para o projeto
+    if projeto_id:
+        aprovador_especifico = AprovadorPadrao.query.filter_by(
+            projeto_id=projeto_id,
+            aprovador_id=current_user.id,
+            ativo=True
+        ).first()
+        if aprovador_especifico:
+            return True
+    
+    # Se não há configuração específica, verifica configuração global
+    aprovador_global = AprovadorPadrao.query.filter_by(
+        projeto_id=None,
+        aprovador_id=current_user.id,
+        ativo=True
+    ).first()
+    return aprovador_global is not None
+
+# Context processor para disponibilizar função nos templates
+@app.context_processor
+def inject_approval_functions():
+    return {
+        'current_user_is_aprovador': current_user_is_aprovador
+    }
+
 # API para legendas pré-definidas (IMPLEMENTAÇÃO ÚNICA)
 @app.route('/api/legendas')
 def api_legendas():
@@ -1355,12 +1386,13 @@ def update_report_status(id):
 @app.route('/reports/<int:id>/approve')
 @login_required
 def approve_report(id):
-    """Aprovar relatório - apenas usuários master"""
-    if not current_user.is_master:
-        flash('Acesso negado. Apenas usuários master podem aprovar relatórios.', 'error')
-        return redirect(url_for('reports'))
-
+    """Aprovar relatório - apenas usuários aprovadores"""
     relatorio = Relatorio.query.get_or_404(id)
+    
+    # Verificar se usuário é aprovador para este projeto
+    if not current_user_is_aprovador(relatorio.projeto_id):
+        flash('Acesso negado. Apenas usuários aprovadores podem aprovar relatórios.', 'error')
+        return redirect(url_for('reports'))
     relatorio.status = 'Aprovado'
     relatorio.aprovado_por = current_user.id
     relatorio.data_aprovacao = datetime.utcnow()
@@ -1372,12 +1404,13 @@ def approve_report(id):
 @app.route('/reports/<int:id>/reject')
 @login_required
 def reject_report(id):
-    """Rejeitar relatório - apenas usuários master"""
-    if not current_user.is_master:
-        flash('Acesso negado. Apenas usuários master podem rejeitar relatórios.', 'error')
-        return redirect(url_for('reports'))
-
+    """Rejeitar relatório - apenas usuários aprovadores"""
     relatorio = Relatorio.query.get_or_404(id)
+    
+    # Verificar se usuário é aprovador para este projeto
+    if not current_user_is_aprovador(relatorio.projeto_id):
+        flash('Acesso negado. Apenas usuários aprovadores podem rejeitar relatórios.', 'error')
+        return redirect(url_for('reports'))
     relatorio.status = 'Rejeitado'
     relatorio.aprovado_por = current_user.id
     relatorio.data_aprovacao = datetime.utcnow()
@@ -1389,9 +1422,10 @@ def reject_report(id):
 @app.route('/reports/pending')
 @login_required
 def pending_reports():
-    """Painel de relatórios pendentes de aprovação - apenas usuários master"""
-    if not current_user.is_master:
-        flash('Acesso negado. Apenas usuários master podem ver relatórios pendentes.', 'error')
+    """Painel de relatórios pendentes de aprovação - apenas usuários aprovadores"""
+    # Verificar se usuário é aprovador (global ou de algum projeto)
+    if not current_user_is_aprovador():
+        flash('Acesso negado. Apenas usuários aprovadores podem ver relatórios pendentes.', 'error')
         return redirect(url_for('reports'))
 
     page = request.args.get('page', 1, type=int)
