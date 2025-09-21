@@ -28,7 +28,13 @@ function handleImageError(img) {
         `/uploads/${filename}`,
         `/attached_assets/${filename}`,
         `/static/uploads/${filename}`,
-        `/static/img/${filename}`
+        `/static/img/${filename}`,
+        // Caminhos adicionais para recuperação
+        `/attached_assets/stock_images/${filename}`,
+        `/attached_assets/generated_images/${filename}`,
+        // Tentar com prefixos comuns
+        `/uploads/express_${filename}`,
+        `/uploads/relatorio_${filename}`
     ];
 
     let pathIndex = 0;
@@ -66,11 +72,25 @@ function handleImageError(img) {
         img.style.border = '2px dashed #dc3545';
         img.style.opacity = '0.7';
         
-        // Log para admin/debug
-        if (filename && filename.length > 20) {
-            console.warn(`⚠️ Imagem perdida: ${filename.substring(0, 20)}...`);
-        } else {
-            console.warn(`⚠️ Imagem perdida: ${filename}`);
+        // Log detalhado para admin/debug
+        const shortFilename = filename && filename.length > 20 ? `${filename.substring(0, 20)}...` : filename;
+        console.warn(`⚠️ Imagem perdida: ${shortFilename}`);
+        console.warn(`📍 Caminhos testados:`, alternativePaths);
+        console.warn(`🔗 URL original tentada:`, originalSrc);
+        
+        // Reportar ao servidor para análise (opcional)
+        if (typeof fetch !== 'undefined') {
+            fetch('/admin/report-missing-image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    filename: filename,
+                    originalSrc: originalSrc,
+                    timestamp: new Date().toISOString()
+                })
+            }).catch(() => {}); // Silenciar erros para não impactar UX
         }
         
         // Adicionar evento de clique para tentar recuperar

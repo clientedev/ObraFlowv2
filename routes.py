@@ -2824,7 +2824,15 @@ def uploaded_file(filename):
             os.path.join(upload_folder, filename),
             os.path.join('uploads', filename),
             os.path.join('attached_assets', filename),
-            os.path.join('static', 'uploads', filename)
+            os.path.join('static', 'uploads', filename),
+            # Busca adicional em subpastas
+            os.path.join('attached_assets', 'stock_images', filename),
+            os.path.join('attached_assets', 'generated_images', filename),
+            # Busca com prefixos comuns
+            os.path.join(upload_folder, f'express_{filename}'),
+            os.path.join(upload_folder, f'relatorio_{filename}'),
+            # Busca recursiva limitada em attached_assets
+            *self._find_file_in_directory('attached_assets', filename)
         ]
         
         for file_path in possible_paths:
@@ -2883,6 +2891,20 @@ def static_uploads_file(filename):
     """Rota de compatibilidade para static/uploads - redireciona para uploads"""
     current_app.logger.info(f"🔄 Redirecionando static/uploads/{filename} para uploads/")
     return redirect(url_for('uploaded_file', filename=filename))
+
+def _find_file_in_directory(directory, filename):
+    """Busca recursiva limitada por arquivo em diretório"""
+    found_paths = []
+    try:
+        if os.path.exists(directory):
+            for root, dirs, files in os.walk(directory):
+                # Limitar a 2 níveis de profundidade para performance
+                level = root.replace(directory, '').count(os.sep)
+                if level < 2 and filename in files:
+                    found_paths.append(os.path.join(root, filename))
+    except Exception as e:
+        current_app.logger.error(f"Erro na busca recursiva: {str(e)}")
+    return found_paths
 
 def serve_placeholder_image(filename=None):
     """Serve uma imagem placeholder quando o arquivo não é encontrado"""
@@ -4019,6 +4041,18 @@ def admin_force_backup(report_id):
             'success': False,
             'message': f'Erro ao forçar backup: {str(e)}'
         })
+
+@app.route('/admin/report-missing-image', methods=['POST'])
+@csrf.exempt
+def report_missing_image():
+    """Endpoint para reportar imagens perdidas (para logging)"""
+    try:
+        data = request.get_json()
+        filename = data.get('filename', 'unknown')
+        current_app.logger.warning(f"🖼️ IMAGEM PERDIDA REPORTADA: {filename}")
+        return jsonify({'status': 'logged'})
+    except:
+        return jsonify({'status': 'error'})
 
 @app.route('/admin/recuperar-imagens')
 @login_required
