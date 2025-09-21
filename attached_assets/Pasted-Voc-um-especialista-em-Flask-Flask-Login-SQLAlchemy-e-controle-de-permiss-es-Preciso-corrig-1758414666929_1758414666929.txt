@@ -1,0 +1,40 @@
+Você é um especialista em Flask, Flask-Login, SQLAlchemy e controle de permissões.
+
+Preciso corrigir o **Item 25 do documento de atualizações**:
+
+"Atualmente os botões de aprovação/reprovação aparecem em duas telas: Lista de relatórios e Relatórios pendentes de aprovação. Devem aparecer somente em 'Relatórios aguardando aprovação', após clicar em 'Revisão'. O botão 'Revisão' deve ser visível a todos, permitindo correção de itens. O usuário aprovador terá a mesma visão dos demais, mas ao final da página de Revisão terá os botões de Aprovar e Reprovar. Ao aprovar, o relatório deve ser enviado aos clientes. Ao reprovar, deve abrir campo de comentários, enviar alerta ao responsável pelo relatório e permitir correção e reenvio para aprovação."
+
+### O que quero:
+
+1. **Ajuste de Exibição**
+   - Remover os botões "Aprovar" e "Reprovar" das páginas **Lista de Relatórios** e **Relatórios pendentes de aprovação**.
+   - Criar/ajustar a página **Relatórios aguardando aprovação → Revisão**.
+   - O botão **"Revisão"** deve estar visível a todos os usuários (mesmo não aprovadores), abrindo o relatório em modo de revisão.
+
+2. **Fluxo de Aprovação**
+   - Dentro da página de Revisão:
+     - Usuários comuns → só conseguem visualizar e sugerir correções nos itens.  
+     - Usuário aprovador → vê o mesmo conteúdo, mas ao final da página aparecem os botões **"Aprovar"** e **"Reprovar"**.
+
+3. **Ação Aprovar**
+   - Quando o aprovador clicar em "Aprovar":
+     - O sistema deve marcar o relatório como aprovado.  
+     - Enviar o relatório automaticamente aos clientes vinculados.  
+     - Registrar no banco de dados a data/hora da aprovação e o aprovador responsável.
+
+4. **Ação Reprovar**
+   - Quando o aprovador clicar em "Reprovar":
+     - Abrir um campo de comentários obrigatório.  
+     - Salvar esse comentário junto ao relatório.  
+     - Enviar uma notificação/alerta ao responsável pelo relatório, informando o motivo da reprovação.  
+     - O relatório deve voltar ao status de "Em edição", permitindo correção e novo envio para aprovação.
+
+5. **Validação e Segurança**
+   - Apenas usuários aprovadores podem executar ações de Aprovar ou Reprovar (validação no backend além do template).  
+   - Logs devem registrar todas as ações (quem aprovou/reprovou, data, comentário da reprovação).
+
+### Objetivo final
+- Os botões **Aprovar/Reprovar** aparecem somente na página **Revisão**.  
+- O botão **Revisão** é visível a todos.  
+- O aprovador pode aprovar (enviando aos clientes) ou reprovar (com comentário + notificação + reedição).  
+- Usuários comuns não veem botões de ação, apenas o botão Revisão.
