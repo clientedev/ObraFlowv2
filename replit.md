@@ -136,3 +136,11 @@ Mobile-first design: Date field should be the first input field in report forms.
 - ✅ **Navigation Fix**: Menu de navegação corrigido para refletir nova estrutura de permissões
 - ✅ **JavaScript Updates**: Todas as chamadas AJAX atualizadas para usar rotas de desenvolvedor
 - ✅ **Developer Permissions Update**: Gabriel e Lucas agora têm permissão de desenvolvedor
+
+### Railway Image Loading Fix (2025-09-21)
+- ✅ **Authentication Issue Identified**: `@login_required` decorators em rotas de imagem causavam redirecionamentos 302 no Railway
+- ✅ **Custom Authentication Logic**: Implementada verificação manual de autenticação nas rotas de imagem com logs detalhados
+- ✅ **Placeholder System**: Sistema serve imagens placeholder para usuários não autenticados em vez de redirecionar para login
+- ✅ **Session Problem Resolution**: Resolvido problema de sessões perdidas no ambiente Railway que impedia carregamento de imagens
+- ✅ **Security Maintained**: Mantida verificação de autenticação, mas com comportamento mais tolerante para problemas de proxy/cookies
+- ✅ **Comprehensive Logging**: Adicionado logging detalhado para debugging de problemas de autenticação de imagens
