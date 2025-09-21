@@ -2809,7 +2809,7 @@ def reimbursement_new():
 # File serving (unique function)
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    """Servir arquivos de upload de forma simplificada"""
+    """Servir arquivos de upload com múltiplos fallbacks"""
     try:
         # Verificação de autenticação
         from flask_login import current_user
@@ -2824,46 +2824,115 @@ def uploaded_file(filename):
         if not filename or filename == 'undefined' or filename == 'null':
             return serve_placeholder_image()
         
-        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
-        file_path = os.path.join(upload_folder, filename)
+        current_app.logger.info(f"📁 Buscando arquivo: {filename}")
         
-        # Verificar se arquivo existe no local correto
-        if os.path.exists(file_path):
-            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-                return send_from_directory(upload_folder, filename)
-            else:
-                return serve_placeholder_image(filename)
+        # Lista de locais possíveis para buscar o arquivo
+        possible_locations = [
+            ('uploads', current_app.config.get('UPLOAD_FOLDER', 'uploads')),
+            ('attached_assets', 'attached_assets'),
+            ('static/uploads', 'static/uploads')
+        ]
         
-        # Se não encontrou, retornar placeholder
-        current_app.logger.warning(f"⚠️ Arquivo não encontrado: {filename}")
+        # Tentar cada localização
+        for location_name, folder_path in possible_locations:
+            file_path = os.path.join(folder_path, filename)
+            current_app.logger.info(f"🔍 Tentando: {file_path}")
+            
+            if os.path.exists(file_path):
+                current_app.logger.info(f"✅ Arquivo encontrado em: {location_name}")
+                
+                # Verificar se é uma imagem válida
+                if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                    try:
+                        return send_from_directory(folder_path, filename)
+                    except Exception as send_error:
+                        current_app.logger.error(f"❌ Erro ao enviar de {folder_path}: {str(send_error)}")
+                        continue
+                else:
+                    # Para não imagens, ainda tentar servir
+                    try:
+                        return send_from_directory(folder_path, filename)
+                    except Exception:
+                        continue
+        
+        # Se chegou até aqui, arquivo não foi encontrado
+        current_app.logger.warning(f"⚠️ Arquivo não encontrado em nenhuma localização: {filename}")
+        
+        # Verificar se existe no banco de dados
+        try:
+            from models import FotoRelatorio, FotoRelatorioExpress
+            
+            # Buscar em FotoRelatorio
+            foto_normal = FotoRelatorio.query.filter_by(filename=filename).first()
+            if foto_normal:
+                current_app.logger.info(f"📋 Arquivo existe no banco (FotoRelatorio ID: {foto_normal.id})")
+            
+            # Buscar em FotoRelatorioExpress
+            foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
+            if foto_express:
+                current_app.logger.info(f"📋 Arquivo existe no banco (FotoRelatorioExpress ID: {foto_express.id})")
+            
+            if foto_normal or foto_express:
+                # Arquivo existe no banco mas não no filesystem
+                return serve_placeholder_image(filename, "Arquivo registrado mas não encontrado no servidor")
+            
+        except Exception as db_error:
+            current_app.logger.error(f"❌ Erro ao verificar banco: {str(db_error)}")
+        
         return serve_placeholder_image(filename)
         
     except Exception as e:
-        current_app.logger.error(f"❌ Erro ao servir arquivo {filename}: {str(e)}")
-        return serve_placeholder_image()
+        current_app.logger.error(f"❌ Erro crítico ao servir arquivo {filename}: {str(e)}")
+        return serve_placeholder_image(filename)
 
 # Rotas de compatibilidade removidas - sistema simplificado
 
 # Funções de busca complexa removidas - sistema simplificado
 
-def serve_placeholder_image(filename=None):
+def serve_placeholder_image(filename=None, message=None):
     """Serve uma imagem placeholder quando o arquivo não é encontrado"""
     try:
         # Tentar placeholder estático primeiro
         placeholder_path = os.path.join('static', 'img', 'no-image.png')
         if os.path.exists(placeholder_path):
+            current_app.logger.info(f"📷 Servindo placeholder para: {filename}")
             return send_from_directory('static/img', 'no-image.png')
         
-        # SVG placeholder simples
-        svg_placeholder = '''
-        <svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100%" height="100%" fill="#f8f9fa"/>
-            <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="12" 
-                  fill="#6c757d" text-anchor="middle" dy=".3em">Imagem não encontrada</text>
+        # SVG placeholder com informações detalhadas
+        display_filename = filename or "arquivo"
+        display_message = message or "não encontrada"
+        
+        svg_placeholder = f'''
+        <svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+            <rect x="10" y="10" width="280" height="30" fill="#e9ecef" rx="4"/>
+            <text x="150" y="30" font-family="Arial, sans-serif" font-size="14" 
+                  fill="#495057" text-anchor="middle" font-weight="bold">📷 ELP Consultoria</text>
+            
+            <circle cx="150" cy="80" r="20" fill="#6c757d" opacity="0.3"/>
+            <path d="M140 75 L160 75 L155 85 L145 85 Z" fill="#fff"/>
+            
+            <text x="150" y="120" font-family="Arial, sans-serif" font-size="12" 
+                  fill="#6c757d" text-anchor="middle">Imagem {display_message}</text>
+            
+            <text x="150" y="140" font-family="monospace" font-size="10" 
+                  fill="#868e96" text-anchor="middle">{display_filename[:40]}</text>
+            
+            <text x="150" y="160" font-family="Arial, sans-serif" font-size="10" 
+                  fill="#adb5bd" text-anchor="middle">Clique para tentar novamente</text>
+            
+            <text x="150" y="180" font-family="Arial, sans-serif" font-size="8" 
+                  fill="#ced4da" text-anchor="middle">Sistema de Gestão de Obras</text>
         </svg>
         '''
+        
         from flask import Response
-        return Response(svg_placeholder, mimetype='image/svg+xml')
+        response = Response(svg_placeholder, mimetype='image/svg+xml')
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
         
     except Exception as e:
         current_app.logger.error(f"Erro ao servir placeholder: {str(e)}")
@@ -3982,6 +4051,102 @@ def report_missing_image():
         return jsonify({'status': 'logged'})
     except:
         return jsonify({'status': 'error'})
+
+@app.route('/admin/diagnostico-imagens')
+@login_required
+def diagnostico_imagens():
+    """Diagnóstico completo do sistema de imagens"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        from models import FotoRelatorio, FotoRelatorioExpress
+        import os
+        
+        # Estatísticas do banco
+        fotos_relatorio = FotoRelatorio.query.all()
+        fotos_express = FotoRelatorioExpress.query.all()
+        
+        # Verificar existência física dos arquivos
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+        attached_assets = 'attached_assets'
+        
+        resultado = {
+            'banco_dados': {
+                'fotos_relatorio': len(fotos_relatorio),
+                'fotos_express': len(fotos_express),
+                'total_registros': len(fotos_relatorio) + len(fotos_express)
+            },
+            'sistema_arquivos': {
+                'uploads': [],
+                'attached_assets': [],
+                'static_uploads': []
+            },
+            'inconsistencias': {
+                'registros_sem_arquivo': [],
+                'arquivos_sem_registro': []
+            }
+        }
+        
+        # Verificar arquivos no uploads
+        if os.path.exists(upload_folder):
+            uploads_files = [f for f in os.listdir(upload_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp'))]
+            resultado['sistema_arquivos']['uploads'] = uploads_files
+        
+        # Verificar arquivos no attached_assets
+        if os.path.exists(attached_assets):
+            attached_files = [f for f in os.listdir(attached_assets) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp'))]
+            resultado['sistema_arquivos']['attached_assets'] = attached_files
+        
+        # Verificar inconsistências
+        all_db_files = set()
+        for foto in fotos_relatorio:
+            all_db_files.add(foto.filename)
+        for foto in fotos_express:
+            all_db_files.add(foto.filename)
+        
+        all_fs_files = set(resultado['sistema_arquivos']['uploads'] + resultado['sistema_arquivos']['attached_assets'])
+        
+        # Registros sem arquivo físico
+        for db_file in all_db_files:
+            if db_file not in all_fs_files:
+                # Verificar se existe em algum local
+                exists_somewhere = False
+                for folder in [upload_folder, attached_assets, 'static/uploads']:
+                    if os.path.exists(os.path.join(folder, db_file)):
+                        exists_somewhere = True
+                        break
+                
+                if not exists_somewhere:
+                    resultado['inconsistencias']['registros_sem_arquivo'].append(db_file)
+        
+        # Arquivos sem registro
+        for fs_file in all_fs_files:
+            if fs_file not in all_db_files:
+                resultado['inconsistencias']['arquivos_sem_registro'].append(fs_file)
+        
+        resultado['resumo'] = {
+            'total_registros': len(all_db_files),
+            'total_arquivos': len(all_fs_files),
+            'registros_sem_arquivo': len(resultado['inconsistencias']['registros_sem_arquivo']),
+            'arquivos_sem_registro': len(resultado['inconsistencias']['arquivos_sem_registro']),
+            'integridade': len(resultado['inconsistencias']['registros_sem_arquivo']) == 0
+        }
+        
+        current_app.logger.info(f"📊 Diagnóstico completo: {resultado['resumo']}")
+        
+        return jsonify({
+            'success': True,
+            'diagnostico': resultado,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro no diagnóstico: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/admin/recuperar-imagens')
 @login_required
