@@ -2808,10 +2808,28 @@ def reimbursement_new():
 
 # File serving (unique function)
 @app.route('/uploads/<filename>')
-@login_required
 def uploaded_file(filename):
     """Servir arquivos de upload com verificação robusta e fallback melhorado"""
     try:
+        # Verificação de autenticação mais flexível para debugging
+        from flask_login import current_user
+        if not current_user.is_authenticated:
+            current_app.logger.warning(f"⚠️ Tentativa de acesso não autenticada para: {filename}")
+            current_app.logger.warning(f"⚠️ User-Agent: {request.headers.get('User-Agent', 'N/A')}")
+            current_app.logger.warning(f"⚠️ Referer: {request.headers.get('Referer', 'N/A')}")
+            current_app.logger.warning(f"⚠️ Remote Addr: {request.remote_addr}")
+            
+            # Em ambiente Railway, pode haver problemas de proxy/session
+            # Vamos servir um placeholder em vez de redirecionar para login
+            if request.headers.get('Accept', '').startswith('image/') or filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                current_app.logger.info(f"🖼️ Servindo placeholder para imagem não autenticada: {filename}")
+                return serve_placeholder_image(filename)
+            else:
+                # Para outros tipos de arquivo, redireciona para login
+                return redirect(url_for('login', next=request.url))
+        
+        current_app.logger.info(f"✅ Usuário autenticado acessando: {filename}")
+        
         # Verificar se filename é válido
         if not filename or filename == 'undefined' or filename == 'null':
             current_app.logger.warning(f"Filename inválido: {filename}")
@@ -2882,7 +2900,6 @@ def uploaded_file(filename):
 
 # Rota adicional para compatibilidade com attached_assets
 @app.route('/attached_assets/<filename>')
-@login_required
 def attached_assets_file(filename):
     """Rota de compatibilidade para attached_assets - redireciona para uploads"""
     current_app.logger.info(f"🔄 Redirecionando attached_assets/{filename} para uploads/")
@@ -2890,7 +2907,6 @@ def attached_assets_file(filename):
 
 # Rota adicional para compatibilidade com static/uploads
 @app.route('/static/uploads/<filename>')
-@login_required  
 def static_uploads_file(filename):
     """Rota de compatibilidade para static/uploads - redireciona para uploads"""
     current_app.logger.info(f"🔄 Redirecionando static/uploads/{filename} para uploads/")
