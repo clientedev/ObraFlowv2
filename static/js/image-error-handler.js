@@ -60,7 +60,10 @@ function handleImageError(img) {
             `/uploads/${filename}?t=${Date.now()}`,
             `/static/uploads/${filename}`,
             `/attached_assets/${filename}`,
-            originalSrc + '?reload=' + Date.now()
+            `/static/img/${filename}`,
+            originalSrc + '?reload=' + Date.now(),
+            originalSrc.replace('/uploads/', '/attached_assets/'),
+            originalSrc.replace('/attached_assets/', '/uploads/')
         ];
         
         let currentAttempt = 0;
