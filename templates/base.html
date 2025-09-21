@@ -104,8 +104,14 @@ img[src*="no-image"] {
 
             {% if current_user.is_authenticated %}
             {% if current_user.is_master %}
-            <button class="btn btn-sm btn-outline-warning me-2" onclick="window.reloadBrokenImages ? window.reloadBrokenImages() : alert('Função não disponível')" title="Recarregar imagens com erro">
+            <button class="btn btn-sm btn-outline-warning me-1" onclick="window.reloadBrokenImages ? window.reloadBrokenImages() : alert('Função não disponível')" title="Recarregar imagens com erro">
                 <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-info me-1" onclick="diagnosticarImagens()" title="Diagnóstico de imagens">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-success me-2" onclick="migrarAttachedAssets()" title="Migrar attached_assets">
+                <i class="fas fa-download"></i>
             </button>
             {% endif %}
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -363,6 +369,72 @@ img[src*="no-image"] {
 
                 console.error('Erro no backup:', error);
                 showToast('Erro na comunicação com o servidor', 'error');
+            });
+        }
+    }
+
+    // Funções de diagnóstico de imagens
+    function diagnosticarImagens() {
+        const loadingToast = showToast('Analisando imagens no banco de dados...', 'info', 15000);
+        
+        fetch('/admin/diagnostico-imagens')
+        .then(response => response.json())
+        .then(data => {
+            if (loadingToast) {
+                bootstrap.Toast.getInstance(loadingToast).hide();
+            }
+            
+            if (data.error) {
+                showToast(`Erro no diagnóstico: ${data.error}`, 'error');
+            } else {
+                const message = `📊 DIAGNÓSTICO COMPLETO:
+• Total no banco: ${data.total_banco} imagens
+• Existem fisicamente: ${data.existem_fisicamente}
+• Em attached_assets: ${data.em_attached_assets}
+• Perdidas: ${data.nao_existem_fisicamente}
+• Relatórios normais: ${data.fotos_normais}
+• Relatórios express: ${data.fotos_express}`;
+                
+                showToast(message, data.nao_existem_fisicamente > 0 ? 'warning' : 'success', 10000);
+                
+                if (data.arquivos_perdidos.length > 0) {
+                    console.log('🔍 ARQUIVOS PERDIDOS:', data.arquivos_perdidos);
+                }
+            }
+        })
+        .catch(error => {
+            if (loadingToast) {
+                bootstrap.Toast.getInstance(loadingToast).hide();
+            }
+            showToast('Erro na comunicação com o servidor', 'error');
+            console.error('Erro no diagnóstico:', error);
+        });
+    }
+    
+    function migrarAttachedAssets() {
+        if (confirm('Deseja migrar todos os arquivos de attached_assets para uploads? Esta operação pode demorar alguns minutos.')) {
+            const loadingToast = showToast('Migrando arquivos de attached_assets...', 'info', 30000);
+            
+            fetch('/admin/migrar-attached-assets')
+            .then(response => response.json())
+            .then(data => {
+                if (loadingToast) {
+                    bootstrap.Toast.getInstance(loadingToast).hide();
+                }
+                
+                if (data.error) {
+                    showToast(`Erro na migração: ${data.error}`, 'error');
+                } else {
+                    showToast(data.message, data.total_erros > 0 ? 'warning' : 'success', 8000);
+                    console.log('📦 MIGRAÇÃO COMPLETA:', data);
+                }
+            })
+            .catch(error => {
+                if (loadingToast) {
+                    bootstrap.Toast.getInstance(loadingToast).hide();
+                }
+                showToast('Erro na comunicação com o servidor', 'error');
+                console.error('Erro na migração:', error);
             });
         }
     }

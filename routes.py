@@ -2447,6 +2447,182 @@ def contact_new():
 @login_required
 def contact_edit(contact_id):
     contact = Contato.query.get_or_404(contact_id)
+
+
+@app.route('/admin/diagnostico-imagens')
+@login_required
+def diagnostico_imagens():
+    """Diagnóstico completo das imagens no sistema"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        from models import FotoRelatorio, FotoRelatorioExpress
+        
+        # Buscar todas as fotos do banco
+        fotos_normais = FotoRelatorio.query.all()
+        fotos_express = FotoRelatorioExpress.query.all()
+        
+        diagnostico = {
+            'total_banco': len(fotos_normais) + len(fotos_express),
+            'fotos_normais': len(fotos_normais),
+            'fotos_express': len(fotos_express),
+            'existem_fisicamente': 0,
+            'nao_existem_fisicamente': 0,
+            'arquivos_perdidos': [],
+            'arquivos_ok': [],
+            'em_attached_assets': 0,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+        
+        # Verificar fotos normais
+        for foto in fotos_normais:
+            filepath = os.path.join(upload_folder, foto.filename)
+            attached_path = os.path.join('attached_assets', foto.filename)
+            
+            if os.path.exists(filepath):
+                diagnostico['existem_fisicamente'] += 1
+                diagnostico['arquivos_ok'].append({
+                    'filename': foto.filename,
+                    'tipo': 'normal',
+                    'relatorio_id': foto.relatorio_id,
+                    'localizacao': 'uploads'
+                })
+            elif os.path.exists(attached_path):
+                diagnostico['em_attached_assets'] += 1
+                diagnostico['arquivos_ok'].append({
+                    'filename': foto.filename,
+                    'tipo': 'normal',
+                    'relatorio_id': foto.relatorio_id,
+                    'localizacao': 'attached_assets'
+                })
+            else:
+                diagnostico['nao_existem_fisicamente'] += 1
+                diagnostico['arquivos_perdidos'].append({
+                    'filename': foto.filename,
+                    'tipo': 'normal',
+                    'relatorio_id': foto.relatorio_id,
+                    'legenda': foto.legenda
+                })
+        
+        # Verificar fotos express
+        for foto in fotos_express:
+            filepath = os.path.join(upload_folder, foto.filename)
+            attached_path = os.path.join('attached_assets', foto.filename)
+            
+            if os.path.exists(filepath):
+                diagnostico['existem_fisicamente'] += 1
+                diagnostico['arquivos_ok'].append({
+                    'filename': foto.filename,
+                    'tipo': 'express',
+                    'relatorio_id': foto.relatorio_express_id,
+                    'localizacao': 'uploads'
+                })
+            elif os.path.exists(attached_path):
+                diagnostico['em_attached_assets'] += 1
+                diagnostico['arquivos_ok'].append({
+                    'filename': foto.filename,
+                    'tipo': 'express',
+                    'relatorio_id': foto.relatorio_express_id,
+                    'localizacao': 'attached_assets'
+                })
+            else:
+                diagnostico['nao_existem_fisicamente'] += 1
+                diagnostico['arquivos_perdidos'].append({
+                    'filename': foto.filename,
+                    'tipo': 'express',
+                    'relatorio_id': foto.relatorio_express_id,
+                    'legenda': foto.legenda
+                })
+        
+        current_app.logger.info(f"📊 DIAGNÓSTICO: {diagnostico['total_banco']} total, {diagnostico['existem_fisicamente']} OK, {diagnostico['nao_existem_fisicamente']} perdidas")
+        
+        return jsonify(diagnostico)
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro no diagnóstico: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/migrar-attached-assets')
+@login_required
+def migrar_attached_assets():
+    """Migrar arquivos de attached_assets para uploads"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        from models import FotoRelatorio, FotoRelatorioExpress
+        import shutil
+        
+        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+        
+        migradas = []
+        erros = []
+        
+        # Buscar todas as fotos do banco
+        fotos_normais = FotoRelatorio.query.all()
+        fotos_express = FotoRelatorioExpress.query.all()
+        
+        todas_fotos = []
+        for foto in fotos_normais:
+            todas_fotos.append({
+                'filename': foto.filename,
+                'tipo': 'normal',
+                'relatorio_id': foto.relatorio_id
+            })
+        
+        for foto in fotos_express:
+            todas_fotos.append({
+                'filename': foto.filename,
+                'tipo': 'express',
+                'relatorio_id': foto.relatorio_express_id
+            })
+        
+        for foto_info in todas_fotos:
+            filename = foto_info['filename']
+            upload_path = os.path.join(upload_folder, filename)
+            attached_path = os.path.join('attached_assets', filename)
+            
+            # Se não existe em uploads mas existe em attached_assets
+            if not os.path.exists(upload_path) and os.path.exists(attached_path):
+                try:
+                    shutil.copy2(attached_path, upload_path)
+                    migradas.append({
+                        'filename': filename,
+                        'tipo': foto_info['tipo'],
+                        'relatorio_id': foto_info['relatorio_id'],
+                        'origem': attached_path,
+                        'destino': upload_path
+                    })
+                    current_app.logger.info(f"✅ MIGRADA: {filename}")
+                except Exception as e:
+                    erros.append({
+                        'filename': filename,
+                        'erro': str(e)
+                    })
+                    current_app.logger.error(f"❌ Erro ao migrar {filename}: {str(e)}")
+        
+        resultado = {
+            'success': True,
+            'migradas': migradas,
+            'erros': erros,
+            'total_migradas': len(migradas),
+            'total_erros': len(erros),
+            'message': f'{len(migradas)} arquivos migrados, {len(erros)} erros'
+        }
+        
+        current_app.logger.info(f"📦 MIGRAÇÃO COMPLETA: {len(migradas)} arquivos migrados")
+        
+        return jsonify(resultado)
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro na migração: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
     form = ContatoForm(obj=contact)
 
     if form.validate_on_submit():
@@ -3016,7 +3192,7 @@ def reimbursement_new():
 # File serving (unique function)
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    """Servir arquivos da pasta uploads - VERSÃO OTIMIZADA SEM LOGS EXCESSIVOS"""
+    """Servir imagens do banco PostgreSQL Railway - VERSÃO CORRIGIDA"""
     try:
         # Verificação de autenticação
         from flask_login import current_user
@@ -3027,69 +3203,88 @@ def uploaded_file(filename):
         if not filename or filename in ['undefined', 'null', '', 'None']:
             return serve_placeholder_image('arquivo_invalido', "Nome de arquivo inválido")
         
-        # Pasta uploads
-        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
-        filepath = os.path.join(upload_folder, filename)
+        current_app.logger.info(f"🔍 BUSCANDO NO BANCO: {filename}")
         
-        # Verificar se arquivo existe DIRETAMENTE
-        if os.path.exists(filepath) and os.path.isfile(filepath):
-            # Determinar content type
-            content_type = 'image/jpeg'
-            if filename.lower().endswith('.png'):
-                content_type = 'image/png'
-            elif filename.lower().endswith('.gif'):
-                content_type = 'image/gif'
-            elif filename.lower().endswith('.webp'):
-                content_type = 'image/webp'
+        # Buscar no banco PostgreSQL primeiro
+        from models import FotoRelatorio, FotoRelatorioExpress
+        
+        # Tentar encontrar nos relatórios normais
+        foto_normal = FotoRelatorio.query.filter_by(filename=filename).first()
+        if foto_normal:
+            current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Relatório {foto_normal.relatorio_id}): {filename}")
             
-            # Servir arquivo DIRETAMENTE
-            response = send_from_directory(upload_folder, filename)
-            response.headers['Content-Type'] = content_type
-            response.headers['Cache-Control'] = 'public, max-age=3600'
-            response.headers['Access-Control-Allow-Origin'] = '*'
+            # Verificar se existe fisicamente
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            filepath = os.path.join(upload_folder, filename)
             
-            return response
-        else:
-            # Tentar recuperar da pasta attached_assets AUTOMATICAMENTE
-            attached_assets_path = os.path.join('attached_assets', filename)
-            if os.path.exists(attached_assets_path):
-                try:
-                    # Criar pasta uploads se não existir
-                    if not os.path.exists(upload_folder):
-                        os.makedirs(upload_folder)
-                    
-                    # Copiar arquivo automaticamente
-                    import shutil
-                    shutil.copy2(attached_assets_path, filepath)
-                    
-                    # Log apenas quando recuperar
-                    current_app.logger.info(f"🔄 RECUPERADO: {filename} de attached_assets")
-                    
-                    # Servir arquivo recuperado
-                    content_type = 'image/jpeg'
-                    if filename.lower().endswith('.png'):
-                        content_type = 'image/png'
-                    elif filename.lower().endswith('.gif'):
-                        content_type = 'image/gif'
-                    elif filename.lower().endswith('.webp'):
-                        content_type = 'image/webp'
-                    
-                    response = send_from_directory(upload_folder, filename)
-                    response.headers['Content-Type'] = content_type
-                    response.headers['Cache-Control'] = 'public, max-age=3600'
-                    response.headers['Access-Control-Allow-Origin'] = '*'
-                    
-                    return response
-                    
-                except Exception as recover_error:
-                    current_app.logger.error(f"❌ Erro ao recuperar {filename}: {str(recover_error)}")
+            if os.path.exists(filepath):
+                # Arquivo existe fisicamente
+                content_type = get_content_type(filename)
+                response = send_from_directory(upload_folder, filename)
+                response.headers['Content-Type'] = content_type
+                response.headers['Cache-Control'] = 'public, max-age=3600'
+                return response
+            else:
+                # Arquivo não existe fisicamente, mas está no banco
+                current_app.logger.warning(f"⚠️ ARQUIVO NO BANCO MAS NÃO NO FILESYSTEM: {filename}")
+                return serve_placeholder_image(filename, f"Imagem existe no banco mas arquivo físico não encontrado")
+        
+        # Tentar encontrar nos relatórios express
+        foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
+        if foto_express:
+            current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Express {foto_express.relatorio_express_id}): {filename}")
             
-            # Se não encontrou, usar placeholder
-            return serve_placeholder_image(filename, f"Arquivo não encontrado: {filename}")
+            # Verificar se existe fisicamente
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            filepath = os.path.join(upload_folder, filename)
+            
+            if os.path.exists(filepath):
+                # Arquivo existe fisicamente
+                content_type = get_content_type(filename)
+                response = send_from_directory(upload_folder, filename)
+                response.headers['Content-Type'] = content_type
+                response.headers['Cache-Control'] = 'public, max-age=3600'
+                return response
+            else:
+                # Arquivo não existe fisicamente, mas está no banco
+                current_app.logger.warning(f"⚠️ ARQUIVO NO BANCO MAS NÃO NO FILESYSTEM: {filename}")
+                return serve_placeholder_image(filename, f"Imagem existe no banco mas arquivo físico não encontrado")
+        
+        # Não encontrado no banco
+        current_app.logger.warning(f"❌ IMAGEM NÃO ENCONTRADA NO BANCO: {filename}")
+        
+        # Tentar buscar em attached_assets como fallback
+        attached_assets_path = os.path.join('attached_assets', filename)
+        if os.path.exists(attached_assets_path):
+            try:
+                current_app.logger.info(f"🔄 TENTANDO RECUPERAR DE attached_assets: {filename}")
+                content_type = get_content_type(filename)
+                response = send_from_directory('attached_assets', filename)
+                response.headers['Content-Type'] = content_type
+                response.headers['Cache-Control'] = 'public, max-age=3600'
+                return response
+            except Exception as recover_error:
+                current_app.logger.error(f"❌ Erro ao servir de attached_assets: {str(recover_error)}")
+        
+        # Arquivo não encontrado em lugar nenhum
+        return serve_placeholder_image(filename, f"Imagem não encontrada no banco nem no filesystem")
             
     except Exception as e:
-        current_app.logger.error(f"❌ ERRO ao servir {filename}: {str(e)}")
+        current_app.logger.error(f"❌ ERRO CRÍTICO ao servir {filename}: {str(e)}")
         return serve_placeholder_image(filename, f"Erro do servidor: {str(e)}")
+
+def get_content_type(filename):
+    """Determinar content type baseado na extensão"""
+    if filename.lower().endswith('.png'):
+        return 'image/png'
+    elif filename.lower().endswith('.gif'):
+        return 'image/gif'
+    elif filename.lower().endswith('.webp'):
+        return 'image/webp'
+    elif filename.lower().endswith(('.jpg', '.jpeg')):
+        return 'image/jpeg'
+    else:
+        return 'image/jpeg'  # default
 
 # Rotas de compatibilidade removidas - sistema simplificado
 
