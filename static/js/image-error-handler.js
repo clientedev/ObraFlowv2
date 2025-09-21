@@ -52,31 +52,56 @@ window.handleImageError = function(img) {
     testImg.src = correctPath;
 };
 
-// Função para usar placeholder
-function useImagePlaceholder(img, filename) {
+// Função para usar placeholder com informações de diagnóstico
+function useImagePlaceholder(img, filename, diagnosticData = null) {
     // Usar placeholder específico
     img.src = '/static/img/no-image.png';
     img.alt = `Imagem não encontrada: ${filename}`;
-    img.title = `Clique para tentar recarregar: ${filename}`;
+
+    // Criar título com informações de diagnóstico
+    let title = `Clique para tentar recarregar: ${filename}`;
+    if (diagnosticData) {
+        if (diagnosticData.database_info.foto_relatorio) {
+            title += `\n📋 Existe no banco (Relatório ID: ${diagnosticData.database_info.foto_relatorio.relatorio_id})`;
+        }
+        if (diagnosticData.database_info.foto_express) {
+            title += `\n📋 Existe no banco (Express ID: ${diagnosticData.database_info.foto_express.relatorio_express_id})`;
+        }
+        if (diagnosticData.file_system_scan.length > 0) {
+            title += `\n🔍 ${diagnosticData.file_system_scan.length} arquivo(s) similar(es) encontrado(s)`;
+        }
+    }
+    img.title = title;
 
     // Aplicar estilos de erro
     img.classList.add('image-error');
     img.style.border = '2px dashed #ffc107';
     img.style.opacity = '0.7';
+    img.style.background = 'linear-gradient(45deg, #f8f9fa 25%, transparent 25%), linear-gradient(-45deg, #f8f9fa 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f8f9fa 75%), linear-gradient(-45deg, transparent 75%, #f8f9fa 75%)';
+    img.style.backgroundSize = '10px 10px';
+    img.style.backgroundPosition = '0 0, 0 5px, 5px -5px, -5px 0px';
 
-    console.log(`📋 Placeholder aplicado: ${filename}`);
+    console.log(`📋 PLACEHOLDER APLICADO: ${filename}`, diagnosticData);
 
-    // Adicionar evento de clique para reload manual
+    // Adicionar evento de clique para reload manual com diagnóstico
     img.onclick = function(e) {
         e.preventDefault();
-        if (confirm(`Tentar recarregar ${filename}?`)) {
+
+        let message = `Tentar recarregar ${filename}?`;
+        if (diagnosticData && diagnosticData.file_system_scan.length > 0) {
+            message += `\n\nArquivos similares encontrados:\n${diagnosticData.file_system_scan.map(f => f.found_file).join('\n')}`;
+        }
+
+        if (confirm(message)) {
+            console.log('🔄 RELOAD MANUAL iniciado para:', filename);
             const originalSrc = this.dataset.originalSrc;
             this.dataset.errorProcessed = 'false';
             this.classList.remove('image-error');
             this.style.border = '';
             this.style.opacity = '1';
+            this.style.background = '';
             this.onclick = null;
-            this.src = originalSrc + '?reload=' + Date.now();
+            this.src = originalSrc + '?force_reload=' + Date.now();
         }
     };
 }

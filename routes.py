@@ -1847,6 +1847,212 @@ def save_annotated_photo():
         </script>
         """
 
+
+
+@app.route('/debug/image/<filename>')
+@login_required
+def debug_image(filename):
+    """Rota de diagnóstico para investigar problemas de imagem"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+        
+    try:
+        diagnostic_info = {
+            'filename': filename,
+            'search_results': [],
+            'database_info': {},
+            'directories_checked': [],
+            'file_system_scan': []
+        }
+        
+        # Verificar diretórios
+        search_directories = [
+            os.path.join(os.getcwd(), 'uploads'),
+            os.path.join(os.getcwd(), 'attached_assets'),
+            os.path.join(os.getcwd(), 'static', 'uploads'),
+            os.path.join(os.getcwd(), 'static', 'img')
+        ]
+        
+        for directory in search_directories:
+            dir_info = {
+                'path': directory,
+                'exists': os.path.exists(directory),
+                'files_count': 0,
+                'target_file_found': False
+            }
+            
+            if os.path.exists(directory):
+                try:
+                    files = os.listdir(directory)
+                    dir_info['files_count'] = len([f for f in files if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
+                    dir_info['target_file_found'] = filename in files
+                    
+                    if filename in files:
+                        filepath = os.path.join(directory, filename)
+                        file_stat = os.stat(filepath)
+                        dir_info['file_details'] = {
+                            'size': file_stat.st_size,
+                            'modified': datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
+                            'readable': os.access(filepath, os.R_OK)
+                        }
+                except Exception as e:
+                    dir_info['error'] = str(e)
+            
+            diagnostic_info['directories_checked'].append(dir_info)
+        
+        # Busca recursiva por arquivos similares
+        base_pattern = filename[:20] if len(filename) > 20 else filename.split('.')[0]
+        
+        for root_dir in search_directories:
+            if not os.path.exists(root_dir):
+                continue
+                
+            for root, dirs, files in os.walk(root_dir):
+                for file in files:
+                    if (base_pattern in file and 
+                        file.lower().endswith(('.jpg', '.jpeg', '.png', '.gif'))):
+                        diagnostic_info['file_system_scan'].append({
+                            'found_file': file,
+                            'location': root,
+                            'similarity': 'exact' if file == filename else 'pattern_match'
+                        })
+        
+        # Verificar banco de dados
+        try:
+            from models import FotoRelatorio, FotoRelatorioExpress
+            
+            foto_relatorio = FotoRelatorio.query.filter_by(filename=filename).first()
+            foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
+            
+            if foto_relatorio:
+                diagnostic_info['database_info']['foto_relatorio'] = {
+                    'id': foto_relatorio.id,
+                    'relatorio_id': foto_relatorio.relatorio_id,
+                    'legenda': foto_relatorio.legenda,
+                    'created_at': foto_relatorio.created_at.isoformat() if foto_relatorio.created_at else None
+                }
+            
+            if foto_express:
+                diagnostic_info['database_info']['foto_express'] = {
+                    'id': foto_express.id,
+                    'relatorio_express_id': foto_express.relatorio_express_id,
+                    'legenda': foto_express.legenda,
+                    'created_at': foto_express.created_at.isoformat() if foto_express.created_at else None
+                }
+                
+        except Exception as db_error:
+            diagnostic_info['database_info']['error'] = str(db_error)
+        
+        return jsonify(diagnostic_info)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/check-specific-image')
+@login_required
+def check_specific_image():
+    """Verificar especificamente a imagem que está dando problema"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    target_filename = "017050397c414b519d1df38fd32e78c8_1758143134942281964204884259198.jpg"
+    
+    try:
+        results = {
+            'target_filename': target_filename,
+            'found_locations': [],
+            'database_status': {},
+            'filesystem_scan': [],
+            'recommendations': []
+        }
+        
+        # Verificar banco de dados primeiro
+        from models import FotoRelatorio, FotoRelatorioExpress
+        
+        foto_relatorio = FotoRelatorio.query.filter_by(filename=target_filename).first()
+        if foto_relatorio:
+            results['database_status']['relatorio'] = {
+                'id': foto_relatorio.id,
+                'relatorio_id': foto_relatorio.relatorio_id,
+                'legenda': foto_relatorio.legenda,
+                'created_at': foto_relatorio.created_at.isoformat() if foto_relatorio.created_at else None,
+                'ordem': foto_relatorio.ordem
+            }
+        
+        # Buscar arquivo no filesystem
+        search_locations = [
+            'uploads',
+            'attached_assets', 
+            'static/uploads',
+            'static/img',
+            '.'
+        ]
+        
+        for location in search_locations:
+            full_path = os.path.join(os.getcwd(), location)
+            if os.path.exists(full_path):
+                # Busca exata
+                target_path = os.path.join(full_path, target_filename)
+                if os.path.exists(target_path):
+                    file_stat = os.stat(target_path)
+                    results['found_locations'].append({
+                        'location': location,
+                        'full_path': target_path,
+                        'size': file_stat.st_size,
+                        'modified': datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
+                        'readable': os.access(target_path, os.R_OK)
+                    })
+                
+                # Busca recursiva
+                for root, dirs, files in os.walk(full_path):
+                    if target_filename in files:
+                        file_path = os.path.join(root, target_filename)
+                        if file_path not in [loc['full_path'] for loc in results['found_locations']]:
+                            file_stat = os.stat(file_path)
+                            results['found_locations'].append({
+                                'location': f"{location} (subdir: {os.path.relpath(root, full_path)})",
+                                'full_path': file_path,
+                                'size': file_stat.st_size,
+                                'modified': datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
+                                'readable': os.access(file_path, os.R_OK)
+                            })
+        
+        # Buscar por padrão similar
+        base_pattern = target_filename[:30]
+        for location in search_locations:
+            full_path = os.path.join(os.getcwd(), location)
+            if os.path.exists(full_path):
+                for root, dirs, files in os.walk(full_path):
+                    for file in files:
+                        if (base_pattern in file and 
+                            file.lower().endswith(('.jpg', '.jpeg')) and
+                            file != target_filename):
+                            results['filesystem_scan'].append({
+                                'similar_file': file,
+                                'location': os.path.relpath(root, os.getcwd()),
+                                'similarity_score': len(set(target_filename) & set(file)) / len(set(target_filename) | set(file))
+                            })
+        
+        # Gerar recomendações
+        if results['database_status'] and not results['found_locations']:
+            results['recommendations'].append("Arquivo existe no banco mas não no filesystem - possível problema de upload ou migração")
+        
+        if results['found_locations']:
+            results['recommendations'].append(f"Arquivo encontrado em {len(results['found_locations'])} localização(ões)")
+        
+        if results['filesystem_scan']:
+            results['recommendations'].append(f"Encontrados {len(results['filesystem_scan'])} arquivos similares")
+            results['recommendations'].append("Verificar se houve corrupção de nome durante upload")
+        
+        return jsonify(results)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+
 @app.route('/reports/<int:report_id>/photos/upload', methods=['POST'])
 @login_required
 def upload_report_photos(report_id):
@@ -2809,54 +3015,52 @@ def reimbursement_new():
 # File serving (unique function)
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    """Servir arquivos de upload - versão simplificada e robusta"""
+    """Servir arquivos de upload com busca robusta e logs detalhados"""
     try:
         # Verificação de autenticação
         from flask_login import current_user
         if not current_user.is_authenticated:
-            return serve_placeholder_image(filename)
+            current_app.logger.warning(f"🔒 Acesso negado para {filename} - usuário não autenticado")
+            return serve_placeholder_image(filename, "Acesso negado")
         
         # Validar filename
         if not filename or filename in ['undefined', 'null', '']:
+            current_app.logger.warning(f"📁 Filename inválido: {filename}")
             return serve_placeholder_image()
         
-        current_app.logger.info(f"📁 Servindo arquivo: {filename}")
+        current_app.logger.info(f"📁 BUSCANDO ARQUIVO: {filename}")
         
-        # Definir diretórios de busca em ordem de prioridade
+        # Definir diretórios de busca com busca recursiva
         search_directories = [
             os.path.join(os.getcwd(), 'uploads'),
             os.path.join(os.getcwd(), 'attached_assets'),
             os.path.join(os.getcwd(), 'static', 'uploads'),
-            os.path.join(os.getcwd(), 'static', 'img')
+            os.path.join(os.getcwd(), 'static', 'img'),
+            os.getcwd()  # Buscar na raiz também
         ]
         
-        # Buscar arquivo nos diretórios
+        # Primeira tentativa: busca exata
         for directory in search_directories:
             if not os.path.exists(directory):
+                current_app.logger.debug(f"📁 Diretório não existe: {directory}")
                 continue
                 
             filepath = os.path.join(directory, filename)
             
             if os.path.exists(filepath) and os.path.isfile(filepath):
-                current_app.logger.info(f"✅ Arquivo encontrado: {filepath}")
+                current_app.logger.info(f"✅ ARQUIVO ENCONTRADO (busca exata): {filepath}")
                 try:
-                    # Determinar content type baseado na extensão
-                    content_type = None
-                    if filename.lower().endswith(('.jpg', '.jpeg')):
-                        content_type = 'image/jpeg'
-                    elif filename.lower().endswith('.png'):
+                    # Determinar content type
+                    content_type = 'image/jpeg'
+                    if filename.lower().endswith('.png'):
                         content_type = 'image/png'
                     elif filename.lower().endswith('.gif'):
                         content_type = 'image/gif'
                     elif filename.lower().endswith('.webp'):
                         content_type = 'image/webp'
                     
-                    # Usar send_from_directory para servir o arquivo
                     response = send_from_directory(directory, filename)
-                    if content_type:
-                        response.headers['Content-Type'] = content_type
-                    
-                    # Headers para cache controlado
+                    response.headers['Content-Type'] = content_type
                     response.headers['Cache-Control'] = 'public, max-age=3600'
                     return response
                     
@@ -2864,32 +3068,86 @@ def uploaded_file(filename):
                     current_app.logger.error(f"❌ Erro ao enviar {filepath}: {str(send_error)}")
                     continue
         
-        # Se não encontrou o arquivo, verificar se existe no banco
-        current_app.logger.warning(f"⚠️ Arquivo físico não encontrado: {filename}")
+        # Segunda tentativa: busca recursiva (para arquivos em subpastas)
+        current_app.logger.info(f"🔍 BUSCA RECURSIVA para: {filename}")
+        for root_dir in search_directories:
+            if not os.path.exists(root_dir):
+                continue
+                
+            for root, dirs, files in os.walk(root_dir):
+                if filename in files:
+                    filepath = os.path.join(root, filename)
+                    current_app.logger.info(f"✅ ARQUIVO ENCONTRADO (busca recursiva): {filepath}")
+                    try:
+                        # Calcular diretório relativo para send_from_directory
+                        relative_dir = os.path.relpath(root, root_dir)
+                        if relative_dir == '.':
+                            response = send_from_directory(root_dir, filename)
+                        else:
+                            response = send_from_directory(root_dir, os.path.join(relative_dir, filename))
+                        
+                        response.headers['Content-Type'] = 'image/jpeg'
+                        response.headers['Cache-Control'] = 'public, max-age=3600'
+                        return response
+                        
+                    except Exception as send_error:
+                        current_app.logger.error(f"❌ Erro ao enviar (recursivo) {filepath}: {str(send_error)}")
+                        continue
+        
+        # Terceira tentativa: busca por padrão similar
+        current_app.logger.info(f"🔍 BUSCA POR PADRÃO para: {filename}")
+        base_pattern = filename[:20] if len(filename) > 20 else filename.split('.')[0]
+        
+        for root_dir in search_directories:
+            if not os.path.exists(root_dir):
+                continue
+                
+            for root, dirs, files in os.walk(root_dir):
+                for file in files:
+                    if (base_pattern in file and 
+                        file.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp'))):
+                        filepath = os.path.join(root, file)
+                        current_app.logger.info(f"🎯 ARQUIVO SIMILAR ENCONTRADO: {filepath} (buscava: {filename})")
+                        try:
+                            relative_dir = os.path.relpath(root, root_dir)
+                            if relative_dir == '.':
+                                response = send_from_directory(root_dir, file)
+                            else:
+                                response = send_from_directory(root_dir, os.path.join(relative_dir, file))
+                            
+                            response.headers['Content-Type'] = 'image/jpeg'
+                            response.headers['Cache-Control'] = 'public, max-age=3600'
+                            return response
+                            
+                        except Exception:
+                            continue
+        
+        # Verificar banco de dados
+        current_app.logger.warning(f"⚠️ ARQUIVO FÍSICO NÃO ENCONTRADO: {filename}")
         
         try:
             from models import FotoRelatorio, FotoRelatorioExpress
             
-            # Verificar se o arquivo está registrado no banco
-            foto_exists = (
-                FotoRelatorio.query.filter_by(filename=filename).first() or
-                FotoRelatorioExpress.query.filter_by(filename=filename).first()
-            )
+            foto_relatorio = FotoRelatorio.query.filter_by(filename=filename).first()
+            foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
             
-            if foto_exists:
-                current_app.logger.warning(f"📋 Arquivo existe no banco mas não no filesystem: {filename}")
-                return serve_placeholder_image(filename, "Arquivo perdido - existe no banco")
+            if foto_relatorio:
+                current_app.logger.error(f"💾 ARQUIVO EXISTE NO BANCO (FotoRelatorio ID: {foto_relatorio.id}) MAS NÃO NO FILESYSTEM: {filename}")
+                return serve_placeholder_image(filename, f"Arquivo perdido do relatório ID {foto_relatorio.relatorio_id}")
+            elif foto_express:
+                current_app.logger.error(f"💾 ARQUIVO EXISTE NO BANCO (FotoExpressID: {foto_express.id}) MAS NÃO NO FILESYSTEM: {filename}")
+                return serve_placeholder_image(filename, f"Arquivo perdido do relatório express ID {foto_express.relatorio_express_id}")
             else:
-                current_app.logger.warning(f"📋 Arquivo não existe no banco: {filename}")
-                return serve_placeholder_image(filename, "Arquivo não encontrado")
+                current_app.logger.warning(f"💾 ARQUIVO NÃO EXISTE NO BANCO: {filename}")
+                return serve_placeholder_image(filename, "Arquivo não registrado no banco")
                 
         except Exception as db_error:
-            current_app.logger.error(f"❌ Erro ao verificar banco: {str(db_error)}")
-            return serve_placeholder_image(filename, "Erro ao verificar banco")
+            current_app.logger.error(f"❌ ERRO AO VERIFICAR BANCO: {str(db_error)}")
+            return serve_placeholder_image(filename, f"Erro no banco: {str(db_error)}")
             
     except Exception as e:
-        current_app.logger.error(f"❌ Erro crítico ao servir {filename}: {str(e)}")
-        return serve_placeholder_image(filename, f"Erro: {str(e)}")
+        current_app.logger.error(f"❌ ERRO CRÍTICO ao servir {filename}: {str(e)}")
+        return serve_placeholder_image(filename, f"Erro crítico: {str(e)}")
 
 # Rotas de compatibilidade removidas - sistema simplificado
 
