@@ -292,6 +292,17 @@
 
 {% block extra_scripts %}
 <script>
+// Fallback para handleImageError se não estiver carregado
+if (typeof window.handleImageError === 'undefined') {
+    window.handleImageError = function(img) {
+        console.log('📋 Fallback: Imagem não carregou:', img.src);
+        img.src = '/static/img/no-image.png';
+        img.alt = 'Imagem não encontrada';
+        img.style.border = '2px dashed #ffc107';
+        img.style.opacity = '0.7';
+    };
+}
+
 // Image modal functionality
 document.addEventListener('DOMContentLoaded', function() {
     const images = document.querySelectorAll('.card-img-top');

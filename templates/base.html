@@ -79,10 +79,12 @@ img[src*="no-image"] {
     <!-- SINCRONIZAÇÃO TEMPO REAL - Dados sempre fresh do PostgreSQL -->
     <script src="{{ url_for('static', filename='js/realtime-sync.js') }}" defer></script>
 
+    <!-- Image Error Handler - DEVE SER CARREGADO PRIMEIRO -->
+    <script src="{{ url_for('static', filename='js/image-error-handler.js') }}"></script>
+    
     <!-- Mobile Utilities -->
     <script src="{{ url_for('static', filename='js/mobile-utils.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/image-error-handler.js') }}"></script>
 
     <!-- Sistema de Notificações -->
 
