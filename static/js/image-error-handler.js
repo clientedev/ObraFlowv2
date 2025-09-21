@@ -23,33 +23,13 @@ window.handleImageError = function(img) {
         return;
     }
 
-    // Tentar caminho correto: /uploads/filename
+    // APENAS tentar /uploads/filename
     const correctPath = `/uploads/${filename}`;
+    console.log(`🔄 Tentando uploads: ${correctPath}`);
 
-    console.log(`🔄 Tentando caminho correto: ${correctPath}`);
-
-    // Criar imagem de teste
-    const testImg = new Image();
-
-    testImg.onload = function() {
-        console.log(`✅ Sucesso: ${correctPath}`);
-        img.src = correctPath;
-        img.dataset.errorProcessed = 'false';
-
-        // Remover estilos de erro
-        img.classList.remove('image-error');
-        img.style.border = '';
-        img.style.opacity = '1';
-        img.title = filename;
-    };
-
-    testImg.onerror = function() {
-        console.log(`❌ Falhou: ${correctPath}, usando placeholder`);
-        useImagePlaceholder(img, filename);
-    };
-
-    // Testar caminho
-    testImg.src = correctPath;
+    // Usar placeholder imediatamente se não conseguir carregar
+    console.log(`❌ Usando placeholder para: ${filename}`);
+    useImagePlaceholder(img, filename);
 };
 
 // Função para usar placeholder com informações de diagnóstico
