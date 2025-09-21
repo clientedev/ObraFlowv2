@@ -2809,82 +2809,87 @@ def reimbursement_new():
 # File serving (unique function)
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    """Servir arquivos de upload com múltiplos fallbacks"""
+    """Servir arquivos de upload - versão simplificada e robusta"""
     try:
         # Verificação de autenticação
         from flask_login import current_user
         if not current_user.is_authenticated:
-            # Para imagens, servir placeholder em vez de redirecionar
-            if request.headers.get('Accept', '').startswith('image/') or filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-                return serve_placeholder_image(filename)
-            else:
-                return redirect(url_for('login', next=request.url))
+            return serve_placeholder_image(filename)
         
-        # Verificar se filename é válido
-        if not filename or filename == 'undefined' or filename == 'null':
+        # Validar filename
+        if not filename or filename in ['undefined', 'null', '']:
             return serve_placeholder_image()
         
-        current_app.logger.info(f"📁 Buscando arquivo: {filename}")
+        current_app.logger.info(f"📁 Servindo arquivo: {filename}")
         
-        # Lista de locais possíveis para buscar o arquivo
-        possible_locations = [
-            ('uploads', current_app.config.get('UPLOAD_FOLDER', 'uploads')),
-            ('attached_assets', 'attached_assets'),
-            ('static/uploads', 'static/uploads'),
-            ('static/img', 'static/img')
+        # Definir diretórios de busca em ordem de prioridade
+        search_directories = [
+            os.path.join(os.getcwd(), 'uploads'),
+            os.path.join(os.getcwd(), 'attached_assets'),
+            os.path.join(os.getcwd(), 'static', 'uploads'),
+            os.path.join(os.getcwd(), 'static', 'img')
         ]
         
-        # Tentar cada localização
-        for location_name, folder_path in possible_locations:
-            file_path = os.path.join(folder_path, filename)
-            current_app.logger.info(f"🔍 Tentando: {file_path}")
-            
-            if os.path.exists(file_path):
-                current_app.logger.info(f"✅ Arquivo encontrado em: {location_name}")
+        # Buscar arquivo nos diretórios
+        for directory in search_directories:
+            if not os.path.exists(directory):
+                continue
                 
-                # Verificar se é uma imagem válida
-                if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-                    try:
-                        return send_from_directory(folder_path, filename)
-                    except Exception as send_error:
-                        current_app.logger.error(f"❌ Erro ao enviar de {folder_path}: {str(send_error)}")
-                        continue
-                else:
-                    # Para não imagens, ainda tentar servir
-                    try:
-                        return send_from_directory(folder_path, filename)
-                    except Exception:
-                        continue
+            filepath = os.path.join(directory, filename)
+            
+            if os.path.exists(filepath) and os.path.isfile(filepath):
+                current_app.logger.info(f"✅ Arquivo encontrado: {filepath}")
+                try:
+                    # Determinar content type baseado na extensão
+                    content_type = None
+                    if filename.lower().endswith(('.jpg', '.jpeg')):
+                        content_type = 'image/jpeg'
+                    elif filename.lower().endswith('.png'):
+                        content_type = 'image/png'
+                    elif filename.lower().endswith('.gif'):
+                        content_type = 'image/gif'
+                    elif filename.lower().endswith('.webp'):
+                        content_type = 'image/webp'
+                    
+                    # Usar send_from_directory para servir o arquivo
+                    response = send_from_directory(directory, filename)
+                    if content_type:
+                        response.headers['Content-Type'] = content_type
+                    
+                    # Headers para cache controlado
+                    response.headers['Cache-Control'] = 'public, max-age=3600'
+                    return response
+                    
+                except Exception as send_error:
+                    current_app.logger.error(f"❌ Erro ao enviar {filepath}: {str(send_error)}")
+                    continue
         
-        # Se chegou até aqui, arquivo não foi encontrado
-        current_app.logger.warning(f"⚠️ Arquivo não encontrado em nenhuma localização: {filename}")
+        # Se não encontrou o arquivo, verificar se existe no banco
+        current_app.logger.warning(f"⚠️ Arquivo físico não encontrado: {filename}")
         
-        # Verificar se existe no banco de dados
         try:
             from models import FotoRelatorio, FotoRelatorioExpress
             
-            # Buscar em FotoRelatorio
-            foto_normal = FotoRelatorio.query.filter_by(filename=filename).first()
-            if foto_normal:
-                current_app.logger.info(f"📋 Arquivo existe no banco (FotoRelatorio ID: {foto_normal.id})")
+            # Verificar se o arquivo está registrado no banco
+            foto_exists = (
+                FotoRelatorio.query.filter_by(filename=filename).first() or
+                FotoRelatorioExpress.query.filter_by(filename=filename).first()
+            )
             
-            # Buscar em FotoRelatorioExpress
-            foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
-            if foto_express:
-                current_app.logger.info(f"📋 Arquivo existe no banco (FotoRelatorioExpress ID: {foto_express.id})")
-            
-            if foto_normal or foto_express:
-                # Arquivo existe no banco mas não no filesystem
-                return serve_placeholder_image(filename, "Arquivo registrado mas não encontrado no servidor")
-            
+            if foto_exists:
+                current_app.logger.warning(f"📋 Arquivo existe no banco mas não no filesystem: {filename}")
+                return serve_placeholder_image(filename, "Arquivo perdido - existe no banco")
+            else:
+                current_app.logger.warning(f"📋 Arquivo não existe no banco: {filename}")
+                return serve_placeholder_image(filename, "Arquivo não encontrado")
+                
         except Exception as db_error:
             current_app.logger.error(f"❌ Erro ao verificar banco: {str(db_error)}")
-        
-        return serve_placeholder_image(filename)
-        
+            return serve_placeholder_image(filename, "Erro ao verificar banco")
+            
     except Exception as e:
-        current_app.logger.error(f"❌ Erro crítico ao servir arquivo {filename}: {str(e)}")
-        return serve_placeholder_image(filename)
+        current_app.logger.error(f"❌ Erro crítico ao servir {filename}: {str(e)}")
+        return serve_placeholder_image(filename, f"Erro: {str(e)}")
 
 # Rotas de compatibilidade removidas - sistema simplificado
 
@@ -2893,53 +2898,65 @@ def uploaded_file(filename):
 def serve_placeholder_image(filename=None, message=None):
     """Serve uma imagem placeholder quando o arquivo não é encontrado"""
     try:
-        # Tentar placeholder estático primeiro
-        placeholder_path = os.path.join('static', 'img', 'no-image.png')
-        if os.path.exists(placeholder_path):
-            current_app.logger.info(f"📷 Servindo placeholder para: {filename}")
-            return send_from_directory('static/img', 'no-image.png')
+        # Primeiro, tentar servir o placeholder estático se existir
+        static_placeholder = os.path.join(os.getcwd(), 'static', 'img', 'no-image.png')
+        if os.path.exists(static_placeholder):
+            current_app.logger.info(f"📷 Servindo placeholder estático para: {filename}")
+            return send_from_directory(os.path.join(os.getcwd(), 'static', 'img'), 'no-image.png')
         
-        # SVG placeholder com informações detalhadas
-        display_filename = filename or "arquivo"
+        # Se não existir, criar SVG placeholder dinâmico
+        display_filename = (filename or "arquivo")[:30]
         display_message = message or "não encontrada"
         
-        # Escapar strings para SVG
-        display_filename = str(display_filename).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
-        display_message = str(display_message).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+        # Sanitizar strings para SVG
+        display_filename = str(display_filename).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        display_message = str(display_message).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         
-        svg_placeholder = f'''<svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
-<rect width="100%" height="100%" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
-<rect x="10" y="10" width="280" height="30" fill="#e9ecef" rx="4"/>
-<text x="150" y="30" font-family="Arial, sans-serif" font-size="14" 
-      fill="#495057" text-anchor="middle" font-weight="bold">📷 ELP Consultoria</text>
-
-<circle cx="150" cy="80" r="20" fill="#6c757d" opacity="0.3"/>
-<path d="M140 75 L160 75 L155 85 L145 85 Z" fill="#fff"/>
-
-<text x="150" y="120" font-family="Arial, sans-serif" font-size="12" 
-      fill="#6c757d" text-anchor="middle">Imagem {display_message}</text>
-
-<text x="150" y="140" font-family="monospace" font-size="10" 
-      fill="#868e96" text-anchor="middle">{display_filename[:40]}</text>
-
-<text x="150" y="160" font-family="Arial, sans-serif" font-size="10" 
-      fill="#adb5bd" text-anchor="middle">Clique para tentar novamente</text>
-
-<text x="150" y="180" font-family="Arial, sans-serif" font-size="8" 
-      fill="#ced4da" text-anchor="middle">Sistema de Gestão de Obras</text>
+        svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="150" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150">
+  <rect width="100%" height="100%" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+  
+  <!-- Header -->
+  <rect x="5" y="5" width="190" height="25" fill="#e9ecef" rx="3"/>
+  <text x="100" y="20" font-family="Arial, sans-serif" font-size="12" 
+        fill="#495057" text-anchor="middle" font-weight="bold">📷 ELP Sistema</text>
+  
+  <!-- Icon -->
+  <circle cx="100" cy="60" r="15" fill="#6c757d" opacity="0.3"/>
+  <rect x="92" y="55" width="16" height="10" fill="#fff" opacity="0.8"/>
+  
+  <!-- Message -->
+  <text x="100" y="85" font-family="Arial, sans-serif" font-size="10" 
+        fill="#6c757d" text-anchor="middle">Imagem {display_message}</text>
+  
+  <!-- Filename -->
+  <text x="100" y="105" font-family="monospace" font-size="8" 
+        fill="#868e96" text-anchor="middle">{display_filename}</text>
+  
+  <!-- Help text -->
+  <text x="100" y="125" font-family="Arial, sans-serif" font-size="8" 
+        fill="#adb5bd" text-anchor="middle">Recarregue a página</text>
+  
+  <!-- Footer -->
+  <text x="100" y="140" font-family="Arial, sans-serif" font-size="7" 
+        fill="#ced4da" text-anchor="middle">Sistema de Gestão de Obras</text>
 </svg>'''
         
         from flask import Response
-        response = Response(svg_placeholder, mimetype='image/svg+xml')
+        response = Response(svg_content, mimetype='image/svg+xml')
+        response.headers['Content-Type'] = 'image/svg+xml'
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
         
+        current_app.logger.info(f"📷 Servindo SVG placeholder para: {filename}")
         return response
         
     except Exception as e:
-        current_app.logger.error(f"Erro ao servir placeholder: {str(e)}")
-        return "Imagem não encontrada", 404
+        current_app.logger.error(f"❌ Erro ao servir placeholder: {str(e)}")
+        # Fallback absoluto - retornar uma resposta de erro simples
+        from flask import Response
+        return Response("Imagem não encontrada", status=404, mimetype='text/plain')
 
 # GPS location endpoint
 @app.route('/get_location', methods=['POST', 'GET'])

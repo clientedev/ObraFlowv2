@@ -22,6 +22,46 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+<style>
+/* Estilos para imagens com erro */
+.image-error {
+    background: #f8f9fa;
+    border: 2px dashed #ffc107 !important;
+    opacity: 0.7 !important;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.image-error:hover {
+    opacity: 0.9;
+    border-color: #fd7e14 !important;
+}
+
+/* Placeholder para imagens carregando */
+img[src*="no-image"] {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    opacity: 0.8;
+}
+
+/* Melhorar visualização de imagens em relatórios */
+.foto-relatorio img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.foto-relatorio .image-error {
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+}
+</style>
+
     <meta name="apple-mobile-web-app-title" content="ELP Relatórios">
     <meta name="msapplication-TileColor" content="#343a40">
     <meta name="msapplication-config" content="{{ url_for('static', filename='browserconfig.xml') }}">
