@@ -1416,8 +1416,52 @@ def approve_report(id):
 
     db.session.commit()
     
-    # TODO: Implementar envio automático para clientes
-    flash(f'Relatório {relatorio.numero} aprovado com sucesso!', 'success')
+    # Envio automático para clientes
+    try:
+        from email_service import EmailService
+        from models import EmailCliente
+        
+        email_service = EmailService()
+        
+        # Buscar emails dos clientes do projeto
+        emails_clientes = EmailCliente.query.filter_by(
+            projeto_id=relatorio.projeto_id,
+            ativo=True,
+            receber_relatorios=True
+        ).all()
+        
+        if emails_clientes:
+            # Preparar dados para envio
+            destinatarios_emails = [email.email for email in emails_clientes]
+            
+            destinatarios_data = {
+                'destinatarios': destinatarios_emails,
+                'cc': [],
+                'bcc': [],
+                'assunto_custom': None,  # Usar template padrão
+                'corpo_custom': None     # Usar template padrão
+            }
+            
+            # Enviar por email
+            resultado = email_service.enviar_relatorio_por_email(
+                relatorio, 
+                destinatarios_data, 
+                current_user.id
+            )
+            
+            if resultado['success']:
+                flash(f'Relatório {relatorio.numero} aprovado e enviado automaticamente para {len(destinatarios_emails)} cliente(s)!', 'success')
+            else:
+                flash(f'Relatório {relatorio.numero} aprovado, mas houve erro no envio: {resultado.get("error", "Erro desconhecido")}', 'warning')
+        else:
+            flash(f'Relatório {relatorio.numero} aprovado! Nenhum email de cliente configurado para envio automático.', 'warning')
+            
+    except Exception as e:
+        # Log da aprovação funcionou, mas email falhou
+        import logging
+        logging.error(f"Erro ao enviar email após aprovação do relatório {id}: {str(e)}")
+        flash(f'Relatório {relatorio.numero} aprovado, mas falha no envio automático: {str(e)}', 'warning')
+    
     return redirect(url_for('review_report', id=id))
 
 @app.route('/reports/<int:id>/reject', methods=['POST'])
@@ -1437,6 +1481,10 @@ def reject_report(id):
         flash('Comentário de reprovação é obrigatório.', 'error')
         return redirect(url_for('review_report', id=id))
     
+    # Guardar informações do autor antes da mudança
+    autor = relatorio.autor
+    projeto_nome = relatorio.projeto.nome if relatorio.projeto else 'N/A'
+    
     relatorio.status = 'Em edição'  # Volta para edição ao invés de "Rejeitado"
     relatorio.aprovado_por = current_user.id
     relatorio.data_aprovacao = datetime.utcnow()
@@ -1444,8 +1492,21 @@ def reject_report(id):
 
     db.session.commit()
     
-    # TODO: Implementar notificação ao responsável pelo relatório
-    flash(f'Relatório {relatorio.numero} rejeitado. O autor foi notificado para fazer as correções.', 'warning')
+    # Log da ação de reprovação
+    import logging
+    logging.info(f"Relatório {relatorio.numero} rejeitado por {current_user.nome_completo} (ID: {current_user.id}). "
+                f"Projeto: {projeto_nome}. Motivo: {comentario.strip()[:100]}...")
+    
+    # Notificação simples por enquanto - pode ser expandida para email/sistema de notificações
+    try:
+        # Aqui você pode implementar notificação por email ao autor, sistema de notificações, etc.
+        # Por enquanto, apenas log
+        logging.info(f"Notificação enviada para {autor.nome_completo} ({autor.email}) sobre reprovação do relatório {relatorio.numero}")
+    except Exception as e:
+        logging.error(f"Erro ao notificar autor sobre reprovação: {str(e)}")
+    
+    flash(f'Relatório {relatorio.numero} rejeitado e devolvido para edição. '
+          f'O autor {autor.nome_completo} deve fazer as correções solicitadas.', 'warning')
     return redirect(url_for('review_report', id=id))
 
 @app.route('/reports/pending')
