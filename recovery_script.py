@@ -44,10 +44,10 @@ def recuperar_imagens_perdidas():
                         print(f"✅ Recuperada: {filename} (relatório {foto.relatorio_id})")
                         recuperadas += 1
                     except Exception as e:
-                        print(f"❌ Erro ao copiar {filename}: {e}")
+                        print(f"❌ Erro ao copiar {filename}: {str(e)}")
                         nao_encontradas += 1
                 else:
-                    print(f"⚠️ Não encontrada: {filename}")
+                    print(f"❌ Não encontrada: {filename} (relatório {foto.relatorio_id})")
                     nao_encontradas += 1
         
         # Processar fotos de relatórios express
@@ -64,13 +64,13 @@ def recuperar_imagens_perdidas():
                 if os.path.exists(attached_path):
                     try:
                         shutil.copy2(attached_path, upload_path)
-                        print(f"✅ Recuperada: {filename} (relatório express {foto.relatorio_express_id})")
+                        print(f"✅ Recuperada: {filename} (express {foto.relatorio_express_id})")
                         recuperadas += 1
                     except Exception as e:
-                        print(f"❌ Erro ao copiar {filename}: {e}")
+                        print(f"❌ Erro ao copiar {filename}: {str(e)}")
                         nao_encontradas += 1
                 else:
-                    print(f"⚠️ Não encontrada: {filename}")
+                    print(f"❌ Não encontrada: {filename} (express {foto.relatorio_express_id})")
                     nao_encontradas += 1
         
         print(f"\n📊 RESULTADO:")
@@ -86,4 +86,5 @@ if __name__ == "__main__":
         print(f"\n🎉 Sucesso! {recuperadas} imagens foram recuperadas!")
     
     if nao_encontradas > 0:
-        print(f"\n⚠️ Atenção: {nao_encontradas} imagens não foram encontradas nos attached_assets")
+        print(f"\n⚠️ Atenção: {nao_encontradas} imagens permanecem perdidas.")
+        print("💡 Verifique se os arquivos existem em 'attached_assets' ou se foram deletados permanentemente.")

@@ -2868,6 +2868,22 @@ def uploaded_file(filename):
         current_app.logger.error(f"❌ Erro crítico ao servir arquivo {filename}: {str(e)}")
         return serve_placeholder_image()
 
+# Rota adicional para compatibilidade com attached_assets
+@app.route('/attached_assets/<filename>')
+@login_required
+def attached_assets_file(filename):
+    """Rota de compatibilidade para attached_assets - redireciona para uploads"""
+    current_app.logger.info(f"🔄 Redirecionando attached_assets/{filename} para uploads/")
+    return redirect(url_for('uploaded_file', filename=filename))
+
+# Rota adicional para compatibilidade com static/uploads
+@app.route('/static/uploads/<filename>')
+@login_required  
+def static_uploads_file(filename):
+    """Rota de compatibilidade para static/uploads - redireciona para uploads"""
+    current_app.logger.info(f"🔄 Redirecionando static/uploads/{filename} para uploads/")
+    return redirect(url_for('uploaded_file', filename=filename))
+
 def serve_placeholder_image(filename=None):
     """Serve uma imagem placeholder quando o arquivo não é encontrado"""
     try:

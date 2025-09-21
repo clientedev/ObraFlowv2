@@ -214,6 +214,7 @@
                                      alt="{{ foto.legenda or foto.titulo or 'Foto do relatório' }}"
                                      onerror="handleImageError(this);" 
                                      data-original-src="{{ url_for('uploaded_file', filename=foto.filename) }}"
+                                     data-filename="{{ foto.filename }}"
                                      loading="lazy">
                                 <div class="card-body p-2">
                                     {% if foto.legenda %}

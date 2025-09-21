@@ -1,5 +1,6 @@
+
 /**
- * Sistema global para lidar com erros de imagem
+ * Sistema global robusto para lidar com erros de imagem
  */
 
 // Função para lidar com erros de imagem
@@ -24,9 +25,10 @@ function handleImageError(img) {
 
     // Tentar diferentes caminhos antes do placeholder
     const alternativePaths = [
+        `/uploads/${filename}`,
         `/attached_assets/${filename}`,
         `/static/uploads/${filename}`,
-        `/uploads/${filename}`
+        `/static/img/${filename}`
     ];
 
     let pathIndex = 0;
@@ -38,6 +40,10 @@ function handleImageError(img) {
                 // Sucesso - usar este caminho
                 img.src = alternativePaths[pathIndex];
                 console.log(`✅ Imagem encontrada em: ${alternativePaths[pathIndex]}`);
+                // Remover indicadores de erro
+                img.classList.remove('image-error');
+                img.style.border = '';
+                img.style.opacity = '';
             };
             testImg.onerror = function() {
                 pathIndex++;
@@ -61,9 +67,19 @@ function handleImageError(img) {
         img.style.opacity = '0.7';
         
         // Log para admin/debug
-        if (filename.length > 20) {
+        if (filename && filename.length > 20) {
             console.warn(`⚠️ Imagem perdida: ${filename.substring(0, 20)}...`);
+        } else {
+            console.warn(`⚠️ Imagem perdida: ${filename}`);
         }
+        
+        // Adicionar evento de clique para tentar recuperar
+        img.addEventListener('click', function() {
+            if (confirm('Imagem não encontrada. Tentar recarregar?')) {
+                img.dataset.errorHandled = '';
+                img.src = img.dataset.originalSrc || originalSrc;
+            }
+        });
     }
     
     // Iniciar tentativas de caminhos alternativos
@@ -73,7 +89,7 @@ function handleImageError(img) {
 // Aplicar handler global quando DOM carregar
 document.addEventListener('DOMContentLoaded', function() {
     // Adicionar handler para imagens existentes
-    const images = document.querySelectorAll('img[src*="/uploads/"]');
+    const images = document.querySelectorAll('img[src*="/uploads/"], img[src*="/attached_assets/"], img[src*="/static/uploads/"]');
     images.forEach(img => {
         img.onerror = function() {
             handleImageError(this);
@@ -87,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 mutation.addedNodes.forEach(function(node) {
                     if (node.nodeType === 1) {
                         const newImages = node.querySelectorAll ?
-                            node.querySelectorAll('img[src*="/uploads/"]') : [];
+                            node.querySelectorAll('img[src*="/uploads/"], img[src*="/attached_assets/"], img[src*="/static/uploads/"]') : [];
 
                         newImages.forEach(img => {
                             img.onerror = function() {
@@ -96,7 +112,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
 
                         // Se o próprio node for uma imagem
-                        if (node.tagName === 'IMG' && node.src && node.src.includes('/uploads/')) {
+                        if (node.tagName === 'IMG' && node.src && 
+                            (node.src.includes('/uploads/') || node.src.includes('/attached_assets/') || node.src.includes('/static/uploads/'))) {
                             node.onerror = function() {
                                 handleImageError(this);
                             };
@@ -115,3 +132,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('🖼️ Sistema de tratamento de erros de imagem inicializado');
 });
+
+// Função global para forçar recarregamento de imagens
+window.reloadBrokenImages = function() {
+    const brokenImages = document.querySelectorAll('img.image-error');
+    brokenImages.forEach(img => {
+        img.dataset.errorHandled = '';
+        img.classList.remove('image-error');
+        img.style.border = '';
+        img.style.opacity = '';
+        const originalSrc = img.dataset.originalSrc || img.src;
+        img.src = originalSrc + '?reload=' + Date.now();
+    });
+    console.log(`🔄 Tentando recarregar ${brokenImages.length} imagens com erro`);
+};
