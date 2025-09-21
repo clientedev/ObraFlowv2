@@ -81,7 +81,7 @@ img[src*="no-image"] {
 
     <!-- Image Error Handler - DEVE SER CARREGADO PRIMEIRO -->
     <script src="{{ url_for('static', filename='js/image-error-handler.js') }}"></script>
-    
+
     <!-- Mobile Utilities -->
     <script src="{{ url_for('static', filename='js/mobile-utils.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
@@ -420,6 +420,7 @@ img[src*="no-image"] {
     }
     </script>
     <script src="{{ url_for('static', filename='js/legendas-selector.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/fix-all-images.js') }}"></script>
 
     {% block extra_scripts %}{% endblock %}
 </body>
