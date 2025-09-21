@@ -43,6 +43,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" id="aprovadorForm">
+                        {{ csrf_token() }}
                         <!-- Tipo de Configuração -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">
