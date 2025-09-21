@@ -3016,37 +3016,23 @@ def reimbursement_new():
 # File serving (unique function)
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    """Servir arquivos da pasta uploads - VERSÃO DEFINITIVA"""
+    """Servir arquivos da pasta uploads - VERSÃO OTIMIZADA SEM LOGS EXCESSIVOS"""
     try:
-        # Log detalhado para debug
-        current_app.logger.info(f"🖼️ TENTATIVA DE CARREGAR: {filename}")
-        
         # Verificação de autenticação
         from flask_login import current_user
         if not current_user.is_authenticated:
-            current_app.logger.warning(f"🔒 Usuário não autenticado para {filename}")
             return serve_placeholder_image(filename, "Faça login para ver imagens")
         
         # Validar filename
         if not filename or filename in ['undefined', 'null', '', 'None']:
-            current_app.logger.warning(f"📁 Filename inválido: '{filename}'")
             return serve_placeholder_image('arquivo_invalido', "Nome de arquivo inválido")
         
         # Pasta uploads
         upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
         filepath = os.path.join(upload_folder, filename)
         
-        current_app.logger.info(f"🔍 PROCURANDO EM: {filepath}")
-        current_app.logger.info(f"📁 PASTA UPLOADS: {upload_folder}")
-        current_app.logger.info(f"📂 EXISTE PASTA: {os.path.exists(upload_folder)}")
-        current_app.logger.info(f"📄 EXISTE ARQUIVO: {os.path.exists(filepath)}")
-        
-        # Verificar se arquivo existe
+        # Verificar se arquivo existe DIRETAMENTE
         if os.path.exists(filepath) and os.path.isfile(filepath):
-            # Log de sucesso
-            file_size = os.path.getsize(filepath)
-            current_app.logger.info(f"✅ ARQUIVO ENCONTRADO: {filepath} ({file_size} bytes)")
-            
             # Determinar content type
             content_type = 'image/jpeg'
             if filename.lower().endswith('.png'):
@@ -3056,37 +3042,53 @@ def uploaded_file(filename):
             elif filename.lower().endswith('.webp'):
                 content_type = 'image/webp'
             
-            # Servir arquivo
+            # Servir arquivo DIRETAMENTE
             response = send_from_directory(upload_folder, filename)
             response.headers['Content-Type'] = content_type
             response.headers['Cache-Control'] = 'public, max-age=3600'
             response.headers['Access-Control-Allow-Origin'] = '*'
             
-            current_app.logger.info(f"✅ SERVINDO: {filename} como {content_type}")
             return response
         else:
-            # Log detalhado de erro
-            current_app.logger.error(f"❌ ARQUIVO NÃO ENCONTRADO: {filepath}")
-            
-            # Listar arquivos na pasta para debug
-            if os.path.exists(upload_folder):
-                arquivos = os.listdir(upload_folder)
-                current_app.logger.info(f"📋 ARQUIVOS NA PASTA uploads: {len(arquivos)} arquivos")
-                for arquivo in arquivos[:10]:  # Primeiros 10 para não poluir log
-                    current_app.logger.info(f"  📄 {arquivo}")
+            # Tentar recuperar da pasta attached_assets AUTOMATICAMENTE
+            attached_assets_path = os.path.join('attached_assets', filename)
+            if os.path.exists(attached_assets_path):
+                try:
+                    # Criar pasta uploads se não existir
+                    if not os.path.exists(upload_folder):
+                        os.makedirs(upload_folder)
                     
-                # Procurar arquivos similares
-                similares = [a for a in arquivos if filename[:20] in a]
-                if similares:
-                    current_app.logger.info(f"🔍 ARQUIVOS SIMILARES: {similares}")
+                    # Copiar arquivo automaticamente
+                    import shutil
+                    shutil.copy2(attached_assets_path, filepath)
+                    
+                    # Log apenas quando recuperar
+                    current_app.logger.info(f"🔄 RECUPERADO: {filename} de attached_assets")
+                    
+                    # Servir arquivo recuperado
+                    content_type = 'image/jpeg'
+                    if filename.lower().endswith('.png'):
+                        content_type = 'image/png'
+                    elif filename.lower().endswith('.gif'):
+                        content_type = 'image/gif'
+                    elif filename.lower().endswith('.webp'):
+                        content_type = 'image/webp'
+                    
+                    response = send_from_directory(upload_folder, filename)
+                    response.headers['Content-Type'] = content_type
+                    response.headers['Cache-Control'] = 'public, max-age=3600'
+                    response.headers['Access-Control-Allow-Origin'] = '*'
+                    
+                    return response
+                    
+                except Exception as recover_error:
+                    current_app.logger.error(f"❌ Erro ao recuperar {filename}: {str(recover_error)}")
             
+            # Se não encontrou, usar placeholder
             return serve_placeholder_image(filename, f"Arquivo não encontrado: {filename}")
             
     except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
-        current_app.logger.error(f"❌ ERRO CRÍTICO ao servir {filename}: {str(e)}")
-        current_app.logger.error(f"❌ TRACEBACK: {error_trace}")
+        current_app.logger.error(f"❌ ERRO ao servir {filename}: {str(e)}")
         return serve_placeholder_image(filename, f"Erro do servidor: {str(e)}")
 
 # Rotas de compatibilidade removidas - sistema simplificado

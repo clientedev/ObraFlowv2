@@ -2,7 +2,7 @@
  * Sistema de imagens DEFINITIVO - SOLUÇÃO COMPLETA
  */
 
-// Definir função global IMEDIATAMENTE
+// Definir função global IMEDIATAMENTE - VERSÃO OTIMIZADA
 window.handleImageError = function(img) {
     // Evitar reprocessamento
     if (img.dataset.errorProcessed === 'true') {
@@ -12,35 +12,31 @@ window.handleImageError = function(img) {
     const originalSrc = img.src;
     const filename = originalSrc.split('/').pop().split('?')[0];
 
-    console.log('❌ ERRO IMAGEM:', filename, 'URL original:', originalSrc);
+    console.log('❌ ERRO IMAGEM:', filename);
 
-    // Marcar como processado TEMPORARIAMENTE
+    // Marcar como processado
     img.dataset.errorProcessed = 'true';
     img.dataset.originalSrc = originalSrc;
 
     // Se já está usando placeholder, não fazer nada
     if (img.src.includes('no-image.png') || img.src.includes('placeholder')) {
-        console.log('🔴 Já é placeholder, ignorando');
         return;
     }
 
-    // SOLUÇÃO DEFINITIVA: Sempre usar /uploads/ 
+    // Apenas tentar /uploads/ UMA VEZ
     const correctPath = `/uploads/${filename}`;
-    console.log(`🔄 CORRIGINDO PARA: ${correctPath}`);
-
-    // Testar se /uploads/ funciona
+    
+    // Teste direto
     const testImg = new Image();
     
     testImg.onload = function() {
-        console.log('✅ SUCESSO em /uploads/', filename);
-        // Reset error processing para permitir nova tentativa
+        console.log('✅ SUCESSO:', filename);
         img.dataset.errorProcessed = 'false';
         img.src = correctPath;
     };
     
     testImg.onerror = function() {
-        console.log('❌ FALHOU em /uploads/', filename);
-        // Usar placeholder definitivo
+        console.log('❌ USANDO PLACEHOLDER:', filename);
         useImagePlaceholder(img, filename);
     };
     
