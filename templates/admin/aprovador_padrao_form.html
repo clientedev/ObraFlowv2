@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block title %}{{ "Editar" if is_edit else "Novo" }} Aprovador Padrão{% endblock %}
@@ -43,7 +44,9 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" id="aprovadorForm">
-                        {{ csrf_token() }}
+                        <!-- CSRF Token hidden field -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        
                         <!-- Tipo de Configuração -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">
@@ -105,7 +108,7 @@
                                 {% for usuario in usuarios_master %}
                                     <option value="{{ usuario.id }}"
                                             {% if is_edit and aprovador_padrao.aprovador_id == usuario.id %}selected{% endif %}>
-                                        {{ usuario.nome }} - {{ usuario.username }}
+                                        {{ usuario.nome_completo }} - {{ usuario.username }}
                                     </option>
                                 {% endfor %}
                             </select>

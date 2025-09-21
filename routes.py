@@ -5009,16 +5009,32 @@ def admin_aprovador_padrao_novo():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
-        projeto_id = request.form.get('projeto_id')
-        aprovador_id = request.form.get('aprovador_id')
-        observacoes = request.form.get('observacoes', '').strip()
-
-        # Validações
-        if not aprovador_id:
-            flash('Aprovador é obrigatório.', 'error')
-            return redirect(url_for('admin_aprovador_padrao_novo'))
-
         try:
+            # Verificar tipo de configuração
+            config_type = request.form.get('config_type', 'global')
+            projeto_id = request.form.get('projeto_id') if config_type == 'projeto' else None
+            aprovador_id = request.form.get('aprovador_id')
+            observacoes = request.form.get('observacoes', '').strip()
+
+            # Validações
+            if not aprovador_id:
+                flash('Aprovador é obrigatório.', 'error')
+                projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
+                usuarios_master = User.query.filter_by(is_master=True, ativo=True).all()
+                return render_template('admin/aprovador_padrao_form.html',
+                                     projetos_ativos=projetos_ativos,
+                                     usuarios_master=usuarios_master,
+                                     is_edit=False)
+
+            if config_type == 'projeto' and not projeto_id:
+                flash('Projeto é obrigatório para configuração específica.', 'error')
+                projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
+                usuarios_master = User.query.filter_by(is_master=True, ativo=True).all()
+                return render_template('admin/aprovador_padrao_form.html',
+                                     projetos_ativos=projetos_ativos,
+                                     usuarios_master=usuarios_master,
+                                     is_edit=False)
+
             aprovador_id = int(aprovador_id)
             projeto_id = int(projeto_id) if projeto_id else None
 
