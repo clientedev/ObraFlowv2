@@ -46,19 +46,9 @@
                                         </td>
                                         <td>
                                             <div class="btn-group">
-                                                <a href="{{ url_for('edit_report', id=report.id) }}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-eye"></i> Revisar
+                                                <a href="{{ url_for('review_report', id=report.id) }}" class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-search-plus"></i> Revisão
                                                 </a>
-                                                {% if current_user_is_aprovador(report.projeto_id) %}
-                                                <a href="{{ url_for('approve_report', id=report.id) }}" class="btn btn-sm btn-success" 
-                                                   onclick="return confirm('Aprovar relatório {{ report.numero }}?')">
-                                                    <i class="fas fa-check"></i> Aprovar
-                                                </a>
-                                                <a href="{{ url_for('reject_report', id=report.id) }}" class="btn btn-sm btn-danger"
-                                                   onclick="return confirm('Rejeitar relatório {{ report.numero }}?')">
-                                                    <i class="fas fa-times"></i> Rejeitar
-                                                </a>
-                                                {% endif %}
                                             </div>
                                         </td>
                                     </tr>

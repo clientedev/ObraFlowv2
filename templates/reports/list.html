@@ -187,18 +187,11 @@
                                                         </ul>
                                                     </div>
 
-                                                    <!-- Ações de aprovação -->
-                                                    {% if current_user_is_aprovador(report.projeto_id) %}
-                                                        {% if report.status == 'Aguardando Aprovação' %}
-                                                        <div class="d-flex gap-1">
-                                                            <a href="{{ url_for('approve_report', id=report.id) }}" class="btn btn-sm btn-success flex-fill" title="Aprovar">
-                                                                <i class="fas fa-check"></i>
-                                                            </a>
-                                                            <a href="{{ url_for('reject_report', id=report.id) }}" class="btn btn-sm btn-danger flex-fill" title="Rejeitar">
-                                                                <i class="fas fa-times"></i>
-                                                            </a>
-                                                        </div>
-                                                        {% endif %}
+                                                    <!-- Botão de Revisão para relatórios aguardando aprovação -->
+                                                    {% if report.status == 'Aguardando Aprovação' %}
+                                                    <a href="{{ url_for('review_report', id=report.id) }}" class="btn btn-sm btn-warning w-100" title="Revisar relatório">
+                                                        <i class="fas fa-search-plus me-1"></i>Revisão
+                                                    </a>
                                                     {% endif %}
                                                     
                                                     <!-- Ações de administrador -->

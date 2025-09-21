@@ -1383,7 +1383,23 @@ def update_report_status(id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/reports/<int:id>/approve')
+
+@app.route('/reports/<int:id>/review')
+@login_required
+def review_report(id):
+    """Página de revisão do relatório - acessível a todos os usuários"""
+    relatorio = Relatorio.query.get_or_404(id)
+    fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
+    
+    # Verificar se usuário é aprovador para mostrar botões de ação
+    user_is_approver = current_user_is_aprovador(relatorio.projeto_id)
+    
+    return render_template('reports/review.html', 
+                         relatorio=relatorio, 
+                         fotos=fotos, 
+                         user_is_approver=user_is_approver)
+
+@app.route('/reports/<int:id>/approve', methods=['POST'])
 @login_required
 def approve_report(id):
     """Aprovar relatório - apenas usuários aprovadores"""
@@ -1393,15 +1409,18 @@ def approve_report(id):
     if not current_user_is_aprovador(relatorio.projeto_id):
         flash('Acesso negado. Apenas usuários aprovadores podem aprovar relatórios.', 'error')
         return redirect(url_for('reports'))
+    
     relatorio.status = 'Aprovado'
     relatorio.aprovado_por = current_user.id
     relatorio.data_aprovacao = datetime.utcnow()
 
     db.session.commit()
+    
+    # TODO: Implementar envio automático para clientes
     flash(f'Relatório {relatorio.numero} aprovado com sucesso!', 'success')
-    return redirect(url_for('reports'))
+    return redirect(url_for('review_report', id=id))
 
-@app.route('/reports/<int:id>/reject')
+@app.route('/reports/<int:id>/reject', methods=['POST'])
 @login_required
 def reject_report(id):
     """Rejeitar relatório - apenas usuários aprovadores"""
@@ -1411,13 +1430,23 @@ def reject_report(id):
     if not current_user_is_aprovador(relatorio.projeto_id):
         flash('Acesso negado. Apenas usuários aprovadores podem rejeitar relatórios.', 'error')
         return redirect(url_for('reports'))
-    relatorio.status = 'Rejeitado'
+    
+    # Obter comentário da reprovação (obrigatório)
+    comentario = request.form.get('comentario_reprovacao')
+    if not comentario or not comentario.strip():
+        flash('Comentário de reprovação é obrigatório.', 'error')
+        return redirect(url_for('review_report', id=id))
+    
+    relatorio.status = 'Em edição'  # Volta para edição ao invés de "Rejeitado"
     relatorio.aprovado_por = current_user.id
     relatorio.data_aprovacao = datetime.utcnow()
+    relatorio.comentario_aprovacao = comentario.strip()
 
     db.session.commit()
-    flash(f'Relatório {relatorio.numero} rejeitado.', 'warning')
-    return redirect(url_for('reports'))
+    
+    # TODO: Implementar notificação ao responsável pelo relatório
+    flash(f'Relatório {relatorio.numero} rejeitado. O autor foi notificado para fazer as correções.', 'warning')
+    return redirect(url_for('review_report', id=id))
 
 @app.route('/reports/pending')
 @login_required
