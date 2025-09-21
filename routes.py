@@ -2810,34 +2810,85 @@ def reimbursement_new():
 @app.route('/uploads/<filename>')
 @login_required
 def uploaded_file(filename):
-    """Servir arquivos de upload com verificação de existência"""
+    """Servir arquivos de upload com verificação robusta e fallback"""
     try:
-        upload_folder = current_app.config['UPLOAD_FOLDER']
-        file_path = os.path.join(upload_folder, filename)
+        # Verificar se filename é válido
+        if not filename or filename == 'undefined' or filename == 'null':
+            current_app.logger.warning(f"Filename inválido: {filename}")
+            return serve_placeholder_image()
         
-        # Verificar se o arquivo existe
-        if not os.path.exists(file_path):
-            current_app.logger.warning(f"Arquivo não encontrado: {filename}")
-            
-            # Tentar placeholder estático primeiro
-            placeholder_path = os.path.join('static', 'img', 'no-image.png')
-            if os.path.exists(placeholder_path):
-                return send_from_directory('static/img', 'no-image.png')
-            
-            # Gerar placeholder dinamicamente
-            from utils import generate_placeholder_image
-            placeholder_data = generate_placeholder_image()
-            if placeholder_data:
-                from flask import Response
-                return Response(placeholder_data, mimetype='image/png')
-            
-            # Fallback final - retornar erro 404
-            return "Arquivo não encontrado", 404
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
         
-        return send_from_directory(upload_folder, filename)
+        # Tentar diferentes localizações
+        possible_paths = [
+            os.path.join(upload_folder, filename),
+            os.path.join('uploads', filename),
+            os.path.join('static', 'uploads', filename),
+            os.path.join('attached_assets', filename)
+        ]
+        
+        for file_path in possible_paths:
+            if os.path.exists(file_path):
+                directory = os.path.dirname(file_path)
+                basename = os.path.basename(file_path)
+                current_app.logger.info(f"✅ Arquivo encontrado: {file_path}")
+                return send_from_directory(directory, basename)
+        
+        # Se não encontrou o arquivo em lugar nenhum
+        current_app.logger.warning(f"⚠️ Arquivo não encontrado em nenhuma localização: {filename}")
+        
+        # Buscar no banco se a foto existe
+        try:
+            from models import FotoRelatorio, FotoRelatorioExpress
+            
+            # Verificar se existe no banco de relatórios normais
+            foto_normal = FotoRelatorio.query.filter_by(filename=filename).first()
+            if foto_normal:
+                current_app.logger.info(f"📸 Foto existe no BD (relatório {foto_normal.relatorio_id}) mas arquivo físico não encontrado: {filename}")
+            
+            # Verificar se existe no banco de relatórios express
+            foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
+            if foto_express:
+                current_app.logger.info(f"📸 Foto existe no BD (relatório express {foto_express.relatorio_express_id}) mas arquivo físico não encontrado: {filename}")
+                
+        except Exception as db_error:
+            current_app.logger.error(f"Erro ao verificar foto no BD: {str(db_error)}")
+        
+        return serve_placeholder_image()
+        
     except Exception as e:
-        current_app.logger.error(f"Erro ao servir arquivo {filename}: {str(e)}")
-        return "Erro interno", 500
+        current_app.logger.error(f"❌ Erro crítico ao servir arquivo {filename}: {str(e)}")
+        return serve_placeholder_image()
+
+def serve_placeholder_image():
+    """Serve uma imagem placeholder quando o arquivo não é encontrado"""
+    try:
+        # Tentar placeholder estático primeiro
+        placeholder_path = os.path.join('static', 'img', 'no-image.png')
+        if os.path.exists(placeholder_path):
+            return send_from_directory('static/img', 'no-image.png')
+        
+        # Gerar placeholder dinamicamente se não existir
+        from utils import generate_placeholder_image
+        placeholder_data = generate_placeholder_image()
+        if placeholder_data:
+            from flask import Response
+            return Response(placeholder_data, mimetype='image/png')
+        
+        # SVG placeholder como último recurso
+        svg_placeholder = '''
+        <svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="#f8f9fa"/>
+            <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="14" 
+                  fill="#6c757d" text-anchor="middle" dy=".3em">Imagem não encontrada</text>
+        </svg>
+        '''
+        from flask import Response
+        return Response(svg_placeholder, mimetype='image/svg+xml')
+        
+    except Exception as e:
+        current_app.logger.error(f"Erro ao servir placeholder: {str(e)}")
+        return "Imagem não encontrada", 404
 
 # GPS location endpoint
 @app.route('/get_location', methods=['POST', 'GET'])
@@ -3939,6 +3990,96 @@ def admin_force_backup(report_id):
         return jsonify({
             'success': False,
             'message': f'Erro ao forçar backup: {str(e)}'
+        })
+
+@app.route('/admin/recuperar-imagens')
+@login_required
+def recuperar_imagens():
+    """Tentar recuperar imagens perdidas dos attached_assets"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        from models import FotoRelatorio, FotoRelatorioExpress
+        import shutil
+        
+        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+        attached_assets_folder = 'attached_assets'
+        
+        recuperadas = []
+        nao_encontradas = []
+        
+        # Buscar fotos perdidas
+        fotos_normais = FotoRelatorio.query.all()
+        fotos_express = FotoRelatorioExpress.query.all()
+        
+        todas_fotos = []
+        for foto in fotos_normais:
+            todas_fotos.append({
+                'filename': foto.filename,
+                'tipo': 'normal',
+                'relatorio_id': foto.relatorio_id
+            })
+        
+        for foto in fotos_express:
+            todas_fotos.append({
+                'filename': foto.filename,
+                'tipo': 'express',
+                'relatorio_id': foto.relatorio_express_id
+            })
+        
+        for foto_info in todas_fotos:
+            filename = foto_info['filename']
+            upload_path = os.path.join(upload_folder, filename)
+            
+            # Se não existe no upload, tentar encontrar no attached_assets
+            if not os.path.exists(upload_path):
+                attached_path = os.path.join(attached_assets_folder, filename)
+                
+                if os.path.exists(attached_path):
+                    try:
+                        # Copiar arquivo para uploads
+                        if not os.path.exists(upload_folder):
+                            os.makedirs(upload_folder)
+                        
+                        shutil.copy2(attached_path, upload_path)
+                        recuperadas.append({
+                            'filename': filename,
+                            'tipo': foto_info['tipo'],
+                            'relatorio_id': foto_info['relatorio_id'],
+                            'origem': attached_path,
+                            'destino': upload_path
+                        })
+                        current_app.logger.info(f"✅ Imagem recuperada: {filename}")
+                        
+                    except Exception as e:
+                        current_app.logger.error(f"❌ Erro ao copiar {filename}: {str(e)}")
+                        nao_encontradas.append({
+                            'filename': filename,
+                            'erro': str(e)
+                        })
+                else:
+                    nao_encontradas.append({
+                        'filename': filename,
+                        'motivo': 'Não encontrada em attached_assets'
+                    })
+        
+        return jsonify({
+            'success': True,
+            'recuperadas': recuperadas,
+            'nao_encontradas': nao_encontradas,
+            'total_recuperadas': len(recuperadas),
+            'total_nao_encontradas': len(nao_encontradas),
+            'message': f'{len(recuperadas)} imagens recuperadas com sucesso!'
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Erro na recuperação: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'recuperadas': [],
+            'nao_encontradas': []
         })
 
 @app.route('/admin/drive/backup-all')
@@ -5298,6 +5439,102 @@ def api_get_aprovador_padrao(projeto_id):
         return jsonify({
             'success': False,
             'message': f'Erro ao buscar aprovador padrão: {str(e)}'
+        })
+
+# Rota para diagnosticar arquivos perdidos
+@app.route('/admin/diagnostico-imagens')
+@login_required
+def diagnostico_imagens():
+    """Diagnóstico de arquivos de imagem perdidos - apenas master"""
+    if not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        from models import FotoRelatorio, FotoRelatorioExpress
+        
+        # Verificar fotos de relatórios normais
+        fotos_normais = FotoRelatorio.query.all()
+        fotos_perdidas = []
+        fotos_encontradas = []
+        
+        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+        
+        for foto in fotos_normais:
+            file_path = os.path.join(upload_folder, foto.filename)
+            if os.path.exists(file_path):
+                fotos_encontradas.append({
+                    'tipo': 'normal',
+                    'filename': foto.filename,
+                    'relatorio_id': foto.relatorio_id,
+                    'path': file_path
+                })
+            else:
+                fotos_perdidas.append({
+                    'tipo': 'normal',
+                    'filename': foto.filename,
+                    'relatorio_id': foto.relatorio_id,
+                    'legenda': foto.legenda
+                })
+        
+        # Verificar fotos de relatórios express
+        fotos_express = FotoRelatorioExpress.query.all()
+        
+        for foto in fotos_express:
+            file_path = os.path.join(upload_folder, foto.filename)
+            if os.path.exists(file_path):
+                fotos_encontradas.append({
+                    'tipo': 'express',
+                    'filename': foto.filename,
+                    'relatorio_id': foto.relatorio_express_id,
+                    'path': file_path
+                })
+            else:
+                fotos_perdidas.append({
+                    'tipo': 'express',
+                    'filename': foto.filename,
+                    'relatorio_id': foto.relatorio_express_id,
+                    'legenda': foto.legenda
+                })
+        
+        # Verificar arquivos órfãos (existem no filesystem mas não no BD)
+        arquivos_orfaos = []
+        if os.path.exists(upload_folder):
+            for arquivo in os.listdir(upload_folder):
+                if arquivo.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                    # Verificar se existe no BD
+                    exists_normal = FotoRelatorio.query.filter_by(filename=arquivo).first()
+                    exists_express = FotoRelatorioExpress.query.filter_by(filename=arquivo).first()
+                    
+                    if not exists_normal and not exists_express:
+                        file_path = os.path.join(upload_folder, arquivo)
+                        file_size = os.path.getsize(file_path)
+                        arquivos_orfaos.append({
+                            'filename': arquivo,
+                            'size': file_size,
+                            'path': file_path
+                        })
+        
+        resultado = {
+            'fotos_perdidas': fotos_perdidas,
+            'fotos_encontradas': fotos_encontradas,
+            'arquivos_orfaos': arquivos_orfaos,
+            'total_perdidas': len(fotos_perdidas),
+            'total_encontradas': len(fotos_encontradas),
+            'total_orfaos': len(arquivos_orfaos)
+        }
+        
+        return jsonify(resultado)
+        
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'fotos_perdidas': [],
+            'fotos_encontradas': [],
+            'arquivos_orfaos': [],
+            'total_perdidas': 0,
+            'total_encontradas': 0,
+            'total_orfaos': 0
         })
 
 # Error handlers

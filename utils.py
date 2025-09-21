@@ -254,6 +254,46 @@ def format_coordinates_display(latitude, longitude):
         return f"Latitude: {latitude}, Longitude: {longitude}"
 
 # Utility functions for number generation
+def generate_placeholder_image():
+    """Gera uma imagem placeholder dinamicamente"""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        import io
+        
+        # Criar imagem de 200x150 pixels
+        img = Image.new('RGB', (200, 150), color='#f8f9fa')
+        draw = ImageDraw.Draw(img)
+        
+        # Tentar usar fonte padrão
+        try:
+            font = ImageFont.load_default()
+        except:
+            font = None
+        
+        # Adicionar texto
+        text = "Imagem não\nencontrada"
+        if font:
+            # Calcular posição para centralizar o texto
+            text_bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = text_bbox[2] - text_bbox[0]
+            text_height = text_bbox[3] - text_bbox[1]
+            position = ((200 - text_width) // 2, (150 - text_height) // 2)
+            draw.text(position, text, fill='#6c757d', font=font)
+        else:
+            # Fallback sem fonte
+            draw.text((50, 65), text, fill='#6c757d')
+        
+        # Converter para bytes
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format='PNG')
+        img_bytes.seek(0)
+        
+        return img_bytes.getvalue()
+        
+    except Exception as e:
+        print(f"Erro ao gerar placeholder: {e}")
+        return None
+
 def generate_project_number():
     """Generate sequential project number"""
     from models import Projeto
