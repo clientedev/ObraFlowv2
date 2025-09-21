@@ -3213,42 +3213,50 @@ def uploaded_file(filename):
         if foto_normal:
             current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Relatório {foto_normal.relatorio_id}): {filename}")
             
-            # Verificar se existe fisicamente
-            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
-            filepath = os.path.join(upload_folder, filename)
+            # Verificar múltiplos locais para o arquivo
+            search_paths = [
+                os.path.join(app.config.get('UPLOAD_FOLDER', 'uploads'), filename),
+                os.path.join('attached_assets', filename),
+                os.path.join('static', 'uploads', filename)
+            ]
             
-            if os.path.exists(filepath):
-                # Arquivo existe fisicamente
-                content_type = get_content_type(filename)
-                response = send_from_directory(upload_folder, filename)
-                response.headers['Content-Type'] = content_type
-                response.headers['Cache-Control'] = 'public, max-age=3600'
-                return response
-            else:
-                # Arquivo não existe fisicamente, mas está no banco
-                current_app.logger.warning(f"⚠️ ARQUIVO NO BANCO MAS NÃO NO FILESYSTEM: {filename}")
-                return serve_placeholder_image(filename, f"Imagem existe no banco mas arquivo físico não encontrado")
+            for filepath in search_paths:
+                if os.path.exists(filepath):
+                    current_app.logger.info(f"✅ ARQUIVO ENCONTRADO EM: {filepath}")
+                    content_type = get_content_type(filename)
+                    response = send_from_directory(os.path.dirname(filepath), os.path.basename(filename))
+                    response.headers['Content-Type'] = content_type
+                    response.headers['Cache-Control'] = 'public, max-age=3600'
+                    return response
+            
+            # Arquivo não encontrado em nenhum local
+            current_app.logger.warning(f"⚠️ ARQUIVO NO BANCO MAS NÃO ENCONTRADO EM NENHUM LOCAL: {filename}")
+            return serve_placeholder_image(filename, f"Imagem existe no banco mas arquivo físico não encontrado")
         
         # Tentar encontrar nos relatórios express
         foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
         if foto_express:
             current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Express {foto_express.relatorio_express_id}): {filename}")
             
-            # Verificar se existe fisicamente
-            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
-            filepath = os.path.join(upload_folder, filename)
+            # Verificar múltiplos locais para o arquivo
+            search_paths = [
+                os.path.join(app.config.get('UPLOAD_FOLDER', 'uploads'), filename),
+                os.path.join('attached_assets', filename),
+                os.path.join('static', 'uploads', filename)
+            ]
             
-            if os.path.exists(filepath):
-                # Arquivo existe fisicamente
-                content_type = get_content_type(filename)
-                response = send_from_directory(upload_folder, filename)
-                response.headers['Content-Type'] = content_type
-                response.headers['Cache-Control'] = 'public, max-age=3600'
-                return response
-            else:
-                # Arquivo não existe fisicamente, mas está no banco
-                current_app.logger.warning(f"⚠️ ARQUIVO NO BANCO MAS NÃO NO FILESYSTEM: {filename}")
-                return serve_placeholder_image(filename, f"Imagem existe no banco mas arquivo físico não encontrado")
+            for filepath in search_paths:
+                if os.path.exists(filepath):
+                    current_app.logger.info(f"✅ ARQUIVO ENCONTRADO EM: {filepath}")
+                    content_type = get_content_type(filename)
+                    response = send_from_directory(os.path.dirname(filepath), os.path.basename(filename))
+                    response.headers['Content-Type'] = content_type
+                    response.headers['Cache-Control'] = 'public, max-age=3600'
+                    return response
+            
+            # Arquivo não encontrado em nenhum local
+            current_app.logger.warning(f"⚠️ ARQUIVO EXPRESS NO BANCO MAS NÃO ENCONTRADO EM NENHUM LOCAL: {filename}")
+            return serve_placeholder_image(filename, f"Imagem express existe no banco mas arquivo físico não encontrado")
         
         # Não encontrado no banco
         current_app.logger.warning(f"❌ IMAGEM NÃO ENCONTRADA NO BANCO: {filename}")
