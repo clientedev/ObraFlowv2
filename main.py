@@ -17,3 +17,9 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):
             logging.warning(f"⚠️ Migração falhou: {result.stderr}")
     except Exception as e:
         logging.warning(f"⚠️ Erro nas migrações (continuando): {e}")
+
+# Run the Flask development server
+if __name__ == '__main__':
+    import logging
+    logging.info("🚀 Starting Flask development server on 0.0.0.0:5000")
+    app.run(host='0.0.0.0', port=5000, debug=True)

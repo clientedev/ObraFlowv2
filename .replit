@@ -9,7 +9,7 @@ deploymentTarget = "autoscale"
 run = ["python", "replit_main.py"]
 
 [workflows]
-runButton = "Flask Server Corrigido"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"
@@ -19,6 +19,10 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Flask Server"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Flask App"
 
 [[workflows.workflow]]
 name = "Flask Server"
@@ -59,13 +63,21 @@ mode = "sequential"
 task = "shell.exec"
 args = "python main.py"
 
+[[workflows.workflow]]
+name = "Flask App"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 40931
-externalPort = 3000
 
 [[ports]]
 localPort = 43681
@@ -74,6 +86,10 @@ externalPort = 3003
 [[ports]]
 localPort = 44177
 externalPort = 3002
+
+[[ports]]
+localPort = 45021
+externalPort = 3000
 
 [[ports]]
 localPort = 45391
