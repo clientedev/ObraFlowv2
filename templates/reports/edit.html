@@ -1,690 +1,691 @@
-{% extends "base.html" %}
-
-{% block title %}Editar Relatório - {{ relatorio.numero }}{% endblock %}
-
-{% block head %}
-<!-- Meta tag CSRF para auto-save -->
-<meta name="csrf-token" content="{{ csrf_token() }}">
-<meta name="report-id" content="{{ relatorio.id }}">
-{% endblock %}
-
-{% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3><i class="fas fa-edit"></i> Editar Relatório {{ relatorio.numero }}</h3>
-                <div>
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="fas fa-file-pdf"></i> PDF Relatório
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('generate_pdf_report', id=relatorio.id) }}" target="_blank">
-                                <i class="fas fa-eye me-2"></i>Visualizar PDF
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('generate_report_pdf_download', id=relatorio.id) }}">
-                                <i class="fas fa-download me-2"></i>Baixar PDF
-                            </a></li>
-                        </ul>
-                    </div>
-                    <a href="{{ url_for('reports') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Voltar
-                    </a>
-                </div>
-            </div>
-            
-            <!-- Data do Relatório no Topo da Página -->
-            <div class="mb-4">
-                <div class="alert alert-light border-0 mb-0 py-2">
-                    <strong class="text-primary">
-                        <i class="fas fa-calendar-alt me-2"></i>Data: 
-                        {% if relatorio.data_relatorio %}
-                            {{ relatorio.data_relatorio.strftime('%d/%m/%Y') }}
-                        {% else %}
-                            {{ relatorio.created_at.strftime('%d/%m/%Y') }}
-                        {% endif %}
-                    </strong>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5>Informações do Relatório</h5>
-                                <div class="d-flex align-items-center gap-3">
-                                    {% if relatorio.status == 'preenchimento' %}
-                                    <span class="badge bg-info">
-                                        <i class="fas fa-edit me-1"></i>Em preenchimento
-                                    </span>
-                                    {% endif %}
-                                    <div id="autosave-status"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>Número:</strong> {{ relatorio.numero }}</p>
-                                    <p><strong>Título:</strong> {{ relatorio.titulo }}</p>
-                                    <p><strong>Projeto:</strong> {{ relatorio.projeto.nome if relatorio.projeto else '-' }}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p><strong>Autor:</strong> {{ relatorio.autor.nome_completo if relatorio.autor else '-' }}</p>
-                                    <p><strong>Data:</strong> {{ relatorio.data_relatorio.strftime('%d/%m/%Y') if relatorio.data_relatorio else '-' }}</p>
-                                    <p><strong>Status:</strong> 
-                                        <span class="badge 
-                                            {% if relatorio.status == 'Aprovado' %}bg-success
-                                            {% elif relatorio.status == 'Rejeitado' %}bg-danger
-                                            {% elif relatorio.status == 'Aguardando Aprovacao' %}bg-warning
-                                            {% elif relatorio.status == 'preenchimento' %}bg-info
-                                            {% else %}bg-secondary{% endif %}">
-                                            {% if relatorio.status == 'preenchimento' %}Em preenchimento
-                                            {% else %}{{ relatorio.status }}{% endif %}
-                                        </span>
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            {% if relatorio.conteudo %}
-                            <div class="mt-3">
-                                <strong>Conteúdo:</strong>
-                                <div class="border p-3 mt-2">
-                                    {{ relatorio.conteudo|safe }}
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5>Ações</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-primary" onclick="editReport()">
-                                    <i class="fas fa-edit"></i> Editar Dados
-                                </button>
-                                <button class="btn btn-success" onclick="addPhoto()">
-                                    <i class="fas fa-camera"></i> Adicionar Foto
-                                </button>
-                                <button class="btn btn-info" onclick="changeStatus()">
-                                    <i class="fas fa-check-circle"></i> Mudar Status
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Photos Section -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5><i class="fas fa-images"></i> Fotos do Relatório ({{ fotos|length }})</h5>
-                            <button class="btn btn-sm btn-primary" onclick="addPhoto()">
-                                <i class="fas fa-plus"></i> Adicionar Foto
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            {% if fotos %}
-                                <div class="row">
-                                    {% for foto in fotos %}
-                                    <div class="col-md-4 col-lg-3 mb-4">
-                                        <div class="card h-100">
-                                            <div class="position-relative">
-                                                <img src="{{ url_for('uploaded_file', filename=foto.filename) }}" 
-                                                     class="card-img-top img-fluid" 
-                                                     style="height: 200px; object-fit: cover; cursor: pointer;"
-                                                     alt="{{ foto.legenda or 'Foto' }}"
-                                                     onclick="showPhotoModal('{{ url_for('uploaded_file', filename=foto.filename) }}', '{{ foto.legenda or 'Sem descrição' }}', {{ foto.ordem }})"
-                                                     onerror="this.src='/static/img/no-image.png'">
-                                                <div class="position-absolute top-0 end-0 p-2">
-                                                    <button class="btn btn-sm btn-warning me-1" 
-                                                            onclick="editPhoto({{ foto.id }}, '{{ foto.filename }}')"
-                                                            title="Editar foto">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-danger" 
-                                                            onclick="deletePhoto({{ foto.id }})"
-                                                            title="Excluir foto">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div class="card-body p-2">
-                                                <h6 class="card-title small">{{ foto.legenda or 'Sem título' }}</h6>
-                                                <p class="card-text small text-muted">
-                                                    <i class="fas fa-tag me-1"></i>{{ foto.tipo_servico or 'Geral' }}<br>
-                                                    <i class="fas fa-sort-numeric-up me-1"></i>Ordem: {{ foto.ordem }}
-                                                </p>
-                                                <small class="text-primary">
-                                                    <i class="fas fa-expand-arrows-alt me-1"></i>Clique para ampliar
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="text-center py-4">
-                                    <i class="fas fa-images fa-3x text-muted mb-3"></i>
-                                    <h5>Nenhuma foto adicionada</h5>
-                                    <p class="text-muted">Clique no botão acima para adicionar fotos ao relatório.</p>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal do Editor de Fotos Professional - Sistema Express Copiado -->
-<div class="modal fade" id="fabricPhotoEditorModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-fullscreen">
-        <div class="modal-content">
-            <!-- Header -->
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-edit"></i> Editor de Fotos Professional
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            
-            <!-- Body -->
-            <div class="modal-body p-0" style="height: calc(100vh - 160px);">
-                <div class="fabric-editor-container" style="height: 100%;">
-                    <!-- Área principal do editor -->
-                    <div class="fabric-editor-main" style="flex: 1; display: flex; flex-direction: column;">
-                        <!-- Container do canvas -->
-                        <div class="canvas-container" style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; background: #f8f9fa;">
-                            <div class="canvas-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); overflow: hidden;">
-                                <canvas id="fabricModalCanvas"></canvas>
-                            </div>
-                        </div>
-                        
-                        <!-- Toolbar de ferramentas -->
-                        <div class="fabric-toolbar" style="background: white; border-top: 1px solid #e1e5e9; padding: 16px;">
-                            <!-- Ferramentas principais -->
-                            <div class="tool-group mb-3">
-                                <h6 class="text-muted mb-2">Ferramentas</h6>
-                                <div class="d-flex gap-2 flex-wrap">
-                                    <button class="fabric-tool-btn active" data-modal-tool="select" title="Seleção">
-                                        <i class="fas fa-mouse-pointer"></i>
-                                    </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="brush" title="Pincel">
-                                        <i class="fas fa-paint-brush"></i>
-                                    </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="arrow" title="Seta">
-                                        <i class="fas fa-arrow-right"></i>
-                                    </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="circle" title="Círculo">
-                                        <i class="far fa-circle"></i>
-                                    </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="rectangle" title="Retângulo">
-                                        <i class="far fa-square"></i>
-                                    </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="text" title="Texto">
-                                        <i class="fas fa-font"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- Propriedades -->
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <label class="form-label">Cor:</label>
-                                    <input type="color" id="modal-color-picker" class="form-control form-control-color" value="#FF0000">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Espessura:</label>
-                                    <input type="range" id="modal-stroke-width" class="form-range" min="1" max="20" value="3">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Legenda:</label>
-                                    <input type="text" id="modal-custom-legend" class="form-control" placeholder="Digite uma legenda...">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Footer -->
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="modal-cancel-btn">
-                    <i class="fas fa-times"></i> Cancelar
-                </button>
-                <button type="button" class="btn btn-danger" onclick="window.fabricPhotoEditorModal?.clear()">
-                    <i class="fas fa-trash"></i> Limpar
-                </button>
-                <button type="button" class="btn btn-warning" onclick="window.fabricPhotoEditorModal?.undo()">
-                    <i class="fas fa-undo"></i> Desfazer
-                </button>
-                <button type="button" class="btn btn-success" id="modal-save-btn">
-                    <i class="fas fa-check"></i> Salvar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-/* Estilos do modal do editor - Copiado do Express */
-.fabric-tool-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 44px;
-    min-height: 44px;
-    padding: 8px;
-    background: #f8f9fa;
-    border: 2px solid transparent;
-    border-radius: 8px;
-    color: #4b5563;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.fabric-tool-btn:hover {
-    background: #e5e7eb;
-}
-
-.fabric-tool-btn.active {
-    background: #3b82f6;
-    color: white;
-    border-color: #2563eb;
-}
-
-/* Indicador visual de foto editada */
-.photo-container.edited {
-    position: relative;
-}
-
-.edited-badge {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: #10b981;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 600;
-    z-index: 10;
-}
-
-.edit-photo-btn {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    background: rgba(59, 130, 246, 0.9);
-    color: white;
-    border: none;
-    padding: 8px;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    z-index: 10;
-}
-
-.edit-photo-btn:hover {
-    background: #3b82f6;
-    transform: scale(1.1);
-}
-
-/* Responsivo mobile */
-@media (max-width: 768px) {
-    .fabric-toolbar {
-        max-height: 40vh;
-        overflow-y: auto;
-    }
-    
-    .fabric-tool-btn {
-        min-width: 40px;
-        min-height: 40px;
-    }
-}
-</style>
-
-<script>
-// Sistema Fabric.js Photo Editor - Express System
-let currentPhotoId = null;
-
-// Função editPhoto copiada do sistema express
-function editPhoto(photoId, filename) {
-    console.log('🎨 Abrindo editor para foto:', photoId);
-    
-    // Verificar dependências
-    console.log('🔍 Verificando dependências do editor...');
-    console.log('- window.fabricPhotoEditorModal:', window.fabricPhotoEditorModal);
-    console.log('- initFabricPhotoEditorModal:', typeof initFabricPhotoEditorModal);
-    console.log('- FabricPhotoEditor:', typeof FabricPhotoEditor);
-    console.log('- fabric:', typeof fabric);
-    console.log('- bootstrap:', typeof bootstrap);
-    
-    if (!window.fabricPhotoEditorModal) {
-        console.log('🚀 Inicializando modal do editor...');
-        
-        // Verificar dependências
-        if (typeof fabric === 'undefined') {
-            alert('Fabric.js não está carregado. Recarregue a página.');
-            return;
-        }
-        
-        if (typeof bootstrap === 'undefined') {
-            alert('Bootstrap não está carregado. Recarregue a página.');
-            return;
-        }
-        
-        if (typeof FabricPhotoEditor === 'undefined') {
-            alert('FabricPhotoEditor não está carregado. Recarregue a página.');
-            return;
-        }
-        
-        // Inicializar modal
-        if (typeof initFabricPhotoEditorModal === 'function') {
-            console.log('💫 Inicializando modal...');
-            initFabricPhotoEditorModal();
-            
-            // Aguardar inicialização e abrir
-            setTimeout(() => {
-                if (window.fabricPhotoEditorModal) {
-                    console.log('✅ Abrindo editor modal');
-                    const img = new Image();
-                    img.onload = function() {
-                        window.fabricPhotoEditorModal.openEditor(img.src, photoId, function(editedImageData) {
-                            // Callback para salvar foto editada
-                            currentPhotoId = photoId;
-                            saveEditedPhoto(editedImageData);
-                        });
-                        
-                        // Auto-scroll para centro após abrir
-                        setTimeout(() => {
-                            scrollToEditorCenter();
-                        }, 800);
-                    };
-                    img.src = `/uploads/${filename}`;
-                } else {
-                    console.error('❌ Falha ao inicializar modal');
-                }
-            }, 100);
-        } else {
-            console.error('❌ Função initFabricPhotoEditorModal não encontrada');
-            alert('Sistema de edição não disponível. Recarregue a página.');
-        }
-    } else {
-        // Modal já inicializado, abrir diretamente
-        console.log('✅ Abrindo editor');
-        const img = new Image();
-        img.onload = function() {
-            window.fabricPhotoEditorModal.openEditor(img.src, photoId, function(editedImageData) {
-                currentPhotoId = photoId;
-                saveEditedPhoto(editedImageData);
-            });
-            
-            // Auto-scroll para centro após abrir
-            setTimeout(() => {
-                scrollToEditorCenter();
-            }, 800);
-        };
-        img.src = `/uploads/${filename}`;
-    }
-}
-
-// Função para auto-scroll centralizado
-function scrollToEditorCenter() {
-    console.log('🎨 Executando auto-scroll para centro do editor');
-    
-    const modal = document.getElementById('fabricPhotoEditorModal');
-    if (!modal) {
-        console.log('⚠️ Modal não encontrado');
-        return;
-    }
-    
-    const canvasContainer = modal.querySelector('.canvas-container');
-    if (!canvasContainer) {
-        console.log('⚠️ Canvas container não encontrado');
-        return;
-    }
-    
-    try {
-        // Scroll suave para o centro do canvas
-        canvasContainer.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center',
-            inline: 'center'
-        });
-        
-        // Centralizar o scroll na janela também
-        window.scrollTo({
-            top: window.innerHeight / 4,
-            behavior: 'smooth'
-        });
-        
-        console.log('✅ Auto-scroll executado com sucesso');
-    } catch (error) {
-        console.error('❌ Erro no auto-scroll:', error);
-    }
-}
-
-// Função para salvar foto editada
-function saveEditedPhoto(editedImageData) {
-    console.log('💾 Salvando foto editada no servidor...');
-    
-    if (!currentPhotoId) {
-        console.error('❌ Photo ID não definido');
-        alert('Erro: ID da foto não encontrado');
-        return;
-    }
-    
-    // Enviar para o servidor
-    fetch(`/reports/photos/${currentPhotoId}/annotate`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify({
-            image_data: editedImageData
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log('✅ Foto salva com sucesso');
-            alert('✅ Anotações salvas com sucesso!');
-            
-            // Fechar modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('fabricPhotoEditorModal'));
-            if (modal) modal.hide();
-            
-            // Recarregar página para mostrar alterações
-            location.reload();
-        } else {
-            console.error('❌ Erro do servidor:', data.error);
-            alert('❌ Erro ao salvar anotações: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('❌ Erro de rede:', error);
-        alert('❌ Erro ao salvar anotações: ' + error);
-    });
-}
-
-function addPhoto() {
-    // Redirect to report form with edit mode
-    window.location.href = "{{ url_for('create_report') }}?edit={{ relatorio.id }}";
-}
-
-function editReport() {
-    // Redirect to edit form
-    window.location.href = "{{ url_for('create_report') }}?edit={{ relatorio.id }}";
-}
-
-function changeStatus() {
-    const newStatus = prompt('Novo status (Rascunho, Aguardando Aprovacao, Aprovado, Rejeitado):');
-    if (newStatus) {
-        fetch(`/reports/{{ relatorio.id }}/status`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                status: newStatus
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Status atualizado com sucesso!');
-                location.reload();
-            } else {
-                alert('Erro ao atualizar status: ' + data.error);
-            }
-        });
-    }
-}
-
-function deletePhoto(photoId) {
-    if (confirm('Tem certeza que deseja excluir esta foto?')) {
-        fetch(`/reports/photos/${photoId}/delete`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token() }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Foto excluída com sucesso!');
-                location.reload();
-            } else {
-                alert('Erro ao excluir foto: ' + data.error);
-            }
-        });
-    }
-}
-
-// Modal para visualizar fotos
-function showPhotoModal(imageSrc, caption, order) {
-    // Criar modal dinamicamente se não existir
-    let modal = document.getElementById('photoViewModal');
-    if (!modal) {
-        const modalHtml = `
-            <div class="modal fade" id="photoViewModal" tabindex="-1" aria-labelledby="photoViewModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="photoViewModalLabel">Visualizar Foto</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body text-center">
-                            <img id="modalPhoto" src="" class="img-fluid" style="max-width: 100%; height: auto;">
-                            <div class="mt-3">
-                                <h6 id="modalCaption"></h6>
-                                <p class="text-muted" id="modalOrder"></p>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        modal = document.getElementById('photoViewModal');
-    }
-    
-    // Atualizar conteúdo do modal
-    document.getElementById('modalPhoto').src = imageSrc;
-    document.getElementById('modalCaption').textContent = caption;
-    document.getElementById('modalOrder').textContent = `Ordem: ${order}`;
-    
-    // Mostrar modal
-    const bootstrapModal = new bootstrap.Modal(modal);
-    bootstrapModal.show();
-}
-
-// Inicialização quando DOM carregar
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar editor modal
-    if (typeof initFabricPhotoEditorModal === 'function') {
-        initFabricPhotoEditorModal();
-        console.log('✅ Editor modal inicializado');
-    } else {
-        console.error('❌ Editor modal não disponível');
-    }
-});
-</script>
-
-<!-- Fabric.js CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
-
-<!-- Fabric Photo Editor CSS e JS -->
-<script src="{{ url_for('static', filename='js/fabric-photo-editor.js') }}"></script>
-<script src="{{ url_for('static', filename='js/fabric-photo-editor-modal.js') }}"></script>
-
-<!-- Auto Save Script Robusto para Relatórios em Preenchimento -->
-{% if relatorio.status == 'preenchimento' %}
-<script src="{{ url_for('static', filename='js/reports_autosave.js') }}"></script>
-<script>
-// Inicializar Auto Save robusto com CSRF e offline support
-document.addEventListener('DOMContentLoaded', function() {
-    const reportId = {{ relatorio.id }};
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
-    console.log('🔧 Inicializando Auto-Save robusto...', { reportId, hasCSRF: !!csrfToken });
-    
-    if (reportId && csrfToken) {
-        try {
-            // Usar o sistema robusto de auto-save
-            window.initAutoSave(reportId, csrfToken);
-            console.log('✅ Auto-Save robusto ativado para relatório', reportId);
-            
-            // Modificar comportamento dos botões de ação
-            const actionButtons = document.querySelectorAll('button[type="submit"], input[type="submit"]');
-            actionButtons.forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    console.log('📝 Salvamento final antes de submeter...');
-                    
-                    // Alterar status visual
-                    const statusBadge = document.querySelector('.badge.bg-info');
-                    if (statusBadge) {
-                        statusBadge.innerHTML = '<i class="fas fa-check me-1"></i>Finalizando...';
-                        statusBadge.classList.remove('bg-info');
-                        statusBadge.classList.add('bg-success');
-                    }
-                });
-            });
-            
-        } catch (error) {
-            console.error('❌ Erro ao inicializar Auto-Save:', error);
-            console.warn('🔄 Tentando fallback...');
-            
-            // Fallback simples em caso de erro
-            setInterval(() => {
-                console.log('💾 Fallback auto-save (a cada 30s)');
-            }, 30000);
-        }
-    } else {
-        console.warn('⚠️ Auto-Save não inicializado - faltam dados:', { reportId, csrfToken });
-    }
-});
-</script>
-{% endif %}
-
-{% endblock %}
+"},
+  {"line": 694, "content": "{% extends \"base.html\" %}"},
+  {"line": 695, "content": ""},
+  {"line": 696, "content": "{% block title %}Editar Relatório - {{ relatorio.numero }}{% endblock %}"},
+  {"line": 697, "content": ""},
+  {"line": 698, "content": "{% block head %}"},
+  {"line": 699, "content": "<!-- Meta tag CSRF para auto-save -->"},
+  {"line": 700, "content": "<meta name=\"csrf-token\" content=\"{{ csrf_token() }}\">"},
+  {"line": 701, "content": "<meta name=\"report-id\" content=\"{{ relatorio.id }}\">"},
+  {"line": 702, "content": "{% endblock %}"},
+  {"line": 703, "content": ""},
+  {"line": 704, "content": "{% block content %}"},
+  {"line": 705, "content": "<div class=\"container-fluid\">"},
+  {"line": 706, "content": "    <div class=\"row\">"},
+  {"line": 707, "content": "        <div class=\"col-12\">"},
+  {"line": 708, "content": "            <div class=\"d-flex justify-content-between align-items-center mb-3\">"},
+  {"line": 709, "content": "                <h3><i class=\"fas fa-edit\"></i> Editar Relatório {{ relatorio.numero }}</h3>"},
+  {"line": 710, "content": "                <div>"},
+  {"line": 711, "content": "                    <div class=\"btn-group me-2\">"},
+  {"line": 712, "content": "                        <button type=\"button\" class=\"btn btn-success dropdown-toggle\" data-bs-toggle=\"dropdown\">"},
+  {"line": 713, "content": "                            <i class=\"fas fa-file-pdf\"></i> PDF Relatório"},
+  {"line": 714, "content": "                        </button>"},
+  {"line": 715, "content": "                        <ul class=\"dropdown-menu\">"},
+  {"line": 716, "content": "                            <li><a class=\"dropdown-item\" href=\"{{ url_for('generate_pdf_report', id=relatorio.id) }}\" target=\"_blank\">"},
+  {"line": 717, "content": "                                <i class=\"fas fa-eye me-2\"></i>Visualizar PDF"},
+  {"line": 718, "content": "                            </a></li>"},
+  {"line": 719, "content": "                            <li><a class=\"dropdown-item\" href=\"{{ url_for('generate_report_pdf_download', id=relatorio.id) }}\">"},
+  {"line": 720, "content": "                                <i class=\"fas fa-download me-2\"></i>Baixar PDF"},
+  {"line": 721, "content": "                            </a></li>"},
+  {"line": 722, "content": "                        </ul>"},
+  {"line": 723, "content": "                    </div>"},
+  {"line": 724, "content": "                    <a href=\"{{ url_for('reports') }}\" class=\"btn btn-secondary\">"},
+  {"line": 725, "content": "                        <i class=\"fas fa-arrow-left\"></i> Voltar"},
+  {"line": 726, "content": "                    </a>"},
+  {"line": 727, "content": "                </div>"},
+  {"line": 728, "content": "            </div>"},
+  {"line": 729, "content": ""},
+  {"line": 730, "content": "            <!-- Data do Relatório no Topo da Página -->"},
+  {"line": 731, "content": "            <div class=\"mb-4\">"},
+  {"line": 732, "content": "                <div class=\"alert alert-light border-0 mb-0 py-2\">"},
+  {"line": 733, "content": "                    <strong class=\"text-primary\">"},
+  {"line": 734, "content": "                        <i class=\"fas fa-calendar-alt me-2\"></i>Data: "},
+  {"line": 735, "content": "                        {% if relatorio.data_relatorio %}"},
+  {"line": 736, "content": "                            {{ relatorio.data_relatorio.strftime('%d/%m/%Y') }}"},
+  {"line": 737, "content": "                        {% else %}"},
+  {"line": 738, "content": "                            {{ relatorio.created_at.strftime('%d/%m/%Y') }}"},
+  {"line": 739, "content": "                        {% endif %}"},
+  {"line": 740, "content": "                    </strong>"},
+  {"line": 741, "content": "                </div>"},
+  {"line": 742, "content": "            </div>"},
+  {"line": 743, "content": ""},
+  {"line": 744, "content": "            <div class=\"row\">"},
+  {"line": 745, "content": "                <div class=\"col-md-8\">"},
+  {"line": 746, "content": "                    <div class=\"card\">"},
+  {"line": 747, "content": "                        <div class=\"card-header\">"},
+  {"line": 748, "content": "                            <div class=\"d-flex justify-content-between align-items-center\">"},
+  {"line": 749, "content": "                                <h5>Informações do Relatório</h5>"},
+  {"line": 750, "content": "                                <div class=\"d-flex align-items-center gap-3\">"},
+  {"line": 751, "content": "                                    {% if relatorio.status == 'preenchimento' %}"},
+  {"line": 752, "content": "                                    <span class=\"badge bg-info\">"},
+  {"line": 753, "content": "                                        <i class=\"fas fa-edit me-1\"></i>Em preenchimento"},
+  {"line": 754, "content": "                                    </span>"},
+  {"line": 755, "content": "                                    {% endif %}"},
+  {"line": 756, "content": "                                    <div id=\"autosave-status\"></div>"},
+  {"line": 757, "content": "                                </div>"},
+  {"line": 758, "content": "                            </div>"},
+  {"line": 759, "content": "                        </div>"},
+  {"line": 760, "content": "                        <div class=\"card-body\">"},
+  {"line": 761, "content": "                            <div class=\"row\">"},
+  {"line": 762, "content": "                                <div class=\"col-md-6\">"},
+  {"line": 763, "content": "                                    <p><strong>Número:</strong> {{ relatorio.numero }}</p>"},
+  {"line": 764, "content": "                                    <p><strong>Título:</strong> {{ relatorio.titulo }}</p>"},
+  {"line": 765, "content": "                                    <p><strong>Projeto:</strong> {{ relatorio.projeto.nome if relatorio.projeto else '-' }}</p>"},
+  {"line": 766, "content": "                                </div>"},
+  {"line": 767, "content": "                                <div class=\"col-md-6\">"},
+  {"line": 768, "content": "                                    <p><strong>Autor:</strong> {{ relatorio.autor.nome_completo if relatorio.autor else '-' }}</p>"},
+  {"line": 769, "content": "                                    <p><strong>Data:</strong> {{ relatorio.data_relatorio.strftime('%d/%m/%Y') if relatorio.data_relatorio else '-' }}</p>"},
+  {"line": 770, "content": "                                    <p><strong>Status:</strong> "},
+  {"line": 771, "content": "                                        <span class=\"badge "},
+  {"line": 772, "content": "                                            {% if relatorio.status == 'Aprovado' %}bg-success"},
+  {"line": 773, "content": "                                            {% elif relatorio.status == 'Rejeitado' %}bg-danger"},
+  {"line": 774, "content": "                                            {% elif relatorio.status == 'Aguardando Aprovacao' %}bg-warning"},
+  {"line": 775, "content": "                                            {% elif relatorio.status == 'preenchimento' %}bg-info"},
+  {"line": 776, "content": "                                            {% else %}bg-secondary{% endif %}\">"},
+  {"line": 777, "content": "                                            {% if relatorio.status == 'preenchimento' %}Em preenchimento"},
+  {"line": 778, "content": "                                            {% else %}{{ relatorio.status }}{% endif %}"},
+  {"line": 779, "content": "                                        </span>"},
+  {"line": 780, "content": "                                    </p>"},
+  {"line": 781, "content": "                                </div>"},
+  {"line": 782, "content": "                            </div>"},
+  {"line": 783, "content": ""},
+  {"line": 784, "content": "                            {% if relatorio.conteudo %}"},
+  {"line": 785, "content": "                            <div class=\"mt-3\">"},
+  {"line": 786, "content": "                                <strong>Conteúdo:</strong>"},
+  {"line": 787, "content": "                                <div class=\"border p-3 mt-2\">"},
+  {"line": 788, "content": "                                    {{ relatorio.conteudo|safe }}"},
+  {"line": 789, "content": "                                </div>"},
+  {"line": 790, "content": "                            </div>"},
+  {"line": 791, "content": "                            {% endif %}"},
+  {"line": 792, "content": "                        </div>"},
+  {"line": 793, "content": "                    </div>"},
+  {"line": 794, "content": "                </div>"},
+  {"line": 795, "content": ""},
+  {"line": 796, "content": "                <div class=\"col-md-4\">"},
+  {"line": 797, "content": "                    <div class=\"card\">"},
+  {"line": 798, "content": "                        <div class=\"card-header\">"},
+  {"line": 799, "content": "                            <h5>Ações</h5>"},
+  {"line": 800, "content": "                        </div>"},
+  {"line": 801, "content": "                        <div class=\"card-body\">"},
+  {"line": 802, "content": "                            <div class=\"d-grid gap-2\">"},
+  {"line": 803, "content": "                                <button class=\"btn btn-primary\" onclick=\"editReport()\">"},
+  {"line": 804, "content": "                                    <i class=\"fas fa-edit\"></i> Editar Dados"},
+  {"line": 805, "content": "                                </button>"},
+  {"line": 806, "content": "                                <button class=\"btn btn-success\" onclick=\"addPhoto()\">"},
+  {"line": 807, "content": "                                    <i class=\"fas fa-camera\"></i> Adicionar Foto"},
+  {"line": 808, "content": "                                </button>"},
+  {"line": 809, "content": "                                <button class=\"btn btn-info\" onclick=\"changeStatus()\">"},
+  {"line": 810, "content": "                                    <i class=\"fas fa-check-circle\"></i> Mudar Status"},
+  {"line": 811, "content": "                                </button>"},
+  {"line": 812, "content": "                            </div>"},
+  {"line": 813, "content": "                        </div>"},
+  {"line": 814, "content": "                    </div>"},
+  {"line": 815, "content": "                </div>"},
+  {"line": 816, "content": "            </div>"},
+  {"line": 817, "content": ""},
+  {"line": 818, "content": "            <!-- Photos Section -->"},
+  {"line": 819, "content": "            <div class=\"row mt-4\">"},
+  {"line": 820, "content": "                <div class=\"col-12\">"},
+  {"line": 821, "content": "                    <div class=\"card\">"},
+  {"line": 822, "content": "                        <div class=\"card-header d-flex justify-content-between align-items-center\">"},
+  {"line": 823, "content": "                            <h5><i class=\"fas fa-images\"></i> Fotos do Relatório ({{ fotos|length }})</h5>"},
+  {"line": 824, "content": "                            <button class=\"btn btn-sm btn-primary\" onclick=\"addPhoto()\">"},
+  {"line": 825, "content": "                                <i class=\"fas fa-plus\"></i> Adicionar Foto"},
+  {"line": 826, "content": "                            </button>"},
+  {"line": 827, "content": "                        </div>"},
+  {"line": 828, "content": "                        <div class=\"card-body\">"},
+  {"line": 829, "content": "                            {% if fotos %}"},
+  {"line": 830, "content": "                                <div class=\"row\">"},
+  {"line": 831, "content": "                                    {% for foto in fotos %}"},
+  {"line": 832, "content": "                                    <div class=\"col-md-4 col-lg-3 mb-4\">"},
+  {"line": 833, "content": "                                        <div class=\"card h-100\">"},
+  {"line": 834, "content": "                                            <div class=\"position-relative\">"},
+  {"line": 835, "content": "                                                <img src=\"{{ url_for('uploaded_file', filename=foto.filename) }}\" "},
+  {"line": 836, "content": "                                                     class=\"card-img-top img-fluid\" "},
+  {"line": 837, "content": "                                                     style=\"height: 200px; object-fit: cover; cursor: pointer;\""},
+  {"line": 838, "content": "                                                     alt=\"{{ foto.legenda or 'Foto' }}\""},
+  {"line": 839, "content": "                                                     onclick=\"showPhotoModal('{{ url_for('uploaded_file', filename=foto.filename) }}', '{{ foto.legenda or 'Sem descrição' }}', {{ foto.ordem }})\""},
+  {"line": 840, "content": "                                                     onerror=\"this.src='/static/img/no-image.png'\">"},
+  {"line": 841, "content": "                                                <div class=\"position-absolute top-0 end-0 p-2\">"},
+  {"line": 842, "content": "                                                    <button class=\"btn btn-sm btn-warning me-1\" "},
+  {"line": 843, "content": "                                                            onclick=\"editPhoto({{ foto.id }}, '{{ foto.filename }}')\""},
+  {"line": 844, "content": "                                                            title=\"Editar foto\">"},
+  {"line": 845, "content": "                                                        <i class=\"fas fa-edit\"></i>"},
+  {"line": 846, "content": "                                                    </button>"},
+  {"line": 847, "content": "                                                    <button class=\"btn btn-sm btn-danger\" "},
+  {"line": 848, "content": "                                                            onclick=\"deletePhoto({{ foto.id }})\""},
+  {"line": 849, "content": "                                                            title=\"Excluir foto\">"},
+  {"line": 850, "content": "                                                        <i class=\"fas fa-trash\"></i>"},
+  {"line": 851, "content": "                                                    </button>"},
+  {"line": 852, "content": "                                                </div>"},
+  {"line": 853, "content": "                                            </div>"},
+  {"line": 854, "content": "                                            <div class=\"card-body p-2\">"},
+  {"line": 855, "content": "                                                <h6 class=\"card-title small\">{{ foto.legenda or 'Sem título' }}</h6>"},
+  {"line": 856, "content": "                                                <p class=\"card-text small text-muted\">"},
+  {"line": 857, "content": "                                                    <i class=\"fas fa-tag me-1\"></i>{{ foto.tipo_servico or 'Geral' }}<br>"},
+  {"line": 858, "content": "                                                    <i class=\"fas fa-sort-numeric-up me-1\"></i>Ordem: {{ foto.ordem }}"},
+  {"line": 859, "content": "                                                </p>"},
+  {"line": 860, "content": "                                                <small class=\"text-primary\">"},
+  {"line": 861, "content": "                                                    <i class=\"fas fa-expand-arrows-alt me-1\"></i>Clique para ampliar"},
+  {"line": 862, "content": "                                                </small>"},
+  {"line": 863, "content": "                                            </div>"},
+  {"line": 864, "content": "                                        </div>"},
+  {"line": 865, "content": "                                    </div>"},
+  {"line": 866, "content": "                                    {% endfor %}"},
+  {"line": 867, "content": "                                </div>"},
+  {"line": 868, "content": "                            {% else %}"},
+  {"line": 869, "content": "                                <div class=\"text-center py-4\">"},
+  {"line": 870, "content": "                                    <i class=\"fas fa-images fa-3x text-muted mb-3\"></i>"},
+  {"line": 871, "content": "                                    <h5>Nenhuma foto adicionada</h5>"},
+  {"line": 872, "content": "                                    <p class=\"text-muted\">Clique no botão acima para adicionar fotos ao relatório.</p>"},
+  {"line": 873, "content": "                                </div>"},
+  {"line": 874, "content": "                            {% endif %}"},
+  {"line": 875, "content": "                        </div>"},
+  {"line": 876, "content": "                    </div>"},
+  {"line": 877, "content": "                </div>"},
+  {"line": 878, "content": "            </div>"},
+  {"line": 879, "content": "        </div>"},
+  {"line": 880, "content": "    </div>"},
+  {"line": 881, "content": "</div>"},
+  {"line": 882, "content": ""},
+  {"line": 883, "content": "<!-- Modal do Editor de Fotos Professional - Sistema Express Copiado -->"},
+  {"line": 884, "content": "<div class=\"modal fade\" id=\"fabricPhotoEditorModal\" tabindex=\"-1\" aria-hidden=\"true\">"},
+  {"line": 885, "content": "    <div class=\"modal-dialog modal-fullscreen\">"},
+  {"line": 886, "content": "        <div class=\"modal-content\">"},
+  {"line": 887, "content": "            <!-- Header -->"},
+  {"line": 888, "content": "            <div class=\"modal-header bg-primary text-white\">"},
+  {"line": 889, "content": "                <h5 class=\"modal-title\">"},
+  {"line": 890, "content": "                    <i class=\"fas fa-edit\"></i> Editor de Fotos Professional"},
+  {"line": 891, "content": "                </h5>"},
+  {"line": 892, "content": "                <button type=\"button\" class=\"btn-close btn-close-white\" data-bs-dismiss=\"modal\"></button>"},
+  {"line": 893, "content": "            </div>"},
+  {"line": 894, "content": ""},
+  {"line": 895, "content": "            <!-- Body -->"},
+  {"line": 896, "content": "            <div class=\"modal-body p-0\" style=\"height: calc(100vh - 160px);\">"},
+  {"line": 897, "content": "                <div class=\"fabric-editor-container\" style=\"height: 100%;\">"},
+  {"line": 898, "content": "                    <!-- Área principal do editor -->"},
+  {"line": 899, "content": "                    <div class=\"fabric-editor-main\" style=\"flex: 1; display: flex; flex-direction: column;\">"},
+  {"line": 900, "content": "                        <!-- Container do canvas -->"},
+  {"line": 901, "content": "                        <div class=\"canvas-container\" style=\"flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; background: #f8f9fa;\">"},
+  {"line": 902, "content": "                            <div class=\"canvas-wrapper\" style=\"background: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); overflow: hidden;\">"},
+  {"line": 903, "content": "                                <canvas id=\"fabricModalCanvas\"></canvas>"},
+  {"line": 904, "content": "                            </div>"},
+  {"line": 905, "content": "                        </div>"},
+  {"line": 906, "content": ""},
+  {"line": 907, "content": "                        <!-- Toolbar de ferramentas -->"},
+  {"line": 908, "content": "                        <div class=\"fabric-toolbar\" style=\"background: white; border-top: 1px solid #e1e5e9; padding: 16px;\">"},
+  {"line": 909, "content": "                            <!-- Ferramentas principais -->"},
+  {"line": 910, "content": "                            <div class=\"tool-group mb-3\">"},
+  {"line": 911, "content": "                                <h6 class=\"text-muted mb-2\">Ferramentas</h6>"},
+  {"line": 912, "content": "                                <div class=\"d-flex gap-2 flex-wrap\">"},
+  {"line": 913, "content": "                                    <button class=\"fabric-tool-btn active\" data-modal-tool=\"select\" title=\"Seleção\">"},
+  {"line": 914, "content": "                                        <i class=\"fas fa-mouse-pointer\"></i>"},
+  {"line": 915, "content": "                                    </button>"},
+  {"line": 916, "content": "                                    <button class=\"fabric-tool-btn\" data-modal-tool=\"brush\" title=\"Pincel\">"},
+  {"line": 917, "content": "                                        <i class=\"fas fa-paint-brush\"></i>"},
+  {"line": 918, "content": "                                    </button>"},
+  {"line": 919, "content": "                                    <button class=\"fabric-tool-btn\" data-modal-tool=\"arrow\" title=\"Seta\">"},
+  {"line": 920, "content": "                                        <i class=\"fas fa-arrow-right\"></i>"},
+  {"line": 921, "content": "                                    </button>"},
+  {"line": 922, "content": "                                    <button class=\"fabric-tool-btn\" data-modal-tool=\"circle\" title=\"Círculo\">"},
+  {"line": 923, "content": "                                        <i class=\"far fa-circle\"></i>"},
+  {"line": 924, "content": "                                    </button>"},
+  {"line": 925, "content": "                                    <button class=\"fabric-tool-btn\" data-modal-tool=\"rectangle\" title=\"Retângulo\">"},
+  {"line": 926, "content": "                                        <i class=\"far fa-square\"></i>"},
+  {"line": 927, "content": "                                    </button>"},
+  {"line": 928, "content": "                                    <button class=\"fabric-tool-btn\" data-modal-tool=\"text\" title=\"Texto\">"},
+  {"line": 929, "content": "                                        <i class=\"fas fa-font\"></i>"},
+  {"line": 930, "content": "                                    </button>"},
+  {"line": 931, "content": "                                </div>"},
+  {"line": 932, "content": "                            </div>"},
+  {"line": 933, "content": ""},
+  {"line": 934, "content": "                            <!-- Propriedades -->"},
+  {"line": 935, "content": "                            <div class=\"row\">"},
+  {"line": 936, "content": "                                <div class=\"col-md-4\">"},
+  {"line": 937, "content": "                                    <label class=\"form-label\">Cor:</label>"},
+  {"line": 938, "content": "                                    <input type=\"color\" id=\"modal-color-picker\" class=\"form-control form-control-color\" value=\"#FF0000\">"},
+  {"line": 939, "content": "                                </div>"},
+  {"line": 940, "content": "                                <div class=\"col-md-4\">"},
+  {"line": 941, "content": "                                    <label class=\"form-label\">Espessura:</label>"},
+  {"line": 942, "content": "                                    <input type=\"range\" id=\"modal-stroke-width\" class=\"form-range\" min=\"1\" max=\"20\" value=\"3\">"},
+  {"line": 943, "content": "                                </div>"},
+  {"line": 944, "content": "                                <div class=\"col-md-4\">"},
+  {"line": 945, "content": "                                    <label class=\"form-label\">Legenda:</label>"},
+  {"line": 946, "content": "                                    <input type=\"text\" id=\"modal-custom-legend\" class=\"form-control\" placeholder=\"Digite uma legenda...\">"},
+  {"line": 947, "content": "                                </div>"},
+  {"line": 948, "content": "                            </div>"},
+  {"line": 949, "content": "                        </div>"},
+  {"line": 950, "content": "                    </div>"},
+  {"line": 951, "content": "                </div>"},
+  {"line": 952, "content": "            </div>"},
+  {"line": 953, "content": "            <!-- Footer -->"},
+  {"line": 954, "content": "            <div class=\"modal-footer\">"},
+  {"line": 955, "content": "                <button type=\"button\" class=\"btn btn-secondary\" id=\"modal-cancel-btn\">"},
+  {"line": 956, "content": "                    <i class=\"fas fa-times\"></i> Cancelar"},
+  {"line": 957, "content": "                </button>"},
+  {"line": 958, "content": "                <button type=\"button\" class=\"btn btn-danger\" onclick=\"window.fabricPhotoEditorModal?.clear()\">"},
+  {"line": 959, "content": "                    <i class=\"fas fa-trash\"></i> Limpar"},
+  {"line": 960, "content": "                </button>"},
+  {"line": 961, "content": "                <button type=\"button\" class=\"btn btn-warning\" onclick=\"window.fabricPhotoEditorModal?.undo()\">"},
+  {"line": 962, "content": "                    <i class=\"fas fa-undo\"></i> Desfazer"},
+  {"line": 963, "content": "                </button>"},
+  {"line": 964, "content": "                <button type=\"button\" class=\"btn btn-success\" id=\"modal-save-btn\">"},
+  {"line": 965, "content": "                    <i class=\"fas fa-check\"></i> Salvar"},
+  {"line": 966, "content": "                </button>"},
+  {"line": 967, "content": "            </div>"},
+  {"line": 968, "content": "        </div>"},
+  {"line": 969, "content": "    </div>"},
+  {"line": 970, "content": "</div>"},
+  {"line": 971, "content": ""},
+  {"line": 972, "content": "<style>"},
+  {"line": 973, "content": "/* Estilos do modal do editor - Copiado do Express */"},
+  {"line": 974, "content": ".fabric-tool-btn {"},
+  {"line": 975, "content": "    display: flex;"},
+  {"line": 976, "content": "    align-items: center;"},
+  {"line": 977, "content": "    justify-content: center;"},
+  {"line": 978, "content": "    min-width: 44px;"},
+  {"line": 979, "content": "    min-height: 44px;"},
+  {"line": 980, "content": "    padding: 8px;"},
+  {"line": 981, "content": "    background: #f8f9fa;"},
+  {"line": 982, "content": "    border: 2px solid transparent;"},
+  {"line": 983, "content": "    border-radius: 8px;"},
+  {"line": 984, "content": "    color: #4b5563;"},
+  {"line": 985, "content": "    font-size: 16px;"},
+  {"line": 986, "content": "    cursor: pointer;"},
+  {"line": 987, "content": "    transition: all 0.2s ease;"},
+  {"line": 988, "content": "}"},
+  {"line": 989, "content": ""},
+  {"line": 990, "content": ".fabric-tool-btn:hover {"},
+  {"line": 991, "content": "    background: #e5e7eb;"},
+  {"line": 992, "content": "}"},
+  {"line": 993, "content": ""},
+  {"line": 994, "content": ".fabric-tool-btn.active {"},
+  {"line": 995, "content": "    background: #3b82f6;"},
+  {"line": 996, "content": "    color: white;"},
+  {"line": 997, "content": "    border-color: #2563eb;"},
+  {"line": 998, "content": "}"},
+  {"line": 999, "content": ""},
+  {"line": 1000, "content": "/* Indicador visual de foto editada */"},
+  {"line": 1001, "content": ".photo-container.edited {"},
+  {"line": 1002, "content": "    position: relative;"},
+  {"line": 1003, "content": "}"},
+  {"line": 1004, "content": ""},
+  {"line": 1005, "content": ".edited-badge {"},
+  {"line": 1006, "content": "    position: absolute;"},
+  {"line": 1007, "content": "    top: 8px;"},
+  {"line": 1008, "content": "    right: 8px;"},
+  {"line": 1009, "content": "    background: #10b981;"},
+  {"line": 1010, "content": "    color: white;"},
+  {"line": 1011, "content": "    padding: 4px 8px;"},
+  {"line": 1012, "content": "    border-radius: 12px;"},
+  {"line": 1013, "content": "    font-size: 10px;"},
+  {"line": 1014, "content": "    font-weight: 600;"},
+  {"line": 1015, "content": "    z-index: 10;"},
+  {"line": 1016, "content": "}"},
+  {"line": 1017, "content": ""},
+  {"line": 1018, "content": ".edit-photo-btn {"},
+  {"line": 1019, "content": "    position: absolute;"},
+  {"line": 1020, "content": "    bottom: 8px;"},
+  {"line": 1021, "content": "    right: 8px;"},
+  {"line": 1022, "content": "    background: rgba(59, 130, 246, 0.9);"},
+  {"line": 1023, "content": "    color: white;"},
+  {"line": 1024, "content": "    border: none;"},
+  {"line": 1025, "content": "    padding: 8px;"},
+  {"line": 1026, "content": "    border-radius: 50%;"},
+  {"line": 1027, "content": "    width: 36px;"},
+  {"line": 1028, "content": "    height: 36px;"},
+  {"line": 1029, "content": "    cursor: pointer;"},
+  {"line": 1030, "content": "    transition: all 0.2s ease;"},
+  {"line": 1031, "content": "    z-index: 10;"},
+  {"line": 1032, "content": "}"},
+  {"line": 1033, "content": ""},
+  {"line": 1034, "content": ".edit-photo-btn:hover {"},
+  {"line": 1035, "content": "    background: #3b82f6;"},
+  {"line": 1036, "content": "    transform: scale(1.1);"},
+  {"line": 1037, "content": "}"},
+  {"line": 1038, "content": ""},
+  {"line": 1039, "content": "/* Responsivo mobile */"},
+  {"line": 1040, "content": "@media (max-width: 768px) {"},
+  {"line": 1041, "content": "    .fabric-toolbar {"},
+  {"line": 1042, "content": "        max-height: 40vh;"},
+  {"line": 1043, "content": "        overflow-y: auto;"},
+  {"line": 1044, "content": "    }"},
+  {"line": 1045, "content": ""},
+  {"line": 1046, "content": "    .fabric-tool-btn {"},
+  {"line": 1047, "content": "        min-width: 40px;"},
+  {"line": 1048, "content": "        min-height: 40px;"},
+  {"line": 1049, "content": "    }"},
+  {"line": 1050, "content": "}"},
+  {"line": 1051, "content": "</style>"},
+  {"line": 1052, "content": ""},
+  {"line": 1053, "content": "<script>"},
+  {"line": 1054, "content": "// Sistema Fabric.js Photo Editor - Express System"},
+  {"line": 1055, "content": "let currentPhotoId = null;"},
+  {"line": 1056, "content": ""},
+  {"line": 1057, "content": "// Função editPhoto copiada do sistema express"},
+  {"line": 1058, "content": "function editPhoto(photoId, filename) {"},
+  {"line": 1059, "content": "    console.log('🎨 Abrindo editor para foto:', photoId);"},
+  {"line": 1060, "content": ""},
+  {"line": 1061, "content": "    // Verificar dependências"},
+  {"line": 1062, "content": "    console.log('🔍 Verificando dependências do editor...');"},
+  {"line": 1063, "content": "    console.log('- window.fabricPhotoEditorModal:', window.fabricPhotoEditorModal);"},
+  {"line": 1064, "content": "    console.log('- initFabricPhotoEditorModal:', typeof initFabricPhotoEditorModal);"},
+  {"line": 1065, "content": "    console.log('- FabricPhotoEditor:', typeof FabricPhotoEditor);"},
+  {"line": 1066, "content": "    console.log('- fabric:', typeof fabric);"},
+  {"line": 1067, "content": "    console.log('- bootstrap:', typeof bootstrap);"},
+  {"line": 1068, "content": ""},
+  {"line": 1069, "content": "    if (!window.fabricPhotoEditorModal) {"},
+  {"line": 1070, "content": "        console.log('🚀 Inicializando modal do editor...');"},
+  {"line": 1071, "content": ""},
+  {"line": 1072, "content": "        // Verificar dependências"},
+  {"line": 1073, "content": "        if (typeof fabric === 'undefined') {"},
+  {"line": 1074, "content": "            alert('Fabric.js não está carregado. Recarregue a página.');"},
+  {"line": 1075, "content": "            return;"},
+  {"line": 1076, "content": "        }"},
+  {"line": 1077, "content": ""},
+  {"line": 1078, "content": "        if (typeof bootstrap === 'undefined') {"},
+  {"line": 1079, "content": "            alert('Bootstrap não está carregado. Recarregue a página.');"},
+  {"line": 1080, "content": "            return;"},
+  {"line": 1081, "content": "        }"},
+  {"line": 1082, "content": ""},
+  {"line": 1083, "content": "        if (typeof FabricPhotoEditor === 'undefined') {"},
+  {"line": 1084, "content": "            alert('FabricPhotoEditor não está carregado. Recarregue a página.');"},
+  {"line": 1085, "content": "            return;"},
+  {"line": 1086, "content": "        }"},
+  {"line": 1087, "content": ""},
+  {"line": 1088, "content": "        // Inicializar modal"},
+  {"line": 1089, "content": "        if (typeof initFabricPhotoEditorModal === 'function') {"},
+  {"line": 1090, "content": "            console.log('💫 Inicializando modal...');"},
+  {"line": 1091, "content": "            initFabricPhotoEditorModal();"},
+  {"line": 1092, "content": ""},
+  {"line": 1093, "content": "            // Aguardar inicialização e abrir"},
+  {"line": 1094, "content": "            setTimeout(() => {"},
+  {"line": 1095, "content": "                if (window.fabricPhotoEditorModal) {"},
+  {"line": 1096, "content": "                    console.log('✅ Abrindo editor modal');"},
+  {"line": 1097, "content": "                    const img = new Image();"},
+  {"line": 1098, "content": "                    img.onload = function() {"},
+  {"line": 1099, "content": "                        window.fabricPhotoEditorModal.openEditor(img.src, photoId, function(editedImageData) {"},
+  {"line": 1100, "content": "                            // Callback para salvar foto editada"},
+  {"line": 1101, "content": "                            currentPhotoId = photoId;"},
+  {"line": 1102, "content": "                            saveEditedPhoto(editedImageData);"},
+  {"line": 1103, "content": "                        });"},
+  {"line": 1104, "content": ""},
+  {"line": 1105, "content": "                        // Auto-scroll para centro após abrir"},
+  {"line": 1106, "content": "                        setTimeout(() => {"},
+  {"line": 1107, "content": "                            scrollToEditorCenter();"},
+  {"line": 1108, "content": "                        }, 800);"},
+  {"line": 1109, "content": "                    };"},
+  {"line": 1110, "content": "                    img.src = `/uploads/${filename}?t=${Date.now()}`;"},
+  {"line": 1111, "content": "                } else {"},
+  {"line": 1112, "content": "                    console.error('❌ Falha ao inicializar modal');"},
+  {"line": 1113, "content": "                }"},
+  {"line": 1114, "content": "            }, 100);"},
+  {"line": 1115, "content": "        } else {"},
+  {"line": 1116, "content": "            console.error('❌ Função initFabricPhotoEditorModal não encontrada');"},
+  {"line": 1117, "content": "            alert('Sistema de edição não disponível. Recarregue a página.');"},
+  {"line": 1118, "content": "        }"},
+  {"line": 1119, "content": "    } else {"},
+  {"line": 1120, "content": "        // Modal já inicializado, abrir diretamente"},
+  {"line": 1121, "content": "        console.log('✅ Abrindo editor');"},
+  {"line": 1122, "content": "        const img = new Image();"},
+  {"line": 1123, "content": "        img.onload = function() {"},
+  {"line": 1124, "content": "            window.fabricPhotoEditorModal.openEditor(img.src, photoId, function(editedImageData) {"},
+  {"line": 1125, "content": "                currentPhotoId = photoId;"},
+  {"line": 1126, "content": "                saveEditedPhoto(editedImageData);"},
+  {"line": 1127, "content": "            });"},
+  {"line": 1128, "content": ""},
+  {"line": 1129, "content": "            // Auto-scroll para centro após abrir"},
+  {"line": 1130, "content": "            setTimeout(() => {"},
+  {"line": 1131, "content": "                scrollToEditorCenter();"},
+  {"line": 1132, "content": "            }, 800);"},
+  {"line": 1133, "content": "        };"},
+  {"line": 1134, "content": "        img.src = `/uploads/${filename}?t=${Date.now()}`;"},
+  {"line": 1135, "content": "    }"},
+  {"line": 1136, "content": "}"},
+  {"line": 1137, "content": ""},
+  {"line": 1138, "content": "// Função para auto-scroll centralizado"},
+  {"line": 1139, "content": "function scrollToEditorCenter() {"},
+  {"line": 1140, "content": "    console.log('🎨 Executando auto-scroll para centro do editor');"},
+  {"line": 1141, "content": ""},
+  {"line": 1142, "content": "    const modal = document.getElementById('fabricPhotoEditorModal');"},
+  {"line": 1143, "content": "    if (!modal) {"},
+  {"line": 1144, "content": "        console.log('⚠️ Modal não encontrado');"},
+  {"line": 1145, "content": "        return;"},
+  {"line": 1146, "content": "    }"},
+  {"line": 1147, "content": ""},
+  {"line": 1148, "content": "    const canvasContainer = modal.querySelector('.canvas-container');"},
+  {"line": 1149, "content": "    if (!canvasContainer) {"},
+  {"line": 1150, "content": "        console.log('⚠️ Canvas container não encontrado');"},
+  {"line": 1151, "content": "        return;"},
+  {"line": 1152, "content": "    }"},
+  {"line": 1153, "content": ""},
+  {"line": 1154, "content": "    try {"},
+  {"line": 1155, "content": "        // Scroll suave para o centro do canvas"},
+  {"line": 1156, "content": "        canvasContainer.scrollIntoView({ "},
+  {"line": 1157, "content": "            behavior: 'smooth', "},
+  {"line": 1158, "content": "            block: 'center',"},
+  {"line": 1159, "content": "            inline: 'center'"},
+  {"line": 1160, "content": "        });"},
+  {"line": 1161, "content": ""},
+  {"line": 1162, "content": "        // Centralizar o scroll na janela também"},
+  {"line": 1163, "content": "        window.scrollTo({"},
+  {"line": 1164, "content": "            top: window.innerHeight / 4,"},
+  {"line": 1165, "content": "            behavior: 'smooth'"},
+  {"line": 1166, "content": "        });"},
+  {"line": 1167, "content": ""},
+  {"line": 1168, "content": "        console.log('✅ Auto-scroll executado com sucesso');"},
+  {"line": 1169, "content": "    } catch (error) {"},
+  {"line": 1170, "content": "        console.error('❌ Erro no auto-scroll:', error);"},
+  {"line": 1171, "content": "    }"},
+  {"line": 1172, "content": "}"},
+  {"line": 1173, "content": ""},
+  {"line": 1174, "content": "// Função para salvar foto editada"},
+  {"line": 1175, "content": "function saveEditedPhoto(editedImageData) {"},
+  {"line": 1176, "content": "    console.log('💾 Salvando foto editada no servidor...');"},
+  {"line": 1177, "content": ""},
+  {"line": 1178, "content": "    if (!currentPhotoId) {"},
+  {"line": 1179, "content": "        console.error('❌ Photo ID não definido');"},
+  {"line": 1180, "content": "        alert('Erro: ID da foto não encontrado');"},
+  {"line": 1181, "content": "        return;"},
+  {"line": 1182, "content": "    }"},
+  {"line": 1183, "content": ""},
+  {"line": 1184, "content": "    // Enviar para o servidor"},
+  {"line": 1185, "content": "    fetch(`/reports/photos/${currentPhotoId}/annotate`, {"},
+  {"line": 1186, "content": "        method: 'POST',"},
+  {"line": 1187, "content": "        headers: {"},
+  {"line": 1188, "content": "            'Content-Type': 'application/json',"},
+  {"line": 1189, "content": "            'X-CSRFToken': '{{ csrf_token() }}'"},
+  {"line": 1190, "content": "        },"},
+  {"line": 1191, "content": "        body: JSON.stringify({"},
+  {"line": 1192, "content": "            image_data: editedImageData"},
+  {"line": 1193, "content": "        })"},
+  {"line": 1194, "content": "    })"},
+  {"line": 1195, "content": "    .then(response => response.json())"},
+  {"line": 1196, "content": "    .then(data => {"},
+  {"line": 1197, "content": "        if (data.success) {"},
+  {"line": 1198, "content": "            console.log('✅ Foto salva com sucesso');"},
+  {"line": 1199, "content": "            alert('✅ Anotações salvas com sucesso!');"},
+  {"line": 1200, "content": ""},
+  {"line": 1201, "content": "            // Fechar modal"},
+  {"line": 1202, "content": "            const modal = bootstrap.Modal.getInstance(document.getElementById('fabricPhotoEditorModal'));"},
+  {"line": 1203, "content": "            if (modal) modal.hide();"},
+  {"line": 1204, "content": ""},
+  {"line": 1205, "content": "            // Recarregar página para mostrar alterações"},
+  {"line": 1206, "content": "            location.reload();"},
+  {"line": 1207, "content": "        } else {"},
+  {"line": 1208, "content": "            console.error('❌ Erro do servidor:', data.error);"},
+  {"line": 1209, "content": "            alert('❌ Erro ao salvar anotações: ' + data.error);"},
+  {"line": 1210, "content": "        }"},
+  {"line": 1211, "content": "    })"},
+  {"line": 1212, "content": "    .catch(error => {"},
+  {"line": 1213, "content": "        console.error('❌ Erro de rede:', error);"},
+  {"line": 1214, "content": "        alert('❌ Erro ao salvar anotações: ' + error);"},
+  {"line": 1215, "content": "    });"},
+  {"line": 1216, "content": "}"},
+  {"line": 1217, "content": ""},
+  {"line": 1218, "content": "function addPhoto() {"},
+  {"line": 1219, "content": "    // Redirect to report form with edit mode"},
+  {"line": 1220, "content": "    window.location.href = \"{{ url_for('create_report') }}?edit={{ relatorio.id }}\";"},
+  {"line": 1221, "content": "}"},
+  {"line": 1222, "content": ""},
+  {"line": 1223, "content": "function editReport() {"},
+  {"line": 1224, "content": "    // Redirect to edit form"},
+  {"line": 1225, "content": "    window.location.href = \"{{ url_for('create_report') }}?edit={{ relatorio.id }}\";"},
+  {"line": 1226, "content": "}"},
+  {"line": 1227, "content": ""},
+  {"line": 1228, "content": "function changeStatus() {"},
+  {"line": 1229, "content": "    const newStatus = prompt('Novo status (Rascunho, Aguardando Aprovacao, Aprovado, Rejeitado):');"},
+  {"line": 1230, "content": "    if (newStatus) {"},
+  {"line": 1231, "content": "        fetch(`/reports/{{ relatorio.id }}/status`, {"},
+  {"line": 1232, "content": "            method: 'POST',"},
+  {"line": 1233, "content": "            headers: {"},
+  {"line": 1234, "content": "                'Content-Type': 'application/json',"},
+  {"line": 1235, "content": "                'X-CSRFToken': '{{ csrf_token() }}'"},
+  {"line": 1236, "content": "            },"},
+  {"line": 1237, "content": "            body: JSON.stringify({"},
+  {"line": 1238, "content": "                status: newStatus"},
+  {"line": 1239, "content": "            })"},
+  {"line": 1240, "content": "        })"},
+  {"line": 1241, "content": "        .then(response => response.json())"},
+  {"line": 1242, "content": "        .then(data => {"},
+  {"line": 1243, "content": "            if (data.success) {"},
+  {"line": 1244, "content": "                alert('Status atualizado com sucesso!');"},
+  {"line": 1245, "content": "                location.reload();"},
+  {"line": 1246, "content": "            } else {"},
+  {"line": 1247, "content": "                alert('Erro ao atualizar status: ' + data.error);"},
+  {"line": 1248, "content": "            }"},
+  {"line": 1249, "content": "        });"},
+  {"line": 1250, "content": "    }"},
+  {"line": 1251, "content": "}"},
+  {"line": 1252, "content": ""},
+  {"line": 1253, "content": "function deletePhoto(photoId) {"},
+  {"line": 1254, "content": "    if (confirm('Tem certeza que deseja excluir esta foto?')) {"},
+  {"line": 1255, "content": "        fetch(`/reports/photos/${photoId}/delete`, {"},
+  {"line": 1256, "content": "            method: 'POST',"},
+  {"line": 1257, "content": "            headers: {"},
+  {"line": 1258, "content": "                'X-CSRFToken': '{{ csrf_token() }}'"},
+  {"line": 1259, "content": "            }"},
+  {"line": 1260, "content": "        })"},
+  {"line": 1261, "content": "        .then(response => response.json())"},
+  {"line": 1262, "content": "        .then(data => {"},
+  {"line": 1263, "content": "            if (data.success) {"},
+  {"line": 1264, "content": "                alert('Foto excluída com sucesso!');"},
+  {"line": 1265, "content": "                location.reload();"},
+  {"line": 1266, "content": "            } else {"},
+  {"line": 1267, "content": "                alert('Erro ao excluir foto: ' + data.error);"},
+  {"line": 1268, "content": "            }"},
+  {"line": 1269, "content": "        });"},
+  {"line": 1270, "content": "    }"},
+  {"line": 1271, "content": "}"},
+  {"line": 1272, "content": ""},
+  {"line": 1273, "content": "// Modal para visualizar fotos"},
+  {"line": 1274, "content": "function showPhotoModal(imageSrc, caption, order) {"},
+  {"line": 1275, "content": "    // Criar modal dinamicamente se não existir"},
+  {"line": 1276, "content": "    let modal = document.getElementById('photoViewModal');"},
+  {"line": 1277, "content": "    if (!modal) {"},
+  {"line": 1278, "content": "        const modalHtml = `"},
+  {"line": 1279, "content": "            <div class=\"modal fade\" id=\"photoViewModal\" tabindex=\"-1\" aria-labelledby=\"photoViewModalLabel\" aria-hidden=\"true\">"},
+  {"line": 1280, "content": "                <div class=\"modal-dialog modal-lg\">"},
+  {"line": 1281, "content": "                    <div class=\"modal-content\">"},
+  {"line": 1282, "content": "                        <div class=\"modal-header\">"},
+  {"line": 1283, "content": "                            <h5 class=\"modal-title\" id=\"photoViewModalLabel\">Visualizar Foto</h5>"},
+  {"line": 1284, "content": "                            <button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\" aria-label=\"Close\"></button>"},
+  {"line": 1285, "content": "                        </div>"},
+  {"line": 1286, "content": "                        <div class=\"modal-body text-center\">"},
+  {"line": 1287, "content": "                            <img id=\"modalPhoto\" src=\"\" class=\"img-fluid\" style=\"max-width: 100%; height: auto;\">"},
+  {"line": 1288, "content": "                            <div class=\"mt-3\">"},
+  {"line": 1289, "content": "                                <h6 id=\"modalCaption\"></h6>"},
+  {"line": 1290, "content": "                                <p class=\"text-muted\" id=\"modalOrder\"></p>"},
+  {"line": 1291, "content": "                            </div>"},
+  {"line": 1292, "content": "                        </div>"},
+  {"line": 1293, "content": "                        <div class=\"modal-footer\">"},
+  {"line": 1294, "content": "                            <button type=\"button\" class=\"btn btn-secondary\" data-bs-dismiss=\"modal\"> Fechar</button>"},
+  {"line": 1295, "content": "                        </div>"},
+  {"line": 1296, "content": "                    </div>"},
+  {"line": 1297, "content": "                </div>"},
+  {"line": 1298, "content": "            </div>"},
+  {"line": 1299, "content": "        `;"},
+  {"line": 1300, "content": "        document.body.insertAdjacentHTML('beforeend', modalHtml);"},
+  {"line": 1301, "content": "        modal = document.getElementById('photoViewModal');"},
+  {"line": 1302, "content": "    }"},
+  {"line": 1303, "content": ""},
+  {"line": 1304, "content": "    // Atualizar conteúdo do modal"},
+  {"line": 1305, "content": "    document.getElementById('modalPhoto').src = imageSrc;"},
+  {"line": 1306, "content": "    document.getElementById('modalCaption').textContent = caption;"},
+  {"line": 1307, "content": "    document.getElementById('modalOrder').textContent = `Ordem: ${order}`;"},
+  {"line": 1308, "content": ""},
+  {"line": 1309, "content": "    // Mostrar modal"},
+  {"line": 1310, "content": "    const bootstrapModal = new bootstrap.Modal(modal);"},
+  {"line": 1311, "content": "    bootstrapModal.show();"},
+  {"line": 1312, "content": "}"},
+  {"line": 1313, "content": ""},
+  {"line": 1314, "content": "// Inicialização quando DOM carregar"},
+  {"line": 1315, "content": "document.addEventListener('DOMContentLoaded', function() {"},
+  {"line": 1316, "content": "    // Inicializar editor modal"},
+  {"line": 1317, "content": "    if (typeof initFabricPhotoEditorModal === 'function') {"},
+  {"line": 1318, "content": "        initFabricPhotoEditorModal();"},
+  {"line": 1319, "content": "        console.log('✅ Editor modal inicializado');"},
+  {"line": 1320, "content": "    } else {"},
+  {"line": 1321, "content": "        console.error('❌ Editor modal não disponível');"},
+  {"line": 1322, "content": "    }"},
+  {"line": 1323, "content": "});"},
+  {"line": 1324, "content": "</script>"},
+  {"line": 1325, "content": ""},
+  {"line": 1326, "content": "<!-- Fabric.js CDN -->"},
+  {"line": 1327, "content": "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js\"></script>"},
+  {"line": 1328, "content": ""},
+  {"line": 1329, "content": "<!-- Fabric Photo Editor CSS e JS -->"},
+  {"line": 1330, "content": "<script src=\"{{ url_for('static', filename='js/fabric-photo-editor.js') }}\"></script>"},
+  {"line": 1331, "content": "<script src=\"{{ url_for('static', filename='js/fabric-photo-editor-modal.js') }}\"></script>"},
+  {"line": 1332, "content": ""},
+  {"line": 1333, "content": "<!-- Auto Save Script Robusto para Relatórios em Preenchimento -->"},
+  {"line": 1334, "content": "{% if relatorio.status == 'preenchimento' %}"},
+  {"line": 1335, "content": "<script src=\"{{ url_for('static', filename='js/reports_autosave.js') }}\"></script>"},
+  {"line": 1336, "content": "<script>"},
+  {"line": 1337, "content": "// Inicializar Auto Save robusto com CSRF e offline support"},
+  {"line": 1338, "content": "document.addEventListener('DOMContentLoaded', function() {"},
+  {"line": 1339, "content": "    const reportId = {{ relatorio.id }};"},
+  {"line": 1340, "content": "    const csrfToken = document.querySelector('meta[name=\"csrf-token\"]')?.getAttribute('content');"},
+  {"line": 1341, "content": ""},
+  {"line": 1342, "content": "    console.log('🔧 Inicializando Auto-Save robusto...', { reportId, hasCSRF: !!csrfToken });"},
+  {"line": 1343, "content": ""},
+  {"line": 1344, "content": "    if (reportId && csrfToken) {"},
+  {"line": 1345, "content": "        try {"},
+  {"line": 1346, "content": "            // Usar o sistema robusto de auto-save"},
+  {"line": 1347, "content": "            window.initAutoSave(reportId, csrfToken);"},
+  {"line": 1348, "content": "            console.log('✅ Auto-Save robusto ativado para relatório', reportId);"},
+  {"line": 1349, "content": ""},
+  {"line": 1350, "content": "            // Modificar comportamento dos botões de ação"},
+  {"line": 1351, "content": "            const actionButtons = document.querySelectorAll('button[type=\"submit\"], input[type=\"submit\"]');"},
+  {"line": 1352, "content": "            actionButtons.forEach(btn => {"},
+  {"line": 1353, "content": "                btn.addEventListener('click', function(e) {"},
+  {"line": 1354, "content": "                    console.log('📝 Salvamento final antes de submeter...');"},
+  {"line": 1355, "content": ""},
+  {"line": 1356, "content": "                    // Alterar status visual"},
+  {"line": 1357, "content": "                    const statusBadge = document.querySelector('.badge.bg-info');"},
+  {"line": 1358, "content": "                    if (statusBadge) {"},
+  {"line": 1359, "content": "                        statusBadge.innerHTML = '<i class=\"fas fa-check me-1\"></i>Finalizando...';"},
+  {"line": 1360, "content": "                        statusBadge.classList.remove('bg-info');"},
+  {"line": 1361, "content": "                        statusBadge.classList.add('bg-success');"},
+  {"line": 1362, "content": "                    }"},
+  {"line": 1363, "content": "                });"},
+  {"line": 1364, "content": "            });"},
+  {"line": 1365, "content": ""},
+  {"line": 1366, "content": "        } catch (error) {"},
+  {"line": 1367, "content": "            console.error('❌ Erro ao inicializar Auto-Save:', error);"},
+  {"line": 1368, "content": "            console.warn('🔄 Tentando fallback...');"},
+  {"line": 1369, "content": ""},
+  {"line": 1370, "content": "            // Fallback simples em caso de erro"},
+  {"line": 1371, "content": "            setInterval(() => {"},
+  {"line": 1372, "content": "                console.log('💾 Fallback auto-save (a cada 30s)');"},
+  {"line": 1373, "content": "            }, 30000);"},
+  {"line": 1374, "content": "        }"},
+  {"line": 1375, "content": "    } else {"},
+  {"line": 1376, "content": "        console.warn('⚠️ Auto-Save não inicializado - faltam dados:', { reportId, csrfToken });"},
+  {"line": 1377, "content": "    }"},
+  {"line": 1378, "content": "});"},
+  {"line": 1379, "content": "</script>"},
+  {"line": 1380, "content": "{% endif %}"},
+  {"line": 1381, "content": ""},
+  {"line": 1382, "content": "{% endblock %}"},
+  {"line": 1383, "content": "

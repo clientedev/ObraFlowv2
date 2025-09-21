@@ -18,7 +18,7 @@ def health_check():
     try:
         # Testar conexão com banco
         legendas_count = LegendaPredefinida.query.filter_by(ativo=True).count()
-        
+
         return jsonify({
             'message': 'Sistema de Gestão de Construção - ELP',
             'status': 'FUNCIONANDO',
@@ -28,7 +28,7 @@ def health_check():
             'timestamp': datetime.utcnow().isoformat(),
             'version': '1.0.1'
         }), 200
-        
+
     except Exception as e:
         current_app.logger.error(f"Health check error: {e}")
         return jsonify({
@@ -83,7 +83,7 @@ def current_user_is_aprovador(projeto_id=None):
     """Verifica se o usuário atual é aprovador para um projeto específico ou globalmente"""
     if not current_user.is_authenticated:
         return False
-    
+
     # Primeiro verifica se há configuração específica para o projeto
     if projeto_id:
         aprovador_especifico = AprovadorPadrao.query.filter_by(
@@ -93,7 +93,7 @@ def current_user_is_aprovador(projeto_id=None):
         ).first()
         if aprovador_especifico:
             return True
-    
+
     # Se não há configuração específica, verifica configuração global
     aprovador_global = AprovadorPadrao.query.filter_by(
         projeto_id=None,
@@ -116,7 +116,7 @@ def api_legendas():
     try:
         categoria = request.args.get('categoria', 'all')
         current_app.logger.info(f"📋 API LEGENDAS: Buscando categoria='{categoria}'")
-        
+
         # Forçar rollback para evitar transações pendentes
         try:
             db.session.rollback()
@@ -125,7 +125,7 @@ def api_legendas():
 
         # Query básica sem usar numero_ordem (coluna não existe)
         query = LegendaPredefinida.query.filter_by(ativo=True)
-        
+
         # Filtrar por categoria se especificado
         if categoria and categoria != 'all':
             query = query.filter_by(categoria=categoria)
@@ -172,7 +172,7 @@ def api_legendas():
             db.session.rollback()
         except Exception:
             pass
-        
+
         return jsonify({
             'success': False,
             'error': f'Erro interno: {str(e)}',
@@ -976,7 +976,7 @@ def create_report():
             upload_folder = 'uploads'  # Sempre uploads
             if not os.path.exists(upload_folder):
                 os.makedirs(upload_folder)
-            
+
             current_app.logger.info(f"📁 SALVANDO FOTOS EM: {upload_folder}")
             photo_count = 0
 
@@ -1103,6 +1103,7 @@ def create_report():
                             filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
                             filepath = os.path.join(upload_folder, filename)
                             file.save(filepath)
+                            current_app.logger.info(f"✅ FOTO SALVA: {filepath}")
 
                             # Get metadata
                             photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
@@ -1391,10 +1392,10 @@ def review_report(id):
     """Página de revisão do relatório - acessível a todos os usuários"""
     relatorio = Relatorio.query.get_or_404(id)
     fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
-    
+
     # Verificar se usuário é aprovador para mostrar botões de ação
     user_is_approver = current_user_is_aprovador(relatorio.projeto_id)
-    
+
     return render_template('reports/review.html', 
                          relatorio=relatorio, 
                          fotos=fotos, 
@@ -1405,36 +1406,36 @@ def review_report(id):
 def approve_report(id):
     """Aprovar relatório - apenas usuários aprovadores"""
     relatorio = Relatorio.query.get_or_404(id)
-    
+
     # Verificar se usuário é aprovador para este projeto
     if not current_user_is_aprovador(relatorio.projeto_id):
         flash('Acesso negado. Apenas usuários aprovadores podem aprovar relatórios.', 'error')
         return redirect(url_for('reports'))
-    
+
     relatorio.status = 'Aprovado'
     relatorio.aprovado_por = current_user.id
     relatorio.data_aprovacao = datetime.utcnow()
 
     db.session.commit()
-    
+
     # Envio automático para clientes
     try:
         from email_service import EmailService
         from models import EmailCliente
-        
+
         email_service = EmailService()
-        
+
         # Buscar emails dos clientes do projeto
         emails_clientes = EmailCliente.query.filter_by(
             projeto_id=relatorio.projeto_id,
             ativo=True,
             receber_relatorios=True
         ).all()
-        
+
         if emails_clientes:
             # Preparar dados para envio
             destinatarios_emails = [email.email for email in emails_clientes]
-            
+
             destinatarios_data = {
                 'destinatarios': destinatarios_emails,
                 'cc': [],
@@ -1442,27 +1443,27 @@ def approve_report(id):
                 'assunto_custom': None,  # Usar template padrão
                 'corpo_custom': None     # Usar template padrão
             }
-            
+
             # Enviar por email
             resultado = email_service.enviar_relatorio_por_email(
                 relatorio, 
                 destinatarios_data, 
                 current_user.id
             )
-            
+
             if resultado['success']:
                 flash(f'Relatório {relatorio.numero} aprovado e enviado automaticamente para {len(destinatarios_emails)} cliente(s)!', 'success')
             else:
                 flash(f'Relatório {relatorio.numero} aprovado, mas houve erro no envio: {resultado.get("error", "Erro desconhecido")}', 'warning')
         else:
             flash(f'Relatório {relatorio.numero} aprovado! Nenhum email de cliente configurado para envio automático.', 'warning')
-            
+
     except Exception as e:
         # Log da aprovação funcionou, mas email falhou
         import logging
         logging.error(f"Erro ao enviar email após aprovação do relatório {id}: {str(e)}")
         flash(f'Relatório {relatorio.numero} aprovado, mas falha no envio automático: {str(e)}', 'warning')
-    
+
     return redirect(url_for('review_report', id=id))
 
 @app.route('/reports/<int:id>/reject', methods=['POST'])
@@ -1470,34 +1471,34 @@ def approve_report(id):
 def reject_report(id):
     """Rejeitar relatório - apenas usuários aprovadores"""
     relatorio = Relatorio.query.get_or_404(id)
-    
+
     # Verificar se usuário é aprovador para este projeto
     if not current_user_is_aprovador(relatorio.projeto_id):
         flash('Acesso negado. Apenas usuários aprovadores podem rejeitar relatórios.', 'error')
         return redirect(url_for('reports'))
-    
+
     # Obter comentário da reprovação (obrigatório)
     comentario = request.form.get('comentario_reprovacao')
     if not comentario or not comentario.strip():
         flash('Comentário de reprovação é obrigatório.', 'error')
         return redirect(url_for('review_report', id=id))
-    
+
     # Guardar informações do autor antes da mudança
     autor = relatorio.autor
     projeto_nome = relatorio.projeto.nome if relatorio.projeto else 'N/A'
-    
+
     relatorio.status = 'Em edição'  # Volta para edição ao invés de "Rejeitado"
     relatorio.aprovado_por = current_user.id
     relatorio.data_aprovacao = datetime.utcnow()
     relatorio.comentario_aprovacao = comentario.strip()
 
     db.session.commit()
-    
+
     # Log da ação de reprovação
     import logging
     logging.info(f"Relatório {relatorio.numero} rejeitado por {current_user.nome_completo} (ID: {current_user.id}). "
                 f"Projeto: {projeto_nome}. Motivo: {comentario.strip()[:100]}...")
-    
+
     # Notificação simples por enquanto - pode ser expandida para email/sistema de notificações
     try:
         # Aqui você pode implementar notificação por email ao autor, sistema de notificações, etc.
@@ -1505,7 +1506,7 @@ def reject_report(id):
         logging.info(f"Notificação enviada para {autor.nome_completo} ({autor.email}) sobre reprovação do relatório {relatorio.numero}")
     except Exception as e:
         logging.error(f"Erro ao notificar autor sobre reprovação: {str(e)}")
-    
+
     flash(f'Relatório {relatorio.numero} rejeitado e devolvido para edição. '
           f'O autor {autor.nome_completo} deve fazer as correções solicitadas.', 'warning')
     return redirect(url_for('review_report', id=id))
@@ -1856,7 +1857,7 @@ def debug_image(filename):
     """Rota de diagnóstico para investigar problemas de imagem"""
     if not current_user.is_master:
         return jsonify({'error': 'Acesso negado'}), 403
-        
+
     try:
         diagnostic_info = {
             'filename': filename,
@@ -1865,7 +1866,7 @@ def debug_image(filename):
             'directories_checked': [],
             'file_system_scan': []
         }
-        
+
         # Verificar diretórios
         search_directories = [
             os.path.join(os.getcwd(), 'uploads'),
@@ -1873,7 +1874,7 @@ def debug_image(filename):
             os.path.join(os.getcwd(), 'static', 'uploads'),
             os.path.join(os.getcwd(), 'static', 'img')
         ]
-        
+
         for directory in search_directories:
             dir_info = {
                 'path': directory,
@@ -1881,13 +1882,13 @@ def debug_image(filename):
                 'files_count': 0,
                 'target_file_found': False
             }
-            
+
             if os.path.exists(directory):
                 try:
                     files = os.listdir(directory)
                     dir_info['files_count'] = len([f for f in files if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
                     dir_info['target_file_found'] = filename in files
-                    
+
                     if filename in files:
                         filepath = os.path.join(directory, filename)
                         file_stat = os.stat(filepath)
@@ -1898,16 +1899,16 @@ def debug_image(filename):
                         }
                 except Exception as e:
                     dir_info['error'] = str(e)
-            
+
             diagnostic_info['directories_checked'].append(dir_info)
-        
+
         # Busca recursiva por arquivos similares
         base_pattern = filename[:20] if len(filename) > 20 else filename.split('.')[0]
-        
+
         for root_dir in search_directories:
             if not os.path.exists(root_dir):
                 continue
-                
+
             for root, dirs, files in os.walk(root_dir):
                 for file in files:
                     if (base_pattern in file and 
@@ -1917,14 +1918,14 @@ def debug_image(filename):
                             'location': root,
                             'similarity': 'exact' if file == filename else 'pattern_match'
                         })
-        
+
         # Verificar banco de dados
         try:
             from models import FotoRelatorio, FotoRelatorioExpress
-            
+
             foto_relatorio = FotoRelatorio.query.filter_by(filename=filename).first()
             foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
-            
+
             if foto_relatorio:
                 diagnostic_info['database_info']['foto_relatorio'] = {
                     'id': foto_relatorio.id,
@@ -1932,7 +1933,7 @@ def debug_image(filename):
                     'legenda': foto_relatorio.legenda,
                     'created_at': foto_relatorio.created_at.isoformat() if foto_relatorio.created_at else None
                 }
-            
+
             if foto_express:
                 diagnostic_info['database_info']['foto_express'] = {
                     'id': foto_express.id,
@@ -1940,12 +1941,12 @@ def debug_image(filename):
                     'legenda': foto_express.legenda,
                     'created_at': foto_express.created_at.isoformat() if foto_express.created_at else None
                 }
-                
+
         except Exception as db_error:
             diagnostic_info['database_info']['error'] = str(db_error)
-        
+
         return jsonify(diagnostic_info)
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1956,9 +1957,9 @@ def check_specific_image():
     """Verificar especificamente a imagem que está dando problema"""
     if not current_user.is_master:
         return jsonify({'error': 'Acesso negado'}), 403
-    
+
     target_filename = "017050397c414b519d1df38fd32e78c8_1758143134942281964204884259198.jpg"
-    
+
     try:
         results = {
             'target_filename': target_filename,
@@ -1967,10 +1968,10 @@ def check_specific_image():
             'filesystem_scan': [],
             'recommendations': []
         }
-        
+
         # Verificar banco de dados primeiro
         from models import FotoRelatorio, FotoRelatorioExpress
-        
+
         foto_relatorio = FotoRelatorio.query.filter_by(filename=target_filename).first()
         if foto_relatorio:
             results['database_status']['relatorio'] = {
@@ -1980,7 +1981,7 @@ def check_specific_image():
                 'created_at': foto_relatorio.created_at.isoformat() if foto_relatorio.created_at else None,
                 'ordem': foto_relatorio.ordem
             }
-        
+
         # Buscar arquivo no filesystem
         search_locations = [
             'uploads',
@@ -1989,7 +1990,7 @@ def check_specific_image():
             'static/img',
             '.'
         ]
-        
+
         for location in search_locations:
             full_path = os.path.join(os.getcwd(), location)
             if os.path.exists(full_path):
@@ -2004,7 +2005,7 @@ def check_specific_image():
                         'modified': datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
                         'readable': os.access(target_path, os.R_OK)
                     })
-                
+
                 # Busca recursiva
                 for root, dirs, files in os.walk(full_path):
                     if target_filename in files:
@@ -2018,7 +2019,7 @@ def check_specific_image():
                                 'modified': datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
                                 'readable': os.access(file_path, os.R_OK)
                             })
-        
+
         # Buscar por padrão similar
         base_pattern = target_filename[:30]
         for location in search_locations:
@@ -2034,20 +2035,20 @@ def check_specific_image():
                                 'location': os.path.relpath(root, os.getcwd()),
                                 'similarity_score': len(set(target_filename) & set(file)) / len(set(target_filename) | set(file))
                             })
-        
+
         # Gerar recomendações
         if results['database_status'] and not results['found_locations']:
             results['recommendations'].append("Arquivo existe no banco mas não no filesystem - possível problema de upload ou migração")
-        
+
         if results['found_locations']:
             results['recommendations'].append(f"Arquivo encontrado em {len(results['found_locations'])} localização(ões)")
-        
+
         if results['filesystem_scan']:
             results['recommendations'].append(f"Encontrados {len(results['filesystem_scan'])} arquivos similares")
             results['recommendations'].append("Verificar se houve corrupção de nome durante upload")
-        
+
         return jsonify(results)
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -2075,6 +2076,7 @@ def upload_report_photos(report_id):
 
                 # Save file
                 file.save(filepath)
+                current_app.logger.info(f"✅ FOTO SALVA: {filepath}")
 
                 # Create photo record with minimal fields
                 foto = FotoRelatorio()
@@ -2455,14 +2457,14 @@ def diagnostico_imagens():
     """Diagnóstico completo das imagens no sistema"""
     if not current_user.is_master:
         return jsonify({'error': 'Acesso negado'}), 403
-    
+
     try:
         from models import FotoRelatorio, FotoRelatorioExpress
-        
+
         # Buscar todas as fotos do banco
         fotos_normais = FotoRelatorio.query.all()
         fotos_express = FotoRelatorioExpress.query.all()
-        
+
         diagnostico = {
             'total_banco': len(fotos_normais) + len(fotos_express),
             'fotos_normais': len(fotos_normais),
@@ -2474,14 +2476,14 @@ def diagnostico_imagens():
             'em_attached_assets': 0,
             'timestamp': datetime.utcnow().isoformat()
         }
-        
+
         upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
-        
+
         # Verificar fotos normais
         for foto in fotos_normais:
             filepath = os.path.join(upload_folder, foto.filename)
             attached_path = os.path.join('attached_assets', foto.filename)
-            
+
             if os.path.exists(filepath):
                 diagnostico['existem_fisicamente'] += 1
                 diagnostico['arquivos_ok'].append({
@@ -2506,12 +2508,12 @@ def diagnostico_imagens():
                     'relatorio_id': foto.relatorio_id,
                     'legenda': foto.legenda
                 })
-        
+
         # Verificar fotos express
         for foto in fotos_express:
             filepath = os.path.join(upload_folder, foto.filename)
             attached_path = os.path.join('attached_assets', foto.filename)
-            
+
             if os.path.exists(filepath):
                 diagnostico['existem_fisicamente'] += 1
                 diagnostico['arquivos_ok'].append({
@@ -2536,11 +2538,11 @@ def diagnostico_imagens():
                     'relatorio_id': foto.relatorio_express_id,
                     'legenda': foto.legenda
                 })
-        
+
         current_app.logger.info(f"📊 DIAGNÓSTICO: {diagnostico['total_banco']} total, {diagnostico['existem_fisicamente']} OK, {diagnostico['nao_existem_fisicamente']} perdidas")
-        
+
         return jsonify(diagnostico)
-        
+
     except Exception as e:
         current_app.logger.error(f"❌ Erro no diagnóstico: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -2551,22 +2553,22 @@ def migrar_attached_assets():
     """Migrar arquivos de attached_assets para uploads"""
     if not current_user.is_master:
         return jsonify({'error': 'Acesso negado'}), 403
-    
+
     try:
         from models import FotoRelatorio, FotoRelatorioExpress
         import shutil
-        
+
         upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
         if not os.path.exists(upload_folder):
             os.makedirs(upload_folder)
-        
+
         migradas = []
         erros = []
-        
+
         # Buscar todas as fotos do banco
         fotos_normais = FotoRelatorio.query.all()
         fotos_express = FotoRelatorioExpress.query.all()
-        
+
         todas_fotos = []
         for foto in fotos_normais:
             todas_fotos.append({
@@ -2574,19 +2576,19 @@ def migrar_attached_assets():
                 'tipo': 'normal',
                 'relatorio_id': foto.relatorio_id
             })
-        
+
         for foto in fotos_express:
             todas_fotos.append({
                 'filename': foto.filename,
                 'tipo': 'express',
                 'relatorio_id': foto.relatorio_express_id
             })
-        
+
         for foto_info in todas_fotos:
             filename = foto_info['filename']
             upload_path = os.path.join(upload_folder, filename)
             attached_path = os.path.join('attached_assets', filename)
-            
+
             # Se não existe em uploads mas existe em attached_assets
             if not os.path.exists(upload_path) and os.path.exists(attached_path):
                 try:
@@ -2605,7 +2607,7 @@ def migrar_attached_assets():
                         'erro': str(e)
                     })
                     current_app.logger.error(f"❌ Erro ao migrar {filename}: {str(e)}")
-        
+
         resultado = {
             'success': True,
             'migradas': migradas,
@@ -2614,11 +2616,11 @@ def migrar_attached_assets():
             'total_erros': len(erros),
             'message': f'{len(migradas)} arquivos migrados, {len(erros)} erros'
         }
-        
+
         current_app.logger.info(f"📦 MIGRAÇÃO COMPLETA: {len(migradas)} arquivos migrados")
-        
+
         return jsonify(resultado)
-        
+
     except Exception as e:
         current_app.logger.error(f"❌ Erro na migração: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -3198,28 +3200,28 @@ def uploaded_file(filename):
         from flask_login import current_user
         if not current_user.is_authenticated:
             return serve_placeholder_image(filename, "Faça login para ver imagens")
-        
+
         # Validar filename
         if not filename or filename in ['undefined', 'null', '', 'None']:
             return serve_placeholder_image('arquivo_invalido', "Nome de arquivo inválido")
-        
+
         current_app.logger.info(f"🔍 BUSCANDO NO BANCO: {filename}")
-        
+
         # Buscar no banco PostgreSQL primeiro
         from models import FotoRelatorio, FotoRelatorioExpress
-        
+
         # Tentar encontrar nos relatórios normais
         foto_normal = FotoRelatorio.query.filter_by(filename=filename).first()
         if foto_normal:
             current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Relatório {foto_normal.relatorio_id}): {filename}")
-            
+
             # Verificar múltiplos locais para o arquivo
             search_paths = [
                 os.path.join(app.config.get('UPLOAD_FOLDER', 'uploads'), filename),
                 os.path.join('attached_assets', filename),
                 os.path.join('static', 'uploads', filename)
             ]
-            
+
             for filepath in search_paths:
                 if os.path.exists(filepath):
                     current_app.logger.info(f"✅ ARQUIVO ENCONTRADO EM: {filepath}")
@@ -3228,23 +3230,23 @@ def uploaded_file(filename):
                     response.headers['Content-Type'] = content_type
                     response.headers['Cache-Control'] = 'public, max-age=3600'
                     return response
-            
+
             # Arquivo não encontrado em nenhum local
             current_app.logger.warning(f"⚠️ ARQUIVO NO BANCO MAS NÃO ENCONTRADO EM NENHUM LOCAL: {filename}")
             return serve_placeholder_image(filename, f"Imagem existe no banco mas arquivo físico não encontrado")
-        
+
         # Tentar encontrar nos relatórios express
         foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
         if foto_express:
             current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Express {foto_express.relatorio_express_id}): {filename}")
-            
+
             # Verificar múltiplos locais para o arquivo
             search_paths = [
                 os.path.join(app.config.get('UPLOAD_FOLDER', 'uploads'), filename),
                 os.path.join('attached_assets', filename),
                 os.path.join('static', 'uploads', filename)
             ]
-            
+
             for filepath in search_paths:
                 if os.path.exists(filepath):
                     current_app.logger.info(f"✅ ARQUIVO ENCONTRADO EM: {filepath}")
@@ -3253,14 +3255,14 @@ def uploaded_file(filename):
                     response.headers['Content-Type'] = content_type
                     response.headers['Cache-Control'] = 'public, max-age=3600'
                     return response
-            
+
             # Arquivo não encontrado em nenhum local
             current_app.logger.warning(f"⚠️ ARQUIVO EXPRESS NO BANCO MAS NÃO ENCONTRADO EM NENHUM LOCAL: {filename}")
             return serve_placeholder_image(filename, f"Imagem express existe no banco mas arquivo físico não encontrado")
-        
+
         # Não encontrado no banco
         current_app.logger.warning(f"❌ IMAGEM NÃO ENCONTRADA NO BANCO: {filename}")
-        
+
         # Tentar buscar em attached_assets como fallback
         attached_assets_path = os.path.join('attached_assets', filename)
         if os.path.exists(attached_assets_path):
@@ -3273,10 +3275,10 @@ def uploaded_file(filename):
                 return response
             except Exception as recover_error:
                 current_app.logger.error(f"❌ Erro ao servir de attached_assets: {str(recover_error)}")
-        
+
         # Arquivo não encontrado em lugar nenhum
         return serve_placeholder_image(filename, f"Imagem não encontrada no banco nem no filesystem")
-            
+
     except Exception as e:
         current_app.logger.error(f"❌ ERRO CRÍTICO ao servir {filename}: {str(e)}")
         return serve_placeholder_image(filename, f"Erro do servidor: {str(e)}")
@@ -3306,55 +3308,55 @@ def serve_placeholder_image(filename=None, message=None):
         if os.path.exists(static_placeholder):
             current_app.logger.info(f"📷 Servindo placeholder estático para: {filename}")
             return send_from_directory(os.path.join(os.getcwd(), 'static', 'img'), 'no-image.png')
-        
+
         # Se não existir, criar SVG placeholder dinâmico
         display_filename = (filename or "arquivo")[:30]
         display_message = message or "não encontrada"
-        
+
         # Sanitizar strings para SVG
         display_filename = str(display_filename).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         display_message = str(display_message).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        
+
         svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg width="200" height="150" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150">
   <rect width="100%" height="100%" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
-  
+
   <!-- Header -->
   <rect x="5" y="5" width="190" height="25" fill="#e9ecef" rx="3"/>
   <text x="100" y="20" font-family="Arial, sans-serif" font-size="12" 
         fill="#495057" text-anchor="middle" font-weight="bold">📷 ELP Sistema</text>
-  
+
   <!-- Icon -->
   <circle cx="100" cy="60" r="15" fill="#6c757d" opacity="0.3"/>
   <rect x="92" y="55" width="16" height="10" fill="#fff" opacity="0.8"/>
-  
+
   <!-- Message -->
   <text x="100" y="85" font-family="Arial, sans-serif" font-size="10" 
         fill="#6c757d" text-anchor="middle">Imagem {display_message}</text>
-  
+
   <!-- Filename -->
   <text x="100" y="105" font-family="monospace" font-size="8" 
         fill="#868e96" text-anchor="middle">{display_filename}</text>
-  
+
   <!-- Help text -->
   <text x="100" y="125" font-family="Arial, sans-serif" font-size="8" 
         fill="#adb5bd" text-anchor="middle">Recarregue a página</text>
-  
+
   <!-- Footer -->
   <text x="100" y="140" font-family="Arial, sans-serif" font-size="7" 
         fill="#ced4da" text-anchor="middle">Sistema de Gestão de Obras</text>
 </svg>'''
-        
+
         from flask import Response
         response = Response(svg_content, mimetype='image/svg+xml')
         response.headers['Content-Type'] = 'image/svg+xml'
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
-        
+
         current_app.logger.info(f"📷 Servindo SVG placeholder para: {filename}")
         return response
-        
+
     except Exception as e:
         current_app.logger.error(f"❌ Erro ao servir placeholder: {str(e)}")
         # Fallback absoluto - retornar uma resposta de erro simples
@@ -3780,7 +3782,7 @@ def api_export_single_visit_google(visit_id):
 @app.route('/api/visits/export/outlook')
 @login_required
 def api_export_outlook():
-    """Export all visits to Outlook (.ics file)"""
+    """Export all visits to Google Calendar"""
     return api_export_ics()
 
 @app.route('/api/visits/export/ics')
@@ -4373,7 +4375,7 @@ def api_checklist_default():
         for item in checklist_items:
             items_data.append({
                 'id': item.id,
-                'titulo': item.texto,  # ChecklistPadrao usa 'texto' não 'titulo'
+                'texto': item.texto,  # ChecklistPadrao usa 'texto' não 'titulo'
                 'descricao': getattr(item, 'descricao', '') or '',  # Campo opcional
                 'categoria': getattr(item, 'categoria', 'Geral') or 'Geral',  # Campo opcional
                 'ordem': item.ordem or 0,
@@ -4483,21 +4485,21 @@ def recuperar_imagens():
     """Tentar recuperar imagens perdidas dos attached_assets"""
     if not current_user.is_master:
         return jsonify({'error': 'Acesso negado'}), 403
-    
+
     try:
         from models import FotoRelatorio, FotoRelatorioExpress
         import shutil
-        
+
         upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
         attached_assets_folder = 'attached_assets'
-        
+
         recuperadas = []
         nao_encontradas = []
-        
+
         # Buscar fotos perdidas
         fotos_normais = FotoRelatorio.query.all()
         fotos_express = FotoRelatorioExpress.query.all()
-        
+
         todas_fotos = []
         for foto in fotos_normais:
             todas_fotos.append({
@@ -4505,28 +4507,28 @@ def recuperar_imagens():
                 'tipo': 'normal',
                 'relatorio_id': foto.relatorio_id
             })
-        
+
         for foto in fotos_express:
             todas_fotos.append({
                 'filename': foto.filename,
                 'tipo': 'express',
                 'relatorio_id': foto.relatorio_express_id
             })
-        
+
         for foto_info in todas_fotos:
             filename = foto_info['filename']
             upload_path = os.path.join(upload_folder, filename)
-            
+
             # Se não existe no upload, tentar encontrar no attached_assets
             if not os.path.exists(upload_path):
                 attached_path = os.path.join(attached_assets_folder, filename)
-                
+
                 if os.path.exists(attached_path):
                     try:
                         # Copiar arquivo para uploads
                         if not os.path.exists(upload_folder):
                             os.makedirs(upload_folder)
-                        
+
                         shutil.copy2(attached_path, upload_path)
                         recuperadas.append({
                             'filename': filename,
@@ -4536,7 +4538,7 @@ def recuperar_imagens():
                             'destino': upload_path
                         })
                         current_app.logger.info(f"✅ Imagem recuperada: {filename}")
-                        
+
                     except Exception as e:
                         current_app.logger.error(f"❌ Erro ao copiar {filename}: {str(e)}")
                         nao_encontradas.append({
@@ -4548,7 +4550,7 @@ def recuperar_imagens():
                         'filename': filename,
                         'motivo': 'Não encontrada em attached_assets'
                     })
-        
+
         return jsonify({
             'success': True,
             'recuperadas': recuperadas,
@@ -4557,7 +4559,7 @@ def recuperar_imagens():
             'total_nao_encontradas': len(nao_encontradas),
             'message': f'{len(recuperadas)} imagens recuperadas com sucesso!'
         })
-        
+
     except Exception as e:
         current_app.logger.error(f"Erro na recuperação: {str(e)}")
         return jsonify({
@@ -5142,7 +5144,6 @@ def express_list():
 @app.route('/express/novo', methods=['GET', 'POST'])
 @login_required
 def express_new():
-    """Criar novo relatório express"""
     # Detectar se é mobile
     user_agent = request.headers.get('User-Agent', '').lower()
     is_mobile = any(device in user_agent for device in ['mobile', 'android', 'iphone', 'ipad']) or request.args.get('mobile') == '1'
@@ -5155,7 +5156,7 @@ def express_new():
             action = request.form.get('action', 'save_draft')
 
             # Gerar número único
-            numero = gerar_numero_relatorio_express()
+            numero = gerar_numero_numero_relatorio_express()
 
             # Criar relatório express
             relatorio_express = RelatorioExpress()
@@ -5415,11 +5416,22 @@ def express_pdf(id):
         pdf_filename = f"relatorio_express_{relatorio.numero}.pdf"
         pdf_path = os.path.join('uploads', pdf_filename)
 
-        result = gerar_pdf_relatorio_express(relatorio, pdf_path)
+        result = gerar_pdf_relatorio_express(relatorio.id, salvar_arquivo=False) # Passando apenas ID para a função
 
         if result.get('success'):
-            from flask import send_file
-            return send_file(pdf_path, as_attachment=True, download_name=pdf_filename)
+            # Se o PDF foi gerado e retornado como bytes
+            pdf_content = result.get('pdf_content')
+            if pdf_content:
+                from flask import send_file
+                return send_file(
+                    io.BytesIO(pdf_content),
+                    as_attachment=True,
+                    download_name=pdf_filename,
+                    mimetype='application/pdf'
+                )
+            else:
+                flash('PDF gerado, mas sem conteúdo de arquivo.', 'error')
+                return redirect(url_for('express_detail', id=id))
         else:
             flash(f'Erro ao gerar PDF: {result.get("error", "Erro desconhecido")}', 'error')
             return redirect(url_for('express_detail', id=id))

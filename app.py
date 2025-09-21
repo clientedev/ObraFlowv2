@@ -54,13 +54,17 @@ app.config["UPLOAD_FOLDER"] = "uploads"
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50MB max file size
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# File upload configuration
-app.config['UPLOAD_FOLDER'] = 'uploads'
+# File upload configuration - SEMPRE usar uploads/
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
 # Ensure upload directory exists
-os.makedirs('uploads', exist_ok=True)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs('static/reports', exist_ok=True)
+
+# Log da configuração
+logging.info(f"📁 UPLOAD_FOLDER configurado: {UPLOAD_FOLDER}")
 
 # Mail configuration
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')

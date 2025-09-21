@@ -1,13 +1,13 @@
 
 /**
  * Script para corrigir TODAS as URLs de imagem na página
- * Executa automaticamente ao carregar
+ * Executa automaticamente ao carregar - VERSÃO CORRIGIDA
  */
 
 (function() {
     'use strict';
     
-    console.log('🔧 CORRETOR DE IMAGENS: Iniciando correção automática');
+    console.log('🔧 CORRETOR DE IMAGENS: Iniciando correção automática v2.0');
     
     function corrigirTodasAsImagens() {
         // Selecionar TODAS as imagens da página
@@ -17,10 +17,10 @@
         todasImagens.forEach(function(img, index) {
             const srcOriginal = img.src;
             
-            // Verificar se a URL contém 'attached_assets' ou outras pastas incorretas
+            // Verificar se a URL precisa de correção
             if (srcOriginal.includes('/attached_assets/') || 
                 srcOriginal.includes('/static/uploads/') ||
-                srcOriginal.includes('/static/img/') && !srcOriginal.includes('no-image.png')) {
+                (srcOriginal.includes('/static/img/') && !srcOriginal.includes('no-image.png'))) {
                 
                 // Extrair apenas o nome do arquivo
                 const filename = srcOriginal.split('/').pop().split('?')[0];
@@ -102,5 +102,5 @@
     // Função global para correção manual
     window.corrigirTodasAsImagens = corrigirTodasAsImagens;
     
-    console.log('🔧 CORRETOR DE IMAGENS: Sistema instalado');
+    console.log('🔧 CORRETOR DE IMAGENS: Sistema v2.0 instalado');
 })();

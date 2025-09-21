@@ -23,22 +23,38 @@ window.handleImageError = function(img) {
         return;
     }
 
-    // Apenas tentar /uploads/ UMA VEZ
+    // Tentar /uploads/ APENAS
     const correctPath = `/uploads/${filename}`;
     
-    // Teste direto
+    // Teste direto com timeout
     const testImg = new Image();
+    let testCompleted = false;
     
     testImg.onload = function() {
-        console.log('✅ SUCESSO:', filename);
-        img.dataset.errorProcessed = 'false';
-        img.src = correctPath;
+        if (!testCompleted) {
+            testCompleted = true;
+            console.log('✅ SUCESSO:', filename);
+            img.dataset.errorProcessed = 'false';
+            img.src = correctPath + '?t=' + Date.now(); // Cache bust
+        }
     };
     
     testImg.onerror = function() {
-        console.log('❌ USANDO PLACEHOLDER:', filename);
-        useImagePlaceholder(img, filename);
+        if (!testCompleted) {
+            testCompleted = true;
+            console.log('❌ USANDO PLACEHOLDER:', filename);
+            useImagePlaceholder(img, filename);
+        }
     };
+    
+    // Timeout para evitar travamento
+    setTimeout(() => {
+        if (!testCompleted) {
+            testCompleted = true;
+            console.log('⏰ TIMEOUT:', filename);
+            useImagePlaceholder(img, filename);
+        }
+    }, 5000);
     
     testImg.src = correctPath;
 };
