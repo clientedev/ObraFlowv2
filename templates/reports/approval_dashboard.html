@@ -46,6 +46,7 @@
                                                class="btn btn-sm btn-info">
                                                 <i class="fas fa-eye"></i> Visualizar
                                             </a>
+                                            {% if current_user.is_master %}
                                             <button type="button" 
                                                     class="btn btn-sm btn-success"
                                                     onclick="approveReport({{ relatorio.id }})">
@@ -56,6 +57,7 @@
                                                     onclick="rejectReport({{ relatorio.id }})">
                                                 <i class="fas fa-times"></i> Rejeitar
                                             </button>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
