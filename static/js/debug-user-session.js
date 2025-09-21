@@ -1,22 +1,12 @@
 /**
- * DEBUG USER SESSION - Identificar problema de dados diferentes
- * Analisa qual usuário está logado e seus dados
+ * DEBUG USER SESSION - DESABILITADO POR SEGURANÇA
+ * Este script foi desabilitado para evitar exposição de dados sensíveis
  */
 
 function debugUserSession() {
-    console.log('=== DEBUG USER SESSION ===');
-    console.log('URL:', window.location.href);
-    console.log('UserAgent:', navigator.userAgent);
-    console.log('Mobile:', window.innerWidth <= 768);
-    
-    // Verificar se há informação de usuário na página
-    const userInfo = document.querySelector('[data-user-id]');
-    if (userInfo) {
-        console.log('User ID encontrado:', userInfo.getAttribute('data-user-id'));
-    }
-    
-    // Verificar cookies de sessão
-    console.log('Cookies:', document.cookie);
+    // DEBUG DESABILITADO - não expor dados de sessão na interface
+    console.log('Debug de sessão desabilitado por segurança');
+    return;
     
     // Tentar fazer requisição para obter dados do usuário atual
     fetch('/api/current-user', {
