@@ -2860,8 +2860,8 @@ def visit_view(visit_id):
 
 @app.route('/reports/<int:report_id>')
 @login_required
-def report_view(report_id):
-    """Visualizar relatório - versão robusta"""
+def view_report(report_id):
+    """Visualizar relatório - versão robusta com tratamento de JSON"""
     try:
         relatorio = Relatorio.query.get_or_404(report_id)
         
@@ -2869,15 +2869,28 @@ def report_view(report_id):
         if not current_user.is_master and relatorio.autor_id != current_user.id:
             # Allow project team members to view
             if relatorio.projeto:
-                user_has_access = FuncionarioProjeto.query.filter_by(
-                    projeto_id=relatorio.projeto.id,
-                    user_id=current_user.id,
-                    ativo=True
-                ).first()
-                
-                if not user_has_access and relatorio.projeto.responsavel_id != current_user.id:
+                try:
+                    user_has_access = FuncionarioProjeto.query.filter_by(
+                        projeto_id=relatorio.projeto.id,
+                        user_id=current_user.id,
+                        ativo=True
+                    ).first()
+                    
+                    if not user_has_access and relatorio.projeto.responsavel_id != current_user.id:
+                        flash('Acesso negado ao relatório.', 'error')
+                        return redirect(url_for('reports'))
+                except Exception:
+                    # Em caso de erro na verificação de acesso, negar acesso
                     flash('Acesso negado ao relatório.', 'error')
                     return redirect(url_for('reports'))
+        
+        # Proteger contra JSON malformado no checklist
+        try:
+            import json
+            checklist = json.loads(relatorio.checklist_json) if relatorio.checklist_json else {}
+        except Exception:
+            current_app.logger.exception("JSON inválido no checklist do relatório %s", report_id)
+            checklist = {}
         
         try:
             fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
@@ -2887,7 +2900,8 @@ def report_view(report_id):
         
         return render_template('reports/view.html', 
                              relatorio=relatorio, 
-                             fotos=fotos)
+                             fotos=fotos,
+                             checklist=checklist)
     
     except Exception as e:
         current_app.logger.exception(f"Erro ao visualizar relatório {report_id}: {str(e)}")
