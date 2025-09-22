@@ -1030,6 +1030,17 @@ def create_report():
                         foto.legenda = photo_data.get('caption')  # Already validated as non-empty
                         foto.tipo_servico = photo_data.get('category', 'Geral')
                         foto.ordem = photo_count + i + 1
+                        
+                        # Salvar dados binários da imagem se disponível
+                        if photo_data.get('data'):
+                            try:
+                                import base64
+                                image_data_b64 = photo_data['data']
+                                if ',' in image_data_b64:
+                                    image_data_b64 = image_data_b64.split(',')[1]
+                                foto.imagem = base64.b64decode(image_data_b64)
+                            except Exception as e:
+                                print(f"Erro ao salvar dados binários da foto mobile {i+1}: {e}")
 
                         db.session.add(foto)
                         print(f"✅ Foto mobile {i+1} salva com legenda: {foto.legenda}")
@@ -1087,6 +1098,7 @@ def create_report():
                         foto.legenda = photo_caption or f'Foto {photo_count + 1}'
                         foto.tipo_servico = photo_category or 'Geral'
                         foto.ordem = photo_count + 1
+                        foto.imagem = image_data  # Salvar dados binários da imagem editada
 
                         db.session.add(foto)
                         photo_count += 1
@@ -1102,6 +1114,10 @@ def create_report():
                         try:
                             filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
                             filepath = os.path.join(upload_folder, filename)
+                            
+                            # Ler dados do arquivo antes de salvar
+                            file_data = file.read()
+                            file.seek(0)  # Reset para salvar o arquivo também
                             file.save(filepath)
                             current_app.logger.info(f"✅ FOTO SALVA: {filepath}")
 
@@ -1117,6 +1133,7 @@ def create_report():
                             foto.legenda = photo_caption or f'Foto {photo_count + 1}'
                             foto.tipo_servico = photo_category or 'Geral'
                             foto.ordem = photo_count + 1
+                            foto.imagem = file_data  # Salvar dados binários da imagem original
 
                             db.session.add(foto)
                             photo_count += 1
@@ -5321,6 +5338,7 @@ def express_new():
                             foto_express.ordem = ordem
                             foto_express.legenda = config['legenda']
                             foto_express.tipo_servico = config.get('categoria', 'Geral')
+                            foto_express.imagem = image_bytes  # Salvar dados binários da imagem express
 
                             db.session.add(foto_express)
                             ordem += 1
@@ -5343,6 +5361,10 @@ def express_new():
                         filename = f"express_{relatorio_express.id}_{timestamp}_{filename}"
 
                         foto_path = os.path.join(upload_folder, filename)
+                        
+                        # Ler dados do arquivo antes de salvar
+                        file_data = foto_file.read()
+                        foto_file.seek(0)  # Reset para salvar o arquivo também
                         foto_file.save(foto_path)
 
                         # Criar registro da foto
@@ -5352,6 +5374,7 @@ def express_new():
                         foto_express.filename_original = filename
                         foto_express.ordem = ordem
                         foto_express.legenda = f'Foto {ordem}'
+                        foto_express.imagem = file_data  # Salvar dados binários da imagem express básica
 
                         db.session.add(foto_express)
                         ordem += 1
