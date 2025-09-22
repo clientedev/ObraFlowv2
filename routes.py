@@ -2,7 +2,7 @@ import os
 import uuid
 from datetime import datetime, date, timedelta
 from urllib.parse import urlparse
-from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response, session
+from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response, session, Response
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -3465,6 +3465,74 @@ def serve_placeholder_image(filename=None, message=None):
         # Fallback absoluto - retornar uma resposta de erro simples
         from flask import Response
         return Response("Imagem não encontrada", status=404, mimetype='text/plain')
+
+@app.route("/imagens/<int:id>")
+@login_required
+def get_imagem(id):
+    """Servir imagem diretamente do banco de dados para FotoRelatorio"""
+    try:
+        from models import FotoRelatorio
+        foto = FotoRelatorio.query.get_or_404(id)
+        
+        # Se tem imagem no banco, usar ela
+        if foto.imagem:
+            # Determinar mimetype baseado no filename
+            mimetype = get_content_type(foto.filename)
+            return Response(foto.imagem, mimetype=mimetype)
+        
+        # Fallback: tentar carregar do arquivo se não tem no banco (compatibilidade)
+        if foto.filename:
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            filepath = os.path.join(upload_folder, foto.filename)
+            if os.path.exists(filepath):
+                try:
+                    with open(filepath, 'rb') as f:
+                        file_data = f.read()
+                    mimetype = get_content_type(foto.filename)
+                    return Response(file_data, mimetype=mimetype)
+                except Exception as e:
+                    current_app.logger.error(f"Erro ao ler arquivo {filepath}: {e}")
+        
+        # Se chegou aqui, não encontrou a imagem
+        return serve_placeholder_image(foto.filename, "Imagem não encontrada no banco ou disco")
+        
+    except Exception as e:
+        current_app.logger.error(f"Erro ao servir imagem ID {id}: {e}")
+        return serve_placeholder_image(f"foto_{id}", f"Erro: {str(e)}")
+
+@app.route("/imagens_express/<int:id>")
+@login_required
+def get_imagem_express(id):
+    """Servir imagem diretamente do banco de dados para FotoRelatorioExpress"""
+    try:
+        from models import FotoRelatorioExpress
+        foto = FotoRelatorioExpress.query.get_or_404(id)
+        
+        # Se tem imagem no banco, usar ela
+        if foto.imagem:
+            # Determinar mimetype baseado no filename
+            mimetype = get_content_type(foto.filename)
+            return Response(foto.imagem, mimetype=mimetype)
+        
+        # Fallback: tentar carregar do arquivo se não tem no banco (compatibilidade)
+        if foto.filename:
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            filepath = os.path.join(upload_folder, foto.filename)
+            if os.path.exists(filepath):
+                try:
+                    with open(filepath, 'rb') as f:
+                        file_data = f.read()
+                    mimetype = get_content_type(foto.filename)
+                    return Response(file_data, mimetype=mimetype)
+                except Exception as e:
+                    current_app.logger.error(f"Erro ao ler arquivo {filepath}: {e}")
+        
+        # Se chegou aqui, não encontrou a imagem
+        return serve_placeholder_image(foto.filename, "Imagem não encontrada no banco ou disco")
+        
+    except Exception as e:
+        current_app.logger.error(f"Erro ao servir imagem express ID {id}: {e}")
+        return serve_placeholder_image(f"foto_express_{id}", f"Erro: {str(e)}")
 
 # GPS location endpoint
 @app.route('/get_location', methods=['POST', 'GET'])
