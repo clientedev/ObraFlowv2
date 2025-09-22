@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers
 revision = 'add_numero_ordem_legendas'
-down_revision = '20250920_1920_add_updated_at_to_relatorios'
+down_revision = 'add_updated_at_relatorios'
 branch_labels = None
 depends_on = None
 
