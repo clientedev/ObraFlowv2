@@ -354,12 +354,22 @@ def init_database():
     except Exception as e:
         logging.error(f"Database initialization error: {e}")
 
-# Initialize database for Railway deployment
+# Initialize database for Railway deployment - SIMPLIFIED VERSION
 if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("DATABASE_URL"):
-    # Direct initialization for Railway (more reliable than threading)
+    # Simplified initialization for Railway - skip lengthy legendas creation
     logging.info("🚂 Railway environment detected - initializing database")
-    init_database()
+    try:
+        with app.app_context():
+            import models  # noqa: F401
+            db.create_all()
+            logging.info("Database tables created successfully.")
+            create_admin_user_safe()
+            create_default_checklists()
+            # Skip lengthy legendas creation for now
+            logging.info("✅ SIMPLIFIED DATABASE INITIALIZATION COMPLETE")
+    except Exception as e:
+        logging.error(f"Database initialization error: {e}")
 else:
-    # Direct initialization for local development
+    # Local development initialization
     logging.info("💻 Local environment detected - initializing database")
     init_database()

@@ -12,31 +12,6 @@ run = ["python", "replit_main.py"]
 runButton = "Project"
 
 [[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Flask Server"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Flask App"
-
-[[workflows.workflow]]
-name = "Flask Server"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python -c \"from main import app; app.run(host='0.0.0.0', port=5000, debug=True)\""
-waitForPort = 5000
-
-[[workflows.workflow]]
 name = "Flask Server Fixed"
 author = 47827592
 mode = "sequential"
@@ -64,12 +39,21 @@ task = "shell.exec"
 args = "python main.py"
 
 [[workflows.workflow]]
-name = "Flask App"
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Flask Server"
+
+[[workflows.workflow]]
+name = "Flask Server"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python main.py"
+args = "SESSION_SECRET=\"elp_secret_key_replit\" python main.py"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
@@ -80,8 +64,8 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 43681
-externalPort = 3003
+localPort = 33121
+externalPort = 3000
 
 [[ports]]
 localPort = 44177
