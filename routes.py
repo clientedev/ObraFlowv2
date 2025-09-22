@@ -1436,17 +1436,48 @@ def update_report_status(id):
 @app.route('/reports/<int:id>/review')
 @login_required
 def review_report(id):
-    """Página de revisão do relatório - acessível a todos os usuários"""
-    relatorio = Relatorio.query.get_or_404(id)
-    fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
+    """Página de revisão do relatório - versão robusta com tratamento de erros"""
+    try:
+        relatorio = Relatorio.query.get_or_404(id)
+        
+        # Verificar se o relatório existe e tem dados válidos
+        if not relatorio:
+            current_app.logger.error(f"Relatório {id} não encontrado")
+            flash('Relatório não encontrado.', 'error')
+            return redirect(url_for('reports'))
+        
+        # Proteger contra JSON malformado no checklist
+        try:
+            import json
+            checklist = json.loads(relatorio.checklist_json) if relatorio.checklist_json else {}
+        except Exception:
+            current_app.logger.exception("JSON inválido no checklist do relatório %s", id)
+            checklist = {}
+        
+        # Buscar fotos com tratamento de erro
+        try:
+            fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
+        except Exception as e:
+            current_app.logger.error(f"Erro ao buscar fotos do relatório {id}: {str(e)}")
+            fotos = []
 
-    # Verificar se usuário é aprovador para mostrar botões de ação
-    user_is_approver = current_user_is_aprovador(relatorio.projeto_id)
+        # Verificar se usuário é aprovador para mostrar botões de ação com tratamento de erro
+        try:
+            user_is_approver = current_user_is_aprovador(relatorio.projeto_id if relatorio.projeto_id else None)
+        except Exception as e:
+            current_app.logger.error(f"Erro ao verificar se usuário é aprovador: {str(e)}")
+            user_is_approver = False
 
-    return render_template('reports/review.html', 
-                         relatorio=relatorio, 
-                         fotos=fotos, 
-                         user_is_approver=user_is_approver)
+        return render_template('reports/review.html', 
+                             relatorio=relatorio, 
+                             fotos=fotos, 
+                             checklist=checklist,
+                             user_is_approver=user_is_approver)
+    
+    except Exception as e:
+        current_app.logger.exception(f"Erro ao carregar página de revisão do relatório {id}: {str(e)}")
+        flash('Erro ao carregar página de revisão.', 'error')
+        return redirect(url_for('reports'))
 
 @app.route('/reports/<int:id>/approve', methods=['POST'])
 @login_required
