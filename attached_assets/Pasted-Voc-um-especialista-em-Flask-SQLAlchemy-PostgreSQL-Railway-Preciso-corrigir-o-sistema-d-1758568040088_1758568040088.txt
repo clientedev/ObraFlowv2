@@ -1,0 +1,128 @@
+Você é um especialista em Flask + SQLAlchemy + PostgreSQL (Railway).  
+Preciso corrigir o sistema de relatórios para que as fotos sejam armazenadas **dentro do banco** (em campo BYTEA) além do nome do arquivo.  
+
+### Estrutura atual
+Existem duas tabelas de imagens:  
+
+1. **fotos_relatorio**  
+Campos atuais:  
+- id  
+- relatorio_id  
+- filename  
+- filename_original  
+- filename_anotada  
+- titulo  
+- legenda  
+- descricao  
+- tipo_servico  
+- anotacoes_dados  
+- ordem  
+- coordenadas_anotacao  
+- created_at  
+
+2. **fotos_relatorios_express**  
+Campos atuais:  
+- id  
+- relatorio_express_id  
+- filename  
+- filename_original  
+- filename_anotada  
+- titulo  
+- legenda  
+- descricao  
+- tipo_servico  
+- anotacoes_dados  
+- ordem  
+- coordenadas_anotacao  
+- created_at  
+
+Atualmente apenas `filename` é salvo, o arquivo físico fica no servidor. Preciso salvar a **imagem em si** também.
+
+---
+
+### Tarefas a implementar
+
+1. **Models SQLAlchemy**  
+Adicionar um campo `imagem` em ambos os modelos:  
+```python
+imagem = db.Column(db.LargeBinary, nullable=True)
+Migration Alembic
+Criar migração para adicionar coluna imagem BYTEA nas duas tabelas (fotos_relatorio e fotos_relatorios_express).
+
+upgrade(): adicionar coluna.
+
+downgrade(): remover coluna.
+
+Upload de imagem (backend Flask)
+
+Ao receber o upload (request.files["file"]), além de salvar filename, armazenar também o conteúdo:
+
+python
+Copiar código
+file_data = file.read()
+nova_foto = FotoRelatorio(
+    relatorio_id=relatorio.id,
+    filename=secure_filename(file.filename),
+    filename_original=file.filename,
+    imagem=file_data,
+    titulo=titulo,
+    legenda=legenda
+)
+db.session.add(nova_foto)
+db.session.commit()
+Mesma lógica para FotoRelatorioExpress.
+
+Download / Exibição da imagem
+Criar rota Flask para servir imagens direto do banco:
+
+python
+Copiar código
+@app.route("/imagens/<int:id>")
+@login_required
+def get_imagem(id):
+    foto = FotoRelatorio.query.get_or_404(id)
+    return Response(foto.imagem, mimetype="image/jpeg")
+E para relatório express:
+
+python
+Copiar código
+@app.route("/imagens_express/<int:id>")
+@login_required
+def get_imagem_express(id):
+    foto = FotoRelatorioExpress.query.get_or_404(id)
+    return Response(foto.imagem, mimetype="image/jpeg")
+Compatibilidade
+
+O campo filename deve continuar sendo salvo (não apagar).
+
+Para fotos antigas que não têm imagem armazenada, manter fallback carregando do diretório atual.
+
+Para fotos novas, usar imagem como principal.
+
+Frontend (templates Jinja2)
+
+Atualizar <img> para consumir:
+
+html
+Copiar código
+<img src="{{ url_for('get_imagem', id=foto.id) }}" class="img-fluid">
+ou, se for express:
+
+html
+Copiar código
+<img src="{{ url_for('get_imagem_express', id=foto.id) }}" class="img-fluid">
+Saída esperada
+Código atualizado dos modelos (fotos_relatorio e fotos_relatorios_express) com campo imagem.
+
+Arquivo de migração Alembic adicionando imagem BYTEA em ambas as tabelas.
+
+Ajustes no upload de imagem para salvar o arquivo binário.
+
+Rotas Flask para servir imagem (/imagens/<id> e /imagens_express/<id>).
+
+Ajustes nos templates para exibir imagem armazenada no banco.
+
+Garantia de compatibilidade: fotos antigas continuam funcionando via filename, novas fotos usam imagem.
+
+⚠️ O banco é PostgreSQL no Railway, então use db.LargeBinary (SQLAlchemy converte para BYTEA).
+Garanta que o auto-commit e rollback estejam implementados para evitar corromper imagens.
