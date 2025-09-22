@@ -1,16 +1,17 @@
-"""add imagem campo to fotos_relatorio and fotos_relatorios_express
+"""add imagem to fotos tables
 
-Revision ID: add_imagem_fotos_tables
-Revises: add_numero_ordem_legendas
-Create Date: 2025-09-22 19:11:00.000000
-
+Revision ID: 20250922_1911
+Revises: None
+Create Date: 2025-09-22 19:11:00
 """
+
 from alembic import op
 import sqlalchemy as sa
 
-# revision identifiers
-revision = 'add_imagem_fotos_tables'
-down_revision = 'add_numero_ordem_legendas'
+
+# revision identifiers, used by Alembic.
+revision = '20250922_1911'
+down_revision = None
 branch_labels = None
 depends_on = None
 
