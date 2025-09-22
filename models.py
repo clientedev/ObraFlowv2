@@ -241,6 +241,7 @@ class FotoRelatorio(db.Model):
     anotacoes_dados = db.Column(db.Text)
     ordem = db.Column(db.Integer, default=1)
     coordenadas_anotacao = db.Column(db.Text)
+    imagem = db.Column(db.LargeBinary, nullable=True)  # Armazenamento da imagem no banco
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class EnvioRelatorio(db.Model):
@@ -452,6 +453,7 @@ class FotoRelatorioExpress(db.Model):
     anotacoes_dados = db.Column(db.Text)
     ordem = db.Column(db.Integer, default=1)
     coordenadas_anotacao = db.Column(db.Text)
+    imagem = db.Column(db.LargeBinary, nullable=True)  # Armazenamento da imagem no banco
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relacionamento
