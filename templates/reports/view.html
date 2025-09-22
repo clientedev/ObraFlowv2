@@ -225,7 +225,7 @@
                         {% for foto in fotos %}
                         <div class="col-md-6 col-lg-4">
                             <div class="card photo-container">
-                                <img src="{{ url_for('uploaded_file', filename=foto.filename) }}" 
+                                <img src="{{ url_for('get_imagem', id=foto.id) }}" 
                                      class="card-img-top" 
                                      style="height: 200px !important; object-fit: cover !important; width: 100% !important;" 
                                      alt="{{ foto.titulo or 'Foto do relatório' }}">

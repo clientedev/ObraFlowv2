@@ -208,12 +208,12 @@
                         {% for foto in fotos %}
                         <div class="col-6 col-md-4 col-lg-3">
                             <div class="card photo-container h-100">
-                                <img src="{{ url_for('uploaded_file', filename=foto.filename) }}" 
+                                <img src="{{ url_for('get_imagem', id=foto.id) }}" 
                                      class="card-img-top" 
                                      style="height: 150px !important; object-fit: cover !important; width: 100% !important;" 
                                      alt="{{ foto.legenda or foto.titulo or 'Foto do relatório' }}"
                                      onerror="handleImageError(this);" 
-                                     data-original-src="{{ url_for('uploaded_file', filename=foto.filename) }}"
+                                     data-original-src="{{ url_for('get_imagem', id=foto.id) }}"
                                      data-filename="{{ foto.filename }}"
                                      loading="lazy">
                                 <div class="card-body p-2">

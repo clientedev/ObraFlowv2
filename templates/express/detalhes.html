@@ -220,7 +220,7 @@
                         {% for foto in relatorio.fotos %}
                         <div class="col-md-6 col-lg-4 mb-4">
                             <div class="card">
-                                <img src="{{ url_for('static', filename='uploads/' + foto.filename) }}" 
+                                <img src="{{ url_for('get_imagem_express', id=foto.id) }}" 
                                      class="card-img-top" 
                                      alt="{{ foto.titulo or 'Foto ' + foto.ordem|string }}"
                                      style="height: 200px; object-fit: cover;"
@@ -248,7 +248,7 @@
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
                                     <div class="modal-body text-center">
-                                        <img src="{{ url_for('static', filename='uploads/' + foto.filename) }}" 
+                                        <img src="{{ url_for('get_imagem_express', id=foto.id) }}" 
                                              class="img-fluid" 
                                              alt="{{ foto.titulo or 'Foto ' + foto.ordem|string }}">
                                         {% if foto.legenda or foto.descricao %}
