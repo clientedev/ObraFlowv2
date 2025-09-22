@@ -1,0 +1,51 @@
+Você é um especialista em Flask + SQLAlchemy + PostgreSQL (Railway) + Jinja2.  
+Preciso corrigir um bug grave no sistema de relatórios de obras.
+
+### Contexto
+- Cada relatório tem botões de ação: **Editar Dados**, **Adicionar Foto**, **Mudar Status**.
+- O botão **Editar Dados** deve abrir a tela de edição do mesmo relatório que está sendo exibido.
+- Atualmente, quando clico em "Editar Dados" em um relatório NÃO APROVADO, o sistema abre outro relatório (provavelmente por erro de ID na rota ou no template).
+- O backend usa Flask + SQLAlchemy, frontend com Jinja2 e Bootstrap.
+- O banco de dados é PostgreSQL no Railway.
+
+### O que precisa ser feito
+1. **Corrigir a rota Flask**:
+   - Deve existir algo como:
+     ```python
+     @app.route("/reports/<int:report_id>/edit")
+     @login_required
+     def edit_report(report_id):
+         report = Report.query.get_or_404(report_id)
+         if report.status != "Aprovado":
+             return render_template("edit_report.html", report=report)
+         else:
+             flash("Relatórios aprovados não podem ser editados.")
+             return redirect(url_for("list_reports"))
+     ```
+   - Verifique se o parâmetro `report_id` está sendo passado corretamente.
+
+2. **Corrigir o template Jinja2 (relatório.html)**:
+   - O botão **Editar Dados** deve apontar para o ID correto:
+     ```html
+     <a href="{{ url_for('edit_report', report_id=report.id) }}" class="btn btn-dark">
+       <i class="fa fa-edit"></i> Editar Dados
+     </a>
+     ```
+   - Hoje, provavelmente está usando um `url_for` errado ou sem passar `report.id`, por isso abre outro relatório.
+
+3. **Validação**:
+   - Só permitir edição se `status != "Aprovado"`.
+   - Se o relatório estiver em "Aguardando Aprovação" ou "Preenchimento", permitir edição normalmente.
+
+4. **Testar fluxo**:
+   - Abrir um relatório "Aguardando Aprovação".
+   - Clicar em "Editar Dados".
+   - Conferir se a tela abre com os dados corretos daquele relatório.
+   - Salvar e confirmar se o update ocorre no relatório certo.
+
+---
+
+### Saída esperada
+- Código corrigido da rota `edit_report`.
+- Trecho atualizado do template com botão **Editar Dados** usando o `report.id` correto.
+- Garantia de que relatórios em "Aguardando Aprovação" abrem para edição, e relatórios já "Aprovados" não podem ser editados.

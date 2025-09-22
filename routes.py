@@ -1193,6 +1193,11 @@ def edit_report(id):
     if not current_user.is_master and relatorio.autor_id != current_user.id:
         flash('Acesso negado. Você só pode editar seus próprios relatórios.', 'error')
         return redirect(url_for('reports'))
+    
+    # Check if report can be edited based on status
+    if relatorio.status == 'Aprovado':
+        flash('Relatórios aprovados não podem ser editados.', 'error')
+        return redirect(url_for('report_view', report_id=id))
 
     if request.method == 'POST':
         try:
