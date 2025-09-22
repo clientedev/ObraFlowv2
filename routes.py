@@ -1187,50 +1187,75 @@ def create_report():
 @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_report(id):
-    relatorio = Relatorio.query.get_or_404(id)
+    """Editar relatório - versão simplificada e robusta"""
+    try:
+        relatorio = Relatorio.query.get_or_404(id)
 
-    # Check permissions
-    if not current_user.is_master and relatorio.autor_id != current_user.id:
-        flash('Acesso negado. Você só pode editar seus próprios relatórios.', 'error')
-        return redirect(url_for('reports'))
-    
-    # Check if report can be edited based on status
-    if relatorio.status == 'Aprovado':
-        flash('Relatórios aprovados não podem ser editados.', 'error')
-        return redirect(url_for('report_view', report_id=id))
+        # Check permissions
+        if not current_user.is_master and relatorio.autor_id != current_user.id:
+            flash('Acesso negado. Você só pode editar seus próprios relatórios.', 'error')
+            return redirect(url_for('reports'))
+        
+        # Check if report can be edited based on status
+        if relatorio.status == 'Aprovado':
+            flash('Relatórios aprovados não podem ser editados.', 'error')
+            return redirect(url_for('report_view', report_id=id))
 
-    if request.method == 'POST':
-        try:
-            action = request.form.get('action')
+        if request.method == 'POST':
+            try:
+                action = request.form.get('action', 'update')
 
-            if action == 'update':
-                # título is now auto-generated via property - no need to set it
-                relatorio.conteudo = request.form.get('conteudo', '').strip()
-                relatorio.projeto_id = request.form.get('projeto_id', type=int)
-                relatorio.visita_id = request.form.get('visita_id', type=int) if request.form.get('visita_id') else None
+                if action == 'update':
+                    # Update basic fields
+                    if 'conteudo' in request.form:
+                        relatorio.conteudo = request.form.get('conteudo', '').strip()
+                    
+                    if 'projeto_id' in request.form:
+                        projeto_id = request.form.get('projeto_id')
+                        if projeto_id:
+                            relatorio.projeto_id = int(projeto_id)
+                    
+                    if 'observacoes' in request.form:
+                        relatorio.observacoes = request.form.get('observacoes', '').strip()
 
-                db.session.commit()
-                flash('Relatório atualizado com sucesso!', 'success')
-
-            elif action == 'submit_approval':
-                if relatorio.status == 'Rascunho':
-                    relatorio.status = 'Aguardando Aprovacao'
+                    relatorio.updated_at = datetime.utcnow()
                     db.session.commit()
-                    flash('Relatório enviado para aprovação!', 'success')
-                else:
-                    flash('Relatório já foi enviado para aprovação.', 'warning')
+                    flash('Relatório atualizado com sucesso!', 'success')
 
+                elif action == 'submit_approval':
+                    if relatorio.status in ['Rascunho', 'preenchimento']:
+                        relatorio.status = 'Aguardando Aprovacao'
+                        relatorio.updated_at = datetime.utcnow()
+                        db.session.commit()
+                        flash('Relatório enviado para aprovação!', 'success')
+                    else:
+                        flash('Relatório já foi enviado para aprovação.', 'warning')
+
+                return redirect(url_for('edit_report', id=id))
+
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f"Erro ao atualizar relatório {id}: {str(e)}")
+                flash(f'Erro ao atualizar relatório: {str(e)}', 'error')
+
+        # Get data for template
+        try:
+            projetos = Projeto.query.filter_by(status='Ativo').all()
+            fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
         except Exception as e:
-            db.session.rollback()
-            flash(f'Erro ao atualizar relatório: {str(e)}', 'error')
+            current_app.logger.error(f"Erro ao buscar dados para template: {str(e)}")
+            projetos = []
+            fotos = []
 
-    # Get projects and visits for form
-    projetos = Projeto.query.filter_by(status='Ativo').all()
-    visitas = Visita.query.filter_by(status='Realizada').all()
-    fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
+        return render_template('reports/edit.html', 
+                             relatorio=relatorio, 
+                             projetos=projetos, 
+                             fotos=fotos)
 
-    return render_template('reports/edit.html', relatorio=relatorio, projetos=projetos, 
-                         visitas=visitas, fotos=fotos)
+    except Exception as e:
+        current_app.logger.exception(f"Erro crítico na edição do relatório {id}: {str(e)}")
+        flash('Erro interno ao carregar relatório para edição.', 'error')
+        return redirect(url_for('reports'))
 
 # Photo annotation system routes
 @app.route('/photo-annotation')
@@ -2819,9 +2844,38 @@ def visit_view(visit_id):
 @app.route('/reports/<int:report_id>')
 @login_required
 def report_view(report_id):
-    report = Relatorio.query.get_or_404(report_id)
-    fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
-    return render_template('reports/view.html', report=report, fotos=fotos)
+    """Visualizar relatório - versão robusta"""
+    try:
+        relatorio = Relatorio.query.get_or_404(report_id)
+        
+        # Check basic permissions
+        if not current_user.is_master and relatorio.autor_id != current_user.id:
+            # Allow project team members to view
+            if relatorio.projeto:
+                user_has_access = FuncionarioProjeto.query.filter_by(
+                    projeto_id=relatorio.projeto.id,
+                    user_id=current_user.id,
+                    ativo=True
+                ).first()
+                
+                if not user_has_access and relatorio.projeto.responsavel_id != current_user.id:
+                    flash('Acesso negado ao relatório.', 'error')
+                    return redirect(url_for('reports'))
+        
+        try:
+            fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
+        except Exception as e:
+            current_app.logger.error(f"Erro ao buscar fotos do relatório {report_id}: {str(e)}")
+            fotos = []
+        
+        return render_template('reports/view.html', 
+                             relatorio=relatorio, 
+                             fotos=fotos)
+    
+    except Exception as e:
+        current_app.logger.exception(f"Erro ao visualizar relatório {report_id}: {str(e)}")
+        flash('Erro ao carregar relatório.', 'error')
+        return redirect(url_for('reports'))
 
 @app.route('/reports/<int:report_id>/edit', methods=['GET', 'POST'])
 @login_required
