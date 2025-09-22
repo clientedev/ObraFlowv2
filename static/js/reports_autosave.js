@@ -22,7 +22,7 @@ class ReportsAutoSave {
         // Whitelist de campos para auto-save (deve coincidir com o backend)
         this.allowedFields = [
             'titulo', 'observacoes', 'latitude', 'longitude', 
-            'endereco', 'checklist_json', 'last_edited_at', 'conteudo'
+            'endereco', 'checklist_json', 'last_edited_at'
         ];
         
         this.init();
@@ -228,6 +228,15 @@ class ReportsAutoSave {
         
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+            
+            // Logar detalhes no console dev, mas não expor para usuário
+            console.error(`❌ AutoSave: Erro HTTP ${response.status}:`, errorData);
+            
+            // Para erro 400, usar mensagem genérica conforme especificação
+            if (response.status === 400) {
+                throw new Error('400: Erro ao salvar rascunho');
+            }
+            
             throw new Error(`${response.status}: ${errorData.error || 'Erro no servidor'}`);
         }
         
@@ -301,19 +310,25 @@ class ReportsAutoSave {
     handleSaveError(data, error) {
         this.retryCount++;
         
+        // Logar detalhes completos no console dev
         console.error(`❌ AutoSave: Erro (tentativa ${this.retryCount}/${this.maxRetries})`, error);
         
         // Salvar localmente como backup
         this.saveToLocalStorage(data);
         
         if (this.retryCount < this.maxRetries) {
-            this.showStatus(`Erro ao salvar - tentando novamente em ${this.retryDelay/1000}s`, 'error');
+            // Implementar retry com backoff exponencial
+            const backoffDelay = this.retryDelay * Math.pow(2, this.retryCount - 1);
+            
+            // Mensagem genérica para usuário (sem stacktrace)
+            this.showStatus(`Erro ao salvar rascunho - tentando novamente em ${Math.ceil(backoffDelay/1000)}s`, 'error');
             
             setTimeout(() => {
                 this.performSave();
-            }, this.retryDelay);
+            }, backoffDelay);
         } else {
-            this.showStatus('Erro persistente - dados salvos localmente', 'error');
+            // Após esgotar tentativas, mostrar mensagem genérica e salvar localmente
+            this.showStatus('Erro ao salvar rascunho - dados salvos localmente', 'error');
         }
     }
     
