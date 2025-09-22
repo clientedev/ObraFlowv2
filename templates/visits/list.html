@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const rows = table.querySelectorAll('tbody tr');
 
     const visitCards = table.querySelectorAll('.visit-card');
-    console.log('Visitas: encontrados', visitCards.length, 'cards');
+    // Filtros de visitas carregados
 
     // Preencher filtros dinamicamente
     fillVisitFilterOptions();
@@ -287,8 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (responsavel) responsavelSet.add(responsavel);
         });
 
-        console.log('Projetos encontrados:', Array.from(projetoSet));
-        console.log('Responsáveis encontrados:', Array.from(responsavelSet));
+        // Filtros de projetos e responsáveis carregados
 
         // Preencher select de projetos
         const projetoSelect = document.getElementById('filterProjetoVisit');

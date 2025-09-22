@@ -726,7 +726,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Atualizar input de fotos
         updatePhotoInput();
         
-        console.log('📷 Categoria global selecionada:', category);
+        // Categoria global selecionada
     });
 
     // Event listeners para upload de fotos com error handling
@@ -895,8 +895,7 @@ function carregarFuncionariosEmailsPorId(projetoId) {
 }
 
 function handlePhotoUpload(event) {
-    console.log('📷 Upload de fotos iniciado');
-    console.log('Categoria selecionada:', selectedCategory);
+    // Upload de fotos iniciado
 
     if (!selectedCategory) {
         alert('Selecione uma categoria antes de adicionar fotos.');
@@ -905,7 +904,7 @@ function handlePhotoUpload(event) {
     }
 
     const files = event.target.files;
-    console.log('Arquivos selecionados:', files.length);
+    // Processando arquivos selecionados
 
     if (files.length + selectedPhotos.length > 200) {
         alert('Máximo de 200 fotos permitido.');
@@ -915,15 +914,15 @@ function handlePhotoUpload(event) {
     // Processar cada arquivo
     for (let file of files) {
         if (selectedPhotos.length >= 200) {
-            console.log('⚠️ Limite de 200 fotos atingido');
+            // Limite de fotos atingido
             break;
         }
-        console.log('Processando arquivo:', file.name);
+        // Processando arquivo
         addPhotoPreview(file, selectedCategory);
     }
 
     event.target.value = ''; // Reset input
-    console.log('✅ Upload concluído. Total de fotos:', selectedPhotos.length);
+    // Upload concluído
 }
 
 // Camera and gallery functions with error handling
@@ -956,14 +955,14 @@ function captureFromCamera() {
 // Remove duplicate updatePhotoInput function (already exists below)
 
 function addPhotoPreview(file, category) {
-    console.log('🖼️ Adicionando preview da foto:', file.name, 'Categoria:', category);
+    // Adicionando preview da foto
 
     const reader = new FileReader();
     reader.onload = function(e) {
         const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const src = e.target.result;
 
-        console.log('✨ Criando elemento da foto com ID:', photoId);
+        // Criando elemento da foto
 
         const photoDiv = document.createElement('div');
         photoDiv.className = 'col-md-4 mb-3';
@@ -1000,7 +999,7 @@ function addPhotoPreview(file, category) {
             originalSrc: src
         });
 
-        console.log('✅ Foto adicionada ao array. Total:', selectedPhotos.length);
+        // Foto adicionada ao array
 
         loadPredefinedCaptionsForPhoto(photoId, category);
     };
@@ -1097,7 +1096,7 @@ function mapCategoryToLegenda(photoCategory) {
 
 function updatePhotoInput() {
     const input = document.getElementById('photoInput');
-    console.log('🔄 Atualizando input de fotos. Categoria:', selectedCategory);
+    // Atualizando input de fotos
 
     if (selectedCategory) {
         input.disabled = false;
@@ -1110,7 +1109,7 @@ function updatePhotoInput() {
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
 
-        console.log('✅ Input de fotos e botões habilitados');
+        // Input de fotos habilitado
     } else {
         input.disabled = true;
 
@@ -1121,7 +1120,7 @@ function updatePhotoInput() {
         if (cameraBtn) cameraBtn.disabled = true;
         input.style.opacity = '0.5';
         input.style.pointerEvents = 'none';
-        console.log('⚠️ Input de fotos desabilitado');
+        // Input de fotos desabilitado
     }
 }
 
@@ -1163,7 +1162,7 @@ document.addEventListener('change', function(e) {
 // Sistema Fabric.js Photo Editor - Exatamente como no Express
 function openPhotoEditor(photoId) {
     try {
-        console.log(`🎨 Abrindo editor para foto: ${photoId}`);
+        // Abrindo editor para foto
 
         const card = document.querySelector(`[data-photo-id="${photoId}"]`);
         if (!card) {
@@ -1179,7 +1178,7 @@ function openPhotoEditor(photoId) {
 
         // Callback para salvar a foto editada (definir primeiro)
         const saveCallback = async (data) => {
-            console.log('💾 Salvando foto editada:', data.photoId);
+            // Salvando foto editada
 
             // Atualizar preview da foto no card
             img.src = data.imageData;
@@ -1197,7 +1196,7 @@ function openPhotoEditor(photoId) {
                 card.appendChild(badge);
             }
 
-            console.log('✅ Foto salva com sucesso');
+            // Foto salva com sucesso
         };
 
         // Verificar se o editor modal está disponível  
@@ -1222,7 +1221,7 @@ function openPhotoEditor(photoId) {
 
             // Tentar inicializar o editor modal
             if (typeof initFabricPhotoEditorModal === 'function') {
-                console.log('🔄 Tentando inicializar editor modal...');
+                // Tentando inicializar editor modal
                 initFabricPhotoEditorModal();
 
                 // Aguardar um momento para o editor ser inicializado

@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!table) return;
     
     const rows = table.querySelectorAll('tbody tr');
-    console.log('Projetos: encontradas', rows.length, 'linhas');
+    // Lista de projetos carregada
     
     // Preencher filtros dinamicamente
     fillFilterOptions();
@@ -250,10 +250,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (responsavel && responsavel !== '' && responsavel !== '-') responsavelSet.add(responsavel);
         });
         
-        console.log('Tipos encontrados:', Array.from(tipoSet));
-        console.log('Construtoras encontradas:', Array.from(construtoraSet));
-        console.log('Funcionários encontrados:', Array.from(funcionarioSet));
-        console.log('Responsáveis encontrados:', Array.from(responsavelSet));
+        // Filtros preenchidos dinamicamente
         
         // Preencher select de tipos
         const tipoSelect = document.getElementById('filterTipo');
