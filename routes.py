@@ -720,14 +720,11 @@ def autosave_report(report_id):
     try:
         current_app.logger.info(f"💾 AUTOSAVE: Usuário {current_user.username} salvando relatório {report_id}")
 
-        # Verificar se o JSON é válido
-        try:
-            data = request.get_json(force=True)
-            if not data:
-                return jsonify({"success": False, "error": "JSON vazio ou inválido"}), 400
-        except Exception as e:
-            current_app.logger.error(f"❌ AUTOSAVE: JSON inválido - {str(e)}")
-            return jsonify({"success": False, "error": "Formato JSON inválido"}), 400
+        # Verificar se o JSON é válido - usar silent=True conforme especificação
+        data = request.get_json(silent=True)
+        if not data:
+            current_app.logger.error("❌ AUTOSAVE: JSON vazio ou inválido")
+            return jsonify({"success": False, "error": "JSON vazio ou inválido"}), 400
 
         # Buscar o relatório
         relatorio = Relatorio.query.get(report_id)
@@ -740,10 +737,10 @@ def autosave_report(report_id):
             current_app.logger.warning(f"🚫 AUTOSAVE: Usuário {current_user.username} sem permissão para relatório {report_id}")
             return jsonify({"success": False, "error": "Sem permissão para editar este relatório"}), 403
 
-        # Whitelist de campos permitidos para auto-save
+        # Whitelist de campos permitidos conforme especificação
         allowed_fields = [
             'titulo', 'observacoes', 'latitude', 'longitude', 
-            'endereco', 'checklist_json', 'last_edited_at', 'conteudo'
+            'endereco', 'checklist_json', 'last_edited_at'
         ]
 
         # Aplicar updates apenas nos campos permitidos
@@ -775,31 +772,37 @@ def autosave_report(report_id):
                     changes_made = True
                     current_app.logger.info(f"📝 AUTOSAVE: Campo '{field}' atualizado")
 
-        # Atualizar status apenas se não estiver finalizado
-        if relatorio.status != 'finalizado':
-            if relatorio.status != 'preenchimento':
-                relatorio.status = 'preenchimento'
-                changes_made = True
-                current_app.logger.info(f"📝 AUTOSAVE: Status atualizado para 'preenchimento'")
-
-        # Salvar no banco se houve mudanças
+        # Se houve mudanças, atualizar status conforme especificação
         if changes_made:
+            # Se report.status != 'Aprovado', definir report.status = 'preenchimento'
+            if relatorio.status != 'Aprovado':
+                relatorio.status = 'preenchimento'
+                current_app.logger.debug("📝 AUTOSAVE: Status alterado para 'preenchimento'")
+            
+            # Atualizar timestamp
+            relatorio.updated_at = datetime.utcnow()
+
+            # Commit com try/except e rollback
             try:
                 db.session.commit()
                 current_app.logger.info(f"✅ AUTOSAVE: Relatório {report_id} salvo com sucesso")
+                return jsonify({
+                    "success": True, 
+                    "message": "Rascunho salvo automaticamente",
+                    "status": relatorio.status,
+                    "timestamp": relatorio.updated_at.isoformat()
+                }), 200
             except Exception as e:
                 db.session.rollback()
                 current_app.logger.error(f"❌ AUTOSAVE: Erro ao salvar no banco - {str(e)}")
                 return jsonify({"success": False, "error": "Erro ao salvar no banco de dados"}), 500
         else:
-            current_app.logger.info(f"ℹ️ AUTOSAVE: Nenhuma mudança detectada para relatório {report_id}")
-
-        return jsonify({
-            "success": True, 
-            "status": relatorio.status,
-            "changes_made": changes_made,
-            "message": "Dados salvos automaticamente" if changes_made else "Sem alterações"
-        })
+            current_app.logger.debug(f"🔄 AUTOSAVE: Nenhuma mudança detectada para relatório {report_id}")
+            return jsonify({
+                "success": True, 
+                "message": "Nenhuma alteração para salvar",
+                "status": relatorio.status
+            }), 200
 
     except Exception as e:
         # Log completo do erro
