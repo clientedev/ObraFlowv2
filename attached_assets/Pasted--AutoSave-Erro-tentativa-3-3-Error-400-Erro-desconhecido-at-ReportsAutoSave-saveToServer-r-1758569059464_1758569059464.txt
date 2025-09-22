@@ -1,0 +1,76 @@
+ AutoSave: Erro (tentativa 3/3) Error: 400: Erro desconhecido
+    at ReportsAutoSave.saveToServer (reports_autosave.js:231:19)
+    at async ReportsAutoSave.performSave (reports_autosave.js:198:17)
+handleSaveError @ reports_autosave.js:304
+performSave @ reports_autosave.js:205
+await in performSave
+(anonymous) @ reports_autosave.js:313
+setTimeout
+handleSaveError @ reports_autosave.js:312
+performSave @ reports_autosave.js:205
+await in performSave
+(anonymous) @ reports_autosave.js:124
+setTimeout
+debouncedSave @ reports_autosave.js:123
+handleInputChange @ reports_autosave.js:108
+(anonymous) @ reports_autosave.js:59Understand this error
+reports_autosave.js:223  POST https://elpconsultoria.pro/reports/autosave/19 400 (Bad Request)
+saveToServer @ reports_autosave.js:223
+performSave @ reports_autosave.js:198
+(anonymous) @ reports_autosave.js:124
+setTimeout
+debouncedSave @ reports_autosave.js:123
+handleInputChange @ reports_autosave.js:108
+(anonymous) @ reports_autosave.js:60Understand this error
+reports_autosave.js:204 ❌ AutoSave: Erro ao salvar Error: 400: Erro desconhecido
+    at ReportsAutoSave.saveToServer (reports_autosave.js:231:19)
+    at async ReportsAutoSave.performSave (reports_autosave.js:198:17)
+performSave @ reports_autosave.js:204
+await in performSave
+(anonymous) @ reports_autosave.js:124
+setTimeout
+debouncedSave @ reports_autosave.js:123
+handleInputChange @ reports_autosave.js:108
+(anonymous) @ reports_autosave.js:60Understand this error
+reports_autosave.js:304 ❌ AutoSave: Erro (tentativa 4/3) Error: 400: Erro desconhecido
+    at ReportsAutoSave.saveToServer (reports_autosave.js:231:19)
+    at async ReportsAutoSave.performSave (reports_autosave.js:198:17)
+handleSaveError @ reports_autosave.js:304
+performSave @ reports_autosave.js:205
+await in performSave
+(anonymous) @ reports_autosave.js:124
+setTimeout
+debouncedSave @ reports_autosave.js:123
+handleInputChange @ reports_autosave.js:108
+(anonymous) @ reports_autosave.js:60Understand this error
+reports_autosave.js:223  POST https://elpconsultoria.pro/reports/autosave/19 400 (Bad Request)
+saveToServer @ reports_autosave.js:223
+performSave @ reports_autosave.js:198
+(anonymous) @ reports_autosave.js:313
+setTimeout
+handleSaveError @ reports_autosave.js:312
+performSave @ reports_autosave.js:205
+await in performSave
+(anonymous) @ reports_autosave.js:124
+setTimeout
+debouncedSave @ reports_autosave.js:123
+handleInputChange @ reports_autosave.js:108
+(anonymous) @ reports_autosave.js:59Understand this error
+reports_autosave.js:204 ❌ AutoSave: Erro ao salvar Error: 400: Erro desconhecido
+    at ReportsAutoSave.saveToServer (reports_autosave.js:231:19)
+    at async ReportsAutoSave.performSave (reports_autosave.js:198:17)
+performSave @ reports_autosave.js:204
+await in performSave
+(anonymous) @ reports_autosave.js:313
+setTimeout
+handleSaveError @ reports_autosave.js:312
+performSave @ reports_autosave.js:205
+await in performSave
+(anonymous) @ reports_autosave.js:124
+setTimeout
+debouncedSave @ reports_autosave.js:123
+handleInputChange @ reports_autosave.js:108
+(anonymous) @ reports_autosave.js:59Understand this error
+reports_autosave.js:304 ❌ AutoSave: Erro (tentativa 5/3) Error: 400: Erro desconhecido
+    at ReportsAutoSave.saveToServer (reports_autosave.js:231:19)
+    at async ReportsAutoSave.performSave (reports_autosave.js:198:17)

@@ -1,0 +1,166 @@
+Você é um engenheiro sênior especialista em **Flask + SQLAlchemy + PostgreSQL (Railway)** + Jinja2 + JavaScript.  
+Contexto: app desenvolvido no Replit, banco Postgres hospedado no Railway. Precisamos **corrigir e entregar patches** para 4 problemas críticos e documentar a causa raiz e as correções aplicadas.
+
+### Problemas a resolver (todos obrigatórios)
+1. **Tela "ver relatório" não carrega** (página de visualização do relatório retorna 404/500).
+2. **Auto-save falhando** (endpoint/JS) — deve funcionar 100% e **não** pode exibir texto de debug ao lado do badge "Em preenchimento".
+3. **Tela de revisão** (`/reports/<id>/review`) dá **500 Internal Server Error**. (erro conhecido: `GET https://elpconsultoria.pro/reports/19/review 500`).
+4. **Imagens não estão sendo salvas no banco** — hoje só salva o `filename`. É necessário identificar o motivo e implementar armazenamento binário seguro (BYTEA).
+
+### Erros conhecidos (use estes dados no diagnóstico)
+- Erro 1 (review): `GET https://elpconsultoria.pro/reports/19/review 500 (Internal Server Error)`
+- Erro 2 (autosave): console JS mostra repetidas tentativas com 400:
+POST https://elpconsultoria.pro/reports/autosave/19 400 (Bad Request)
+reports_autosave.js:223 POST https://elpconsultoria.pro/reports/autosave/19 400 (Bad Request)
+reports_autosave.js:204 ❌ AutoSave: Erro ao salvar Error: 400: Erro desconhecido
+reports_autosave.js:304 ❌ AutoSave: Erro (tentativa 3/3) Error: 400: Erro desconhecido
+
+markdown
+Copiar código
+inclua essas traces exatas na investigação e trate possíveis causas (CSRF, JSON inválido, validação no backend, missing/nullable fields).
+
+### Campos que **faltam**/recomendados nas tabelas de imagem (necessários para armazenar imagem corretamente no PostgreSQL)
+Para as duas tabelas `fotos_relatorio` e `fotos_relatorios_express`, **verifique e, se faltarem, adicione** os seguintes campos:
+- `imagem` — `BYTEA` (SQLAlchemy: `db.LargeBinary`) — **conteúdo binário da imagem** (obrigatório para armazenamento no DB).
+- `mime_type` — `VARCHAR(100)` — tipo MIME (ex.: `image/jpeg`, `image/png`).
+- `file_size` — `INTEGER` — tamanho em bytes.
+- opcional recomendado: `thumbnail` — `BYTEA` (nullable) — miniatura para listagem, para economizar banda.
+(Obs: `filename`, `filename_original` devem permanecer para compatibilidade.)
+
+### Entregáveis esperados (exatos)
+O AI deve retornar patches prontos e aplicáveis — trechos de código para colar / PR-style diffs — para os seguintes arquivos/itens:
+- `app/models.py` (adições de coluna `imagem`, `mime_type`, `file_size` ou ajuste de modelos `FotoRelatorio` e `FotoRelatorioExpress`).
+- Arquivo de migração Alembic em `migrations/versions/xxxx_add_imagem_bytea.py` (upgrade/downgrade).
+- `app/views/reports.py` (ou `app/views/reports/*.py`):  
+- rota `GET /reports` (listagem) e `GET /reports/<int:report_id>` (view_report) — com tratamento seguro de campos nulos/JSON malformado.  
+- rota `GET /reports/<int:report_id>/review` (corrigir o erro 500).  
+- rota `POST /reports/autosave/<int:report_id>` (autosave robusto).
+- rota(s) para servir imagem: `/imagens/<int:id>` e `/imagens_express/<int:id>`.
+- `templates/reports/view.html` — remover debug visível; badge `Em preenchimento` sem texto de debug extra.
+- `templates/reports/list.html` — exibir relatórios com badge quando `status == 'preenchimento'`.
+- `static/js/reports_autosave.js` — novo/ajustado: debounce, whitelist de campos, enviar CSRF token no header `X-CSRFToken`, retries exponenciais com backoff, fallback para localStorage.
+- Instruções passo-a-passo para aplicar migração no Railway e testar.
+- Relatório que liste **linhas/arquivos exatamente alterados** e a **causa raiz** para cada um dos 4 problemas (curta e objetiva).
+
+### Tarefas e verificações detalhadas (execute na ordem)
+
+1. **Diagnóstico inicial**  
+ - Liste 5 causas prováveis para cada erro (view não carregando, autosave 400, review 500, imagens não salvas).  
+ - Mostre os comandos/exemplos para coletar logs no Replit e no Railway (ex.: `current_app.logger.exception()`, `railway logs` painel).  
+ - Se identificar causa imediata com base nas traces fornecidas, aplique a correção e documente a linha/arquivo alterado.
+
+2. **Corrigir rota de visualização do relatório**  
+ - Fornecer/garantir a rota:
+   ```py
+   @app.route("/reports/<int:report_id>")
+   @login_required
+   def view_report(report_id):
+       try:
+           report = Report.query.get_or_404(report_id)
+       except Exception:
+           current_app.logger.exception("Erro ao buscar relatório %s", report_id)
+           abort(500)
+       # proteger contra JSON malformado:
+       try:
+           checklist = json.loads(report.checklist_json) if report.checklist_json else {}
+       except Exception:
+           current_app.logger.exception("JSON inválido no checklist do relatório %s", report_id)
+           checklist = {}
+       return render_template("reports/view.html", report=report, checklist=checklist)
+   ```
+ - Verificar todos os `url_for()` que apontam para essa rota; padronizar nome da função (ex.: `view_report`) e corrigir links que possam usar outro parâmetro ou id errado.
+
+3. **Corrigir rota de revisão (/reports/<id>/review) — erro 500**  
+ - Investigar stacktrace (ex.: campo None, acessos indevidos, desserialização JSON).  
+ - Adicionar `try/except` em pontos críticos, logar `current_app.logger.exception()` e retornar página de erro amigável `abort(500)` para o usuário.  
+ - Verificar permissões e decorator (`@login_required`, `@role_required('approver')`) e checar se `report` existe antes de acessar atributos.
+
+4. **Autosave backend — implementar endpoint robusto**  
+ - Implementar `POST /reports/autosave/<int:report_id>` com:
+   * `@login_required`
+   * `data = request.get_json(silent=True)` — retornar 400 JSON com mensagem clara se `data` for None.
+   * Whitelist de campos: `['titulo','observacoes','latitude','longitude','endereco','checklist_json','last_edited_at']`
+   * Atualizar somente campos da whitelist (ignore others).
+   * Se `report.status != 'Aprovado'`, definir `report.status = 'preenchimento'`.
+   * Commit com try/except e rollback, retornar JSON com success/ error.
+ - Retornar códigos de status HTTP bem definidos: 200 para sucesso, 400 para payload inválido, 404 para report não encontrado, 500 para erro servidor (com logging).
+
+5. **Autosave frontend — corrigir reports_autosave.js**  
+ - Debounce (2–3s) + periodic fallback (10s).  
+ - Montar payload apenas com campos da whitelist.  
+ - Enviar headers:
+   ```
+   'Content-Type': 'application/json',
+   'X-CSRFToken': CSRF_TOKEN
+   ```
+   onde `CSRF_TOKEN` é fornecido via meta tag no template (`<meta name="csrf-token" content="{{ csrf_token() }}">`).  
+ - Tratar 400: exibir mensagem genérica "Erro ao salvar rascunho" no UI (sem exibir stacktrace). Logar detalhes no console dev, mas não no template do usuário.  
+ - Implementar retry com backoff (ex.: 3 tentativas) e fallback para `localStorage` caso offline; ao reconectar, tentar reenviar.
+
+6. **Remover debug visível na UI**  
+ - Badge `Em preenchimento` deve ser apenas:
+   ```html
+   <span class="badge bg-warning text-dark">Em preenchimento</span>
+   ```
+   sem texto adicional sobre estado do autosave.  
+ - Prints/debug removidos das templates; mensagens de erro exibidas de forma amigável (flash) sem stacktrace.
+
+7. **Salvar imagens no banco (fotos_relatorio e fotos_relatorios_express)**  
+ - Se as colunas `imagem`, `mime_type`, `file_size` **não existirem**, criar migração Alembic para adicionar:
+   ```python
+   op.add_column('fotos_relatorio', sa.Column('imagem', sa.LargeBinary(), nullable=True))
+   op.add_column('fotos_relatorio', sa.Column('mime_type', sa.String(length=100), nullable=True))
+   op.add_column('fotos_relatorio', sa.Column('file_size', sa.Integer(), nullable=True))
+   # e repetir para fotos_relatorios_express
+   ```
+ - Atualizar upload handler para:
+   ```python
+   file = request.files.get('file')
+   if file:
+       file_data = file.read()
+       foto.imagem = file_data
+       foto.mime_type = file.mimetype
+       foto.file_size = len(file_data)
+   ```
+ - Garantir `db.session.commit()`; em caso de erro, `db.session.rollback()` e log.
+ - Criar rota para servir imagem:
+   ```py
+   @app.route('/imagens/<int:id>')
+   def get_imagem(id):
+       foto = FotoRelatorio.query.get_or_404(id)
+       if foto.imagem:
+           return Response(foto.imagem, mimetype=foto.mime_type)
+       # fallback: retornar do filesystem usando filename
+   ```
+ - Documentar por que as imagens não eram salvas: (prováveis causas) código apenas gravava `filename` sem `file.read()`; modelo sem coluna `imagem`; ausência de `db.session.commit()`; validações que rejeitavam payloads binários; ou políticas de upload que salvavam só em disco.
+
+8. **Migração e deploy (Railway)**  
+ - Fornecer arquivo alembic completo e instruções:
+   ```
+   export DATABASE_URL="postgresql://user:pass@host:port/db"
+   flask db upgrade
+   ```
+ - Recomendar backup antes de `upgrade` e teste em staging/Replit com uma cópia da DB.
+
+9. **Testes e validação**  
+ - Lista de testes manuais e comandos para verificar:
+   * `/reports` retorna 200 e lista.
+   * `/reports/<id>` abre (200) e `checklist` não quebra.
+   * `/reports/<id>/review` não dá 500; fluxo de aprovação funciona.
+   * AutoSave: editar campo, aguardar debounce, verificar response 200, ver `status == 'preenchimento'` no banco/listagem. Recarregar a página e ver dados persistidos.
+   * Upload de imagem: enviar arquivo, confirmar `imagem` em DB (SELECT), abrir `/imagens/<id>` e ver imagem carregada.
+ - Comandos para checar logs no Railway (ex.: `railway logs` ou painel).
+
+### Saída final requerida do assistente
+- Patches completos (código) para os arquivos listados.  
+- Arquivo de migração Alembic pronto.  
+- Relatório curto (máx 6 linhas por item) indicando **causa raiz** de cada um dos 4 problemas e a correção aplicada.  
+- Passo-a-passo para executar migração no Railway e validar tudo em staging/prod.  
+- Indicação explícita das linhas/arquivos alterados.
+
+### Observações finais
+- **Não remova PKs nem apague dados existentes.**  
+- **Não exponha stacktrace** para usuário final; registre via logger.  
+- Se alguma correção exigir downtime, informe claramente e justifique.
+
+Execute as correções propostas, gere os patches e entregue o checklist de testes para que eu aplique no Replit.  
