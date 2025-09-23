@@ -1537,7 +1537,7 @@ def approve_report(id):
         logging.error(f"Erro ao enviar email após aprovação do relatório {id}: {str(e)}")
         flash(f'Relatório {relatorio.numero} aprovado, mas falha no envio automático: {str(e)}', 'warning')
 
-    return redirect(url_for('review_report', id=id))
+    return redirect(url_for('review_report', report_id=id))
 
 @app.route('/reports/<int:id>/reject', methods=['POST'])
 @login_required
@@ -1554,7 +1554,7 @@ def reject_report(id):
     comentario = request.form.get('comentario_reprovacao')
     if not comentario or not comentario.strip():
         flash('Comentário de reprovação é obrigatório.', 'error')
-        return redirect(url_for('review_report', id=id))
+        return redirect(url_for('review_report', report_id=id))
 
     # Guardar informações do autor antes da mudança
     autor = relatorio.autor
@@ -1592,7 +1592,7 @@ def reject_report(id):
 
     flash(f'Relatório {relatorio.numero} rejeitado e devolvido para edição. '
           f'O autor {autor.nome_completo} deve fazer as correções solicitadas.', 'warning')
-    return redirect(url_for('review_report', id=id))
+    return redirect(url_for('review_report', report_id=id))
 
 @app.route('/reports/pending')
 @login_required
