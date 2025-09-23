@@ -1,0 +1,81 @@
+Você é um especialista em Flask + SQLAlchemy + Jinja2 + PostgreSQL.  
+Estou enfrentando 3 problemas graves no sistema de relatórios e preciso que você corrija todos:
+
+### Problema 1 — Relatórios rejeitados
+- Atualmente relatórios com status "Rejeitado" não abrem corretamente ou dão erro.  
+- Regras corretas:
+  - Relatórios rejeitados DEVEM abrir normalmente.  
+  - Devem exibir o **motivo da rejeição** (campo salvo no banco pelo administrador).  
+  - Devem permitir o botão **"Editar e Corrigir"**, para que o usuário possa ajustar os erros e reenviar.
+
+### Problema 2 — Relatórios aprovados
+- Quando o relatório está **Aprovado**, a tela mostra botões repetidos (duplicações como "Editar", "PDF", etc.).  
+- Regras corretas:
+  - Relatório aprovado só deve abrir em modo **visualização**, nunca edição.  
+  - Mostrar apenas:
+    - Badge verde "Aprovado".
+    - Botão "Baixar PDF" (único, sem repetição).
+  - Retirar qualquer botão duplicado ou redundante.
+
+### Problema 3 — Token visível na tela
+- Na tela de relatório está aparecendo o **CSRF token ou outro identificador interno**.  
+- Isso é inseguro.  
+- Corrigir o template para que o token:
+  - Seja usado apenas em formulários ocultos (`<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">`).  
+  - Nunca apareça como texto visível para o usuário.  
+  - Conferir se em `view.html` e `edit.html` há debug ou `{{ token }}` mal posicionado.
+
+---
+
+### O que preciso que você faça
+1. **Rota de visualização (`/reports/<id>`)**
+   - Garantir que todos os relatórios abrem corretamente, independente do status.  
+   - Aplicar as regras de negócio de "Aprovado" e "Rejeitado".  
+
+2. **Template `view.html`**
+   - Ajustar botões de acordo com o status:
+     ```html
+     {% if report.status == "Aprovado" %}
+       <span class="badge bg-success">Aprovado</span>
+       <a href="{{ url_for('download_pdf', report_id=report.id) }}" class="btn btn-success">Baixar PDF</a>
+     {% elif report.status == "Rejeitado" %}
+       <span class="badge bg-danger">Rejeitado</span>
+       <div class="alert alert-warning mt-2">
+         <strong>Motivo da rejeição:</strong> {{ report.motivo_rejeicao or "Não informado" }}
+       </div>
+       <a href="{{ url_for('edit_report', report_id=report.id) }}" class="btn btn-warning">Editar e Corrigir</a>
+     {% else %}
+       <!-- Preenchimento ou Aguardando -->
+       <a href="{{ url_for('edit_report', report_id=report.id) }}" class="btn btn-primary">Editar</a>
+       <a href="{{ url_for('download_pdf', report_id=report.id) }}" class="btn btn-success">Baixar PDF</a>
+     {% endif %}
+     ```
+   - Eliminar botões duplicados e redundâncias.
+
+3. **Token**
+   - Revisar todos os templates `view.html` e `edit.html`.  
+   - Se houver `{{ csrf_token() }}` sendo exibido em lugar errado, mova para campo hidden:  
+     ```html
+     <form method="POST">
+       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+       ...
+     </form>
+     ```
+   - Garantir que nunca apareça texto do token na tela.
+
+4. **Banco de dados**
+   - Verifique se já existe o campo `motivo_rejeicao` em `Report`.  
+   - Caso não exista, crie migração Alembic para adicionar:
+     ```python
+     motivo_rejeicao = db.Column(db.Text, nullable=True)
+     ```
+
+---
+
+### Saída esperada
+- Código corrigido da rota `/reports/<id>`.  
+- Template `view.html` ajustado sem duplicações.  
+- Token oculto corretamente nos formulários.  
+- Relatórios rejeitados abrem e permitem edição com motivo visível.  
+- Relatórios aprovados abrem em modo visualização, sem botões redundantes.  
+- Checklist de testes para validar: abrir relatórios em todos os status, verificar se botões aparecem corretamente, e garantir que token não aparece mais na tela.
