@@ -740,7 +740,7 @@ def autosave_report(report_id):
         # Whitelist de campos permitidos conforme especificação
         allowed_fields = [
             'titulo', 'observacoes', 'latitude', 'longitude', 
-            'endereco', 'checklist_json', 'last_edited_at'
+            'endereco', 'checklist_data', 'last_edited_at'
         ]
 
         # Aplicar updates apenas nos campos permitidos
@@ -748,7 +748,7 @@ def autosave_report(report_id):
         for field, value in data.items():
             if field in allowed_fields:
                 # Validações específicas por campo
-                if field == 'checklist_json':
+                if field == 'checklist_data':
                     # Validar se é um JSON válido
                     if value is not None:
                         try:
@@ -759,10 +759,10 @@ def autosave_report(report_id):
                                 # Verificar se é JSON válido
                                 json.loads(value)
                             else:
-                                current_app.logger.warning(f"⚠️ AUTOSAVE: checklist_json tipo inválido: {type(value)}")
+                                current_app.logger.warning(f"⚠️ AUTOSAVE: checklist_data tipo inválido: {type(value)}")
                                 continue
                         except json.JSONDecodeError:
-                            current_app.logger.warning(f"⚠️ AUTOSAVE: checklist_json JSON inválido")
+                            current_app.logger.warning(f"⚠️ AUTOSAVE: checklist_data JSON inválido")
                             continue
 
                 # Aplicar a mudança se o valor for diferente
@@ -1478,7 +1478,7 @@ def review_report(id):
         # Proteger contra JSON malformado no checklist
         try:
             import json
-            checklist = json.loads(relatorio.checklist_json) if relatorio.checklist_json else {}
+            checklist = json.loads(relatorio.checklist_data) if relatorio.checklist_data else {}
         except Exception:
             current_app.logger.exception("JSON inválido no checklist do relatório %s", id)
             checklist = {}
@@ -2947,7 +2947,7 @@ def view_report(report_id):
         # Proteger contra JSON malformado no checklist
         try:
             import json
-            checklist = json.loads(relatorio.checklist_json) if relatorio.checklist_json else {}
+            checklist = json.loads(relatorio.checklist_data) if relatorio.checklist_data else {}
         except Exception:
             current_app.logger.exception("JSON inválido no checklist do relatório %s", report_id)
             checklist = {}
