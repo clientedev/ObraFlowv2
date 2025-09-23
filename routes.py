@@ -3054,6 +3054,12 @@ def view_report(report_id):
         flash('Erro ao carregar relatório.', 'error')
         return redirect(url_for('reports'))
 
+@app.route('/reports/<int:report_id>/view')
+@login_required  
+def report_view(report_id):
+    """Visualizar relatório - rota compatível com redirecionamentos existentes"""
+    return view_report(report_id)
+
 @app.route('/reports/<int:report_id>/edit', methods=['GET', 'POST'])
 @login_required
 def report_edit(report_id):
