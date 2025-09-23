@@ -20,6 +20,6 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):
 
 # Run the Flask development server
 if __name__ == '__main__':
-    import logging
-    logging.info("🚀 Starting Flask development server on 0.0.0.0:5000")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)

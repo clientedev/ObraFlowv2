@@ -1,0 +1,54 @@
+Você é um especialista em deploy Flask no Railway.  
+Meu projeto Flask está hospedado no Railway, mas o deploy está falhando com **Healthcheck failed**.  
+Os logs mostram que o Flask sobe assim:
+
+- Usando servidor de desenvolvimento Werkzeug.
+- Rodando em 0.0.0.0:5000
+- Debug ativo.
+- Railway tenta healthcheck mas não encontra nada (porque ele usa a variável $PORT).
+
+### Objetivo
+Corrigir o projeto para que rode em produção no Railway sem falhar no healthcheck.  
+Preciso que você:
+
+1. **Ajuste o main.py (ou app.py)**  
+   - Remova o modo debug em produção.  
+   - Troque o `app.run(...)` para usar:
+     ```python
+     if __name__ == "__main__":
+         import os
+         port = int(os.environ.get("PORT", 5000))
+         app.run(host="0.0.0.0", port=port, debug=False)
+     ```
+   - Isso garante que o app use a porta correta definida pelo Railway.
+
+2. **Adicione suporte a Gunicorn** (recomendado em produção)  
+   - No `requirements.txt`, inclua:
+     ```
+     gunicorn
+     ```
+   - Crie um arquivo **Procfile** na raiz com:
+     ```
+     web: gunicorn main:app --bind 0.0.0.0:$PORT
+     ```
+     (troque `main:app` se a sua aplicação Flask estiver em outro arquivo, ex.: `app:app`).
+
+3. **Crie rota de healthcheck**  
+   - Railway faz GET `/` para verificar se a aplicação está saudável.  
+   - Se minha home for `/login`, adicione uma rota simples:
+     ```python
+     @app.route("/")
+     def healthcheck():
+         return "OK", 200
+     ```
+
+4. **Garanta que não exiba debug nem mensagens do Werkzeug** em produção.  
+   - Apenas logs limpos no console.
+
+### Resultado esperado
+- Deploy no Railway deve passar no healthcheck.  
+- Aplicação deve rodar em produção com Gunicorn, sem debug, acessível pela URL do Railway.  
+- Logs devem mostrar Gunicorn servindo o app, não Werkzeug.  
+- A rota `/` deve responder `200 OK` para o healthcheck.  
+
+Forneça os trechos de código atualizados (main.py, requirements.txt, Procfile) e explique como devo fazer o push para GitHub e re-deploy no Railway.  
