@@ -1223,10 +1223,11 @@ def edit_report(id):
             flash('Acesso negado. Você só pode editar seus próprios relatórios.', 'error')
             return redirect(url_for('reports'))
         
-        # Check if report can be edited based on status
-        if relatorio.status == 'Aprovado':
+        # Relatórios aprovados só podem ser visualizados, não editados
+        # Relatórios rejeitados podem ser editados
+        if relatorio.status == 'Aprovado' and request.method == 'POST':
             flash('Relatórios aprovados não podem ser editados.', 'error')
-            return redirect(url_for('report_view', report_id=id))
+            return redirect(url_for('view_report', report_id=id))
 
         # Proteção contra checklist_data inválido - CORRIGIDO para usar checklist_data (não checklist_json)
         checklist = {}
