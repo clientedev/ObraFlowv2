@@ -2868,13 +2868,22 @@ def visit_view(visit_id):
 @app.route('/reports/<int:report_id>')
 @login_required
 def view_report(report_id):
-    """Visualizar relatório - versão robusta com tratamento de JSON"""
+    """Visualizar relatório - versão robusta com tratamento de JSON e status rejeitado"""
     current_app.logger.info(f"📖 view_report chamado para report_id={report_id}")
     try:
         relatorio = Relatorio.query.get_or_404(report_id)
         
         # Check basic permissions
-        if not current_user.is_master and relatorio.autor_id != current_user.id:
+        user_can_view = False
+        user_can_edit = False
+        
+        if current_user.is_master:
+            user_can_view = True
+            user_can_edit = relatorio.status not in ['Aprovado', 'Finalizado']
+        elif relatorio.autor_id == current_user.id:
+            user_can_view = True
+            user_can_edit = relatorio.status in ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
+        else:
             # Allow project team members to view
             if relatorio.projeto:
                 try:
@@ -2884,13 +2893,15 @@ def view_report(report_id):
                         ativo=True
                     ).first()
                     
-                    if not user_has_access and relatorio.projeto.responsavel_id != current_user.id:
-                        flash('Acesso negado ao relatório.', 'error')
-                        return redirect(url_for('reports'))
+                    if user_has_access or relatorio.projeto.responsavel_id == current_user.id:
+                        user_can_view = True
+                        user_can_edit = False  # Membros da equipe só visualizam
                 except Exception:
-                    # Em caso de erro na verificação de acesso, negar acesso
-                    flash('Acesso negado ao relatório.', 'error')
-                    return redirect(url_for('reports'))
+                    pass
+        
+        if not user_can_view:
+            flash('Acesso negado ao relatório.', 'error')
+            return redirect(url_for('reports'))
         
         # Proteger contra JSON malformado no checklist
         try:
@@ -2910,7 +2921,9 @@ def view_report(report_id):
                              report=relatorio,  # Use 'report' to match template expectations
                              relatorio=relatorio,  # Keep both for compatibility
                              fotos=fotos,
-                             checklist=checklist)
+                             checklist=checklist,
+                             user_can_edit=user_can_edit,
+                             user_can_view=user_can_view)
     
     except Exception as e:
         current_app.logger.exception(f"Erro ao visualizar relatório {report_id}: {str(e)}")
@@ -2926,7 +2939,7 @@ def report_view(report_id):
 @app.route('/reports/<int:report_id>/edit', methods=['GET', 'POST'])
 @login_required
 def report_edit(report_id):
-    """Editar relatório - versão robusta com tratamento de erros"""
+    """Editar relatório - versão corrigida para relatórios rejeitados"""
     try:
         current_app.logger.info(f"✏️ report_edit chamado para report_id={report_id}")
         
@@ -2938,20 +2951,31 @@ def report_edit(report_id):
             flash('Relatório não encontrado.', 'error')
             return redirect(url_for('reports'))
         
-        # Verificar permissões básicas
+        # Verificar permissões básicas - CORRIGIDO PARA RELATÓRIOS REJEITADOS
         user_can_edit = False
         
         # Master pode editar tudo exceto aprovados
         if current_user.is_master:
             user_can_edit = relatorio.status not in ['Aprovado', 'Finalizado']
         
-        # Autor pode editar se não aprovado
+        # Autor pode editar se não aprovado - INCLUINDO REJEITADOS
         elif relatorio.autor_id == current_user.id:
-            user_can_edit = relatorio.status not in ['Aprovado', 'Finalizado']
+            user_can_edit = relatorio.status in ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
         
         if not user_can_edit:
             flash('Você não tem permissão para editar este relatório ou ele já foi finalizado.', 'error')
             return redirect(url_for('view_report', report_id=report_id))
+        
+        # Para relatórios rejeitados, mudar status para "Em edição" automaticamente
+        if relatorio.status == 'Rejeitado' and request.method == 'GET':
+            try:
+                relatorio.status = 'Em edição'
+                relatorio.updated_at = datetime.utcnow()
+                db.session.commit()
+                current_app.logger.info(f"📝 Status alterado de 'Rejeitado' para 'Em edição' para relatório {report_id}")
+            except Exception as e:
+                current_app.logger.error(f"❌ Erro ao alterar status: {str(e)}")
+                db.session.rollback()
         
         # Buscar dados auxiliares com tratamento de erro
         projetos = []
@@ -2992,6 +3016,11 @@ def report_edit(report_id):
                     if 'observacoes' in request.form:
                         relatorio.observacoes = request.form.get('observacoes', '').strip()
                     
+                    # Para relatórios em edição (que eram rejeitados), manter status
+                    if relatorio.status == 'Em edição':
+                        # Manter status Em edição até que seja enviado para aprovação novamente
+                        pass
+                    
                     # Atualizar timestamp
                     relatorio.updated_at = datetime.utcnow()
                     
@@ -2999,13 +3028,15 @@ def report_edit(report_id):
                     flash('Relatório atualizado com sucesso!', 'success')
                     
                 elif action == 'submit_approval':
-                    # Permitir envio para aprovação apenas se em status editável
-                    status_permitidos = ['preenchimento', 'Rascunho', 'Rejeitado']
+                    # Permitir envio para aprovação - INCLUINDO RELATÓRIOS EM EDIÇÃO
+                    status_permitidos = ['preenchimento', 'Rascunho', 'Rejeitado', 'Em edição']
                     if relatorio.status in status_permitidos:
                         relatorio.status = 'Aguardando Aprovação'
                         relatorio.updated_at = datetime.utcnow()
+                        # Limpar comentário de reprovação anterior
+                        relatorio.comentario_aprovacao = None
                         db.session.commit()
-                        flash('Relatório enviado para aprovação!', 'success')
+                        flash('Relatório reenviado para aprovação!', 'success')
                     else:
                         flash('Relatório não pode ser enviado para aprovação no status atual.', 'warning')
                 
