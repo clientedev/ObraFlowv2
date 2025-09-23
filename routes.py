@@ -3043,7 +3043,8 @@ def view_report(report_id):
             fotos = []
         
         return render_template('reports/view.html', 
-                             relatorio=relatorio, 
+                             report=relatorio,  # Use 'report' to match template expectations
+                             relatorio=relatorio,  # Keep both for compatibility
                              fotos=fotos,
                              checklist=checklist)
     

@@ -12,13 +12,17 @@
                 <small class="text-muted">({{ report.numero }})</small>
             </h1>
             <div class="btn-group" role="group">
-                {% if report.status in ['Rascunho', 'Rejeitado'] and (report.autor_id == current_user.id or current_user.is_master) %}
-                    <a href="{{ url_for('report_edit', report_id=report.id) }}" class="btn btn-outline-primary">
+                {% if report.status == 'Rejeitado' and (report.autor_id == current_user.id or current_user.is_master) %}
+                    <a href="{{ url_for('edit_report', id=report.id) }}" class="btn btn-warning">
+                        <i class="fas fa-edit me-2"></i>Editar e Corrigir
+                    </a>
+                {% elif report.status in ['preenchimento', 'Rascunho'] and (report.autor_id == current_user.id or current_user.is_master) %}
+                    <a href="{{ url_for('edit_report', id=report.id) }}" class="btn btn-outline-primary">
                         <i class="fas fa-edit me-2"></i>Editar
                     </a>
                 {% endif %}
                 
-                {% if report.status in ['Rascunho', 'Rejeitado'] and (report.autor_id == current_user.id or current_user.is_master) %}
+                {% if report.status in ['preenchimento', 'Rascunho', 'Rejeitado'] and (report.autor_id == current_user.id or current_user.is_master) %}
                 <a href="{{ url_for('report_add_photo', report_id=report.id) }}" class="btn btn-outline-success">
                     <i class="fas fa-camera me-2"></i>Adicionar Foto
                 </a>
@@ -70,7 +74,13 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <strong>Status Atual:</strong>
-                        {% if report.status == 'Enviado' %}
+                        {% if report.status == 'Aprovado' %}
+                            <span class="badge bg-success fs-6">{{ report.status }}</span>
+                        {% elif report.status == 'Rejeitado' %}
+                            <span class="badge bg-danger fs-6">{{ report.status }}</span>
+                        {% elif report.status == 'Aguardando Aprovação' %}
+                            <span class="badge bg-warning fs-6">{{ report.status }}</span>
+                        {% elif report.status == 'Enviado' %}
                             <span class="badge bg-success fs-6">{{ report.status }}</span>
                         {% elif report.status == 'Finalizado' %}
                             <span class="badge bg-primary fs-6">{{ report.status }}</span>
@@ -99,12 +109,15 @@
                                 </button>
                             </form>
                         {% elif report.status == 'Rejeitado' %}
-                            <span class="text-danger">
-                                <i class="fas fa-times-circle me-1"></i>Relatório rejeitado
+                            <div class="alert alert-warning mt-2">
+                                <strong><i class="fas fa-exclamation-triangle me-1"></i>Relatório Rejeitado</strong>
                                 {% if report.comentario_aprovacao %}
-                                <br><small>{{ report.comentario_aprovacao }}</small>
+                                <br><strong>Motivo da rejeição:</strong> {{ report.comentario_aprovacao }}
+                                {% else %}
+                                <br>Motivo não informado
                                 {% endif %}
-                            </span>
+                                <br><small class="text-muted">Faça as correções necessárias e reenvie para aprovação.</small>
+                            </div>
                         {% elif report.status == 'Enviado' %}
                             <span class="text-success">
                                 <i class="fas fa-check-circle me-1"></i>Relatório enviado em {{ report.data_envio.strftime('%d/%m/%Y às %H:%M') }}
