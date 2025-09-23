@@ -1218,36 +1218,56 @@ def edit_report(id):
             flash('Relatório não encontrado.', 'error')
             return redirect(url_for('reports'))
 
-        # Check permissions - PERMITIR ACESSO PARA VISUALIZAÇÃO
-        if not current_user.is_master and relatorio.autor_id != current_user.id:
-            # Verificar se usuário tem acesso ao projeto
-            if relatorio.projeto:
-                try:
-                    from models import FuncionarioProjeto
-                    user_has_access = FuncionarioProjeto.query.filter_by(
-                        projeto_id=relatorio.projeto.id,
-                        user_id=current_user.id,
-                        ativo=True
-                    ).first()
-                    
-                    # Se não tem acesso ao projeto e não é responsável, negar acesso
-                    if not user_has_access and relatorio.projeto.responsavel_id != current_user.id:
-                        flash('Acesso negado ao relatório.', 'error')
-                        return redirect(url_for('reports'))
-                except Exception:
-                    flash('Acesso negado ao relatório.', 'error')
-                    return redirect(url_for('reports'))
-            else:
-                flash('Acesso negado. Você só pode visualizar seus próprios relatórios.', 'error')
-                return redirect(url_for('reports'))
+        # VERIFICAÇÃO DE PERMISSÃO FLEXÍVEL - PERMITIR VISUALIZAÇÃO
+        user_can_view = False
+        user_can_edit = False
         
-        # PERMITIR ABERTURA DE RELATÓRIOS APROVADOS E REJEITADOS
-        # Relatórios aprovados: apenas visualização (não edição)
-        # Relatórios rejeitados: podem ser editados
-        is_readonly = relatorio.status == 'Aprovado'
+        # Usuário master pode ver e editar tudo (exceto aprovados)
+        if current_user.is_master:
+            user_can_view = True
+            user_can_edit = relatorio.status != 'Aprovado'
         
+        # Autor pode ver e editar seus próprios relatórios (exceto aprovados)
+        elif relatorio.autor_id == current_user.id:
+            user_can_view = True
+            user_can_edit = relatorio.status != 'Aprovado'
+        
+        # Verificar se usuário é aprovador do projeto
+        elif current_user_is_aprovador(relatorio.projeto_id if relatorio.projeto_id else None):
+            user_can_view = True
+            user_can_edit = False  # Aprovadores só visualizam
+        
+        # Verificar se usuário tem acesso ao projeto
+        elif relatorio.projeto:
+            try:
+                from models import FuncionarioProjeto
+                user_has_access = FuncionarioProjeto.query.filter_by(
+                    projeto_id=relatorio.projeto.id,
+                    user_id=current_user.id,
+                    ativo=True
+                ).first()
+                
+                # Se é funcionário do projeto ou responsável
+                if user_has_access or relatorio.projeto.responsavel_id == current_user.id:
+                    user_can_view = True
+                    user_can_edit = (relatorio.autor_id == current_user.id and relatorio.status != 'Aprovado')
+            except Exception as e:
+                current_app.logger.error(f"Erro ao verificar acesso ao projeto: {str(e)}")
+        
+        # Se não pode nem visualizar, negar acesso
+        if not user_can_view:
+            flash('Acesso negado ao relatório.', 'error')
+            return redirect(url_for('reports'))
+        
+        # Determinar se é readonly
+        is_readonly = not user_can_edit
+        
+        # Se tentar editar relatório readonly via POST
         if is_readonly and request.method == 'POST':
-            flash('Relatórios aprovados não podem ser editados.', 'warning')
+            if relatorio.status == 'Aprovado':
+                flash('Relatórios aprovados não podem ser editados.', 'warning')
+            else:
+                flash('Você não tem permissão para editar este relatório.', 'warning')
             return redirect(url_for('edit_report', id=id))
 
         # Proteção contra checklist_data inválido
@@ -1261,8 +1281,8 @@ def edit_report(id):
             current_app.logger.warning(f"⚠️ Checklist inválido no relatório {id}: {str(e)}")
             checklist = {}
 
-        # Processamento de formulário (apenas para relatórios não aprovados)
-        if request.method == 'POST' and not is_readonly:
+        # Processamento de formulário (apenas para relatórios editáveis)
+        if request.method == 'POST' and user_can_edit:
             try:
                 action = request.form.get('action', 'update')
 
@@ -1315,13 +1335,20 @@ def edit_report(id):
         if not hasattr(relatorio, 'conteudo') or relatorio.conteudo is None:
             relatorio.conteudo = ''
 
+        # Log da ação para debug
+        current_app.logger.info(f"📖 Usuário {current_user.username} abrindo relatório {relatorio.numero} - "
+                               f"Status: {relatorio.status}, Readonly: {is_readonly}, "
+                               f"Can View: {user_can_view}, Can Edit: {user_can_edit}")
+
         # Passar informação de modo readonly para o template
         return render_template('reports/edit.html', 
                              relatorio=relatorio, 
                              projetos=projetos, 
                              fotos=fotos,
                              checklist=checklist,
-                             is_readonly=is_readonly)
+                             is_readonly=is_readonly,
+                             user_can_edit=user_can_edit,
+                             user_can_view=user_can_view)
 
     except Exception as e:
         current_app.logger.exception(f"❌ ERRO CRÍTICO na abertura do relatório {id}: {str(e)}")
