@@ -86,12 +86,12 @@
                                             {% else %}{{ relatorio.status }}{% endif %}
                                         </span>
                                     </p>
-                                    
+
                                     {% if relatorio.status == 'Aprovado' and relatorio.data_aprovacao %}
                                     <p><strong>Aprovado em:</strong> {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }}
                                     {% if relatorio.aprovador %}por {{ relatorio.aprovador.nome_completo }}{% endif %}</p>
                                     {% endif %}
-                                    
+
                                     {% if (relatorio.status == 'Rejeitado' or relatorio.status == 'Em edição') and relatorio.comentario_aprovacao %}
                                     <div class="alert alert-warning mt-2">
                                         <strong>Motivo da rejeição:</strong><br>
@@ -148,7 +148,7 @@
                                 <button class="btn btn-success" disabled>
                                     <i class="fas fa-check-circle"></i> Relatório Finalizado (Somente Leitura)
                                 </button>
-                                
+
                                 {% elif relatorio.status == 'Rejeitado' or relatorio.status == 'Em edição' %}
                                 <!-- Relatório rejeitado - pode ser editado -->
                                 <div class="alert alert-warning mb-3">
@@ -163,7 +163,7 @@
                                     </small>
                                     {% endif %}
                                 </div>
-                                
+
                                 {% if user_can_edit %}
                                 <a href="#" class="btn btn-warning" onclick="enableEditMode()">
                                     <i class="fas fa-edit"></i> Editar Relatório Rejeitado
@@ -173,7 +173,7 @@
                                     <i class="fas fa-eye"></i> Visualizando Relatório Rejeitado
                                 </button>
                                 {% endif %}
-                                
+
                                 {% elif relatorio.status == 'Aguardando Aprovação' %}
                                 <!-- Relatório aguardando aprovação -->
                                 <div class="alert alert-warning mb-3">
@@ -189,7 +189,7 @@
                                     <i class="fas fa-eye"></i> Visualizando
                                 </button>
                                 {% endif %}
-                                
+
                                 {% else %}
                                 <!-- Outros status (rascunho, preenchimento) -->
                                 {% if user_can_edit %}
@@ -202,11 +202,11 @@
                                 </button>
                                 {% endif %}
                                 {% endif %}
-                                
+
                                 <a href="{{ url_for('photo_editor', photoId='new', report_id=relatorio.id) }}" class="btn btn-success">
                                     <i class="fas fa-camera"></i> Adicionar Foto
                                 </a>
-                                
+
                                 {% if relatorio.status in ['Rascunho', 'preenchimento'] and (relatorio.autor_id == current_user.id or current_user.is_master) %}
                                 <form method="POST" style="display: inline;">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -305,17 +305,17 @@ function deletePhoto(photoId) {
 function enableEditMode() {
     const status = '{{ relatorio.status }}';
     const userCanEdit = {{ 'true' if user_can_edit else 'false' }};
-    
+
     if (status === 'Aprovado') {
         alert('Relatórios aprovados não podem ser editados.');
         return false;
     }
-    
+
     if (!userCanEdit) {
         alert('Você não tem permissão para editar este relatório.');
         return false;
     }
-    
+
     // Redirecionar para formulário de edição completo
     window.location.href = '{{ url_for("create_report") }}?edit={{ relatorio.id }}';
 }

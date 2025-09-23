@@ -2930,8 +2930,13 @@ def report_edit(report_id):
     try:
         current_app.logger.info(f"✏️ report_edit chamado para report_id={report_id}")
         
-        # Buscar relatório
-        relatorio = Relatorio.query.get_or_404(report_id)
+        # Buscar relatório com tratamento de erro
+        try:
+            relatorio = Relatorio.query.get_or_404(report_id)
+        except Exception as e:
+            current_app.logger.error(f"❌ Erro ao buscar relatório {report_id}: {str(e)}")
+            flash('Relatório não encontrado.', 'error')
+            return redirect(url_for('reports'))
         
         # Verificar permissões básicas
         user_can_edit = False
@@ -2949,12 +2954,21 @@ def report_edit(report_id):
             return redirect(url_for('view_report', report_id=report_id))
         
         # Buscar dados auxiliares com tratamento de erro
+        projetos = []
+        fotos = []
+        
         try:
             projetos = Projeto.query.filter_by(status='Ativo').all()
-            fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
+            current_app.logger.info(f"📋 Projetos carregados: {len(projetos)}")
         except Exception as e:
-            current_app.logger.error(f"⚠️ Erro ao buscar dados auxiliares: {str(e)}")
+            current_app.logger.error(f"⚠️ Erro ao buscar projetos: {str(e)}")
             projetos = []
+        
+        try:
+            fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
+            current_app.logger.info(f"📸 Fotos carregadas: {len(fotos)}")
+        except Exception as e:
+            current_app.logger.error(f"⚠️ Erro ao buscar fotos: {str(e)}")
             fotos = []
         
         # Processamento de formulário POST
@@ -3012,7 +3026,7 @@ def report_edit(report_id):
             current_app.logger.warning(f"⚠️ Checklist inválido no relatório {report_id}: {str(e)}")
             checklist = {}
         
-        # Garantir valores padrão
+        # Garantir valores padrão para evitar erros no template
         if not hasattr(relatorio, 'observacoes') or relatorio.observacoes is None:
             relatorio.observacoes = ''
         if not hasattr(relatorio, 'conteudo') or relatorio.conteudo is None:
@@ -3020,7 +3034,23 @@ def report_edit(report_id):
         if not hasattr(relatorio, 'titulo') or relatorio.titulo is None:
             relatorio.titulo = 'Relatório de visita'
         
-        current_app.logger.info(f"📖 Usuário {current_user.username} editando relatório {relatorio.numero}")
+        # Garantir que o relacionamento com projeto existe
+        try:
+            projeto = relatorio.projeto
+            if not projeto:
+                current_app.logger.warning(f"⚠️ Projeto não encontrado para relatório {report_id}")
+        except Exception as e:
+            current_app.logger.warning(f"⚠️ Erro ao carregar projeto do relatório {report_id}: {str(e)}")
+        
+        # Garantir que o relacionamento com autor existe
+        try:
+            autor = relatorio.autor
+            if not autor:
+                current_app.logger.warning(f"⚠️ Autor não encontrado para relatório {report_id}")
+        except Exception as e:
+            current_app.logger.warning(f"⚠️ Erro ao carregar autor do relatório {report_id}: {str(e)}")
+        
+        current_app.logger.info(f"📖 Usuário {current_user.username} editando relatório {relatorio.numero} (status: {relatorio.status})")
         
         # Renderizar template com todas as variáveis necessárias
         return render_template('reports/edit.html', 
@@ -3033,7 +3063,10 @@ def report_edit(report_id):
                              user_can_view=True)
         
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
         current_app.logger.exception(f"❌ ERRO CRÍTICO na edição do relatório {report_id}: {str(e)}")
+        current_app.logger.error(f"❌ TRACEBACK: {error_trace}")
         flash('Erro interno ao carregar relatório para edição.', 'error')
         return redirect(url_for('reports'))
 
@@ -3427,6 +3460,19 @@ def uploaded_file(filename):
             foto_normal = FotoRelatorio.query.filter_by(filename=filename).first()
             if foto_normal:
                 current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Relatório {foto_normal.relatorio_id}): {filename}")
+                
+                # Verificar se tem dados binários salvos no banco
+                if hasattr(foto_normal, 'imagem') and foto_normal.imagem:
+                    current_app.logger.info(f"📱 SERVINDO IMAGEM DIRETAMENTE DO BANCO: {filename}")
+                    try:
+                        content_type = get_content_type(filename)
+                        response = Response(foto_normal.imagem, mimetype=content_type)
+                        response.headers['Content-Type'] = content_type
+                        response.headers['Cache-Control'] = 'public, max-age=3600'
+                        response.headers['X-Image-Source'] = 'database_binary'
+                        return response
+                    except Exception as binary_error:
+                        current_app.logger.error(f"❌ Erro ao servir imagem do banco: {binary_error}")
                 
                 # Buscar arquivo físico
                 for dir_name, dir_path in search_directories:
