@@ -12,36 +12,22 @@
                 <small class="text-muted">({{ report.numero }})</small>
             </h1>
             <div class="btn-group" role="group">
-                {% if report.status == 'Rejeitado' and (report.autor_id == current_user.id or current_user.is_master) %}
+                {% if report.status == "Aprovado" %}
+                    <a href="{{ url_for('report_generate_pdf', report_id=report.id) }}" class="btn btn-success">
+                        <i class="fas fa-file-pdf me-2"></i>Baixar PDF
+                    </a>
+                {% elif report.status == "Rejeitado" %}
                     <a href="{{ url_for('report_edit', report_id=report.id) }}" class="btn btn-warning">
                         <i class="fas fa-edit me-2"></i>Editar e Corrigir
                     </a>
-                {% elif report.status in ['preenchimento', 'Rascunho'] and (report.autor_id == current_user.id or current_user.is_master) %}
-                    <a href="{{ url_for('report_edit', report_id=report.id) }}" class="btn btn-outline-primary">
+                {% else %}
+                    <!-- Preenchimento ou Aguardando -->
+                    <a href="{{ url_for('report_edit', report_id=report.id) }}" class="btn btn-primary">
                         <i class="fas fa-edit me-2"></i>Editar
                     </a>
-                {% endif %}
-                
-                {% if report.status in ['preenchimento', 'Rascunho', 'Rejeitado'] and (report.autor_id == current_user.id or current_user.is_master) %}
-                <a href="{{ url_for('report_add_photo', report_id=report.id) }}" class="btn btn-outline-success">
-                    <i class="fas fa-camera me-2"></i>Adicionar Foto
-                </a>
-                {% endif %}
-                
-                {% if report.fotos %}
-                <a href="{{ url_for('report_photo_editor', report_id=report.id) }}" class="btn btn-outline-warning">
-                    <i class="fas fa-edit me-2"></i>Editar Fotos
-                </a>
-                {% endif %}
-                
-                <a href="{{ url_for('report_generate_pdf', report_id=report.id) }}" class="btn btn-outline-info">
-                    <i class="fas fa-file-pdf me-2"></i>Gerar PDF
-                </a>
-                
-                {% if report.status in ['Aprovado', 'Enviado', 'Finalizado'] and (report.autor_id == current_user.id or current_user.is_master) %}
-                <a href="{{ url_for('relatorio_enviar_email', relatorio_id=report.id) }}" class="btn btn-success">
-                    <i class="fas fa-paper-plane me-2"></i>Enviar por E-mail
-                </a>
+                    <a href="{{ url_for('report_generate_pdf', report_id=report.id) }}" class="btn btn-success">
+                        <i class="fas fa-file-pdf me-2"></i>Baixar PDF
+                    </a>
                 {% endif %}
                 
                 <a href="{{ url_for('reports') }}" class="btn btn-secondary">
@@ -74,10 +60,10 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <strong>Status Atual:</strong>
-                        {% if report.status == 'Aprovado' %}
-                            <span class="badge bg-success fs-6">{{ report.status }}</span>
-                        {% elif report.status == 'Rejeitado' %}
-                            <span class="badge bg-danger fs-6">{{ report.status }}</span>
+                        {% if report.status == "Aprovado" %}
+                            <span class="badge bg-success fs-6">Aprovado</span>
+                        {% elif report.status == "Rejeitado" %}
+                            <span class="badge bg-danger fs-6">Rejeitado</span>
                         {% elif report.status == 'Aguardando Aprovação' %}
                             <span class="badge bg-warning fs-6">{{ report.status }}</span>
                         {% elif report.status == 'Enviado' %}
@@ -90,9 +76,13 @@
                     </div>
                     
                     <div>
-                        {% if report.status == 'Rascunho' and report.autor_id == current_user.id %}
+                        {% if report.status == "Rejeitado" %}
+                            <div class="alert alert-warning mt-2">
+                                <strong>Motivo da rejeição:</strong> {{ report.comentario_aprovacao or "Não informado" }}
+                            </div>
+                        {% elif report.status == 'Rascunho' and report.autor_id == current_user.id %}
                             <form method="POST" action="{{ url_for('report_submit_for_approval', report_id=report.id) }}" style="display: inline;" onsubmit="return confirm('Enviar relatório para aprovação?')">
-                                {{ csrf_token() }}
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-info btn-sm">
                                     <i class="fas fa-check-circle me-1"></i>Enviar para Aprovação
                                 </button>
@@ -103,21 +93,11 @@
                             </span>
                         {% elif report.status == 'Aprovado' and current_user.is_master %}
                             <form method="POST" action="{{ url_for('report_send', report_id=report.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja enviar este relatório por email?')">
-                                {{ csrf_token() }}
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-warning btn-sm">
                                     <i class="fas fa-paper-plane me-1"></i>Enviar por Email
                                 </button>
                             </form>
-                        {% elif report.status == 'Rejeitado' %}
-                            <div class="alert alert-warning mt-2">
-                                <strong><i class="fas fa-exclamation-triangle me-1"></i>Relatório Rejeitado</strong>
-                                {% if report.comentario_aprovacao %}
-                                <br><strong>Motivo da rejeição:</strong> {{ report.comentario_aprovacao }}
-                                {% else %}
-                                <br>Motivo não informado
-                                {% endif %}
-                                <br><small class="text-muted">Faça as correções necessárias e reenvie para aprovação.</small>
-                            </div>
                         {% elif report.status == 'Enviado' %}
                             <span class="text-success">
                                 <i class="fas fa-check-circle me-1"></i>Relatório enviado em {{ report.data_envio.strftime('%d/%m/%Y às %H:%M') }}
