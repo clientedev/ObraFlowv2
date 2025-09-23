@@ -38,3 +38,12 @@ sqlalchemy
 weasyprint
 werkzeug
 wtforms
+flask
+flask-login
+flask-mail
+flask-sqlalchemy
+flask-wtf
+pillow
+psycopg2-binary
+werkzeug
+wtforms
