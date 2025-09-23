@@ -11,6 +11,12 @@ from flask_mail import Message
 
 from app import app, db, mail, csrf
 
+# Healthcheck route for Railway deployment
+@app.route('/')
+def healthcheck():
+    """Simple healthcheck for Railway - returns 200 OK"""
+    return "OK", 200
+
 # Health check endpoint for Railway deployment - LIGHTWEIGHT VERSION
 @app.route('/health')
 def health_check():
