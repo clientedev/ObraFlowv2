@@ -1284,7 +1284,7 @@ def photo_editor():
                     edited_image = edited_image.split(',')[1]
 
                 import base64
-                image_binary = base64.b64decode(edited_data)
+                image_binary = base64.b64decode(edited_image)
 
                 # Salvar imagem editada
                 upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
@@ -1303,6 +1303,7 @@ def photo_editor():
                     if foto:
                         foto.filename_anotada = filename
                         foto.legenda = legend
+                        foto.imagem = image_binary  # Salvar dados binários da imagem editada
                         db.session.commit()
 
                 flash('Imagem editada com sucesso!', 'success')
@@ -1347,9 +1348,10 @@ def annotate_photo(photo_id):
         with open(filepath, 'wb') as f:
             f.write(image_binary)
 
-        # Update photo record
+        # Update photo record with binary data
         foto.filename = annotated_filename
         foto.coordenadas_anotacao = data.get('annotations', '')
+        foto.imagem = image_binary  # Salvar dados binários da imagem anotada
         db.session.commit()
 
         return jsonify({'success': True})
@@ -3993,19 +3995,25 @@ def report_photo_annotate(report_id):
         return jsonify({'success': False, 'message': 'Foto não pertence a este relatório.'})
 
     try:
+        # Read file data before saving
+        file_data = annotated_image.read()
+        annotated_image.seek(0)  # Reset for saving to disk
+        
         # Save annotated image
         filename = secure_filename(f"annotated_{foto.id}_{uuid.uuid4().hex}.png")
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         annotated_image.save(file_path)
 
-        # Update photo record
+        # Update photo record with binary data
         foto.filename_anotada = filename
+        foto.imagem = file_data  # Salvar dados binários da imagem anotada
         db.session.commit()
 
         return jsonify({'success': True, 'message': 'Anotações salvas com sucesso.'})
 
     except Exception as e:
-        app.logger.error(f"Error saving annotated photo: {str(e)}")
+        db.session.rollback()
+        current_app.logger.exception(f"Error saving annotated photo: {str(e)}")
         return jsonify({'success': False, 'message': 'Erro ao salvar anotações.'})
 
 @app.route('/reports/<int:report_id>/submit-for-approval', methods=['POST'])
