@@ -1248,144 +1248,7 @@ def get_aprovador_padrao_para_projeto(projeto_id):
                          preselected_project_id=preselected_project_id,
                          today=date.today().isoformat())
 
-# @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])  # DEPRECATED - removed to prevent conflicts
-# @login_required
-def edit_report_deprecated(id):
-    """Visualizar/Editar relatório - permite abrir relatórios aprovados e rejeitados"""
-    try:
-        # Buscar relatório
-        relatorio = Relatorio.query.get_or_404(id)
-        current_app.logger.info(f"✅ Relatório {id} encontrado: {relatorio.numero} - Status: {relatorio.status}")
-
-        # PERMISSÃO SIMPLIFICADA - SEMPRE PERMITIR VISUALIZAÇÃO
-        user_can_view = True  # Sempre permitir visualização
-        user_can_edit = False
-
-        # Normalizar status para verificação
-        status_normalizado = relatorio.status.lower() if relatorio.status else ''
-        
-        # LÓGICA SIMPLIFICADA DE PERMISSÕES
-        # 1. Master pode ver tudo e editar tudo exceto aprovados
-        if current_user.is_master:
-            user_can_view = True
-            user_can_edit = status_normalizado not in ['aprovado']
-        
-        # 2. Autor pode ver seus relatórios e editar se não aprovado
-        elif relatorio.autor_id == current_user.id:
-            user_can_view = True
-            user_can_edit = status_normalizado not in ['aprovado']
-        
-        # 3. Outros usuários podem visualizar mas não editar
-        else:
-            user_can_view = True
-            user_can_edit = False
-            
-            # Verificar se é aprovador - pode ver mas não editar
-            try:
-                is_aprovador = current_user_is_aprovador(relatorio.projeto_id if relatorio.projeto_id else None)
-                if is_aprovador:
-                    user_can_view = True
-            except Exception as e:
-                current_app.logger.error(f"Erro ao verificar aprovador: {str(e)}")
-
-        # Log para debug
-        current_app.logger.info(f"🔍 Permissões para usuário {current_user.username}: view={user_can_view}, edit={user_can_edit}")
-
-        # Se tentar editar relatório não editável via POST
-        if request.method == 'POST' and not user_can_edit:
-            if status_normalizado == 'aprovado':
-                flash('Relatórios aprovados não podem ser editados.', 'warning')
-            else:
-                flash('Você não tem permissão para editar este relatório.', 'warning')
-            return redirect(url_for('edit_report', id=id))
-
-        # Carregar checklist de forma segura
-        checklist = {}
-        try:
-            if relatorio.checklist_data:
-                import json
-                checklist = json.loads(relatorio.checklist_data)
-        except (json.JSONDecodeError, TypeError, AttributeError) as e:
-            current_app.logger.warning(f"⚠️ Checklist inválido no relatório {id}: {str(e)}")
-            checklist = {}
-
-        # Processamento de formulário (apenas para relatórios editáveis)
-        if request.method == 'POST' and user_can_edit:
-            try:
-                action = request.form.get('action', 'update')
-
-                if action == 'update':
-                    # Atualizar campos básicos
-                    if 'conteudo' in request.form:
-                        relatorio.conteudo = request.form.get('conteudo', '').strip()
-                    
-                    if 'projeto_id' in request.form:
-                        projeto_id = request.form.get('projeto_id')
-                        if projeto_id:
-                            relatorio.projeto_id = int(projeto_id)
-                    
-                    if 'observacoes' in request.form:
-                        relatorio.observacoes = request.form.get('observacoes', '').strip()
-
-                    relatorio.updated_at = datetime.utcnow()
-                    db.session.commit()
-                    flash('Relatório atualizado com sucesso!', 'success')
-
-                elif action == 'submit_approval':
-                    # Permitir envio para aprovação de relatórios em vários status
-                    status_permitidos = ['rascunho', 'preenchimento', 'em edição', 'rejeitado']
-                    if status_normalizado in status_permitidos:
-                        relatorio.status = 'Aguardando Aprovação'
-                        relatorio.updated_at = datetime.utcnow()
-                        db.session.commit()
-                        flash('Relatório enviado para aprovação!', 'success')
-                    else:
-                        flash('Relatório não pode ser enviado para aprovação no status atual.', 'warning')
-
-                return redirect(url_for('edit_report', id=id))
-
-            except Exception as e:
-                db.session.rollback()
-                current_app.logger.error(f"❌ Erro ao atualizar relatório {id}: {str(e)}")
-                flash(f'Erro ao atualizar relatório: {str(e)}', 'error')
-
-        # Buscar dados auxiliares
-        try:
-            projetos = Projeto.query.filter_by(status='Ativo').all()
-            fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
-        except Exception as e:
-            current_app.logger.error(f"⚠️ Erro ao buscar dados auxiliares: {str(e)}")
-            projetos = []
-            fotos = []
-
-        # Garantir valores padrão
-        if not hasattr(relatorio, 'observacoes') or relatorio.observacoes is None:
-            relatorio.observacoes = ''
-        if not hasattr(relatorio, 'conteudo') or relatorio.conteudo is None:
-            relatorio.conteudo = ''
-
-        # Determinar modo readonly
-        is_readonly = not user_can_edit
-
-        # Log para debug
-        current_app.logger.info(f"📖 Usuário {current_user.username} abrindo relatório {relatorio.numero} - "
-                               f"Status: {relatorio.status}, Readonly: {is_readonly}, "
-                               f"Can View: {user_can_view}, Can Edit: {user_can_edit}")
-
-        # Renderizar template com todas as variáveis necessárias
-        return render_template('reports/edit.html', 
-                             relatorio=relatorio, 
-                             projetos=projetos, 
-                             fotos=fotos,
-                             checklist=checklist,
-                             is_readonly=is_readonly,
-                             user_can_edit=user_can_edit,
-                             user_can_view=user_can_view)
-
-    except Exception as e:
-        current_app.logger.exception(f"❌ ERRO CRÍTICO na abertura do relatório {id}: {str(e)}")
-        flash('Erro interno ao carregar relatório.', 'error')
-        return redirect(url_for('reports'))
+# Função deprecated removida para evitar conflitos
 
 # Photo annotation system routes
 @app.route('/photo-annotation')
@@ -3063,27 +2926,116 @@ def report_view(report_id):
 @app.route('/reports/<int:report_id>/edit', methods=['GET', 'POST'])
 @login_required
 def report_edit(report_id):
-    current_app.logger.info(f"✏️ report_edit chamado para report_id={report_id}")
-    report = Relatorio.query.get_or_404(report_id)
-
-    # Check permissions
-    if report.status == 'Finalizado' and not current_user.is_master:
-        flash('Apenas usuários master podem editar relatórios finalizados.', 'error')
-        return redirect(url_for('report_view', report_id=report_id))
-
-    form = RelatorioForm(obj=report)
-
-    if form.validate_on_submit():
-        report.titulo = form.titulo.data
-        report.conteudo = form.conteudo.data
-        report.aprovador_nome = form.aprovador_nome.data
-        report.data_relatorio = form.data_relatorio.data
-
-        db.session.commit()
-        flash('Relatório atualizado com sucesso!', 'success')
-        return redirect(url_for('report_view', report_id=report_id))
-
-    return render_template('reports/form.html', form=form, report=report)
+    """Editar relatório - versão robusta com tratamento de erros"""
+    try:
+        current_app.logger.info(f"✏️ report_edit chamado para report_id={report_id}")
+        
+        # Buscar relatório
+        relatorio = Relatorio.query.get_or_404(report_id)
+        
+        # Verificar permissões básicas
+        user_can_edit = False
+        
+        # Master pode editar tudo exceto aprovados
+        if current_user.is_master:
+            user_can_edit = relatorio.status not in ['Aprovado', 'Finalizado']
+        
+        # Autor pode editar se não aprovado
+        elif relatorio.autor_id == current_user.id:
+            user_can_edit = relatorio.status not in ['Aprovado', 'Finalizado']
+        
+        if not user_can_edit:
+            flash('Você não tem permissão para editar este relatório ou ele já foi finalizado.', 'error')
+            return redirect(url_for('view_report', report_id=report_id))
+        
+        # Buscar dados auxiliares com tratamento de erro
+        try:
+            projetos = Projeto.query.filter_by(status='Ativo').all()
+            fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
+        except Exception as e:
+            current_app.logger.error(f"⚠️ Erro ao buscar dados auxiliares: {str(e)}")
+            projetos = []
+            fotos = []
+        
+        # Processamento de formulário POST
+        if request.method == 'POST':
+            try:
+                action = request.form.get('action', 'update')
+                
+                if action == 'update':
+                    # Atualizar campos básicos de forma segura
+                    if 'titulo' in request.form:
+                        relatorio.titulo = request.form.get('titulo', '').strip()
+                    
+                    if 'conteudo' in request.form:
+                        relatorio.conteudo = request.form.get('conteudo', '').strip()
+                    
+                    if 'projeto_id' in request.form:
+                        projeto_id = request.form.get('projeto_id')
+                        if projeto_id and projeto_id.isdigit():
+                            relatorio.projeto_id = int(projeto_id)
+                    
+                    if 'observacoes' in request.form:
+                        relatorio.observacoes = request.form.get('observacoes', '').strip()
+                    
+                    # Atualizar timestamp
+                    relatorio.updated_at = datetime.utcnow()
+                    
+                    db.session.commit()
+                    flash('Relatório atualizado com sucesso!', 'success')
+                    
+                elif action == 'submit_approval':
+                    # Permitir envio para aprovação apenas se em status editável
+                    status_permitidos = ['preenchimento', 'Rascunho', 'Rejeitado']
+                    if relatorio.status in status_permitidos:
+                        relatorio.status = 'Aguardando Aprovação'
+                        relatorio.updated_at = datetime.utcnow()
+                        db.session.commit()
+                        flash('Relatório enviado para aprovação!', 'success')
+                    else:
+                        flash('Relatório não pode ser enviado para aprovação no status atual.', 'warning')
+                
+                return redirect(url_for('view_report', report_id=report_id))
+                
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f"❌ Erro ao atualizar relatório {report_id}: {str(e)}")
+                flash(f'Erro ao atualizar relatório. Tente novamente.', 'error')
+        
+        # Carregar checklist de forma segura
+        checklist = {}
+        try:
+            if hasattr(relatorio, 'checklist_data') and relatorio.checklist_data:
+                import json
+                checklist = json.loads(relatorio.checklist_data)
+        except Exception as e:
+            current_app.logger.warning(f"⚠️ Checklist inválido no relatório {report_id}: {str(e)}")
+            checklist = {}
+        
+        # Garantir valores padrão
+        if not hasattr(relatorio, 'observacoes') or relatorio.observacoes is None:
+            relatorio.observacoes = ''
+        if not hasattr(relatorio, 'conteudo') or relatorio.conteudo is None:
+            relatorio.conteudo = ''
+        if not hasattr(relatorio, 'titulo') or relatorio.titulo is None:
+            relatorio.titulo = 'Relatório de visita'
+        
+        current_app.logger.info(f"📖 Usuário {current_user.username} editando relatório {relatorio.numero}")
+        
+        # Renderizar template com todas as variáveis necessárias
+        return render_template('reports/edit.html', 
+                             relatorio=relatorio, 
+                             projetos=projetos, 
+                             fotos=fotos,
+                             checklist=checklist,
+                             is_readonly=False,
+                             user_can_edit=True,
+                             user_can_view=True)
+        
+    except Exception as e:
+        current_app.logger.exception(f"❌ ERRO CRÍTICO na edição do relatório {report_id}: {str(e)}")
+        flash('Erro interno ao carregar relatório para edição.', 'error')
+        return redirect(url_for('reports'))
 
 @app.route('/reports/<int:report_id>/photos/add', methods=['GET', 'POST'])
 @login_required
