@@ -1257,53 +1257,39 @@ def edit_report(id):
         relatorio = Relatorio.query.get_or_404(id)
         current_app.logger.info(f"✅ Relatório {id} encontrado: {relatorio.numero} - Status: {relatorio.status}")
 
-        # VERIFICAÇÃO DE PERMISSÃO FLEXÍVEL - PERMITIR VISUALIZAÇÃO SEMPRE
-        user_can_view = True  # Por padrão, permitir visualização
+        # PERMISSÃO SIMPLIFICADA - SEMPRE PERMITIR VISUALIZAÇÃO
+        user_can_view = True  # Sempre permitir visualização
         user_can_edit = False
 
         # Normalizar status para verificação
         status_normalizado = relatorio.status.lower() if relatorio.status else ''
         
-        # Verificar permissões de edição
+        # LÓGICA SIMPLIFICADA DE PERMISSÕES
+        # 1. Master pode ver tudo e editar tudo exceto aprovados
         if current_user.is_master:
-            # Master pode editar tudo exceto aprovados
+            user_can_view = True
             user_can_edit = status_normalizado not in ['aprovado']
+        
+        # 2. Autor pode ver seus relatórios e editar se não aprovado
         elif relatorio.autor_id == current_user.id:
-            # Autor pode editar seus próprios relatórios exceto aprovados
+            user_can_view = True
             user_can_edit = status_normalizado not in ['aprovado']
+        
+        # 3. Outros usuários podem visualizar mas não editar
         else:
-            # Verificar se é aprovador do projeto (só visualiza)
+            user_can_view = True
+            user_can_edit = False
+            
+            # Verificar se é aprovador - pode ver mas não editar
             try:
                 is_aprovador = current_user_is_aprovador(relatorio.projeto_id if relatorio.projeto_id else None)
                 if is_aprovador:
                     user_can_view = True
-                    user_can_edit = False
             except Exception as e:
                 current_app.logger.error(f"Erro ao verificar aprovador: {str(e)}")
-                
-            # Verificar se tem acesso ao projeto
-            if relatorio.projeto:
-                try:
-                    from models import FuncionarioProjeto
-                    user_has_access = FuncionarioProjeto.query.filter_by(
-                        projeto_id=relatorio.projeto.id,
-                        user_id=current_user.id,
-                        ativo=True
-                    ).first()
-                    
-                    if user_has_access or relatorio.projeto.responsavel_id == current_user.id:
-                        user_can_view = True
-                        # Só pode editar se for autor e não aprovado
-                        if relatorio.autor_id == current_user.id:
-                            user_can_edit = status_normalizado not in ['aprovado']
-                except Exception as e:
-                    current_app.logger.error(f"Erro ao verificar acesso ao projeto: {str(e)}")
-        
-        # Verificação final de acesso
-        if not user_can_view and not current_user.is_master:
-            if relatorio.autor_id != current_user.id:
-                flash('Acesso negado ao relatório.', 'error')
-                return redirect(url_for('reports'))
+
+        # Log para debug
+        current_app.logger.info(f"🔍 Permissões para usuário {current_user.username}: view={user_can_view}, edit={user_can_edit}")
 
         # Se tentar editar relatório não editável via POST
         if request.method == 'POST' and not user_can_edit:

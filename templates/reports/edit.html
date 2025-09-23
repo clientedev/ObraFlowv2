@@ -146,13 +146,16 @@
                                     </small>
                                     {% endif %}
                                 </div>
+                                <button class="btn btn-success" disabled>
+                                    <i class="fas fa-check-circle"></i> Relatório Finalizado (Somente Leitura)
+                                </button>
                                 
                                 {% elif relatorio.status == 'Rejeitado' or relatorio.status == 'Em edição' %}
                                 <!-- Relatório rejeitado - pode ser editado -->
                                 <div class="alert alert-warning mb-3">
                                     <strong><i class="fas fa-exclamation-triangle"></i> Relatório Rejeitado</strong><br>
                                     {% if relatorio.comentario_aprovacao %}
-                                    <strong>Motivo:</strong> {{ relatorio.comentario_aprovacao }}<br>
+                                    <strong>Motivo da rejeição:</strong> {{ relatorio.comentario_aprovacao }}<br>
                                     {% endif %}
                                     {% if relatorio.data_aprovacao %}
                                     <small class="text-muted">
@@ -160,10 +163,6 @@
                                         {% if relatorio.aprovador %}por {{ relatorio.aprovador.nome_completo }}{% endif %}
                                     </small>
                                     {% endif %}
-                                    <hr>
-                                    <small class="text-success">
-                                        <i class="fas fa-info-circle"></i> Você pode editar este relatório e reenviá-lo para aprovação.
-                                    </small>
                                 </div>
                                 
                                 {% if user_can_edit %}
@@ -171,9 +170,9 @@
                                     <i class="fas fa-edit"></i> Editar Relatório Rejeitado
                                 </a>
                                 {% else %}
-                                <div class="alert alert-info">
-                                    <i class="fas fa-eye"></i> Você pode visualizar este relatório mas não editá-lo.
-                                </div>
+                                <button class="btn btn-outline-warning" disabled>
+                                    <i class="fas fa-eye"></i> Visualizando Relatório Rejeitado
+                                </button>
                                 {% endif %}
                                 
                                 {% elif relatorio.status == 'Aguardando Aprovacao' or relatorio.status == 'Aguardando Aprovação' %}
@@ -184,24 +183,24 @@
                                 </div>
                                 {% if user_can_edit %}
                                 <a href="#" class="btn btn-outline-primary" onclick="enableEditMode()">
-                                    <i class="fas fa-eye"></i> Visualizar/Editar
+                                    <i class="fas fa-edit"></i> Editar
                                 </a>
                                 {% else %}
-                                <div class="alert alert-info">
-                                    <i class="fas fa-eye"></i> Modo visualização apenas.
-                                </div>
+                                <button class="btn btn-outline-info" disabled>
+                                    <i class="fas fa-eye"></i> Visualizando
+                                </button>
                                 {% endif %}
                                 
                                 {% else %}
                                 <!-- Outros status (rascunho, preenchimento) -->
                                 {% if user_can_edit %}
                                 <a href="#" class="btn btn-primary" onclick="enableEditMode()">
-                                    <i class="fas fa-edit"></i> Editar Dados
+                                    <i class="fas fa-edit"></i> Editar Relatório
                                 </a>
                                 {% else %}
-                                <div class="alert alert-info">
-                                    <i class="fas fa-eye"></i> Você pode visualizar este relatório mas não editá-lo.
-                                </div>
+                                <button class="btn btn-outline-info" disabled>
+                                    <i class="fas fa-eye"></i> Visualizando
+                                </button>
                                 {% endif %}
                                 {% endif %}
                                 
