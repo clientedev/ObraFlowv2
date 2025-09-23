@@ -81,26 +81,44 @@ import json
 # Função helper para verificar se usuário é aprovador
 def current_user_is_aprovador(projeto_id=None):
     """Verifica se o usuário atual é aprovador para um projeto específico ou globalmente"""
-    if not current_user.is_authenticated:
-        return False
+    try:
+        if not current_user or not current_user.is_authenticated:
+            return False
 
-    # Primeiro verifica se há configuração específica para o projeto
-    if projeto_id:
-        aprovador_especifico = AprovadorPadrao.query.filter_by(
-            projeto_id=projeto_id,
-            aprovador_id=current_user.id,
-            ativo=True
-        ).first()
-        if aprovador_especifico:
+        # Se é master, automaticamente é aprovador
+        if current_user.is_master:
             return True
 
-    # Se não há configuração específica, verifica configuração global
-    aprovador_global = AprovadorPadrao.query.filter_by(
-        projeto_id=None,
-        aprovador_id=current_user.id,
-        ativo=True
-    ).first()
-    return aprovador_global is not None
+        from models import AprovadorPadrao
+
+        # Primeiro verifica se há configuração específica para o projeto
+        if projeto_id:
+            try:
+                aprovador_especifico = AprovadorPadrao.query.filter_by(
+                    projeto_id=projeto_id,
+                    aprovador_id=current_user.id,
+                    ativo=True
+                ).first()
+                if aprovador_especifico:
+                    return True
+            except Exception as e:
+                current_app.logger.error(f"Erro ao verificar aprovador específico: {str(e)}")
+
+        # Se não há configuração específica, verifica configuração global
+        try:
+            aprovador_global = AprovadorPadrao.query.filter_by(
+                projeto_id=None,
+                aprovador_id=current_user.id,
+                ativo=True
+            ).first()
+            return aprovador_global is not None
+        except Exception as e:
+            current_app.logger.error(f"Erro ao verificar aprovador global: {str(e)}")
+            return False
+
+    except Exception as e:
+        current_app.logger.error(f"Erro geral na verificação de aprovador: {str(e)}")
+        return False
 
 # Context processor para disponibilizar função nos templates
 @app.context_processor
@@ -1195,6 +1213,32 @@ def create_report():
         # Se não há projeto específico, buscar aprovador global
         selected_aprovador = get_aprovador_padrao_para_projeto(None)
 
+def get_aprovador_padrao_para_projeto(projeto_id):
+    """Busca aprovador padrão para um projeto específico ou global"""
+    try:
+        from models import AprovadorPadrao
+        
+        # Buscar aprovador específico para o projeto
+        if projeto_id:
+            aprovador = AprovadorPadrao.query.filter_by(
+                projeto_id=projeto_id,
+                ativo=True
+            ).first()
+            if aprovador:
+                return aprovador.aprovador
+        
+        # Buscar aprovador global
+        aprovador_global = AprovadorPadrao.query.filter_by(
+            projeto_id=None,
+            ativo=True
+        ).first()
+        
+        return aprovador_global.aprovador if aprovador_global else None
+        
+    except Exception as e:
+        current_app.logger.error(f"Erro ao buscar aprovador padrão: {str(e)}")
+        return None
+
     return render_template('reports/form_complete.html', 
                          projetos=projetos, 
                          admin_users=admin_users, 
@@ -1209,74 +1253,72 @@ def create_report():
 def edit_report(id):
     """Visualizar/Editar relatório - permite abrir relatórios aprovados e rejeitados"""
     try:
-        # Buscar relatório com tratamento robusto
-        try:
-            relatorio = Relatorio.query.get_or_404(id)
-            current_app.logger.info(f"✅ Relatório {id} encontrado: {relatorio.numero} - Status: {relatorio.status}")
-        except Exception as e:
-            current_app.logger.exception(f"❌ Erro ao buscar relatório {id}: {str(e)}")
-            flash('Relatório não encontrado.', 'error')
-            return redirect(url_for('reports'))
+        # Buscar relatório
+        relatorio = Relatorio.query.get_or_404(id)
+        current_app.logger.info(f"✅ Relatório {id} encontrado: {relatorio.numero} - Status: {relatorio.status}")
 
-        # VERIFICAÇÃO DE PERMISSÃO FLEXÍVEL - PERMITIR VISUALIZAÇÃO
-        user_can_view = False
+        # VERIFICAÇÃO DE PERMISSÃO FLEXÍVEL - PERMITIR VISUALIZAÇÃO SEMPRE
+        user_can_view = True  # Por padrão, permitir visualização
         user_can_edit = False
+
+        # Normalizar status para verificação
+        status_normalizado = relatorio.status.lower() if relatorio.status else ''
         
-        # Usuário master pode ver e editar tudo (exceto aprovados)
+        # Verificar permissões de edição
         if current_user.is_master:
-            user_can_view = True
-            user_can_edit = relatorio.status != 'Aprovado'
-        
-        # Autor pode ver e editar seus próprios relatórios (exceto aprovados)
+            # Master pode editar tudo exceto aprovados
+            user_can_edit = status_normalizado not in ['aprovado']
         elif relatorio.autor_id == current_user.id:
-            user_can_view = True
-            user_can_edit = relatorio.status != 'Aprovado'
-        
-        # Verificar se usuário é aprovador do projeto
-        elif current_user_is_aprovador(relatorio.projeto_id if relatorio.projeto_id else None):
-            user_can_view = True
-            user_can_edit = False  # Aprovadores só visualizam
-        
-        # Verificar se usuário tem acesso ao projeto
-        elif relatorio.projeto:
+            # Autor pode editar seus próprios relatórios exceto aprovados
+            user_can_edit = status_normalizado not in ['aprovado']
+        else:
+            # Verificar se é aprovador do projeto (só visualiza)
             try:
-                from models import FuncionarioProjeto
-                user_has_access = FuncionarioProjeto.query.filter_by(
-                    projeto_id=relatorio.projeto.id,
-                    user_id=current_user.id,
-                    ativo=True
-                ).first()
-                
-                # Se é funcionário do projeto ou responsável
-                if user_has_access or relatorio.projeto.responsavel_id == current_user.id:
+                is_aprovador = current_user_is_aprovador(relatorio.projeto_id if relatorio.projeto_id else None)
+                if is_aprovador:
                     user_can_view = True
-                    user_can_edit = (relatorio.autor_id == current_user.id and relatorio.status != 'Aprovado')
+                    user_can_edit = False
             except Exception as e:
-                current_app.logger.error(f"Erro ao verificar acesso ao projeto: {str(e)}")
+                current_app.logger.error(f"Erro ao verificar aprovador: {str(e)}")
+                
+            # Verificar se tem acesso ao projeto
+            if relatorio.projeto:
+                try:
+                    from models import FuncionarioProjeto
+                    user_has_access = FuncionarioProjeto.query.filter_by(
+                        projeto_id=relatorio.projeto.id,
+                        user_id=current_user.id,
+                        ativo=True
+                    ).first()
+                    
+                    if user_has_access or relatorio.projeto.responsavel_id == current_user.id:
+                        user_can_view = True
+                        # Só pode editar se for autor e não aprovado
+                        if relatorio.autor_id == current_user.id:
+                            user_can_edit = status_normalizado not in ['aprovado']
+                except Exception as e:
+                    current_app.logger.error(f"Erro ao verificar acesso ao projeto: {str(e)}")
         
-        # Se não pode nem visualizar, negar acesso
-        if not user_can_view:
-            flash('Acesso negado ao relatório.', 'error')
-            return redirect(url_for('reports'))
-        
-        # Determinar se é readonly
-        is_readonly = not user_can_edit
-        
-        # Se tentar editar relatório readonly via POST
-        if is_readonly and request.method == 'POST':
-            if relatorio.status == 'Aprovado':
+        # Verificação final de acesso
+        if not user_can_view and not current_user.is_master:
+            if relatorio.autor_id != current_user.id:
+                flash('Acesso negado ao relatório.', 'error')
+                return redirect(url_for('reports'))
+
+        # Se tentar editar relatório não editável via POST
+        if request.method == 'POST' and not user_can_edit:
+            if status_normalizado == 'aprovado':
                 flash('Relatórios aprovados não podem ser editados.', 'warning')
             else:
                 flash('Você não tem permissão para editar este relatório.', 'warning')
             return redirect(url_for('edit_report', id=id))
 
-        # Proteção contra checklist_data inválido
+        # Carregar checklist de forma segura
         checklist = {}
         try:
             if relatorio.checklist_data:
                 import json
                 checklist = json.loads(relatorio.checklist_data)
-                current_app.logger.debug(f"✅ Checklist carregado para relatório {id}")
         except (json.JSONDecodeError, TypeError, AttributeError) as e:
             current_app.logger.warning(f"⚠️ Checklist inválido no relatório {id}: {str(e)}")
             checklist = {}
@@ -1287,7 +1329,7 @@ def edit_report(id):
                 action = request.form.get('action', 'update')
 
                 if action == 'update':
-                    # Update basic fields
+                    # Atualizar campos básicos
                     if 'conteudo' in request.form:
                         relatorio.conteudo = request.form.get('conteudo', '').strip()
                     
@@ -1304,13 +1346,15 @@ def edit_report(id):
                     flash('Relatório atualizado com sucesso!', 'success')
 
                 elif action == 'submit_approval':
-                    if relatorio.status in ['Rascunho', 'preenchimento', 'Em edição', 'Rejeitado']:
+                    # Permitir envio para aprovação de relatórios em vários status
+                    status_permitidos = ['rascunho', 'preenchimento', 'em edição', 'rejeitado']
+                    if status_normalizado in status_permitidos:
                         relatorio.status = 'Aguardando Aprovacao'
                         relatorio.updated_at = datetime.utcnow()
                         db.session.commit()
                         flash('Relatório enviado para aprovação!', 'success')
                     else:
-                        flash('Relatório já foi enviado para aprovação.', 'warning')
+                        flash('Relatório não pode ser enviado para aprovação no status atual.', 'warning')
 
                 return redirect(url_for('edit_report', id=id))
 
@@ -1319,28 +1363,30 @@ def edit_report(id):
                 current_app.logger.error(f"❌ Erro ao atualizar relatório {id}: {str(e)}")
                 flash(f'Erro ao atualizar relatório: {str(e)}', 'error')
 
-        # Buscar dados auxiliares com tratamento de erro
+        # Buscar dados auxiliares
         try:
             projetos = Projeto.query.filter_by(status='Ativo').all()
             fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
-            current_app.logger.debug(f"✅ Dados auxiliares: {len(projetos)} projetos, {len(fotos)} fotos")
         except Exception as e:
             current_app.logger.error(f"⚠️ Erro ao buscar dados auxiliares: {str(e)}")
             projetos = []
             fotos = []
 
-        # Garantir valores padrão para campos essenciais
+        # Garantir valores padrão
         if not hasattr(relatorio, 'observacoes') or relatorio.observacoes is None:
             relatorio.observacoes = ''
         if not hasattr(relatorio, 'conteudo') or relatorio.conteudo is None:
             relatorio.conteudo = ''
 
-        # Log da ação para debug
+        # Determinar modo readonly
+        is_readonly = not user_can_edit
+
+        # Log para debug
         current_app.logger.info(f"📖 Usuário {current_user.username} abrindo relatório {relatorio.numero} - "
                                f"Status: {relatorio.status}, Readonly: {is_readonly}, "
                                f"Can View: {user_can_view}, Can Edit: {user_can_edit}")
 
-        # Passar informação de modo readonly para o template
+        # Renderizar template com todas as variáveis necessárias
         return render_template('reports/edit.html', 
                              relatorio=relatorio, 
                              projetos=projetos, 
