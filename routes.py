@@ -2878,10 +2878,13 @@ def visit_view(visit_id):
 @app.route('/reports/<int:report_id>')
 @login_required
 def view_report(report_id):
-    """Visualizar relatório - versão robusta com tratamento de JSON e status rejeitado"""
-    current_app.logger.info(f"📖 view_report chamado para report_id={report_id}")
+    """Visualizar relatório - versão robusta conforme especificação do documento"""
     try:
-        relatorio = Relatorio.query.get_or_404(report_id)
+        # Logging detalhado conforme especificação
+        current_app.logger.info(f"📖 /reports/{report_id}: Tentativa de acesso por usuário {current_user.id}")
+        
+        report = Relatorio.query.get_or_404(report_id)
+        current_app.logger.info(f"✅ Relatório {report_id} encontrado: Status={report.status}")
         
         # Check basic permissions
         user_can_view = False
@@ -2889,56 +2892,57 @@ def view_report(report_id):
         
         if current_user.is_master:
             user_can_view = True
-            user_can_edit = relatorio.status not in ['Aprovado', 'Finalizado']
-        elif relatorio.autor_id == current_user.id:
+            user_can_edit = report.status not in ['Aprovado', 'Finalizado']
+        elif report.autor_id == current_user.id:
             user_can_view = True
-            user_can_edit = relatorio.status in ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
+            user_can_edit = report.status in ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
         else:
             # Allow project team members to view
-            if relatorio.projeto:
+            if report.projeto:
                 try:
                     user_has_access = FuncionarioProjeto.query.filter_by(
-                        projeto_id=relatorio.projeto.id,
+                        projeto_id=report.projeto.id,
                         user_id=current_user.id,
                         ativo=True
                     ).first()
                     
-                    if user_has_access or relatorio.projeto.responsavel_id == current_user.id:
+                    if user_has_access or report.projeto.responsavel_id == current_user.id:
                         user_can_view = True
                         user_can_edit = False  # Membros da equipe só visualizam
                 except Exception:
+                    current_app.logger.warning(f"Erro ao verificar acesso ao projeto para relatório {report_id}")
                     pass
         
         if not user_can_view:
             flash('Acesso negado ao relatório.', 'error')
             return redirect(url_for('reports'))
         
-        # Proteger contra JSON malformado no checklist
+        # Desserializar checklist com try/except conforme especificação
         try:
             import json
-            checklist = json.loads(relatorio.checklist_data) if relatorio.checklist_data else {}
-        except Exception:
-            current_app.logger.exception("JSON inválido no checklist do relatório %s", report_id)
+            checklist = json.loads(report.checklist_data) if report.checklist_data else {}
+            current_app.logger.info(f"✅ Checklist carregado: {len(checklist)} itens")
+        except Exception as e:
+            current_app.logger.exception(f"ERRO CHECKLIST relatório {report_id}: JSON inválido - {str(e)}")
             checklist = {}
         
         try:
             fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
+            current_app.logger.info(f"✅ Fotos carregadas: {len(fotos)} arquivos")
         except Exception as e:
             current_app.logger.error(f"Erro ao buscar fotos do relatório {report_id}: {str(e)}")
             fotos = []
         
         return render_template('reports/view.html', 
-                             report=relatorio,  # Use 'report' to match template expectations
-                             relatorio=relatorio,  # Keep both for compatibility
+                             report=report,  # Padronizado para 'report' conforme especificação
                              fotos=fotos,
                              checklist=checklist,
                              user_can_edit=user_can_edit,
                              user_can_view=user_can_view)
     
     except Exception as e:
-        current_app.logger.exception(f"Erro ao visualizar relatório {report_id}: {str(e)}")
-        flash('Erro ao carregar relatório.', 'error')
-        return redirect(url_for('reports'))
+        current_app.logger.exception(f"ERRO GERAL em /reports/{report_id}: {str(e)}")
+        abort(500, description="Erro interno ao carregar relatório para edição.")
 
 @app.route('/reports/<int:report_id>/view')
 @login_required  
