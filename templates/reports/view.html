@@ -5,31 +5,17 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h1>
+        <!-- Mobile responsive header -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-2">
+            <h1 class="mb-2 mb-md-0 fs-3 fs-md-1">
                 <i class="fas fa-file-alt me-2"></i>
-                {{ report.titulo }}
-                <small class="text-muted">({{ report.numero }})</small>
+                <span class="d-block d-md-inline">{{ report.titulo }}</span>
+                <small class="text-muted d-block d-md-inline">({{ report.numero }})</small>
             </h1>
-            <div class="btn-group" role="group">
-                {% if report.status == "Aprovado" %}
-                    <a href="{{ url_for('report_generate_pdf', report_id=report.id) }}" class="btn btn-success">
-                        <i class="fas fa-file-pdf me-2"></i>Baixar PDF
-                    </a>
-                {% elif report.status == "Rejeitado" %}
-                    <!-- Botão removido - mantido apenas na seção de status para evitar duplicação -->
-                {% else %}
-                    <!-- Preenchimento ou Aguardando -->
-                    <a href="{{ url_for('report_edit', report_id=report.id) }}" class="btn btn-primary">
-                        <i class="fas fa-edit me-2"></i>Editar
-                    </a>
-                    <a href="{{ url_for('report_generate_pdf', report_id=report.id) }}" class="btn btn-success">
-                        <i class="fas fa-file-pdf me-2"></i>Baixar PDF
-                    </a>
-                {% endif %}
-                
-                <a href="{{ url_for('reports') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left me-2"></i>Voltar
+            <!-- Mobile-first responsive buttons -->
+            <div class="d-flex flex-wrap gap-2" role="group">
+                <a href="{{ url_for('reports') }}" class="btn btn-secondary btn-sm btn-md-normal">
+                    <i class="fas fa-arrow-left me-1 me-md-2"></i><span class="d-none d-sm-inline">Voltar</span>
                 </a>
             </div>
         </div>
@@ -73,45 +59,53 @@
                         {% endif %}
                     </div>
                     
-                    <div>
+                    <!-- Action buttons based on status -->
+                    <div class="d-flex flex-wrap gap-2">
                         {% if report.status == "Rejeitado" %}
-                            <div class="alert alert-danger mt-2">
-                                <strong><i class="fas fa-exclamation-triangle me-1"></i>Motivo da rejeição:</strong> 
-                                <br>{{ report.comentario_aprovacao or "Não informado" }}
-                            </div>
-                            {% if user_can_edit %}
-                                <div class="d-grid gap-2 mt-3">
+                            <div class="w-100">
+                                <div class="alert alert-danger mb-3">
+                                    <strong><i class="fas fa-exclamation-triangle me-1"></i>Motivo da rejeição:</strong> 
+                                    <br>{{ report.comentario_aprovacao or "Não informado" }}
+                                </div>
+                                {% if user_can_edit %}
                                     <a href="{{ url_for('report_edit', report_id=report.id) }}" class="btn btn-warning">
                                         <i class="fas fa-edit me-2"></i>Editar e Corrigir
                                     </a>
-                                </div>
-                            {% endif %}
-                        {% elif report.status == 'Rascunho' and report.autor_id == current_user.id %}
-                            <form method="POST" action="{{ url_for('report_submit_for_approval', report_id=report.id) }}" style="display: inline;" onsubmit="return confirm('Enviar relatório para aprovação?')">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-info btn-sm">
-                                    <i class="fas fa-check-circle me-1"></i>Enviar para Aprovação
-                                </button>
-                            </form>
-                        {% elif report.status == 'Aguardando Aprovação' %}
-                            <span class="text-warning">
-                                <i class="fas fa-clock me-1"></i>Aguardando aprovação
-                            </span>
-                        {% elif report.status == 'Aprovado' %}
-                            <a href="{{ url_for('generate_pdf_report', id=report.id) }}" class="btn btn-success btn-sm" target="_blank">
-                                <i class="fas fa-download me-1"></i>Baixar PDF
+                                {% endif %}
+                            </div>
+                        {% elif report.status == "Aprovado" %}
+                            <a href="{{ url_for('generate_pdf_report', id=report.id) }}" class="btn btn-success" target="_blank">
+                                <i class="fas fa-file-pdf me-2"></i>Baixar PDF
                             </a>
                             {% if current_user.is_master %}
                                 <form method="POST" action="{{ url_for('report_send', report_id=report.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja enviar este relatório por email?')">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-info btn-sm ms-2">
-                                        <i class="fas fa-paper-plane me-1"></i>Enviar por Email
+                                    <button type="submit" class="btn btn-info">
+                                        <i class="fas fa-paper-plane me-2"></i>Enviar por Email
                                     </button>
                                 </form>
                             {% endif %}
+                        {% elif report.status == 'preenchimento' or report.status == 'Aguardando Aprovação' or report.status == 'Em edição' %}
+                            <a href="{{ url_for('report_edit', report_id=report.id) }}" class="btn btn-primary">
+                                <i class="fas fa-edit me-2"></i>Editar
+                            </a>
+                            <a href="{{ url_for('generate_pdf_report', id=report.id) }}" class="btn btn-success" target="_blank">
+                                <i class="fas fa-file-pdf me-2"></i>Baixar PDF
+                            </a>
+                        {% elif report.status == 'Rascunho' and report.autor_id == current_user.id %}
+                            <form method="POST" action="{{ url_for('report_submit_for_approval', report_id=report.id) }}" style="display: inline;" onsubmit="return confirm('Enviar relatório para aprovação?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-info">
+                                    <i class="fas fa-check-circle me-2"></i>Enviar para Aprovação
+                                </button>
+                            </form>
                         {% elif report.status == 'Enviado' %}
                             <span class="text-success">
                                 <i class="fas fa-check-circle me-1"></i>Relatório enviado em {{ report.data_envio.strftime('%d/%m/%Y às %H:%M') }}
+                            </span>
+                        {% else %}
+                            <span class="text-warning">
+                                <i class="fas fa-clock me-1"></i>{{ report.status }}
                             </span>
                         {% endif %}
                     </div>
