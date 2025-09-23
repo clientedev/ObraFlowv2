@@ -1592,7 +1592,7 @@ def reject_report(id):
 
     flash(f'Relatório {relatorio.numero} rejeitado e devolvido para edição. '
           f'O autor {autor.nome_completo} deve fazer as correções solicitadas.', 'warning')
-    return redirect(url_for('review_report', report_id=id))
+    return redirect(url_for('review_report', report_id=relatorio.id))
 
 @app.route('/reports/pending')
 @login_required
