@@ -38,7 +38,7 @@ class ReportsAutoSave {
             console.warn('🚫 AutoSave: csrfToken não fornecido');
         }
         
-        console.log(`📱 AutoSave iniciado para relatório ${this.reportId}`);
+        // AutoSave iniciado silenciosamente
         
         // Configurar listeners de eventos
         this.setupEventListeners();
@@ -104,12 +104,12 @@ class ReportsAutoSave {
     }
     
     handleInputChange(event) {
-        console.log(`📝 AutoSave: Campo '${event.target.name}' alterado`);
+        // Campo alterado - auto save ativado
         this.debouncedSave();
     }
     
     handleChecklistChange() {
-        console.log('📝 AutoSave: Checklist alterado');
+        // Checklist alterado - auto save ativado
         this.debouncedSave();
     }
     
@@ -176,7 +176,7 @@ class ReportsAutoSave {
     
     async performSave() {
         if (this.isSaving) {
-            console.log('💾 AutoSave: Já está salvando, ignorando...');
+            // Auto save já em progresso - aguardando
             return;
         }
         
@@ -187,7 +187,7 @@ class ReportsAutoSave {
         
         // Verificar se há mudanças
         if (JSON.stringify(data) === JSON.stringify(this.lastSavedData)) {
-            console.log('💾 AutoSave: Sem alterações detectadas');
+            // Nenhuma alteração para salvar
             this.isSaving = false;
             this.hideStatus();
             return;
@@ -201,7 +201,7 @@ class ReportsAutoSave {
                 this.showStatus('Salvo localmente (offline)', 'warning');
             }
         } catch (error) {
-            console.error('❌ AutoSave: Erro ao salvar', error);
+            // Erro no auto save - tentando novamente
             this.handleSaveError(data, error);
         } finally {
             this.isSaving = false;
@@ -247,7 +247,7 @@ class ReportsAutoSave {
             this.retryCount = 0;
             this.clearLocalStorage(); // Limpar cache local após sucesso
             
-            console.log('✅ AutoSave: Salvo com sucesso no servidor');
+            // Auto save concluído com sucesso
             this.showStatus(result.message || 'Salvo automaticamente', 'success');
         } else {
             throw new Error(result.error || 'Falha no auto-save');
@@ -338,6 +338,9 @@ class ReportsAutoSave {
     }
     
     showStatus(message, type = 'info') {
+        // DESABILITAR MENSAGENS DE DEBUG - Sistema silencioso conforme solicitado
+        return; 
+        
         const statusElement = document.getElementById('autosave-status');
         if (!statusElement) return;
         

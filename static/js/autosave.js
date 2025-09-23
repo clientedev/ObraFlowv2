@@ -177,6 +177,9 @@ class AutoSave {
     }
     
     showStatus(message, type = 'info') {
+        // DESABILITAR MENSAGENS DE DEBUG - Sistema silencioso conforme solicitado
+        return;
+        
         if (!this.statusElement) return;
         
         const icons = {
