@@ -1,0 +1,108 @@
+Você é um engenheiro sênior especialista em Flask + SQLAlchemy + PostgreSQL (Railway) + Jinja2 + vanilla JS.  
+Contexto: meu app está no Replit (desenvolvimento) e em produção no Railway. Estou com um problema crítico: ao tentar abrir "Continuar" ou "Ver relatório" aparece a mensagem "Erro interno ao carregar relatório para edição". Além disso, relatórios com status **Aguardando aprovação** exibem elementos redundantes na tela, e mesmo eu (usuário com permissão de aprovador global) não vejo os botões **Aprovar / Reprovar** na tela de revisão. Relatórios **Rejeitados** não funcionam corretamente (não abrem / não mostram motivo / não permitem edição); relatórios **Aprovados** apresentam botões repetidos e permitem edição indevida. Preciso que você corrija isso **completamente**.
+
+Objetivo final (aceitação)
+- `GET /reports/<id>` e o botão "Continuar" abrem qualquer relatório (preenchimento/aguardando/aprovado/rejeitado) sem erro 500/404.
+- Relatório **Aprovado** abre em visualização apenas; **não** mostra botão editar; não há botões duplicados.
+- Relatório **Rejeitado** abre, mostra **motivo da rejeição** em destaque e exibe botão **Editar e Corrigir**.
+- Botões **Aprovar / Reprovar** aparecem **apenas** na tela de revisão e apenas para usuários com permissão de aprovador.
+- Eliminar elementos redundantes (ex.: duas badges "Aguardando aprovação" aparecendo).
+- Não exibir tokens/valores sensíveis no template; sem debug visível ao usuário.
+- Entregar patches prontos (arquivos/linhas alteradas), migração se necessária, e checklist de testes.
+
+Passos obrigatórios para o assistente (faça nessa ordem):
+
+1. **Diagnóstico inicial (entregável)**  
+   - Liste as 5 causas prováveis para a mensagem "Erro interno ao carregar relatório para edição". Para cada causa, diga onde procurar (arquivo/linha ou padrão de template).  
+   - Liste 5 causas prováveis para *não ver* os botões Aprovar/Reprovar (permissões/condição no template/JS).  
+   - Liste 5 causas prováveis para botões duplicados / elementos redundantes.  
+   - Mostre instruções precisas para coletar logs no Replit e Railway (ex.: onde adicionar `current_app.logger.exception()`, como ler `railway logs` ou visualizar logs no painel).
+
+2. **Verificação e patch da rota de visualização / edição**  
+   - Abrir `views/reports.py` (ou arquivo equivalente) e garantir que exista rota:
+     ```
+     @app.route("/reports/<int:report_id>")
+     @login_required
+     def view_report(report_id):
+         try:
+             report = Report.query.get_or_404(report_id)
+         except Exception:
+             current_app.logger.exception("Erro ao buscar relatório %s", report_id)
+             abort(500, description="Erro interno ao carregar relatório.")
+         # desserializar com try/except
+         try:
+             checklist = json.loads(report.checklist_json) if report.checklist_json else {}
+         except Exception:
+             current_app.logger.exception("Checklist inválido no relatório %s", report_id)
+             checklist = {}
+         return render_template("reports/view.html", report=report, checklist=checklist)
+     ```
+   - Se houver outra rota `/reports/<id>/edit` ou `/reports/<id>/continue`, padronize para usar `report_id` e corrigir `url_for()` nos templates.  
+   - Entregue o patch mostrando as linhas adicionadas/alteradas.
+
+3. **Corrigir a tela de revisão e rota `/reports/<id>/review` (erro 500 conhecido)**  
+   - Investigar stacktrace: identificar linha responsável (ex.: `report.approvable_by` nulo; desserialização de JSON; `current_user` sem atributo).  
+   - Adicionar validações defensivas e logging em pontos críticos.  
+   - Garantir que a view apenas construa e renderize os dados necessários, sem acessar atributos None.  
+   - Forneça patch com try/except e testes condicionais.
+
+4. **Permissões e visibilidade de botões Approve/Reject**  
+   - Localizar a lógica que mostra os botões (templates: `reports/review.html`, `reports/view.html` ou includes).  
+   - Assegurar que a condição use um método/flag consistente, exemplo:
+     ```jinja
+     {% if current_user.is_authenticated and (current_user.is_aprovador or current_user.has_role('approver') or current_user.is_master) %}
+       <!-- mostrar botões aqui -->
+     {% endif %}
+     ```
+   - Se `is_aprovador`/`has_role` não existir, propor implementação: adicionar propriedade no `User` model ou decorator `@approver_required`. Entregue patch mínimo no `models.py` (property `is_aprovador`) e no template.  
+   - Teste: instruções para criar um usuário com permissão e verificar exibição.
+
+5. **Corrigir comportamento de Relatórios Rejeitados / Aprovados**  
+   - Garantir que model `Report` possua `motivo_rejeicao` (se não, gerar migração Alembic). Patch de migration incluído.  
+   - Template `reports/view.html` / partials: aplicar lógica de exibição:
+     - `Aprovado` → badge verde + botão único "Baixar PDF" — **nenhum botão Editar**.
+     - `Rejeitado` → badge vermelho + painel com `motivo_rejeicao` + botão "Editar e Corrigir".
+   - Garantir que ao reprovar via review route, motivo seja obrigatório: validar no servidor antes de salvar.
+
+6. **Eliminar elementos redundantes**  
+   - Buscar no repo por ocorrências duplicadas das renderizações de status (procurar `'Aguardando aprovação'`, `report.status`, `badge` etc.).  
+   - Consolidar em uma macro ou include (ex.: `_status_badge.html`) e substituir duplicações. Entregue patch com remoção das duplicações e criação da macro.
+
+7. **Autosave: verificar interferência**  
+   - Checar `static/js/reports_autosave.js` se ao salvar ele altera `report.status` para algum valor incorreto ou envia payload inválido que quebra view.  
+   - Garantir que autosave atualize apenas campos permitidos e defina `status='preenchimento'` apenas quando apropriado. Entregue patch JS se necessário.
+
+8. **Remover tokens/valores sensíveis visíveis**  
+   - Inspecionar templates `view.html`, `edit.html`, `base.html` para `{{ csrf_token() }}` exibido fora de `<input type="hidden">` ou `{{ some_token }}` impressos.  
+   - Remover qualquer renderização pública; mover para campo hidden nos formulários.
+
+9. **Serviço de notificações**  
+   - Ao reprovar, enviar notificação/email ao autor (se sistema de email configurado). Incluir patch mínimo onde aplicável (enviar `flash` + call para enviar email).
+
+10. **Entregáveis finais (obrigatórios)**  
+   O assistente deve retornar:
+   - Lista exata dos arquivos alterados e as linhas alteradas (diffs ou trechos) — por exemplo: `app/views/reports.py: linhas 120-160 alteradas`.
+   - Migration Alembic pronta (se necessária).
+   - Templates atualizados (`reports/view.html`, `reports/review.html`, include/macro status badge).
+   - JS atualizado (se correção no autosave foi necessária).
+   - Relatório curto (máx 6 linhas) com **causa raiz** do problema original (por que dava "Erro interno...") e a correção aplicada.
+   - Checklist de testes manuais com passos exatos para validar (incluindo criar um usuário aprovador e testar reprovar/editar/reaprovar).
+
+11. **Testes que o assistente deve rodar localmente (descrição)**  
+   - Abrir relatório com status: `preenchimento`, `aguardando aprovação`, `aprovado`, `rejeitado` → verificar visualização e botões.  
+   - Como aprovador: acessar `/reports/<id>/review` → ver botões Aprovar/Reprovar; reprovar com motivo obrigatório; ver notificação ao autor.  
+   - Conferir que não há duplicação de badges ou botões.  
+   - Verificar logs para 500s não aparecem ao abrir relatórios (HTTP 200).
+
+12. **Orientações de segurança e deploy**  
+   - Não deixar `DEBUG=True` em produção.  
+   - Não expor tokens no template.  
+   - Se alteração requer migração, fornecer comando exato para aplicar no Railway (`export DATABASE_URL=...; flask db upgrade`) e recomendar backup.
+
+### Critérios de sucesso
+- Relatórios rejeitados funcionam 100% (abrem, mostram motivo, permitem editar).  
+- Relatórios aprovados não têm botão editar e não exibem duplicações.  
+- Botões Aprovar/Reprovar aparecem **somente** na review page e somente para aprovadores.  
+- Mensagem "Erro interno ao carregar relatório para edição" é resolvida (root cause encontrada e corrigida).
+
+Execute as correções, gere os patches, e devolva a lista de arquivos/linhas modificadas + um checklist de testes prontos para eu aplicar no Replit/Production.
