@@ -209,6 +209,7 @@
                                 
                                 {% if relatorio.status in ['Rascunho', 'preenchimento'] and (relatorio.autor_id == current_user.id or current_user.is_master) %}
                                 <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="action" value="submit_approval">
                                     <button type="submit" class="btn btn-warning w-100">
                                         <i class="fas fa-check-circle"></i> Enviar para Aprovação
