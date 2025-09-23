@@ -152,3 +152,15 @@ Mobile-first design: Date field should be the first input field in report forms.
 - ✅ **User Experience**: Usuários agora podem visualizar relatórios rejeitados, ver motivo da rejeição e depois decidir se querem editá-los
 - ✅ **Permissions Verified**: Sistema mantém permissões corretas - autor pode visualizar e editar, outros usuários podem visualizar conforme permissões do projeto
 - ✅ **Template Updates**: Atualizado `templates/reports/list.html` com botão "Abrir" para relatórios com status "Rejeitado" ou "Em edição"
+
+### Binary Image Storage Implementation (2025-09-23)
+- ✅ **Database Integration**: Sistema agora salva dados binários de imagens diretamente na coluna `imagem` (LargeBinary) das tabelas `fotos_relatorio` e `fotos_relatorios_express`
+- ✅ **Upload Routes Fixed**: Corrigidas 4 rotas principais de upload para salvar dados binários: `/reports/<id>/photos/upload`, `/reports/<id>/photos/annotate`, `/photo-editor`, e rotas Express
+- ✅ **Dual Storage Strategy**: Mantida compatibilidade com armazenamento no filesystem - sistema usa prioridade: banco de dados → filesystem → placeholder SVG
+- ✅ **Image Serving Logic**: Rota `/imagens/<id>` serve imagens do banco primeiro, depois fallback para filesystem se necessário
+- ✅ **Migration Script**: Criado `migrate_filesystem_to_database.py` para migrar fotos existentes do filesystem para o banco com dry-run e logging completo
+- ✅ **Photo Editor Integration**: Rota de editor de fotos (`/photo-editor`) corrigida para salvar dados binários com validação adequada
+- ✅ **Express Reports Support**: Todas as rotas de relatórios express também salvam dados binários corretamente
+- ✅ **Testing Suite**: Criado `test_image_binary_system.py` com 4 testes validando estrutura do banco, rotas, dados binários e pasta de upload
+- ✅ **Backward Compatibility**: Sistema mantém compatibilidade total com fotos já existentes no filesystem
+- ✅ **Performance Optimized**: Dados binários são servidos diretamente do PostgreSQL sem overhead de leitura de arquivos
