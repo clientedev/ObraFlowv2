@@ -1,0 +1,155 @@
+Você é um especialista em Flask + SQLAlchemy + PostgreSQL + Jinja2.  
+Preciso que você corrija o problema dos relatórios REJEITADOS, que ainda não funcionam corretamente no sistema.  
+Use como base as instruções pedidas pelo cliente no documento oficial (Itens 24 e 25 das atualizações).
+
+### Contexto do sistema
+- Backend: Flask, SQLAlchemy, PostgreSQL (Railway).
+- Templates: Jinja2 com Bootstrap.
+- Status possíveis do relatório: "Preenchimento", "Aguardando aprovação", "Aprovado", "Rejeitado".
+- Já existe sistema de aprovação, mas relatórios rejeitados não estão abrindo corretamente.
+
+---
+
+### Regras solicitadas pelo cliente
+1. Apenas o usuário **aprovador** deve ver os botões de **Aprovar** e **Reprovar** (Item 24).
+2. Os botões de aprovação/reprovação devem aparecer **somente na tela de Revisão** → não podem aparecer em outras telas (Item 25).
+3. Quando um relatório for **reprovado**:
+   - Deve abrir um **campo de comentários obrigatório** para o aprovador justificar a rejeição.
+   - O sistema deve salvar o comentário no banco (`motivo_rejeicao`).
+   - O responsável pelo relatório deve receber alerta (notificação/email).
+   - O relatório deve mudar para status **"Rejeitado"**.
+   - Ao abrir o relatório rejeitado:
+     - Mostrar badge vermelho "Rejeitado".
+     - Mostrar o **motivo da rejeição** em destaque.
+     - Exibir botão **"Editar e Corrigir"** → para que o responsável faça ajustes e reenvie para aprovação.
+
+4. Relatórios **aprovados**:
+   - Devem abrir normalmente em modo de visualização.
+   - Não podem ter botão "Editar".
+   - Mostrar apenas badge verde "Aprovado" e botão "Baixar PDF" (sem redundâncias).
+
+---
+
+### Tarefas técnicas
+1. **Model Report**
+   - Verificar se já existe campo `motivo_rejeicao`.  
+   - Se não existir, criar migração Alembic para adicionar:
+     ```python
+     motivo_rejeicao = db.Column(db.Text, nullable=True)
+     ```
+
+2. **Rotas Flask**
+   - `@app.route("/reports/<id>/review")`:  
+     - Ao clicar em **Reprovar**, abrir modal/form para motivo da rejeição.  
+     - Validar preenchimento obrigatório.  
+     - Atualizar `report.status = "Rejeitado"` e `report.motivo_rejeicao = motivo`.  
+     - Enviar notificação/email ao responsável.  
+   - `@app.route("/reports/<id>")`:  
+     - Sempre permitir abrir relatórios, mesmo rejeitados.  
+     - Passar `motivo_rejeicao` para o template.
+
+3. **Templates**
+   - `view.html` / `review.html`:
+     ```html
+     {% if report.status == "Aprovado" %}
+       <span class="badge bg-success">Aprovado</span>
+       <a href="{{ url_for('download_pdf', report_id=report.id) }}" class="btn btn-success">Baixar PDF</a>
+     
+     {% elif report.status == "Rejeitado" %}
+       <span class="badge bg-danger">Rejeitado</span>
+       <div class="alert alert-warning mt-2">
+         <strong>Motivo da rejeição:</strong> {{ report.motivo_rejeicao or "Não informado" }}
+       </div>
+       <a href="{{ url_for('edit_report', report_id=report.id) }}" class="btn btn-warning">Editar e Corrigir</a>
+     
+     {% elif report.status == "Aguardando aprovação" %}
+       <span class="badge bg-info">Aguardando aprovação</span>
+       <!-- Apenas aprovadores -->
+       {% if current_user.is_aprovador %}
+         <form method="POST" action="{{ url_for('approve_report', report_id=report.id) }}">
+           <button class="btn btn-success">Aprovar</button>
+         </form>
+         <form method="POST" action="{{ url_for('reject_report', report_id=report.id) }}">
+           <textarea name="motivo" placeholder="Informe motivo da rejeição" required></textarea>
+           <button class="btn btn-danger">Reprovar</button>
+         </form>
+       {% endif %}
+     
+     {% else %}
+       <!-- Status preenchimento -->
+       <a href="{{ url_for('edit_report', report_id=report.id) }}" class="btn btn-primary">Editar</a>
+     {% endif %}
+     ```
+
+4. **Notificações**
+   - Ao rejeitar, gerar alerta no sistema ou enviar email ao responsável.
+   - Exemplo: `"Seu relatório {{ report.id }} foi rejeitado. Motivo: {{ motivo_rejeicao }}"`.
+
+---
+
+### Saída esperada
+- Relatórios rejeitados abrem normalmente.  
+- Mostram motivo da rejeição + botão "Editar e Corrigir".  
+- Fluxo de reprovação com motivo obrigatório funcionando 100%.  
+- Relatórios aprovados só visualizam, sem editar, sem botões duplicados.  
+- Apenas aprovadores veem botões de Aprovar/Reprovar, e só na tela de Revisão.  
+
+Forneça os patches completos (rotas Flask, models, migração Alembic, templates) e explique quais arquivos foram alterados.
+👉 Quer que eu já gere a migração Alembic pronta para adicionar motivo_rejeicao na tabela reports, junto com o patch da rota /review corrigida?
+
+
+
+
+
+
+
+Você disse:
+por favor
+
+
+O ChatGPT disse:
+Perfeito 🙌. Vou te entregar já pronto: migração Alembic + ajuste no model Report + rotas Flask para aprovar/rejeitar + templates corrigidos. Assim você só cola no seu projeto e aplica.
+
+1. Migração Alembic — adicionar campo motivo_rejeicao
+Crie um novo arquivo em migrations/versions/xxxx_add_motivo_rejeicao.py:
+
+python
+Copiar código
+"""add motivo_rejeicao to reports
+
+Revision ID: add_motivo_rejeicao
+Revises: <coloque o último ID aqui>
+Create Date: 2025-09-22
+
+"""
+from alembic import op
+import sqlalchemy as sa
+
+# Revisão
+revision = 'add_motivo_rejeicao'
+down_revision = '<último_revision_id>'
+branch_labels = None
+depends_on = None
+
+def upgrade():
+    op.add_column('reports', sa.Column('motivo_rejeicao', sa.Text(), nullable=True))
+
+def downgrade():
+    op.drop_column('reports', 'motivo_rejeicao')
+Depois rode:
+
+bash
+Copiar código
+flask db upgrade
+2. Model Report (models.py)
+Adicione no seu modelo Report:
+
+python
+Copiar código
+class Report(db.Model):
+    __tablename__ = "reports"
+
+    id = db.Column(db.Integer, primary_key=True)
+    status = db.Column(db.String(50), nullable=False, default="preenchimento")
+    motivo_rejeicao = db.Column(db.Text, nullable=True)  # <--- novo campo
+    # ... os outros campos
