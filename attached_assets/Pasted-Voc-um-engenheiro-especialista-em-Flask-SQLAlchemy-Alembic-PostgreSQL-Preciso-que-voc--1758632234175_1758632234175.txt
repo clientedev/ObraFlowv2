@@ -1,0 +1,61 @@
+Você é um engenheiro especialista em Flask + SQLAlchemy + Alembic + PostgreSQL.  
+Preciso que você corrija a funcionalidade de relatórios rejeitados no meu sistema.
+
+### Problema
+- Quando um relatório é rejeitado, não está sendo armazenada nem exibida a mensagem enviada pelo aprovador.  
+- Preciso que ao rejeitar, seja **obrigatório informar uma mensagem**, que deve:
+  1. Ser salva corretamente no banco de dados.
+  2. Ser vinculada ao relatório.
+  3. Aparecer claramente na tela do relatório quando ele for aberto em status "Rejeitado".
+- Caso seja necessário alterar o modelo do banco de dados (ex.: adicionar campo `motivo_rejeicao` ou `mensagem_rejeicao`), crie um **arquivo de migração Alembic** com base no **último migration existente no meu repositório (mais atual do GitHub)**.  
+- Não pode sobrescrever ou apagar dados antigos.
+
+### O que deve ser feito
+1. **Banco de dados**
+   - Verificar se a tabela `reports` já possui um campo para armazenar a mensagem de rejeição.  
+   - Se não tiver, criar nova coluna:
+     ```python
+     mensagem_rejeicao = db.Column(db.Text, nullable=True)
+     ```
+   - Gerar um arquivo de migração Alembic incremental (seguindo a sequência dos migrations já no projeto).  
+   - Exemplo do cabeçalho esperado:
+     ```python
+     revision = "XXXX_add_mensagem_rejeicao"
+     down_revision = "<último_revision_id_existente>"
+     ```
+   - Garantir que a migração apenas **adiciona a coluna** e é reversível.
+
+2. **Lado servidor (Flask)**
+   - Atualizar a rota/endpoint de rejeição de relatório para:
+     - Validar que o campo "mensagem de rejeição" foi preenchido.
+     - Salvar essa mensagem no novo campo `mensagem_rejeicao`.
+     - Atualizar o `status` do relatório para "Rejeitado".
+   - Garantir que a mensagem seja persistida corretamente.
+
+3. **Templates (Jinja2)**
+   - Na tela de visualização de relatório (`view.html` ou equivalente):
+     - Se `status == "Rejeitado"`, mostrar:
+       ```html
+       <div class="alert alert-danger mt-2">
+         <strong>Motivo da rejeição:</strong> {{ report.mensagem_rejeicao or "Não informado" }}
+       </div>
+       <a href="{{ url_for('edit_report', report_id=report.id) }}" class="btn btn-warning">
+         Editar e Corrigir
+       </a>
+       ```
+   - A tela de **review** deve obrigar o aprovador a preencher o motivo antes de submeter.
+
+4. **Testes e checklist**
+   - Criar um relatório de teste.
+   - Rejeitar preenchendo um motivo → verificar se aparece salvo no banco (`reports.mensagem_rejeicao`).  
+   - Abrir o relatório rejeitado → a mensagem deve aparecer.  
+   - Editar e corrigir → enviar novamente → fluxo segue normal.  
+
+### Entregáveis
+- Arquivo de migração Alembic incremental (novo arquivo na pasta `migrations/versions/`).  
+- Patch no model `Report` adicionando o campo se não existir.  
+- Patch na rota de rejeição garantindo salvamento obrigatório da mensagem.  
+- Patch nos templates `view.html` e `review.html` exibindo a mensagem corretamente.  
+- Checklist de testes manuais (como validar tudo no Railway e Replit).
+
+Garanta que o código final atenda 100% a esses requisitos.
