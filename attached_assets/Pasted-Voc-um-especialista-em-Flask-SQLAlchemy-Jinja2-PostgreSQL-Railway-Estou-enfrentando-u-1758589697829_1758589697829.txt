@@ -1,0 +1,67 @@
+Você é um especialista em Flask + SQLAlchemy + Jinja2 + PostgreSQL (Railway).  
+Estou enfrentando um erro crítico no meu sistema: ao clicar em "Continuar" ou "Ver relatório" aparece a mensagem:
+
+❌ "Erro interno ao carregar relatório para edição."
+
+### Contexto do sistema
+- Backend: Flask + SQLAlchemy.
+- Banco: PostgreSQL (Railway).
+- Frontend: Templates Jinja2 + Bootstrap.
+- Model principal: `Report` com status (`Aprovado`, `Em preenchimento`, etc.).
+- Já existe autosave implementado para relatórios em preenchimento.
+- Erros relacionados já ocorreram em `/reports/<id>` e `/reports/<id>/review` (500 internal server error).
+- Esse erro acontece especificamente ao tentar editar ou continuar relatório existente.
+
+### O que preciso que você faça
+1. **Analisar a causa do erro**  
+   - Mostrar possíveis causas do erro "Erro interno ao carregar relatório para edição".
+   - Investigar se:
+     - O relatório não está sendo encontrado (`Report.query.get_or_404(id)`).
+     - Há problema de conversão/desserialização de JSON (ex.: `checklist_json` ou `observacoes` corrompidos).
+     - Algum campo `null` está quebrando o template Jinja2.
+     - O autosave está enviando payload inválido para a rota de edição.
+
+2. **Corrigir a rota de edição de relatório** (`/reports/<int:id>/edit` ou `/reports/<int:id>`)  
+   - Adicionar try/except com logging:
+     ```python
+     @app.route("/reports/<int:report_id>/edit")
+     @login_required
+     def edit_report(report_id):
+         try:
+             report = Report.query.get_or_404(report_id)
+         except Exception:
+             current_app.logger.exception("Erro ao buscar relatório %s", report_id)
+             abort(500, description="Erro interno ao carregar relatório.")
+         
+         # Proteção contra JSON inválido
+         try:
+             checklist = json.loads(report.checklist_json) if report.checklist_json else {}
+         except Exception:
+             current_app.logger.exception("Checklist inválido no relatório %s", report_id)
+             checklist = {}
+
+         return render_template("reports/edit.html", report=report, checklist=checklist)
+     ```
+
+3. **Corrigir o template (edit.html ou view.html)**  
+   - Validar se todos os campos usados no template existem no objeto `report`.  
+   - Caso algum campo seja opcional/nulo, proteger com `{{ report.campo or '' }}`.
+
+4. **Garantir compatibilidade com autosave**  
+   - Se o relatório estiver em `status = 'preenchimento'`, deve carregar normalmente para edição, sem quebrar.  
+   - Se não houver dados completos, inicializar com valores padrão (`{}` para checklist, `""` para observações etc.).
+
+5. **Logs claros**  
+   - Adicionar logs em caso de falha, mas exibir ao usuário apenas a mensagem genérica "Erro interno ao carregar relatório".  
+   - Nunca expor stacktrace no frontend.
+
+6. **Saída esperada**  
+   - Trechos de código corrigidos para `routes/reports.py` (rota de edição).  
+   - Correções necessárias no `templates/reports/edit.html` (uso seguro de campos).  
+   - Explicação clara da causa raiz provável e da correção aplicada.  
+   - Checklist de testes manuais para validar (abrir relatório em diferentes status, com checklist vazio, com dados corrompidos, etc.).
+
+### Objetivo final
+- O botão **Continuar** e o botão **Ver relatório** devem funcionar 100% sem erro.  
+- Relatórios existentes devem abrir normalmente em modo de edição.  
+- Caso algum relatório tenha dados inválidos (JSON quebrado, campos nulos), o sistema deve tratar e carregar a página sem crash, mostrando placeholders em vez de erro.
