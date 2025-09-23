@@ -1,0 +1,44 @@
+Você é um engenheiro especialista em Flask + SQLAlchemy + Jinja2 + Bootstrap 5 + PostgreSQL.  
+Preciso que você corrija três problemas críticos no meu sistema de relatórios de obras.
+
+### Problema 1 — Redirecionamento incorreto após rejeição
+- Quando um relatório é rejeitado, a mensagem de rejeição é salva corretamente no banco e tudo funciona como esperado.
+- Porém, após salvar a rejeição, o sistema redireciona para a rota incorreta (`/reports/<id>/review`) que retorna erro 500.
+- Requisito: corrigir o redirecionamento para que, após rejeitar um relatório, o usuário seja levado diretamente para a **lista de relatórios** (`/reports`), já com a mensagem de sucesso exibida.
+
+### Problema 2 — Rota de "Novo Relatório" não funciona
+- Atualmente, ao acessar a rota de criação de um novo relatório (`/reports/new` ou equivalente), o sistema retorna **500 Internal Server Error**.
+- Requisito: corrigir essa rota para que a criação de relatórios volte a funcionar, garantindo:
+  - Inicialização correta do objeto `Report`.
+  - Salvamento no banco com status inicial = "Em preenchimento".
+  - Redirecionamento para a página de edição do relatório criado.
+
+### Problema 3 — Interface duplicada e responsividade quebrada
+- Conforme verificado nos prints do Replit, a tela de relatórios (aprovados, aguardando aprovação, rejeitados, etc.) apresenta:
+  - **Botões duplicados** (ex.: Editar, PDF, Voltar).
+  - Elementos redundantes (mesmo conteúdo aparecendo em mais de um bloco).
+  - Problemas de **responsividade no mobile**, onde botões quebram o layout e ficam desalinhados.
+- Requisito: revisar os templates (`view.html`, `list.html`, `review.html` e similares) e corrigir:
+  - Manter apenas os botões necessários por status:
+    - **Aprovado** → somente "Baixar PDF" e "Voltar".
+    - **Rejeitado** → mensagem de rejeição + botão "Editar e Corrigir" + "Voltar".
+    - **Em preenchimento / Aguardando aprovação** → "Editar", "Baixar PDF" e "Voltar".
+  - Garantir que todos os botões usem classes Bootstrap 5 (`btn btn-primary`, `btn btn-success`, etc.) com **layout responsivo (d-flex flex-wrap gap-2)** para não quebrar no mobile.
+  - Eliminar duplicações de blocos HTML redundantes.
+
+---
+
+### O que você deve entregar
+1. Correção no **endpoint de rejeição** para redirecionar corretamente para `/reports` (listar relatórios).
+2. Correção da rota de criação de novo relatório (`/reports/new`) para voltar a funcionar sem erro 500.
+3. Revisão completa dos templates de relatórios para:
+   - Remover botões duplicados.
+   - Ajustar responsividade com Bootstrap 5.
+   - Exibir apenas os botões adequados conforme status.
+4. Checklist final para validar:
+   - Criar novo relatório funciona sem erro.
+   - Rejeitar relatório redireciona corretamente para lista de relatórios.
+   - UI no mobile não tem botões quebrados nem duplicados.
+   - Status diferentes exibem os botões corretos.
+
+Garanta que todas as correções sejam feitas sem remover dados existentes do banco e respeitando as regras de negócio atuais do sistema.
