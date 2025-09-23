@@ -1207,29 +1207,32 @@ def create_report():
 @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_report(id):
-    """Editar relatório - versão robusta com proteção contra erros"""
+    """Visualizar/Editar relatório - permite abrir relatórios aprovados e rejeitados"""
     try:
-        # Buscar relatório com logging detalhado
+        # Buscar relatório com tratamento robusto
         try:
             relatorio = Relatorio.query.get_or_404(id)
-            current_app.logger.info(f"✅ Relatório {id} encontrado para edição")
+            current_app.logger.info(f"✅ Relatório {id} encontrado: {relatorio.numero} - Status: {relatorio.status}")
         except Exception as e:
             current_app.logger.exception(f"❌ Erro ao buscar relatório {id}: {str(e)}")
-            flash('Erro interno ao carregar relatório para edição.', 'error')
+            flash('Relatório não encontrado.', 'error')
             return redirect(url_for('reports'))
 
         # Check permissions
         if not current_user.is_master and relatorio.autor_id != current_user.id:
-            flash('Acesso negado. Você só pode editar seus próprios relatórios.', 'error')
+            flash('Acesso negado. Você só pode visualizar seus próprios relatórios.', 'error')
             return redirect(url_for('reports'))
         
-        # Relatórios aprovados só podem ser visualizados, não editados
-        # Relatórios rejeitados podem ser editados
-        if relatorio.status == 'Aprovado' and request.method == 'POST':
-            flash('Relatórios aprovados não podem ser editados.', 'error')
-            return redirect(url_for('view_report', report_id=id))
+        # PERMITIR ABERTURA DE RELATÓRIOS APROVADOS E REJEITADOS
+        # Relatórios aprovados: apenas visualização (não edição)
+        # Relatórios rejeitados: podem ser editados
+        is_readonly = relatorio.status == 'Aprovado'
+        
+        if is_readonly and request.method == 'POST':
+            flash('Relatórios aprovados não podem ser editados.', 'warning')
+            return redirect(url_for('edit_report', id=id))
 
-        # Proteção contra checklist_data inválido - CORRIGIDO para usar checklist_data (não checklist_json)
+        # Proteção contra checklist_data inválido
         checklist = {}
         try:
             if relatorio.checklist_data:
@@ -1240,7 +1243,8 @@ def edit_report(id):
             current_app.logger.warning(f"⚠️ Checklist inválido no relatório {id}: {str(e)}")
             checklist = {}
 
-        if request.method == 'POST':
+        # Processamento de formulário (apenas para relatórios não aprovados)
+        if request.method == 'POST' and not is_readonly:
             try:
                 action = request.form.get('action', 'update')
 
@@ -1262,7 +1266,7 @@ def edit_report(id):
                     flash('Relatório atualizado com sucesso!', 'success')
 
                 elif action == 'submit_approval':
-                    if relatorio.status in ['Rascunho', 'preenchimento']:
+                    if relatorio.status in ['Rascunho', 'preenchimento', 'Em edição', 'Rejeitado']:
                         relatorio.status = 'Aguardando Aprovacao'
                         relatorio.updated_at = datetime.utcnow()
                         db.session.commit()
@@ -1277,11 +1281,11 @@ def edit_report(id):
                 current_app.logger.error(f"❌ Erro ao atualizar relatório {id}: {str(e)}")
                 flash(f'Erro ao atualizar relatório: {str(e)}', 'error')
 
-        # Get data for template com proteção contra erros
+        # Buscar dados auxiliares com tratamento de erro
         try:
             projetos = Projeto.query.filter_by(status='Ativo').all()
             fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
-            current_app.logger.debug(f"✅ Dados auxiliares carregados para relatório {id}")
+            current_app.logger.debug(f"✅ Dados auxiliares: {len(projetos)} projetos, {len(fotos)} fotos")
         except Exception as e:
             current_app.logger.error(f"⚠️ Erro ao buscar dados auxiliares: {str(e)}")
             projetos = []
@@ -1293,15 +1297,17 @@ def edit_report(id):
         if not hasattr(relatorio, 'conteudo') or relatorio.conteudo is None:
             relatorio.conteudo = ''
 
+        # Passar informação de modo readonly para o template
         return render_template('reports/edit.html', 
                              relatorio=relatorio, 
                              projetos=projetos, 
                              fotos=fotos,
-                             checklist=checklist)
+                             checklist=checklist,
+                             is_readonly=is_readonly)
 
     except Exception as e:
-        current_app.logger.exception(f"❌ ERRO CRÍTICO na edição do relatório {id}: {str(e)}")
-        flash('Erro interno ao carregar relatório para edição.', 'error')
+        current_app.logger.exception(f"❌ ERRO CRÍTICO na abertura do relatório {id}: {str(e)}")
+        flash('Erro interno ao carregar relatório.', 'error')
         return redirect(url_for('reports'))
 
 # Photo annotation system routes

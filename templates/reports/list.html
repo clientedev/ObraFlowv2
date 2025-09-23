@@ -155,10 +155,10 @@
                                                 <div class="d-flex flex-column gap-1">
                                                     <!-- Botão principal -->
                                                     {% if report.status == 'Aprovado' %}
-                                                        <a href="{{ url_for('view_report', report_id=report.id) }}" 
+                                                        <a href="{{ url_for('edit_report', id=report.id) }}" 
                                                            class="btn btn-sm btn-outline-success" 
-                                                           title="Ver relatório aprovado">
-                                                            <i class="fas fa-eye me-1"></i>Ver
+                                                           title="Abrir relatório aprovado (somente leitura)">
+                                                            <i class="fas fa-eye me-1"></i>Abrir
                                                         </a>
                                                     {% elif report.status == 'Rejeitado' or report.status == 'Em edição' %}
                                                         <a href="{{ url_for('edit_report', id=report.id) }}" 
@@ -173,10 +173,10 @@
                                                             <i class="fas fa-edit me-1"></i>Continuar
                                                         </a>
                                                     {% else %}
-                                                        <a href="{{ url_for('view_report', report_id=report.id) }}" 
+                                                        <a href="{{ url_for('edit_report', id=report.id) }}" 
                                                            class="btn btn-sm btn-outline-primary" 
-                                                           title="Ver relatório">
-                                                            <i class="fas fa-eye me-1"></i>Ver
+                                                           title="Abrir relatório">
+                                                            <i class="fas fa-eye me-1"></i>Abrir
                                                         </a>
                                                     {% endif %}
 
