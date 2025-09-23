@@ -51,20 +51,20 @@ args = "Flask Server"
 name = "Flask Server"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "SESSION_SECRET=\"elp_secret_key_replit\" python main.py"
 waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[ports]]
 localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 40539
+localPort = 39415
 externalPort = 3003
 
 [[ports]]
