@@ -144,3 +144,11 @@ Mobile-first design: Date field should be the first input field in report forms.
 - ✅ **Session Problem Resolution**: Resolvido problema de sessões perdidas no ambiente Railway que impedia carregamento de imagens
 - ✅ **Security Maintained**: Mantida verificação de autenticação, mas com comportamento mais tolerante para problemas de proxy/cookies
 - ✅ **Comprehensive Logging**: Adicionado logging detalhado para debugging de problemas de autenticação de imagens
+
+### Rejected Reports Access Fix (2025-09-23)
+- ✅ **Problem Identified**: Relatórios rejeitados não podiam ser abertos/visualizados pela interface
+- ✅ **Root Cause**: Template de listagem (`list.html`) apenas oferecia botão "Editar" para relatórios rejeitados
+- ✅ **Solution Applied**: Substituído botão "Editar" por "Abrir" na listagem para permitir visualização de relatórios rejeitados
+- ✅ **User Experience**: Usuários agora podem visualizar relatórios rejeitados, ver motivo da rejeição e depois decidir se querem editá-los
+- ✅ **Permissions Verified**: Sistema mantém permissões corretas - autor pode visualizar e editar, outros usuários podem visualizar conforme permissões do projeto
+- ✅ **Template Updates**: Atualizado `templates/reports/list.html` com botão "Abrir" para relatórios com status "Rejeitado" ou "Em edição"
