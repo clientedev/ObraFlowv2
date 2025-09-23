@@ -217,9 +217,6 @@
                                 {% endif %}
                                 {% endif %}
 
-                                <a href="{{ url_for('photo_editor', photoId='new', report_id=relatorio.id) }}" class="btn btn-success">
-                                    <i class="fas fa-camera"></i> Adicionar Foto
-                                </a>
 
                                 {% if relatorio.status in ['Rascunho', 'preenchimento'] and (relatorio.autor_id == current_user.id or current_user.is_master) %}
                                 <form method="POST" style="display: inline;">
@@ -277,11 +274,8 @@
                     <div class="card">
                         <div class="card-body text-center py-5">
                             <i class="fas fa-images fa-3x text-muted mb-3"></i>
-                            <h5>Nenhuma foto adicionada</h5>
-                            <p class="text-muted">Clique no botão "Adicionar Foto" para anexar fotos ao relatório.</p>
-                            <a href="{{ url_for('photo_editor', photoId='new', report_id=relatorio.id) }}" class="btn btn-success">
-                                <i class="fas fa-camera"></i> Adicionar Primeira Foto
-                            </a>
+                            <h5>Nenhuma imagem anexada</h5>
+                            <p class="text-muted">Este relatório não possui nenhuma imagem anexada.</p>
                         </div>
                     </div>
                 </div>
