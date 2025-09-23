@@ -18,6 +18,19 @@ class User(UserMixin, db.Model):
     primeiro_login = db.Column(db.Boolean, default=True)  # Campo para controlar primeiro login
     ativo = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    @property
+    def is_aprovador(self):
+        """Propriedade para verificar se usuário é aprovador - conforme especificação do documento"""
+        try:
+            if self.is_master:
+                return True
+                
+            # Importar aqui para evitar circular import
+            from routes import current_user_is_aprovador
+            return current_user_is_aprovador()
+        except Exception:
+            return False
 
 class TipoObra(db.Model):
     __tablename__ = 'tipos_obra'

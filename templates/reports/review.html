@@ -208,7 +208,7 @@
 {% endif %}
 
 <!-- Approval Actions - Only visible to approvers -->
-{% if user_is_approver and relatorio.status == 'Aguardando Aprovação' %}
+{% if current_user.is_authenticated and (current_user.is_aprovador or current_user.is_master) and relatorio.status == 'Aguardando Aprovação' %}
 <div class="row mb-4">
     <div class="col-12">
         <div class="card border-warning">
