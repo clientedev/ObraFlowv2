@@ -78,7 +78,7 @@
                                         <span class="badge 
                                             {% if relatorio.status == 'Aprovado' %}bg-success
                                             {% elif relatorio.status == 'Rejeitado' or relatorio.status == 'Em edição' %}bg-danger
-                                            {% elif relatorio.status == 'Aguardando Aprovacao' %}bg-warning
+                                            {% elif relatorio.status == 'Aguardando Aprovação' %}bg-warning
                                             {% elif relatorio.status == 'preenchimento' %}bg-info
                                             {% else %}bg-secondary{% endif %}">
                                             {% if relatorio.status == 'preenchimento' %}Em preenchimento
@@ -175,7 +175,7 @@
                                 </button>
                                 {% endif %}
                                 
-                                {% elif relatorio.status == 'Aguardando Aprovacao' or relatorio.status == 'Aguardando Aprovação' %}
+                                {% elif relatorio.status == 'Aguardando Aprovação' %}
                                 <!-- Relatório aguardando aprovação -->
                                 <div class="alert alert-warning mb-3">
                                     <i class="fas fa-clock"></i> <strong>Aguardando Aprovação</strong><br>

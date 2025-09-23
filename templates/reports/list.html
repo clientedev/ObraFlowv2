@@ -146,7 +146,7 @@
                                                         <span class="badge bg-danger" style="font-size: 0.65rem; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">
                                                             {% if report.status == 'Em edição' %}Em edição{% else %}Rejeitado{% endif %}
                                                         </span>
-                                                    {% elif report.status == 'Aguardando Aprovação' or report.status == 'Aguardando Aprovacao' %}
+                                                    {% elif report.status == 'Aguardando Aprovação' %}
                                                         <span class="badge bg-warning" style="font-size: 0.6rem; white-space: nowrap; max-width: 90px; overflow: hidden; text-overflow: ellipsis; padding: 2px 6px;">Aguardando</span>
                                                     {% else %}
                                                         <span class="badge bg-secondary" style="font-size: 0.65rem; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">{{ report.status or 'Indefinido' }}</span>
@@ -157,25 +157,25 @@
                                                 <div class="d-flex flex-column gap-1">
                                                     <!-- Botão principal -->
                                                     {% if report.status == 'Aprovado' %}
-                                                        <a href="{{ url_for('edit_report', id=report.id) }}" 
+                                                        <a href="{{ url_for('view_report', report_id=report.id) }}" 
                                                            class="btn btn-sm btn-outline-success" 
                                                            title="Abrir relatório aprovado (somente leitura)">
                                                             <i class="fas fa-eye me-1"></i>Abrir
                                                         </a>
                                                     {% elif report.status == 'Rejeitado' or report.status == 'Em edição' %}
-                                                        <a href="{{ url_for('edit_report', id=report.id) }}" 
+                                                        <a href="{{ url_for('report_edit', report_id=report.id) }}" 
                                                            class="btn btn-sm btn-outline-warning" 
                                                            title="Editar relatório rejeitado">
                                                             <i class="fas fa-edit me-1"></i>Editar
                                                         </a>
                                                     {% elif report.status == 'preenchimento' %}
-                                                        <a href="{{ url_for('edit_report', id=report.id) }}" 
+                                                        <a href="{{ url_for('report_edit', report_id=report.id) }}" 
                                                            class="btn btn-sm btn-outline-primary" 
                                                            title="Continuar editando">
                                                             <i class="fas fa-edit me-1"></i>Continuar
                                                         </a>
                                                     {% else %}
-                                                        <a href="{{ url_for('edit_report', id=report.id) }}" 
+                                                        <a href="{{ url_for('view_report', report_id=report.id) }}" 
                                                            class="btn btn-sm btn-outline-primary" 
                                                            title="Abrir relatório">
                                                             <i class="fas fa-eye me-1"></i>Abrir

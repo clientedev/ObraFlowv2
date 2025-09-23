@@ -319,7 +319,7 @@ def api_dashboard_stats():
         projetos_ativos = Projeto.query.filter_by(status='Ativo').count()
         visitas_agendadas = Visita.query.filter_by(status='Agendada').count()
         relatorios_pendentes = Relatorio.query.filter(
-            Relatorio.status.in_(['Rascunho', 'Aguardando Aprovacao'])
+            Relatorio.status.in_(['Rascunho', 'Aguardando Aprovação'])
         ).count()
 
         # Reembolsos com verificação de tabela
@@ -454,7 +454,7 @@ def index():
         projetos_ativos = Projeto.query.filter_by(status='Ativo').count()
         visitas_agendadas = Visita.query.filter_by(status='Agendada').count()
         relatorios_pendentes = Relatorio.query.filter(
-            Relatorio.status.in_(['Rascunho', 'Aguardando Aprovacao'])
+            Relatorio.status.in_(['Rascunho', 'Aguardando Aprovação'])
         ).count()
 
         # Usuários ativos
@@ -1248,9 +1248,9 @@ def get_aprovador_padrao_para_projeto(projeto_id):
                          preselected_project_id=preselected_project_id,
                          today=date.today().isoformat())
 
-@app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])
-@login_required
-def edit_report(id):
+# @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])  # DEPRECATED - removed to prevent conflicts
+# @login_required
+def edit_report_deprecated(id):
     """Visualizar/Editar relatório - permite abrir relatórios aprovados e rejeitados"""
     try:
         # Buscar relatório
@@ -1335,7 +1335,7 @@ def edit_report(id):
                     # Permitir envio para aprovação de relatórios em vários status
                     status_permitidos = ['rascunho', 'preenchimento', 'em edição', 'rejeitado']
                     if status_normalizado in status_permitidos:
-                        relatorio.status = 'Aguardando Aprovacao'
+                        relatorio.status = 'Aguardando Aprovação'
                         relatorio.updated_at = datetime.utcnow()
                         db.session.commit()
                         flash('Relatório enviado para aprovação!', 'success')
@@ -1532,7 +1532,7 @@ def update_report_status(id):
             return jsonify({'success': False, 'error': 'Permissão negada'})
 
         new_status = data.get('status')
-        valid_statuses = ['Rascunho', 'Aguardando Aprovacao', 'Aprovado', 'Rejeitado']
+        valid_statuses = ['Rascunho', 'Aguardando Aprovação', 'Aprovado', 'Rejeitado']
 
         if new_status not in valid_statuses:
             return jsonify({'success': False, 'error': 'Status inválido'})
@@ -3006,6 +3006,7 @@ def visit_view(visit_id):
 @login_required
 def view_report(report_id):
     """Visualizar relatório - versão robusta com tratamento de JSON"""
+    current_app.logger.info(f"📖 view_report chamado para report_id={report_id}")
     try:
         relatorio = Relatorio.query.get_or_404(report_id)
         
@@ -3056,6 +3057,7 @@ def view_report(report_id):
 @app.route('/reports/<int:report_id>/edit', methods=['GET', 'POST'])
 @login_required
 def report_edit(report_id):
+    current_app.logger.info(f"✏️ report_edit chamado para report_id={report_id}")
     report = Relatorio.query.get_or_404(report_id)
 
     # Check permissions
@@ -3770,7 +3772,7 @@ def reports_approval_dashboard():
         return redirect(url_for('index'))
 
     # Get reports awaiting approval
-    relatorios = Relatorio.query.filter_by(status='Aguardando Aprovacao').order_by(Relatorio.created_at.desc()).all()
+    relatorios = Relatorio.query.filter_by(status='Aguardando Aprovação').order_by(Relatorio.created_at.desc()).all()
 
     return render_template('reports/approval_dashboard.html', relatorios=relatorios)
 
@@ -3929,7 +3931,7 @@ def report_submit_for_approval(report_id):
         flash('Apenas relatórios em rascunho podem ser enviados para aprovação.', 'error')
         return redirect(url_for('report_view', report_id=report_id))
 
-    relatorio.status = 'Aguardando Aprovacao'
+    relatorio.status = 'Aguardando Aprovação'
     db.session.commit()
 
     flash('Relatório enviado para aprovação.', 'success')
