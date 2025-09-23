@@ -1,0 +1,157 @@
+Você é um engenheiro sênior especialista em Flask + SQLAlchemy + PostgreSQL (Railway).  
+Problema: as imagens estão sendo salvas apenas como `filename` em `fotos_relatorio`. A coluna `imagem` já existe, mas não está sendo utilizada. Preciso que você corrija isso 100%: ao fazer upload ou editar foto, o arquivo binário deve ser gravado em `fotos_relatorio.imagem`, mantidos `filename` e `filename_original`, e a imagem deve poder ser exibida ao abrir o relatório.
+
+A tarefa deve ser executada assim:
+
+1) Validação inicial
+- Verifique que a tabela `fotos_relatorio` possui a coluna `imagem`. Se não existir, gere e entregue uma migração Alembic incremental baseada no último `down_revision` do projeto (não faça `DROP` de dados).
+- Verifique também a existência do campo `filename` e `filename_original` (manter).
+
+2) Alterações no backend (obrigatório)
+- Modifique a rota de upload / salvamento de foto (ex.: `POST /reports/<id>/photos` ou `POST /upload_photo`) para **SALVAR O BINÁRIO**:
+  * Ler o arquivo enviado: `file = request.files.get('file')` (ou campo real do form).
+  * Validar: `if not file: return jsonify(error="No file"), 400`.
+  * Limitar tamanho: se `len(file.read()) > MAX_BYTES`: retornar 400 (ex.: 16MB). (Use `file.seek(0)` para voltar.)
+  * Capturar bytes: `file_bytes = file.read()` (garantir `file.stream.seek(0)` antes/ depois).
+  * Gerar `filename_secure = secure_filename(file.filename)`.
+  * Criar/atualizar registro `FotoRelatorio`:
+    ```python
+    foto = FotoRelatorio(
+        relatorio_id=report.id,
+        filename=filename_secure,
+        filename_original=file.filename,
+        imagem=file_bytes,
+        titulo=form.get('titulo', None),
+        legenda=form.get('legenda', None),
+        descricao=form.get('descricao', None),
+        ordem=form.get('ordem', None),
+        created_at=datetime.utcnow()
+    )
+    db.session.add(foto)
+    db.session.commit()
+    ```
+  * Use `try/except` com `db.session.rollback()` em exceção, e log com `current_app.logger.exception()`.
+
+- Se o fluxo atual salva fotos em disco e depois só grava `filename` no DB, altere para **gravar também o conteúdo** em `imagem`. Mantenha o armazenamento em disco somente como fallback (opcional).
+
+3) Endpoint para servir imagens (obrigatório)
+- Crie rota segura para devolver bytes do banco e o `Content-Type` baseado na extensão:
+  ```python
+  import mimetypes
+  from flask import Response
+
+  @app.route("/imagens/<int:foto_id>")
+  @login_required
+  def get_imagem(foto_id):
+      foto = FotoRelatorio.query.get_or_404(foto_id)
+      if foto.imagem:
+          mime, _ = mimetypes.guess_type(foto.filename or foto.filename_original)
+          mimetype = mime or "application/octet-stream"
+          return Response(foto.imagem, mimetype=mimetype)
+      # fallback: servir do filesystem se existir filename no UPLOAD_FOLDER
+      path = os.path.join(current_app.config['UPLOAD_FOLDER'], foto.filename)
+      if os.path.exists(path):
+          return send_file(path)
+      abort(404)
+No template, exiba <img src="{{ url_for('get_imagem', foto_id=foto.id) }}" ...>.
+
+Exibir imagens no template (opcional alternativa)
+
+Se preferir enviar Base64 para o template:
+
+python
+Copiar código
+import base64
+image_b64 = base64.b64encode(foto.imagem).decode('utf-8') if foto.imagem else None
+# passar image_b64 para template e usar: <img src="data:image/jpeg;base64,{{ image_b64 }}" />
+Preferência: usar rota /imagens/<id> para evitar inlining em HTML e economizar memória.
+
+Tratamento para fotos já existentes (migração de dados, opcional)
+
+Se existem arquivos no UPLOAD_FOLDER com filename e imagem IS NULL, implemente script de migração para popular imagem:
+
+python
+Copiar código
+for foto in FotoRelatorio.query.filter(FotoRelatorio.imagem == None).all():
+    path = os.path.join(app.config['UPLOAD_FOLDER'], foto.filename)
+    if os.path.exists(path):
+        with open(path, 'rb') as f:
+            foto.imagem = f.read()
+            db.session.add(foto)
+db.session.commit()
+Forneça esse script como um utilitário gerenciável (não rodar automaticamente sem revisão).
+
+Integração com AutoSave / edição de relatório
+
+Se a imagem é enviada via AJAX por JS (multipart/form-data), garanta que o frontend:
+
+Envie via FormData em vez de JSON.
+
+Faça fetch('/reports/<id>/photos', { method: 'POST', body: formData, headers: { 'X-CSRFToken': csrf } }).
+
+No backend, aceite multipart/form-data e processe request.files.
+
+Se AutoSave precisa enviar pequenas imagens (thumbnails), trate o upload em endpoint separado /reports/<id>/photos/temp e finalize em commit.
+
+Segurança e validações
+
+Use secure_filename.
+
+Valide mimetypes (image/jpeg, image/png, image/webp) e recuse outros.
+
+Evite carregar arquivos excessivamente grandes (max 16MB). Use configuration MAX_CONTENT_LENGTH.
+
+Use login_required e checar permissões do usuário para anexar fotos ao relatório.
+
+Logs e erros (entregável)
+
+Em caso de erro, retornar JSON com status 400/500 (não exibir stacktrace).
+
+Logar com current_app.logger.exception() para debugging no Railway.
+
+Testes que o assistente deve executar e documentar
+
+PASSO A (upload): Fazer upload via UI -> verificar no banco SELECT imagem IS NOT NULL FROM fotos_relatorio WHERE id = <nova_id>.
+
+PASSO B (ver): Abrir relatório -> verificar <img src="/imagens/<id>"> carrega 200 e mostra imagem.
+
+PASSO C (fallback): Para registro antigo com apenas filename, colocar arquivo no UPLOAD_FOLDER e rodar script de migração -> certificar que imagem foi populado.
+
+PASSO D (autosave): Via frontend, anexar foto -> verificar que rota recebe request.files e salva imagem.
+
+Documente comandos para inspecionar DB no Railway (psql connection string) e logs (railway logs ou painel).
+
+Entregáveis finais (obrigatórios)
+
+Patch do backend (arquivo(s) e linhas alteradas) — por exemplo:
+
+app/models.py (se necessário, confirmar que imagem existe e é db.LargeBinary).
+
+app/views/photos.py ou app/views/reports.py: função de upload/commit e rota /imagens/<id>.
+
+Script utilitário opcional para migrar fotos do filesystem para DB.
+
+Instruções passo-a-passo para testar no Replit/ Railway (incluindo SQL para verificar imagem).
+
+Se a coluna imagem não existir, crie migração Alembic incremental (forneça arquivo ready-to-run com down_revision = último do repo). Se a coluna existe, não gerar migração.
+
+IMPORTANTE (faça tudo isso antes de commitar):
+
+Teste localmente com uma imagem pequena (ex.: 50 KB) e verifique no banco (SELECT octet_length(imagem) > 0).
+
+Não apagar filename — mantenha como metadado.
+
+Se publicar migração, documente comando exato:
+export DATABASE_URL="postgres://..." && flask db upgrade
+
+Trabalhe de forma segura, com commits pequenos, e devolva:
+
+Lista exata de arquivos alterados + trechos (diff).
+
+Código das rotas novas/ajustadas.
+
+Script de migração de arquivos antigos (opcional).
+
+Checklist de testes com resultados esperados.
+
+Priorize: salvar o binário em fotos_relatorio.imagem e servir a imagem corretamente ao abrir o relatório.
