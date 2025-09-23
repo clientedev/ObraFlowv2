@@ -142,9 +142,11 @@
                                                         <span class="badge bg-warning text-dark" style="font-size: 0.65rem; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">Em preenchimento</span>
                                                     {% elif report.status == 'Aprovado' %}
                                                         <span class="badge bg-success" style="font-size: 0.65rem; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">Aprovado</span>
-                                                    {% elif report.status == 'Rejeitado' %}
-                                                        <span class="badge bg-danger" style="font-size: 0.65rem; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">Rejeitado</span>
-                                                    {% elif report.status == 'Aguardando Aprovação' %}
+                                                    {% elif report.status == 'Rejeitado' or report.status == 'Em edição' %}
+                                                        <span class="badge bg-danger" style="font-size: 0.65rem; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">
+                                                            {% if report.status == 'Em edição' %}Em edição{% else %}Rejeitado{% endif %}
+                                                        </span>
+                                                    {% elif report.status == 'Aguardando Aprovação' or report.status == 'Aguardando Aprovacao' %}
                                                         <span class="badge bg-warning" style="font-size: 0.6rem; white-space: nowrap; max-width: 90px; overflow: hidden; text-overflow: ellipsis; padding: 2px 6px;">Aguardando</span>
                                                     {% else %}
                                                         <span class="badge bg-secondary" style="font-size: 0.65rem; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">{{ report.status or 'Indefinido' }}</span>

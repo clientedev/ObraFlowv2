@@ -1218,10 +1218,28 @@ def edit_report(id):
             flash('Relatório não encontrado.', 'error')
             return redirect(url_for('reports'))
 
-        # Check permissions
+        # Check permissions - PERMITIR ACESSO PARA VISUALIZAÇÃO
         if not current_user.is_master and relatorio.autor_id != current_user.id:
-            flash('Acesso negado. Você só pode visualizar seus próprios relatórios.', 'error')
-            return redirect(url_for('reports'))
+            # Verificar se usuário tem acesso ao projeto
+            if relatorio.projeto:
+                try:
+                    from models import FuncionarioProjeto
+                    user_has_access = FuncionarioProjeto.query.filter_by(
+                        projeto_id=relatorio.projeto.id,
+                        user_id=current_user.id,
+                        ativo=True
+                    ).first()
+                    
+                    # Se não tem acesso ao projeto e não é responsável, negar acesso
+                    if not user_has_access and relatorio.projeto.responsavel_id != current_user.id:
+                        flash('Acesso negado ao relatório.', 'error')
+                        return redirect(url_for('reports'))
+                except Exception:
+                    flash('Acesso negado ao relatório.', 'error')
+                    return redirect(url_for('reports'))
+            else:
+                flash('Acesso negado. Você só pode visualizar seus próprios relatórios.', 'error')
+                return redirect(url_for('reports'))
         
         # PERMITIR ABERTURA DE RELATÓRIOS APROVADOS E REJEITADOS
         # Relatórios aprovados: apenas visualização (não edição)
@@ -1601,7 +1619,7 @@ def reject_report(id):
     autor = relatorio.autor
     projeto_nome = relatorio.projeto.nome if relatorio.projeto else 'N/A'
 
-    relatorio.status = 'Em edição'  # Volta para edição ao invés de "Rejeitado"
+    relatorio.status = 'Rejeitado'  # Status correto para relatórios rejeitados
     relatorio.aprovado_por = current_user.id
     relatorio.data_aprovacao = datetime.utcnow()
     relatorio.comentario_aprovacao = comentario.strip()
