@@ -91,6 +91,10 @@ externalPort = 4200
 localPort = 45877
 externalPort = 5173
 
+[[ports]]
+localPort = 46381
+externalPort = 6000
+
 [agent]
 integrations = ["flask_google_oauth==1.0.0", "python_openai==1.0.0", "python_database==1.0.0"]
 expertMode = true
