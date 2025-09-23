@@ -1212,6 +1212,16 @@ def create_report():
     else:
         # Se não há projeto específico, buscar aprovador global
         selected_aprovador = get_aprovador_padrao_para_projeto(None)
+    
+    # Render the form for GET requests
+    return render_template('reports/form_complete.html', 
+                         projetos=projetos, 
+                         admin_users=admin_users, 
+                         selected_project=selected_project,
+                         selected_aprovador=selected_aprovador,
+                         disable_fields=disable_fields,
+                         preselected_project_id=preselected_project_id,
+                         today=date.today().isoformat())
 
 def get_aprovador_padrao_para_projeto(projeto_id):
     """Busca aprovador padrão para um projeto específico ou global"""
@@ -1238,15 +1248,6 @@ def get_aprovador_padrao_para_projeto(projeto_id):
     except Exception as e:
         current_app.logger.error(f"Erro ao buscar aprovador padrão: {str(e)}")
         return None
-
-    return render_template('reports/form_complete.html', 
-                         projetos=projetos, 
-                         admin_users=admin_users, 
-                         selected_project=selected_project,
-                         selected_aprovador=selected_aprovador,
-                         disable_fields=disable_fields,
-                         preselected_project_id=preselected_project_id,
-                         today=date.today().isoformat())
 
 # Função deprecated removida para evitar conflitos
 
