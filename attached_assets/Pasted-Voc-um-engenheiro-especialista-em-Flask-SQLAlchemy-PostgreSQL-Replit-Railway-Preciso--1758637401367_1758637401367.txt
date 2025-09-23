@@ -1,0 +1,57 @@
+Você é um engenheiro especialista em Flask + SQLAlchemy + PostgreSQL + Replit (Railway).  
+Preciso que você corrija dois problemas principais no meu sistema de relatórios:
+
+### Problema 1 — Auto Save impreciso
+- O Auto Save (função JavaScript `reports_autosave.js`) está falhando com erros 400 e não garante salvamento confiável.
+- Requisitos:
+  1. Tornar o Auto Save **mais preciso e resiliente**, com debounce otimizado (ex.: salvar após 2-3 segundos de inatividade do usuário).
+  2. Tratar corretamente erros do backend (400/500), exibindo uma mensagem discreta (toast ou alerta pequeno), mas sem poluir a interface.
+  3. Garantir que relatórios em **status "Em preenchimento"** sejam atualizados no banco em tempo real durante o Auto Save e apareçam na lista de relatórios com esse status.
+
+### Problema 2 — Imagens não são salvas no banco
+- Atualmente, apenas o **nome da imagem** (`filename`) está sendo salvo no banco.
+- Já adicionei o campo `imagem` na tabela (PostgreSQL via Railway).
+- Requisitos:
+  1. Alterar o fluxo de upload para que a imagem seja salva de forma binária no campo `imagem` (tipo `BYTEA`) ou convertida em **Base64** antes do armazenamento, conforme melhor prática com PostgreSQL.
+  2. No modelo SQLAlchemy (`ReportImage` ou equivalente), garantir que o campo `imagem` seja usado para armazenar o conteúdo.
+  3. Ao abrir o relatório, a imagem deve ser carregada corretamente e exibida no frontend:
+     - Exemplo de uso no Jinja:
+       ```html
+       <img src="data:image/png;base64,{{ image_data }}" class="img-fluid rounded shadow">
+       ```
+  4. O campo `filename` deve continuar existindo apenas como referência, mas a exibição e recuperação devem vir de `imagem`.
+  5. Se necessário, ajustar a função de upload no Flask (`upload_photo` ou equivalente) para:
+     - Ler o arquivo (`file.read()`).
+     - Armazenar em `imagem`.
+     - Manter `filename` e `filename_original` como metadados.
+
+---
+
+### O que você deve entregar
+1. **Backend (Flask/SQLAlchemy)**
+   - Ajuste no endpoint de upload para salvar imagens no campo `imagem` do PostgreSQL.
+   - Ajuste no modelo `ReportImage` (ou `fotos_relatorio` / `fotos_relatorios_express`) para armazenar e recuperar `imagem`.
+   - Endpoint de visualização deve converter o binário/base64 e repassar para o template.
+
+2. **Frontend (Jinja2/Bootstrap + JavaScript)**
+   - Ajustar `view.html` e `edit.html` para exibir imagens salvas diretamente do banco via Base64.
+   - Garantir que Auto Save também capture imagens adicionadas durante o preenchimento.
+
+3. **Auto Save**
+   - Debounce para evitar excesso de requisições.
+   - Recuperação correta de erros 400/500 com mensagens discretas.
+   - Salvamento confiável de texto + imagens.
+   - Garantir que relatórios aparecem como "Em preenchimento" na listagem até serem finalizados.
+
+4. **Testes esperados**
+   - Criar relatório → adicionar imagem → confirmar que ela aparece no banco (`imagem` preenchido no PostgreSQL Railway).
+   - Abrir relatório salvo → imagem renderizada corretamente.
+   - Editar relatório → Auto Save salva texto e imagens em tempo real sem erro 400.
+   - Relatório rejeitado ou aprovado continua carregando imagens corretamente.
+
+---
+
+### Observações importantes
+- Banco já está rodando em PostgreSQL no Railway.
+- O campo `imagem` já foi adicionado na tabela, use ele como destino dos binários.
+- Não remover dados existentes: se não houver `imagem`, carregar via `filename` como fallback.

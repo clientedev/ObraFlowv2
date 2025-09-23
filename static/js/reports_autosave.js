@@ -8,7 +8,7 @@ class ReportsAutoSave {
         // Configurações padrão
         this.reportId = options.reportId || null;
         this.csrfToken = options.csrfToken || null;
-        this.debounceTime = options.debounceTime || 3000; // 3 segundos
+        this.debounceTime = options.debounceTime || 2500; // 2.5 segundos - otimizado
         this.retryDelay = options.retryDelay || 5000; // 5 segundos para retry
         this.maxRetries = options.maxRetries || 3;
         
@@ -22,7 +22,7 @@ class ReportsAutoSave {
         // Whitelist de campos para auto-save (deve coincidir com o backend)
         this.allowedFields = [
             'titulo', 'observacoes', 'latitude', 'longitude', 
-            'endereco', 'checklist_json', 'last_edited_at'
+            'endereco', 'checklist_data', 'last_edited_at'
         ];
         
         this.init();
@@ -124,7 +124,8 @@ class ReportsAutoSave {
             this.performSave();
         }, this.debounceTime);
         
-        this.showStatus('Alterações detectadas...', 'info');
+        // Mostrar indicador discreto apenas quando necessário
+        console.log('🔄 AutoSave: Alterações detectadas, salvando em', this.debounceTime/1000, 's');
     }
     
     collectFormData() {
@@ -141,7 +142,7 @@ class ReportsAutoSave {
         // Coletar dados do checklist se existir
         const checklistData = this.collectChecklistData();
         if (checklistData) {
-            data.checklist_json = checklistData;
+            data.checklist_data = checklistData;
         }
         
         // Adicionar timestamp
@@ -181,7 +182,7 @@ class ReportsAutoSave {
         }
         
         this.isSaving = true;
-        this.showStatus('Salvando...', 'saving');
+        console.log('💾 AutoSave: Iniciando salvamento...');
         
         const data = this.collectFormData();
         
@@ -234,10 +235,16 @@ class ReportsAutoSave {
             
             // Para erro 400, usar mensagem genérica conforme especificação
             if (response.status === 400) {
-                throw new Error('400: Erro ao salvar rascunho');
+                throw new Error('Erro ao salvar dados - verifique os campos preenchidos');
+            } else if (response.status === 403) {
+                throw new Error('Sem permissão para editar este relatório');
+            } else if (response.status === 404) {
+                throw new Error('Relatório não encontrado');
+            } else if (response.status >= 500) {
+                throw new Error('Erro interno do servidor - tente novamente');
             }
             
-            throw new Error(`${response.status}: ${errorData.error || 'Erro no servidor'}`);
+            throw new Error(`Erro ${response.status}: ${errorData.error || 'Erro desconhecido'}`);
         }
         
         const result = await response.json();
@@ -247,8 +254,13 @@ class ReportsAutoSave {
             this.retryCount = 0;
             this.clearLocalStorage(); // Limpar cache local após sucesso
             
-            // Auto save concluído com sucesso
-            this.showStatus(result.message || 'Salvo automaticamente', 'success');
+            // Garantir que status seja atualizado para "Em preenchimento" se necessário
+            if (result.status === 'preenchimento') {
+                console.log('✅ AutoSave: Relatório em status "Em preenchimento"');
+            }
+            
+            // Auto save concluído com sucesso - mensagem discreta
+            this.showStatus('💾 Salvo', 'success');
         } else {
             throw new Error(result.error || 'Falha no auto-save');
         }
@@ -320,15 +332,15 @@ class ReportsAutoSave {
             // Implementar retry com backoff exponencial
             const backoffDelay = this.retryDelay * Math.pow(2, this.retryCount - 1);
             
-            // Mensagem genérica para usuário (sem stacktrace)
-            this.showStatus(`Erro ao salvar rascunho - tentando novamente em ${Math.ceil(backoffDelay/1000)}s`, 'error');
+            // Mensagem discreta para usuário (sem stacktrace)
+            this.showStatus(`⚠️ Erro ao salvar - nova tentativa em ${Math.ceil(backoffDelay/1000)}s`, 'warning');
             
             setTimeout(() => {
                 this.performSave();
             }, backoffDelay);
         } else {
-            // Após esgotar tentativas, mostrar mensagem genérica e salvar localmente
-            this.showStatus('Erro ao salvar rascunho - dados salvos localmente', 'error');
+            // Após esgotar tentativas, mostrar mensagem discreta e salvar localmente
+            this.showStatus('❌ Erro ao salvar - dados preservados localmente', 'error');
         }
     }
     
@@ -338,8 +350,8 @@ class ReportsAutoSave {
     }
     
     showStatus(message, type = 'info') {
-        // DESABILITAR MENSAGENS DE DEBUG - Sistema silencioso conforme solicitado
-        return; 
+        // Mensagens discretas habilitadas conforme especificação
+        // Mostrar apenas para warnings e erros importantes 
         
         const statusElement = document.getElementById('autosave-status');
         if (!statusElement) return;
@@ -360,9 +372,15 @@ class ReportsAutoSave {
         statusElement.style.backgroundColor = colorConfig.bg;
         statusElement.style.color = colorConfig.color;
         
-        // Auto-hide após alguns segundos (exceto para erros)
-        if (type !== 'error') {
-            setTimeout(() => this.hideStatus(), 3000);
+        // Auto-hide após alguns segundos - mensagens discretas
+        if (type === 'success') {
+            setTimeout(() => this.hideStatus(), 2000); // Sucesso: 2s
+        } else if (type === 'warning') {
+            setTimeout(() => this.hideStatus(), 4000); // Warning: 4s
+        } else if (type === 'error') {
+            setTimeout(() => this.hideStatus(), 6000); // Erro: 6s
+        } else {
+            setTimeout(() => this.hideStatus(), 3000); // Info: 3s (padrão)
         }
     }
     
