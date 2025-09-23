@@ -1409,51 +1409,70 @@ def update_report_status(id):
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/reports/<int:id>/review')
+@app.route('/reports/<int:report_id>/review')
 @login_required
-def review_report(id):
-    """Página de revisão do relatório - versão robusta com tratamento de erros"""
+def review_report(report_id):
+    """Página de revisão do relatório - versão robusta conforme especificação"""
     try:
-        relatorio = Relatorio.query.get_or_404(id)
+        # Logging inicial conforme especificação
+        current_app.logger.info(f"🔍 /reports/{report_id}/review: Usuário {current_user.id} acessando revisão")
         
-        # Verificar se o relatório existe e tem dados válidos
-        if not relatorio:
-            current_app.logger.error(f"Relatório {id} não encontrado")
-            flash('Relatório não encontrado.', 'error')
-            return redirect(url_for('reports'))
+        # Buscar relatório com validação robusta
+        try:
+            report = Relatorio.query.get_or_404(report_id)
+            current_app.logger.info(f"✅ Relatório {report_id} encontrado para revisão: Status={report.status}")
+        except Exception as e:
+            current_app.logger.exception(f"ERRO CRÍTICO ao buscar relatório {report_id} para revisão: {str(e)}")
+            abort(500, description="Erro interno ao carregar relatório.")
         
-        # Proteger contra JSON malformado no checklist
+        # Validação defensiva de atributos None
+        if not report:
+            current_app.logger.error(f"❌ Relatório {report_id} é None após get_or_404")
+            abort(404, description="Relatório não encontrado.")
+        
+        # Proteger contra JSON malformado no checklist com validação defensiva
         try:
             import json
-            checklist = json.loads(relatorio.checklist_data) if relatorio.checklist_data else {}
-        except Exception:
-            current_app.logger.exception("JSON inválido no checklist do relatório %s", id)
+            checklist = json.loads(report.checklist_data) if report.checklist_data else {}
+            current_app.logger.info(f"✅ Checklist review carregado: {len(checklist)} itens")
+        except (json.JSONDecodeError, TypeError, AttributeError) as e:
+            current_app.logger.exception(f"ERRO JSON REVIEW relatório {report_id}: {str(e)}")
+            checklist = {}
+        except Exception as e:
+            current_app.logger.exception(f"ERRO GERAL CHECKLIST review {report_id}: {str(e)}")
             checklist = {}
         
-        # Buscar fotos com tratamento de erro
+        # Buscar fotos com validação defensiva
         try:
-            fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
+            fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
+            current_app.logger.info(f"✅ Fotos review carregadas: {len(fotos)} arquivos")
         except Exception as e:
-            current_app.logger.error(f"Erro ao buscar fotos do relatório {id}: {str(e)}")
+            current_app.logger.error(f"❌ Erro ao buscar fotos review relatório {report_id}: {str(e)}")
             fotos = []
 
-        # Verificar se usuário é aprovador para mostrar botões de ação com tratamento de erro
+        # Verificar se usuário é aprovador com validação defensiva
         try:
-            user_is_approver = current_user_is_aprovador(relatorio.projeto_id if relatorio.projeto_id else None)
+            # Proteger contra projeto_id None
+            projeto_id_safe = getattr(report, 'projeto_id', None) if report else None
+            user_is_approver = current_user_is_aprovador(projeto_id_safe)
+            current_app.logger.info(f"🔐 Usuário {current_user.id} é aprovador: {user_is_approver} (projeto_id={projeto_id_safe})")
+        except AttributeError as e:
+            current_app.logger.error(f"❌ ATRIBUTO NONE: Erro ao verificar aprovador para relatório {report_id}: {str(e)}")
+            user_is_approver = False
         except Exception as e:
-            current_app.logger.error(f"Erro ao verificar se usuário é aprovador: {str(e)}")
+            current_app.logger.error(f"❌ ERRO GERAL aprovador para relatório {report_id}: {str(e)}")
             user_is_approver = False
 
         return render_template('reports/review.html', 
-                             relatorio=relatorio, 
+                             report=report,  # Padronizado conforme especificação
+                             relatorio=report,  # Manter compatibilidade
                              fotos=fotos, 
                              checklist=checklist,
                              user_is_approver=user_is_approver)
     
     except Exception as e:
-        current_app.logger.exception(f"Erro ao carregar página de revisão do relatório {id}: {str(e)}")
-        flash('Erro ao carregar página de revisão.', 'error')
-        return redirect(url_for('reports'))
+        current_app.logger.exception(f"ERRO GERAL REVIEW /reports/{report_id}/review: {str(e)}")
+        abort(500, description="Erro interno ao carregar página de revisão.")
 
 @app.route('/reports/<int:id>/approve', methods=['POST'])
 @login_required
