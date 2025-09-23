@@ -2159,16 +2159,21 @@ def upload_report_photos(report_id):
                 filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
                 filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
 
+                # Read file data before saving
+                file_data = file.read()
+                file.seek(0)  # Reset for saving to disk
+                
                 # Save file
                 file.save(filepath)
                 current_app.logger.info(f"✅ FOTO SALVA: {filepath}")
 
-                # Create photo record with minimal fields
+                # Create photo record with binary data
                 foto = FotoRelatorio()
                 foto.relatorio_id = relatorio.id
                 foto.filename = filename
                 foto.legenda = f'Foto {uploaded_count + 1}'
                 foto.ordem = uploaded_count + 1
+                foto.imagem = file_data  # Salvar dados binários da imagem
 
                 db.session.add(foto)
                 uploaded_count += 1
@@ -3147,9 +3152,13 @@ def report_add_photo(report_id):
             filename = secure_filename(foto.filename)
             unique_filename = f"{uuid.uuid4()}_{filename}"
             foto_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
+            
+            # Read file data before saving
+            file_data = foto.read()
+            foto.seek(0)  # Reset for saving to disk
             foto.save(foto_path)
 
-            # Create photo record with minimal fields
+            # Create photo record with binary data
             foto_relatorio = FotoRelatorio()
             foto_relatorio.relatorio_id = report_id
             foto_relatorio.filename = unique_filename
@@ -3157,6 +3166,7 @@ def report_add_photo(report_id):
             foto_relatorio.descricao = form.descricao.data if hasattr(form, 'descricao') else ""
             foto_relatorio.tipo_servico = form.tipo_servico.data if hasattr(form, 'tipo_servico') else "Geral"
             foto_relatorio.ordem = FotoRelatorio.query.filter_by(relatorio_id=report_id).count() + 1
+            foto_relatorio.imagem = file_data  # Salvar dados binários da imagem
 
             db.session.add(foto_relatorio)
             db.session.commit()
@@ -3566,6 +3576,19 @@ def uploaded_file(filename):
             foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
             if foto_express:
                 current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Express {foto_express.relatorio_express_id}): {filename}")
+                
+                # Verificar se tem dados binários salvos no banco
+                if hasattr(foto_express, 'imagem') and foto_express.imagem:
+                    current_app.logger.info(f"📱 SERVINDO IMAGEM EXPRESS DIRETAMENTE DO BANCO: {filename}")
+                    try:
+                        content_type = get_content_type(filename)
+                        response = Response(foto_express.imagem, mimetype=content_type)
+                        response.headers['Content-Type'] = content_type
+                        response.headers['Cache-Control'] = 'public, max-age=3600'
+                        response.headers['X-Image-Source'] = 'database_binary_express'
+                        return response
+                    except Exception as binary_error:
+                        current_app.logger.error(f"❌ Erro ao servir imagem express do banco: {binary_error}")
                 
                 # Buscar arquivo físico
                 for dir_name, dir_path in search_directories:

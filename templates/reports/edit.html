@@ -246,7 +246,7 @@
                                 {% for foto in fotos %}
                                 <div class="col-md-3 mb-3">
                                     <div class="card">
-                                        <img src="{{ url_for('serve_image', filename=foto.caminho) }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Foto do relatório">
+                                        <img src="{{ url_for('get_imagem', id=foto.id) }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Foto do relatório">
                                         <div class="card-body p-2">
                                             {% if foto.legenda %}
                                             <p class="card-text small">{{ foto.legenda }}</p>

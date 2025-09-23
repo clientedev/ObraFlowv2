@@ -1,0 +1,47 @@
+Você é um engenheiro especialista em Flask + SQLAlchemy + PostgreSQL.  
+Preciso corrigir o seguinte problema no meu sistema:
+
+### Problema
+- Na tabela de fotos do relatório (`fotos_relatorio` e `fotos_relatorios_express`), apenas os campos `filename` e `filename_original` estão sendo preenchidos.
+- O campo `imagem` (tipo BYTEA no PostgreSQL) já existe no banco, mas não está sendo utilizado.
+- Isso significa que o arquivo da imagem não é salvo, apenas o nome.
+
+### O que precisa ser feito
+1. **Backend (Flask / SQLAlchemy)**
+   - No upload de imagem (`/upload_photo` ou rota equivalente):
+     - Ler o conteúdo binário do arquivo enviado (`file.read()`).
+     - Salvar esse conteúdo no campo `imagem` do modelo associado (`fotos_relatorio` ou `fotos_relatorios_express`).
+     - Continuar preenchendo `filename` e `filename_original` como metadados.
+   - Exemplo esperado no modelo:
+     ```python
+     class FotoRelatorio(db.Model):
+         __tablename__ = "fotos_relatorio"
+         id = db.Column(db.Integer, primary_key=True)
+         relatorio_id = db.Column(db.Integer, db.ForeignKey("relatorios.id"), nullable=False)
+         filename = db.Column(db.String, nullable=False)
+         filename_original = db.Column(db.String, nullable=True)
+         imagem = db.Column(db.LargeBinary, nullable=True)  # precisa ser usado
+         created_at = db.Column(db.DateTime, default=datetime.utcnow)
+     ```
+
+2. **Visualização (Jinja2 / HTML)**
+   - Ajustar a renderização para exibir a imagem a partir do banco de dados:
+     - Converter `imagem` para Base64 no backend antes de mandar para o template.
+     - Exibir assim:
+       ```html
+       <img src="data:image/jpeg;base64,{{ image_data }}" class="img-fluid rounded shadow">
+       ```
+
+3. **Fallback**
+   - Se por algum motivo `imagem` não estiver preenchido (dados antigos), carregar a partir do `filename` no diretório de uploads.
+   - Isso evita quebrar relatórios antigos.
+
+4. **Checklist de Testes**
+   - Criar um relatório e anexar uma foto → confirmar que `imagem` no PostgreSQL foi preenchido com binário.
+   - Abrir o relatório → imagem renderizada corretamente a partir do banco.
+   - Relatórios antigos → continuam carregando imagens pelo `filename` até que sejam reprocessados.
+
+### Importante
+- Não apagar ou sobrescrever dados existentes no banco.
+- Apenas adicionar o salvamento correto da imagem no campo `imagem`.
+- Confirmar que tanto `fotos_relatorio` quanto `fotos_relatorios_express` usem esse fluxo.
