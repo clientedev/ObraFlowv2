@@ -1207,9 +1207,16 @@ def create_report():
 @app.route('/reports/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_report(id):
-    """Editar relatório - versão simplificada e robusta"""
+    """Editar relatório - versão robusta com proteção contra erros"""
     try:
-        relatorio = Relatorio.query.get_or_404(id)
+        # Buscar relatório com logging detalhado
+        try:
+            relatorio = Relatorio.query.get_or_404(id)
+            current_app.logger.info(f"✅ Relatório {id} encontrado para edição")
+        except Exception as e:
+            current_app.logger.exception(f"❌ Erro ao buscar relatório {id}: {str(e)}")
+            flash('Erro interno ao carregar relatório para edição.', 'error')
+            return redirect(url_for('reports'))
 
         # Check permissions
         if not current_user.is_master and relatorio.autor_id != current_user.id:
@@ -1220,6 +1227,17 @@ def edit_report(id):
         if relatorio.status == 'Aprovado':
             flash('Relatórios aprovados não podem ser editados.', 'error')
             return redirect(url_for('report_view', report_id=id))
+
+        # Proteção contra checklist_data inválido - CORRIGIDO para usar checklist_data (não checklist_json)
+        checklist = {}
+        try:
+            if relatorio.checklist_data:
+                import json
+                checklist = json.loads(relatorio.checklist_data)
+                current_app.logger.debug(f"✅ Checklist carregado para relatório {id}")
+        except (json.JSONDecodeError, TypeError, AttributeError) as e:
+            current_app.logger.warning(f"⚠️ Checklist inválido no relatório {id}: {str(e)}")
+            checklist = {}
 
         if request.method == 'POST':
             try:
@@ -1255,25 +1273,33 @@ def edit_report(id):
 
             except Exception as e:
                 db.session.rollback()
-                current_app.logger.error(f"Erro ao atualizar relatório {id}: {str(e)}")
+                current_app.logger.error(f"❌ Erro ao atualizar relatório {id}: {str(e)}")
                 flash(f'Erro ao atualizar relatório: {str(e)}', 'error')
 
-        # Get data for template
+        # Get data for template com proteção contra erros
         try:
             projetos = Projeto.query.filter_by(status='Ativo').all()
             fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
+            current_app.logger.debug(f"✅ Dados auxiliares carregados para relatório {id}")
         except Exception as e:
-            current_app.logger.error(f"Erro ao buscar dados para template: {str(e)}")
+            current_app.logger.error(f"⚠️ Erro ao buscar dados auxiliares: {str(e)}")
             projetos = []
             fotos = []
+
+        # Garantir valores padrão para campos essenciais
+        if not hasattr(relatorio, 'observacoes') or relatorio.observacoes is None:
+            relatorio.observacoes = ''
+        if not hasattr(relatorio, 'conteudo') or relatorio.conteudo is None:
+            relatorio.conteudo = ''
 
         return render_template('reports/edit.html', 
                              relatorio=relatorio, 
                              projetos=projetos, 
-                             fotos=fotos)
+                             fotos=fotos,
+                             checklist=checklist)
 
     except Exception as e:
-        current_app.logger.exception(f"Erro crítico na edição do relatório {id}: {str(e)}")
+        current_app.logger.exception(f"❌ ERRO CRÍTICO na edição do relatório {id}: {str(e)}")
         flash('Erro interno ao carregar relatório para edição.', 'error')
         return redirect(url_for('reports'))
 
