@@ -3,8 +3,7 @@
 {% block title %}Editar Relatório - {{ relatorio.numero or 'S/N' }}{% endblock %}
 
 {% block head %}
-<!-- Meta tag CSRF para auto-save -->
-<meta name="csrf-token" content="{{ csrf_token() }}">
+<!-- Meta tag para auto-save -->
 <meta name="report-id" content="{{ relatorio.id }}">
 {% endblock %}
 
