@@ -1553,13 +1553,23 @@ def reject_report(id):
     logging.info(f"Relatório {relatorio.numero} rejeitado por {current_user.nome_completo} (ID: {current_user.id}). "
                 f"Projeto: {projeto_nome}. Motivo: {comentario.strip()[:100]}...")
 
-    # Notificação simples por enquanto - pode ser expandida para email/sistema de notificações
+    # Envio de notificação por email ao autor
     try:
-        # Aqui você pode implementar notificação por email ao autor, sistema de notificações, etc.
-        # Por enquanto, apenas log
-        logging.info(f"Notificação enviada para {autor.nome_completo} ({autor.email}) sobre reprovação do relatório {relatorio.numero}")
+        from email_service import email_service
+        resultado_email = email_service.enviar_notificacao_rejeicao(
+            relatorio, 
+            comentario.strip(), 
+            current_user, 
+            current_user.id
+        )
+        
+        if resultado_email['success']:
+            logging.info(f"Notificação de rejeição enviada por email para {autor.nome_completo} ({autor.email}) - Relatório {relatorio.numero}")
+        else:
+            logging.warning(f"Falha ao enviar notificação por email para {autor.nome_completo}: {resultado_email.get('error', 'Erro desconhecido')}")
+            
     except Exception as e:
-        logging.error(f"Erro ao notificar autor sobre reprovação: {str(e)}")
+        logging.error(f"Erro ao notificar autor sobre reprovação por email: {str(e)}")
 
     flash(f'Relatório {relatorio.numero} rejeitado e devolvido para edição. '
           f'O autor {autor.nome_completo} deve fazer as correções solicitadas.', 'warning')

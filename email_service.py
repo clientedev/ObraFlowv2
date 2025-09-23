@@ -225,5 +225,121 @@ class EmailService:
         
         return emails
 
+    def enviar_notificacao_rejeicao(self, relatorio, motivo_rejeicao, aprovador, usuario_id):
+        """
+        Enviar notificação por e-mail ao autor sobre rejeição do relatório
+        
+        Args:
+            relatorio: Objeto Relatorio rejeitado
+            motivo_rejeicao: String com o motivo da rejeição
+            aprovador: Objeto User que aprovou/rejeitou
+            usuario_id: ID do usuário que está enviando (aprovador)
+        """
+        try:
+            # Buscar configuração ativa
+            config = self.get_configuracao_ativa()
+            if not config:
+                raise Exception("Nenhuma configuração de e-mail ativa encontrada")
+            
+            # Configurar SMTP
+            self.configure_smtp(config)
+            
+            # Dados do relatório e projeto
+            projeto = relatorio.projeto
+            autor = relatorio.autor
+            data_rejeicao = datetime.now().strftime('%d/%m/%Y às %H:%M')
+            
+            # Assunto personalizado para rejeição
+            assunto = f"Relatório {relatorio.numero} Rejeitado - {projeto.nome}"
+            
+            # Corpo do e-mail personalizado para rejeição
+            corpo = f"""
+            <p>Olá {autor.nome_completo},</p>
+            
+            <p>Seu relatório <strong>{relatorio.numero}</strong> do projeto <strong>{projeto.nome}</strong> foi rejeitado em {data_rejeicao}.</p>
+            
+            <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 15px; margin: 15px 0;">
+                <h4 style="color: #721c24; margin-top: 0;">Motivo da Rejeição:</h4>
+                <p style="color: #721c24; margin-bottom: 0;">{motivo_rejeicao}</p>
+            </div>
+            
+            <p>Por favor, faça as correções solicitadas e reenvie o relatório para aprovação.</p>
+            
+            <p><strong>Próximos passos:</strong></p>
+            <ol>
+                <li>Acesse o sistema e abra o relatório rejeitado</li>
+                <li>Clique em "Editar e Corrigir"</li>
+                <li>Faça as correções solicitadas</li>
+                <li>Reenvie para aprovação</li>
+            </ol>
+            
+            <p>Rejeitado por: <strong>{aprovador.nome_completo}</strong></p>
+            
+            <p>Em caso de dúvidas, entre em contato conosco.</p>
+            
+            <p>Atenciosamente,<br>
+            Equipe ELP Consultoria</p>
+            """
+            
+            # Preparar e-mail
+            from flask_mail import Message
+            msg = Message(
+                subject=assunto,
+                recipients=[autor.email],
+                html=corpo,
+                sender=current_app.config['MAIL_DEFAULT_SENDER']
+            )
+            
+            # Enviar e-mail
+            self.mail.send(msg)
+            
+            # Log do envio
+            from models import LogEnvioEmail
+            import json
+            log = LogEnvioEmail(
+                projeto_id=relatorio.projeto_id,
+                relatorio_id=relatorio.id,
+                usuario_id=usuario_id,
+                destinatarios=json.dumps([autor.email]),
+                cc=json.dumps([]),
+                bcc=json.dumps([]),
+                assunto=assunto,
+                status='enviado',
+                data_envio=datetime.utcnow()
+            )
+            
+            db.session.add(log)
+            db.session.commit()
+            
+            current_app.logger.info(f"Notificação de rejeição enviada para {autor.email} - Relatório {relatorio.numero}")
+            return {'success': True, 'message': f'Notificação de rejeição enviada para {autor.nome_completo}'}
+            
+        except Exception as e:
+            current_app.logger.error(f"Erro ao enviar notificação de rejeição: {str(e)}")
+            
+            # Log do erro
+            try:
+                from models import LogEnvioEmail
+                import json
+                log = LogEnvioEmail(
+                    projeto_id=relatorio.projeto_id,
+                    relatorio_id=relatorio.id,
+                    usuario_id=usuario_id,
+                    destinatarios=json.dumps([autor.email]),
+                    cc=json.dumps([]),
+                    bcc=json.dumps([]),
+                    assunto=f"Relatório {relatorio.numero} Rejeitado - {projeto.nome}",
+                    status='falhou',
+                    erro_detalhes=str(e),
+                    data_envio=datetime.utcnow()
+                )
+                
+                db.session.add(log)
+                db.session.commit()
+            except:
+                pass
+                
+            return {'success': False, 'error': str(e)}
+
 # Instância global do serviço
 email_service = EmailService()
