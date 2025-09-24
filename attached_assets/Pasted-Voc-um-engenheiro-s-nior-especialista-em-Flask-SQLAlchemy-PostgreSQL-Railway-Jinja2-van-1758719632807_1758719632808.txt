@@ -1,0 +1,151 @@
+Você é um engenheiro sênior especialista em Flask + SQLAlchemy + PostgreSQL (Railway) + Jinja2 + vanilla JS.  
+Contexto crítico:
+- App está em produção no Railway e usa PostgreSQL remoto (DATABASE_URL do Railway).
+- A tabela de visitas (ex.: `visits` / `visitas`) já contém dados.
+- No browser, a página do calendário exibe: "Erro ao carregar lista de visitas. Tente novamente."
+- O console mostra: `GET https://elpconsultoria.pro/api/visits/calendar 500 (Internal Server Error)` e `TypeError: Cannot read properties of undefined (reading 'map')` (o frontend faz `data.map(...)` mas recebeu `undefined` por causa do 500).
+
+Objetivo:
+Efetuar diagnóstico profundo e correção completa para que `/api/visits/calendar` retorne JSON válido de eventos e a lista/carregamento do calendário funcione sem erro. Entregar patches prontos (backend + frontend), logs de diagnóstico, e instruções de deploy no Railway.
+
+Tarefas obrigatórias (execute nessa ordem e documente cada passo):
+
+1) Coleta de evidências e diagnóstico inicial
+- Liste as 8 causas mais prováveis para o 500 nesta API (ex.: erro de consulta SQL, coluna inexistente após migration, JSON encoder falhando com datetimes, lazy relationship fora do app context, erro de permissões, timeout/connection pool, erro de serialização de objeto não-serializável, bug em filtro por data).
+- Liste as 6 causas mais prováveis para `Cannot read properties of undefined (reading 'map')` no frontend.
+- Indique exatamente *onde* procurar no código (nomes/paths comuns: `app/views/visits.py`, `routes/visits.py`, `api/visits.py`, `static/js/calendar.js`, `static/js/reports_autosave.js`, `models.py`), e os padrões de log a adicionar.
+
+2) Coleta de logs no ambiente Railway e no Replit
+- Mostre os comandos e passos exatos para extrair logs do Railway (ex.: `railway logs` ou usar painel Railway). Indique o que procurar nas mensagens (traceback Python, erro JSONEncoder, OperationalError, ProgrammingError).
+- Instrua a colocar temporariamente `current_app.logger.exception(...)` no início do handler `/api/visits/calendar` para capturar full traceback e enviar os logs; depois remover prints e manter apenas logger.
+
+3) Reproduzir localmente apontando para o banco do Railway
+- Instruções exatas para reproduzir usando variável de ambiente:
+  ```bash
+  export DATABASE_URL="postgres://...."   # string do Railway
+  flask run
+Comando curl sugerido para testar:
+
+nginx
+Copiar código
+curl -v -H "Accept: application/json" "https://elpconsultoria.pro/api/visits/calendar"
+ou local:
+
+nginx
+Copiar código
+curl -v -H "Accept: application/json" "http://127.0.0.1:5000/api/visits/calendar"
+Corrigir o backend — handler /api/visits/calendar
+
+Exigir que o handler:
+
+Esteja protegido por @login_required se for necessário; se for público, garantir autorização correta.
+
+Tenha try/except Exception com current_app.logger.exception("Erro calendar") e retorne JSON { "success": False, "error": "mensagem curta" } com status 500 (para evitar HTML 500 que quebra o frontend).
+
+Verifique a query SQLAlchemy usada e garanta que todos os campos referenciados existem no banco (ex.: start, end, title, participants, color).
+
+Serialize datetimes para ISO (.isoformat()) ou use um JSONEncoder customizado.
+
+Retorne um array JSON de eventos compatível com FullCalendar:
+
+json
+Copiar código
+[
+  { "id": 1, "title": "Visita X (João, Maria)", "start": "2025-09-24T10:00:00", "end": "2025-09-24T11:00:00", "color": "#FF0000", "participants": [ {"id":2,"name":"João", "color":"#..."} ] },
+  ...
+]
+Forneça o patch pronto do handler (arquivo + linhas alteradas).
+
+Corrigir causas comuns detectadas
+
+Se for erro de JSONEncoder com datetime: implemente conversão explícita para string.
+
+Se for erro de coluna faltante: gerar migração Alembic (apenas se necessário) e instruir como aplicar (export DATABASE_URL=... && flask db upgrade).
+
+Se for problema de relationship lazy-loading fora de contexto (ex.: serializando visit.participants que é um InstrumentedList), ajustar para materializar com visit.participants.all() ou construir dicts manualmente.
+
+Se for erro de permissões que retorna HTML de login, faça a rota retornar 401 JSON em vez de html para AJAX.
+
+Corrigir frontend — tratamento defensivo e recuperação
+
+Atualizar o JS que consome /api/visits/calendar (ex.: static/js/calendar.js):
+
+Verificar response.ok antes de response.json(). Se não ok, mostrar toast amigável e logar error.
+
+Garantir que o código só execute .map() em arrays: Array.isArray(data) ? data.map(...) : [].
+
+Exemplo patch JS:
+
+js
+Copiar código
+const res = await fetch('/api/visits/calendar');
+if (!res.ok) { console.error('Calendar error', res.status); showToast('Erro ao carregar visitas'); return; }
+const data = await res.json();
+const events = Array.isArray(data) ? data : (data.events || []);
+// map events safely...
+Patch pronto para colar.
+
+Corrigir erro de UI (campo Participantes sobreposto)
+
+No template de formulário de agendamento:
+
+Trocar select ou multi-select quebrado por um componente compatível (Bootstrap custom select, select2 ou um <div> com checkboxes responsivos).
+
+CSS: garantir line-height, padding, display:block em cada option/label; usar .list-group ou .form-select com size para não sobrepor os nomes.
+
+For mobile, usar um modal de seleção com overflow-y: auto e itens com padding >= 48px.
+
+Forneça patch CSS/HTML do template de agendamento.
+
+Testes e validação pós-correção (passo-a-passo)
+
+Testes de API:
+
+curl retornar 200 com JSON array; validar jq:
+
+nginx
+Copiar código
+curl ... | jq '. | length'
+curl ... | jq '.[0] | {id, title, start, end, participants}'
+Testes UI:
+
+Abrir /visits/calendar e checar console sem erros.
+
+Clicar em dia/horário deve abrir agendamento (Item 28) — se já implementado, validar os parâmetros ?date=...&time=....
+
+Adicionar participante e confirmar que lista não sobrepõe.
+
+Testes DB:
+
+Rodar SELECT count(*) FROM fotos/visits table; verificar dados.
+
+Testes de carga leve: garantir endpoint responde em <1s com dataset atual.
+
+Entregáveis (obrigatórios)
+
+Patch do backend com handler corrigido (app/views/visits.py ou similar), incl. linhas alteradas.
+
+Patch do frontend (JS) com verificação defensiva e tratamento de erro.
+
+Patch do template/formulário de participantes (HTML/CSS) resolvendo sobreposição.
+
+Instruções exatas para reproduzir localmente usando Railway DB (variáveis de ambiente) e comandos curl.
+
+Logs coletados do Railway mostrando stacktrace original e confirmação de erro corrigido.
+
+Checklist de testes concluídos (pass/fail) e screenshots (opcional).
+
+Critérios de aceitação
+
+/api/visits/calendar retorna HTTP 200 e um JSON array com eventos (não HTML 500).
+
+Browser não lança TypeError: Cannot read properties of undefined (reading 'map').
+
+Calendário renderiza normalmente e mostra eventos.
+
+Campo Participantes no formulário exibe nomes organizados e responsivos (não sobrepostos).
+
+Entrega de patches claros e aplicáveis.
+
+Se detectar qualquer dado inconsistente no banco (coluna faltando, valor NULL inesperado), apresente um plano de migração simples e seguro (script ou Alembic) e peça autorização antes de aplicar.
+Execute as mudanças com commits pequenos e devolva os diffs/trechos alterados + instruções para flask db upgrade (se necessário) e para redeploy no Railway.
