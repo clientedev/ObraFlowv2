@@ -605,132 +605,52 @@ def projects_list():
 
     return render_template('projects/list.html', projects=projects)
 
-# Reports routes - Versão robusta para Railway + Replit
+# Reports routes - Versão simplificada e funcional
 @app.route('/reports')
 @login_required
 def reports():
-    """Listar relatórios com tratamento robusto de erros - VERSÃO CORRIGIDA"""
+    """Listar relatórios - versão simplificada para corrigir o erro"""
     try:
-        # Log inicial
         current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
-
-        # Forçar rollback de transações pendentes
-        try:
-            db.session.rollback()
-        except Exception as rollback_error:
-            current_app.logger.warning(f"⚠️ Rollback warning: {rollback_error}")
 
         # Parâmetros de busca
         page = request.args.get('page', 1, type=int)
         q = request.args.get('q', '').strip()
 
-        from models import Relatorio, Projeto, User
+        # Importar modelos necessários no escopo da função
+        from models import Relatorio, Projeto, User, FuncionarioProjeto
         from sqlalchemy import or_
 
-        # Query básica com verificação de permissões
+        # Query básica - sempre buscar todos os relatórios primeiro para master
         if current_user.is_master:
-            # Master vê todos os relatórios
             query = Relatorio.query
         else:
-            # Usuário normal vê apenas seus relatórios e relatórios de projetos onde tem acesso
-            user_project_ids = db.session.query(FuncionarioProjeto.projeto_id).filter(
-                FuncionarioProjeto.user_id == current_user.id,
-                FuncionarioProjeto.ativo == True
-            ).subquery()
-            
-            query = Relatorio.query.filter(
-                or_(
-                    Relatorio.autor_id == current_user.id,
-                    Relatorio.projeto_id.in_(user_project_ids)
-                )
-            )
+            # Usuários não-master veem apenas seus próprios relatórios
+            query = Relatorio.query.filter(Relatorio.autor_id == current_user.id)
 
         # Busca se fornecida
         if q:
-            try:
-                # Join com projeto para buscar por nome do projeto também
-                query = query.join(Projeto, Relatorio.projeto_id == Projeto.id, isouter=True).filter(
-                    or_(
-                        Relatorio.numero.ilike(f'%{q}%'),
-                        Relatorio.titulo.ilike(f'%{q}%'),
-                        Projeto.nome.ilike(f'%{q}%'),
-                        Projeto.numero.ilike(f'%{q}%')
-                    )
+            query = query.filter(
+                or_(
+                    Relatorio.numero.ilike(f'%{q}%'),
+                    Relatorio.titulo.ilike(f'%{q}%')
                 )
-                current_app.logger.info(f"🔍 Busca aplicada: '{q}'")
-            except Exception as search_error:
-                current_app.logger.warning(f"⚠️ Erro na busca, continuando sem filtro: {search_error}")
-                # Se der erro na busca, continuar sem filtro
-                query = Relatorio.query
-
-        # Paginação com tratamento de erro
-        try:
-            relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
-                page=page, 
-                per_page=10, 
-                error_out=False
             )
-            current_app.logger.info(f"✅ {len(relatorios.items)} relatórios carregados (página {page})")
-        except Exception as paginate_error:
-            current_app.logger.error(f"❌ Erro na paginação: {str(paginate_error)}")
-            
-            # Fallback: buscar relatórios sem paginação
-            try:
-                db.session.rollback()
-                relatorios_list = query.order_by(Relatorio.created_at.desc()).limit(10).all()
-                
-                # Criar objeto de paginação manual
-                class ManualPagination:
-                    def __init__(self, items):
-                        self.items = items
-                        self.total = len(items)
-                        self.page = 1
-                        self.pages = 1
-                        self.has_prev = False
-                        self.has_next = False
-                        self.per_page = 10
 
-                    def iter_pages(self):
-                        return [1]
+        # Paginação
+        relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
+            page=page, 
+            per_page=10, 
+            error_out=False
+        )
 
-                relatorios = ManualPagination(relatorios_list)
-                current_app.logger.info(f"🔄 Fallback: {len(relatorios.items)} relatórios carregados")
-            except Exception as fallback_error:
-                current_app.logger.error(f"❌ Erro crítico no fallback: {str(fallback_error)}")
-                # Último recurso: lista vazia
-                relatorios = ManualPagination([])
-
-        # Verificar se template existe antes de renderizar
-        try:
-            return render_template('reports/list.html', relatorios=relatorios)
-        except Exception as template_error:
-            current_app.logger.error(f"❌ Erro no template: {str(template_error)}")
-            return jsonify({
-                'error': 'Erro ao carregar template',
-                'details': str(template_error),
-                'reports_count': len(relatorios.items) if hasattr(relatorios, 'items') else 0
-            }), 500
+        current_app.logger.info(f"✅ {len(relatorios.items)} relatórios carregados")
+        return render_template('reports/list.html', relatorios=relatorios)
 
     except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
-        current_app.logger.exception(f"❌ ERRO CRÍTICO /reports: {str(e)}")
-        current_app.logger.error(f"❌ TRACEBACK: {error_trace}")
-
-        # Forçar rollback
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-
-        # Retornar resposta de erro
-        return jsonify({
-            'error': 'Erro interno no servidor',
-            'message': 'Falha ao carregar lista de relatórios',
-            'details': str(e),
-            'authenticated': current_user.is_authenticated,
-            'traceback': error_trace
-        }), 500
+        current_app.logger.exception(f"❌ ERRO na rota /reports: {str(e)}")
+        flash('Erro ao carregar lista de relatórios. Tente novamente.', 'error')
+        return redirect(url_for('index'))
 
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
