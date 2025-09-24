@@ -2799,20 +2799,27 @@ def migrar_attached_assets():
 @app.route('/visits')
 @login_required
 def visits_list():
-    """Lista de visitas - versão simplificada e robusta"""
+    """Lista de visitas - versão ultra-robusta com tratamento completo de erros"""
     try:
         current_app.logger.info(f"📋 /visits: Usuário {current_user.username} acessando lista de visitas")
 
         # Check if user wants calendar view
         view_type = request.args.get('view', 'list')
         if view_type == 'calendar':
-            return render_template('visits/calendar.html')
+            try:
+                return render_template('visits/calendar.html')
+            except Exception as template_error:
+                current_app.logger.error(f"❌ Erro no template calendar: {template_error}")
+                flash('Erro ao carregar calendário. Exibindo lista.', 'warning')
+                view_type = 'list'
 
         # Get search query parameter
         q = request.args.get('q', '').strip()
 
-        # Query básica sem joins complexos para evitar erros
+        # Query robusta com múltiplos fallbacks
+        visits = []
         try:
+            # Tentativa 1: Query completa
             base_query = Visita.query
             
             if q:
@@ -2825,33 +2832,85 @@ def visits_list():
                 ))
                 
             visits = base_query.order_by(Visita.data_inicio.desc()).limit(50).all()
-            current_app.logger.info(f"✅ {len(visits)} visitas carregadas")
+            current_app.logger.info(f"✅ {len(visits)} visitas carregadas com sucesso")
 
         except Exception as query_error:
-            current_app.logger.error(f"❌ Erro na query: {str(query_error)}")
-            db.session.rollback()
-            
-            # Fallback ultra-simples
+            current_app.logger.error(f"❌ Erro na query principal: {str(query_error)}")
             try:
-                visits = Visita.query.limit(10).all()
-                current_app.logger.info(f"🔄 Fallback: {len(visits)} visitas")
-            except Exception:
-                visits = []
-                current_app.logger.error("❌ Fallback também falhou")
+                db.session.rollback()
+                # Tentativa 2: Query simples sem filtros
+                visits = Visita.query.order_by(Visita.id.desc()).limit(10).all()
+                current_app.logger.info(f"🔄 Fallback 1: {len(visits)} visitas carregadas")
+            except Exception as fallback_error:
+                current_app.logger.error(f"❌ Erro no fallback 1: {str(fallback_error)}")
+                try:
+                    db.session.rollback()
+                    # Tentativa 3: Query mínima
+                    visits = Visita.query.limit(5).all()
+                    current_app.logger.info(f"🔄 Fallback 2: {len(visits)} visitas carregadas")
+                except Exception:
+                    # Tentativa 4: Lista vazia (última opção)
+                    visits = []
+                    current_app.logger.error("❌ Todos os fallbacks falharam - retornando lista vazia")
+                    flash('Não foi possível carregar as visitas. Tente novamente.', 'warning')
 
-        # Garantir lista válida
+        # Garantir que sempre temos uma lista válida
         if not isinstance(visits, list):
             visits = list(visits) if visits else []
+        
+        # Verificar cada visita para garantir que as propriedades funcionam
+        safe_visits = []
+        for visit in visits:
+            try:
+                # Testar acesso às propriedades críticas
+                _ = visit.numero
+                _ = visit.status or 'Agendada'
+                safe_visits.append(visit)
+            except Exception as prop_error:
+                current_app.logger.warning(f"⚠️ Visita {visit.id} com propriedades inválidas: {prop_error}")
+                # Pular esta visita específica
+                continue
+        
+        visits = safe_visits
 
-        return render_template('visits/list.html', visits=visits)
+        # Renderizar template com tratamento de erro
+        try:
+            return render_template('visits/list.html', visits=visits)
+        except Exception as template_error:
+            current_app.logger.error(f"❌ Erro no template visits/list.html: {template_error}")
+            # Template de emergência em caso de erro
+            emergency_html = f'''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Visitas - ELP</title></head>
+            <body>
+                <h1>Sistema de Visitas</h1>
+                <p>Encontradas {len(visits)} visitas.</p>
+                <p>Erro no template principal. <a href="/visits">Tentar novamente</a></p>
+            </body>
+            </html>
+            '''
+            return emergency_html, 200
         
     except Exception as e:
-        current_app.logger.exception(f"❌ ERRO CRÍTICO: {str(e)}")
+        current_app.logger.exception(f"❌ ERRO CRÍTICO na rota /visits: {str(e)}")
         
-        # Retorno de emergência
-        visits = []
-        flash('Erro ao carregar lista de visitas.', 'error')
-        return render_template('visits/list.html', visits=visits)
+        # Resposta de emergência absoluta
+        try:
+            flash('Erro temporário ao carregar visitas. Tente novamente.', 'error')
+            return render_template('visits/list.html', visits=[])
+        except Exception:
+            # Se até o template de erro falhar, retornar HTML simples
+            return '''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Erro - ELP</title></head>
+            <body>
+                <h1>Erro Temporário</h1>
+                <p>Por favor, <a href="/">volte à página inicial</a> e tente novamente.</p>
+            </body>
+            </html>
+            ''', 500
 
 @app.route('/visits/calendar')
 @login_required
