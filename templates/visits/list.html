@@ -72,7 +72,13 @@
 
                                             <!-- Nome do projeto -->
                                             <div class="fw-semibold text-dark mb-1" style="font-size: 0.95rem; line-height: 1.2;">
-                                                {{ visit.projeto_nome or 'Projeto não especificado' }}
+                                                {% if visit.projeto_id and visit.projeto %}
+                                                    {{ visit.projeto.numero }} - {{ visit.projeto.nome }}
+                                                {% elif visit.projeto_outros %}
+                                                    {{ visit.projeto_outros }}
+                                                {% else %}
+                                                    Projeto não especificado
+                                                {% endif %}
                                             </div>
 
                                             <!-- Data início -->
@@ -104,15 +110,14 @@
                                             {% endif %}
 
                                             <!-- Responsável -->
-                                            {% if visit.responsavel %}
                                             <div class="text-muted" style="font-size: 0.75rem;">
-                                                <i class="fas fa-user me-1"></i>{{ visit.responsavel.nome_completo or 'Responsável não definido' }}
+                                                <i class="fas fa-user me-1"></i>
+                                                {% if visit.responsavel and visit.responsavel.nome_completo %}
+                                                    {{ visit.responsavel.nome_completo }}
+                                                {% else %}
+                                                    Responsável não definido
+                                                {% endif %}
                                             </div>
-                                            {% else %}
-                                            <div class="text-muted" style="font-size: 0.75rem;">
-                                                <i class="fas fa-user me-1"></i>Responsável não definido
-                                            </div>
-                                            {% endif %}
                                         </div>
 
                                         <!-- Coluna lateral com status e ações -->

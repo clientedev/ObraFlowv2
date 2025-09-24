@@ -2799,7 +2799,7 @@ def migrar_attached_assets():
 @app.route('/visits')
 @login_required
 def visits_list():
-    """Lista de visitas - versão corrigida e simplificada"""
+    """Lista de visitas - versão simplificada e robusta"""
     try:
         current_app.logger.info(f"📋 /visits: Usuário {current_user.username} acessando lista de visitas")
 
@@ -2811,47 +2811,46 @@ def visits_list():
         # Get search query parameter
         q = request.args.get('q', '').strip()
 
-        # Query corrigida e simplificada
+        # Query básica sem joins complexos para evitar erros
         try:
+            base_query = Visita.query
+            
             if q:
                 from sqlalchemy import or_
                 search_term = f"%{q}%"
-                visits = Visita.query.filter(or_(
+                base_query = base_query.filter(or_(
                     Visita.numero.ilike(search_term),
                     Visita.observacoes.ilike(search_term),
                     Visita.projeto_outros.ilike(search_term)
-                )).order_by(Visita.data_inicio.desc()).all()
-                current_app.logger.info(f"🔍 Busca por '{q}': {len(visits)} visitas encontradas")
-            else:
-                visits = Visita.query.order_by(Visita.data_inicio.desc()).limit(50).all()
-                current_app.logger.info(f"📅 {len(visits)} visitas carregadas")
+                ))
+                
+            visits = base_query.order_by(Visita.data_inicio.desc()).limit(50).all()
+            current_app.logger.info(f"✅ {len(visits)} visitas carregadas")
 
         except Exception as query_error:
-            current_app.logger.error(f"❌ Erro na query de visitas: {str(query_error)}")
+            current_app.logger.error(f"❌ Erro na query: {str(query_error)}")
             db.session.rollback()
             
-            # Fallback simples sem filtros
+            # Fallback ultra-simples
             try:
                 visits = Visita.query.limit(10).all()
-                current_app.logger.info(f"🔄 Fallback: {len(visits)} visitas carregadas")
-            except Exception as fallback_error:
-                current_app.logger.error(f"❌ Erro no fallback: {str(fallback_error)}")
+                current_app.logger.info(f"🔄 Fallback: {len(visits)} visitas")
+            except Exception:
                 visits = []
+                current_app.logger.error("❌ Fallback também falhou")
 
-        # Garantir que visits é uma lista válida
-        if visits is None:
-            visits = []
+        # Garantir lista válida
+        if not isinstance(visits, list):
+            visits = list(visits) if visits else []
 
-        current_app.logger.info(f"✅ Lista de visitas carregada com {len(visits)} itens")
         return render_template('visits/list.html', visits=visits)
         
     except Exception as e:
-        current_app.logger.exception(f"❌ ERRO CRÍTICO na lista de visitas: {str(e)}")
-        db.session.rollback()
+        current_app.logger.exception(f"❌ ERRO CRÍTICO: {str(e)}")
         
-        # Em caso de erro crítico, retornar uma lista vazia
+        # Retorno de emergência
         visits = []
-        flash('Erro ao carregar visitas. Verifique sua conexão.', 'error')
+        flash('Erro ao carregar lista de visitas.', 'error')
         return render_template('visits/list.html', visits=visits)
 
 @app.route('/visits/calendar')
