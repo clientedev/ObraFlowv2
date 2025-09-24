@@ -1,0 +1,140 @@
+Implementação completa de calendário, agenda e compromissos pessoais
+Você é um engenheiro especialista em Flask + SQLAlchemy + FullCalendar.js + PostgreSQL.  
+Preciso que você implemente corretamente os itens 28 a 31 do sistema de relatórios de obras, ajustando backend, frontend e banco de dados quando necessário.
+
+---
+
+### Item 28 – Calendário interativo
+**Problema:** Hoje, ao clicar em um dia/horário no calendário, nada acontece ou abre a tela genérica.  
+**Requisitos:**
+1. Ao clicar em **um dia no modo "Mês"**, abrir diretamente a página de **novo agendamento**, já com o campo de data preenchido com o dia clicado.
+2. No modo **Semana/Dia**, ao clicar em um **horário específico**, abrir a tela de novo agendamento com **data e horário já preenchidos**.
+3. Usar `eventClick` e `dateClick` do FullCalendar para capturar clique e redirecionar corretamente:
+   ```javascript
+   dateClick: function(info) {
+       window.location.href = "/agendamento/novo?data=" + info.dateStr;
+   }
+   eventClick: function(info) {
+       window.location.href = "/agendamento/" + info.event.id;
+   }
+
+Item 29 – Agenda por funcionário com cores
+
+Problema: Agenda não diferencia participantes e não mostra cores personalizadas.
+Requisitos:
+
+Cada funcionário deve ter uma cor própria, salva no banco.
+
+Se a tabela users ainda não tiver esse campo, criar via Alembic:
+
+cor_agenda = db.Column(db.String(7), default="#0EA5E9")  # HEX color
+
+
+Na aba de agendamento (frontend), exibir os participantes da visita:
+
+Cada nome acompanhado de uma badge colorida (<span class="badge" style="background-color: {{ user.cor_agenda }}">).
+
+A agenda (calendário) deve ser visível para todos os usuários, mas cada evento deve exibir os participantes com suas cores correspondentes.
+
+FullCalendar deve renderizar eventos com múltiplos participantes → mostrar "Evento X (João, Maria)" e cores individuais.
+
+Item 30 – Cancelar e Alterar visita
+
+Problema: Não existem botões para cancelar ou alterar agendamentos.
+Requisitos:
+
+Na tela de visualização/edição de agendamento:
+
+Botão Cancelar visita → muda o status para "Cancelado".
+
+Confirmar com modal antes de salvar.
+
+Botão Alterar visita → permite mudar data e hora.
+
+Backend:
+
+Criar rota POST /agendamento/<id>/cancelar para cancelar.
+
+Criar rota POST /agendamento/<id>/alterar para atualizar data/hora.
+
+Banco:
+
+Garantir que tabela agendamentos tenha campo status (Agendado, Cancelado, Concluído).
+
+Se não existir, criar migração Alembic incremental para adicionar.
+
+Item 31 – Compromissos pessoais
+
+Problema: Não há suporte para compromissos privados.
+Requisitos:
+
+Usuário deve poder cadastrar compromisso pessoal (ex.: reunião interna).
+
+Criar flag no modelo agendamentos: is_pessoal = db.Column(db.Boolean, default=False).
+
+Criar campo criado_por = db.Column(db.Integer, db.ForeignKey('users.id')).
+
+Regra de visualização:
+
+Para quem criou → aparece o compromisso com título e detalhes normais.
+
+Para os demais → compromisso deve aparecer no calendário, mas com título fixo “Confidencial”, sem mostrar detalhes.
+
+No FullCalendar:
+
+if evento.is_pessoal and evento.criado_por != current_user.id:
+    titulo = "Confidencial"
+else:
+    titulo = evento.titulo
+
+O que você deve entregar
+
+Ajustes no modelo Agendamento para suportar:
+
+status (Agendado, Cancelado, Concluído).
+
+is_pessoal (boolean).
+
+criado_por (usuário criador).
+
+Migração Alembic incremental se os campos não existirem.
+
+Ajustes no modelo User adicionando cor_agenda.
+
+Ajustes no frontend (FullCalendar.js):
+
+dateClick → abrir tela de novo agendamento com data/hora já preenchida.
+
+eventRender → aplicar cores personalizadas dos participantes.
+
+Mostrar eventos confidenciais conforme regra.
+
+Templates atualizados:
+
+Tela de visualização de agendamento → botões "Cancelar" e "Alterar".
+
+Lista de participantes → cada nome com badge colorida.
+
+Backend corrigido para cancelar/alterar agendamentos corretamente.
+
+Checklist de testes:
+
+Criar agendamento em um dia → deve abrir com data preenchida.
+
+Criar compromisso pessoal → criador vê detalhes, outros veem “Confidencial”.
+
+Cancelar visita → muda status para Cancelado.
+
+Alterar visita → data/hora atualizados no calendário.
+
+Participantes coloridos visíveis no calendário.
+
+Observações
+
+Banco de dados: PostgreSQL no Railway.
+
+Sistema: Flask + SQLAlchemy + Jinja2 + Bootstrap 5 + FullCalendar.js.
+
+Não apagar ou sobrescrever dados existentes.
+
+Manter compatibilidade com relatórios já criados.
