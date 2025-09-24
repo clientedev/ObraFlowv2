@@ -836,6 +836,10 @@ def create_report():
     disable_fields = bool(preselected_project_id)
 
     if request.method == 'POST':
+        # Debug: Log dos dados recebidos
+        current_app.logger.info(f"📝 FORM DATA RECEBIDO: {list(request.form.keys())}")
+        current_app.logger.info(f"📁 FILES RECEBIDOS: {list(request.files.keys())}")
+        
         # Processar dados do formulário diretamente
         projeto_id = request.form.get('projeto_id')
         titulo = request.form.get('titulo', 'Relatório de visita')
@@ -1029,6 +1033,8 @@ def create_report():
                     mobile_photos = json.loads(mobile_photos_data)
                     photos_list = mobile_photos.get('photos', [])
 
+                    current_app.logger.info(f"📱 PROCESSANDO {len(photos_list)} FOTOS MOBILE")
+
                     # Validate that all photos have captions (Item 19 - Mandatory captions)
                     for photo_data in photos_list:
                         caption = photo_data.get('caption', '').strip()
@@ -1045,32 +1051,53 @@ def create_report():
 
                     # If validation passes, save mobile photos
                     for i, photo_data in enumerate(photos_list):
-                        foto = FotoRelatorio()
-                        foto.relatorio_id = relatorio.id
-                        foto.filename = photo_data.get('filename', f'mobile_foto_{i+1}.jpg')
-                        foto.legenda = photo_data.get('caption')  # Already validated as non-empty
-                        foto.tipo_servico = photo_data.get('category', 'Geral')
-                        foto.ordem = photo_count + i + 1
-                        
-                        # Salvar dados binários da imagem se disponível
-                        if photo_data.get('data'):
-                            try:
-                                import base64
-                                image_data_b64 = photo_data['data']
-                                if ',' in image_data_b64:
-                                    image_data_b64 = image_data_b64.split(',')[1]
-                                foto.imagem = base64.b64decode(image_data_b64)
-                            except Exception as e:
-                                print(f"Erro ao salvar dados binários da foto mobile {i+1}: {e}")
+                        try:
+                            foto = FotoRelatorio()
+                            foto.relatorio_id = relatorio.id
+                            foto.filename = photo_data.get('filename', f'mobile_foto_{photo_count + i + 1}.jpg')
+                            foto.legenda = photo_data.get('caption', '').strip()  # Already validated as non-empty
+                            foto.descricao = photo_data.get('description', '').strip()  # Adicionar descrição
+                            foto.tipo_servico = photo_data.get('category', 'Geral')
+                            foto.ordem = photo_count + i + 1
+                            
+                            # CRÍTICO: Salvar dados binários da imagem
+                            if photo_data.get('data'):
+                                try:
+                                    import base64
+                                    image_data_b64 = photo_data['data']
+                                    if ',' in image_data_b64:
+                                        image_data_b64 = image_data_b64.split(',')[1]
+                                    
+                                    # Decodificar e salvar dados binários
+                                    image_binary = base64.b64decode(image_data_b64)
+                                    foto.imagem = image_binary
+                                    current_app.logger.info(f"✅ IMAGEM BINÁRIA SALVA: {len(image_binary)} bytes para foto {i+1}")
+                                except Exception as e:
+                                    current_app.logger.error(f"❌ Erro ao processar dados binários da foto mobile {i+1}: {e}")
+                                    # Continuar sem a imagem binária
+                            else:
+                                current_app.logger.warning(f"⚠️ Foto mobile {i+1} sem dados binários")
 
-                        db.session.add(foto)
-                        print(f"✅ Foto mobile {i+1} salva com legenda: {foto.legenda}")
+                            # Salvar anotações se disponível
+                            if photo_data.get('annotations'):
+                                foto.anotacoes_dados = json.dumps(photo_data['annotations'])
+                            
+                            # Salvar coordenadas se disponível
+                            if photo_data.get('coordinates'):
+                                foto.coordenadas_anotacao = json.dumps(photo_data['coordinates'])
+
+                            db.session.add(foto)
+                            current_app.logger.info(f"✅ Foto mobile {i+1} completa: legenda='{foto.legenda}', tipo='{foto.tipo_servico}', imagem={len(foto.imagem) if foto.imagem else 0} bytes")
+
+                        except Exception as foto_error:
+                            current_app.logger.error(f"❌ Erro ao processar foto mobile {i+1}: {foto_error}")
+                            continue
 
                     photo_count += len(photos_list)
                 except Exception as e:
                     db.session.rollback()
+                    current_app.logger.error(f"❌ Erro crítico ao processar fotos mobile: {e}")
                     flash('Erro ao processar fotos mobile. Tente novamente.', 'error')
-                    print(f"Erro ao processar mobile photos: {e}")
                     return render_template('reports/form_complete.html', 
                                          form=form, 
                                          projetos=projetos, 
@@ -1110,6 +1137,7 @@ def create_report():
                         # Get metadata
                         photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
                         photo_category = request.form.get(f'photo_category_{i}', 'Geral')
+                        photo_description = request.form.get(f'photo_description_{i}', '')
 
                         # Create photo record for edited version only
                         foto = FotoRelatorio()
@@ -1117,15 +1145,21 @@ def create_report():
                         foto.filename = filename
                         foto.filename_anotada = filename  # Mark as annotated version
                         foto.legenda = photo_caption or f'Foto {photo_count + 1}'
+                        foto.descricao = photo_description  # Adicionar descrição
                         foto.tipo_servico = photo_category or 'Geral'
                         foto.ordem = photo_count + 1
                         foto.imagem = image_data  # Salvar dados binários da imagem editada
 
+                        # Salvar anotações se disponível
+                        annotations = request.form.get(f'photo_annotations_{i}')
+                        if annotations:
+                            foto.anotacoes_dados = annotations
+
                         db.session.add(foto)
                         photo_count += 1
-                        print(f"Foto editada {photo_count} salva (original descartada): {filename}")
+                        current_app.logger.info(f"✅ Foto editada {photo_count} salva: {filename}, {len(image_data)} bytes")
                     except Exception as e:
-                        print(f"Erro ao processar foto editada {i}: {e}")
+                        current_app.logger.error(f"❌ Erro ao processar foto editada {i}: {e}")
                         continue
 
                 elif photo_key in request.files:
@@ -1145,6 +1179,7 @@ def create_report():
                             # Get metadata
                             photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
                             photo_category = request.form.get(f'photo_category_{i}', 'Geral')
+                            photo_description = request.form.get(f'photo_description_{i}', '')
 
                             # Create photo record for original
                             foto = FotoRelatorio()
@@ -1152,20 +1187,38 @@ def create_report():
                             foto.filename = filename
                             foto.filename_original = filename  # Mark as original version
                             foto.legenda = photo_caption or f'Foto {photo_count + 1}'
+                            foto.descricao = photo_description  # Adicionar descrição
                             foto.tipo_servico = photo_category or 'Geral'
                             foto.ordem = photo_count + 1
                             foto.imagem = file_data  # Salvar dados binários da imagem original
 
+                            # Salvar anotações se disponível
+                            annotations = request.form.get(f'photo_annotations_{i}')
+                            if annotations:
+                                foto.anotacoes_dados = annotations
+
                             db.session.add(foto)
                             photo_count += 1
-                            print(f"Foto original {photo_count} salva: {filename}")
+                            current_app.logger.info(f"✅ Foto original {photo_count} salva: {filename}, {len(file_data)} bytes")
                         except Exception as e:
-                            print(f"Erro ao processar foto {i}: {e}")
+                            current_app.logger.error(f"❌ Erro ao processar foto {i}: {e}")
                             continue
 
-            print(f"Total de {photo_count} fotos processadas para o relatório {relatorio.numero}")
+            current_app.logger.info(f"📊 RESUMO FINAL: {photo_count} fotos processadas para relatório {relatorio.numero}")
+            
+            # Debug: Verificar fotos antes do commit
+            fotos_debug = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).all()
+            for foto_debug in fotos_debug:
+                current_app.logger.info(f"🔍 FOTO PRÉ-COMMIT: ID={foto_debug.id}, filename='{foto_debug.filename}', legenda='{foto_debug.legenda}', descricao='{foto_debug.descricao}', tipo='{foto_debug.tipo_servico}', imagem_size={len(foto_debug.imagem) if foto_debug.imagem else 0}")
 
             db.session.commit()
+            
+            # Debug: Verificar fotos após o commit
+            fotos_post = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).all()
+            current_app.logger.info(f"✅ PÓS-COMMIT: {len(fotos_post)} fotos salvas no banco")
+            for foto_post in fotos_post:
+                current_app.logger.info(f"💾 FOTO SALVA: ID={foto_post.id}, legenda='{foto_post.legenda}', imagem_presente={foto_post.imagem is not None}")
+            
             flash('Relatório criado com sucesso!', 'success')
 
             # Return JSON response for AJAX submission
