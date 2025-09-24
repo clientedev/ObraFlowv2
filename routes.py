@@ -4354,15 +4354,29 @@ def visit_communication(visit_id):
 def api_visits_calendar():
     """API endpoint for calendar data - Item 29: Incluir participantes com cores"""
     try:
-        # Buscar todas as visitas com joins para melhor performance
-        visits = Visita.query.outerjoin(Projeto).join(User, Visita.responsavel_id == User.id).all()
+        # Log para debug
+        current_app.logger.info("📅 Carregando dados do calendário...")
+        
+        # Buscar todas as visitas com joins corretos - corrigido join problemático
+        visits = db.session.query(Visita).outerjoin(
+            Projeto, Visita.projeto_id == Projeto.id
+        ).join(
+            User, Visita.responsavel_id == User.id
+        ).all()
+        
+        current_app.logger.info(f"📅 {len(visits)} visitas encontradas")
 
         visits_data = []
         for visit in visits:
             # Buscar participantes da visita com suas cores - Item 29
             participantes = []
-            if hasattr(visit, 'participantes'):
-                for participante in visit.participantes:
+            try:
+                # Buscar participantes usando query separada para evitar problemas de relacionamento
+                participantes_query = db.session.query(VisitaParticipante).filter_by(
+                    visita_id=visit.id
+                ).join(User, VisitaParticipante.user_id == User.id).all()
+                
+                for participante in participantes_query:
                     if participante.user:
                         participantes.append({
                             'id': participante.user.id,
@@ -4370,46 +4384,67 @@ def api_visits_calendar():
                             'cor_agenda': participante.user.cor_agenda or '#0EA5E9',
                             'confirmado': participante.confirmado
                         })
+            except Exception as part_error:
+                current_app.logger.warning(f"⚠️ Erro ao carregar participantes da visita {visit.id}: {part_error}")
+                participantes = []
 
-            # Incluir responsável na lista se não estiver nos participantes
-            responsavel_incluido = any(p['id'] == visit.responsavel_id for p in participantes)
-            if not responsavel_incluido and visit.responsavel:
-                participantes.insert(0, {
-                    'id': visit.responsavel.id,
-                    'nome': visit.responsavel.nome_completo,
-                    'cor_agenda': visit.responsavel.cor_agenda or '#0EA5E9',
-                    'confirmado': True,
-                    'is_responsavel': True
-                })
+            # Buscar dados do responsável separadamente para evitar problemas
+            responsavel_nome = ''
+            responsavel_cor = '#0EA5E9'
+            try:
+                responsavel = db.session.get(User, visit.responsavel_id)
+                if responsavel:
+                    responsavel_nome = responsavel.nome_completo
+                    responsavel_cor = responsavel.cor_agenda or '#0EA5E9'
+                    
+                    # Incluir responsável na lista se não estiver nos participantes
+                    responsavel_incluido = any(p['id'] == visit.responsavel_id for p in participantes)
+                    if not responsavel_incluido:
+                        participantes.insert(0, {
+                            'id': responsavel.id,
+                            'nome': responsavel.nome_completo,
+                            'cor_agenda': responsavel.cor_agenda or '#0EA5E9',
+                            'confirmado': True,
+                            'is_responsavel': True
+                        })
+            except Exception as resp_error:
+                current_app.logger.warning(f"⚠️ Erro ao carregar responsável da visita {visit.id}: {resp_error}")
 
-            # Criar nome do projeto considerando 'outros'
+            # Buscar dados do projeto separadamente para evitar problemas
             projeto_nome = "Sem projeto"
-            if visit.projeto_id and visit.projeto:
-                projeto_nome = f"{visit.projeto.numero} - {visit.projeto.nome}"
-            elif visit.projeto_outros:
-                projeto_nome = visit.projeto_outros
+            projeto_numero = None
+            try:
+                if visit.projeto_id:
+                    projeto = db.session.get(Projeto, visit.projeto_id)
+                    if projeto:
+                        projeto_nome = f"{projeto.numero} - {projeto.nome}"
+                        projeto_numero = projeto.numero
+                elif visit.projeto_outros:
+                    projeto_nome = visit.projeto_outros
+            except Exception as proj_error:
+                current_app.logger.warning(f"⚠️ Erro ao carregar projeto da visita {visit.id}: {proj_error}")
 
             # Item 31: Verificar se é compromisso pessoal
-            title = visit.numero
+            title = visit.numero or f"Visita {visit.id}"
             if visit.is_pessoal:
                 if visit.criado_por != current_user.id:
                     title = "Confidencial"  # Mostrar como confidencial para outros usuários
                     participantes = []  # Não mostrar participantes para compromissos confidenciais
                 else:
-                    title = f"{visit.numero} (Pessoal)"
+                    title = f"{visit.numero or f'Visita {visit.id}'} (Pessoal)"
 
             visits_data.append({
                 'id': visit.id,
-                'numero': visit.numero,
+                'numero': visit.numero or f"V{visit.id}",
                 'title': title,
                 'data_inicio': visit.data_inicio.isoformat() if visit.data_inicio else None,
                 'data_fim': visit.data_fim.isoformat() if visit.data_fim else None,
                 'data_realizada': visit.data_realizada.isoformat() if visit.data_realizada else None,
-                'status': visit.status,
+                'status': visit.status or 'Agendada',
                 'projeto_nome': projeto_nome,
-                'projeto_numero': visit.projeto.numero if visit.projeto else None,
-                'responsavel_nome': visit.responsavel.nome_completo if visit.responsavel else '',
-                'responsavel_cor': visit.responsavel.cor_agenda if visit.responsavel else '#0EA5E9',
+                'projeto_numero': projeto_numero,
+                'responsavel_nome': responsavel_nome,
+                'responsavel_cor': responsavel_cor,
                 'observacoes': visit.observacoes or '',
                 'atividades_realizadas': visit.atividades_realizadas or '',
                 'participantes': participantes,  # Item 29: Lista de participantes com cores
@@ -4417,16 +4452,21 @@ def api_visits_calendar():
                 'criado_por': visit.criado_por
             })
 
+        current_app.logger.info(f"✅ Calendário carregado com {len(visits_data)} eventos")
         return jsonify({
             'success': True,
             'visits': visits_data
         })
 
     except Exception as e:
-        print(f"Calendar API error: {e}")
+        import traceback
+        error_trace = traceback.format_exc()
+        current_app.logger.error(f"❌ Erro no calendário API: {str(e)}")
+        current_app.logger.error(f"❌ Traceback: {error_trace}")
+        
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'Erro ao carregar calendário: {str(e)}'
         }), 500
 
 @app.route('/api/visits/<int:visit_id>/details')
