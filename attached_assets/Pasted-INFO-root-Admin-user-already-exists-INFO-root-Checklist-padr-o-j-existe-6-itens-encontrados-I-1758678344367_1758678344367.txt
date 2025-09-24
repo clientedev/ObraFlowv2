@@ -1,0 +1,35 @@
+INFO:root:Admin user already exists.
+INFO:root:✅ Checklist padrão já existe: 6 itens encontrados
+INFO:root:✅ SIMPLIFIED DATABASE INITIALIZATION COMPLETE
+Traceback (most recent call last):
+  File "/app/main.py", line 3, in <module>
+    import routes  # noqa: F401
+    ^^^^^^^^^^^^^
+  File "/app/routes.py", line 69, in <module>
+    from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm, FirstLoginForm
+  File "/app/forms.py", line 138, in <module>
+    class ChecklistPadraoForm(FlaskForm):
+  File "/app/forms.py", line 149, in ChecklistPadraoForm
+    ordem = IntegerField('Ordem', validators=[Optional(), NumberRange(min=1)])
+                                                          ^^^^^^^^^^^
+NameError: name 'NumberRange' is not defined
+INFO:root:✅ Using PostgreSQL database
+INFO:root:📁 UPLOAD_FOLDER configurado: uploads
+INFO:root:✅ Flask extensions initialized successfully
+INFO:root:🚂 Railway environment detected - initializing database
+INFO:root:Database tables created successfully.
+INFO:root:Admin user already exists.
+INFO:root:✅ Checklist padrão já existe: 6 itens encontrados
+INFO:root:✅ SIMPLIFIED DATABASE INITIALIZATION COMPLETE
+Traceback (most recent call last):
+  File "/app/main.py", line 3, in <module>
+    import routes  # noqa: F401
+    ^^^^^^^^^^^^^
+  File "/app/routes.py", line 69, in <module>
+    from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm, FirstLoginForm
+  File "/app/forms.py", line 138, in <module>
+    class ChecklistPadraoForm(FlaskForm):
+  File "/app/forms.py", line 149, in ChecklistPadraoForm
+    ordem = IntegerField('Ordem', validators=[Optional(), NumberRange(min=1)])
+                                                          ^^^^^^^^^^^
+NameError: name 'NumberRange' is not defined
