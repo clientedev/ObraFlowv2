@@ -1,0 +1,31 @@
+Você é um engenheiro sênior de backend e frontend com expertise em Flask + SQLAlchemy + PostgreSQL (Railway) + Jinja2 + JavaScript.
+
+Problema crítico:  
+A lista de visitas não carrega de forma alguma. Sempre retorna o erro no frontend:  
+❌ "Erro ao carregar lista de visitas. Tente novamente."  
+Console mostra: `GET https://elpconsultoria.pro/api/visits/calendar 500 (Internal Server Error)` e depois `TypeError: Cannot read properties of undefined (reading 'map')`.  
+O sistema já está deployado no Railway com PostgreSQL. A tabela de visitas já possui dados confirmados no banco, mas a API não retorna os dados.
+
+Requisito: resolver o problema **de uma vez por todas**, garantindo que:  
+1. O endpoint `/api/visits/calendar` funcione 100%, retornando os dados corretos do PostgreSQL.  
+2. O JSON seja serializado de forma apropriada (corrigir problemas comuns de `datetime` não serializável, relationships lazy, colunas faltando, etc.).  
+3. O frontend não quebre — mesmo que o retorno seja vazio, o JS deve tratar corretamente (`map` só deve rodar em arrays).  
+4. Logs sejam adicionados no backend (`current_app.logger.exception`) para capturar a causa real do 500 e depois removidos para produção.  
+5. Garantir que os dados existentes sejam lidos da tabela e enviados no formato esperado pelo calendário (`id`, `title`, `start`, `end`, `participants`, `color`).  
+6. Corrigir o frontend para que trate erros de rede e exiba mensagem amigável ao invés de quebrar com `undefined.map`.  
+7. Se o erro estiver em migrations (colunas ausentes ou inconsistentes), criar uma nova migration Alembic baseada na mais recente do repositório GitHub, ajustando o schema para refletir exatamente os campos usados na query.  
+8. Fornecer patches completos:  
+   - Código corrigido do endpoint Flask.  
+   - Ajuste no modelo SQLAlchemy se necessário.  
+   - Migração Alembic se faltar campo/alteração de tipo.  
+   - Patch JS para tratamento seguro no frontend.  
+   - Passo a passo para testar localmente com o banco do Railway (`export DATABASE_URL=... && flask run`) e validar com `curl` que a API retorna JSON válido.  
+
+Critérios de aceitação:  
+- A requisição `GET /api/visits/calendar` deve responder `200` com um array JSON.  
+- O console do navegador não pode mais mostrar `TypeError: undefined.map`.  
+- O calendário deve renderizar os eventos corretamente.  
+- Se não houver visitas, deve retornar `[]` e o frontend exibir vazio sem erro.  
+- Todos os campos obrigatórios do calendário (start, end, title) devem estar presentes e serializados corretamente.  
+
+Analise profundamente o código backend + frontend e entregue as correções exatas (com código e diffs prontos). Esse problema precisa ser resolvido definitivamente.

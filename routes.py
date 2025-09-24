@@ -1,8 +1,9 @@
 import os
 import uuid
+import io
 from datetime import datetime, date, timedelta
 from urllib.parse import urlparse
-from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response, session, Response
+from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response, session, Response, abort, send_file
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -65,7 +66,7 @@ def health_check_full():
             'service': 'flask-app'
         }), 503
 
-from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress, LegendaPredefinida, FuncionarioProjeto, AprovadorPadrao, ProjetoChecklistConfig, ChecklistObra
+from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, FotoRelatorio, Reembolso, EnvioRelatorio, ChecklistTemplate, ChecklistItem, ComunicacaoVisita, EmailCliente, ChecklistPadrao, LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress, LegendaPredefinida, FuncionarioProjeto, AprovadorPadrao, ProjetoChecklistConfig, ChecklistObra, VisitaParticipante
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm, FirstLoginForm
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
 from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
@@ -4370,7 +4371,6 @@ def api_visits_calendar():
     try:
         # Enhanced logging for diagnostics
         current_app.logger.info("📅 Carregando dados do calendário...")
-        current_app.logger.exception("Calendar API called - adding diagnostic logging")
         
         # Buscar todas as visitas com joins corretos - corrigido join problemático
         visits = db.session.query(Visita).outerjoin(

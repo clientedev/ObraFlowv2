@@ -385,7 +385,21 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(data => {
                 // Ensure that code only executes .map() on arrays - defensive check
+                if (!data) {
+                    console.warn('Calendar API returned null/undefined data');
+                    allEvents = [];
+                    applyFilters();
+                    return;
+                }
+                
                 const visits = Array.isArray(data) ? data : (data.visits || []);
+                
+                if (!Array.isArray(visits)) {
+                    console.warn('Calendar API did not return array data:', data);
+                    allEvents = [];
+                    applyFilters();
+                    return;
+                }
                 
                 allEvents = visits.map(visit => {
                     // Item 29: Criar título com participantes e cores melhorado
@@ -436,10 +450,17 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Erro ao carregar visitas:', error);
+                // Set empty array to prevent undefined.map() errors
+                allEvents = [];
+                applyFilters();
+                
                 // Show user-friendly error message instead of technical alert
                 const errorDiv = document.createElement('div');
                 errorDiv.className = 'alert alert-danger';
-                errorDiv.innerHTML = '⚠️ Erro ao carregar lista de visitas. Tente novamente.';
+                const errorMsg = error.message.includes('500') 
+                    ? '⚠️ Erro no servidor. Por favor, tente novamente em alguns instantes.'
+                    : '⚠️ Erro ao carregar lista de visitas. Verifique sua conexão e tente novamente.';
+                errorDiv.innerHTML = errorMsg;
                 const container = document.querySelector('.container-fluid');
                 if (container) container.prepend(errorDiv);
                 
