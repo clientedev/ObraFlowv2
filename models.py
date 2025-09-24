@@ -17,6 +17,7 @@ class User(UserMixin, db.Model):
     is_developer = db.Column(db.Boolean, default=False)  # Novo tipo de usuário
     primeiro_login = db.Column(db.Boolean, default=True)  # Campo para controlar primeiro login
     ativo = db.Column(db.Boolean, default=True)
+    cor_agenda = db.Column(db.String(7), default="#0EA5E9")  # Cor HEX para agenda - Item 29
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     @property
@@ -146,6 +147,8 @@ class Visita(db.Model):
     endereco_gps = db.Column(db.String(200))
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
+    is_pessoal = db.Column(db.Boolean, default=False)  # Flag para compromissos pessoais - Item 31
+    criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Usuário criador - Item 31
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     @property
