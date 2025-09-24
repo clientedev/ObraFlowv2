@@ -2791,43 +2791,82 @@ def migrar_attached_assets():
 @login_required
 def visits_list():
     """
-    Lista de visitas, com opção de visualização em calendário ou lista,
-    incluindo busca e ordenação.
+    Lista de visitas com tratamento robusto de erros
     """
     try:
+        # Forçar rollback de transações pendentes
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+
+        current_app.logger.info(f"📋 /visits: Usuário {current_user.username} acessando lista de visitas")
+
         # Check if user wants calendar view
         view_type = request.args.get('view', 'list')
-
         if view_type == 'calendar':
             return render_template('visits/calendar.html')
 
         # Get search query parameter
-        q = request.args.get('q')
+        q = request.args.get('q', '').strip()
 
-        # Start with base query
-        query = Visita.query
+        # Query básica e robusta
+        try:
+            if q:
+                # Busca com joins seguros
+                from sqlalchemy import or_
+                search_term = f"%{q}%"
+                
+                # Query com joins explícitos e seguros
+                visits = db.session.query(Visita).outerjoin(
+                    Projeto, Visita.projeto_id == Projeto.id
+                ).join(
+                    User, Visita.responsavel_id == User.id
+                ).filter(or_(
+                    Visita.numero.ilike(search_term),
+                    Visita.observacoes.ilike(search_term),
+                    Projeto.nome.ilike(search_term),
+                    Projeto.numero.ilike(search_term),
+                    User.nome_completo.ilike(search_term)
+                )).order_by(Visita.data_inicio.desc()).all()
+                
+                current_app.logger.info(f"🔍 Busca por '{q}': {len(visits)} visitas encontradas")
+            else:
+                # Query simples sem busca
+                visits = Visita.query.order_by(Visita.data_inicio.desc()).all()
+                current_app.logger.info(f"📅 {len(visits)} visitas carregadas")
 
-        # Apply intelligent search if query provided
-        if q and q.strip():
-            from sqlalchemy import or_
-            search_term = f"%{q.strip()}%"
-            # Join with related tables for searching (Projeto and User)
-            # Use outerjoin for Projeto in case visit.projeto_id is null
-            query = query.outerjoin(Projeto, Visita.projeto_id == Projeto.id).join(User, Visita.responsavel_id == User.id)
-            query = query.filter(or_(
-                Visita.numero.ilike(search_term),
-                Visita.observacoes.ilike(search_term),
-                Projeto.nome.ilike(search_term),
-                Projeto.numero.ilike(search_term),
-                User.nome_completo.ilike(search_term)
-            ))
+        except Exception as query_error:
+            current_app.logger.error(f"❌ Erro na query de visitas: {str(query_error)}")
+            
+            # Fallback para query mais simples
+            try:
+                db.session.rollback()
+                visits = Visita.query.limit(50).all()
+                current_app.logger.info(f"🔄 Fallback: {len(visits)} visitas carregadas")
+            except Exception as fallback_error:
+                current_app.logger.error(f"❌ Erro no fallback: {str(fallback_error)}")
+                visits = []
 
-        # Default list view with order by start date descending
-        visits = query.order_by(Visita.data_inicio.desc()).all()
+        # Garantir que visits é uma lista
+        if visits is None:
+            visits = []
+
+        current_app.logger.info(f"✅ Lista de visitas carregada com {len(visits)} itens")
         return render_template('visits/list.html', visits=visits)
         
     except Exception as e:
-        current_app.logger.exception(f"Erro na lista de visitas: {str(e)}")
+        import traceback
+        error_trace = traceback.format_exc()
+        current_app.logger.exception(f"❌ ERRO CRÍTICO na lista de visitas: {str(e)}")
+        current_app.logger.error(f"❌ TRACEBACK: {error_trace}")
+        
+        # Forçar rollback
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        
         flash('Erro ao carregar lista de visitas. Tente novamente.', 'error')
         return redirect(url_for('index'))
 
