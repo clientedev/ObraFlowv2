@@ -169,6 +169,16 @@ class Visita(db.Model):
     @property 
     def responsavel(self):
         return User.query.get(self.responsavel_id)
+    
+    @property
+    def data_agendada(self):
+        """Propriedade para compatibilidade - retorna data_inicio"""
+        return self.data_inicio
+    
+    @property
+    def objetivo(self):
+        """Propriedade para compatibilidade - retorna observacoes"""
+        return self.observacoes
 
 class VisitaParticipante(db.Model):
     """Modelo para armazenar múltiplos participantes de uma visita"""

@@ -2794,36 +2794,42 @@ def visits_list():
     Lista de visitas, com opção de visualização em calendário ou lista,
     incluindo busca e ordenação.
     """
-    # Check if user wants calendar view
-    view_type = request.args.get('view', 'list')
+    try:
+        # Check if user wants calendar view
+        view_type = request.args.get('view', 'list')
 
-    if view_type == 'calendar':
-        return render_template('visits/calendar.html')
+        if view_type == 'calendar':
+            return render_template('visits/calendar.html')
 
-    # Get search query parameter
-    q = request.args.get('q')
+        # Get search query parameter
+        q = request.args.get('q')
 
-    # Start with base query
-    query = Visita.query
+        # Start with base query
+        query = Visita.query
 
-    # Apply intelligent search if query provided
-    if q and q.strip():
-        from sqlalchemy import or_
-        search_term = f"%{q.strip()}%"
-        # Join with related tables for searching (Projeto and User)
-        # Use outerjoin for Projeto in case visit.projeto_id is null
-        query = query.join(Projeto, Visita.projeto_id == Projeto.id, isouter=True).join(User, Visita.responsavel_id == User.id)
-        query = query.filter(or_(
-            Visita.numero.ilike(search_term),
-            Visita.observacoes.ilike(search_term),
-            Projeto.nome.ilike(search_term),
-            Projeto.numero.ilike(search_term),
-            User.nome_completo.ilike(search_term)
-        ))
+        # Apply intelligent search if query provided
+        if q and q.strip():
+            from sqlalchemy import or_
+            search_term = f"%{q.strip()}%"
+            # Join with related tables for searching (Projeto and User)
+            # Use outerjoin for Projeto in case visit.projeto_id is null
+            query = query.outerjoin(Projeto, Visita.projeto_id == Projeto.id).join(User, Visita.responsavel_id == User.id)
+            query = query.filter(or_(
+                Visita.numero.ilike(search_term),
+                Visita.observacoes.ilike(search_term),
+                Projeto.nome.ilike(search_term),
+                Projeto.numero.ilike(search_term),
+                User.nome_completo.ilike(search_term)
+            ))
 
-    # Default list view with order by start date descending
-    visits = query.order_by(Visita.data_inicio.desc()).all()
-    return render_template('visits/list.html', visits=visits)
+        # Default list view with order by start date descending
+        visits = query.order_by(Visita.data_inicio.desc()).all()
+        return render_template('visits/list.html', visits=visits)
+        
+    except Exception as e:
+        current_app.logger.exception(f"Erro na lista de visitas: {str(e)}")
+        flash('Erro ao carregar lista de visitas. Tente novamente.', 'error')
+        return redirect(url_for('index'))
 
 @app.route('/visits/calendar')
 @login_required
@@ -4394,13 +4400,14 @@ def api_visit_details(visit_id):
         visit_data = {
             'id': visit.id,
             'numero': visit.numero,
-            'data_agendada': visit.data_agendada.isoformat() if visit.data_agendada else None,
+            'data_inicio': visit.data_inicio.isoformat() if visit.data_inicio else None,
+            'data_fim': visit.data_fim.isoformat() if visit.data_fim else None,
             'data_realizada': visit.data_realizada.isoformat() if visit.data_realizada else None,
             'status': visit.status,
             'projeto_nome': visit.projeto.nome,
             'projeto_numero': visit.projeto.numero,
             'responsavel_nome': visit.responsavel.nome_completo,
-            'objetivo': visit.objetivo or '',
+            'observacoes_objetivo': visit.observacoes or '',
             'atividades_realizadas': visit.atividades_realizadas or '',
             'observacoes': visit.observacoes or ''
         }
@@ -4468,8 +4475,8 @@ def api_export_single_visit_google(visit_id):
         visit = Visita.query.get_or_404(visit_id)
 
         # Format for Google Calendar
-        start_time = visit.data_agendada.strftime('%Y%m%dT%H%M%S')
-        end_time = (visit.data_agendada + timedelta(hours=2)).strftime('%Y%m%dT%H%M%S')
+        start_time = visit.data_inicio.strftime('%Y%m%dT%H%M%S')
+        end_time = (visit.data_fim or visit.data_inicio + timedelta(hours=2)).strftime('%Y%m%dT%H%M%S')
 
         base_url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
         params = {
@@ -4548,8 +4555,8 @@ def visit_export_outlook(visit_id):
     try:
         visit = Visita.query.get_or_404(visit_id)
 
-        # Calculate end time (2 hours after start)
-        end_time = visit.data_agendada + timedelta(hours=2)
+        # Calculate end time
+        end_time = visit.data_fim or (visit.data_inicio + timedelta(hours=2))
 
         # Create ICS content with proper line breaks for Outlook compatibility
         ics_lines = [
@@ -4559,10 +4566,10 @@ def visit_export_outlook(visit_id):
             "METHOD:PUBLISH",
             "BEGIN:VEVENT",
             f"UID:visit-{visit.id}@elp.com.br",
-            f"DTSTART:{visit.data_agendada.strftime('%Y%m%dT%H%M%S')}",
+            f"DTSTART:{visit.data_inicio.strftime('%Y%m%dT%H%M%S')}",
             f"DTEND:{end_time.strftime('%Y%m%dT%H%M%S')}",
             f"SUMMARY:Visita Tecnica - {visit.projeto.nome}",
-            f"DESCRIPTION:Objetivo: {visit.objetivo or 'N/A'}. Projeto: {visit.projeto.numero} - {visit.projeto.nome}. Responsavel: {visit.responsavel.nome_completo}",
+            f"DESCRIPTION:Observacoes: {visit.observacoes or 'N/A'}. Projeto: {visit.projeto_nome}. Responsavel: {visit.responsavel.nome_completo}",
             f"LOCATION:{visit.endereco_gps or visit.projeto.endereco or ''}",
             "STATUS:CONFIRMED",
             "SEQUENCE:0",

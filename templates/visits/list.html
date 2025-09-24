@@ -155,8 +155,14 @@
 
                                             <!-- Datas -->
                                             <div class="text-muted mb-1" style="font-size: 0.8rem;">
-                                                <i class="fas fa-clock me-1"></i>Agendada: {{ visit.data_agendada.strftime('%d/%m/%Y às %H:%M') }}
+                                                <i class="fas fa-clock me-1"></i>Início: {{ visit.data_inicio.strftime('%d/%m/%Y às %H:%M') }}
                                             </div>
+                                            
+                                            {% if visit.data_fim %}
+                                            <div class="text-muted mb-1" style="font-size: 0.8rem;">
+                                                <i class="fas fa-clock me-1"></i>Fim: {{ visit.data_fim.strftime('%d/%m/%Y às %H:%M') }}
+                                            </div>
+                                            {% endif %}
 
                                             {% if visit.data_realizada %}
                                             <div class="text-success mb-1" style="font-size: 0.8rem;">
