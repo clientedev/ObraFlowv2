@@ -1,8 +1,8 @@
 import datetime
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
-from wtforms import StringField, TextAreaField, PasswordField, BooleanField, SelectField, DateField, FloatField, IntegerField, DateTimeField, HiddenField, SubmitField
-from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange, Optional
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField, SelectField, DateField, FileField, HiddenField, IntegerField, DateTimeField, FloatField, SelectMultipleField
+from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, ValidationError
 from wtforms.widgets import TextArea
 from models import User, TipoObra, Contato
 
@@ -103,34 +103,34 @@ class VisitaForm(FlaskForm):
     def __init__(self, *args, **kwargs):
         super(VisitaForm, self).__init__(*args, **kwargs)
         from models import Projeto, User
-        
+
         # Adicionar opção 'Outros' aos projetos
         projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
         self.projeto_id.choices = [(-1, 'Outros')] + [(p.id, f"{p.numero} - {p.nome}") for p in projetos_ativos]
-        
+
         # Carregar usuários ativos para seleção de participantes
         usuarios_ativos = User.query.filter_by(ativo=True).all()
         self.participantes.choices = [(u.id, f"{u.nome_completo} ({u.cargo})") for u in usuarios_ativos]
-        
+
     def validate(self, extra_validators=None):
         """Validação customizada"""
         result = super().validate(extra_validators)
-        
+
         # Se 'Outros' foi selecionado, o campo projeto_outros deve ser preenchido
         if self.projeto_id.data == -1 and not self.projeto_outros.data:
             self.projeto_outros.errors.append('Campo obrigatório quando "Outros" é selecionado.')
             result = False
-            
+
         # Se um projeto específico foi selecionado, limpar projeto_outros
         if self.projeto_id.data and self.projeto_id.data != -1:
             self.projeto_outros.data = None
-            
+
         # Validar se data_fim é posterior a data_inicio
         if self.data_inicio.data and self.data_fim.data:
             if self.data_fim.data <= self.data_inicio.data:
                 self.data_fim.errors.append('A data de fim deve ser posterior à data de início.')
                 result = False
-                
+
         return result
 
 # ReportForm removed - use RelatorioForm instead which doesn't have titulo field
@@ -241,7 +241,7 @@ class LegendaPredefinidaForm(FlaskForm):
     texto = StringField('Texto da Legenda', validators=[DataRequired(), Length(max=500)])
     categoria = SelectField('Categoria', choices=[
         ('Geral', 'Geral'),
-        ('Estrutural', 'Estrutural'), 
+        ('Estrutural', 'Estrutural'),
         ('Hidráulica', 'Hidráulica'),
         ('Elétrica', 'Elétrica'),
         ('Acabamentos', 'Acabamentos'),

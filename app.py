@@ -115,6 +115,9 @@ def create_admin_user_safe():
 
     for attempt in range(MAX_RETRIES):
         try:
+            # Force rollback any pending transactions
+            db.session.rollback()
+            
             # Attempt to create admin user
             existing_admin = User.query.filter_by(is_master=True).first()
             if not existing_admin:
@@ -134,6 +137,7 @@ def create_admin_user_safe():
                 logging.info("Admin user already exists.")
             break # Exit loop if successful
         except Exception as e:
+            db.session.rollback()
             logging.error(f"Attempt {attempt + 1} failed to create admin user: {e}")
             if attempt < MAX_RETRIES - 1:
                 logging.info(f"Retrying in {RETRY_DELAY} seconds...")
@@ -155,6 +159,9 @@ def create_default_checklists():
     ]
 
     try:
+        # Force rollback any pending transactions
+        db.session.rollback()
+        
         # Verificar se já existem itens
         count = ChecklistPadrao.query.filter_by(ativo=True).count()
         if count >= 6:
@@ -189,8 +196,8 @@ def create_default_checklists():
             logging.info("✅ Todos os itens de checklist já existem")
 
     except Exception as e:
-        logging.error(f"❌ Erro ao criar checklist padrão: {e}")
         db.session.rollback()
+        logging.error(f"❌ Erro ao criar checklist padrão: {e}")
 
 def create_default_legendas():
     """Criar legendas padrão no Railway PostgreSQL - VERSÃO DEFINITIVA"""
