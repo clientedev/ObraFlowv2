@@ -63,7 +63,7 @@ class Projeto(db.Model):
     
     @property
     def responsavel(self):
-        return User.query.get(self.responsavel_id)
+        return db.session.get(User, self.responsavel_id)
 
 class Contato(db.Model):
     __tablename__ = 'contatos'
@@ -154,7 +154,7 @@ class Visita(db.Model):
     @property
     def projeto(self):
         if self.projeto_id:
-            return Projeto.query.get(self.projeto_id)
+            return db.session.get(Projeto, self.projeto_id)
         return None
     
     @property
@@ -168,7 +168,7 @@ class Visita(db.Model):
     
     @property 
     def responsavel(self):
-        return User.query.get(self.responsavel_id)
+        return db.session.get(User, self.responsavel_id)
     
     @property
     def data_agendada(self):
@@ -218,19 +218,19 @@ class Relatorio(db.Model):
     
     @property
     def autor(self):
-        return User.query.get(self.autor_id)
+        return db.session.get(User, self.autor_id)
     
     @property
     def aprovador(self):
-        return User.query.get(self.aprovador_id) if self.aprovador_id else None
+        return db.session.get(User, self.aprovador_id) if self.aprovador_id else None
 
     @property
     def projeto(self):
-        return Projeto.query.get(self.projeto_id)
+        return db.session.get(Projeto, self.projeto_id)
 
     @property
     def visita(self):
-        return Visita.query.get(self.visita_id) if self.visita_id else None
+        return db.session.get(Visita, self.visita_id) if self.visita_id else None
     
 
 class ChecklistTemplate(db.Model):
@@ -257,7 +257,7 @@ class ChecklistItem(db.Model):
     
     @property
     def visita(self):
-        return Visita.query.get(self.visita_id)
+        return db.session.get(Visita, self.visita_id)
 
 class ComunicacaoVisita(db.Model):
     __tablename__ = 'comunicacoes_visitas'
@@ -271,11 +271,11 @@ class ComunicacaoVisita(db.Model):
     
     @property
     def visita(self):
-        return Visita.query.get(self.visita_id)
+        return db.session.get(Visita, self.visita_id)
     
     @property
     def usuario(self):
-        return User.query.get(self.usuario_id)
+        return db.session.get(User, self.usuario_id)
     
     @property
     def fotos(self):

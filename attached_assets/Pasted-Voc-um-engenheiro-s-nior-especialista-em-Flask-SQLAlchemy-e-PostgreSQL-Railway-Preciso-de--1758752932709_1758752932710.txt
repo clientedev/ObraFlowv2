@@ -1,0 +1,52 @@
+Você é um engenheiro sênior especialista em Flask, SQLAlchemy e PostgreSQL (Railway).  
+Preciso de uma correção definitiva para o seguinte problema crítico:
+
+❌ Problema:  
+A rota `/visits` retorna erro 500 (Internal Server Error).  
+Mensagem exibida: "Erro ao carregar lista de visitas. Tente novamente."  
+O sistema está deployado no Railway, com PostgreSQL já populado com dados na tabela de visitas.  
+O frontend depende dessa rota para exibir a lista de visitas, mas não carrega nada.  
+
+O que deve ser feito:
+
+1. **Analisar a rota `/visits`**  
+   - Verifique se ela realmente existe no Flask.  
+   - Se não existir, implemente corretamente (usando `@app.route("/visits")`).  
+   - Se já existir, verifique se a query no SQLAlchemy está retornando dados válidos e não `None`.
+
+2. **Modelo Visits**  
+   - Confirme se o modelo `Visit` ou equivalente possui os campos necessários (`id`, `title`, `start_time`, `end_time`, `project_id`, `participants`).  
+   - Se algum campo chamado no código não existir no banco, crie uma migration Alembic baseada na última versão do GitHub para corrigir.  
+
+3. **Serialização**  
+   - Certifique-se de que os objetos retornados sejam convertidos para JSON corretamente.  
+   - Exemplo mínimo de retorno esperado:  
+     ```json
+     [
+       {
+         "id": 1,
+         "title": "Visita Técnica",
+         "start_time": "2025-09-25T10:00:00",
+         "end_time": "2025-09-25T11:00:00",
+         "participants": ["Eng. João", "Arq. Maria"]
+       }
+     ]
+     ```
+   - Se houver campos `datetime`, use `.isoformat()` para evitar erro de serialização.  
+
+4. **Frontend**  
+   - Verifique se o frontend está chamando `/visits` ou `/api/visits`.  
+   - Se a API correta for `/api/visits`, ajuste o fetch no frontend para usar a rota correta.  
+   - Corrija o erro `undefined.map` garantindo que, se a lista vier vazia, seja retornado `[]` e não `None`.  
+
+5. **Critérios de aceitação**  
+   - `/visits` ou `/api/visits` deve retornar status 200.  
+   - A lista de visitas já existentes no PostgreSQL Railway deve ser exibida corretamente.  
+   - Se não houver visitas, o frontend deve exibir lista vazia sem erro.  
+   - O erro 500 deve desaparecer definitivamente.  
+
+Forneça:  
+- Código Flask corrigido da rota.  
+- Ajuste do modelo SQLAlchemy e migration Alembic se necessário.  
+- Correção do frontend para garantir compatibilidade.  
+- Passos de teste local antes de redeploy no Railway.
