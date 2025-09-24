@@ -29,32 +29,75 @@
                     {{ form.hidden_tag() }}
                     
                     {% if action != 'realize' %}
+                        <!-- Seleção de Projeto -->
                         <div class="mb-3">
                             {{ form.projeto_id.label(class="form-label") }}
-                            {{ form.projeto_id(class="form-select" + (" is-invalid" if form.projeto_id.errors else "")) }}
+                            {{ form.projeto_id(class="form-select" + (" is-invalid" if form.projeto_id.errors else ""), id="projeto_id") }}
                             {% for error in form.projeto_id.errors %}
                                 <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}
                         </div>
                         
-                        <div class="mb-3">
-                            <label for="data_agendada" class="form-label">Data e Hora Agendada</label>
-                            <input type="datetime-local" 
-                                   id="data_agendada" 
-                                   name="data_agendada" 
-                                   class="form-control{{ ' is-invalid' if form.data_agendada.errors else '' }}" 
-                                   value="{{ form.data_agendada.data.strftime('%Y-%m-%dT%H:%M') if form.data_agendada.data else '' }}"
-                                   required>
-                            {% for error in form.data_agendada.errors %}
+                        <!-- Campo 'Outros' (aparece quando 'Outros' é selecionado) -->
+                        <div class="mb-3" id="projeto_outros_div" style="display: none;">
+                            {{ form.projeto_outros.label(class="form-label") }}
+                            {{ form.projeto_outros(class="form-control" + (" is-invalid" if form.projeto_outros.errors else ""), placeholder="Digite o nome do projeto") }}
+                            {% for error in form.projeto_outros.errors %}
                                 <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}
                         </div>
                         
+                        <!-- Data e Hora de Início -->
                         <div class="mb-3">
-                            {{ form.objetivo.label(class="form-label") }}
-                            {{ form.objetivo(class="form-control" + (" is-invalid" if form.objetivo.errors else ""), rows="3") }}
-                            {% for error in form.objetivo.errors %}
+                            {{ form.data_inicio.label(class="form-label") }}
+                            <input type="datetime-local" 
+                                   id="data_inicio" 
+                                   name="data_inicio" 
+                                   class="form-control{{ ' is-invalid' if form.data_inicio.errors else '' }}" 
+                                   value="{{ form.data_inicio.data.strftime('%Y-%m-%dT%H:%M') if form.data_inicio.data else '' }}"
+                                   required>
+                            {% for error in form.data_inicio.errors %}
                                 <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Data e Hora de Fim -->
+                        <div class="mb-3">
+                            {{ form.data_fim.label(class="form-label") }}
+                            <input type="datetime-local" 
+                                   id="data_fim" 
+                                   name="data_fim" 
+                                   class="form-control{{ ' is-invalid' if form.data_fim.errors else '' }}" 
+                                   value="{{ form.data_fim.data.strftime('%Y-%m-%dT%H:%M') if form.data_fim.data else '' }}"
+                                   required>
+                            {% for error in form.data_fim.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Observações (não obrigatório) -->
+                        <div class="mb-3">
+                            {{ form.observacoes.label(class="form-label") }}
+                            {{ form.observacoes(class="form-control" + (" is-invalid" if form.observacoes.errors else ""), rows="3", placeholder="Observações sobre a visita (opcional)") }}
+                            {% for error in form.observacoes.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Seleção de Participantes -->
+                        <div class="mb-3">
+                            {{ form.participantes.label(class="form-label") }}
+                            <div class="form-text text-muted mb-2">Selecione os usuários que participarão da visita</div>
+                            <div class="border p-3 rounded" style="max-height: 200px; overflow-y: auto;">
+                                {% for subfield in form.participantes %}
+                                    <div class="form-check">
+                                        {{ subfield(class="form-check-input") }}
+                                        {{ subfield.label(class="form-check-label") }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% for error in form.participantes.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
                     {% else %}
@@ -120,6 +163,28 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+// Handle 'Outros' project selection
+document.addEventListener('DOMContentLoaded', function() {
+    const projetoSelect = document.getElementById('projeto_id');
+    const projetoOutrosDiv = document.getElementById('projeto_outros_div');
+    
+    function toggleProjetoOutros() {
+        if (projetoSelect.value === '-1') {
+            projetoOutrosDiv.style.display = 'block';
+        } else {
+            projetoOutrosDiv.style.display = 'none';
+        }
+    }
+    
+    // Initial check
+    toggleProjetoOutros();
+    
+    // Listen for changes
+    projetoSelect.addEventListener('change', toggleProjetoOutros);
+});
+</script>
+
 {% if action == 'realize' %}
 <script>
 // GPS Location functionality

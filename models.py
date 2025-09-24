@@ -134,13 +134,14 @@ class Visita(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     numero = db.Column(db.String(20), unique=True, nullable=False)
-    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=True)  # Agora pode ser NULL para 'Outros'
+    projeto_outros = db.Column(db.String(300), nullable=True)  # Nome do projeto quando é 'Outros'
     responsavel_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    data_agendada = db.Column(db.DateTime, nullable=False)
+    data_inicio = db.Column(db.DateTime, nullable=False)  # Renomeado de data_agendada
+    data_fim = db.Column(db.DateTime, nullable=False)  # Nova: data e hora de fim
     data_realizada = db.Column(db.DateTime, nullable=True)
-    objetivo = db.Column(db.Text)
+    observacoes = db.Column(db.Text)  # Renomeado de objetivo, agora opcional
     atividades_realizadas = db.Column(db.Text)
-    observacoes = db.Column(db.Text)
     status = db.Column(db.String(50), default='Agendada')
     endereco_gps = db.Column(db.String(200))
     latitude = db.Column(db.Float)
@@ -149,11 +150,39 @@ class Visita(db.Model):
     
     @property
     def projeto(self):
-        return Projeto.query.get(self.projeto_id)
+        if self.projeto_id:
+            return Projeto.query.get(self.projeto_id)
+        return None
+    
+    @property
+    def projeto_nome(self):
+        """Retorna o nome do projeto ou o valor de 'outros'"""
+        if self.projeto_id and self.projeto:
+            return f"{self.projeto.numero} - {self.projeto.nome}"
+        elif self.projeto_outros:
+            return self.projeto_outros
+        return "Outros"
     
     @property 
     def responsavel(self):
         return User.query.get(self.responsavel_id)
+
+class VisitaParticipante(db.Model):
+    """Modelo para armazenar múltiplos participantes de uma visita"""
+    __tablename__ = 'visita_participantes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    visita_id = db.Column(db.Integer, db.ForeignKey('visitas.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    confirmado = db.Column(db.Boolean, default=False)  # Se o participante confirmou presença
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relacionamentos
+    visita = db.relationship('Visita', backref=db.backref('participantes', lazy='dynamic'))
+    user = db.relationship('User', backref='visitas_participante')
+    
+    # Evitar duplicatas
+    __table_args__ = (db.UniqueConstraint('visita_id', 'user_id', name='unique_visita_participante'),)
 
 class Relatorio(db.Model):
     __tablename__ = 'relatorios'

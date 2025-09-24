@@ -92,14 +92,45 @@ class EmailClienteForm(FlaskForm):
     ativo = BooleanField('Ativo', default=True)
 
 class VisitaForm(FlaskForm):
-    projeto_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
-    data_agendada = DateTimeField('Data e Hora Agendada', validators=[DataRequired()])
-    objetivo = TextAreaField('Objetivo da Visita', validators=[DataRequired()])
+    projeto_id = SelectField('Projeto', coerce=int, validators=[Optional()])
+    projeto_outros = StringField('Nome do Projeto (Outros)', validators=[Optional(), Length(max=300)])
+    data_inicio = DateTimeField('Data e Hora de Início', validators=[DataRequired()])
+    data_fim = DateTimeField('Data e Hora de Fim', validators=[DataRequired()])
+    observacoes = TextAreaField('Observações', validators=[Optional()])
+    participantes = SelectMultipleField('Participantes', coerce=int, validators=[Optional()])
 
     def __init__(self, *args, **kwargs):
         super(VisitaForm, self).__init__(*args, **kwargs)
-        from models import Projeto
-        self.projeto_id.choices = [(p.id, f"{p.numero} - {p.nome}") for p in Projeto.query.filter_by(status='Ativo').all()]
+        from models import Projeto, User
+        
+        # Adicionar opção 'Outros' aos projetos
+        projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
+        self.projeto_id.choices = [(-1, 'Outros')] + [(p.id, f"{p.numero} - {p.nome}") for p in projetos_ativos]
+        
+        # Carregar usuários ativos para seleção de participantes
+        usuarios_ativos = User.query.filter_by(ativo=True).all()
+        self.participantes.choices = [(u.id, f"{u.nome_completo} ({u.cargo})") for u in usuarios_ativos]
+        
+    def validate(self, extra_validators=None):
+        """Validação customizada"""
+        result = super().validate(extra_validators)
+        
+        # Se 'Outros' foi selecionado, o campo projeto_outros deve ser preenchido
+        if self.projeto_id.data == -1 and not self.projeto_outros.data:
+            self.projeto_outros.errors.append('Campo obrigatório quando "Outros" é selecionado.')
+            result = False
+            
+        # Se um projeto específico foi selecionado, limpar projeto_outros
+        if self.projeto_id.data and self.projeto_id.data != -1:
+            self.projeto_outros.data = None
+            
+        # Validar se data_fim é posterior a data_inicio
+        if self.data_inicio.data and self.data_fim.data:
+            if self.data_fim.data <= self.data_inicio.data:
+                self.data_fim.errors.append('A data de fim deve ser posterior à data de início.')
+                result = False
+                
+        return result
 
 # ReportForm removed - use RelatorioForm instead which doesn't have titulo field
 

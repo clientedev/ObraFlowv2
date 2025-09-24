@@ -2831,7 +2831,7 @@ def visits_calendar():
 @app.route('/visits/new', methods=['GET', 'POST'])
 @login_required  
 def visit_new():
-    if request.method == 'POST' and 'data_agendada' in request.form:
+    if request.method == 'POST' and 'data_inicio' in request.form:
         # Handle datetime-local input manually
         try:
             from datetime import datetime
@@ -2847,16 +2847,30 @@ def visit_new():
             # Parse datetime
             data_agendada = datetime.fromisoformat(data_str.replace('T', ' '))
 
+            # Create visit with new structure
             visita = Visita(
                 numero=generate_visit_number(),
-                projeto_id=projeto_id,
+                projeto_id=final_projeto_id,
+                projeto_outros=final_projeto_outros,
                 responsavel_id=current_user.id,
-                data_agendada=data_agendada,
-                objetivo=objetivo
+                data_inicio=data_inicio,
+                data_fim=data_fim,
+                observacoes=observacoes if observacoes else None
             )
 
             db.session.add(visita)
             db.session.flush()  # Get the ID
+
+            # Add selected participants
+            if participantes_ids:
+                from models import VisitaParticipante
+                for user_id in participantes_ids:
+                    participante = VisitaParticipante(
+                        visita_id=visita.id,
+                        user_id=int(user_id),
+                        confirmado=False
+                    )
+                    db.session.add(participante)
 
             # Add default checklist items from templates
             templates = ChecklistTemplate.query.filter_by(ativo=True).order_by(ChecklistTemplate.ordem).all()
