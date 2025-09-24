@@ -313,12 +313,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Carregar e exibir cores dos funcionários na legenda
     function loadEmployeeColors() {
         fetch('/api/visits/calendar')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Employee colors error', response.status);
+                    return;
+                }
+                return response.json();
+            })
             .then(data => {
+                if (!data) return;
+                
                 const employeeColors = new Map();
                 
+                // Ensure data is array before processing - defensive check
+                const visits = Array.isArray(data) ? data : (data.visits || []);
+                
                 // Extrair cores únicas dos funcionários das visitas
-                data.visits.forEach(visit => {
+                visits.forEach(visit => {
                     // Adicionar responsável
                     if (visit.responsavel_nome && visit.responsavel_cor) {
                         employeeColors.set(visit.responsavel_nome, visit.responsavel_cor);
@@ -364,9 +375,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function loadVisits() {
         fetch('/api/visits/calendar')
-            .then(response => response.json())
+            .then(response => {
+                // Check response.ok before response.json() - defensive programming
+                if (!response.ok) {
+                    console.error('Calendar error', response.status);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                allEvents = data.visits.map(visit => {
+                // Ensure that code only executes .map() on arrays - defensive check
+                const visits = Array.isArray(data) ? data : (data.visits || []);
+                
+                allEvents = visits.map(visit => {
                     // Item 29: Criar título com participantes e cores melhorado
                     let participantesNomes = visit.participantes ? visit.participantes.map(p => p.nome).join(', ') : '';
                     let titleWithParticipants = visit.title || visit.numero;
@@ -415,7 +436,16 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Erro ao carregar visitas:', error);
-                alert('Erro ao carregar o calendário de visitas.');
+                // Show user-friendly error message instead of technical alert
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger';
+                errorDiv.innerHTML = '⚠️ Erro ao carregar lista de visitas. Tente novamente.';
+                const container = document.querySelector('.container-fluid');
+                if (container) container.prepend(errorDiv);
+                
+                // Initialize empty events to prevent further errors
+                allEvents = [];
+                applyFilters();
             });
     }
 

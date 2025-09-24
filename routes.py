@@ -4358,12 +4358,19 @@ def visit_communication(visit_id):
 
 # Calendar API routes
 @app.route('/api/visits/calendar')
-@login_required
 def api_visits_calendar():
     """API endpoint for calendar data - Item 29: Incluir participantes com cores"""
+    # Check authentication for API - return JSON 401 instead of HTML redirect
+    if not current_user.is_authenticated:
+        return jsonify({
+            'success': False,
+            'error': 'Authentication required'
+        }), 401
+        
     try:
-        # Log para debug
+        # Enhanced logging for diagnostics
         current_app.logger.info("📅 Carregando dados do calendário...")
+        current_app.logger.exception("Calendar API called - adding diagnostic logging")
         
         # Buscar todas as visitas com joins corretos - corrigido join problemático
         visits = db.session.query(Visita).outerjoin(
@@ -4461,20 +4468,22 @@ def api_visits_calendar():
             })
 
         current_app.logger.info(f"✅ Calendário carregado com {len(visits_data)} eventos")
-        return jsonify({
-            'success': True,
-            'visits': visits_data
-        })
+        
+        # Ensure proper JSON response structure for FullCalendar compatibility
+        response_data = visits_data  # Return direct array for frontend compatibility
+        
+        return jsonify(response_data)
 
     except Exception as e:
         import traceback
         error_trace = traceback.format_exc()
-        current_app.logger.error(f"❌ Erro no calendário API: {str(e)}")
-        current_app.logger.error(f"❌ Traceback: {error_trace}")
+        current_app.logger.exception(f"❌ Erro no calendário API: {str(e)}")
+        current_app.logger.error(f"❌ Full traceback: {error_trace}")
         
+        # Always return JSON for API endpoints, never HTML
         return jsonify({
             'success': False,
-            'error': f'Erro ao carregar calendário: {str(e)}'
+            'error': 'Erro ao carregar calendário'
         }), 500
 
 @app.route('/api/visits/<int:visit_id>/details')
