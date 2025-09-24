@@ -607,125 +607,35 @@ def projects_list():
 
 # Reports routes - Versão robusta para Railway + Replit
 @app.route('/reports')
+@login_required
 def reports():
-    """Listar relatórios de forma simples e robusta - VERSÃO CORRIGIDA COM ROLLBACK"""
-    try:
-        # Verificação de autenticação manual mais robusta
-        if not current_user or not current_user.is_authenticated:
-            current_app.logger.warning("⚠️ /reports: Usuário não autenticado, redirecionando para login")
-            return redirect(url_for('login', next=request.url))
+    """Listar relatórios - versão simplificada"""
+    page = request.args.get('page', 1, type=int)
+    q = request.args.get('q', '').strip()
 
-        current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
+    from models import Relatorio
+    from sqlalchemy import or_
 
-        page = request.args.get('page', 1, type=int)
-        q = request.args.get('q', '').strip()
+    # Query básica
+    query = Relatorio.query
 
-        from models import Relatorio
-        from sqlalchemy import or_
-
-        # Forçar rollback da transação em caso de erro anterior
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-
-        # Query básica
-        query = Relatorio.query
-
-        # Busca simples se fornecida
-        if q:
-            query = query.filter(
-                or_(
-                    Relatorio.numero.ilike(f'%{q}%'),
-                    Relatorio.titulo.ilike(f'%{q}%')
-                )
+    # Busca se fornecida
+    if q:
+        query = query.filter(
+            or_(
+                Relatorio.numero.ilike(f'%{q}%'),
+                Relatorio.titulo.ilike(f'%{q}%')
             )
-            current_app.logger.info(f"🔍 /reports: Busca por '{q}'")
+        )
 
-        # Paginação com tratamento de erro e fallback
-        try:
-            # Tentar ordenação apenas por created_at para evitar problemas com updated_at
-            relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
-                page=page, 
-                per_page=10, 
-                error_out=False
-            )
-        except Exception as paginate_error:
-            current_app.logger.error(f"❌ Erro na paginação: {str(paginate_error)}")
+    # Paginação simples
+    relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
+        page=page, 
+        per_page=10, 
+        error_out=False
+    )
 
-            # Forçar rollback da transação
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-
-            # Fallback para query simples sem paginação
-            try:
-                relatorios_list = query.order_by(Relatorio.created_at.desc()).limit(10).all()
-            except Exception as fallback_error:
-                current_app.logger.error(f"❌ Erro no fallback: {str(fallback_error)}")
-                # Se ainda der erro, tentar query mais simples
-                try:
-                    db.session.rollback()
-                    relatorios_list = Relatorio.query.limit(10).all()
-                except Exception:
-                    relatorios_list = []
-
-            # Criar objeto de paginação manual
-            class ManualPagination:
-                def __init__(self, items):
-                    self.items = items
-                    self.total = len(items)
-                    self.page = 1
-                    self.pages = 1
-                    self.has_prev = False
-                    self.has_next = False
-                    self.per_page = 10
-
-                def iter_pages(self):
-                    return [1]
-
-            relatorios = ManualPagination(relatorios_list)
-
-        current_app.logger.info(f"✅ /reports: {len(relatorios.items) if relatorios.items else 0} relatórios carregados para {current_user.username}")
-
-        # Verificar se o template existe
-        try:
-            return render_template('reports/list.html', relatorios=relatorios)
-        except Exception as template_error:
-            current_app.logger.error(f"❌ Erro no template: {str(template_error)}")
-            return jsonify({
-                'error': 'Erro no template',
-                'details': str(template_error),
-                'reports_count': len(relatorios.items) if relatorios.items else 0,
-                'user': current_user.username
-            }), 500
-
-    except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
-        current_app.logger.error(f"❌ ERRO COMPLETO /reports: {str(e)}")
-        current_app.logger.error(f"❌ TRACEBACK COMPLETO: {error_trace}")
-
-        # Forçar rollback da transação
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-
-        # Se for problema de autenticação, redirecionar para login
-        if "authentication" in str(e).lower() or "login" in str(e).lower():
-            current_app.logger.warning("🔄 Redirecionando para login por erro de autenticação")
-            return redirect(url_for('login'))
-
-        # Para outros erros, mostrar página de erro com informações
-        return jsonify({
-            'error': 'Erro interno no servidor',
-            'message': 'Falha ao carregar lista de relatórios',
-            'details': str(e),
-            'authenticated': current_user.is_authenticated if current_user else False,
-            'traceback': error_trace
-        }), 500
+    return render_template('reports/list.html', relatorios=relatorios)
 
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
