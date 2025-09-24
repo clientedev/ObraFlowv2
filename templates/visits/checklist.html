@@ -25,7 +25,7 @@
                 <div class="row">
                     <div class="col-md-6">
                         <p><strong>Projeto:</strong> {{ visit.projeto.nome }} ({{ visit.projeto.numero }})</p>
-                        <p><strong>Data Agendada:</strong> {{ visit.data_agendada.strftime('%d/%m/%Y às %H:%M') }}</p>
+                        <p><strong>Data Agendada:</strong> {{ visit.data_inicio.strftime('%d/%m/%Y às %H:%M') if visit.data_inicio else 'Não definida' }}</p>
                         <p><strong>Responsável:</strong> {{ visit.responsavel.nome_completo }}</p>
                     </div>
                     <div class="col-md-6">
@@ -53,8 +53,8 @@
                 
                 <div class="row mt-3">
                     <div class="col-12">
-                        <h6>Objetivo da Visita:</h6>
-                        <p class="mb-0">{{ visit.objetivo }}</p>
+                        <h6>Observações da Visita:</h6>
+                        <p class="mb-0">{{ visit.observacoes or 'Nenhuma observação' }}</p>
                     </div>
                 </div>
                 
