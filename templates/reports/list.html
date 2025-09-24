@@ -91,7 +91,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    {% if relatorios and relatorios.items %}
+                    {% if relatorios and hasattr(relatorios, 'items') and relatorios.items %}
                         <!-- Layout de cards mobile-first sem rolagem horizontal -->
                         <div class="mobile-reports-list" id="reportsTable">
                             {% for report in relatorios.items %}
@@ -269,7 +269,15 @@
                         <div class="text-center py-5">
                             <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
                             <h4>Nenhum relatório encontrado</h4>
-                            <p class="text-muted">Crie seu primeiro relatório de obra clicando no botão acima.</p>
+                            {% if request.args.get('q') %}
+                                <p class="text-muted">Nenhum relatório encontrado para a busca "{{ request.args.get('q') }}".</p>
+                                <a href="{{ url_for('reports') }}" class="btn btn-outline-primary">Ver todos os relatórios</a>
+                            {% else %}
+                                <p class="text-muted">Crie seu primeiro relatório de obra clicando no botão acima.</p>
+                                <a href="{{ url_for('create_report') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Criar Primeiro Relatório
+                                </a>
+                            {% endif %}
                         </div>
                     {% endif %}
                 </div>

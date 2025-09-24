@@ -605,31 +605,35 @@ def projects_list():
 
     return render_template('projects/list.html', projects=projects)
 
-# Reports routes - Versão simplificada e funcional
+# Reports routes - Versão corrigida e robusta
 @app.route('/reports')
 @login_required
 def reports():
-    """Listar relatórios - versão simplificada para corrigir o erro"""
+    """Listar relatórios - versão corrigida para eliminar conflitos"""
     try:
         current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
+
+        # Forçar rollback de transações pendentes para evitar erros
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
 
         # Parâmetros de busca
         page = request.args.get('page', 1, type=int)
         q = request.args.get('q', '').strip()
 
-        # Importar modelos necessários no escopo da função
-        from models import Relatorio, Projeto, User, FuncionarioProjeto
-        from sqlalchemy import or_
-
-        # Query básica - sempre buscar todos os relatórios primeiro para master
+        # Query básica com tratamento defensivo
         if current_user.is_master:
+            # Master vê todos os relatórios
             query = Relatorio.query
         else:
             # Usuários não-master veem apenas seus próprios relatórios
             query = Relatorio.query.filter(Relatorio.autor_id == current_user.id)
 
-        # Busca se fornecida
+        # Aplicar busca se fornecida
         if q:
+            from sqlalchemy import or_
             query = query.filter(
                 or_(
                     Relatorio.numero.ilike(f'%{q}%'),
@@ -637,20 +641,74 @@ def reports():
                 )
             )
 
-        # Paginação
-        relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
-            page=page, 
-            per_page=10, 
-            error_out=False
-        )
+        # Executar paginação com tratamento de erro
+        try:
+            relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
+                page=page, 
+                per_page=10, 
+                error_out=False
+            )
+            current_app.logger.info(f"✅ {len(relatorios.items)} relatórios carregados (página {page})")
+        except Exception as paginate_error:
+            current_app.logger.error(f"❌ Erro na paginação de relatórios: {str(paginate_error)}")
+            
+            # Fallback: buscar relatórios sem paginação
+            try:
+                db.session.rollback()
+                relatorios_list = query.order_by(Relatorio.created_at.desc()).limit(10).all()
+                
+                # Criar objeto de paginação manual
+                class ManualPagination:
+                    def __init__(self, items):
+                        self.items = items
+                        self.total = len(items)
+                        self.page = 1
+                        self.pages = 1
+                        self.has_prev = False
+                        self.has_next = False
+                        self.per_page = 10
 
-        current_app.logger.info(f"✅ {len(relatorios.items)} relatórios carregados")
+                    def iter_pages(self):
+                        return [1]
+
+                relatorios = ManualPagination(relatorios_list)
+                current_app.logger.info(f"🔄 Fallback relatórios: {len(relatorios.items)} carregados")
+            except Exception as fallback_error:
+                current_app.logger.error(f"❌ Erro crítico no fallback de relatórios: {str(fallback_error)}")
+                # Último recurso: lista vazia
+                relatorios = ManualPagination([])
+
+        # Renderizar template correto
         return render_template('reports/list.html', relatorios=relatorios)
 
     except Exception as e:
-        current_app.logger.exception(f"❌ ERRO na rota /reports: {str(e)}")
-        flash('Erro ao carregar lista de relatórios. Tente novamente.', 'error')
-        return redirect(url_for('index'))
+        import traceback
+        error_trace = traceback.format_exc()
+        current_app.logger.exception(f"❌ ERRO CRÍTICO /reports: {str(e)}")
+        current_app.logger.error(f"❌ TRACEBACK: {error_trace}")
+
+        # Forçar rollback
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+
+        # Retornar lista vazia em caso de erro crítico ao invés de redirecionar
+        class EmptyPagination:
+            def __init__(self):
+                self.items = []
+                self.total = 0
+                self.page = 1
+                self.pages = 0
+                self.has_prev = False
+                self.has_next = False
+                self.per_page = 10
+
+            def iter_pages(self):
+                return []
+
+        flash('Erro ao carregar relatórios. Mostrando lista vazia.', 'error')
+        return render_template('reports/list.html', relatorios=EmptyPagination())
 
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
