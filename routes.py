@@ -1846,7 +1846,7 @@ def get_nearby_projects():
         lon = request.args.get('lon', type=float)
 
         # Get ALL projects (not just those with coordinates)
-        projects = query.all()
+        projects = Projeto.query.all()
 
         all_projects = []
         projects_with_distance = []
@@ -1915,7 +1915,7 @@ def api_nearby_projects():
         user_lon = data.get('lon') if data else None
 
         # Get ALL projects (não só os com coordenadas)
-        projects = query.all()
+        projects = Projeto.query.all()
 
         projects_with_distance = []
         projects_without_distance = []
@@ -2799,9 +2799,7 @@ def migrar_attached_assets():
 @app.route('/visits')
 @login_required
 def visits_list():
-    """
-    Lista de visitas com tratamento robusto de erros - versão corrigida
-    """
+    """Lista de visitas - versão corrigida e simplificada"""
     try:
         current_app.logger.info(f"📋 /visits: Usuário {current_user.username} acessando lista de visitas")
 
@@ -2813,33 +2811,34 @@ def visits_list():
         # Get search query parameter
         q = request.args.get('q', '').strip()
 
-        # Query mais simples e robusta
+        # Query corrigida e simplificada
         try:
-            # Buscar todas as visitas primeiro, sem JOINs complexos
             if q:
                 from sqlalchemy import or_
                 search_term = f"%{q}%"
                 visits = Visita.query.filter(or_(
                     Visita.numero.ilike(search_term),
-                    Visita.observacoes.ilike(search_term)
+                    Visita.observacoes.ilike(search_term),
+                    Visita.projeto_outros.ilike(search_term)
                 )).order_by(Visita.data_inicio.desc()).all()
                 current_app.logger.info(f"🔍 Busca por '{q}': {len(visits)} visitas encontradas")
             else:
-                visits = Visita.query.order_by(Visita.data_inicio.desc()).limit(100).all()
+                visits = Visita.query.order_by(Visita.data_inicio.desc()).limit(50).all()
                 current_app.logger.info(f"📅 {len(visits)} visitas carregadas")
 
         except Exception as query_error:
             current_app.logger.error(f"❌ Erro na query de visitas: {str(query_error)}")
+            db.session.rollback()
             
-            # Fallback extremamente simples
+            # Fallback simples sem filtros
             try:
-                visits = Visita.query.limit(20).all()
+                visits = Visita.query.limit(10).all()
                 current_app.logger.info(f"🔄 Fallback: {len(visits)} visitas carregadas")
             except Exception as fallback_error:
                 current_app.logger.error(f"❌ Erro no fallback: {str(fallback_error)}")
                 visits = []
 
-        # Garantir que visits é uma lista
+        # Garantir que visits é uma lista válida
         if visits is None:
             visits = []
 
@@ -2848,10 +2847,11 @@ def visits_list():
         
     except Exception as e:
         current_app.logger.exception(f"❌ ERRO CRÍTICO na lista de visitas: {str(e)}")
+        db.session.rollback()
         
-        # Em caso de erro crítico, retornar uma lista vazia mas funcional
+        # Em caso de erro crítico, retornar uma lista vazia
         visits = []
-        flash('Sistema em modo de recuperação. Algumas visitas podem não aparecer.', 'warning')
+        flash('Erro ao carregar visitas. Verifique sua conexão.', 'error')
         return render_template('visits/list.html', visits=visits)
 
 @app.route('/visits/calendar')
