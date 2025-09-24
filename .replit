@@ -56,16 +56,12 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "SESSION_SECRET=\"elp_secret_key_replit\" python main.py"
+args = "SESSION_SECRET=\"elp_secret_key_replit\" python3 replit_main.py"
 waitForPort = 5000
 
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 40657
-externalPort = 5000
 
 [[ports]]
 localPort = 42907
