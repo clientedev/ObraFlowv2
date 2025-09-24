@@ -6,7 +6,7 @@ packages = ["cairo", "fontconfig", "freetype", "fribidi", "gdk-pixbuf", "ghostsc
 
 [deployment]
 deploymentTarget = "vm"
-run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "--workers=4", "main:app"]
+run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "-w", "4", "main:app"]
 
 [workflows]
 runButton = "Project"
