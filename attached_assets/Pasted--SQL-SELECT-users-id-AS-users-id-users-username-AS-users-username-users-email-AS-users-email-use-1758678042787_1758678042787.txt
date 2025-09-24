@@ -1,0 +1,65 @@
+[SQL: SELECT users.id AS users_id, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.nome_completo AS users_nome_completo, users.cargo AS users_cargo, users.telefone AS users_telefone, users.is_master AS users_is_master, users.is_developer AS users_is_developer, users.primeiro_login AS users_primeiro_login, users.ativo AS users_ativo, users.cor_agenda AS users_cor_agenda, users.created_at AS users_created_at 
+FROM users 
+WHERE users.is_master = true 
+ LIMIT %(param_1)s]
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)
+INFO:root:Retrying in 5 seconds...
+ERROR:root:Attempt 4 failed to create admin user: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT users.id AS users_id, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.nome_completo AS users_nome_completo, users.cargo AS users_cargo, users.telefone AS users_telefone, users.is_master AS users_is_master, users.is_developer AS users_is_developer, users.primeiro_login AS users_primeiro_login, users.ativo AS users_ativo, users.cor_agenda AS users_cor_agenda, users.created_at AS users_created_at 
+FROM users 
+WHERE users.is_master = true 
+ LIMIT %(param_1)s]
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)
+INFO:root:Retrying in 5 seconds...
+ERROR:root:Attempt 5 failed to create admin user: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT users.id AS users_id, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.nome_completo AS users_nome_completo, users.cargo AS users_cargo, users.telefone AS users_telefone, users.is_master AS users_is_master, users.is_developer AS users_is_developer, users.primeiro_login AS users_primeiro_login, users.ativo AS users_ativo, users.cor_agenda AS users_cor_agenda, users.created_at AS users_created_at 
+FROM users 
+WHERE users.is_master = true 
+ LIMIT %(param_1)s]
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)
+ERROR:root:Max retries reached. Could not create admin user.
+ERROR:root:❌ Erro ao criar checklist padrão: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT count(*) AS count_1 
+FROM (SELECT checklist_padrao.id AS checklist_padrao_id, checklist_padrao.texto AS checklist_padrao_texto, checklist_padrao.ordem AS checklist_padrao_ordem, checklist_padrao.ativo AS checklist_padrao_ativo, checklist_padrao.created_at AS checklist_padrao_created_at, checklist_padrao.updated_at AS checklist_padrao_updated_at 
+FROM checklist_padrao 
+WHERE checklist_padrao.ativo = true) AS anon_1]
+(Background on this error at: https://sqlalche.me/e/20/2j85)
+INFO:root:✅ SIMPLIFIED DATABASE INITIALIZATION COMPLETE
+Traceback (most recent call last):
+  File "/app/main.py", line 3, in <module>
+    import routes  # noqa: F401
+    ^^^^^^^^^^^^^
+  File "/app/routes.py", line 69, in <module>
+    from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm, FirstLoginForm
+  File "/app/forms.py", line 94, in <module>
+    class VisitaForm(FlaskForm):
+  File "/app/forms.py", line 100, in VisitaForm
+    participantes = SelectMultipleField('Participantes', coerce=int, validators=[Optional()])
+                    ^^^^^^^^^^^^^^^^^^^
+NameError: name 'SelectMultipleField' is not defined
+INFO:root:✅ Using PostgreSQL database
+INFO:root:📁 UPLOAD_FOLDER configurado: uploads
+INFO:root:✅ Flask extensions initialized successfully
+INFO:root:🚂 Railway environment detected - initializing database
+INFO:root:Database tables created successfully.
+ERROR:root:Attempt 1 failed to create admin user: (psycopg2.errors.UndefinedColumn) column users.cor_agenda does not exist
+LINE 1: ...users_primeiro_login, users.ativo AS users_ativo, users.cor_...
+                                                             ^
+[SQL: SELECT users.id AS users_id, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.nome_completo AS users_nome_completo, users.cargo AS users_cargo, users.telefone AS users_telefone, users.is_master AS users_is_master, users.is_developer AS users_is_developer, users.primeiro_login AS users_primeiro_login, users.ativo AS users_ativo, users.cor_agenda AS users_cor_agenda, users.created_at AS users_created_at 
+FROM users 
+WHERE users.is_master = true 
+ LIMIT %(param_1)s]
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+INFO:root:Retrying in 5 seconds...
+ERROR:root:Attempt 2 failed to create admin user: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT users.id AS users_id, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.nome_completo AS users_nome_completo, users.cargo AS users_cargo, users.telefone AS users_telefone, users.is_master AS users_is_master, users.is_developer AS users_is_developer, users.primeiro_login AS users_primeiro_login, users.ativo AS users_ativo, users.cor_agenda AS users_cor_agenda, users.created_at AS users_created_at 
+FROM users 
+WHERE users.is_master = true 
+ LIMIT %(param_1)s]
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)
+INFO:root:Retrying in 5 seconds...
