@@ -2847,6 +2847,9 @@ def visit_new():
             # Parse datetime
             data_agendada = datetime.fromisoformat(data_str.replace('T', ' '))
 
+            # Item 31: Obter campo is_pessoal do formulário
+            is_pessoal = request.form.get('is_pessoal') == 'y'
+            
             # Create visit with new structure
             visita = Visita(
                 numero=generate_visit_number(),
@@ -2855,7 +2858,9 @@ def visit_new():
                 responsavel_id=current_user.id,
                 data_inicio=data_inicio,
                 data_fim=data_fim,
-                observacoes=observacoes if observacoes else None
+                observacoes=observacoes if observacoes else None,
+                is_pessoal=is_pessoal,  # Item 31: Compromisso pessoal
+                criado_por=current_user.id  # Item 31: Usuário criador
             )
 
             db.session.add(visita)
@@ -2989,7 +2994,119 @@ def visit_view(visit_id):
     checklist_items = ChecklistItem.query.filter_by(visita_id=visit_id).order_by(ChecklistItem.ordem).all()
     comunicacoes = ComunicacaoVisita.query.filter_by(visita_id=visit_id).order_by(ComunicacaoVisita.created_at.desc()).limit(5).all()
 
-    return render_template('visits/view.html', visit=visit, checklist_items=checklist_items, comunicacoes=comunicacoes)
+    # Buscar participantes da visita
+    participantes = []
+    if hasattr(visit, 'participantes'):
+        for participante in visit.participantes:
+            if participante.user:
+                participantes.append(participante.user)
+
+    return render_template('visits/checklist.html', visit=visit, checklist_items=checklist_items, comunicacoes=comunicacoes, participantes=participantes)
+
+# Item 30: Rotas para cancelar e alterar visita
+@app.route('/visits/<int:visit_id>/cancel', methods=['POST'])
+@login_required
+def visit_cancel(visit_id):
+    """Cancelar uma visita"""
+    try:
+        visit = Visita.query.get_or_404(visit_id)
+        
+        # Verificar permissões
+        if not (current_user.is_master or visit.responsavel_id == current_user.id or visit.criado_por == current_user.id):
+            flash('Acesso negado para cancelar esta visita.', 'error')
+            return redirect(url_for('visits_list'))
+        
+        # Não permitir cancelar visitas já realizadas
+        if visit.status == 'Realizada':
+            flash('Não é possível cancelar uma visita já realizada.', 'error')
+            return redirect(url_for('visit_view', visit_id=visit_id))
+        
+        visit.status = 'Cancelado'
+        db.session.commit()
+        
+        flash('Visita cancelada com sucesso!', 'success')
+        return redirect(url_for('visits_list'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao cancelar visita: {str(e)}', 'error')
+        return redirect(url_for('visit_view', visit_id=visit_id))
+
+@app.route('/visits/<int:visit_id>/edit', methods=['GET', 'POST'])
+@login_required
+def visit_edit(visit_id):
+    """Alterar data e hora de uma visita"""
+    visit = Visita.query.get_or_404(visit_id)
+    
+    # Verificar permissões
+    if not (current_user.is_master or visit.responsavel_id == current_user.id or visit.criado_por == current_user.id):
+        flash('Acesso negado para alterar esta visita.', 'error')
+        return redirect(url_for('visits_list'))
+    
+    # Não permitir alterar visitas já realizadas
+    if visit.status == 'Realizada':
+        flash('Não é possível alterar uma visita já realizada.', 'error')
+        return redirect(url_for('visit_view', visit_id=visit_id))
+    
+    form = VisitaForm()
+    
+    if request.method == 'GET':
+        # Preencher formulário com dados atuais
+        form.data_inicio.data = visit.data_inicio
+        form.data_fim.data = visit.data_fim
+        form.observacoes.data = visit.observacoes
+        
+        # Preencher projeto
+        if visit.projeto_id:
+            form.projeto_id.data = visit.projeto_id
+        else:
+            form.projeto_id.data = -1  # 'Outros'
+            form.projeto_outros.data = visit.projeto_outros
+        
+        # Preencher participantes
+        if hasattr(visit, 'participantes'):
+            participante_ids = [str(p.user_id) for p in visit.participantes if p.user_id]
+            form.participantes.data = participante_ids
+    
+    if form.validate_on_submit():
+        try:
+            # Atualizar campos
+            visit.data_inicio = form.data_inicio.data
+            visit.data_fim = form.data_fim.data
+            visit.observacoes = form.observacoes.data
+            
+            # Atualizar projeto
+            if form.projeto_id.data == -1:  # 'Outros'
+                visit.projeto_id = None
+                visit.projeto_outros = form.projeto_outros.data
+            else:
+                visit.projeto_id = form.projeto_id.data
+                visit.projeto_outros = None
+            
+            # Atualizar participantes
+            # Primeiro, remover participantes existentes
+            from models import VisitaParticipante
+            VisitaParticipante.query.filter_by(visita_id=visit_id).delete()
+            
+            # Adicionar novos participantes
+            if form.participantes.data:
+                for user_id in form.participantes.data:
+                    participante = VisitaParticipante(
+                        visita_id=visit_id,
+                        user_id=int(user_id),
+                        confirmado=False
+                    )
+                    db.session.add(participante)
+            
+            db.session.commit()
+            flash('Visita alterada com sucesso!', 'success')
+            return redirect(url_for('visit_view', visit_id=visit_id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao alterar visita: {str(e)}', 'error')
+    
+    return render_template('visits/form.html', form=form, visit=visit, action='edit')
 
 # Report management routes - movido para routes_reports.py
 

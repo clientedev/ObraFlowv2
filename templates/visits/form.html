@@ -100,6 +100,20 @@
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
+                        
+                        <!-- Item 31: Compromisso Pessoal -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.is_pessoal(class="form-check-input") }}
+                                {{ form.is_pessoal.label(class="form-check-label") }}
+                                <div class="form-text text-muted">
+                                    Marque se este é um compromisso pessoal (outros usuários verão apenas "Confidencial")
+                                </div>
+                            </div>
+                            {% for error in form.is_pessoal.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
                     {% else %}
                         <!-- Realize visit form -->
                         <div class="mb-3">

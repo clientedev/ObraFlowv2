@@ -98,6 +98,7 @@ class VisitaForm(FlaskForm):
     data_fim = DateTimeField('Data e Hora de Fim', validators=[DataRequired()])
     observacoes = TextAreaField('Observações', validators=[Optional()])
     participantes = SelectMultipleField('Participantes', coerce=int, validators=[Optional()])
+    is_pessoal = BooleanField('Compromisso Pessoal', default=False)  # Item 31
 
     def __init__(self, *args, **kwargs):
         super(VisitaForm, self).__init__(*args, **kwargs)
