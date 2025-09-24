@@ -1,0 +1,51 @@
+Preciso que você resolva os seguintes problemas e implemente as melhorias abaixo no sistema de Agendamento e Calendário de Visitas:
+
+Problemas identificados nas imagens enviadas:
+
+Erro ao carregar lista de visitas – A tela exibe a mensagem "Erro ao carregar lista de visitas. Tente novamente" e o console mostra GET https://elpconsultoria.pro/api/visits/calendar 500 (Internal Server Error) e TypeError: Cannot read properties of undefined (reading 'map'). Corrigir para que a lista de visitas carregue corretamente sem erro.
+
+Erro 500 no calendário – Ao abrir a rota /visits/calendar, ocorre falha no carregamento da agenda. Corrigir o endpoint e garantir que os dados sejam carregados do banco de forma consistente.
+
+Interface quebrada – Participantes – O campo de participantes está totalmente quebrado, exibindo um nome em cima do outro, deixando o formulário ilegível e não responsivo. Corrigir o layout para exibir os nomes de forma organizada (lista com múltipla seleção clara e responsiva).
+
+Melhorias obrigatórias:
+
+Item 28 – Calendário:
+
+Ao clicar em um dia no calendário, deve abrir diretamente a tela de agendamento já filtrada no dia clicado.
+
+Em semana/dia, ao clicar em um horário específico, deve abrir a tela de agendamento já preenchida no dia e horário clicados.
+
+Item 29 – Agenda (cores por funcionário):
+
+Cada funcionário deve ter uma cor própria definida.
+
+No agendamento, exibir o nome dos participantes da visita, cada um com sua cor correspondente.
+
+A agenda deve ser visível para todos os usuários.
+
+Item 30 – Botões de visita:
+
+Incluir botão para Cancelar Visita.
+
+Incluir botão para Alterar Visita (com opção de alterar data e horário).
+
+Garantir que as ações atualizem o banco de dados corretamente.
+
+Item 31 – Compromissos pessoais:
+
+Usuário pode marcar um agendamento como compromisso pessoal.
+
+Para quem criou, aparece o compromisso normalmente.
+
+Para os demais usuários, deve aparecer apenas como “Confidencial”.
+
+Requisitos adicionais:
+
+Corrigir todos os erros mostrados nos prints e garantir que o calendário e lista de visitas carreguem corretamente sem erros 500.
+
+Garantir que o campo Participantes seja totalmente refeito para ser funcional, organizado e responsivo.
+
+Corrigir duplicidade de elementos na interface e manter o design limpo.
+
+Caso seja necessário alterar a estrutura de banco de dados, criar arquivo Alembic de migração compatível com a versão mais recente do GitHub.
