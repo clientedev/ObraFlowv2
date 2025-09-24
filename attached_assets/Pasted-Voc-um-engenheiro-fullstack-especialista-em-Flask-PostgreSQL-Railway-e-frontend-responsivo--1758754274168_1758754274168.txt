@@ -1,0 +1,111 @@
+Você é um engenheiro fullstack especialista em Flask, PostgreSQL (Railway) e frontend responsivo.  
+Preciso da implementação correta e final da **tela de lista de visitas** do sistema, garantindo que funcione 100% e siga o padrão de estilização já adotado.
+
+❌ Problema atual:
+- A tela `/visits` retorna erro no template principal ("Erro no template principal").
+- O sistema mostra "Encontradas 0 visitas", mesmo havendo registros confirmados no PostgreSQL Railway.
+- O layout não segue a identidade visual do restante do sistema.
+
+✅ O que deve ser feito:
+
+1. **Backend – Rota de Listagem**  
+   - Criar/ajustar rota `/visits` (ou `/api/visits` se for a correta) para buscar todos os registros da tabela `visitas`.  
+   - A tabela `visitas` possui os campos:  
+     ```
+     id, numero, projeto_id, responsavel_id, data_agendada, data_realizada, 
+     objetivo, atividades_realizadas, observacoes, status, endereco_gps, 
+     latitude, longitude, created_at, is_pessoal, criado_por
+     ```
+   - A query deve retornar todas as visitas do banco.  
+   - Campos de data devem ser serializados com `.isoformat()`.  
+
+   Exemplo de retorno esperado em JSON:
+   ```json
+   [
+     {
+       "id": 1,
+       "numero": "VIS-0001",
+       "projeto": "Ápice Aclimação",
+       "responsavel": "Administrador do Sistema",
+       "data_agendada": "2025-09-18T10:00:00",
+       "status": "Agendada",
+       "is_pessoal": false
+     }
+   ]
+Frontend – Tela de Lista de Visitas
+
+Implementar listagem em tabela ou cards responsivos.
+
+Cada linha/cartão deve exibir:
+
+Número da visita (numero)
+
+Projeto (projeto_id, puxando o nome do projeto)
+
+Responsável (responsavel_id, puxando o nome do usuário)
+
+Data agendada (formatada DD/MM/YYYY HH:mm)
+
+Status (com badge colorida: Agendada = azul, Realizada = verde, Cancelada = vermelho, Rejeitada = laranja)
+
+Ações: Ver detalhes, Editar (se permitido), Cancelar (se permitido).
+
+Botões devem seguir o padrão do sistema:
+
+Azul (btn-primary) para Ver/Editar
+
+Verde (btn-success) para Finalizar
+
+Vermelho (btn-danger) para Cancelar/Excluir
+
+Filtros e Busca
+
+Adicionar campo de busca rápida (por número da visita, projeto ou responsável).
+
+Filtros por status (dropdown).
+
+Datas com filtro por intervalo (calendário).
+
+Integração com Agenda
+
+Garantir que visitas listadas estejam integradas ao calendário de visitas.
+
+Clicar em uma visita deve abrir a tela de detalhes no dia/hora corretos.
+
+Tratamento de Erros
+
+Se não houver visitas, exibir mensagem amigável: "Nenhuma visita encontrada."
+
+Nunca exibir erro técnico (500/stacktrace) para o usuário.
+
+Logar detalhes no backend (current_app.logger.exception) em caso de erro.
+
+Critérios de aceitação
+
+/visits retorna status 200 e lista visitas reais do banco Railway.
+
+O frontend mostra as visitas com layout responsivo e estilização padrão.
+
+Filtros, busca e ações funcionam corretamente.
+
+Se não houver dados, exibir mensagem amigável, sem quebrar.
+
+📌 Importante:
+
+Seguir a estilização já aplicada em outras telas (como relatórios).
+
+Usar os mesmos padrões de botões, badges e responsividade mobile.
+
+Garantir que os dados exibidos venham do banco PostgreSQL (tabela visitas).
+
+Se for necessário ajustar relação com projetos e users, faça o join no backend.
+
+Forneça:
+
+Código da rota Flask corrigida.
+
+Ajustes de SQLAlchemy no model se necessário.
+
+Template ou componente frontend finalizado no mesmo padrão visual do sistema.
+
+Passos de teste para confirmar funcionamento antes do próximo deploy no Railway.
