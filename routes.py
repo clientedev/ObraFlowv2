@@ -2895,7 +2895,33 @@ def visit_new():
 
     # GET request or form validation failed
     form = VisitaForm()
-    return render_template('visits/form.html', form=form)
+    
+    # Item 28: Preencher campos com parâmetros de query string do calendário
+    data_param = request.args.get('data')
+    hora_param = request.args.get('hora')
+    
+    # Preparar dados iniciais para o template
+    form_data = {}
+    if data_param:
+        try:
+            # Processar data do calendário (formato YYYY-MM-DD)
+            if hora_param:
+                # Combinar data e hora para datetime
+                datetime_str = f"{data_param}T{hora_param}"
+                form_data['data_inicio'] = datetime_str
+                # Definir fim como 1 hora depois
+                from datetime import datetime, timedelta
+                dt = datetime.fromisoformat(datetime_str)
+                dt_fim = dt + timedelta(hours=1)
+                form_data['data_fim'] = dt_fim.strftime('%Y-%m-%dT%H:%M')
+            else:
+                # Apenas data, usar horário padrão (08:00-09:00)
+                form_data['data_inicio'] = f"{data_param}T08:00"
+                form_data['data_fim'] = f"{data_param}T09:00"
+        except Exception as e:
+            print(f"Erro ao processar parâmetros de data: {e}")
+    
+    return render_template('visits/form.html', form=form, form_data=form_data)
 
 
 @app.route('/visits/<int:visit_id>/realize', methods=['GET', 'POST'])

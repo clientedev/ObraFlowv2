@@ -237,8 +237,26 @@ document.addEventListener('DOMContentLoaded', function() {
             right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
         },
         height: 'auto',
+        // Item 28: Implementar clique em eventos para redirecionamento
         eventClick: function(info) {
-            showVisitDetails(info.event.extendedProps.visitId);
+            // Redirecionar para a página do agendamento
+            window.location.href = "/visits/" + info.event.extendedProps.visitId;
+        },
+        // Item 28: Implementar clique em datas para novo agendamento
+        dateClick: function(info) {
+            // No modo mês: abrir nova visita com data preenchida
+            // No modo semana/dia: abrir com data e horário preenchidos
+            const dateStr = info.dateStr;
+            const timeStr = info.date.toTimeString().substring(0, 5); // HH:MM
+            
+            // Construir URL com data e horário
+            let url = "/visits/new?data=" + dateStr;
+            if (info.view.type !== 'dayGridMonth') {
+                // Em modo semana/dia, incluir horário
+                url += "&hora=" + timeStr;
+            }
+            
+            window.location.href = url;
         },
         eventDidMount: function(info) {
             // Adicionar tooltip
