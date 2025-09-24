@@ -4163,24 +4163,69 @@ def visit_communication(visit_id):
 @app.route('/api/visits/calendar')
 @login_required
 def api_visits_calendar():
-    """API endpoint for calendar data"""
+    """API endpoint for calendar data - Item 29: Incluir participantes com cores"""
     try:
-        visits = Visita.query.join(Projeto).join(User).all()
+        # Buscar todas as visitas com joins para melhor performance
+        visits = Visita.query.outerjoin(Projeto).join(User, Visita.responsavel_id == User.id).all()
 
         visits_data = []
         for visit in visits:
+            # Buscar participantes da visita com suas cores - Item 29
+            participantes = []
+            if hasattr(visit, 'participantes'):
+                for participante in visit.participantes:
+                    if participante.user:
+                        participantes.append({
+                            'id': participante.user.id,
+                            'nome': participante.user.nome_completo,
+                            'cor_agenda': participante.user.cor_agenda or '#0EA5E9',
+                            'confirmado': participante.confirmado
+                        })
+            
+            # Incluir responsável na lista se não estiver nos participantes
+            responsavel_incluido = any(p['id'] == visit.responsavel_id for p in participantes)
+            if not responsavel_incluido and visit.responsavel:
+                participantes.insert(0, {
+                    'id': visit.responsavel.id,
+                    'nome': visit.responsavel.nome_completo,
+                    'cor_agenda': visit.responsavel.cor_agenda or '#0EA5E9',
+                    'confirmado': True,
+                    'is_responsavel': True
+                })
+
+            # Criar nome do projeto considerando 'outros'
+            projeto_nome = "Sem projeto"
+            if visit.projeto_id and visit.projeto:
+                projeto_nome = f"{visit.projeto.numero} - {visit.projeto.nome}"
+            elif visit.projeto_outros:
+                projeto_nome = visit.projeto_outros
+
+            # Item 31: Verificar se é compromisso pessoal
+            title = visit.numero
+            if visit.is_pessoal:
+                if visit.criado_por != current_user.id:
+                    title = "Confidencial"  # Mostrar como confidencial para outros usuários
+                    participantes = []  # Não mostrar participantes para compromissos confidenciais
+                else:
+                    title = f"{visit.numero} (Pessoal)"
+
             visits_data.append({
                 'id': visit.id,
                 'numero': visit.numero,
-                'data_agendada': visit.data_agendada.isoformat() if visit.data_agendada else None,
+                'title': title,
+                'data_inicio': visit.data_inicio.isoformat() if visit.data_inicio else None,
+                'data_fim': visit.data_fim.isoformat() if visit.data_fim else None,
                 'data_realizada': visit.data_realizada.isoformat() if visit.data_realizada else None,
                 'status': visit.status,
-                'projeto_nome': visit.projeto.nome,
-                'projeto_numero': visit.projeto.numero,
-                'responsavel_nome': visit.responsavel.nome_completo,
-                'objetivo': visit.objetivo or '',
+                'projeto_nome': projeto_nome,
+                'projeto_numero': visit.projeto.numero if visit.projeto else None,
+                'responsavel_nome': visit.responsavel.nome_completo if visit.responsavel else '',
+                'responsavel_cor': visit.responsavel.cor_agenda if visit.responsavel else '#0EA5E9',
+                'observacoes': visit.observacoes or '',
                 'atividades_realizadas': visit.atividades_realizadas or '',
-                'observacoes': visit.observacoes or ''
+                'participantes': participantes,  # Item 29: Lista de participantes com cores
+                'is_pessoal': visit.is_pessoal or False,  # Item 31: Flag de compromisso pessoal
+                'criado_por': visit.criado_por
             })
 
         return jsonify({

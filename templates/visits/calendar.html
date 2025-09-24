@@ -280,20 +280,40 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('/api/visits/calendar')
             .then(response => response.json())
             .then(data => {
-                allEvents = data.visits.map(visit => ({
-                    id: visit.id,
-                    title: visit.numero + ' - ' + visit.projeto_nome,
-                    start: visit.data_agendada,
-                    end: visit.data_realizada || visit.data_agendada,
-                    extendedProps: {
-                        visitId: visit.id,
-                        status: visit.status,
-                        projeto: visit.projeto_nome,
-                        responsavel: visit.responsavel_nome,
-                        objetivo: visit.objetivo,
-                        tooltip: `${visit.numero}\nProjeto: ${visit.projeto_nome}\nResponsável: ${visit.responsavel_nome}\nStatus: ${visit.status}`
+                allEvents = data.visits.map(visit => {
+                    // Item 29: Criar título com participantes e cores
+                    let participantesNomes = visit.participantes ? visit.participantes.map(p => p.nome).join(', ') : '';
+                    let titleWithParticipants = visit.title || visit.numero;
+                    if (participantesNomes && !visit.is_pessoal) {
+                        titleWithParticipants += ` (${participantesNomes})`;
                     }
-                }));
+                    
+                    // Item 29: Definir cor do evento baseada no responsável
+                    let eventColor = visit.responsavel_cor || '#0EA5E9';
+                    if (visit.participantes && visit.participantes.length > 0) {
+                        // Se há múltiplos participantes, usar cor do responsável como principal
+                        eventColor = visit.participantes.find(p => p.is_responsavel)?.cor_agenda || visit.participantes[0].cor_agenda || '#0EA5E9';
+                    }
+
+                    return {
+                        id: visit.id,
+                        title: titleWithParticipants,
+                        start: visit.data_inicio,
+                        end: visit.data_fim || visit.data_realizada,
+                        backgroundColor: eventColor,
+                        borderColor: eventColor,
+                        extendedProps: {
+                            visitId: visit.id,
+                            status: visit.status,
+                            projeto: visit.projeto_nome,
+                            responsavel: visit.responsavel_nome,
+                            observacoes: visit.observacoes,
+                            participantes: visit.participantes,
+                            is_pessoal: visit.is_pessoal,
+                            tooltip: `${visit.title || visit.numero}\nProjeto: ${visit.projeto_nome}\nResponsável: ${visit.responsavel_nome}\nStatus: ${visit.status}${visit.participantes && visit.participantes.length > 1 ? '\nParticipantes: ' + participantesNomes : ''}`
+                        }
+                    };
+                });
                 
                 applyFilters();
             })
