@@ -609,56 +609,75 @@ def projects_list():
 @app.route('/reports')
 @login_required
 def reports():
-    """Listar relatórios - versão corrigida para eliminar conflitos"""
+    """Listar relatórios - versão robusta corrigida"""
     try:
         current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
-
-        # Forçar rollback de transações pendentes para evitar erros
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
 
         # Parâmetros de busca
         page = request.args.get('page', 1, type=int)
         q = request.args.get('q', '').strip()
 
-        # Query básica com tratamento defensivo
-        if current_user.is_master:
-            # Master vê todos os relatórios
-            query = Relatorio.query
-        else:
-            # Usuários não-master veem apenas seus próprios relatórios
-            query = Relatorio.query.filter(Relatorio.autor_id == current_user.id)
-
-        # Aplicar busca se fornecida
-        if q:
-            from sqlalchemy import or_
-            query = query.filter(
-                or_(
-                    Relatorio.numero.ilike(f'%{q}%'),
-                    Relatorio.titulo.ilike(f'%{q}%')
-                )
-            )
-
-        # Executar paginação com tratamento de erro
+        # Query simples e direta - SEM JOINS complexos
         try:
-            relatorios = query.order_by(Relatorio.created_at.desc()).paginate(
-                page=page, 
-                per_page=10, 
-                error_out=False
-            )
-            current_app.logger.info(f"✅ {len(relatorios.items)} relatórios carregados (página {page})")
-        except Exception as paginate_error:
-            current_app.logger.error(f"❌ Erro na paginação de relatórios: {str(paginate_error)}")
+            if current_user.is_master:
+                # Master vê todos os relatórios
+                base_query = Relatorio.query
+            else:
+                # Usuários não-master veem apenas seus próprios relatórios
+                base_query = Relatorio.query.filter(Relatorio.autor_id == current_user.id)
+
+            # Aplicar busca se fornecida - SEM JOINS
+            if q:
+                from sqlalchemy import or_
+                search_term = f'%{q}%'
+                base_query = base_query.filter(
+                    or_(
+                        Relatorio.numero.ilike(search_term),
+                        Relatorio.titulo.ilike(search_term)
+                    )
+                )
+
+            # Contar total primeiro
+            total_count = base_query.count()
+            current_app.logger.info(f"📊 Total de relatórios encontrados: {total_count}")
+
+            # Buscar os relatórios da página atual
+            offset_value = (page - 1) * 10
+            relatorios_list = base_query.order_by(Relatorio.created_at.desc()).offset(offset_value).limit(10).all()
+
+            current_app.logger.info(f"✅ {len(relatorios_list)} relatórios carregados para página {page}")
+
+            # Criar paginação manual simples
+            class SimplePagination:
+                def __init__(self, items, page, per_page, total):
+                    self.items = items
+                    self.page = page
+                    self.per_page = per_page
+                    self.total = total
+                    self.pages = max(1, (total + per_page - 1) // per_page)  # Ceiling division
+                    self.has_prev = page > 1
+                    self.has_next = page < self.pages
+
+                def iter_pages(self, left_edge=2, left_current=2, right_current=3, right_edge=2):
+                    last = self.pages
+                    for num in range(1, last + 1):
+                        if num <= left_edge or \
+                           (self.page - left_current - 1 < num < self.page + right_current) or \
+                           num > last - right_edge:
+                            yield num
+
+            relatorios = SimplePagination(relatorios_list, page, 10, total_count)
+
+        except Exception as query_error:
+            current_app.logger.error(f"❌ Erro na query de relatórios: {str(query_error)}")
             
-            # Fallback: buscar relatórios sem paginação
+            # Fallback extremamente simples
             try:
-                db.session.rollback()
-                relatorios_list = query.order_by(Relatorio.created_at.desc()).limit(10).all()
+                relatorios_list = Relatorio.query.filter(
+                    Relatorio.autor_id == current_user.id if not current_user.is_master else True
+                ).order_by(Relatorio.created_at.desc()).limit(10).all()
                 
-                # Criar objeto de paginação manual
-                class ManualPagination:
+                class FallbackPagination:
                     def __init__(self, items):
                         self.items = items
                         self.total = len(items)
@@ -671,30 +690,36 @@ def reports():
                     def iter_pages(self):
                         return [1]
 
-                relatorios = ManualPagination(relatorios_list)
-                current_app.logger.info(f"🔄 Fallback relatórios: {len(relatorios.items)} carregados")
+                relatorios = FallbackPagination(relatorios_list)
+                current_app.logger.info(f"🔄 Fallback: {len(relatorios.items)} relatórios carregados")
+                
             except Exception as fallback_error:
-                current_app.logger.error(f"❌ Erro crítico no fallback de relatórios: {str(fallback_error)}")
-                # Último recurso: lista vazia
-                relatorios = ManualPagination([])
+                current_app.logger.error(f"❌ Erro no fallback: {str(fallback_error)}")
+                
+                # Lista completamente vazia como último recurso
+                class EmptyPagination:
+                    def __init__(self):
+                        self.items = []
+                        self.total = 0
+                        self.page = 1
+                        self.pages = 0
+                        self.has_prev = False
+                        self.has_next = False
+                        self.per_page = 10
 
-        # Renderizar template correto
+                    def iter_pages(self):
+                        return []
+
+                relatorios = EmptyPagination()
+
+        # Renderizar template
         return render_template('reports/list.html', relatorios=relatorios)
 
     except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
         current_app.logger.exception(f"❌ ERRO CRÍTICO /reports: {str(e)}")
-        current_app.logger.error(f"❌ TRACEBACK: {error_trace}")
-
-        # Forçar rollback
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-
-        # Retornar lista vazia em caso de erro crítico ao invés de redirecionar
-        class EmptyPagination:
+        
+        # Em caso de erro crítico, retornar lista vazia
+        class CriticalErrorPagination:
             def __init__(self):
                 self.items = []
                 self.total = 0
@@ -707,8 +732,8 @@ def reports():
             def iter_pages(self):
                 return []
 
-        flash('Erro ao carregar relatórios. Mostrando lista vazia.', 'error')
-        return render_template('reports/list.html', relatorios=EmptyPagination())
+        flash('Erro ao carregar relatórios. Sistema em modo de recuperação.', 'error')
+        return render_template('reports/list.html', relatorios=CriticalErrorPagination())
 
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
