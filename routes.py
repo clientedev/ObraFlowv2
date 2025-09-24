@@ -796,7 +796,7 @@ def autosave_report(report_id):
             if relatorio.status != 'Aprovado':
                 relatorio.status = 'preenchimento'
                 current_app.logger.debug("📝 AUTOSAVE: Status alterado para 'preenchimento'")
-            
+
             # Atualizar timestamp
             relatorio.updated_at = datetime.utcnow()
 
@@ -839,7 +839,7 @@ def create_report():
         # Debug: Log dos dados recebidos
         current_app.logger.info(f"📝 FORM DATA RECEBIDO: {list(request.form.keys())}")
         current_app.logger.info(f"📁 FILES RECEBIDOS: {list(request.files.keys())}")
-        
+
         # Processar dados do formulário diretamente
         projeto_id = request.form.get('projeto_id')
         titulo = request.form.get('titulo', 'Relatório de visita')
@@ -1059,7 +1059,7 @@ def create_report():
                             foto.descricao = photo_data.get('description', '').strip()  # Adicionar descrição
                             foto.tipo_servico = photo_data.get('category', 'Geral')
                             foto.ordem = photo_count + i + 1
-                            
+
                             # CRÍTICO: Salvar dados binários da imagem
                             if photo_data.get('data'):
                                 try:
@@ -1067,7 +1067,7 @@ def create_report():
                                     image_data_b64 = photo_data['data']
                                     if ',' in image_data_b64:
                                         image_data_b64 = image_data_b64.split(',')[1]
-                                    
+
                                     # Decodificar e salvar dados binários
                                     image_binary = base64.b64decode(image_data_b64)
                                     foto.imagem = image_binary
@@ -1081,7 +1081,7 @@ def create_report():
                             # Salvar anotações se disponível
                             if photo_data.get('annotations'):
                                 foto.anotacoes_dados = json.dumps(photo_data['annotations'])
-                            
+
                             # Salvar coordenadas se disponível
                             if photo_data.get('coordinates'):
                                 foto.coordenadas_anotacao = json.dumps(photo_data['coordinates'])
@@ -1169,7 +1169,7 @@ def create_report():
                         try:
                             filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
                             filepath = os.path.join(upload_folder, filename)
-                            
+
                             # Ler dados do arquivo antes de salvar
                             file_data = file.read()
                             file.seek(0)  # Reset para salvar o arquivo também
@@ -1205,20 +1205,20 @@ def create_report():
                             continue
 
             current_app.logger.info(f"📊 RESUMO FINAL: {photo_count} fotos processadas para relatório {relatorio.numero}")
-            
+
             # Debug: Verificar fotos antes do commit
             fotos_debug = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).all()
             for foto_debug in fotos_debug:
                 current_app.logger.info(f"🔍 FOTO PRÉ-COMMIT: ID={foto_debug.id}, filename='{foto_debug.filename}', legenda='{foto_debug.legenda}', descricao='{foto_debug.descricao}', tipo='{foto_debug.tipo_servico}', imagem_size={len(foto_debug.imagem) if foto_debug.imagem else 0}")
 
             db.session.commit()
-            
+
             # Debug: Verificar fotos após o commit
             fotos_post = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).all()
             current_app.logger.info(f"✅ PÓS-COMMIT: {len(fotos_post)} fotos salvas no banco")
             for foto_post in fotos_post:
                 current_app.logger.info(f"💾 FOTO SALVA: ID={foto_post.id}, legenda='{foto_post.legenda}', imagem_presente={foto_post.imagem is not None}")
-            
+
             flash('Relatório criado com sucesso!', 'success')
 
             # Return JSON response for AJAX submission
@@ -1265,7 +1265,7 @@ def create_report():
     else:
         # Se não há projeto específico, buscar aprovador global
         selected_aprovador = get_aprovador_padrao_para_projeto(None)
-    
+
     # Render the form for GET requests
     return render_template('reports/form_complete.html', 
                          projetos=projetos, 
@@ -1280,7 +1280,7 @@ def get_aprovador_padrao_para_projeto(projeto_id):
     """Busca aprovador padrão para um projeto específico ou global"""
     try:
         from models import AprovadorPadrao
-        
+
         # Buscar aprovador específico para o projeto
         if projeto_id:
             aprovador = AprovadorPadrao.query.filter_by(
@@ -1289,15 +1289,15 @@ def get_aprovador_padrao_para_projeto(projeto_id):
             ).first()
             if aprovador:
                 return aprovador.aprovador
-        
+
         # Buscar aprovador global
         aprovador_global = AprovadorPadrao.query.filter_by(
             projeto_id=None,
             ativo=True
         ).first()
-        
+
         return aprovador_global.aprovador if aprovador_global else None
-        
+
     except Exception as e:
         current_app.logger.error(f"Erro ao buscar aprovador padrão: {str(e)}")
         return None
@@ -1472,7 +1472,7 @@ def review_report(report_id):
     try:
         # Logging inicial conforme especificação
         current_app.logger.info(f"🔍 /reports/{report_id}/review: Usuário {current_user.id} acessando revisão")
-        
+
         # Buscar relatório com validação robusta
         try:
             report = Relatorio.query.get_or_404(report_id)
@@ -1480,12 +1480,12 @@ def review_report(report_id):
         except Exception as e:
             current_app.logger.exception(f"ERRO CRÍTICO ao buscar relatório {report_id} para revisão: {str(e)}")
             abort(500, description="Erro interno ao carregar relatório.")
-        
+
         # Validação defensiva de atributos None
         if not report:
             current_app.logger.error(f"❌ Relatório {report_id} é None após get_or_404")
             abort(404, description="Relatório não encontrado.")
-        
+
         # Proteger contra JSON malformado no checklist com validação defensiva
         try:
             import json
@@ -1497,7 +1497,7 @@ def review_report(report_id):
         except Exception as e:
             current_app.logger.exception(f"ERRO GERAL CHECKLIST review {report_id}: {str(e)}")
             checklist = {}
-        
+
         # Buscar fotos com validação defensiva
         try:
             fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
@@ -1525,7 +1525,7 @@ def review_report(report_id):
                              fotos=fotos, 
                              checklist=checklist,
                              user_is_approver=user_is_approver)
-    
+
     except Exception as e:
         current_app.logger.exception(f"ERRO GERAL REVIEW /reports/{report_id}/review: {str(e)}")
         abort(500, description="Erro interno ao carregar página de revisão.")
@@ -1637,12 +1637,12 @@ def reject_report(id):
             current_user, 
             current_user.id
         )
-        
+
         if resultado_email['success']:
             logging.info(f"Notificação de rejeição enviada por email para {autor.nome_completo} ({autor.email}) - Relatório {relatorio.numero}")
         else:
             logging.warning(f"Falha ao enviar notificação por email para {autor.nome_completo}: {resultado_email.get('error', 'Erro desconhecido')}")
-            
+
     except Exception as e:
         logging.error(f"Erro ao notificar autor sobre reprovação por email: {str(e)}")
 
@@ -1730,13 +1730,13 @@ def delete_report(id):
     flash(f'Relatório {numero} excluído com sucesso.', 'success')
     return redirect(url_for('reports'))
 
-@app.route('/reports/<int:id>/pdf')
+@app.route('/reports/<int:report_id>/pdf')
 @login_required
-def generate_pdf_report(id):
+def generate_pdf_report(report_id):
     """Gerar PDF do relatório usando WeasyPrint (modelo Artesano) para visualização"""
     try:
-        relatorio = Relatorio.query.get_or_404(id)
-        fotos = FotoRelatorio.query.filter_by(relatorio_id=id).order_by(FotoRelatorio.ordem).all()
+        relatorio = Relatorio.query.get_or_404(report_id)
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
 
         from pdf_generator_weasy import WeasyPrintReportGenerator
         generator = WeasyPrintReportGenerator()
@@ -2217,7 +2217,7 @@ def upload_report_photos(report_id):
                 # Read file data before saving
                 file_data = file.read()
                 file.seek(0)  # Reset for saving to disk
-                
+
                 # Save file
                 file.save(filepath)
                 current_app.logger.info(f"✅ FOTO SALVA: {filepath}")
@@ -2481,8 +2481,8 @@ def project_new():
                 total_emails = 1 + len(emails_adicionais)
                 flash(f'Obra cadastrada com sucesso! {total_funcionarios} funcionário(s) e {total_emails} e-mail(s) adicionados.', 'success')
 
-            print(f"🔍 DEBUG: Trying to save projeto: {projeto.nome}")
             db.session.commit()
+            print(f"🔍 DEBUG: Trying to save projeto: {projeto.nome}")
             print(f"✅ DEBUG: Projeto saved successfully!")
             return redirect(url_for('projects_list'))
         except Exception as e:
@@ -2784,14 +2784,16 @@ def migrar_attached_assets():
         flash('Contato atualizado com sucesso!', 'success')
         return redirect(url_for('contacts_list'))
 
-    return render_template('contacts/form.html', form=form, contact=contact)
-
 # Contact functionality removed as requested
 
 # Visit management routes
 @app.route('/visits')
 @login_required
 def visits_list():
+    """
+    Lista de visitas, com opção de visualização em calendário ou lista,
+    incluindo busca e ordenação.
+    """
     # Check if user wants calendar view
     view_type = request.args.get('view', 'list')
 
@@ -2808,8 +2810,9 @@ def visits_list():
     if q and q.strip():
         from sqlalchemy import or_
         search_term = f"%{q.strip()}%"
-        # Join with related tables for searching
-        query = query.join(Projeto, Visita.projeto_id == Projeto.id).join(User, Visita.responsavel_id == User.id)
+        # Join with related tables for searching (Projeto and User)
+        # Use outerjoin for Projeto in case visit.projeto_id is null
+        query = query.join(Projeto, Visita.projeto_id == Projeto.id, isouter=True).join(User, Visita.responsavel_id == User.id)
         query = query.filter(or_(
             Visita.numero.ilike(search_term),
             Visita.observacoes.ilike(search_term),
@@ -2818,7 +2821,7 @@ def visits_list():
             User.nome_completo.ilike(search_term)
         ))
 
-    # Default list view
+    # Default list view with order by start date descending
     visits = query.order_by(Visita.data_inicio.desc()).all()
     return render_template('visits/list.html', visits=visits)
 
@@ -2835,7 +2838,7 @@ def visit_new():
         try:
             from datetime import datetime
             from models import VisitaParticipante
-            
+
             # Get form data
             data_inicio_str = request.form.get('data_inicio')
             data_fim_str = request.form.get('data_fim')
@@ -2864,7 +2867,7 @@ def visit_new():
             # Handle project selection - 'Others' option
             final_projeto_id = None
             final_projeto_outros = None
-            
+
             if projeto_id == '-1':
                 # 'Others' selected
                 if not projeto_outros:
@@ -2874,7 +2877,7 @@ def visit_new():
                 final_projeto_outros = projeto_outros
             else:
                 final_projeto_id = int(projeto_id)
-            
+
             # Create visit with new structure
             visita = Visita(
                 numero=generate_visit_number(),
@@ -2924,11 +2927,11 @@ def visit_new():
 
     # GET request or form validation failed
     form = VisitaForm()
-    
+
     # Item 28: Preencher campos com parâmetros de query string do calendário
     data_param = request.args.get('data')
     hora_param = request.args.get('hora')
-    
+
     # Preparar dados iniciais para o template
     form_data = {}
     if data_param:
@@ -2949,7 +2952,7 @@ def visit_new():
                 form_data['data_fim'] = f"{data_param}T09:00"
         except Exception as e:
             print(f"Erro ao processar parâmetros de data: {e}")
-    
+
     return render_template('visits/form.html', form=form, form_data=form_data)
 
 
@@ -3027,30 +3030,29 @@ def visit_view(visit_id):
 
     return render_template('visits/checklist.html', visit=visit, checklist_items=checklist_items, comunicacoes=comunicacoes, participantes=participantes)
 
-# Item 30: Rotas para cancelar e alterar visita
-@app.route('/visits/<int:visit_id>/cancel', methods=['POST'])
+# Item @app.route('/visits/<int:visit_id>/cancel', methods=['POST'])
 @login_required
 def visit_cancel(visit_id):
     """Cancelar uma visita"""
     try:
         visit = Visita.query.get_or_404(visit_id)
-        
+
         # Verificar permissões
         if not (current_user.is_master or visit.responsavel_id == current_user.id or visit.criado_por == current_user.id):
             flash('Acesso negado para cancelar esta visita.', 'error')
             return redirect(url_for('visits_list'))
-        
+
         # Não permitir cancelar visitas já realizadas
         if visit.status == 'Realizada':
             flash('Não é possível cancelar uma visita já realizada.', 'error')
             return redirect(url_for('visit_view', visit_id=visit_id))
-        
+
         visit.status = 'Cancelado'
         db.session.commit()
-        
+
         flash('Visita cancelada com sucesso!', 'success')
         return redirect(url_for('visits_list'))
-        
+
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao cancelar visita: {str(e)}', 'error')
@@ -3061,44 +3063,44 @@ def visit_cancel(visit_id):
 def visit_edit(visit_id):
     """Alterar data e hora de uma visita"""
     visit = Visita.query.get_or_404(visit_id)
-    
+
     # Verificar permissões
     if not (current_user.is_master or visit.responsavel_id == current_user.id or visit.criado_por == current_user.id):
         flash('Acesso negado para alterar esta visita.', 'error')
         return redirect(url_for('visits_list'))
-    
+
     # Não permitir alterar visitas já realizadas
     if visit.status == 'Realizada':
         flash('Não é possível alterar uma visita já realizada.', 'error')
         return redirect(url_for('visit_view', visit_id=visit_id))
-    
+
     form = VisitaForm()
-    
+
     if request.method == 'GET':
         # Preencher formulário com dados atuais
         form.data_inicio.data = visit.data_inicio
         form.data_fim.data = visit.data_fim
         form.observacoes.data = visit.observacoes
-        
+
         # Preencher projeto
         if visit.projeto_id:
             form.projeto_id.data = visit.projeto_id
         else:
             form.projeto_id.data = -1  # 'Outros'
             form.projeto_outros.data = visit.projeto_outros
-        
+
         # Preencher participantes
         if hasattr(visit, 'participantes'):
             participante_ids = [str(p.user_id) for p in visit.participantes if p.user_id]
             form.participantes.data = participante_ids
-    
+
     if form.validate_on_submit():
         try:
             # Atualizar campos
             visit.data_inicio = form.data_inicio.data
             visit.data_fim = form.data_fim.data
             visit.observacoes = form.observacoes.data
-            
+
             # Atualizar projeto
             if form.projeto_id.data == -1:  # 'Outros'
                 visit.projeto_id = None
@@ -3106,12 +3108,12 @@ def visit_edit(visit_id):
             else:
                 visit.projeto_id = form.projeto_id.data
                 visit.projeto_outros = None
-            
+
             # Atualizar participantes
             # Primeiro, remover participantes existentes
             from models import VisitaParticipante
             VisitaParticipante.query.filter_by(visita_id=visit_id).delete()
-            
+
             # Adicionar novos participantes
             if form.participantes.data:
                 for user_id in form.participantes.data:
@@ -3121,15 +3123,15 @@ def visit_edit(visit_id):
                         confirmado=False
                     )
                     db.session.add(participante)
-            
+
             db.session.commit()
             flash('Visita alterada com sucesso!', 'success')
             return redirect(url_for('visit_view', visit_id=visit_id))
-            
+
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao alterar visita: {str(e)}', 'error')
-    
+
     return render_template('visits/form.html', form=form, visit=visit, action='edit')
 
 # Report management routes - movido para routes_reports.py
@@ -3143,14 +3145,14 @@ def view_report(report_id):
     try:
         # Logging detalhado conforme especificação
         current_app.logger.info(f"📖 /reports/{report_id}: Tentativa de acesso por usuário {current_user.id}")
-        
+
         report = Relatorio.query.get_or_404(report_id)
         current_app.logger.info(f"✅ Relatório {report_id} encontrado: Status={report.status}")
-        
+
         # Check basic permissions
         user_can_view = False
         user_can_edit = False
-        
+
         if current_user.is_master:
             user_can_view = True
             user_can_edit = report.status not in ['Aprovado', 'Finalizado']
@@ -3166,18 +3168,18 @@ def view_report(report_id):
                         user_id=current_user.id,
                         ativo=True
                     ).first()
-                    
+
                     if user_has_access or report.projeto.responsavel_id == current_user.id:
                         user_can_view = True
                         user_can_edit = False  # Membros da equipe só visualizam
                 except Exception:
                     current_app.logger.warning(f"Erro ao verificar acesso ao projeto para relatório {report_id}")
                     pass
-        
+
         if not user_can_view:
             flash('Acesso negado ao relatório.', 'error')
             return redirect(url_for('reports'))
-        
+
         # Desserializar checklist com try/except conforme especificação
         try:
             import json
@@ -3186,21 +3188,21 @@ def view_report(report_id):
         except Exception as e:
             current_app.logger.exception(f"ERRO CHECKLIST relatório {report_id}: JSON inválido - {str(e)}")
             checklist = {}
-        
+
         try:
             fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
             current_app.logger.info(f"✅ Fotos carregadas: {len(fotos)} arquivos")
         except Exception as e:
             current_app.logger.error(f"Erro ao buscar fotos do relatório {report_id}: {str(e)}")
             fotos = []
-        
+
         return render_template('reports/view.html', 
                              report=report,  # Padronizado para 'report' conforme especificação
                              fotos=fotos,
                              checklist=checklist,
                              user_can_edit=user_can_edit,
                              user_can_view=user_can_view)
-    
+
     except Exception as e:
         current_app.logger.exception(f"ERRO GERAL em /reports/{report_id}: {str(e)}")
         abort(500, description="Erro interno ao carregar relatório para edição.")
@@ -3217,7 +3219,7 @@ def report_edit(report_id):
     """Editar relatório - versão corrigida para relatórios rejeitados"""
     try:
         current_app.logger.info(f"✏️ report_edit chamado para report_id={report_id}")
-        
+
         # Buscar relatório com tratamento de erro
         try:
             relatorio = Relatorio.query.get_or_404(report_id)
@@ -3225,22 +3227,22 @@ def report_edit(report_id):
             current_app.logger.error(f"❌ Erro ao buscar relatório {report_id}: {str(e)}")
             flash('Relatório não encontrado.', 'error')
             return redirect(url_for('reports'))
-        
+
         # Verificar permissões básicas - CORRIGIDO PARA RELATÓRIOS REJEITADOS
         user_can_edit = False
-        
+
         # Master pode editar tudo exceto aprovados
         if current_user.is_master:
             user_can_edit = relatorio.status not in ['Aprovado', 'Finalizado']
-        
+
         # Autor pode editar se não aprovado - INCLUINDO REJEITADOS
         elif relatorio.autor_id == current_user.id:
             user_can_edit = relatorio.status in ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
-        
+
         if not user_can_edit:
             flash('Você não tem permissão para editar este relatório ou ele já foi finalizado.', 'error')
             return redirect(url_for('view_report', report_id=report_id))
-        
+
         # Para relatórios rejeitados, mudar status para "Em edição" automaticamente
         if relatorio.status == 'Rejeitado' and request.method == 'GET':
             try:
@@ -3251,60 +3253,60 @@ def report_edit(report_id):
             except Exception as e:
                 current_app.logger.error(f"❌ Erro ao alterar status: {str(e)}")
                 db.session.rollback()
-        
+
         # Buscar dados auxiliares com tratamento de erro
         projetos = []
         fotos = []
-        
+
         try:
             projetos = Projeto.query.filter_by(status='Ativo').all()
             current_app.logger.info(f"📋 Projetos carregados: {len(projetos)}")
         except Exception as e:
             current_app.logger.error(f"⚠️ Erro ao buscar projetos: {str(e)}")
             projetos = []
-        
+
         try:
             fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
             current_app.logger.info(f"📸 Fotos carregadas: {len(fotos)}")
         except Exception as e:
             current_app.logger.error(f"⚠️ Erro ao buscar fotos: {str(e)}")
             fotos = []
-        
+
         # Processamento de formulário POST
         if request.method == 'POST':
             try:
                 action = request.form.get('action', 'update')
-                
+
                 if action == 'update':
                     # Atualizar campos básicos de forma segura
                     if 'titulo' in request.form:
                         relatorio.titulo = request.form.get('titulo', '').strip()
-                    
+
                     if 'conteudo' in request.form:
                         relatorio.conteudo = request.form.get('conteudo', '').strip()
-                    
+
                     if 'projeto_id' in request.form:
                         projeto_id = request.form.get('projeto_id')
                         if projeto_id and projeto_id.isdigit():
                             relatorio.projeto_id = int(projeto_id)
-                    
+
                     if 'observacoes' in request.form:
                         relatorio.observacoes = request.form.get('observacoes', '').strip()
-                    
+
                     # Para relatórios em edição (que eram rejeitados), manter status
                     if relatorio.status == 'Em edição':
                         # Manter status Em edição até que seja enviado para aprovação novamente
                         pass
-                    
+
                     # Atualizar timestamp
                     relatorio.updated_at = datetime.utcnow()
-                    
+
                     db.session.commit()
                     flash('Relatório atualizado com sucesso!', 'success')
-                    
+
                 elif action == 'submit_approval':
                     # Permitir envio para aprovação - INCLUINDO RELATÓRIOS EM EDIÇÃO
-                    status_permitidos = ['preenchimento', 'Rascunho', 'Rejeitado', 'Em edição']
+                    status_permitidos = ['preenchimento', 'Rascunho', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
                     if relatorio.status in status_permitidos:
                         relatorio.status = 'Aguardando Aprovação'
                         relatorio.updated_at = datetime.utcnow()
@@ -3314,14 +3316,14 @@ def report_edit(report_id):
                         flash('Relatório reenviado para aprovação!', 'success')
                     else:
                         flash('Relatório não pode ser enviado para aprovação no status atual.', 'warning')
-                
+
                 return redirect(url_for('view_report', report_id=report_id))
-                
+
             except Exception as e:
                 db.session.rollback()
                 current_app.logger.error(f"❌ Erro ao atualizar relatório {report_id}: {str(e)}")
-                flash(f'Erro ao atualizar relatório. Tente novamente.', 'error')
-        
+                flash('Erro ao atualizar relatório. Tente novamente.', 'error')
+
         # Carregar checklist de forma segura
         checklist = {}
         try:
@@ -3331,7 +3333,7 @@ def report_edit(report_id):
         except Exception as e:
             current_app.logger.warning(f"⚠️ Checklist inválido no relatório {report_id}: {str(e)}")
             checklist = {}
-        
+
         # Garantir valores padrão para evitar erros no template
         if not hasattr(relatorio, 'observacoes') or relatorio.observacoes is None:
             relatorio.observacoes = ''
@@ -3339,7 +3341,7 @@ def report_edit(report_id):
             relatorio.conteudo = ''
         if not hasattr(relatorio, 'titulo') or relatorio.titulo is None:
             relatorio.titulo = 'Relatório de visita'
-        
+
         # Garantir que o relacionamento com projeto existe
         try:
             projeto = relatorio.projeto
@@ -3347,7 +3349,7 @@ def report_edit(report_id):
                 current_app.logger.warning(f"⚠️ Projeto não encontrado para relatório {report_id}")
         except Exception as e:
             current_app.logger.warning(f"⚠️ Erro ao carregar projeto do relatório {report_id}: {str(e)}")
-        
+
         # Garantir que o relacionamento com autor existe
         try:
             autor = relatorio.autor
@@ -3355,9 +3357,9 @@ def report_edit(report_id):
                 current_app.logger.warning(f"⚠️ Autor não encontrado para relatório {report_id}")
         except Exception as e:
             current_app.logger.warning(f"⚠️ Erro ao carregar autor do relatório {report_id}: {str(e)}")
-        
+
         current_app.logger.info(f"📖 Usuário {current_user.username} editando relatório {relatorio.numero} (status: {relatorio.status})")
-        
+
         # Renderizar template com todas as variáveis necessárias
         return render_template('reports/edit.html', 
                              relatorio=relatorio, 
@@ -3367,7 +3369,7 @@ def report_edit(report_id):
                              is_readonly=False,
                              user_can_edit=True,
                              user_can_view=True)
-        
+
     except Exception as e:
         import traceback
         error_trace = traceback.format_exc()
@@ -3388,7 +3390,7 @@ def report_add_photo(report_id):
             filename = secure_filename(foto.filename)
             unique_filename = f"{uuid.uuid4()}_{filename}"
             foto_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
-            
+
             # Read file data before saving
             file_data = foto.read()
             foto.seek(0)  # Reset for saving to disk
@@ -3739,11 +3741,11 @@ def uploaded_file(filename):
         # Verificação manual de autenticação (sem decorator para evitar 302)
         from flask_login import current_user
         import logging
-        
+
         # Log detalhado para debugging
         current_app.logger.info(f"🔍 SOLICITAÇÃO IMAGEM: {filename}")
         current_app.logger.info(f"🔐 STATUS AUTH: authenticated={current_user.is_authenticated if current_user else False}")
-        
+
         # Se não autenticado, servir placeholder sem redirecionar
         if not current_user or not current_user.is_authenticated:
             current_app.logger.warning(f"⚠️ USUÁRIO NÃO AUTENTICADO para imagem: {filename}")
@@ -3771,7 +3773,7 @@ def uploaded_file(filename):
             foto_normal = FotoRelatorio.query.filter_by(filename=filename).first()
             if foto_normal:
                 current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Relatório {foto_normal.relatorio_id}): {filename}")
-                
+
                 # Verificar se tem dados binários salvos no banco
                 if hasattr(foto_normal, 'imagem') and foto_normal.imagem:
                     current_app.logger.info(f"📱 SERVINDO IMAGEM DIRETAMENTE DO BANCO: {filename}")
@@ -3784,7 +3786,7 @@ def uploaded_file(filename):
                         return response
                     except Exception as binary_error:
                         current_app.logger.error(f"❌ Erro ao servir imagem do banco: {binary_error}")
-                
+
                 # Buscar arquivo físico
                 for dir_name, dir_path in search_directories:
                     filepath = os.path.join(dir_path, filename)
@@ -3800,7 +3802,7 @@ def uploaded_file(filename):
                         except Exception as send_error:
                             current_app.logger.error(f"❌ Erro ao enviar arquivo de {dir_path}: {send_error}")
                             continue
-                
+
                 # Se chegou aqui, arquivo existe no banco mas não no filesystem
                 current_app.logger.warning(f"⚠️ ARQUIVO NO BANCO MAS NÃO ENCONTRADO FISICAMENTE: {filename}")
                 return serve_placeholder_image(filename, "Imagem registrada no banco mas arquivo físico perdido")
@@ -3812,7 +3814,7 @@ def uploaded_file(filename):
             foto_express = FotoRelatorioExpress.query.filter_by(filename=filename).first()
             if foto_express:
                 current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Express {foto_express.relatorio_express_id}): {filename}")
-                
+
                 # Verificar se tem dados binários salvos no banco
                 if hasattr(foto_express, 'imagem') and foto_express.imagem:
                     current_app.logger.info(f"📱 SERVINDO IMAGEM EXPRESS DIRETAMENTE DO BANCO: {filename}")
@@ -3825,7 +3827,7 @@ def uploaded_file(filename):
                         return response
                     except Exception as binary_error:
                         current_app.logger.error(f"❌ Erro ao servir imagem express do banco: {binary_error}")
-                
+
                 # Buscar arquivo físico
                 for dir_name, dir_path in search_directories:
                     filepath = os.path.join(dir_path, filename)
@@ -3841,7 +3843,7 @@ def uploaded_file(filename):
                         except Exception as send_error:
                             current_app.logger.error(f"❌ Erro ao enviar arquivo express de {dir_path}: {send_error}")
                             continue
-                
+
                 # Se chegou aqui, arquivo existe no banco mas não no filesystem
                 current_app.logger.warning(f"⚠️ ARQUIVO EXPRESS NO BANCO MAS NÃO ENCONTRADO FISICAMENTE: {filename}")
                 return serve_placeholder_image(filename, "Imagem express registrada no banco mas arquivo físico perdido")
@@ -3850,7 +3852,7 @@ def uploaded_file(filename):
 
         # Não encontrado no banco - tentar busca física direta
         current_app.logger.warning(f"❌ IMAGEM NÃO ENCONTRADA NO BANCO: {filename}")
-        
+
         # Busca física direta como fallback
         for dir_name, dir_path in search_directories:
             if os.path.exists(dir_path):
@@ -3924,7 +3926,7 @@ def serve_placeholder_image(filename=None, message=None):
 
   <!-- Message -->
   <text x="100" y="85" font-family="Arial, sans-serif" font-size="10" 
-        fill="#6c757d" text-anchor="middle">Imagem {display_message}</text>
+        fill="#6c757d" text-anchor="middle">{display_message}</text>
 
   <!-- Filename -->
   <text x="100" y="105" font-family="monospace" font-size="8" 
@@ -3962,13 +3964,13 @@ def get_imagem(id):
     try:
         from models import FotoRelatorio
         foto = FotoRelatorio.query.get_or_404(id)
-        
+
         # Se tem imagem no banco, usar ela
         if foto.imagem:
             # Determinar mimetype baseado no filename
             mimetype = get_content_type(foto.filename)
             return Response(foto.imagem, mimetype=mimetype)
-        
+
         # Fallback: tentar carregar do arquivo se não tem no banco (compatibilidade)
         if foto.filename:
             upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
@@ -3981,10 +3983,10 @@ def get_imagem(id):
                     return Response(file_data, mimetype=mimetype)
                 except Exception as e:
                     current_app.logger.error(f"Erro ao ler arquivo {filepath}: {e}")
-        
+
         # Se chegou aqui, não encontrou a imagem
         return serve_placeholder_image(foto.filename, "Imagem não encontrada no banco ou disco")
-        
+
     except Exception as e:
         current_app.logger.error(f"Erro ao servir imagem ID {id}: {e}")
         return serve_placeholder_image(f"foto_{id}", f"Erro: {str(e)}")
@@ -3996,13 +3998,13 @@ def get_imagem_express(id):
     try:
         from models import FotoRelatorioExpress
         foto = FotoRelatorioExpress.query.get_or_404(id)
-        
+
         # Se tem imagem no banco, usar ela
         if foto.imagem:
             # Determinar mimetype baseado no filename
             mimetype = get_content_type(foto.filename)
             return Response(foto.imagem, mimetype=mimetype)
-        
+
         # Fallback: tentar carregar do arquivo se não tem no banco (compatibilidade)
         if foto.filename:
             upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
@@ -4015,10 +4017,10 @@ def get_imagem_express(id):
                     return Response(file_data, mimetype=mimetype)
                 except Exception as e:
                     current_app.logger.error(f"Erro ao ler arquivo {filepath}: {e}")
-        
+
         # Se chegou aqui, não encontrou a imagem
         return serve_placeholder_image(foto.filename, "Imagem não encontrada no banco ou disco")
-        
+
     except Exception as e:
         current_app.logger.error(f"Erro ao servir imagem express ID {id}: {e}")
         return serve_placeholder_image(f"foto_express_{id}", f"Erro: {str(e)}")
@@ -4209,6 +4211,7 @@ def report_photo_editor(report_id):
 
 @app.route('/reports/<int:report_id>/photos/annotate', methods=['POST'])
 @login_required
+@csrf.exempt
 def report_photo_annotate(report_id):
     """Save annotated photo"""
     relatorio = Relatorio.query.get_or_404(report_id)
@@ -4232,7 +4235,7 @@ def report_photo_annotate(report_id):
         # Read file data before saving
         file_data = annotated_image.read()
         annotated_image.seek(0)  # Reset for saving to disk
-        
+
         # Save annotated image
         filename = secure_filename(f"annotated_{foto.id}_{uuid.uuid4().hex}.png")
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -4322,7 +4325,7 @@ def api_visits_calendar():
                             'cor_agenda': participante.user.cor_agenda or '#0EA5E9',
                             'confirmado': participante.confirmado
                         })
-            
+
             # Incluir responsável na lista se não estiver nos participantes
             responsavel_incluido = any(p['id'] == visit.responsavel_id for p in participantes)
             if not responsavel_incluido and visit.responsavel:
@@ -5176,193 +5179,6 @@ def admin_force_backup(report_id):
             'message': f'Erro ao forçar backup: {str(e)}'
         })
 
-@app.route('/admin/report-missing-image', methods=['POST'])
-@csrf.exempt
-def report_missing_image():
-    """Endpoint para reportar imagens perdidas (para logging)"""
-    try:
-        data = request.get_json()
-        filename = data.get('filename', 'unknown')
-        current_app.logger.warning(f"🖼️ IMAGEM PERDIDA REPORTADA: {filename}")
-        return jsonify({'status': 'logged'})
-    except:
-        return jsonify({'status': 'error'})
-
-# Endpoint removido - duplicado
-
-@app.route('/admin/recuperar-imagens')
-@login_required
-def recuperar_imagens():
-    """Tentar recuperar imagens perdidas dos attached_assets"""
-    if not current_user.is_master:
-        return jsonify({'error': 'Acesso negado'}), 403
-
-    try:
-        from models import FotoRelatorio, FotoRelatorioExpress
-        import shutil
-
-        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
-        attached_assets_folder = 'attached_assets'
-
-        recuperadas = []
-        nao_encontradas = []
-
-        # Buscar fotos perdidas
-        fotos_normais = FotoRelatorio.query.all()
-        fotos_express = FotoRelatorioExpress.query.all()
-
-        todas_fotos = []
-        for foto in fotos_normais:
-            todas_fotos.append({
-                'filename': foto.filename,
-                'tipo': 'normal',
-                'relatorio_id': foto.relatorio_id
-            })
-
-        for foto in fotos_express:
-            todas_fotos.append({
-                'filename': foto.filename,
-                'tipo': 'express',
-                'relatorio_id': foto.relatorio_express_id
-            })
-
-        for foto_info in todas_fotos:
-            filename = foto_info['filename']
-            upload_path = os.path.join(upload_folder, filename)
-
-            # Se não existe no upload, tentar encontrar no attached_assets
-            if not os.path.exists(upload_path):
-                attached_path = os.path.join(attached_assets_folder, filename)
-
-                if os.path.exists(attached_path):
-                    try:
-                        # Copiar arquivo para uploads
-                        if not os.path.exists(upload_folder):
-                            os.makedirs(upload_folder)
-
-                        shutil.copy2(attached_path, upload_path)
-                        recuperadas.append({
-                            'filename': filename,
-                            'tipo': foto_info['tipo'],
-                            'relatorio_id': foto_info['relatorio_id'],
-                            'origem': attached_path,
-                            'destino': upload_path
-                        })
-                        current_app.logger.info(f"✅ Imagem recuperada: {filename}")
-
-                    except Exception as e:
-                        current_app.logger.error(f"❌ Erro ao copiar {filename}: {str(e)}")
-                        nao_encontradas.append({
-                            'filename': filename,
-                            'erro': str(e)
-                        })
-                else:
-                    nao_encontradas.append({
-                        'filename': filename,
-                        'motivo': 'Não encontrada em attached_assets'
-                    })
-
-        return jsonify({
-            'success': True,
-            'recuperadas': recuperadas,
-            'nao_encontradas': nao_encontradas,
-            'total_recuperadas': len(recuperadas),
-            'total_nao_encontradas': len(nao_encontradas),
-            'message': f'{len(recuperadas)} imagens recuperadas com sucesso!'
-        })
-
-    except Exception as e:
-        current_app.logger.error(f"Erro na recuperação: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e),
-            'recuperadas': [],
-            'nao_encontradas': []
-        })
-
-@app.route('/admin/drive/backup-all')
-@login_required
-def admin_backup_all():
-    """Forçar backup de todos os relatórios aprovados - apenas administradores"""
-    if not current_user.is_master:
-        return jsonify({'success': False, 'message': 'Acesso negado'})
-
-    try:
-        # Buscar relatórios com status aprovado (considerando variações de capitalização)
-        relatorios = Relatorio.query.filter(
-            db.func.lower(Relatorio.status).in_(['aprovado', 'finalizado', 'aprovado final'])
-        ).all()
-
-        total_reports = len(relatorios)
-        successful_backups = 0
-        failed_backups = 0
-
-        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
-
-        for relatorio in relatorios:
-            try:
-                # Preparar dados do relatório
-                fotos_paths = []
-                # Usar o modelo correto de FotoRelatorio
-                fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).all()
-
-                for foto in fotos:
-                    foto_path = os.path.join(upload_folder, foto.filename)
-                    if os.path.exists(foto_path):
-                        fotos_paths.append(foto_path)
-
-                # Tentar gerar PDF se não existir
-                pdf_path = None
-                try:
-                    # Usar o gerador WeasyPrint se disponível
-                    from pdf_generator_weasy import WeasyPrintReportGenerator
-                    generator = WeasyPrintReportGenerator()
-
-                    # Criar nome do arquivo PDF
-                    pdf_filename = f"relatorio_{relatorio.numero}_{relatorio.id}.pdf"
-                    pdf_path = os.path.join(upload_folder, pdf_filename)
-
-                    # Gerar PDF
-                    generator.generate_report_pdf(relatorio, fotos, pdf_path)
-                    print(f"PDF gerado: {pdf_path}")
-
-                except Exception as pdf_error:
-                    print(f"Erro ao gerar PDF para relatório {relatorio.numero}: {pdf_error}")
-
-                report_data = {
-                    'id': relatorio.id,
-                    'numero': relatorio.numero,
-                    'pdf_path': pdf_path,
-                    'images': fotos_paths
-                }
-
-                project_name = f"{relatorio.projeto.numero}_{relatorio.projeto.nome}"
-                backup_result = backup_to_drive(report_data, project_name)
-
-                if backup_result.get('success'):
-                    successful_backups += 1
-                else:
-                    failed_backups += 1
-                    print(f"Falha no backup do relatório {relatorio.numero}: {backup_result.get('message')}")
-
-            except Exception as e:
-                failed_backups += 1
-                print(f"Erro no backup do relatório {relatorio.numero}: {str(e)}")
-
-        return jsonify({
-            'success': successful_backups > 0,
-            'message': f'Backup completo: {successful_backups}/{total_reports} relatórios processados com sucesso',
-            'successful': successful_backups,
-            'failed': failed_backups,
-            'total': total_reports
-        })
-
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': f'Erro no backup em lote: {str(e)}'
-        })
-
 @app.route('/developer/checklist-padrao/add', methods=['POST'])
 @login_required
 @csrf.exempt
@@ -5969,7 +5785,7 @@ def express_new():
                         filename = f"express_{relatorio_express.id}_{timestamp}_{filename}"
 
                         foto_path = os.path.join(upload_folder, filename)
-                        
+
                         # Ler dados do arquivo antes de salvar
                         file_data = foto_file.read()
                         foto_file.seek(0)  # Reset para salvar o arquivo também
@@ -6192,10 +6008,6 @@ def express_delete(id):
 
     return redirect(url_for('express_list'))
 
-
-
-# Rotas antigas removidas - sistema express agora é standalone
-
 @app.route('/relatorio-express/<int:relatorio_id>/remover-foto/<int:foto_id>', methods=['POST'])
 @login_required
 @csrf.exempt
@@ -6236,7 +6048,7 @@ def relatorio_express_gerar_pdf(relatorio_id):
     relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
 
     # Verificar acesso
-    if not current_user.is_master and relatorio.projeto.responsavel_id != current_user.id:
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
         flash('Acesso negado.', 'error')
         return redirect(url_for('index'))
 
@@ -6777,7 +6589,7 @@ def project_checklist_view(project_id):
 
 @app.route("/projects/<int:project_id>/checklist/config", methods=["POST"])
 @login_required
-@csrf.exempt
+@csrf.exempt  
 def project_checklist_config(project_id):
     """Configure checklist type for project"""
     project = Projeto.query.get_or_404(project_id)
