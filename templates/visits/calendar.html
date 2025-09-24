@@ -137,19 +137,30 @@
     <div class="col-12">
         <div class="card">
             <div class="card-body">
-                <!-- Legenda -->
-                <div class="calendar-legend">
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #007bff;"></div>
-                        <span>Agendada</span>
+                <!-- Legenda de Status -->
+                <div class="calendar-legend mb-3">
+                    <h6 class="mb-2"><i class="fas fa-info-circle me-2"></i>Status das Visitas</h6>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #007bff;"></div>
+                            <span>Agendada</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #28a745;"></div>
+                            <span>Realizada</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #dc3545;"></div>
+                            <span>Cancelada</span>
+                        </div>
                     </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #28a745;"></div>
-                        <span>Realizada</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #dc3545;"></div>
-                        <span>Cancelada</span>
+                </div>
+
+                <!-- Legenda de Cores dos Funcionários -->
+                <div class="calendar-legend mb-3" id="employeeColorsLegend" style="display: none;">
+                    <h6 class="mb-2"><i class="fas fa-users me-2"></i>Cores dos Funcionários</h6>
+                    <div class="d-flex gap-2 flex-wrap" id="employeeColorsContainer">
+                        <!-- Cores dos funcionários carregadas dinamicamente -->
                     </div>
                 </div>
 
@@ -268,31 +279,116 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Carregar eventos
+    // Carregar eventos e cores dos funcionários
     loadVisits();
+    loadEmployeeColors();
 
     // Configurar filtros
     document.querySelectorAll('input[id^="filter"]').forEach(checkbox => {
         checkbox.addEventListener('change', applyFilters);
     });
 
+    // Criar tooltip detalhado com cores dos participantes
+    function createDetailedTooltip(visit, participantesNomes) {
+        let tooltip = `${visit.title || visit.numero}\n`;
+        tooltip += `Projeto: ${visit.projeto_nome}\n`;
+        tooltip += `Responsável: ${visit.responsavel_nome}\n`;
+        tooltip += `Status: ${visit.status}`;
+        
+        if (visit.participantes && visit.participantes.length > 0 && !visit.is_pessoal) {
+            tooltip += `\n\nParticipantes (${visit.participantes.length}):`;
+            visit.participantes.forEach(p => {
+                const roleIndicator = p.is_responsavel ? ' (Responsável)' : '';
+                tooltip += `\n• ${p.nome}${roleIndicator}`;
+            });
+        }
+        
+        if (visit.observacoes) {
+            tooltip += `\n\nObservações: ${visit.observacoes}`;
+        }
+        
+        return tooltip;
+    }
+    
+    // Carregar e exibir cores dos funcionários na legenda
+    function loadEmployeeColors() {
+        fetch('/api/visits/calendar')
+            .then(response => response.json())
+            .then(data => {
+                const employeeColors = new Map();
+                
+                // Extrair cores únicas dos funcionários das visitas
+                data.visits.forEach(visit => {
+                    // Adicionar responsável
+                    if (visit.responsavel_nome && visit.responsavel_cor) {
+                        employeeColors.set(visit.responsavel_nome, visit.responsavel_cor);
+                    }
+                    
+                    // Adicionar participantes
+                    if (visit.participantes && visit.participantes.length > 0) {
+                        visit.participantes.forEach(participante => {
+                            if (participante.nome && participante.cor_agenda) {
+                                employeeColors.set(participante.nome, participante.cor_agenda);
+                            }
+                        });
+                    }
+                });
+                
+                // Exibir legenda se houver funcionários com cores
+                if (employeeColors.size > 0) {
+                    const container = document.getElementById('employeeColorsContainer');
+                    const legend = document.getElementById('employeeColorsLegend');
+                    
+                    container.innerHTML = '';
+                    
+                    // Converter para array e ordenar por nome
+                    const sortedEmployees = Array.from(employeeColors.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+                    
+                    sortedEmployees.forEach(([name, color]) => {
+                        const legendItem = document.createElement('div');
+                        legendItem.className = 'legend-item';
+                        legendItem.innerHTML = `
+                            <div class="legend-color" style="background-color: ${color}; border: 1px solid #dee2e6;"></div>
+                            <small class="text-muted">${name}</small>
+                        `;
+                        container.appendChild(legendItem);
+                    });
+                    
+                    legend.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao carregar cores dos funcionários:', error);
+            });
+    }
+
     function loadVisits() {
         fetch('/api/visits/calendar')
             .then(response => response.json())
             .then(data => {
                 allEvents = data.visits.map(visit => {
-                    // Item 29: Criar título com participantes e cores
+                    // Item 29: Criar título com participantes e cores melhorado
                     let participantesNomes = visit.participantes ? visit.participantes.map(p => p.nome).join(', ') : '';
                     let titleWithParticipants = visit.title || visit.numero;
-                    if (participantesNomes && !visit.is_pessoal) {
+                    
+                    // Adicionar indicador de múltiplos participantes
+                    if (visit.participantes && visit.participantes.length > 1 && !visit.is_pessoal) {
+                        titleWithParticipants += ` 👥${visit.participantes.length}`;
+                    } else if (participantesNomes && !visit.is_pessoal) {
                         titleWithParticipants += ` (${participantesNomes})`;
                     }
                     
-                    // Item 29: Definir cor do evento baseada no responsável
+                    // Item 29: Definir cor do evento baseada no responsável/participantes
                     let eventColor = visit.responsavel_cor || '#0EA5E9';
                     if (visit.participantes && visit.participantes.length > 0) {
-                        // Se há múltiplos participantes, usar cor do responsável como principal
-                        eventColor = visit.participantes.find(p => p.is_responsavel)?.cor_agenda || visit.participantes[0].cor_agenda || '#0EA5E9';
+                        // Usar cor do responsável se estiver nos participantes
+                        const responsavel = visit.participantes.find(p => p.is_responsavel);
+                        if (responsavel) {
+                            eventColor = responsavel.cor_agenda || eventColor;
+                        } else {
+                            // Se responsável não está nos participantes, usar primeira cor
+                            eventColor = visit.participantes[0].cor_agenda || eventColor;
+                        }
                     }
 
                     return {
@@ -310,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             observacoes: visit.observacoes,
                             participantes: visit.participantes,
                             is_pessoal: visit.is_pessoal,
-                            tooltip: `${visit.title || visit.numero}\nProjeto: ${visit.projeto_nome}\nResponsável: ${visit.responsavel_nome}\nStatus: ${visit.status}${visit.participantes && visit.participantes.length > 1 ? '\nParticipantes: ' + participantesNomes : ''}`
+                            tooltip: createDetailedTooltip(visit, participantesNomes)
                         }
                     };
                 });
