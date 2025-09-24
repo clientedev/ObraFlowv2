@@ -2644,16 +2644,36 @@ function validateCaptions() {
 }
 
 // Prepare form data for submission
-function prepareMobilePhotoFormData() {
+async function prepareMobilePhotoFormData() {
+    console.log('📱 Preparando dados das fotos mobile...');
+    
+    // Convert files to base64 data
+    const photosWithData = await Promise.all(
+        mobilePhotoData.map(async (photoData) => {
+            let imageBase64 = null;
+            
+            try {
+                // Convert file to base64
+                imageBase64 = await fileToBase64(photoData.file);
+                console.log(`✅ Foto ${photoData.id} convertida: ${imageBase64.length} chars`);
+            } catch (error) {
+                console.error(`❌ Erro ao converter foto ${photoData.id}:`, error);
+            }
+            
+            return {
+                id: photoData.id,
+                filename: photoData.filename,
+                category: photoData.category,
+                caption: photoData.manualCaption || photoData.predefinedCaption,
+                description: '',
+                data: imageBase64 // CORRIGIDO: Agora envia base64
+            };
+        })
+    );
+    
     // Create form data for mobile photos
     const formData = {
-        photos: mobilePhotoData.map(photoData => ({
-            id: photoData.id,
-            filename: photoData.filename,
-            category: photoData.category,
-            caption: photoData.manualCaption || photoData.predefinedCaption,
-            file: photoData.file
-        }))
+        photos: photosWithData
     };
     
     // Add hidden input with photo data
@@ -2667,14 +2687,24 @@ function prepareMobilePhotoFormData() {
         form.appendChild(hiddenInput);
     }
     
-    console.log(`📤 Preparados ${mobilePhotoData.length} fotos para envio`);
+    console.log(`📤 Preparados ${mobilePhotoData.length} fotos com dados binários para envio`);
+}
+
+// Helper function to convert file to base64
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
 }
 
 // Form submission validation
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('reportForm');
     if (form) {
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', async function(e) {
             // Validate captions
             if (!validateCaptions()) {
                 e.preventDefault();
@@ -2689,10 +2719,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
             
-            // Prepare mobile photo data
-            prepareMobilePhotoFormData();
-            
-            console.log('✅ Formulário validado - enviando...');
+            // If there are photos, prepare mobile photo data
+            if (mobilePhotoData.length > 0) {
+                e.preventDefault(); // Prevent default submission while processing photos
+                
+                console.log('📸 Processando fotos...');
+                try {
+                    await prepareMobilePhotoFormData();
+                    console.log('✅ Formulário validado - enviando...');
+                    
+                    // Now submit the form
+                    form.removeEventListener('submit', arguments.callee);
+                    form.submit();
+                } catch (error) {
+                    console.error('❌ Erro ao processar fotos:', error);
+                    alert('Erro ao processar as fotos. Tente novamente.');
+                }
+            } else {
+                console.log('✅ Formulário validado sem fotos - enviando...');
+            }
         });
     }
 });
