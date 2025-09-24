@@ -2812,14 +2812,14 @@ def visits_list():
         query = query.join(Projeto, Visita.projeto_id == Projeto.id).join(User, Visita.responsavel_id == User.id)
         query = query.filter(or_(
             Visita.numero.ilike(search_term),
-            Visita.objetivo.ilike(search_term),
+            Visita.observacoes.ilike(search_term),
             Projeto.nome.ilike(search_term),
             Projeto.numero.ilike(search_term),
             User.nome_completo.ilike(search_term)
         ))
 
     # Default list view
-    visits = query.order_by(Visita.data_agendada.desc()).all()
+    visits = query.order_by(Visita.data_inicio.desc()).all()
     return render_template('visits/list.html', visits=visits)
 
 @app.route('/visits/calendar')
@@ -2831,24 +2831,49 @@ def visits_calendar():
 @app.route('/visits/new', methods=['GET', 'POST'])
 @login_required  
 def visit_new():
-    if request.method == 'POST' and 'data_inicio' in request.form:
-        # Handle datetime-local input manually
+    if request.method == 'POST':
         try:
             from datetime import datetime
-            data_str = request.form['data_agendada']
-            projeto_id = int(request.form['projeto_id'])
-            objetivo = request.form['objetivo']
+            from models import VisitaParticipante
+            
+            # Get form data
+            data_inicio_str = request.form.get('data_inicio')
+            data_fim_str = request.form.get('data_fim')
+            projeto_id = request.form.get('projeto_id')
+            projeto_outros = request.form.get('projeto_outros')
+            observacoes = request.form.get('observacoes')
+            is_pessoal = request.form.get('is_pessoal') == 'on'
+            participantes_ids = request.form.getlist('participantes')
 
-            if not data_str or not projeto_id or not objetivo:
+            # Validate required fields
+            if not data_inicio_str or not data_fim_str or not projeto_id:
                 flash('Por favor, preencha todos os campos obrigatórios.', 'error')
                 form = VisitaForm()
                 return render_template('visits/form.html', form=form)
 
-            # Parse datetime
-            data_agendada = datetime.fromisoformat(data_str.replace('T', ' '))
+            # Parse datetime fields
+            data_inicio = datetime.fromisoformat(data_inicio_str.replace('T', ' '))
+            data_fim = datetime.fromisoformat(data_fim_str.replace('T', ' '))
 
-            # Item 31: Obter campo is_pessoal do formulário
-            is_pessoal = request.form.get('is_pessoal') == 'y'
+            # Validate end time is after start time
+            if data_fim <= data_inicio:
+                flash('A data de fim deve ser posterior à data de início.', 'error')
+                form = VisitaForm()
+                return render_template('visits/form.html', form=form)
+
+            # Handle project selection - 'Others' option
+            final_projeto_id = None
+            final_projeto_outros = None
+            
+            if projeto_id == '-1':
+                # 'Others' selected
+                if not projeto_outros:
+                    flash('Campo "Nome do Projeto" é obrigatório quando "Outros" é selecionado.', 'error')
+                    form = VisitaForm()
+                    return render_template('visits/form.html', form=form)
+                final_projeto_outros = projeto_outros
+            else:
+                final_projeto_id = int(projeto_id)
             
             # Create visit with new structure
             visita = Visita(
@@ -2868,7 +2893,6 @@ def visit_new():
 
             # Add selected participants
             if participantes_ids:
-                from models import VisitaParticipante
                 for user_id in participantes_ids:
                     participante = VisitaParticipante(
                         visita_id=visita.id,
@@ -2883,7 +2907,7 @@ def visit_new():
                 checklist_item = ChecklistItem(
                     visita_id=visita.id,
                     template_id=template.id,
-                    pergunta=template.descricao,
+                    pergunta=template.descricao if hasattr(template, 'descricao') else template.nome,
                     obrigatorio=template.obrigatorio,
                     ordem=template.ordem
                 )
