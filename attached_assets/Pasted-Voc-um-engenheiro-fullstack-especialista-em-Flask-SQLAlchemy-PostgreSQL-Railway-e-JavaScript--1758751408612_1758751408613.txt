@@ -1,0 +1,61 @@
+Você é um engenheiro fullstack especialista em Flask, SQLAlchemy, PostgreSQL (Railway) e JavaScript.
+
+Problema grave: a lista de visitas não carrega de jeito nenhum.  
+Erro exibido: ❌ "Erro ao carregar lista de visitas. Tente novamente."  
+Mesmo após várias tentativas de correção, o problema persiste.  
+
+Condições atuais:
+- O sistema está deployado no Railway, usando PostgreSQL.
+- Já existe tabela de visitas com dados confirmados.
+- O frontend consome a rota `/api/visits` e `/api/visits/calendar`.
+- O erro permanece tanto no dashboard quanto no calendário.
+- Logs mostram erro 500 no backend ou falha de serialização.
+
+Sua missão é resolver definitivamente o problema, passo a passo:
+
+1. **Backend – Verificar rota e controller**  
+   - Confirme se as rotas `/api/visits` e `/api/visits/calendar` estão implementadas.  
+   - Se não existirem, crie corretamente.  
+   - Se existirem, inspecione se o erro vem de query SQL, ORM ou serialização.  
+
+2. **Modelo SQLAlchemy**  
+   - Verifique se todos os campos acessados realmente existem no banco.  
+   - Se houver colunas faltando (ex: `start_time`, `end_time`, `title`, `participants`), crie uma nova migration Alembic baseada na última versão no GitHub.  
+   - Corrija `datetime` não serializáveis (use `.isoformat()` ou `marshmallow`).  
+
+3. **Serialização correta**  
+   - O retorno da API deve ser **um array JSON**, nunca `None`.  
+   - Cada visita deve retornar no mínimo:  
+     ```json
+     {
+       "id": 1,
+       "title": "Visita Técnica",
+       "start": "2025-09-24T10:00:00",
+       "end": "2025-09-24T11:00:00",
+       "participants": ["Eng. João", "Arq. Maria"],
+       "color": "#FF5733"
+     }
+     ```  
+
+4. **Frontend**  
+   - Corrija os pontos onde o JS assume que sempre existe `.map`.  
+   - Trate o caso de retorno vazio (`[]`) para evitar `undefined.map`.  
+   - Se a rota estiver errada no fetch (ex: `/visits` ao invés de `/api/visits`), corrija.  
+
+5. **Logs e debug**  
+   - Adicione `current_app.logger.exception("Erro em /api/visits")` no backend para capturar o erro real.  
+   - Use `try/except` ao consultar o banco e serialize os dados corretamente.  
+
+6. **Critérios de aceitação – o problema só é considerado resolvido quando:**  
+   - `GET /api/visits` retorna `200` e lista JSON com os dados existentes no Railway.  
+   - O frontend carrega e renderiza corretamente sem quebrar.  
+   - Se não houver visitas, retorna `[]` e a interface mostra lista vazia sem erro.  
+   - O console do navegador não exibe mais `TypeError: undefined.map`.  
+
+Forneça:  
+- Código final corrigido da rota Flask.  
+- Ajustes no modelo SQLAlchemy e migration Alembic se necessário.  
+- Patch no frontend JS para tratar dados vazios.  
+- Passos de teste local (usando o mesmo banco do Railway) para confirmar que os dados aparecem.  
+
+Esse problema é crítico e precisa ser resolvido **definitivamente** nesta entrega.

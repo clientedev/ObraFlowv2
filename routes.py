@@ -4486,6 +4486,80 @@ def api_visits_calendar():
             'error': 'Erro ao carregar calendário'
         }), 500
 
+@app.route('/api/visits')
+def api_visits_list():
+    """API endpoint for visits list - simplified version"""
+    # Check authentication for API - return JSON 401 instead of HTML redirect
+    if not current_user.is_authenticated:
+        return jsonify({
+            'success': False,
+            'error': 'Authentication required'
+        }), 401
+        
+    try:
+        current_app.logger.info("📋 Carregando lista de visitas...")
+        
+        # Get all visits with proper joins to avoid lazy loading issues
+        visits = db.session.query(Visita).join(
+            User, Visita.responsavel_id == User.id
+        ).outerjoin(
+            Projeto, Visita.projeto_id == Projeto.id
+        ).all()
+        
+        current_app.logger.info(f"📋 {len(visits)} visitas encontradas")
+
+        visits_data = []
+        for visit in visits:
+            # Get project name safely
+            projeto_nome = "Sem projeto"
+            try:
+                if visit.projeto_id and visit.projeto:
+                    projeto_nome = f"{visit.projeto.numero} - {visit.projeto.nome}"
+                elif visit.projeto_outros:
+                    projeto_nome = visit.projeto_outros
+            except Exception as proj_error:
+                current_app.logger.warning(f"⚠️ Erro ao carregar projeto da visita {visit.id}: {proj_error}")
+
+            # Get responsible user safely  
+            responsavel_nome = ''
+            try:
+                if visit.responsavel:
+                    responsavel_nome = visit.responsavel.nome_completo
+            except Exception as resp_error:
+                current_app.logger.warning(f"⚠️ Erro ao carregar responsável da visita {visit.id}: {resp_error}")
+
+            visits_data.append({
+                'id': visit.id,
+                'numero': visit.numero or f"V{visit.id}",
+                'title': visit.numero or f"Visita {visit.id}",
+                'start': visit.data_inicio.isoformat() if visit.data_inicio else None,
+                'end': visit.data_fim.isoformat() if visit.data_fim else None,
+                'status': visit.status or 'Agendada',
+                'projeto_nome': projeto_nome,
+                'responsavel_nome': responsavel_nome,
+                'observacoes': visit.observacoes or '',
+                'atividades_realizadas': visit.atividades_realizadas or '',
+                'is_pessoal': visit.is_pessoal or False,
+                'created_at': visit.created_at.isoformat() if visit.created_at else None
+            })
+
+        current_app.logger.info(f"✅ Lista de visitas carregada com {len(visits_data)} itens")
+        
+        # Always return array for frontend compatibility
+        return jsonify(visits_data)
+
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        current_app.logger.exception(f"❌ Erro na API de visitas: {str(e)}")
+        current_app.logger.error(f"❌ Full traceback: {error_trace}")
+        
+        # Always return JSON for API endpoints, never HTML
+        return jsonify({
+            'success': False,
+            'error': 'Erro ao carregar lista de visitas'
+        }), 500
+
 @app.route('/api/visits/<int:visit_id>/details')
 @login_required  
 def api_visit_details(visit_id):
