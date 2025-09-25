@@ -1,7 +1,7 @@
 # Railway Dockerfile for construction tracking system
-FROM python:3.11-slim
+FROM python:3.10-slim
 
-# Install system dependencies for WeasyPrint
+# Install system dependencies for WeasyPrint and curl for healthcheck
 RUN apt-get update && apt-get install -y \
     libgobject-2.0-0 \
     libpango-1.0-0 \
@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     libfribidi0 \
     libpng16-16 \
     libjpeg62-turbo \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
