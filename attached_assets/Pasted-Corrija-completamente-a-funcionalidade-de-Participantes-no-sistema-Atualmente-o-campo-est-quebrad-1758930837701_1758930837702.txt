@@ -1,0 +1,64 @@
+Corrija completamente a funcionalidade de Participantes no sistema.
+Atualmente, o campo está quebrado (nomes sobrepostos, sem estilização e sem responsividade).
+
+Requisitos:
+
+Interface (Frontend / CSS + HTML + JS):
+
+Refatorar o campo de seleção de participantes.
+
+Criar cards estilizados e responsivos para cada participante, dentro da temática visual do sistema (mesma paleta e estilo usado no restante do sistema).
+
+Cada card deve exibir:
+
+Nome do participante.
+
+Função (ex: Engenheiro, Arquiteta, Administrador).
+
+Checkbox ou seleção clicável de maneira intuitiva.
+
+Cards devem ser clicáveis inteiros, não apenas o checkbox.
+
+Responsividade: deve funcionar bem em desktop, tablet e mobile.
+
+Seleção precisa: clique único seleciona/deseleciona corretamente sem bugs visuais.
+
+Funcionalidade de Seleção:
+
+Deve ser possível selecionar múltiplos participantes ao criar uma visita.
+
+Na tela de edição de visita, os participantes já selecionados devem aparecer pré-marcados corretamente.
+
+Alterações devem poder ser salvas normalmente.
+
+Banco de Dados (PostgreSQL / Railway):
+
+Garantir que os IDs dos participantes selecionados sejam armazenados corretamente na tabela de relacionamento (visita_participantes ou tabela equivalente).
+
+Ajustar o backend para salvar e carregar corretamente os dados de seleção de participantes.
+
+Validar que ao editar uma visita, os dados corretos são recuperados e exibidos.
+
+Deploy Railway:
+
+Corrigir eventuais erros de rota ou backend para que a funcionalidade funcione 100% no deploy.
+
+Testar que o fluxo está funcionando no ambiente Railway conectado ao banco PostgreSQL.
+
+Testes:
+
+Criar uma nova visita e selecionar múltiplos participantes → verificar que dados foram salvos no banco.
+
+Editar a visita → os mesmos participantes devem aparecer selecionados.
+
+Responsividade → conferir no navegador em mobile/desktop.
+
+Objetivo Final:
+
+Ter uma tela de Participantes moderna, responsiva, estilizada e funcional.
+
+Seleção 100% confiável.
+
+Dados sendo persistidos corretamente no PostgreSQL (Railway).
+
+Funcionar tanto no Replit.dev quanto no sistema deployado.
