@@ -89,7 +89,7 @@
                             {{ form.participantes.label(class="form-label") }}
                             
                             <!-- Contador de selecionados -->
-                            <div id="participants-count" class="mb-2 text-muted">
+                            <div id="participants-count" class="mb-2 text-muted fw-bold">
                                 0 participante(s) selecionado(s)
                             </div>
                             
@@ -110,12 +110,10 @@
                                     
                                     <label class="participant-card" data-user-id="{{ subfield.data }}">
                                         {{ subfield(class="participant-checkbox d-none", name="participants") }}
-                                        <div class="participant-main d-flex align-items-start gap-2">
-                                            <div class="participant-avatar">
-                                                <i class="bi bi-person-circle fs-3"></i>
-                                            </div>
-                                            <div class="participant-text">
-                                                <div class="participant-name">{{ participant_name }}</div>
+                                        <div class="participant-content d-flex align-items-center gap-3">
+                                            <i class="bi bi-person-circle fs-4 text-primary"></i>
+                                            <div>
+                                                <div class="fw-semibold">{{ participant_name }}</div>
                                                 <small class="text-muted">{{ participant_role }}</small>
                                             </div>
                                         </div>
@@ -209,24 +207,20 @@
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
 }
 
-.participant-card .participant-main {
+.participant-card.selected {
+  background-color: rgba(14,165,233,0.08);
+  border-color: #0ea5e9;
+}
+
+.participant-content {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.participant-card .participant-name {
-  font-weight: 600;
-}
-
-.participant-card.selected {
-  background: rgba(14,165,233,0.08);
-  border-color: #0ea5e9;
 }
 
 .participant-container {
@@ -235,10 +229,28 @@
   padding-right: 6px;
 }
 
+#participants-count {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
 @media (max-width: 768px) {
   .participant-card {
     padding: 14px;
     min-height: 56px;
+  }
+  
+  .participant-content {
+    gap: 12px;
+  }
+  
+  .participant-card .bi-person-circle {
+    font-size: 1.5rem !important;
+  }
+  
+  #participants-count {
+    font-size: 1rem;
+    padding: 8px 0;
   }
 }
 </style>
@@ -266,10 +278,10 @@ document.addEventListener('DOMContentLoaded', function() {
     projetoSelect.addEventListener('change', toggleProjetoOutros);
     
     // Participant Selection Functionality
-    function updateSelectedList() {
-        const checked = Array.from(document.querySelectorAll('.participant-checkbox:checked')).map(i => i.value);
-        document.querySelector('#participants-count').textContent = `${checked.length} participante(s) selecionado(s)`;
-        document.querySelector('input[name="participants_ids"]').value = checked.join(',');
+    function updateSelected() {
+        const selected = Array.from(document.querySelectorAll('.participant-checkbox:checked')).map(c => c.value);
+        document.querySelector('#participants-count').textContent = `${selected.length} participante(s) selecionado(s)`;
+        document.querySelector('input[name="participants_ids"]').value = selected.join(',');
         
         // Update card visual states
         document.querySelectorAll('.participant-card').forEach(card => {
@@ -278,24 +290,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle checkbox changes and card clicks properly
+    // Handle participant card selection
     document.querySelectorAll('.participant-card').forEach(card => {
         const checkbox = card.querySelector('.participant-checkbox');
         
         // Listen to checkbox changes (from any source)
-        checkbox.addEventListener('change', updateSelectedList);
+        checkbox.addEventListener('change', updateSelected);
         
-        // Handle card clicks without double-toggling
+        // Handle card clicks
         card.addEventListener('click', (e) => {
             if (e.target.tagName === 'INPUT') return;
             e.preventDefault(); // Prevent label default behavior
             checkbox.checked = !checkbox.checked;
-            checkbox.dispatchEvent(new Event('change')); // Trigger change event
+            card.classList.toggle('selected', checkbox.checked);
+            updateSelected();
         });
     });
     
-    // Initial update and sync visual state
-    updateSelectedList();
+    // Initial update to sync visual state
+    updateSelected();
 });
 </script>
 
