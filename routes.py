@@ -2925,6 +2925,7 @@ def visit_new():
         try:
             from datetime import datetime
             from models import VisitaParticipante
+            from sqlalchemy import text, func
 
             # Get form data
             data_inicio_str = request.form.get('data_inicio')
@@ -2933,7 +2934,9 @@ def visit_new():
             projeto_outros = request.form.get('projeto_outros')
             observacoes = request.form.get('observacoes')
             is_pessoal = request.form.get('is_pessoal') == 'on'
-            participantes_ids = request.form.getlist('participantes')
+            # Handle new participants_ids format from hidden input
+            participantes_csv = request.form.get('participants_ids', '')
+            participantes_ids = [int(i) for i in participantes_csv.split(',') if i] if participantes_csv else []
 
             # Validate required fields
             if not data_inicio_str or not data_fim_str or not projeto_id:
@@ -2981,15 +2984,16 @@ def visit_new():
             db.session.add(visita)
             db.session.flush()  # Get the ID
 
-            # Add selected participants
+            # Add selected participants using SQL approach
             if participantes_ids:
-                for user_id in participantes_ids:
-                    participante = VisitaParticipante(
-                        visita_id=visita.id,
-                        user_id=int(user_id),
-                        confirmado=False
-                    )
-                    db.session.add(participante)
+                # Clear any existing participants for this visit
+                db.session.execute(text("DELETE FROM visita_participantes WHERE visita_id=:vid"), {'vid': visita.id})
+                # Add new participants
+                for uid in participantes_ids:
+                    db.session.execute(text("""
+                      INSERT INTO visita_participantes (visita_id, user_id, confirmado, created_at)
+                      VALUES (:vid, :uid, false, CURRENT_TIMESTAMP)
+                    """), {'vid': visita.id, 'uid': uid})
 
             # Add default checklist items from templates
             templates = ChecklistTemplate.query.filter_by(ativo=True).order_by(ChecklistTemplate.ordem).all()

@@ -1,0 +1,143 @@
+Você é um desenvolvedor sênior em Flask, SQLAlchemy, Jinja2, Bootstrap e JS.  
+Preciso que corrija de forma definitiva o componente de seleção de participantes na tela de agendamento.  
+
+### Problemas atuais (visíveis na imagem):
+1. O nome e cargo dos usuários estão **duplicados** dentro dos cards.  
+2. O **layout CSS está quebrado em dispositivos mobile**, causando sobreposição e dificultando a seleção.  
+3. O **clique no participante não seleciona corretamente**, o contador de selecionados não atualiza e os dados não são gravados na tabela `visita_participantes`.  
+
+---
+
+### Solução esperada:
+
+#### 1. Template Jinja2 (sem duplicação)
+- Cada participante deve ser exibido em **um único card** com:
+  - Avatar ou ícone
+  - Nome completo (`user.full_name`)
+  - Cargo/função (`user.role`)
+- Exemplo:
+```html
+<label class="participant-card" data-user-id="{{ user.id }}">
+  <input type="checkbox" class="participant-checkbox d-none" name="participants" value="{{ user.id }}">
+  <div class="participant-main d-flex align-items-start gap-2">
+    <div class="participant-avatar">
+      <i class="bi bi-person-circle fs-3"></i>
+    </div>
+    <div class="participant-text">
+      <div class="participant-name">{{ user.full_name }}</div>
+      <small class="text-muted">{{ user.role }}</small>
+    </div>
+  </div>
+</label>
+⚠️ Remova qualquer duplicação de user.full_name e user.role. Apenas o conteúdo acima deve ser exibido.
+
+2. CSS (responsivo e funcional no mobile)
+Adicionar ao CSS:
+
+css
+Copiar código
+.participant-card {
+  display: block;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.participant-card .participant-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.participant-card .participant-name {
+  font-weight: 600;
+}
+
+.participant-card.selected {
+  background: rgba(14,165,233,0.08);
+  border-color: #0ea5e9;
+}
+
+.participant-container {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+@media (max-width: 768px) {
+  .participant-card {
+    padding: 14px;
+    min-height: 56px;
+  }
+}
+3. JavaScript (seleção funcional)
+Criar/ajustar script:
+
+js
+Copiar código
+function updateSelectedList() {
+  const checked = Array.from(document.querySelectorAll('.participant-checkbox:checked')).map(i => i.value);
+  document.querySelector('#participants-count').textContent = `${checked.length} participante(s) selecionado(s)`;
+  document.querySelector('input[name="participants_ids"]').value = checked.join(',');
+}
+
+document.querySelectorAll('.participant-card').forEach(card => {
+  const checkbox = card.querySelector('.participant-checkbox');
+  card.addEventListener('click', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    checkbox.checked = !checkbox.checked;
+    card.classList.toggle('selected', checkbox.checked);
+    updateSelectedList();
+  });
+});
+Incluir <input type="hidden" name="participants_ids"> no formulário.
+
+Incluir <div id="participants-count">0 participante(s) selecionado(s)</div> acima da lista.
+
+4. Backend Flask (salvar seleção)
+No POST /visits/create (ou equivalente):
+
+python
+Copiar código
+participants_csv = request.form.get('participants_ids', '')
+ids = [int(i) for i in participants_csv.split(',') if i]
+
+if ids:
+    db.session.execute(text("DELETE FROM visita_participantes WHERE visita_id=:vid"), {'vid': visita.id})
+    for uid in ids:
+        db.session.execute(text("""
+          INSERT INTO visita_participantes (visita_id, user_id, confirmado, created_at)
+          VALUES (:vid, :uid, false, now())
+        """), {'vid': visita.id, 'uid': uid})
+    db.session.commit()
+5. Banco de Dados
+Tabela visita_participantes deve conter os campos:
+
+id (PK, serial)
+
+visita_id (FK → visitas.id)
+
+user_id (FK → users.id)
+
+confirmado (boolean, default false)
+
+created_at (timestamp, default now())
+
+Se algum campo estiver faltando, gerar migração Alembic:
+
+python
+Copiar código
+def upgrade():
+    op.alter_column('visita_participantes', 'confirmado', existing_type=sa.Boolean(), server_default=sa.text('false'))
+    op.alter_column('visita_participantes', 'created_at', existing_type=sa.TIMESTAMP(), server_default=sa.text('now()'))
+Testes obrigatórios:
+Selecionar 1 participante → contador mostra "1 participante selecionado".
+
+Selecionar múltiplos → cards ficam destacados e hidden input guarda IDs.
+
+Salvar agendamento → registros inseridos em visita_participantes.
+
+Abrir no mobile → layout não quebra e seleção funciona ao toque.

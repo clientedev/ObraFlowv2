@@ -84,83 +84,43 @@
                             {% endfor %}
                         </div>
                         
-                        <!-- Seleção de Participantes Melhorada -->
+                        <!-- Seleção de Participantes -->
                         <div class="mb-3">
                             {{ form.participantes.label(class="form-label") }}
-                            <div class="participant-selector-container">
-                                <!-- Barra de busca e controles -->
-                                <div class="participant-search-bar d-flex align-items-center mb-3">
-                                    <div class="flex-grow-1 me-2">
-                                        <input type="text" 
-                                               class="form-control" 
-                                               id="participantSearch" 
-                                               placeholder="🔍 Buscar participantes..." 
-                                               autocomplete="off">
-                                    </div>
-                                    <div class="participant-controls d-flex gap-2">
-                                        <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllParticipants">
-                                            <i class="fas fa-check-double"></i> Todos
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="clearAllParticipants">
-                                            <i class="fas fa-times"></i> Limpar
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Contador de selecionados -->
-                                <div class="participant-counter mb-2">
-                                    <small class="text-muted">
-                                        <span id="selectedCount">0</span> participante(s) selecionado(s)
-                                    </small>
-                                </div>
-                                
-                                <!-- Lista de participantes organizados -->
-                                <div class="participant-list border rounded p-3" style="max-height: 300px; overflow-y: auto;">
-                                    {% set participants_by_role = {} %}
-                                    {% for subfield in form.participantes %}
-                                        {% set label_text = subfield.label.text %}
-                                        {% if '(' in label_text and ')' in label_text %}
-                                            {% set participant_name = label_text.split('(')[0].strip() %}
-                                            {% set participant_role = label_text.split('(')[1].split(')')[0].strip() %}
-                                        {% else %}
-                                            {% set participant_name = label_text %}
-                                            {% set participant_role = 'Outros' %}
-                                        {% endif %}
-                                        {% if participant_role not in participants_by_role %}
-                                            {% set _ = participants_by_role.update({participant_role: []}) %}
-                                        {% endif %}
-                                        {% set _ = participants_by_role[participant_role].append((subfield, participant_name, participant_role)) %}
-                                    {% endfor %}
+                            
+                            <!-- Contador de selecionados -->
+                            <div id="participants-count" class="mb-2 text-muted">
+                                0 participante(s) selecionado(s)
+                            </div>
+                            
+                            <!-- Hidden input para enviar IDs selecionados -->
+                            <input type="hidden" name="participants_ids" id="participants_ids" value="">
+                            
+                            <!-- Container de participantes -->
+                            <div class="participant-container">
+                                {% for subfield in form.participantes %}
+                                    {% set label_text = subfield.label.text %}
+                                    {% if '(' in label_text and ')' in label_text %}
+                                        {% set participant_name = label_text.split('(')[0].strip() %}
+                                        {% set participant_role = label_text.split('(')[1].split(')')[0].strip() %}
+                                    {% else %}
+                                        {% set participant_name = label_text %}
+                                        {% set participant_role = 'Outros' %}
+                                    {% endif %}
                                     
-                                    {% for role, participants in participants_by_role.items() %}
-                                        <div class="participant-role-group mb-3">
-                                            <h6 class="participant-role-header text-muted border-bottom pb-1 mb-2">
-                                                <i class="fas fa-users me-1"></i>
-                                                {{ role }} ({{ participants|length }})
-                                            </h6>
-                                            <div class="participant-role-items">
-                                                {% for subfield, name, role in participants %}
-                                                    <div class="participant-item form-check mb-2" 
-                                                         data-name="{{ name.lower() }}" 
-                                                         data-role="{{ role.lower() }}">
-                                                        {{ subfield(class="form-check-input participant-checkbox") }}
-                                                        <label class="form-check-label participant-label" for="{{ subfield.id }}">
-                                                            <div class="d-flex align-items-center">
-                                                                <div class="participant-avatar me-2">
-                                                                    <i class="fas fa-user-circle text-primary"></i>
-                                                                </div>
-                                                                <div class="participant-info">
-                                                                    <div class="participant-name fw-medium">{{ name }}</div>
-                                                                    <small class="participant-role text-muted">{{ role }}</small>
-                                                                </div>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                {% endfor %}
+                                    <label class="participant-card" data-user-id="{{ subfield.data }}">
+                                        {{ subfield(class="participant-checkbox d-none", name="participants") }}
+                                        <div class="participant-main d-flex align-items-start gap-2">
+                                            <div class="participant-avatar">
+                                                <i class="bi bi-person-circle fs-3"></i>
+                                            </div>
+                                            <div class="participant-text">
+                                                <div class="participant-name">{{ participant_name }}</div>
+                                                <small class="text-muted">{{ participant_role }}</small>
                                             </div>
                                         </div>
-                                    {% endfor %}
-                                </div>
+                                    </label>
+                                {% endfor %}
                             </div>
                             {% for error in form.participantes.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
@@ -244,279 +204,42 @@
 
 {% block extra_css %}
 <style>
-/* PATCH 3: Corrigir sobreposição do campo Participantes - Mobile First */
-.participant-selector-container {
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    background: #fff;
+.participant-card {
+  display: block;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
 }
 
-.participant-list {
-    background: #f8f9fa;
-    min-height: 150px;
-    max-height: 350px;
-    overflow-y: auto;
-    border-radius: 0.375rem;
+.participant-card .participant-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-/* Fix overlapping participant items */
-.participant-item {
-    display: block !important;
-    width: 100%;
-    margin-bottom: 0.75rem;
-    padding: 0.75rem;
-    border: 1px solid #e9ecef;
-    border-radius: 0.375rem;
-    background: #fff;
-    transition: all 0.2s ease;
-    cursor: pointer;
+.participant-card .participant-name {
+  font-weight: 600;
 }
 
-.participant-item:hover {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.1);
+.participant-card.selected {
+  background: rgba(14,165,233,0.08);
+  border-color: #0ea5e9;
 }
 
-.participant-item.selected {
-    border-color: #0d6efd;
-    background: #e7f3ff;
+.participant-container {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
-/* Ensure proper spacing for participant labels */
-.participant-label {
-    display: block;
-    width: 100%;
-    line-height: 1.5 !important;
-    margin: 0;
-    cursor: pointer;
-    font-size: 0.95rem;
-}
-
-/* Fix participant info layout */
-.participant-info {
-    flex: 1;
-    min-width: 0; /* Allow text truncation */
-}
-
-.participant-name {
-    font-size: 0.95rem;
-    line-height: 1.4;
-    margin-bottom: 0.2rem;
-    word-wrap: break-word;
-}
-
-.participant-role {
-    font-size: 0.8rem;
-    line-height: 1.2;
-    color: #6c757d !important;
-}
-
-/* Role group headers */
-.participant-role-group {
-    margin-bottom: 1rem;
-}
-
-.participant-role-header {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #495057;
-    margin-bottom: 0.5rem;
-    padding-bottom: 0.5rem;
-}
-
-/* Checkbox styling */
-.participant-checkbox {
-    margin-top: 0.1rem;
-    margin-right: 0.5rem;
-    flex-shrink: 0;
-}
-
-/* Avatar styling */
-.participant-avatar {
-    flex-shrink: 0;
-    font-size: 1.2rem;
-}
-
-/* Mobile responsive improvements - FIX OVERLAPPING ISSUE */
 @media (max-width: 768px) {
-    .participant-selector-container {
-        margin-bottom: 1rem;
-    }
-    
-    .participant-list {
-        padding: 0.5rem !important;
-        background: #f8f9fa;
-        max-height: 400px;
-    }
-    
-    .participant-item {
-        display: block !important;
-        width: 100% !important;
-        padding: 1rem !important;
-        margin-bottom: 1.25rem !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-        border: 2px solid #e9ecef !important;
-        border-radius: 0.5rem !important;
-        background: #fff !important;
-        min-height: 70px !important;
-        box-sizing: border-box !important;
-        touch-action: manipulation;
-        position: relative;
-        clear: both;
-        overflow: hidden;
-    }
-    
-    .participant-item:hover,
-    .participant-item:focus {
-        border-color: #0d6efd !important;
-        background: #f8f9fa !important;
-        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15) !important;
-        transform: translateY(-1px);
-    }
-    
-    .participant-item.selected {
-        border-color: #0d6efd !important;
-        background: #e7f3ff !important;
-        box-shadow: 0 3px 12px rgba(13, 110, 253, 0.2) !important;
-    }
-    
-    .participant-label {
-        display: block !important;
-        width: 100% !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        cursor: pointer;
-        line-height: 1.4 !important;
-    }
-    
-    .participant-name {
-        font-size: 1.1rem !important;
-        line-height: 1.4 !important;
-        margin-bottom: 0.3rem !important;
-        font-weight: 500 !important;
-        color: #212529 !important;
-        word-wrap: break-word;
-    }
-    
-    .participant-role {
-        font-size: 0.9rem !important;
-        line-height: 1.2 !important;
-        color: #6c757d !important;
-        margin: 0 !important;
-    }
-    
-    .participant-checkbox {
-        width: 20px !important;
-        height: 20px !important;
-        margin-top: 0.2rem !important;
-        margin-right: 0.75rem !important;
-        flex-shrink: 0;
-        border: 2px solid #dee2e6;
-    }
-    
-    .participant-avatar {
-        flex-shrink: 0;
-        font-size: 1.4rem !important;
-        margin-right: 0.75rem !important;
-        color: #0d6efd;
-    }
-    
-    .participant-info {
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-    }
-    
-    .participant-search-bar {
-        margin-bottom: 1rem !important;
-        flex-direction: column !important;
-        gap: 0.75rem !important;
-    }
-    
-    .participant-search-bar .participant-controls {
-        display: flex !important;
-        justify-content: center !important;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        width: 100% !important;
-    }
-    
-    .participant-search-bar .btn-sm {
-        padding: 0.6rem 1rem !important;
-        font-size: 0.95rem !important;
-        min-width: 80px;
-        touch-action: manipulation;
-    }
-    
-    .participant-counter {
-        text-align: center !important;
-        padding: 0.75rem !important;
-        font-size: 1rem !important;
-        margin-bottom: 1rem !important;
-        background: #e7f3ff !important;
-        border: 1px solid #b6d7ff !important;
-        color: #0d6efd !important;
-        font-weight: 500;
-    }
-    
-    .participant-role-group {
-        margin-bottom: 1.5rem !important;
-    }
-    
-    .participant-role-header {
-        font-size: 1rem !important;
-        font-weight: 600 !important;
-        color: #495057 !important;
-        margin-bottom: 0.75rem !important;
-        padding: 0.5rem 0.75rem !important;
-        background: #e9ecef !important;
-        border-radius: 0.375rem !important;
-        border-left: 4px solid #0d6efd;
-    }
-    
-    /* Prevent any form-check Bootstrap conflicts */
-    .participant-item .form-check {
-        margin-bottom: 0 !important;
-        padding-left: 0 !important;
-        min-height: auto !important;
-    }
-    
-    .participant-item .form-check-input {
-        position: static !important;
-        margin-left: 0 !important;
-        margin-top: 0 !important;
-    }
-    
-    /* Ensure proper layout for checkbox and content */
-    .participant-item .d-flex {
-        align-items: flex-start !important;
-        gap: 0.75rem !important;
-    }
-}
-
-/* Hide functionality for search */
-.participant-item.hidden {
-    display: none !important;
-}
-
-/* Ensure Bootstrap form-check styling doesn't interfere */
-.participant-item .form-check {
-    margin-bottom: 0;
-    min-height: auto;
-}
-
-.participant-item .form-check-input {
-    margin-top: 0.125rem;
-}
-
-/* Counter styling */
-.participant-counter {
-    font-size: 0.9rem;
-    padding: 0.5rem 0.75rem;
-    background: #e9ecef;
-    border-radius: 0.25rem;
-    text-align: center;
+  .participant-card {
+    padding: 14px;
+    min-height: 56px;
+  }
 }
 </style>
 {% endblock %}
@@ -542,111 +265,38 @@ document.addEventListener('DOMContentLoaded', function() {
     // Listen for changes
     projetoSelect.addEventListener('change', toggleProjetoOutros);
     
-    // Participant Selector Functionality
-    initParticipantSelector();
-});
+    // Participant Selection Functionality
+    function updateSelectedList() {
+        const checked = Array.from(document.querySelectorAll('.participant-checkbox:checked')).map(i => i.value);
+        document.querySelector('#participants-count').textContent = `${checked.length} participante(s) selecionado(s)`;
+        document.querySelector('input[name="participants_ids"]').value = checked.join(',');
+        
+        // Update card visual states
+        document.querySelectorAll('.participant-card').forEach(card => {
+            const checkbox = card.querySelector('.participant-checkbox');
+            card.classList.toggle('selected', checkbox.checked);
+        });
+    }
 
-function initParticipantSelector() {
-    const searchInput = document.getElementById('participantSearch');
-    const selectAllBtn = document.getElementById('selectAllParticipants');
-    const clearAllBtn = document.getElementById('clearAllParticipants');
-    const selectedCountElement = document.getElementById('selectedCount');
-    const participantItems = document.querySelectorAll('.participant-item');
-    const participantCheckboxes = document.querySelectorAll('.participant-checkbox');
-    
-    if (!searchInput || !selectAllBtn || !clearAllBtn || !selectedCountElement) {
-        return; // Exit if participant selector elements not found
-    }
-    
-    // Update selected counter
-    function updateSelectedCounter() {
-        const selectedCount = document.querySelectorAll('.participant-checkbox:checked').length;
-        selectedCountElement.textContent = selectedCount;
+    // Handle checkbox changes and card clicks properly
+    document.querySelectorAll('.participant-card').forEach(card => {
+        const checkbox = card.querySelector('.participant-checkbox');
         
-        // Update visual state of items
-        participantItems.forEach(item => {
-            const checkbox = item.querySelector('.participant-checkbox');
-            if (checkbox && checkbox.checked) {
-                item.classList.add('selected');
-            } else {
-                item.classList.remove('selected');
-            }
-        });
-    }
-    
-    // Search functionality
-    function filterParticipants() {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        let hasVisibleItems = false;
+        // Listen to checkbox changes (from any source)
+        checkbox.addEventListener('change', updateSelectedList);
         
-        participantItems.forEach(item => {
-            const name = item.getAttribute('data-name') || '';
-            const role = item.getAttribute('data-role') || '';
-            const matchesSearch = name.includes(searchTerm) || role.includes(searchTerm);
-            
-            if (matchesSearch) {
-                item.classList.remove('hidden');
-                hasVisibleItems = true;
-            } else {
-                item.classList.add('hidden');
-            }
-        });
-        
-        // Show/hide role groups based on visible items
-        document.querySelectorAll('.participant-role-group').forEach(group => {
-            const hasVisibleParticipants = group.querySelectorAll('.participant-item:not(.hidden)').length > 0;
-            group.style.display = hasVisibleParticipants ? 'block' : 'none';
-        });
-    }
-    
-    // Select all visible participants
-    function selectAllVisible() {
-        participantItems.forEach(item => {
-            if (!item.classList.contains('hidden')) {
-                const checkbox = item.querySelector('.participant-checkbox');
-                if (checkbox) {
-                    checkbox.checked = true;
-                }
-            }
-        });
-        updateSelectedCounter();
-    }
-    
-    // Clear all selections
-    function clearAllSelections() {
-        participantCheckboxes.forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        updateSelectedCounter();
-    }
-    
-    // Add click handlers to participant items
-    participantItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            // Don't trigger if clicking on the checkbox directly
-            if (e.target.type === 'checkbox') return;
-            
-            const checkbox = this.querySelector('.participant-checkbox');
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-                updateSelectedCounter();
-            }
+        // Handle card clicks without double-toggling
+        card.addEventListener('click', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            e.preventDefault(); // Prevent label default behavior
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event('change')); // Trigger change event
         });
     });
     
-    // Event listeners
-    searchInput.addEventListener('input', filterParticipants);
-    selectAllBtn.addEventListener('click', selectAllVisible);
-    clearAllBtn.addEventListener('click', clearAllSelections);
-    
-    // Listen for checkbox changes
-    participantCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateSelectedCounter);
-    });
-    
-    // Initial counter update
-    updateSelectedCounter();
-}
+    // Initial update and sync visual state
+    updateSelectedList();
+});
 </script>
 
 {% if action == 'realize' %}
