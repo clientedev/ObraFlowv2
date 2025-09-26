@@ -1,0 +1,116 @@
+Você é um desenvolvedor sênior Flask, SQLAlchemy, Bootstrap e JS.  
+Corrija a funcionalidade de seleção de participantes na tela de agendamento de visitas.  
+
+### Problemas atuais:
+- O componente exibe os usuários, mas **não é possível selecionar** de forma correta.  
+- O CSS está simples e **não funciona bem em dispositivos mobile**.  
+- Apesar da tabela `visita_participantes` já existir, **nenhum dado está sendo gravado** quando agenda a visita.  
+
+---
+
+### Solução esperada:
+
+#### 1. Frontend (HTML + CSS)
+- Cada participante deve ser exibido como um **card clicável** (estilo botão) com:
+  - Nome
+  - Cargo/função
+  - Ícone/avatar
+- Exemplo de card:
+```html
+<label class="participant-card" data-user-id="{{ user.id }}">
+  <input type="checkbox" name="participants" class="participant-checkbox d-none" value="{{ user.id }}">
+  <div class="participant-content d-flex align-items-center gap-2">
+    <i class="bi bi-person-circle fs-4 text-primary"></i>
+    <div>
+      <div class="fw-semibold">{{ user.full_name }}</div>
+      <small class="text-muted">{{ user.role }}</small>
+    </div>
+  </div>
+</label>
+CSS responsivo:
+
+css
+Copiar código
+.participant-card {
+  display: block;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.participant-card.selected {
+  background-color: rgba(14,165,233,0.08);
+  border-color: #0ea5e9;
+}
+
+.participant-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .participant-card {
+    padding: 14px;
+    min-height: 56px;
+  }
+}
+Adicionar contador de selecionados:
+
+html
+Copiar código
+<div id="participants-count">0 participante(s) selecionado(s)</div>
+<input type="hidden" name="participants_ids">
+2. JavaScript (funcionalidade de seleção)
+js
+Copiar código
+function updateSelected() {
+  const selected = Array.from(document.querySelectorAll('.participant-checkbox:checked')).map(c => c.value);
+  document.querySelector('#participants-count').textContent = `${selected.length} participante(s) selecionado(s)`;
+  document.querySelector('input[name="participants_ids"]').value = selected.join(',');
+}
+
+document.querySelectorAll('.participant-card').forEach(card => {
+  const checkbox = card.querySelector('.participant-checkbox');
+  card.addEventListener('click', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    checkbox.checked = !checkbox.checked;
+    card.classList.toggle('selected', checkbox.checked);
+    updateSelected();
+  });
+});
+3. Backend Flask (salvar no banco)
+No endpoint POST /visits/create ou similar:
+
+python
+Copiar código
+participants_csv = request.form.get('participants_ids', '')
+ids = [int(i) for i in participants_csv.split(',') if i]
+
+if ids:
+    db.session.execute(text("DELETE FROM visita_participantes WHERE visita_id=:vid"), {'vid': visita.id})
+    for uid in ids:
+        db.session.execute(text("""
+            INSERT INTO visita_participantes (visita_id, user_id, confirmado, created_at)
+            VALUES (:vid, :uid, false, now())
+        """), {'vid': visita.id, 'uid': uid})
+    db.session.commit()
+4. Banco de Dados
+Tabela já existe: visita_participantes (id, visita_id, user_id, confirmado, created_at).
+
+Se algum campo estiver ausente, gerar migração Alembic de acordo com o último arquivo.
+
+Testes esperados:
+Selecionar múltiplos participantes → cards destacados e contador atualizado.
+
+Salvar visita → registros gravados em visita_participantes.
+
+Reabrir a visita → participantes selecionados aparecem já marcados.
+
+No mobile → layout limpo, clicável e responsivo.
+
+yaml
+Copiar código
