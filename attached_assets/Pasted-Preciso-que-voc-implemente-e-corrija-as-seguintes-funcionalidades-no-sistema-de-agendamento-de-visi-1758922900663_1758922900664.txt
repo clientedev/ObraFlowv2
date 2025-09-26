@@ -1,0 +1,51 @@
+Preciso que você implemente e corrija as seguintes funcionalidades no sistema de agendamento de visitas:
+
+Item 28 – Funcionalidade do calendário
+
+Abertura direta de agendamento (visão mensal)
+
+Ao clicar em um dia no calendário, o sistema deve abrir diretamente a página de agendamento já com esse dia pré-selecionado.
+
+Garantir que o valor da data seja passado corretamente para o formulário de agendamento.
+
+Semana e Dia (visões específicas)
+
+Ao clicar em um horário em semana ou dia, deve abrir a página de agendamento já com o dia e o horário selecionados automaticamente.
+
+Se houver conflito de dados, priorizar os parâmetros passados pelo clique.
+
+Persistência no banco (PostgreSQL – Railway)
+
+Validar que a data/hora selecionadas sejam corretamente salvas no banco de dados na tabela visitas.
+
+Garantir compatibilidade com os campos existentes (data_agendada, hora_inicio, hora_fim se aplicável).
+
+Garantia de funcionamento
+
+Se a funcionalidade já estiver parcialmente implementada, revisar e corrigir para que funcione em todas as visões (mês, semana e dia) sem erros.
+
+Testar o fluxo completo de clique no calendário até salvar no banco.
+
+Correção de CSS – Campo de Participantes (Mobile)
+
+O campo de seleção de participantes da visita atualmente está quebrado em dispositivos mobile (como mostra a imagem). Os blocos de usuários ficam sobrepostos e não é possível selecionar corretamente.
+
+Ajustes necessários:
+
+Corrigir o layout responsivo para que os cartões/linhas de participantes fiquem alinhados e com espaçamento adequado em mobile.
+
+Garantir que seja possível selecionar um ou mais participantes sem erro.
+
+Manter a estilização já utilizada no sistema (cores, ícones e fontes existentes).
+
+Testar tanto em desktop quanto em dispositivos mobile (responsividade total).
+
+Se já existir código CSS/Bootstrap aplicável, revisar e refatorar para que os elementos respeitem flexbox/grid ou colunas responsivas.
+
+✅ Resumo do que precisa ser entregue:
+
+Funcionalidade completa do Item 28 do calendário (cliques em dias/horários abrindo agendamento com dados pré-selecionados).
+
+Correção total do CSS da lista de participantes em mobile, garantindo responsividade e usabilidade.
+
+Revisão final para manter a consistência visual e funcional com o restante do sistema.

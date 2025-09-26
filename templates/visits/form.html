@@ -332,32 +332,161 @@
     font-size: 1.2rem;
 }
 
-/* Mobile responsive improvements */
+/* Mobile responsive improvements - FIX OVERLAPPING ISSUE */
 @media (max-width: 768px) {
-    .participant-item {
-        padding: 1rem;
+    .participant-selector-container {
         margin-bottom: 1rem;
-        min-height: 60px;
+    }
+    
+    .participant-list {
+        padding: 0.5rem !important;
+        background: #f8f9fa;
+        max-height: 400px;
+    }
+    
+    .participant-item {
+        display: block !important;
+        width: 100% !important;
+        padding: 1rem !important;
+        margin-bottom: 1.25rem !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        border: 2px solid #e9ecef !important;
+        border-radius: 0.5rem !important;
+        background: #fff !important;
+        min-height: 70px !important;
+        box-sizing: border-box !important;
         touch-action: manipulation;
+        position: relative;
+        clear: both;
+        overflow: hidden;
+    }
+    
+    .participant-item:hover,
+    .participant-item:focus {
+        border-color: #0d6efd !important;
+        background: #f8f9fa !important;
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15) !important;
+        transform: translateY(-1px);
+    }
+    
+    .participant-item.selected {
+        border-color: #0d6efd !important;
+        background: #e7f3ff !important;
+        box-shadow: 0 3px 12px rgba(13, 110, 253, 0.2) !important;
+    }
+    
+    .participant-label {
+        display: block !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        cursor: pointer;
+        line-height: 1.4 !important;
     }
     
     .participant-name {
-        font-size: 1rem;
-        line-height: 1.3;
+        font-size: 1.1rem !important;
+        line-height: 1.4 !important;
+        margin-bottom: 0.3rem !important;
+        font-weight: 500 !important;
+        color: #212529 !important;
+        word-wrap: break-word;
     }
     
     .participant-role {
-        font-size: 0.85rem;
+        font-size: 0.9rem !important;
+        line-height: 1.2 !important;
+        color: #6c757d !important;
+        margin: 0 !important;
+    }
+    
+    .participant-checkbox {
+        width: 20px !important;
+        height: 20px !important;
+        margin-top: 0.2rem !important;
+        margin-right: 0.75rem !important;
+        flex-shrink: 0;
+        border: 2px solid #dee2e6;
+    }
+    
+    .participant-avatar {
+        flex-shrink: 0;
+        font-size: 1.4rem !important;
+        margin-right: 0.75rem !important;
+        color: #0d6efd;
+    }
+    
+    .participant-info {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    .participant-search-bar {
+        margin-bottom: 1rem !important;
+        flex-direction: column !important;
+        gap: 0.75rem !important;
     }
     
     .participant-search-bar .participant-controls {
+        display: flex !important;
+        justify-content: center !important;
         flex-wrap: wrap;
         gap: 0.5rem;
+        width: 100% !important;
     }
     
     .participant-search-bar .btn-sm {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.9rem;
+        padding: 0.6rem 1rem !important;
+        font-size: 0.95rem !important;
+        min-width: 80px;
+        touch-action: manipulation;
+    }
+    
+    .participant-counter {
+        text-align: center !important;
+        padding: 0.75rem !important;
+        font-size: 1rem !important;
+        margin-bottom: 1rem !important;
+        background: #e7f3ff !important;
+        border: 1px solid #b6d7ff !important;
+        color: #0d6efd !important;
+        font-weight: 500;
+    }
+    
+    .participant-role-group {
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .participant-role-header {
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        color: #495057 !important;
+        margin-bottom: 0.75rem !important;
+        padding: 0.5rem 0.75rem !important;
+        background: #e9ecef !important;
+        border-radius: 0.375rem !important;
+        border-left: 4px solid #0d6efd;
+    }
+    
+    /* Prevent any form-check Bootstrap conflicts */
+    .participant-item .form-check {
+        margin-bottom: 0 !important;
+        padding-left: 0 !important;
+        min-height: auto !important;
+    }
+    
+    .participant-item .form-check-input {
+        position: static !important;
+        margin-left: 0 !important;
+        margin-top: 0 !important;
+    }
+    
+    /* Ensure proper layout for checkbox and content */
+    .participant-item .d-flex {
+        align-items: flex-start !important;
+        gap: 0.75rem !important;
     }
 }
 
