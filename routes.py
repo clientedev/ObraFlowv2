@@ -2921,52 +2921,22 @@ def visits_calendar():
 @app.route('/visits/new', methods=['GET', 'POST'])
 @login_required  
 def visit_new():
-    if request.method == 'POST':
+    form = VisitaForm()
+    
+    if form.validate_on_submit():
         try:
             from datetime import datetime
             from models import VisitaParticipante
-            from sqlalchemy import text, func
-
-            # Get form data
-            data_inicio_str = request.form.get('data_inicio')
-            data_fim_str = request.form.get('data_fim')
-            projeto_id = request.form.get('projeto_id')
-            projeto_outros = request.form.get('projeto_outros')
-            observacoes = request.form.get('observacoes')
-            is_pessoal = request.form.get('is_pessoal') == 'on'
-            # Handle new participants_ids format from hidden input
-            participantes_csv = request.form.get('participants_ids', '')
-            participantes_ids = [int(i) for i in participantes_csv.split(',') if i] if participantes_csv else []
-
-            # Validate required fields
-            if not data_inicio_str or not data_fim_str or not projeto_id:
-                flash('Por favor, preencha todos os campos obrigatórios.', 'error')
-                form = VisitaForm()
-                return render_template('visits/form.html', form=form)
-
-            # Parse datetime fields
-            data_inicio = datetime.fromisoformat(data_inicio_str.replace('T', ' '))
-            data_fim = datetime.fromisoformat(data_fim_str.replace('T', ' '))
-
-            # Validate end time is after start time
-            if data_fim <= data_inicio:
-                flash('A data de fim deve ser posterior à data de início.', 'error')
-                form = VisitaForm()
-                return render_template('visits/form.html', form=form)
 
             # Handle project selection - 'Others' option
             final_projeto_id = None
             final_projeto_outros = None
 
-            if projeto_id == '-1':
-                # 'Others' selected
-                if not projeto_outros:
-                    flash('Campo "Nome do Projeto" é obrigatório quando "Outros" é selecionado.', 'error')
-                    form = VisitaForm()
-                    return render_template('visits/form.html', form=form)
-                final_projeto_outros = projeto_outros
+            if form.projeto_id.data == -1:  # 'Others'
+                final_projeto_outros = form.projeto_outros.data
             else:
-                final_projeto_id = int(projeto_id)
+                final_projeto_id = form.projeto_id.data
+
 
             # Create visit with new structure
             visita = Visita(
@@ -2974,26 +2944,25 @@ def visit_new():
                 projeto_id=final_projeto_id,
                 projeto_outros=final_projeto_outros,
                 responsavel_id=current_user.id,
-                data_inicio=data_inicio,
-                data_fim=data_fim,
-                observacoes=observacoes if observacoes else None,
-                is_pessoal=is_pessoal,  # Item 31: Compromisso pessoal
+                data_inicio=form.data_inicio.data,
+                data_fim=form.data_fim.data,
+                observacoes=form.observacoes.data,
+                is_pessoal=form.is_pessoal.data,  # Item 31: Compromisso pessoal
                 criado_por=current_user.id  # Item 31: Usuário criador
             )
 
             db.session.add(visita)
             db.session.flush()  # Get the ID
 
-            # Add selected participants using SQL approach
-            if participantes_ids:
-                # Clear any existing participants for this visit
-                db.session.execute(text("DELETE FROM visita_participantes WHERE visita_id=:vid"), {'vid': visita.id})
-                # Add new participants
-                for uid in participantes_ids:
-                    db.session.execute(text("""
-                      INSERT INTO visita_participantes (visita_id, user_id, confirmado, created_at)
-                      VALUES (:vid, :uid, false, CURRENT_TIMESTAMP)
-                    """), {'vid': visita.id, 'uid': uid})
+            # Add selected participants using form data
+            if form.participantes.data:
+                for user_id in form.participantes.data:
+                    participante = VisitaParticipante(
+                        visita_id=visita.id,
+                        user_id=int(user_id),
+                        confirmado=False
+                    )
+                    db.session.add(participante)
 
             # Add default checklist items from templates
             templates = ChecklistTemplate.query.filter_by(ativo=True).order_by(ChecklistTemplate.ordem).all()
@@ -3015,9 +2984,8 @@ def visit_new():
             db.session.rollback()
             print(f"Error creating visit: {e}")
             flash('Erro ao agendar visita. Verifique os dados e tente novamente.', 'error')
-
-    # GET request or form validation failed
-    form = VisitaForm()
+    
+    # Handle GET request - pre-fill form data from calendar if available
 
     # Item 28: Preencher campos com parâmetros de query string do calendário
     data_param = request.args.get('data')
