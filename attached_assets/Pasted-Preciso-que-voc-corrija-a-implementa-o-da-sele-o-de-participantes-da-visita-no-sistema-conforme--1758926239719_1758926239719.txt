@@ -1,0 +1,65 @@
+Preciso que você corrija a implementação da seleção de participantes da visita no sistema, conforme os seguintes pontos:
+
+Problema de seleção
+
+Atualmente não é possível selecionar corretamente um participante (checkbox ou seleção múltipla não funciona).
+
+Corrigir a lógica para que seja possível selecionar um ou mais participantes sem falhas.
+
+O valor selecionado deve ser armazenado corretamente na tabela visita_participantes, respeitando os campos:
+
+id
+visita_id
+user_id
+confirmado
+created_at
+
+
+O fluxo correto deve ser: ao selecionar um participante → gravar o user_id relacionado ao visita_id da visita criada, preenchendo também created_at.
+
+O campo confirmado deve ser tratado corretamente (por padrão false/null até confirmação explícita).
+
+Texto duplicado nos cards
+
+Nos cards de cada participante está sendo exibido o nome duplicado (exemplo: Administrador do Sistema (Administrador) – Administrador do Sistema).
+
+Remover o texto duplicado, deixando apenas um título claro dentro do card com o nome do participante e sua função/cargo.
+
+Layout esperado no card:
+
+[Ícone Usuário]  Nome Completo (Cargo/Função)
+
+
+Correção de CSS e responsividade
+
+Ajustar o CSS para que os cards fiquem bem alinhados e não quebrem em dispositivos mobile.
+
+Garantir espaçamento adequado entre os cards, seguindo a estilização padrão do sistema.
+
+O clique no card (ou no checkbox associado) deve funcionar corretamente em desktop e mobile.
+
+Integração com banco PostgreSQL (Railway)
+
+Garantir que os dados de seleção sejam salvos e recuperados corretamente do banco.
+
+Caso a tabela visita_participantes não possua todos os campos necessários, criar um arquivo Alembic baseado na última versão do GitHub para ajustar a estrutura e garantir que esteja atualizada.
+
+Garantia de funcionamento
+
+Testar seleção de múltiplos participantes e verificar que os registros são gravados corretamente em visita_participantes.
+
+Verificar que os cards não exibem textos duplicados.
+
+Testar responsividade mobile e confirmar que o fluxo de agendamento de visitas está funcionando como esperado.
+
+✅ Resumo esperado:
+
+Seleção de participantes funcionando e integrada ao banco.
+
+Nome duplicado removido dos cards.
+
+CSS corrigido e responsivo.
+
+Tabela visita_participantes atualizada via Alembic se necessário.
+
+Fluxo de agendamento de visitas consistente e funcional.
