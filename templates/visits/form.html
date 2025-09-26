@@ -118,9 +118,14 @@
                                 <div class="participant-list border rounded p-3" style="max-height: 300px; overflow-y: auto;">
                                     {% set participants_by_role = {} %}
                                     {% for subfield in form.participantes %}
-                                        {% set participant_data = subfield.label.text.split('(') %}
-                                        {% set participant_name = participant_data[0].strip() %}
-                                        {% set participant_role = participant_data[1].rstrip(')') if participant_data|length > 1 else 'Outros' %}
+                                        {% set label_text = subfield.label.text %}
+                                        {% if '(' in label_text and ')' in label_text %}
+                                            {% set participant_name = label_text.split('(')[0].strip() %}
+                                            {% set participant_role = label_text.split('(')[1].split(')')[0].strip() %}
+                                        {% else %}
+                                            {% set participant_name = label_text %}
+                                            {% set participant_role = 'Outros' %}
+                                        {% endif %}
                                         {% if participant_role not in participants_by_role %}
                                             {% set _ = participants_by_role.update({participant_role: []}) %}
                                         {% endif %}
