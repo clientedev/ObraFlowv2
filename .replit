@@ -9,7 +9,7 @@ deploymentTarget = "autoscale"
 run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "--timeout=120", "--worker-connections=1000", "--max-requests=1000", "--max-requests-jitter=100", "replit_main:app"]
 
 [workflows]
-runButton = "Project"
+runButton = "Flask Server Railway Fixed"
 
 [[workflows.workflow]]
 name = "Flask Server Fixed"
@@ -58,6 +58,15 @@ outputType = "webview"
 task = "shell.exec"
 args = "SESSION_SECRET=\"elp_secret_key_replit\" python3 replit_main.py"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Flask Server Railway Fixed"
+author = 48040808
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
 
 [[ports]]
 localPort = 5000

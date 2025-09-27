@@ -37,7 +37,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # needed for url_for
 # configure the database, relative to the app instance folder
 database_url = os.environ.get("DATABASE_URL", "sqlite:///construction_tracker.db")
 
-# Handle Railway/Replit PostgreSQL environment 
+# Handle Railway/Replit PostgreSQL environment
 # Railway and Replit provide DATABASE_URL for PostgreSQL when database is provisioned
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -121,7 +121,7 @@ def create_admin_user_safe():
         try:
             # Force rollback any pending transactions
             db.session.rollback()
-            
+
             # Attempt to create admin user
             existing_admin = User.query.filter_by(is_master=True).first()
             if not existing_admin:
@@ -165,7 +165,7 @@ def create_default_checklists():
     try:
         # Force rollback any pending transactions
         db.session.rollback()
-        
+
         # Verificar se já existem itens
         count = ChecklistPadrao.query.filter_by(ativo=True).count()
         if count >= 6:
@@ -228,7 +228,7 @@ def create_default_legendas():
             admin_user = User.query.filter_by(is_master=True).first()
         except Exception:
             admin_user = None
-            
+
         if not admin_user:
             logging.error("❌ Admin user não encontrado - usando ID 1")
             admin_user_id = 1  # Usar ID direto
@@ -372,15 +372,12 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
     try:
         with app.app_context():
             import models  # noqa: F401
-            
-            # Test database connection first
-            try:
-                db.engine.execute("SELECT 1")
-                logging.info("✅ Database connection successful")
-            except Exception as conn_error:
-                logging.error(f"❌ Database connection failed: {conn_error}")
-                raise
-            
+
+            # Test database connection (fixed for newer SQLAlchemy)
+            with db.engine.connect() as connection:
+                connection.execute(db.text("SELECT 1"))
+            logging.info("✅ Database connection successful")
+
             # Create tables with retries
             max_retries = 3
             for attempt in range(max_retries):
@@ -394,11 +391,12 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
                         time.sleep(2)
                     else:
                         raise
-            
+
             # Create admin user
             create_admin_user_safe()
             create_default_checklists()
-            
+            create_default_legendas()
+
             # Test reports route functionality
             logging.info("🧪 Testing reports functionality...")
             try:
@@ -407,9 +405,9 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
                 logging.info(f"✅ Reports table accessible: {test_count} reports found")
             except Exception as test_error:
                 logging.warning(f"⚠️ Reports test failed: {test_error}")
-            
+
             logging.info("✅ RAILWAY DATABASE INITIALIZATION COMPLETE")
-            
+
     except Exception as e:
         logging.error(f"❌ Railway database initialization error: {e}")
         logging.info("🔄 Continuing with limited functionality...")
@@ -423,6 +421,7 @@ elif os.environ.get("DATABASE_URL"):
             logging.info("Database tables created successfully.")
             create_admin_user_safe()
             create_default_checklists()
+            create_default_legendas()
             logging.info("✅ CLOUD DATABASE INITIALIZATION COMPLETE")
     except Exception as e:
         logging.error(f"Database initialization error: {e}")
@@ -430,3 +429,19 @@ else:
     # Local development initialization
     logging.info("💻 Local environment detected - initializing database")
     init_database()
+
+# Import routes after app initialization
+try:
+    import routes  # noqa: F401
+except ImportError:
+    logging.error("❌ Failed to import routes. Make sure 'routes.py' exists and is correctly configured.")
+except SyntaxError as e:
+    logging.error(f"❌ Syntax error in routes file: {e}")
+except Exception as e:
+    logging.error(f"❌ An unexpected error occurred while importing routes: {e}")
+
+# This is a placeholder for potential future use or debugging
+if __name__ == '__main__':
+    # For development, you might want to run the app directly
+    # app.run(debug=True)
+    pass
