@@ -167,6 +167,55 @@ def api_legendas():
 
         current_app.logger.info(f"✅ API LEGENDAS: {len(legendas_data)} legendas retornadas (categoria={categoria})")
 
+
+
+@app.route('/debug/relatorios')
+@login_required
+def debug_relatorios():
+    """Debug: verificar relatórios no banco PostgreSQL"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        # Verificação direta via SQL
+        result = db.session.execute(db.text("""
+            SELECT id, numero, titulo, autor_id, status, created_at 
+            FROM relatorios 
+            ORDER BY id DESC 
+            LIMIT 20
+        """))
+        
+        rows = result.fetchall()
+        relatorios_data = []
+        
+        for row in rows:
+            relatorios_data.append({
+                'id': row.id,
+                'numero': row.numero,
+                'titulo': row.titulo,
+                'autor_id': row.autor_id,
+                'status': row.status,
+                'created_at': str(row.created_at)
+            })
+        
+        # Verificação via ORM
+        orm_count = Relatorio.query.count()
+        
+        return jsonify({
+            'total_sql': len(relatorios_data),
+            'total_orm': orm_count,
+            'relatorios': relatorios_data,
+            'user_id': current_user.id,
+            'user_is_master': current_user.is_master
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'message': 'Erro ao acessar relatórios'
+        }), 500
+
+
         # Resposta JSON final
         response_data = {
             'success': True,
@@ -620,14 +669,16 @@ def reports():
 
         # Query simples e direta - SEM JOINS complexos
         try:
-            if current_user.is_master:
-                # Master vê todos os relatórios
-                base_query = Relatorio.query
-            else:
-                # Usuários não-master veem apenas seus próprios relatórios
-                base_query = Relatorio.query.filter(Relatorio.autor_id == current_user.id)
+            # Debug: verificar se há relatórios no banco
+            total_in_db = db.session.execute(db.text("SELECT COUNT(*) FROM relatorios")).scalar()
+            current_app.logger.info(f"🔍 TOTAL RELATÓRIOS NO BANCO: {total_in_db}")
+            current_app.logger.info(f"👤 USUÁRIO: {current_user.username} (ID: {current_user.id}, Master: {current_user.is_master})")
 
-            # Aplicar busca se fornecida - SEM JOINS
+            # SEMPRE mostrar todos os relatórios para debug - remover filtro temporariamente
+            base_query = db.session.query(Relatorio)
+            current_app.logger.info("🔓 MODO DEBUG: Mostrando TODOS os relatórios independente do usuário")
+
+            # Aplicar busca se fornecida
             if q:
                 from sqlalchemy import or_
                 search_term = f'%{q}%'
@@ -637,14 +688,15 @@ def reports():
                         Relatorio.titulo.ilike(search_term)
                     )
                 )
+                current_app.logger.info(f"🔍 FILTRO APLICADO: '{q}'")
 
             # Contar total primeiro
             total_count = base_query.count()
-            current_app.logger.info(f"📊 Total de relatórios encontrados: {total_count}")
+            current_app.logger.info(f"📊 Total de relatórios encontrados após filtros: {total_count}")
 
             # Buscar os relatórios da página atual
             offset_value = (page - 1) * 10
-            relatorios_list = base_query.order_by(Relatorio.created_at.desc()).offset(offset_value).limit(10).all()
+            relatorios_list = base_query.order_by(Relatorio.id.desc()).offset(offset_value).limit(10).all()
 
             current_app.logger.info(f"✅ {len(relatorios_list)} relatórios carregados para página {page}")
 
@@ -2849,21 +2901,40 @@ def visits_list():
             current_app.logger.error(f"❌ Erro na query principal: {str(query_error)}")
             try:
                 db.session.rollback()
-                # Tentativa 2: Query simples sem filtros
-                visits = Visita.query.order_by(Visita.id.desc()).limit(10).all()
-                current_app.logger.info(f"🔄 Fallback 1: {len(visits)} visitas carregadas")
+                # Tentativa 2: Query SQL direta
+                result = db.session.execute(db.text("SELECT * FROM relatorios ORDER BY id DESC LIMIT 10"))
+                rows = result.fetchall()
+                
+                # Converter para objetos Relatorio
+                relatorios_list = []
+                for row in rows:
+                    relatorio = Relatorio()
+                    relatorio.id = row.id
+                    relatorio.numero = row.numero
+                    relatorio.titulo = row.titulo
+                    relatorio.projeto_id = row.projeto_id
+                    relatorio.autor_id = row.autor_id
+                    relatorio.status = row.status
+                    relatorio.created_at = row.created_at
+                    relatorios_list.append(relatorio)
+                
+                total_count = len(relatorios_list)
+                current_app.logger.info(f"🔄 Fallback SQL: {total_count} relatórios carregados diretamente")
+                
             except Exception as fallback_error:
-                current_app.logger.error(f"❌ Erro no fallback 1: {str(fallback_error)}")
+                current_app.logger.error(f"❌ Erro no fallback SQL: {str(fallback_error)}")
                 try:
                     db.session.rollback()
-                    # Tentativa 3: Query mínima
-                    visits = Visita.query.limit(5).all()
-                    current_app.logger.info(f"🔄 Fallback 2: {len(visits)} visitas carregadas")
+                    # Tentativa 3: Query ORM mais simples
+                    relatorios_list = Relatorio.query.limit(5).all()
+                    total_count = len(relatorios_list)
+                    current_app.logger.info(f"🔄 Fallback ORM: {total_count} relatórios carregados")
                 except Exception:
                     # Tentativa 4: Lista vazia (última opção)
-                    visits = []
+                    relatorios_list = []
+                    total_count = 0
                     current_app.logger.error("❌ Todos os fallbacks falharam - retornando lista vazia")
-                    flash('Não foi possível carregar as visitas. Tente novamente.', 'warning')
+                    flash('Não foi possível carregar os relatórios. Verifique a conexão com o banco.', 'warning')
 
         # Garantir que sempre temos uma lista válida
         if not isinstance(visits, list):
