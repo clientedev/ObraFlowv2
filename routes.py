@@ -5992,7 +5992,7 @@ def express_new():
             action = request.form.get('action', 'save_draft')
 
             # Gerar número único
-            numero = gerar_numero_numero_relatorio_express()
+            numero = gerar_numero_relatorio_express()
 
             # Criar relatório express
             relatorio_express = RelatorioExpress()
@@ -6283,7 +6283,7 @@ def express_pdf(id):
         pdf_filename = f"relatorio_express_{relatorio.numero}.pdf"
         pdf_path = os.path.join('uploads', pdf_filename)
 
-        result = gerar_pdf_relatorio_express(relatorio.id, salvar_arquivo=False) # Passando apenas ID para a função
+        result = gerar_pdf_relatorio_express(relatorio, pdf_path)
 
         if result.get('success'):
             # Se o PDF foi gerado e retornado como bytes
@@ -6480,7 +6480,7 @@ def enviar_relatorio_express_por_email(relatorio, destinatarios, cc_emails, bcc_
     """Função auxiliar para enviar relatório express por e-mail"""
     try:
         # Gerar PDF
-        pdf_bytes = gerar_pdf_relatorio_express(relatorio.id, salvar_arquivo=False)
+        pdf_bytes = gerar_pdf_relatorio_express(relatorio, pdf_path)
 
         projeto = relatorio.projeto
         data_atual = datetime.now().strftime('%d/%m/%Y')
