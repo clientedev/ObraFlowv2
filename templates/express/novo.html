@@ -1470,7 +1470,7 @@ function displayChecklist() {
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="check_${index}" onchange="updateChecklistData()">
                         <label class="form-check-label fw-bold" for="check_${index}">
-                            ${item.titulo}
+                            ${item.texto || item.titulo || 'Item ' + (index + 1)}
                         </label>
                     </div>
                     ${item.descricao ? `<small class="text-muted">${item.descricao}</small>` : ''}
@@ -1515,8 +1515,8 @@ function updateChecklistData() {
 
         if (checkbox) {
             checklistData.push({
-                titulo: item.titulo,
-                descricao: item.descricao,
+                titulo: item.texto || item.titulo || 'Item ' + (index + 1),
+                descricao: item.descricao || '',
                 concluido: checkbox.checked
             });
         }
@@ -1591,8 +1591,33 @@ function getCurrentLocation(btn) {
 
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
-            document.getElementById('latitude').value = position.coords.latitude;
-            document.getElementById('longitude').value = position.coords.longitude;
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            
+            // Preencher coordenadas
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lon;
+
+            // Fazer reverse geocoding para obter o endereço
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.display_name) {
+                        // Preencher o campo de endereço
+                        const enderecoField = document.getElementById('endereco_visita');
+                        if (enderecoField) {
+                            enderecoField.value = data.display_name;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.log('Erro ao obter endereço:', error);
+                    // Preencher um endereço básico com as coordenadas
+                    const enderecoField = document.getElementById('endereco_visita');
+                    if (enderecoField) {
+                        enderecoField.value = `Localização: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                    }
+                });
 
             btn.innerHTML = '<i class="fas fa-check"></i> Localização obtida!';
             btn.className = 'btn btn-outline-success';
