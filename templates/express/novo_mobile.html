@@ -780,10 +780,27 @@ textarea {
                     </div>
                 </div>
 
+                <!-- Localização GPS -->
+                <div class="form-group">
+                    <button type="button" id="getLocationBtn" class="btn btn-outline-primary">
+                        <i class="fas fa-crosshairs"></i> Capturar Localização Atual
+                    </button>
+                </div>
+
+                <!-- Mensagem de sucesso da localização -->
+                <div id="locationSuccessMessage" class="alert-mobile alert-success" style="display: none;">
+                    <i class="fas fa-check-circle"></i> <strong>Localização capturada com sucesso!</strong>
+                    <br>
+                    <i class="fas fa-map-marker-alt"></i> <span id="locationAddress"></span>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label" for="endereco_visita">Local da Visita</label>
                     {{ form.endereco_visita(class="form-control", placeholder="Endereço do local visitado") }}
                 </div>
+
+                {{ form.latitude() }}
+                {{ form.longitude() }}
             </div>
         </div>
 
@@ -999,7 +1016,157 @@ let drawingHistory = [];
 document.addEventListener('DOMContentLoaded', function() {
     initializeMobileInterface();
     loadDefaultChecklist();
+    initializeLocationCapture();
 });
+
+function initializeLocationCapture() {
+    const getLocationBtn = document.getElementById('getLocationBtn');
+    if (getLocationBtn) {
+        getLocationBtn.addEventListener('click', function() {
+            captureCurrentLocationMobile();
+        });
+    }
+}
+
+function captureCurrentLocationMobile() {
+    const btn = document.getElementById('getLocationBtn');
+    const successMessage = document.getElementById('locationSuccessMessage');
+    const latitudeField = document.getElementById('latitude');
+    const longitudeField = document.getElementById('longitude');
+    const enderecoField = document.getElementById('endereco_visita');
+    const locationAddress = document.getElementById('locationAddress');
+
+    // Verificar se geolocation está disponível
+    if (!navigator.geolocation) {
+        alert('Geolocalização não é suportada por este navegador.');
+        return;
+    }
+
+    // Mostrar loading no botão
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Capturando localização...';
+    btn.disabled = true;
+
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            console.log('📍 Localização capturada:', lat, lon);
+
+            // Salvar coordenadas nos campos hidden
+            if (latitudeField) latitudeField.value = lat;
+            if (longitudeField) longitudeField.value = lon;
+
+            // Fazer reverse geocoding para obter endereço
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1&language=pt-BR`, {
+                headers: {
+                    'User-Agent': 'ELP-Sistema-Relatorios/1.0'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                let formattedAddress = '';
+                
+                if (data && data.address) {
+                    const addr = data.address;
+                    const addressParts = [];
+                    
+                    if (addr.house_number && addr.road) {
+                        addressParts.push(`${addr.road}, ${addr.house_number}`);
+                    } else if (addr.road) {
+                        addressParts.push(addr.road);
+                    }
+                    
+                    if (addr.suburb || addr.neighbourhood) {
+                        addressParts.push(addr.suburb || addr.neighbourhood);
+                    }
+                    
+                    const city = addr.city || addr.town || addr.village;
+                    if (city) {
+                        const state = addr.state;
+                        if (state) {
+                            addressParts.push(`${city} - ${state}`);
+                        } else {
+                            addressParts.push(city);
+                        }
+                    }
+                    
+                    formattedAddress = addressParts.length > 0 ? addressParts.join(', ') : data.display_name;
+                } else {
+                    formattedAddress = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
+                }
+
+                // Preencher campo de endereço automaticamente
+                if (enderecoField) {
+                    enderecoField.value = formattedAddress;
+                }
+
+                // Mostrar mensagem de sucesso
+                if (locationAddress) {
+                    locationAddress.textContent = formattedAddress;
+                }
+                
+                if (successMessage) {
+                    successMessage.style.display = 'block';
+                }
+
+                console.log('✅ Endereço obtido:', formattedAddress);
+            })
+            .catch(error => {
+                console.error('Erro ao obter endereço:', error);
+                
+                // Mesmo com erro no geocoding, salvar as coordenadas
+                const fallbackAddress = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
+                
+                if (enderecoField) {
+                    enderecoField.value = fallbackAddress;
+                }
+                
+                if (locationAddress) {
+                    locationAddress.textContent = fallbackAddress;
+                }
+                
+                if (successMessage) {
+                    successMessage.style.display = 'block';
+                }
+            })
+            .finally(() => {
+                // Restaurar botão
+                btn.innerHTML = '<i class="fas fa-check"></i> Localização Obtida';
+                btn.disabled = false;
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-success');
+            });
+        },
+        function(error) {
+            console.error('Erro ao capturar localização:', error);
+            
+            let errorMessage = 'Erro ao capturar localização.';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = 'Permissão de localização negada. Ative a localização e tente novamente.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = 'Localização indisponível. Verifique se o GPS está ativo.';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = 'Timeout ao capturar localização. Tente novamente.';
+                    break;
+            }
+            
+            alert(errorMessage);
+            
+            // Restaurar botão
+            btn.innerHTML = '<i class="fas fa-crosshairs"></i> Capturar Localização Atual';
+            btn.disabled = false;
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+        }
+    );
+}
 
 function initializeMobileInterface() {
     // Category selection
