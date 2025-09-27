@@ -671,13 +671,13 @@ def reports():
 
         except Exception as query_error:
             current_app.logger.error(f"❌ Erro na query de relatórios: {str(query_error)}")
-            
+
             # Fallback extremamente simples
             try:
                 relatorios_list = Relatorio.query.filter(
                     Relatorio.autor_id == current_user.id if not current_user.is_master else True
                 ).order_by(Relatorio.created_at.desc()).limit(10).all()
-                
+
                 class FallbackPagination:
                     def __init__(self, items):
                         self.items = items
@@ -693,10 +693,10 @@ def reports():
 
                 relatorios = FallbackPagination(relatorios_list)
                 current_app.logger.info(f"🔄 Fallback: {len(relatorios.items)} relatórios carregados")
-                
+
             except Exception as fallback_error:
                 current_app.logger.error(f"❌ Erro no fallback: {str(fallback_error)}")
-                
+
                 # Lista completamente vazia como último recurso
                 class EmptyPagination:
                     def __init__(self):
@@ -718,7 +718,7 @@ def reports():
 
     except Exception as e:
         current_app.logger.exception(f"❌ ERRO CRÍTICO /reports: {str(e)}")
-        
+
         # Em caso de erro crítico, retornar lista vazia
         class CriticalErrorPagination:
             def __init__(self):
@@ -2100,6 +2100,7 @@ def debug_image(filename):
 
 
 
+
 @app.route('/check-specific-image')
 @login_required
 def check_specific_image():
@@ -2821,7 +2822,7 @@ def visits_list():
         try:
             # Tentativa 1: Query completa
             base_query = Visita.query
-            
+
             if q:
                 from sqlalchemy import or_
                 search_term = f"%{q}%"
@@ -2830,7 +2831,7 @@ def visits_list():
                     Visita.observacoes.ilike(search_term),
                     Visita.projeto_outros.ilike(search_term)
                 ))
-                
+
             visits = base_query.order_by(Visita.data_inicio.desc()).limit(50).all()
             current_app.logger.info(f"✅ {len(visits)} visitas carregadas com sucesso")
 
@@ -2857,7 +2858,7 @@ def visits_list():
         # Garantir que sempre temos uma lista válida
         if not isinstance(visits, list):
             visits = list(visits) if visits else []
-        
+
         # Verificar cada visita para garantir que as propriedades funcionam
         safe_visits = []
         for visit in visits:
@@ -2870,7 +2871,7 @@ def visits_list():
                 current_app.logger.warning(f"⚠️ Visita {visit.id} com propriedades inválidas: {prop_error}")
                 # Pular esta visita específica
                 continue
-        
+
         visits = safe_visits
 
         # Renderizar template com tratamento de erro
@@ -2891,10 +2892,10 @@ def visits_list():
             </html>
             '''
             return emergency_html, 200
-        
+
     except Exception as e:
         current_app.logger.exception(f"❌ ERRO CRÍTICO na rota /visits: {str(e)}")
-        
+
         # Resposta de emergência absoluta
         try:
             flash('Erro temporário ao carregar visitas. Tente novamente.', 'error')
@@ -2922,7 +2923,7 @@ def visits_calendar():
 @login_required  
 def visit_new():
     form = VisitaForm()
-    
+
     if form.validate_on_submit():
         try:
             from datetime import datetime
@@ -2965,14 +2966,14 @@ def visit_new():
                         # Validar se user_id é válido
                         user_id_int = int(user_id)
                         user_exists = User.query.get(user_id_int)
-                        
+
                         if user_exists and user_exists.ativo:
                             # Verificar se já existe para evitar duplicatas
                             existing = VisitaParticipante.query.filter_by(
                                 visita_id=visita.id,
                                 user_id=user_id_int
                             ).first()
-                            
+
                             if not existing:
                                 participante = VisitaParticipante(
                                     visita_id=visita.id,
@@ -3022,7 +3023,7 @@ def visit_new():
             db.session.rollback()
             current_app.logger.exception(f"❌ Erro ao criar visita: {str(e)}")
             flash(f'Erro ao agendar visita: {str(e)}', 'error')
-    
+
     # Handle GET request - pre-fill form data from calendar if available
     data_param = request.args.get('data')
     hora_param = request.args.get('hora')
@@ -3199,7 +3200,7 @@ def visit_edit(visit_id):
                 except Exception as part_error:
                     current_app.logger.error(f"❌ Erro ao carregar participantes: {part_error}")
                     form.participantes.data = []
-                    
+
             except Exception as form_error:
                 current_app.logger.error(f"❌ Erro ao preencher formulário: {form_error}")
                 flash('Erro ao carregar dados da visita.', 'error')
@@ -3210,7 +3211,7 @@ def visit_edit(visit_id):
                 # Convert datetime-local strings to datetime objects
                 dt_inicio = datetime.fromisoformat(form.data_inicio.data)
                 dt_fim = datetime.fromisoformat(form.data_fim.data)
-                
+
                 # Atualizar campos
                 visit.data_inicio = dt_inicio
                 visit.data_fim = dt_fim
@@ -3227,7 +3228,7 @@ def visit_edit(visit_id):
                 # Atualizar participantes com tratamento de erro robusto
                 try:
                     from models import VisitaParticipante
-                    
+
                     # Primeiro, remover participantes existentes
                     VisitaParticipante.query.filter_by(visita_id=visit_id).delete()
                     current_app.logger.info(f"🗑️ Participantes existentes removidos da visita {visit_id}")
@@ -3235,11 +3236,11 @@ def visit_edit(visit_id):
                     # Adicionar novos participantes selecionados
                     if form.participantes.data:
                         current_app.logger.info(f"🔧 Processando {len(form.participantes.data)} participantes para edição")
-                        
+
                         for user_id in form.participantes.data:
                             try:
                                 user_id_int = int(user_id)
-                                
+
                                 # Verificar se usuário existe e está ativo
                                 user_exists = User.query.get(user_id_int)
                                 if user_exists and user_exists.ativo:
@@ -3252,7 +3253,7 @@ def visit_edit(visit_id):
                                     current_app.logger.info(f"✅ Participante readicionado: {user_exists.nome_completo}")
                                 else:
                                     current_app.logger.warning(f"⚠️ Usuário inválido ou inativo ignorado: {user_id}")
-                                    
+
                             except (ValueError, TypeError) as e:
                                 current_app.logger.warning(f"⚠️ ID de usuário inválido ignorado: {user_id} - {e}")
                                 continue
@@ -3269,7 +3270,7 @@ def visit_edit(visit_id):
                             current_app.logger.info(f"✅ Responsável readicionado como participante")
                         except Exception as resp_error:
                             current_app.logger.error(f"❌ Erro ao readicionar responsável: {resp_error}")
-                            
+
                 except Exception as part_error:
                     current_app.logger.error(f"❌ Erro crítico ao processar participantes: {part_error}")
                     # Manter pelo menos o responsável como participante em caso de erro
@@ -3296,7 +3297,7 @@ def visit_edit(visit_id):
                 flash(f'Erro ao alterar visita: {str(e)}', 'error')
 
         return render_template('visits/form.html', form=form, visit=visit, action='edit')
-        
+
     except Exception as e:
         current_app.logger.exception(f"❌ ERRO CRÍTICO na edição da visita {visit_id}: {str(e)}")
         flash('Erro interno ao carregar a visita para edição.', 'error')
@@ -4257,8 +4258,6 @@ def get_location():
 
     return jsonify({'success': False})
 
-# Duplicate function removed - using the more comprehensive version above
-
 # Enhanced reporting features
 
 @app.route('/reports/approval-dashboard')
@@ -4481,18 +4480,18 @@ def api_visits_calendar():
             'success': False,
             'error': 'Authentication required'
         }), 401
-        
+
     try:
         # Enhanced logging for diagnostics
         current_app.logger.info("📅 Carregando dados do calendário...")
-        
+
         # Buscar todas as visitas com joins corretos - corrigido join problemático
         visits = db.session.query(Visita).outerjoin(
             Projeto, Visita.projeto_id == Projeto.id
         ).join(
             User, Visita.responsavel_id == User.id
         ).all()
-        
+
         current_app.logger.info(f"📅 {len(visits)} visitas encontradas")
 
         visits_data = []
@@ -4504,7 +4503,7 @@ def api_visits_calendar():
                 participantes_query = db.session.query(VisitaParticipante).filter_by(
                     visita_id=visit.id
                 ).join(User, VisitaParticipante.user_id == User.id).all()
-                
+
                 for participante in participantes_query:
                     if participante.user:
                         participantes.append({
@@ -4525,7 +4524,7 @@ def api_visits_calendar():
                 if responsavel:
                     responsavel_nome = responsavel.nome_completo
                     responsavel_cor = responsavel.cor_agenda or '#0EA5E9'
-                    
+
                     # Incluir responsável na lista se não estiver nos participantes
                     responsavel_incluido = any(p['id'] == visit.responsavel_id for p in participantes)
                     if not responsavel_incluido:
@@ -4582,10 +4581,10 @@ def api_visits_calendar():
             })
 
         current_app.logger.info(f"✅ Calendário carregado com {len(visits_data)} eventos")
-        
+
         # Ensure proper JSON response structure for FullCalendar compatibility
         response_data = visits_data  # Return direct array for frontend compatibility
-        
+
         return jsonify(response_data)
 
     except Exception as e:
@@ -4593,7 +4592,7 @@ def api_visits_calendar():
         error_trace = traceback.format_exc()
         current_app.logger.exception(f"❌ Erro no calendário API: {str(e)}")
         current_app.logger.error(f"❌ Full traceback: {error_trace}")
-        
+
         # Always return JSON for API endpoints, never HTML
         return jsonify({
             'success': False,
@@ -4609,17 +4608,17 @@ def api_visits_list():
             'success': False,
             'error': 'Authentication required'
         }), 401
-        
+
     try:
         current_app.logger.info("📋 Carregando lista de visitas...")
-        
+
         # Get all visits with proper joins to avoid lazy loading issues
         visits = db.session.query(Visita).join(
             User, Visita.responsavel_id == User.id
         ).outerjoin(
             Projeto, Visita.projeto_id == Projeto.id
         ).all()
-        
+
         current_app.logger.info(f"📋 {len(visits)} visitas encontradas")
 
         visits_data = []
@@ -4658,7 +4657,7 @@ def api_visits_list():
             })
 
         current_app.logger.info(f"✅ Lista de visitas carregada com {len(visits_data)} itens")
-        
+
         # Always return array for frontend compatibility
         return jsonify(visits_data)
 
@@ -4667,7 +4666,7 @@ def api_visits_list():
         error_trace = traceback.format_exc()
         current_app.logger.exception(f"❌ Erro na API de visitas: {str(e)}")
         current_app.logger.error(f"❌ Full traceback: {error_trace}")
-        
+
         # Always return JSON for API endpoints, never HTML
         return jsonify({
             'success': False,
@@ -4800,7 +4799,7 @@ def api_export_ics():
         visits = Visita.query.filter_by(status='Agendada').all()
 
         # Generate ICS content
-        ics_content = "BEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:ELP-Sistema\\nCALSCALE:GREGORIAN\\n"
+        ics_content = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:ELP-Sistema\nCALSCALE:GREGORIAN\n"
 
         for visit in visits:
             start_time = visit.data_agendada.strftime('%Y%m%dT%H%M%S')
@@ -4810,7 +4809,7 @@ def api_export_ics():
 DTSTART:{start_time}
 DTEND:{end_time}
 SUMMARY:Visita {visit.numero} - {visit.projeto.nome}
-DESCRIPTION:Objetivo: {visit.objetivo}\\nProjeto: {visit.projeto.nome}\\nResponsável: {visit.responsavel.nome_completo}
+DESCRIPTION:Objetivo: {visit.objetivo}\nProjeto: {visit.projeto.nome}\nResponsável: {visit.responsavel.nome_completo}
 LOCATION:{visit.projeto.endereco or 'Localização do projeto'}
 UID:{visit.id}@elp-sistema.com
 END:VEVENT
@@ -5079,8 +5078,7 @@ def admin_legendas():
 
 @app.route('/admin/legendas/nova', methods=['GET', 'POST'])
 @login_required
-def admin_legenda_nova():
-    """Criar nova legenda predefinida - apenas Usuários Master"""
+def admin_legenda_nova():"""Criar nova legenda predefinida - apenas Usuários Master"""
     if not current_user.is_master:
         flash('Acesso negado. Apenas usuários master podem gerenciar legendas.', 'error')
         return redirect(url_for('index'))
@@ -5850,7 +5848,7 @@ def relatorio_enviar_email(relatorio_id):
 
     if request.method == 'POST' and form.validate_on_submit():
         try:
-            # Processar e-mails CC e BCC
+            # Processar e-mails (mesmo processo do relatório normal)
             def processar_emails(texto_emails):
                 if not texto_emails:
                     return []
@@ -6924,7 +6922,7 @@ def project_checklist_config(project_id):
 
         return jsonify({
             "success": True,
-            "message": f"Checklist configurado para usar modelo {personalizado if tipo_checklist == personalizado else padrão}",
+            "message": f"Checklist configurado para usar modelo {'personalizado' if tipo_checklist == 'personalizado' else 'padrão'}",
             "tipo_checklist": tipo_checklist,
             "redirect": url_for("project_checklist_edit", project_id=project_id) if tipo_checklist == "personalizado" else None
         })
