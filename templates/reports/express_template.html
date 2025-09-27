@@ -313,8 +313,22 @@
     </div>
     {% endif %}
     
+    <!-- Participantes -->
+    {% if participantes %}
+    <div class="info-grid" style="margin-top: 20px;">
+        <div class="info-section">
+            <div class="section-title">👥 Funcionários Participantes</div>
+            {% for participante in participantes %}
+            <div class="info-item">
+                <strong>{{ participante.nome_completo }}</strong> - {{ participante.cargo }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Responsável técnico -->
-    <div class="info-grid" style="margin-top: 30px;">
+    <div class="info-grid" style="margin-top: 20px;">
         <div class="info-section">
             <div class="section-title">👨‍💼 Responsável Técnico</div>
             <div class="info-item">

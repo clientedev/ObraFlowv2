@@ -104,6 +104,12 @@ class ExpressReportGenerator(WeasyPrintReportGenerator if WEASYPRINT_AVAILABLE e
                 if express_data.endereco_visita:
                     info_visita.append(f"Local da Visita: {express_data.endereco_visita}")
                 
+                # Adicionar participantes
+                participantes = express_data.participantes
+                if participantes:
+                    participantes_nomes = [f"• {p.nome_completo} ({p.cargo})" for p in participantes]
+                    info_visita.append(f"Funcionários Participantes:\n" + "\n".join(participantes_nomes))
+                
                 if info_visita:
                     conteudo_partes.append("INFORMAÇÕES DA VISITA:\n" + "\n".join(info_visita))
                 
