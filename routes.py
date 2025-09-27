@@ -6039,6 +6039,15 @@ def express_new():
             db.session.add(relatorio_express)
             db.session.flush()  # Para obter o ID
 
+            # Salvar participantes selecionados
+            if form.participantes.data:
+                from models import RelatorioExpressParticipante
+                for funcionario_id in form.participantes.data:
+                    participante = RelatorioExpressParticipante()
+                    participante.relatorio_express_id = relatorio_express.id
+                    participante.funcionario_id = funcionario_id
+                    db.session.add(participante)
+
             # Processar fotos configuradas do modal
             foto_configs_str = request.form.get('foto_configuracoes')
             if foto_configs_str:
@@ -6195,6 +6204,18 @@ def express_edit(id):
             if form.checklist_completo.data:
                 relatorio.checklist_dados = form.checklist_completo.data
 
+            # Atualizar participantes
+            from models import RelatorioExpressParticipante
+            # Remover participantes existentes
+            RelatorioExpressParticipante.query.filter_by(relatorio_express_id=relatorio.id).delete()
+            # Adicionar novos participantes
+            if form.participantes.data:
+                for funcionario_id in form.participantes.data:
+                    participante = RelatorioExpressParticipante()
+                    participante.relatorio_express_id = relatorio.id
+                    participante.funcionario_id = funcionario_id
+                    db.session.add(participante)
+
             # Atualizar status se finalizar
             if action == 'finalize':
                 relatorio.status = 'finalizado'
@@ -6234,6 +6255,10 @@ def express_edit(id):
         form.observacoes_gerais.data = relatorio.observacoes_gerais
         form.pendencias.data = relatorio.pendencias
         form.recomendacoes.data = relatorio.recomendacoes
+        
+        # Carregar participantes existentes
+        participantes_ids = [p.funcionario_id for p in relatorio.participantes_lista]
+        form.participantes.data = participantes_ids
 
     return render_template('express/novo.html', form=form, relatorio=relatorio, editing=True)
 
