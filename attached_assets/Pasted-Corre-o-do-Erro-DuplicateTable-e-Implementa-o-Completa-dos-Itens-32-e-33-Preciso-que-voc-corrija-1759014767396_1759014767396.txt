@@ -1,0 +1,65 @@
+Correção do Erro DuplicateTable e Implementação Completa dos Itens 32 e 33
+
+Preciso que você corrija imediatamente o problema de DuplicateTable ao rodar as migrations no Railway. O erro ocorre porque a tabela relatorio_express_participantes já existe no banco, mas o Alembic insiste em recriá-la.
+
+👉 O que precisa ser feito:
+
+Corrigir a migration atual (20250927_2241_add_relatorio_express_participantes.py) para que:
+
+Antes de criar a tabela, verifique se ela já existe:
+
+from sqlalchemy import inspect
+
+def upgrade():
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    if 'relatorio_express_participantes' not in inspector.get_table_names():
+        op.create_table(
+            'relatorio_express_participantes',
+            sa.Column('id', sa.Integer, primary_key=True),
+            sa.Column('relatorio_express_id', sa.Integer, sa.ForeignKey('relatorios_express.id', ondelete="CASCADE"), nullable=False),
+            sa.Column('funcionario_id', sa.Integer, sa.ForeignKey('users.id', ondelete="CASCADE"), nullable=False),
+            sa.Column('created_at', sa.TIMESTAMP, server_default=sa.func.now())
+        )
+
+
+Isso evita recriar tabelas que já existem.
+
+Sincronizar Alembic com o banco de dados no Railway:
+
+Se a tabela já existe mas o Alembic não registrou a migration, execute:
+
+alembic stamp head
+
+
+Isso marcará a versão atual como aplicada sem recriar nada.
+
+Reforçar as funcionalidades dos Itens 32 e 33:
+
+Item 32: O campo endereco_visita já existe na tabela relatorios_express. Corrigir para que ele seja preenchido corretamente quando a geolocalização for capturada e exibido no relatório express + PDF.
+
+Item 33: Relatório express deve ter os mesmos campos do relatório de obra, mas editáveis manualmente (Data, Nome, Construtora, Endereço, Funcionários, E-mails).
+
+Funcionários devem ser vinculados via relatorio_express_participantes.
+
+No PDF, devem aparecer somente os nomes dos funcionários (os e-mails ficam apenas para envio).
+
+Deploy no Railway
+
+Garanta que após essa correção o sistema rode sem DuplicateTable.
+
+Teste todas as rotas de relatórios express: criação, edição, listagem, visualização e geração de PDF.
+
+Confirme que a integração com o banco PostgreSQL do Railway funciona corretamente.
+
+✅ Resumo do que deve ser entregue:
+
+Migration corrigida para não recriar tabela existente.
+
+Alembic sincronizado com o banco (alembic stamp head se necessário).
+
+Correção do endereco_visita no relatório express.
+
+Implementação da seleção e exibição de funcionários no relatório express.
+
+PDF mostrando somente os nomes dos funcionários.
