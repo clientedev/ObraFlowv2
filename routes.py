@@ -2937,7 +2937,6 @@ def visit_new():
             else:
                 final_projeto_id = form.projeto_id.data
 
-
             # Convert datetime-local strings to datetime objects
             dt_inicio = datetime.fromisoformat(form.data_inicio.data)
             dt_fim = datetime.fromisoformat(form.data_fim.data)
@@ -2958,27 +2957,62 @@ def visit_new():
             db.session.add(visita)
             db.session.flush()  # Get the ID
 
-            # Add selected participants using form data
+            # Add selected participants using form data - CORRIGIDO
             if form.participantes.data:
+                current_app.logger.info(f"🔧 Processando {len(form.participantes.data)} participantes")
                 for user_id in form.participantes.data:
-                    participante = VisitaParticipante(
-                        visita_id=visita.id,
-                        user_id=int(user_id),
-                        confirmado=False
-                    )
-                    db.session.add(participante)
+                    try:
+                        # Validar se user_id é válido
+                        user_id_int = int(user_id)
+                        user_exists = User.query.get(user_id_int)
+                        
+                        if user_exists and user_exists.ativo:
+                            # Verificar se já existe para evitar duplicatas
+                            existing = VisitaParticipante.query.filter_by(
+                                visita_id=visita.id,
+                                user_id=user_id_int
+                            ).first()
+                            
+                            if not existing:
+                                participante = VisitaParticipante(
+                                    visita_id=visita.id,
+                                    user_id=user_id_int,
+                                    confirmado=False
+                                )
+                                db.session.add(participante)
+                                current_app.logger.info(f"✅ Participante adicionado: {user_exists.nome_completo}")
+                            else:
+                                current_app.logger.warning(f"⚠️ Participante já existe: {user_exists.nome_completo}")
+                        else:
+                            current_app.logger.error(f"❌ Usuário inválido ou inativo: {user_id}")
+                    except (ValueError, TypeError) as e:
+                        current_app.logger.error(f"❌ Erro ao processar participante {user_id}: {e}")
+                        continue
 
-            # Add default checklist items from templates
-            templates = ChecklistTemplate.query.filter_by(ativo=True).order_by(ChecklistTemplate.ordem).all()
-            for template in templates:
-                checklist_item = ChecklistItem(
+            # Add responsavel as participant if not already included
+            if not form.participantes.data or str(current_user.id) not in form.participantes.data:
+                responsavel_participante = VisitaParticipante(
                     visita_id=visita.id,
-                    template_id=template.id,
-                    pergunta=template.descricao if hasattr(template, 'descricao') else template.nome,
-                    obrigatorio=template.obrigatorio,
-                    ordem=template.ordem
+                    user_id=current_user.id,
+                    confirmado=True  # Responsável já confirmado automaticamente
                 )
-                db.session.add(checklist_item)
+                db.session.add(responsavel_participante)
+                current_app.logger.info(f"✅ Responsável adicionado como participante: {current_user.nome_completo}")
+
+            # Add default checklist items from templates if available
+            try:
+                templates = ChecklistTemplate.query.filter_by(ativo=True).order_by(ChecklistTemplate.ordem).all()
+                for template in templates:
+                    checklist_item = ChecklistItem(
+                        visita_id=visita.id,
+                        template_id=template.id,
+                        pergunta=template.descricao if hasattr(template, 'descricao') else template.nome,
+                        obrigatorio=getattr(template, 'obrigatorio', False),
+                        ordem=getattr(template, 'ordem', 0)
+                    )
+                    db.session.add(checklist_item)
+            except Exception as template_error:
+                current_app.logger.warning(f"⚠️ Erro ao adicionar templates de checklist: {template_error}")
 
             db.session.commit()
             flash('Visita agendada com sucesso!', 'success')
@@ -2986,12 +3020,10 @@ def visit_new():
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error creating visit: {e}")
-            flash('Erro ao agendar visita. Verifique os dados e tente novamente.', 'error')
+            current_app.logger.exception(f"❌ Erro ao criar visita: {str(e)}")
+            flash(f'Erro ao agendar visita: {str(e)}', 'error')
     
     # Handle GET request - pre-fill form data from calendar if available
-
-    # Item 28: Preencher campos com parâmetros de query string do calendário
     data_param = request.args.get('data')
     hora_param = request.args.get('hora')
 
@@ -3014,7 +3046,7 @@ def visit_new():
                 form_data['data_inicio'] = f"{data_param}T08:00"
                 form_data['data_fim'] = f"{data_param}T09:00"
         except Exception as e:
-            print(f"Erro ao processar parâmetros de data: {e}")
+            current_app.logger.error(f"Erro ao processar parâmetros de data: {e}")
 
     return render_template('visits/form.html', form=form, form_data=form_data)
 
@@ -3192,28 +3224,66 @@ def visit_edit(visit_id):
                     visit.projeto_id = form.projeto_id.data
                     visit.projeto_outros = None
 
-                # Atualizar participantes com tratamento de erro
+                # Atualizar participantes com tratamento de erro robusto
                 try:
                     from models import VisitaParticipante
+                    
                     # Primeiro, remover participantes existentes
                     VisitaParticipante.query.filter_by(visita_id=visit_id).delete()
+                    current_app.logger.info(f"🗑️ Participantes existentes removidos da visita {visit_id}")
 
-                    # Adicionar novos participantes
+                    # Adicionar novos participantes selecionados
                     if form.participantes.data:
+                        current_app.logger.info(f"🔧 Processando {len(form.participantes.data)} participantes para edição")
+                        
                         for user_id in form.participantes.data:
                             try:
-                                participante = VisitaParticipante(
-                                    visita_id=visit_id,
-                                    user_id=int(user_id),
-                                    confirmado=False
-                                )
-                                db.session.add(participante)
-                            except ValueError:
-                                current_app.logger.warning(f"⚠️ ID de usuário inválido ignorado: {user_id}")
+                                user_id_int = int(user_id)
+                                
+                                # Verificar se usuário existe e está ativo
+                                user_exists = User.query.get(user_id_int)
+                                if user_exists and user_exists.ativo:
+                                    participante = VisitaParticipante(
+                                        visita_id=visit_id,
+                                        user_id=user_id_int,
+                                        confirmado=False
+                                    )
+                                    db.session.add(participante)
+                                    current_app.logger.info(f"✅ Participante readicionado: {user_exists.nome_completo}")
+                                else:
+                                    current_app.logger.warning(f"⚠️ Usuário inválido ou inativo ignorado: {user_id}")
+                                    
+                            except (ValueError, TypeError) as e:
+                                current_app.logger.warning(f"⚠️ ID de usuário inválido ignorado: {user_id} - {e}")
                                 continue
+
+                    # Sempre garantir que o responsável seja participante
+                    if not form.participantes.data or str(visit.responsavel_id) not in form.participantes.data:
+                        try:
+                            responsavel_participante = VisitaParticipante(
+                                visita_id=visit_id,
+                                user_id=visit.responsavel_id,
+                                confirmado=True  # Responsável já confirmado automaticamente
+                            )
+                            db.session.add(responsavel_participante)
+                            current_app.logger.info(f"✅ Responsável readicionado como participante")
+                        except Exception as resp_error:
+                            current_app.logger.error(f"❌ Erro ao readicionar responsável: {resp_error}")
+                            
                 except Exception as part_error:
-                    current_app.logger.error(f"❌ Erro ao processar participantes: {part_error}")
-                    # Continuar sem participantes se houver erro
+                    current_app.logger.error(f"❌ Erro crítico ao processar participantes: {part_error}")
+                    # Manter pelo menos o responsável como participante em caso de erro
+                    try:
+                        VisitaParticipante.query.filter_by(visita_id=visit_id).delete()
+                        responsavel_participante = VisitaParticipante(
+                            visita_id=visit_id,
+                            user_id=visit.responsavel_id,
+                            confirmado=True
+                        )
+                        db.session.add(responsavel_participante)
+                        current_app.logger.info("🔄 Fallback: Apenas responsável mantido como participante")
+                    except Exception as fallback_error:
+                        current_app.logger.error(f"❌ Erro no fallback de participantes: {fallback_error}")
 
                 db.session.commit()
                 current_app.logger.info(f"✅ Visita {visit_id} alterada com sucesso")
