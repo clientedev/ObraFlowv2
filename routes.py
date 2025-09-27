@@ -2938,14 +2938,18 @@ def visit_new():
                 final_projeto_id = form.projeto_id.data
 
 
+            # Convert datetime-local strings to datetime objects
+            dt_inicio = datetime.fromisoformat(form.data_inicio.data)
+            dt_fim = datetime.fromisoformat(form.data_fim.data)
+
             # Create visit with new structure
             visita = Visita(
                 numero=generate_visit_number(),
                 projeto_id=final_projeto_id,
                 projeto_outros=final_projeto_outros,
                 responsavel_id=current_user.id,
-                data_inicio=form.data_inicio.data,
-                data_fim=form.data_fim.data,
+                data_inicio=dt_inicio,
+                data_fim=dt_fim,
                 observacoes=form.observacoes.data,
                 is_pessoal=form.is_pessoal.data,  # Item 31: Compromisso pessoal
                 criado_por=current_user.id  # Item 31: Usuário criador
@@ -3136,9 +3140,9 @@ def visit_edit(visit_id):
     form = VisitaForm()
 
     if request.method == 'GET':
-        # Preencher formulário com dados atuais
-        form.data_inicio.data = visit.data_inicio
-        form.data_fim.data = visit.data_fim
+        # Preencher formulário com dados atuais - convert to datetime-local format
+        form.data_inicio.data = visit.data_inicio.strftime('%Y-%m-%dT%H:%M') if visit.data_inicio else ''
+        form.data_fim.data = visit.data_fim.strftime('%Y-%m-%dT%H:%M') if visit.data_fim else ''
         form.observacoes.data = visit.observacoes
 
         # Preencher projeto
@@ -3155,9 +3159,13 @@ def visit_edit(visit_id):
 
     if form.validate_on_submit():
         try:
+            # Convert datetime-local strings to datetime objects
+            dt_inicio = datetime.fromisoformat(form.data_inicio.data)
+            dt_fim = datetime.fromisoformat(form.data_fim.data)
+            
             # Atualizar campos
-            visit.data_inicio = form.data_inicio.data
-            visit.data_fim = form.data_fim.data
+            visit.data_inicio = dt_inicio
+            visit.data_fim = dt_fim
             visit.observacoes = form.observacoes.data
 
             # Atualizar projeto

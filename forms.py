@@ -94,8 +94,8 @@ class EmailClienteForm(FlaskForm):
 class VisitaForm(FlaskForm):
     projeto_id = SelectField('Projeto', coerce=int, validators=[Optional()])
     projeto_outros = StringField('Nome do Projeto (Outros)', validators=[Optional(), Length(max=300)])
-    data_inicio = DateTimeField('Data e Hora de Início', validators=[DataRequired()])
-    data_fim = DateTimeField('Data e Hora de Fim', validators=[DataRequired()])
+    data_inicio = StringField('Data e Hora de Início', validators=[DataRequired()])
+    data_fim = StringField('Data e Hora de Fim', validators=[DataRequired()])
     observacoes = TextAreaField('Observações', validators=[Optional()])
     participantes = SelectMultipleField('Participantes', coerce=int, validators=[Optional()])
     is_pessoal = BooleanField('Compromisso Pessoal', default=False)  # Item 31
@@ -127,8 +127,17 @@ class VisitaForm(FlaskForm):
 
         # Validar se data_fim é posterior a data_inicio
         if self.data_inicio.data and self.data_fim.data:
-            if self.data_fim.data <= self.data_inicio.data:
-                self.data_fim.errors.append('A data de fim deve ser posterior à data de início.')
+            try:
+                from datetime import datetime
+                # Parse datetime-local format (YYYY-MM-DDTHH:MM)
+                dt_inicio = datetime.fromisoformat(self.data_inicio.data)
+                dt_fim = datetime.fromisoformat(self.data_fim.data)
+                
+                if dt_fim <= dt_inicio:
+                    self.data_fim.errors.append('A data de fim deve ser posterior à data de início.')
+                    result = False
+            except (ValueError, TypeError):
+                self.data_inicio.errors.append('Formato de data inválido.')
                 result = False
 
         return result

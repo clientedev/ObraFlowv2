@@ -189,6 +189,96 @@ body {
     display: none;
 }
 
+/* Participant card styles for visit form */
+.participant-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.participant-card {
+    background: #ffffff;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 80px;
+}
+
+.participant-card:hover {
+    background: #f8f9fa;
+    border-color: var(--elp-cyan);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(32, 193, 232, 0.15);
+}
+
+.participant-card.selected {
+    background: #e3f2fd;
+    border-color: var(--elp-cyan);
+    box-shadow: 0 4px 8px rgba(32, 193, 232, 0.25);
+}
+
+.participant-checkbox {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.participant-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 16px;
+}
+
+.participant-icon {
+    font-size: 2.5rem;
+    color: var(--elp-cyan);
+    opacity: 0.8;
+}
+
+.participant-info {
+    flex-grow: 1;
+}
+
+.participant-name {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.participant-role {
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+.participant-check-indicator {
+    font-size: 1.2rem;
+    color: var(--elp-cyan);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.participant-card.selected .participant-check-indicator {
+    opacity: 1;
+}
+
+#participants-count {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 4px solid var(--elp-cyan);
+    font-size: 1rem;
+    color: #495057;
+}
+
 /* Mobile optimizations for participant selector */
 @media (max-width: 767.98px) {
     .participant-selector-container {
