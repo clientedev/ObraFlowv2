@@ -1,0 +1,58 @@
+Converter Latitude/Longitude em Endereço no Relatório Express
+
+Preciso que você implemente no relatório express a conversão automática de latitude e longitude para um endereço real (Rua, Número, Bairro, Cidade, Estado, CEP) e que este valor seja salvo corretamente no campo endereco_visita da tabela relatorios_express.
+
+O que deve ser feito:
+
+No backend (Flask/Python):
+
+Após capturar a latitude e longitude, usar uma API de geocodificação reversa (Google Maps Geocoding API ou Nominatim/OpenStreetMap).
+
+Exemplo com geopy + OpenStreetMap:
+
+from geopy.geocoders import Nominatim
+
+def get_address_from_coords(lat, lon):
+    geolocator = Nominatim(user_agent="relatorio_express")
+    location = geolocator.reverse(f"{lat}, {lon}", language="pt")
+    return location.address if location else None
+
+
+O endereço retornado deve ser salvo no campo endereco_visita ao criar ou editar um relatório express.
+
+No frontend (formulário de Relatório Express):
+
+Substituir a exibição de "Lat: -23.29, Lng: -46.75" por algo como:
+
+Rua Vergueiro, 1234 - Vila Mariana, São Paulo - SP
+
+
+Mostrar o endereço em tempo real logo após capturar a localização.
+
+No banco de dados (PostgreSQL via Railway):
+
+O campo endereco_visita já existe em relatorios_express, então apenas garantir que ele seja preenchido corretamente.
+
+Latitude e longitude continuam sendo salvas normalmente, mas agora também salvamos o endereço legível.
+
+No PDF do Relatório Express:
+
+Exibir o endereço completo (campo endereco_visita) no cabeçalho ou seção de informações gerais.
+
+Se o endereço não for encontrado pela API, exibir apenas "Localização indisponível".
+
+Configuração de API:
+
+Se usar Google Maps, criar variável de ambiente GOOGLE_MAPS_API_KEY no Railway e no Replit.
+
+Se usar OpenStreetMap/Nominatim (grátis), não precisa de chave.
+
+✅ Resumo do esperado:
+
+Capturou localização → sistema automaticamente converte para endereço.
+
+Endereço salvo em endereco_visita.
+
+Endereço aparece no formulário, na listagem e no PDF.
+
+Latitude/Longitude continuam sendo salvas para referência.
