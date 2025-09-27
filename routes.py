@@ -3125,6 +3125,7 @@ def visit_cancel(visit_id):
 @login_required
 def visit_edit(visit_id):
     """Alterar data e hora de uma visita"""
+    from models import VisitaParticipante
     visit = Visita.query.get_or_404(visit_id)
 
     # Verificar permissões
@@ -3153,9 +3154,13 @@ def visit_edit(visit_id):
             form.projeto_outros.data = visit.projeto_outros
 
         # Preencher participantes
-        if hasattr(visit, 'participantes'):
-            participante_ids = [str(p.user_id) for p in visit.participantes if p.user_id]
+        try:
+            participantes_existentes = VisitaParticipante.query.filter_by(visita_id=visit_id).all()
+            participante_ids = [str(p.user_id) for p in participantes_existentes if p.user_id]
             form.participantes.data = participante_ids
+        except Exception as e:
+            current_app.logger.error(f"Erro ao carregar participantes: {e}")
+            form.participantes.data = []
 
     if form.validate_on_submit():
         try:
