@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, MultipleFileField
-from wtforms import StringField, TextAreaField, SelectField, DateField, TimeField, FloatField, HiddenField
+from wtforms import StringField, TextAreaField, SelectField, DateField, TimeField, FloatField, HiddenField, SelectMultipleField
 from wtforms.validators import DataRequired, Email, Optional, Length
 
 class RelatorioExpressForm(FlaskForm):
@@ -76,10 +76,21 @@ class RelatorioExpressForm(FlaskForm):
     # Checklist (campo oculto para armazenar dados JSON)
     checklist_completo = HiddenField('Checklist Completo')
     
+    # Participantes da visita
+    participantes = SelectMultipleField('Funcionários Participantes', coerce=int, validators=[Optional()])
+    
     # Upload de fotos (idêntico ao padrão)
     fotos = MultipleFileField('Fotos', 
                              validators=[FileAllowed(['jpg', 'jpeg', 'png'], 'Apenas imagens JPG e PNG são permitidas.')],
                              render_kw={'accept': 'image/*', 'multiple': True})
+    
+    def __init__(self, *args, **kwargs):
+        super(RelatorioExpressForm, self).__init__(*args, **kwargs)
+        from models import User
+        
+        # Carregar usuários ativos para seleção de participantes
+        usuarios_ativos = User.query.filter_by(ativo=True).all()
+        self.participantes.choices = [(u.id, f"{u.nome_completo} ({u.cargo})") for u in usuarios_ativos]
 
 class FotoExpressForm(FlaskForm):
     """Formulário para edição individual de fotos do relatório express"""
