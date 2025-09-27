@@ -3330,7 +3330,7 @@ def view_report(report_id):
             user_can_edit = report.status in ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
         else:
             # Allow project team members to view
-            if report.projeto:
+            if hasattr(report, 'projeto') and report.projeto:
                 try:
                     user_has_access = FuncionarioProjeto.query.filter_by(
                         projeto_id=report.projeto.id,
@@ -3338,11 +3338,11 @@ def view_report(report_id):
                         ativo=True
                     ).first()
 
-                    if user_has_access or report.projeto.responsavel_id == current_user.id:
+                    if user_has_access or (hasattr(report.projeto, 'responsavel_id') and report.projeto.responsavel_id == current_user.id):
                         user_can_view = True
                         user_can_edit = False  # Membros da equipe só visualizam
-                except Exception:
-                    current_app.logger.warning(f"Erro ao verificar acesso ao projeto para relatório {report_id}")
+                except Exception as e:
+                    current_app.logger.warning(f"Erro ao verificar acesso ao projeto para relatório {report_id}: {str(e)}")
                     pass
 
         if not user_can_view:
@@ -3352,17 +3352,26 @@ def view_report(report_id):
         # Desserializar checklist com try/except conforme especificação
         try:
             import json
-            checklist = json.loads(report.checklist_data) if report.checklist_data else {}
+            checklist = {}
+            if hasattr(report, 'checklist_data') and report.checklist_data:
+                try:
+                    checklist = json.loads(report.checklist_data)
+                    if not isinstance(checklist, dict):
+                        checklist = {}
+                except (json.JSONDecodeError, TypeError, AttributeError) as json_error:
+                    current_app.logger.error(f"❌ JSON inválido no checklist do relatório {report_id}: {str(json_error)}")
+                    checklist = {}
             current_app.logger.info(f"✅ Checklist carregado: {len(checklist)} itens")
         except Exception as e:
-            current_app.logger.exception(f"ERRO CHECKLIST relatório {report_id}: JSON inválido - {str(e)}")
+            current_app.logger.exception(f"ERRO GERAL CHECKLIST relatório {report_id}: {str(e)}")
             checklist = {}
 
         try:
             fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
+            fotos = fotos or []  # Garantir que não seja None
             current_app.logger.info(f"✅ Fotos carregadas: {len(fotos)} arquivos")
         except Exception as e:
-            current_app.logger.error(f"Erro ao buscar fotos do relatório {report_id}: {str(e)}")
+            current_app.logger.error(f"❌ Erro ao buscar fotos do relatório {report_id}: {str(e)}")
             fotos = []
 
         return render_template('reports/view.html', 
