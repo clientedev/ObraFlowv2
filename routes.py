@@ -3206,7 +3206,7 @@ def visit_edit(visit_id):
                 flash('Erro ao carregar dados da visita.', 'error')
                 return redirect(url_for('visits_list'))
 
-    if form.validate_on_submit():
+        if form.validate_on_submit():
             try:
                 # Convert datetime-local strings to datetime objects
                 dt_inicio = datetime.fromisoformat(form.data_inicio.data)
@@ -5078,7 +5078,8 @@ def admin_legendas():
 
 @app.route('/admin/legendas/nova', methods=['GET', 'POST'])
 @login_required
-def admin_legenda_nova():"""Criar nova legenda predefinida - apenas Usuários Master"""
+def admin_legenda_nova():
+    """Criar nova legenda predefinida - apenas Usuários Master"""
     if not current_user.is_master:
         flash('Acesso negado. Apenas usuários master podem gerenciar legendas.', 'error')
         return redirect(url_for('index'))
