@@ -3125,86 +3125,112 @@ def visit_cancel(visit_id):
 @login_required
 def visit_edit(visit_id):
     """Alterar data e hora de uma visita"""
-    from models import VisitaParticipante
-    visit = Visita.query.get_or_404(visit_id)
+    try:
+        from models import VisitaParticipante
+        visit = Visita.query.get_or_404(visit_id)
 
-    # Verificar permissões
-    if not (current_user.is_master or visit.responsavel_id == current_user.id or visit.criado_por == current_user.id):
-        flash('Acesso negado para alterar esta visita.', 'error')
-        return redirect(url_for('visits_list'))
+        # Verificar permissões
+        if not (current_user.is_master or visit.responsavel_id == current_user.id or visit.criado_por == current_user.id):
+            flash('Acesso negado para alterar esta visita.', 'error')
+            return redirect(url_for('visits_list'))
 
-    # Não permitir alterar visitas já realizadas
-    if visit.status == 'Realizada':
-        flash('Não é possível alterar uma visita já realizada.', 'error')
-        return redirect(url_for('visit_view', visit_id=visit_id))
-
-    form = VisitaForm()
-
-    if request.method == 'GET':
-        # Preencher formulário com dados atuais - convert to datetime-local format
-        form.data_inicio.data = visit.data_inicio.strftime('%Y-%m-%dT%H:%M') if visit.data_inicio else ''
-        form.data_fim.data = visit.data_fim.strftime('%Y-%m-%dT%H:%M') if visit.data_fim else ''
-        form.observacoes.data = visit.observacoes
-
-        # Preencher projeto
-        if visit.projeto_id:
-            form.projeto_id.data = visit.projeto_id
-        else:
-            form.projeto_id.data = -1  # 'Outros'
-            form.projeto_outros.data = visit.projeto_outros
-
-        # Preencher participantes
-        try:
-            participantes_existentes = VisitaParticipante.query.filter_by(visita_id=visit_id).all()
-            participante_ids = [str(p.user_id) for p in participantes_existentes if p.user_id]
-            form.participantes.data = participante_ids
-        except Exception as e:
-            current_app.logger.error(f"Erro ao carregar participantes: {e}")
-            form.participantes.data = []
-
-    if form.validate_on_submit():
-        try:
-            # Convert datetime-local strings to datetime objects
-            dt_inicio = datetime.fromisoformat(form.data_inicio.data)
-            dt_fim = datetime.fromisoformat(form.data_fim.data)
-            
-            # Atualizar campos
-            visit.data_inicio = dt_inicio
-            visit.data_fim = dt_fim
-            visit.observacoes = form.observacoes.data
-
-            # Atualizar projeto
-            if form.projeto_id.data == -1:  # 'Outros'
-                visit.projeto_id = None
-                visit.projeto_outros = form.projeto_outros.data
-            else:
-                visit.projeto_id = form.projeto_id.data
-                visit.projeto_outros = None
-
-            # Atualizar participantes
-            # Primeiro, remover participantes existentes
-            from models import VisitaParticipante
-            VisitaParticipante.query.filter_by(visita_id=visit_id).delete()
-
-            # Adicionar novos participantes
-            if form.participantes.data:
-                for user_id in form.participantes.data:
-                    participante = VisitaParticipante(
-                        visita_id=visit_id,
-                        user_id=int(user_id),
-                        confirmado=False
-                    )
-                    db.session.add(participante)
-
-            db.session.commit()
-            flash('Visita alterada com sucesso!', 'success')
+        # Não permitir alterar visitas já realizadas
+        if visit.status == 'Realizada':
+            flash('Não é possível alterar uma visita já realizada.', 'error')
             return redirect(url_for('visit_view', visit_id=visit_id))
 
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Erro ao alterar visita: {str(e)}', 'error')
+        form = VisitaForm()
 
-    return render_template('visits/form.html', form=form, visit=visit, action='edit')
+        if request.method == 'GET':
+            try:
+                # Preencher formulário com dados atuais - convert to datetime-local format
+                form.data_inicio.data = visit.data_inicio.strftime('%Y-%m-%dT%H:%M') if visit.data_inicio else ''
+                form.data_fim.data = visit.data_fim.strftime('%Y-%m-%dT%H:%M') if visit.data_fim else ''
+                form.observacoes.data = visit.observacoes or ''
+
+                # Preencher projeto
+                if visit.projeto_id:
+                    form.projeto_id.data = visit.projeto_id
+                else:
+                    form.projeto_id.data = -1  # 'Outros'
+                    form.projeto_outros.data = visit.projeto_outros or ''
+
+                # Preencher participantes com tratamento de erro robusto
+                try:
+                    participantes_existentes = VisitaParticipante.query.filter_by(visita_id=visit_id).all()
+                    participante_ids = []
+                    for p in participantes_existentes:
+                        if p.user_id:
+                            participante_ids.append(str(p.user_id))
+                    form.participantes.data = participante_ids
+                    current_app.logger.info(f"✅ Participantes carregados: {len(participante_ids)}")
+                except Exception as part_error:
+                    current_app.logger.error(f"❌ Erro ao carregar participantes: {part_error}")
+                    form.participantes.data = []
+                    
+            except Exception as form_error:
+                current_app.logger.error(f"❌ Erro ao preencher formulário: {form_error}")
+                flash('Erro ao carregar dados da visita.', 'error')
+                return redirect(url_for('visits_list'))
+
+    if form.validate_on_submit():
+            try:
+                # Convert datetime-local strings to datetime objects
+                dt_inicio = datetime.fromisoformat(form.data_inicio.data)
+                dt_fim = datetime.fromisoformat(form.data_fim.data)
+                
+                # Atualizar campos
+                visit.data_inicio = dt_inicio
+                visit.data_fim = dt_fim
+                visit.observacoes = form.observacoes.data or ''
+
+                # Atualizar projeto
+                if form.projeto_id.data == -1:  # 'Outros'
+                    visit.projeto_id = None
+                    visit.projeto_outros = form.projeto_outros.data or ''
+                else:
+                    visit.projeto_id = form.projeto_id.data
+                    visit.projeto_outros = None
+
+                # Atualizar participantes com tratamento de erro
+                try:
+                    from models import VisitaParticipante
+                    # Primeiro, remover participantes existentes
+                    VisitaParticipante.query.filter_by(visita_id=visit_id).delete()
+
+                    # Adicionar novos participantes
+                    if form.participantes.data:
+                        for user_id in form.participantes.data:
+                            try:
+                                participante = VisitaParticipante(
+                                    visita_id=visit_id,
+                                    user_id=int(user_id),
+                                    confirmado=False
+                                )
+                                db.session.add(participante)
+                            except ValueError:
+                                current_app.logger.warning(f"⚠️ ID de usuário inválido ignorado: {user_id}")
+                                continue
+                except Exception as part_error:
+                    current_app.logger.error(f"❌ Erro ao processar participantes: {part_error}")
+                    # Continuar sem participantes se houver erro
+
+                db.session.commit()
+                current_app.logger.info(f"✅ Visita {visit_id} alterada com sucesso")
+                flash('Visita alterada com sucesso!', 'success')
+                return redirect(url_for('visit_view', visit_id=visit_id))
+
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f"❌ Erro ao alterar visita {visit_id}: {str(e)}")
+                flash(f'Erro ao alterar visita: {str(e)}', 'error')
+
+        return render_template('visits/form.html', form=form, visit=visit, action='edit')
+        
+    except Exception as e:
+        current_app.logger.exception(f"❌ ERRO CRÍTICO na edição da visita {visit_id}: {str(e)}")
+        flash('Erro interno ao carregar a visita para edição.', 'error')
+        return redirect(url_for('visits_list'))
 
 # Report management routes - movido para routes_reports.py
 
