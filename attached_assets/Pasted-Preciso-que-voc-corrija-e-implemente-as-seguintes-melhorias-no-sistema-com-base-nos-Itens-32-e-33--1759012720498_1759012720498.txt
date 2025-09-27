@@ -1,0 +1,63 @@
+Preciso que você corrija e implemente as seguintes melhorias no sistema, com base nos Itens 32 e 33 da especificação:
+
+🔹 Item 32 – Relatório Express: Endereço do Local
+
+O campo endereco_visita já existe na tabela relatorios_express.
+
+Porém, atualmente ele não aparece no relatório express, mesmo quando a localização é obtida.
+
+Corrija o fluxo de salvamento para que, quando a geolocalização for obtida, o endereco_visita seja preenchido corretamente no banco de dados.
+
+Garanta que o endereço seja exibido tanto na tela de visualização quanto no PDF gerado.
+
+🔹 Item 33 – Relatório Express: Funcionários e Campos Editáveis
+
+O Relatório Express deve ser igual ao relatório de obras, mas com campos editáveis manualmente:
+
+Data da visita
+
+Nome
+
+Construtora
+
+Endereço
+
+Funcionários
+
+E-mails
+
+No PDF devem aparecer somente os nomes dos funcionários (os e-mails servem apenas para envio do relatório, não devem aparecer no documento final).
+
+Para suportar os funcionários no Relatório Express, crie uma nova tabela de relacionamento no banco:
+
+CREATE TABLE relatorio_express_participantes (
+    id SERIAL PRIMARY KEY,
+    relatorio_express_id INTEGER NOT NULL REFERENCES relatorios_express(id) ON DELETE CASCADE,
+    funcionario_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+
+Crie um arquivo Alembic de migration, baseado no último commit/migration disponível no projeto, para adicionar essa nova tabela relatorio_express_participantes.
+
+Garanta que a migration seja detectada pelo sistema no Railway.
+
+Caso seja necessário, atualize o env.py ou scripts de inicialização para rodar a migration automaticamente.
+
+Ajuste o backend e frontend para que:
+
+Ao criar ou editar um relatório express, seja possível selecionar os funcionários participantes.
+
+Essa seleção seja salva corretamente na tabela relatorio_express_participantes.
+
+Na tela de visualização do relatório express e no PDF, apareçam os nomes dos funcionários vinculados.
+
+🎯 Resumo das Entregas
+
+Corrigir salvamento e exibição do campo endereco_visita.
+
+Criar e aplicar migration Alembic para nova tabela relatorio_express_participantes.
+
+Implementar fluxo completo de seleção, salvamento e exibição de funcionários nos relatórios express.
+
+Ajustar PDF para mostrar somente nomes dos funcionários.
