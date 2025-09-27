@@ -1,0 +1,63 @@
+Preciso que você faça as seguintes correções e melhorias na tela de Agendar Visita e em todas as funcionalidades relacionadas:
+
+1. Correção do campo de Data e Hora
+
+Atualmente, mesmo com os campos de Data e Hora de Início e Fim preenchidos, a mensagem de erro vermelho "This field is required" continua aparecendo.
+
+Corrija a validação para que:
+
+Se os campos estiverem preenchidos corretamente, não exiba o erro.
+
+Se estiverem vazios, aí sim apareça a mensagem.
+
+Verifique se o formato da data/hora usado no formulário está sendo aceito pelo validador do backend Flask e se está sendo convertido corretamente para o formato aceito pelo PostgreSQL no Railway.
+
+Garanta que ao salvar ou editar uma visita, os horários sejam armazenados no banco de dados e carregados corretamente ao abrir a tela de edição.
+
+2. Estilização e funcionalidade dos Participantes
+
+Atualmente a listagem dos participantes está quebrada e mal posicionada.
+
+Quero que o campo Participantes seja exibido com cards estilizados, seguindo a temática do sistema (mesma estilização utilizada em Listar Visitas, mas com informações individuais de cada participante).
+
+Cada card deve mostrar:
+
+Nome
+
+Cargo/função
+
+O card deve ser responsivo, com seleção por clique no card (checkbox interno mas invisível, estilizado pelo card).
+
+Ao clicar, o participante deve ser marcado/desmarcado com feedback visual claro (exemplo: borda azul ou cor de fundo diferenciada).
+
+A quantidade de participantes selecionados deve ser exibida dinamicamente.
+
+3. Funcionalidade completa integrada ao banco
+
+Toda a lógica de participantes deve estar 100% funcional:
+
+Selecionar/deselecionar participantes em Novo Agendamento.
+
+Editar uma visita e carregar os participantes já selecionados.
+
+Alterar participantes e salvar corretamente no banco.
+
+Os dados devem ser gravados corretamente na tabela relacionada no PostgreSQL do Railway.
+
+Certifique-se de que a relação visita ↔ participantes esteja funcionando:
+
+Ao listar visitas, deve mostrar os participantes da visita.
+
+Ao editar visita, deve carregar os participantes já salvos no banco.
+
+Ao salvar, atualizar corretamente no banco sem duplicações ou falhas.
+
+✅ Resumo:
+
+Corrigir bug do campo Data/Hora.
+
+Transformar participantes em cards estilizados responsivos.
+
+Garantir que seleção, edição e gravação dos participantes estejam 100% funcionais com PostgreSQL no Railway.
+
+A tela de Novo Agendamento e Editar Agendamento devem estar funcionando perfeitamente, sem erros, sem redundâncias e totalmente integradas ao sistema.
