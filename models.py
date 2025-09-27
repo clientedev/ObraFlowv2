@@ -482,6 +482,14 @@ class RelatorioExpress(db.Model):
         return FotoRelatorioExpress.query.filter_by(relatorio_express_id=self.id).order_by(FotoRelatorioExpress.ordem).all()
     
     @property
+    def participantes(self):
+        """Retorna lista de funcionários participantes do relatório express"""
+        from models import User
+        return User.query.join(RelatorioExpressParticipante).filter(
+            RelatorioExpressParticipante.relatorio_express_id == self.id
+        ).all()
+    
+    @property
     def titulo(self):
         """Gera título fixo do relatório express com numeração automática"""
         # Extrai o número sequencial do campo numero (ex: EXP-001 -> 001)
@@ -516,6 +524,22 @@ class FotoRelatorioExpress(db.Model):
     
     def __repr__(self):
         return f'<FotoRelatorioExpress {self.filename}>'
+
+class RelatorioExpressParticipante(db.Model):
+    """Relacionamento entre relatórios express e funcionários participantes"""
+    __tablename__ = 'relatorio_express_participantes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    relatorio_express_id = db.Column(db.Integer, db.ForeignKey('relatorios_express.id', ondelete='CASCADE'), nullable=False)
+    funcionario_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relacionamentos
+    relatorio_express = db.relationship('RelatorioExpress', backref='participantes_lista')
+    funcionario = db.relationship('User', backref='participacoes_express')
+    
+    def __repr__(self):
+        return f'<RelatorioExpressParticipante {self.relatorio_express_id}-{self.funcionario_id}>'
 
 class ChecklistObra(db.Model):
     """Checklist personalizado por projeto/obra"""
