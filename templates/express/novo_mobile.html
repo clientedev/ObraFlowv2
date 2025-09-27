@@ -1096,12 +1096,12 @@ function captureCurrentLocationMobile() {
                     formattedAddress = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
                 }
 
-                // Preencher campo de endereço automaticamente
+                // Preencher campo de endereço automaticamente com endereço legível
                 if (enderecoField) {
                     enderecoField.value = formattedAddress;
                 }
 
-                // Mostrar mensagem de sucesso
+                // Mostrar mensagem de sucesso com endereço formatado
                 if (locationAddress) {
                     locationAddress.textContent = formattedAddress;
                 }
@@ -1115,15 +1115,15 @@ function captureCurrentLocationMobile() {
             .catch(error => {
                 console.error('Erro ao obter endereço:', error);
                 
-                // Mesmo com erro no geocoding, salvar as coordenadas
-                const fallbackAddress = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
+                // Fallback mais amigável quando não conseguir obter endereço
+                const fallbackAddress = `Localização capturada (Lat: ${lat.toFixed(4)}°, Lng: ${lon.toFixed(4)}°)`;
                 
                 if (enderecoField) {
                     enderecoField.value = fallbackAddress;
                 }
                 
                 if (locationAddress) {
-                    locationAddress.textContent = fallbackAddress;
+                    locationAddress.textContent = 'Coordenadas GPS obtidas com sucesso';
                 }
                 
                 if (successMessage) {

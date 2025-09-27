@@ -4241,10 +4241,11 @@ def get_location():
                 address_parts = []
 
                 # Street name and number
-                if addr.get('house_number'):
-                    address_parts.append(f"{addr.get('road', '')} {addr['house_number']}")
-                elif addr.get('road'):
-                    address_parts.append(addr['road'])
+                if addr.get('road'):
+                    if addr.get('house_number'):
+                        address_parts.append(f"{addr.get('road')}, {addr['house_number']}")
+                    else:
+                        address_parts.append(addr.get('road'))
 
                 # Neighborhood
                 if addr.get('suburb') or addr.get('neighbourhood'):

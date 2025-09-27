@@ -585,20 +585,20 @@ input, textarea, select {
                                 <i class="fas fa-crosshairs"></i> Capturar Localização Atual
                             </button>
                         </div>
-                        
-                        <!-- Container para mensagem de sucesso -->
+
+                        <!-- Container de mensagem de sucesso -->
                         <div id="locationSuccessMessage" class="alert alert-success d-none mb-3">
                             <i class="fas fa-check-circle"></i> <strong>Localização capturada com sucesso!</strong>
                             <br>
                             <i class="fas fa-map-marker-alt"></i> <span id="locationAddress"></span>
                         </div>
-                        
+
                         <!-- Campo de endereço (hidden quando localização capturada) -->
                         <div id="manualAddressSection" class="mb-3">
                             {{ form.endereco_visita.label(class="form-label") }}
                             {{ form.endereco_visita(class="form-control") }}
                         </div>
-                        
+
                         {{ form.latitude() }}
                         {{ form.longitude() }}
                     </div>
@@ -782,13 +782,13 @@ let photoCounter = 0;
         }
 
         console.log('📷 Categoria selecionada:', category);
-        
+
         // Atualizar categoria global PRIMEIRO
         window.selectedPhotoCategory = category;
-        
+
         // Também atualizar variável local para compatibilidade
         selectedCategory = category;
-        
+
         console.log('✅ VARIÁVEIS DEFINIDAS: selectedCategory =', selectedCategory);
         console.log('✅ VARIÁVEIS DEFINIDAS: window.selectedPhotoCategory =', window.selectedPhotoCategory);
 
@@ -803,7 +803,7 @@ let photoCounter = 0;
 function selectFromGallery() {
     console.log('🔍 DEBUG: selectedCategory =', selectedCategory);
     console.log('🔍 DEBUG: window.selectedPhotoCategory =', window.selectedPhotoCategory);
-    
+
     // Usar tanto a variável local quanto a global para garantir
     if (!selectedCategory && !window.selectedPhotoCategory) {
         alert('Selecione uma categoria antes de adicionar fotos.');
@@ -820,7 +820,7 @@ function selectFromGallery() {
 function captureFromCamera() {
     console.log('🔍 DEBUG: selectedCategory =', selectedCategory);
     console.log('🔍 DEBUG: window.selectedPhotoCategory =', window.selectedPhotoCategory);
-    
+
     // Usar tanto a variável local quanto a global para garantir
     if (!selectedCategory && !window.selectedPhotoCategory) {
         alert('Selecione uma categoria antes de adicionar fotos.');
@@ -905,21 +905,21 @@ function captureCurrentLocation() {
             .then(response => response.json())
             .then(data => {
                 let formattedAddress = '';
-                
+
                 if (data && data.address) {
                     const addr = data.address;
                     const addressParts = [];
-                    
+
                     if (addr.house_number && addr.road) {
                         addressParts.push(`${addr.road}, ${addr.house_number}`);
                     } else if (addr.road) {
                         addressParts.push(addr.road);
                     }
-                    
+
                     if (addr.suburb || addr.neighbourhood) {
                         addressParts.push(addr.suburb || addr.neighbourhood);
                     }
-                    
+
                     const city = addr.city || addr.town || addr.village;
                     if (city) {
                         const state = addr.state;
@@ -929,7 +929,7 @@ function captureCurrentLocation() {
                             addressParts.push(city);
                         }
                     }
-                    
+
                     formattedAddress = addressParts.length > 0 ? addressParts.join(', ') : data.display_name;
                 } else {
                     formattedAddress = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
@@ -940,14 +940,14 @@ function captureCurrentLocation() {
                     enderecoField.value = formattedAddress;
                 }
 
-                // Mostrar mensagem de sucesso
-                if (locationAddress) {
-                    locationAddress.textContent = formattedAddress;
-                }
-                
-                if (successMessage) {
-                    successMessage.classList.remove('d-none');
-                }
+                // Mostrar mensagem de sucesso com endereço formatado
+                    if (locationAddress) {
+                        locationAddress.textContent = formattedAddress;
+                    }
+
+                    if (successMessage) {
+                        successMessage.classList.remove('d-none');
+                    }
 
                 // Esconder seção manual se necessário
                 if (manualSection) {
@@ -958,18 +958,18 @@ function captureCurrentLocation() {
             })
             .catch(error => {
                 console.error('Erro ao obter endereço:', error);
-                
+
                 // Mesmo com erro no geocoding, salvar as coordenadas
                 const fallbackAddress = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
-                
+
                 if (enderecoField) {
                     enderecoField.value = fallbackAddress;
                 }
-                
+
                 if (locationAddress) {
                     locationAddress.textContent = fallbackAddress;
                 }
-                
+
                 if (successMessage) {
                     successMessage.classList.remove('d-none');
                 }
@@ -984,7 +984,7 @@ function captureCurrentLocation() {
         },
         function(error) {
             console.error('Erro ao capturar localização:', error);
-            
+
             let errorMessage = 'Erro ao capturar localização.';
             switch(error.code) {
                 case error.PERMISSION_DENIED:
@@ -997,9 +997,9 @@ function captureCurrentLocation() {
                     errorMessage = 'Timeout ao capturar localização. Tente novamente.';
                     break;
             }
-            
+
             alert(errorMessage);
-            
+
             // Restaurar botão
             btn.innerHTML = '<i class="fas fa-crosshairs"></i> Capturar Localização Atual';
             btn.disabled = false;
@@ -1016,7 +1016,7 @@ function captureCurrentLocation() {
 function handlePhotoUpload(input) {
     console.log('🔍 DEBUG upload: selectedCategory =', selectedCategory);
     console.log('🔍 DEBUG upload: window.selectedPhotoCategory =', window.selectedPhotoCategory);
-    
+
     // Usar tanto a variável local quanto a global para garantir
     if (!selectedCategory && !window.selectedPhotoCategory) {
         document.getElementById('categoryWarning').style.display = 'block';
@@ -1042,11 +1042,11 @@ function showPhotoConfigurationModal(files, category) {
     console.log('🔧 MODAL DEBUG: category recebida =', category);
     console.log('🔧 MODAL DEBUG: selectedCategory atual =', selectedCategory);
     console.log('🔧 MODAL DEBUG: window.selectedPhotoCategory atual =', window.selectedPhotoCategory);
-    
+
     // Garantir que temos uma categoria válida
     const finalCategory = category || selectedCategory || window.selectedPhotoCategory;
     console.log('🔧 MODAL DEBUG: categoria final =', finalCategory);
-    
+
     const preview = document.getElementById('selectedPhotosPreview');
     preview.innerHTML = `
         <div class="card border-primary">
@@ -1104,7 +1104,7 @@ function showPhotoConfigurationModal(files, category) {
 
                 // Carregar legendas para a categoria
                 loadLegends(photoId, finalCategory);
-                
+
                 console.log('🔧 CARD DEBUG: photoId =', photoId, 'categoria =', finalCategory);
             };
             reader.readAsDataURL(file);
@@ -1458,7 +1458,7 @@ function confirmPhotoConfiguration() {
         const legendSelect = card.querySelector('.legend-select');
         const legend = legendSelect.value;
         const img = card.querySelector('img');
-        
+
         console.log('🔧 CONFIRM DEBUG: card.dataset.category =', card.dataset.category);
         console.log('🔧 CONFIRM DEBUG: legend =', legend);
 
@@ -1481,7 +1481,7 @@ function confirmPhotoConfiguration() {
                 legend: legend,
                 imageData: img.src
             };
-            
+
             console.log('🔧 CONFIRM DEBUG: photoData.category =', photoData.category);
 
             configuredPhotos.push(photoData);
@@ -1758,7 +1758,7 @@ function getCurrentLocation(btn) {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
             const accuracy = position.coords.accuracy;
-            
+
             // Preencher coordenadas
             document.getElementById('latitude').value = lat;
             document.getElementById('longitude').value = lon;
@@ -1768,27 +1768,27 @@ function getCurrentLocation(btn) {
                 .then(response => response.json())
                 .then(data => {
                     let addressText = '';
-                    
+
                     if (data && data.display_name) {
                         // Preencher o campo de endereço (hidden)
                         const enderecoField = document.getElementById('endereco_visita');
                         if (enderecoField) {
                             enderecoField.value = data.display_name;
                         }
-                        
+
                         // Formatar endereço para exibição como na referência
                         const address = data.address || {};
                         const road = address.road || '';
                         const suburb = address.suburb || address.neighbourhood || '';
                         const city = address.city || address.town || address.village || '';
                         const state = address.state || '';
-                        
+
                         if (road && suburb && city && state) {
                             addressText = `${road}, ${suburb}, ${city} - ${state}`;
                         } else {
                             addressText = data.display_name;
                         }
-                        
+
                         // Adicionar precisão se disponível
                         if (accuracy) {
                             addressText += ` (precisão ${Math.round(accuracy)}m)`;
@@ -1799,13 +1799,13 @@ function getCurrentLocation(btn) {
                         if (accuracy) {
                             addressText += ` (precisão ${Math.round(accuracy)}m)`;
                         }
-                        
+
                         const enderecoField = document.getElementById('endereco_visita');
                         if (enderecoField) {
                             enderecoField.value = addressText;
                         }
                     }
-                    
+
                     // Mostrar mensagem de sucesso
                     showLocationSuccess(addressText);
                 })
@@ -1814,12 +1814,12 @@ function getCurrentLocation(btn) {
                     // Fallback para coordenadas
                     const addressText = `Localização: ${lat.toFixed(6)}, ${lon.toFixed(6)}` + 
                                       (accuracy ? ` (precisão ${Math.round(accuracy)}m)` : '');
-                    
+
                     const enderecoField = document.getElementById('endereco_visita');
                     if (enderecoField) {
                         enderecoField.value = addressText;
                     }
-                    
+
                     showLocationSuccess(addressText);
                 });
 
@@ -1827,7 +1827,7 @@ function getCurrentLocation(btn) {
             btn.innerHTML = originalText;
             btn.className = 'btn btn-outline-primary';
             btn.disabled = false;
-            
+
         }, function(error) {
             btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro ao obter localização';
             btn.className = 'btn btn-outline-danger';
@@ -1855,11 +1855,11 @@ function showLocationSuccess(address) {
     const successMessage = document.getElementById('locationSuccessMessage');
     const addressSpan = document.getElementById('locationAddress');
     const manualSection = document.getElementById('manualAddressSection');
-    
+
     if (successMessage && addressSpan) {
         addressSpan.textContent = address;
         successMessage.classList.remove('d-none');
-        
+
         // Ocultar seção de endereço manual
         if (manualSection) {
             manualSection.style.display = 'none';
