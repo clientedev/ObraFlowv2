@@ -375,7 +375,9 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
             
             # Test database connection first
             try:
-                db.engine.execute("SELECT 1")
+                from sqlalchemy import text
+                with db.engine.connect() as connection:
+                    connection.execute(text("SELECT 1"))
                 logging.info("✅ Database connection successful")
             except Exception as conn_error:
                 logging.error(f"❌ Database connection failed: {conn_error}")

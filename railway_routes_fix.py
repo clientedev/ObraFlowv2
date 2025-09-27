@@ -16,7 +16,9 @@ def railway_health():
     """Health check específico para Railway"""
     try:
         # Test database connection
-        db.engine.execute("SELECT 1")
+        from sqlalchemy import text
+        with db.engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
         db_status = "healthy"
     except Exception as e:
         db_status = f"error: {str(e)}"
@@ -109,7 +111,9 @@ def railway_fix_reports():
         
         # 1. Test and fix database connection
         try:
-            db.engine.execute("SELECT 1")
+            from sqlalchemy import text
+            with db.engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
             fixes_applied.append("Database connection OK")
         except Exception as e:
             fixes_applied.append(f"Database connection failed: {str(e)}")
