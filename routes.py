@@ -668,6 +668,10 @@ def reports():
                             yield num
 
             relatorios = SimplePagination(relatorios_list, page, 10, total_count)
+            
+            # Garantir que relatorios.items está sempre definido
+            if not hasattr(relatorios, 'items'):
+                relatorios.items = relatorios_list
 
         except Exception as query_error:
             current_app.logger.error(f"❌ Erro na query de relatórios: {str(query_error)}")
@@ -692,6 +696,9 @@ def reports():
                         return [1]
 
                 relatorios = FallbackPagination(relatorios_list)
+                # Garantir que relatorios.items está sempre definido
+                if not hasattr(relatorios, 'items'):
+                    relatorios.items = relatorios_list
                 current_app.logger.info(f"🔄 Fallback: {len(relatorios.items)} relatórios carregados")
 
             except Exception as fallback_error:
@@ -712,6 +719,9 @@ def reports():
                         return []
 
                 relatorios = EmptyPagination()
+                # Garantir que relatorios.items está sempre definido
+                if not hasattr(relatorios, 'items'):
+                    relatorios.items = []
 
         # Renderizar template
         return render_template('reports/list.html', relatorios=relatorios)

@@ -91,7 +91,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    {% if relatorios and hasattr(relatorios, 'items') and relatorios.items %}
+                    {% if relatorios and relatorios.items %}
                         <!-- Layout de cards mobile-first sem rolagem horizontal -->
                         <div class="mobile-reports-list" id="reportsTable">
                             {% for report in relatorios.items %}
