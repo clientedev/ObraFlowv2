@@ -1,6 +1,7 @@
 from app import app  # noqa: F401
 import routes_pwa  # noqa: F401
 import routes  # noqa: F401
+import railway_routes_fix  # noqa: F401
 
 # Auto-run migrations on Railway deploy
 import os

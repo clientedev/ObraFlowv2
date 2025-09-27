@@ -23,23 +23,27 @@ csrf = CSRFProtect()
 
 # create the app
 app = Flask(__name__)
-# Require SESSION_SECRET for production security
+# Configure session secret - Railway/Production compatible
 session_secret = os.environ.get("SESSION_SECRET")
 if not session_secret:
-    raise ValueError("SESSION_SECRET environment variable is required for production security")
+    # Generate fallback for Railway if not set
+    import secrets
+    session_secret = secrets.token_hex(32)
+    logging.warning("⚠️ SESSION_SECRET não configurado, usando chave temporária")
+    logging.info("🔑 Para produção, configure: SESSION_SECRET no Railway")
 app.secret_key = session_secret
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # needed for url_for to generate with https
 
 # configure the database, relative to the app instance folder
 database_url = os.environ.get("DATABASE_URL", "sqlite:///construction_tracker.db")
 
-# Handle Replit PostgreSQL environment
-# Replit provides DATABASE_URL for PostgreSQL when database is provisioned
+# Handle Railway/Replit PostgreSQL environment 
+# Railway and Replit provide DATABASE_URL for PostgreSQL when database is provisioned
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
-    logging.info(f"✅ Using PostgreSQL database")
+    logging.info(f"✅ Using PostgreSQL database (Railway/Replit)")
 elif database_url.startswith("postgresql://"):
-    logging.info(f"✅ Using PostgreSQL database")
+    logging.info(f"✅ Using PostgreSQL database (Railway/Replit)")
 else:
     # Fallback to SQLite for development or when PostgreSQL not available
     database_url = "sqlite:///construction_tracker.db"
@@ -361,10 +365,57 @@ def init_database():
     except Exception as e:
         logging.error(f"Database initialization error: {e}")
 
-# Initialize database for Railway deployment - SIMPLIFIED VERSION
-if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("DATABASE_URL"):
-    # Simplified initialization for Railway - skip lengthy legendas creation
+# Initialize database for Railway deployment - ROBUST VERSION
+if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and "railway" in os.environ.get("DATABASE_URL", "")):
+    # Railway-specific initialization with enhanced error handling
     logging.info("🚂 Railway environment detected - initializing database")
+    try:
+        with app.app_context():
+            import models  # noqa: F401
+            
+            # Test database connection first
+            try:
+                db.engine.execute("SELECT 1")
+                logging.info("✅ Database connection successful")
+            except Exception as conn_error:
+                logging.error(f"❌ Database connection failed: {conn_error}")
+                raise
+            
+            # Create tables with retries
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    db.create_all()
+                    logging.info("✅ Database tables created successfully")
+                    break
+                except Exception as create_error:
+                    if attempt < max_retries - 1:
+                        logging.warning(f"⚠️ Table creation attempt {attempt + 1} failed: {create_error}")
+                        time.sleep(2)
+                    else:
+                        raise
+            
+            # Create admin user
+            create_admin_user_safe()
+            create_default_checklists()
+            
+            # Test reports route functionality
+            logging.info("🧪 Testing reports functionality...")
+            try:
+                from models import Relatorio
+                test_count = Relatorio.query.count()
+                logging.info(f"✅ Reports table accessible: {test_count} reports found")
+            except Exception as test_error:
+                logging.warning(f"⚠️ Reports test failed: {test_error}")
+            
+            logging.info("✅ RAILWAY DATABASE INITIALIZATION COMPLETE")
+            
+    except Exception as e:
+        logging.error(f"❌ Railway database initialization error: {e}")
+        logging.info("🔄 Continuing with limited functionality...")
+elif os.environ.get("DATABASE_URL"):
+    # Other cloud environments (Replit, etc.)
+    logging.info("☁️ Cloud environment detected - initializing database")
     try:
         with app.app_context():
             import models  # noqa: F401
@@ -372,8 +423,7 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("DATABASE_URL"):
             logging.info("Database tables created successfully.")
             create_admin_user_safe()
             create_default_checklists()
-            # Skip lengthy legendas creation for now
-            logging.info("✅ SIMPLIFIED DATABASE INITIALIZATION COMPLETE")
+            logging.info("✅ CLOUD DATABASE INITIALIZATION COMPLETE")
     except Exception as e:
         logging.error(f"Database initialization error: {e}")
 else:
