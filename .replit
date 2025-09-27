@@ -1,4 +1,4 @@
-modules = ["web", "python-3.11", "nodejs-20"]
+modules = ["web", "python-3.11", "nodejs-20", "postgresql-16"]
 
 [nix]
 channel = "stable-25_05"
@@ -68,12 +68,12 @@ localPort = 34545
 externalPort = 6800
 
 [[ports]]
-localPort = 36811
-externalPort = 8080
-
-[[ports]]
 localPort = 37261
 externalPort = 5000
+
+[[ports]]
+localPort = 40595
+externalPort = 8080
 
 [[ports]]
 localPort = 42319
