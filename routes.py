@@ -6013,29 +6013,33 @@ def express_new():
             relatorio_express.periodo_fim = form.periodo_fim.data
             relatorio_express.condicoes_climaticas = form.condicoes_climaticas.data
             relatorio_express.temperatura = form.temperatura.data
-            relatorio_express.endereco_visita = form.endereco_visita.data
 
-            # Localização
+            # Localização - processar coordenadas primeiro
+            endereco_final = form.endereco_visita.data  # Valor padrão do formulário
+            
             if form.latitude.data:
                 relatorio_express.latitude = float(form.latitude.data)
             if form.longitude.data:
                 relatorio_express.longitude = float(form.longitude.data)
             
-            # Conversão automática de coordenadas para endereço
+            # Conversão automática de coordenadas para endereço (ANTES de salvar endereco_visita)
             if relatorio_express.latitude and relatorio_express.longitude:
                 try:
                     from utils import get_address_from_coordinates
                     endereco_convertido = get_address_from_coordinates(relatorio_express.latitude, relatorio_express.longitude)
                     if endereco_convertido:
-                        # Atualizar o campo endereco_visita com o endereço convertido
-                        relatorio_express.endereco_visita = endereco_convertido
-                        current_app.logger.info(f"Endereço convertido automaticamente: {endereco_convertido}")
+                        # Usar o endereço convertido em vez do valor do formulário
+                        endereco_final = endereco_convertido
+                        current_app.logger.info(f"📍 Endereço convertido automaticamente: {endereco_convertido}")
                     else:
-                        current_app.logger.warning("Não foi possível converter as coordenadas para endereço")
+                        current_app.logger.warning("⚠️ Não foi possível converter as coordenadas para endereço")
                 except Exception as e:
-                    current_app.logger.error(f"Erro na conversão de coordenadas para endereço: {str(e)}")
+                    current_app.logger.error(f"❌ Erro na conversão de coordenadas para endereço: {str(e)}")
                     # Se a conversão falhar, manter o endereço digitado pelo usuário
                     pass
+            
+            # Salvar o endereço final (convertido ou original)
+            relatorio_express.endereco_visita = endereco_final
 
             # Observações
             relatorio_express.observacoes_gerais = form.observacoes_gerais.data
@@ -6204,29 +6208,33 @@ def express_edit(id):
             relatorio.periodo_fim = form.periodo_fim.data
             relatorio.condicoes_climaticas = form.condicoes_climaticas.data
             relatorio.temperatura = form.temperatura.data
-            relatorio.endereco_visita = form.endereco_visita.data
 
-            # Atualizar localização
+            # Localização - processar coordenadas primeiro na edição
+            endereco_final = form.endereco_visita.data  # Valor padrão do formulário
+            
             if form.latitude.data:
                 relatorio.latitude = float(form.latitude.data)
             if form.longitude.data:
                 relatorio.longitude = float(form.longitude.data)
             
-            # Conversão automática de coordenadas para endereço (edição)
+            # Conversão automática de coordenadas para endereço (ANTES de salvar endereco_visita)
             if relatorio.latitude and relatorio.longitude:
                 try:
                     from utils import get_address_from_coordinates
                     endereco_convertido = get_address_from_coordinates(relatorio.latitude, relatorio.longitude)
                     if endereco_convertido:
-                        # Atualizar o campo endereco_visita com o endereço convertido
-                        relatorio.endereco_visita = endereco_convertido
-                        current_app.logger.info(f"Endereço convertido automaticamente na edição: {endereco_convertido}")
+                        # Usar o endereço convertido em vez do valor do formulário
+                        endereco_final = endereco_convertido
+                        current_app.logger.info(f"📍 Endereço convertido automaticamente na edição: {endereco_convertido}")
                     else:
-                        current_app.logger.warning("Não foi possível converter as coordenadas para endereço na edição")
+                        current_app.logger.warning("⚠️ Não foi possível converter as coordenadas para endereço na edição")
                 except Exception as e:
-                    current_app.logger.error(f"Erro na conversão de coordenadas para endereço na edição: {str(e)}")
+                    current_app.logger.error(f"❌ Erro na conversão de coordenadas para endereço na edição: {str(e)}")
                     # Se a conversão falhar, manter o endereço existente
                     pass
+            
+            # Salvar o endereço final (convertido ou original)
+            relatorio.endereco_visita = endereco_final
 
             # Atualizar observações
             relatorio.observacoes_gerais = form.observacoes_gerais.data
