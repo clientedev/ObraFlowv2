@@ -1,0 +1,72 @@
+Pasted-Pasted-Corre-o-do-Carregamento-de-Relat-rios-Contexto-Banco-PostgreSQL-no-Railway-Tabela-relatorios--1759067620222_1759067620223.txt
+Pasted-Corre-o-do-Carregamento-de-Relat-rios-Contexto-Banco-PostgreSQL-no-Railway-Tabela-relatorios-1759067171422_1759067171422.txt
+Correção do Carregamento de Relatórios
+
+Contexto:
+
+Banco: PostgreSQL no Railway.
+
+Tabela: relatorios já contém dados válidos.
+
+Problema: A tela exibe “Sistema em modo de recuperação” e não carrega relatórios, mesmo existindo registros no banco.
+
+Situação: Isso ocorre após as últimas alterações e migrations.
+
+🛠️ O que revisar e corrigir
+
+Modelos SQLAlchemy
+
+Conferir se o modelo Relatorio (classe em models.py) está alinhado com a tabela relatorios no banco.
+
+Garantir que todos os campos obrigatórios (id, numero, projeto_id, autor_id, created_at, etc.) estão corretamente mapeados.
+
+Validar se os novos campos adicionados em migrations (ex.: numero_projeto) estão presentes no modelo.
+
+Migrations Alembic
+
+Conferir se todas as migrations foram aplicadas corretamente no Railway.
+
+Se necessário, rodar:
+
+alembic upgrade head
+
+
+Garantir que não existe divergência entre alembic_version e as tabelas reais.
+
+Se houver conflito, criar nova migration de ajuste ao invés de recriar tabelas.
+
+Query de listagem de relatórios
+
+Revisar a rota /relatorios ou equivalente no routes.py.
+
+Validar se a query está filtrando incorretamente (status, finalizado, etc.) e retornando vazio.
+
+Implementar logs para mostrar o SQL gerado e a quantidade de registros retornados.
+
+Exemplo:
+
+relatorios = Relatorio.query.all()
+app.logger.info(f"Relatórios encontrados: {len(relatorios)}")
+
+
+Sistema de recuperação
+
+O modo de recuperação só deve ser acionado em caso de erro grave (ex.: tabela não encontrada).
+
+Ajustar para exibir logs detalhados em produção Railway, permitindo identificar se é erro de conexão, mapping ou migração.
+
+Teste com dados reais
+
+Rodar SELECT * FROM relatorios LIMIT 5; no PostgreSQL Railway para confirmar que os registros existem.
+
+Garantir que a aplicação exibe esses registros corretamente na interface.
+
+✅ Resultado esperado
+
+A rota /relatorios carrega normalmente todos os relatórios já existentes no banco.
+
+O erro “Sistema em modo de recuperação” desaparece.
+
+Logs no Railway mostram corretamente a contagem de relatórios carregados.
+
+Migrations ficam sincronizadas entre código Alembic e o banco real do Railway.
