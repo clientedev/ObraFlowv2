@@ -56,16 +56,12 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "EMAIL_PASSWORD_ENCRYPTION_KEY=\"nTYvJauKxE-dCGfGor7udwUlrfce5X5i3sNvKWKmU2k=\" python replit_main.py"
+args = "python replit_main.py"
 waitForPort = 5000
 
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 32815
-externalPort = 8081
 
 [[ports]]
 localPort = 33757
