@@ -18,9 +18,9 @@ def generate_project_report_number(project_id):
         # Lock is automatically released at transaction end
         db.session.execute(db.text("SELECT pg_advisory_xact_lock(:lock_key)"), {"lock_key": project_id})
         
-        # Find the highest numero_relatorio for this project
+        # Find the highest numero_projeto for this project
         ultimo_numero = db.session.query(
-            db.func.max(Relatorio.numero_relatorio)
+            db.func.max(Relatorio.numero_projeto)
         ).filter_by(projeto_id=project_id).scalar()
         
         # Return next available number (start at 1 if no reports exist)
@@ -58,9 +58,9 @@ def get_display_report_number(relatorio):
     Returns: tuple (display_number, is_legacy)
     """
     try:
-        if relatorio.numero_relatorio is not None:
+        if relatorio.numero_projeto is not None:
             # New per-project numbering
-            return str(relatorio.numero_relatorio), False
+            return str(relatorio.numero_projeto), False
         else:
             # Legacy global numbering - extract from numero field
             if relatorio.numero:

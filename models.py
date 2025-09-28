@@ -252,6 +252,7 @@ class Relatorio(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     numero = db.Column(db.String(20), unique=True, nullable=False)
+    numero_projeto = db.Column(db.Integer, nullable=True)  # Project-specific sequential numbering
     titulo = db.Column(db.String(300), nullable=False, default='Relatório de visita')
     projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
     visita_id = db.Column(db.Integer, db.ForeignKey('visitas.id'), nullable=True)
