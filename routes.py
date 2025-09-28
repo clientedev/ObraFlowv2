@@ -5246,6 +5246,145 @@ def admin_legendas():
         flash('Erro ao carregar legendas. Tente novamente.', 'error')
         return redirect(url_for('index'))
 
+# Rotas para Configuração de E-mail por Usuário (exclusivo para Administradores)
+@app.route('/admin/user-email-configs')
+@login_required
+def admin_user_email_configs():
+    """Painel de administração de configurações de e-mail por usuário"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem gerenciar configurações de e-mail.', 'error')
+        return redirect(url_for('index'))
+
+    try:
+        from models import UserEmailConfig, User
+        
+        # Buscar todas as configurações com informações do usuário
+        configs = db.session.query(UserEmailConfig, User).join(User).all()
+        
+        # Usuários que ainda não têm configuração
+        users_with_config = [config.UserEmailConfig.user_id for config in configs]
+        users_without_config = User.query.filter(~User.id.in_(users_with_config), User.ativo == True).all()
+        
+        return render_template('admin/user_email_configs.html', 
+                             configs=configs,
+                             users_without_config=users_without_config)
+                             
+    except Exception as e:
+        current_app.logger.exception(f"❌ Erro ao carregar configurações de e-mail: {str(e)}")
+        flash('Erro ao carregar configurações de e-mail. Tente novamente.', 'error')
+        return redirect(url_for('index'))
+
+@app.route('/admin/user-email-configs/new', methods=['GET', 'POST'])
+@login_required  
+def admin_user_email_config_new():
+    """Criar nova configuração de e-mail por usuário"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem gerenciar configurações de e-mail.', 'error')
+        return redirect(url_for('index'))
+
+    from forms_email import UserEmailConfigForm
+    from models import UserEmailConfig, User
+    
+    form = UserEmailConfigForm()
+    
+    # Carregar usuários que ainda não têm configuração
+    users_with_config = [config.user_id for config in UserEmailConfig.query.all()]
+    available_users = User.query.filter(~User.id.in_(users_with_config), User.ativo == True).all()
+    form.user_id.choices = [(user.id, f"{user.nome_completo} ({user.email})") for user in available_users]
+    
+    if form.validate_on_submit():
+        try:
+            config = UserEmailConfig(
+                user_id=form.user_id.data,
+                smtp_server=form.smtp_server.data,
+                smtp_port=form.smtp_port.data,
+                email_address=form.email_address.data,
+                use_tls=form.use_tls.data,
+                use_ssl=form.use_ssl.data
+            )
+            config.set_password(form.email_password.data)
+            
+            db.session.add(config)
+            db.session.commit()
+            
+            flash('Configuração de e-mail criada com sucesso!', 'success')
+            return redirect(url_for('admin_user_email_configs'))
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.exception(f"❌ Erro ao criar configuração de e-mail: {str(e)}")
+            flash('Erro ao criar configuração de e-mail. Tente novamente.', 'error')
+    
+    return render_template('admin/user_email_config_form.html', form=form, is_edit=False)
+
+@app.route('/admin/user-email-configs/<int:config_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_user_email_config_edit(config_id):
+    """Editar configuração de e-mail por usuário"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem gerenciar configurações de e-mail.', 'error')
+        return redirect(url_for('index'))
+
+    from forms_email import UserEmailConfigForm
+    from models import UserEmailConfig, User
+    
+    config = UserEmailConfig.query.get_or_404(config_id)
+    form = UserEmailConfigForm(obj=config)
+    
+    # Para edição, apenas mostrar o usuário atual
+    form.user_id.choices = [(config.user.id, f"{config.user.nome_completo} ({config.user.email})")]
+    form.user_id.data = config.user_id
+    
+    if form.validate_on_submit():
+        try:
+            config.smtp_server = form.smtp_server.data
+            config.smtp_port = form.smtp_port.data
+            config.email_address = form.email_address.data
+            config.use_tls = form.use_tls.data
+            config.use_ssl = form.use_ssl.data
+            
+            # Só atualizar senha se uma nova foi fornecida
+            if form.email_password.data:
+                config.set_password(form.email_password.data)
+            
+            db.session.commit()
+            
+            flash('Configuração de e-mail atualizada com sucesso!', 'success')
+            return redirect(url_for('admin_user_email_configs'))
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.exception(f"❌ Erro ao atualizar configuração de e-mail: {str(e)}")
+            flash('Erro ao atualizar configuração de e-mail. Tente novamente.', 'error')
+    
+    return render_template('admin/user_email_config_form.html', form=form, config=config, is_edit=True)
+
+@app.route('/admin/user-email-configs/<int:config_id>/delete', methods=['POST'])
+@login_required
+def admin_user_email_config_delete(config_id):
+    """Excluir configuração de e-mail por usuário"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem gerenciar configurações de e-mail.', 'error')
+        return redirect(url_for('index'))
+
+    from models import UserEmailConfig
+    
+    try:
+        config = UserEmailConfig.query.get_or_404(config_id)
+        user_name = config.user.nome_completo
+        
+        db.session.delete(config)
+        db.session.commit()
+        
+        flash(f'Configuração de e-mail de {user_name} removida com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception(f"❌ Erro ao excluir configuração de e-mail: {str(e)}")
+        flash('Erro ao excluir configuração de e-mail. Tente novamente.', 'error')
+    
+    return redirect(url_for('admin_user_email_configs'))
+
 @app.route('/admin/legendas/nova', methods=['GET', 'POST'])
 @login_required
 def admin_legenda_nova():

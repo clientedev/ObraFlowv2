@@ -3,8 +3,8 @@ Formulários para sistema de e-mail
 """
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, BooleanField, SelectMultipleField, IntegerField
-from wtforms.validators import DataRequired, Email, Length, Optional
+from wtforms import StringField, TextAreaField, BooleanField, SelectMultipleField, IntegerField, SelectField, PasswordField, SubmitField
+from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange
 from wtforms.widgets import CheckboxInput, ListWidget
 
 class MultiCheckboxField(SelectMultipleField):
@@ -24,6 +24,17 @@ class ConfiguracaoEmailForm(FlaskForm):
     template_assunto = StringField('Template de Assunto', validators=[Length(max=500)])
     template_corpo = TextAreaField('Template do Corpo do E-mail')
     ativo = BooleanField('Configuração Ativa', default=True)
+
+class UserEmailConfigForm(FlaskForm):
+    """Formulário para configuração de e-mail por usuário"""
+    user_id = SelectField('Usuário', coerce=int, validators=[DataRequired()])
+    smtp_server = StringField('Servidor SMTP', validators=[DataRequired(), Length(max=255)])
+    smtp_port = IntegerField('Porta SMTP', validators=[DataRequired(), NumberRange(min=1, max=65535)], default=587)
+    email_address = StringField('Endereço de E-mail', validators=[DataRequired(), Email(), Length(max=255)])
+    email_password = PasswordField('Senha do E-mail', validators=[DataRequired()])
+    use_tls = BooleanField('Usar TLS', default=True)
+    use_ssl = BooleanField('Usar SSL', default=False)
+    submit = SubmitField('Salvar Configuração')
 
 class EnvioEmailForm(FlaskForm):
     """Formulário para envio de e-mail"""
