@@ -381,15 +381,49 @@ def api_dashboard_stats():
 def reverse_geocoding():
     """Proxy para reverse geocoding usando Nominatim - evita problemas de CORS"""
     try:
-        data = request.get_json()
-        if not data or 'latitude' not in data or 'longitude' not in data:
+        # Verificar se o request tem JSON válido
+        if not request.is_json:
+            return jsonify({
+                'success': False,
+                'error': 'Content-Type deve ser application/json'
+            }), 400
+
+        data = request.get_json(force=True)
+        
+        # Validação mais robusta dos dados
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'JSON vazio ou inválido'
+            }), 400
+            
+        if 'latitude' not in data or 'longitude' not in data:
             return jsonify({
                 'success': False,
                 'error': 'Latitude e longitude são obrigatórias'
             }), 400
 
-        lat = data['latitude']
-        lon = data['longitude']
+        try:
+            lat = float(data['latitude'])
+            lon = float(data['longitude'])
+        except (ValueError, TypeError):
+            return jsonify({
+                'success': False,
+                'error': 'Latitude e longitude devem ser números válidos'
+            }), 400
+
+        # Validar ranges das coordenadas
+        if not (-90 <= lat <= 90):
+            return jsonify({
+                'success': False,
+                'error': 'Latitude deve estar entre -90 e 90'
+            }), 400
+            
+        if not (-180 <= lon <= 180):
+            return jsonify({
+                'success': False,
+                'error': 'Longitude deve estar entre -180 e 180'
+            }), 400
 
         # Fazer requisição para Nominatim através do servidor
         import requests
@@ -405,60 +439,87 @@ def reverse_geocoding():
             'User-Agent': 'ELP-Sistema-Relatorios/1.0 (https://elpconsultoria.pro)'
         }
 
-        response = requests.get(url, params=params, headers=headers, timeout=10)
+        current_app.logger.info(f"🌍 Fazendo reverse geocoding para: {lat}, {lon}")
+
+        response = requests.get(url, params=params, headers=headers, timeout=15)
         
         if response.status_code == 200:
-            geocoding_data = response.json()
-            
-            # Formatar endereço
-            formatted_address = ''
-            if geocoding_data and geocoding_data.get('address'):
-                addr = geocoding_data['address']
-                address_parts = []
+            try:
+                geocoding_data = response.json()
+                
+                # Formatar endereço
+                formatted_address = ''
+                if geocoding_data and geocoding_data.get('address'):
+                    addr = geocoding_data['address']
+                    address_parts = []
 
-                if addr.get('house_number') and addr.get('road'):
-                    address_parts.append(f"{addr['road']}, {addr['house_number']}")
-                elif addr.get('road'):
-                    address_parts.append(addr['road'])
+                    if addr.get('house_number') and addr.get('road'):
+                        address_parts.append(f"{addr['road']}, {addr['house_number']}")
+                    elif addr.get('road'):
+                        address_parts.append(addr['road'])
 
-                if addr.get('suburb') or addr.get('neighbourhood'):
-                    address_parts.append(addr.get('suburb') or addr.get('neighbourhood'))
+                    if addr.get('suburb') or addr.get('neighbourhood'):
+                        address_parts.append(addr.get('suburb') or addr.get('neighbourhood'))
 
-                city = addr.get('city') or addr.get('town') or addr.get('village')
-                if city:
-                    state = addr.get('state')
-                    if state:
-                        address_parts.append(f"{city} - {state}")
-                    else:
-                        address_parts.append(city)
+                    city = addr.get('city') or addr.get('town') or addr.get('village')
+                    if city:
+                        state = addr.get('state')
+                        if state:
+                            address_parts.append(f"{city} - {state}")
+                        else:
+                            address_parts.append(city)
 
-                formatted_address = ', '.join(filter(None, address_parts))
-                if not formatted_address:
-                    formatted_address = geocoding_data.get('display_name', '')
+                    formatted_address = ', '.join(filter(None, address_parts))
+                    if not formatted_address:
+                        formatted_address = geocoding_data.get('display_name', '')
 
-            return jsonify({
-                'success': True,
-                'endereco': formatted_address,
-                'raw_data': geocoding_data
-            })
-        else:
+                current_app.logger.info(f"✅ Endereço obtido: {formatted_address}")
+
+                return jsonify({
+                    'success': True,
+                    'endereco': formatted_address,
+                    'raw_data': geocoding_data
+                })
+                
+            except ValueError as json_error:
+                current_app.logger.error(f"❌ Erro ao parsear JSON do Nominatim: {json_error}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Resposta inválida do serviço de geocoding'
+                }), 500
+                
+        elif response.status_code == 429:
             return jsonify({
                 'success': False,
-                'error': f'Erro do serviço de geocoding: {response.status_code}'
+                'error': 'Muitas requisições. Tente novamente em alguns segundos.'
+            }), 429
+        else:
+            current_app.logger.error(f"❌ Nominatim retornou status: {response.status_code}")
+            return jsonify({
+                'success': False,
+                'error': f'Serviço de geocoding indisponível (código {response.status_code})'
             }), 500
 
     except requests.exceptions.Timeout:
+        current_app.logger.error("❌ Timeout na requisição para Nominatim")
         return jsonify({
             'success': False,
-            'error': 'Timeout ao obter endereço'
+            'error': 'Timeout ao obter endereço. Tente novamente.'
+        }), 500
+    except requests.exceptions.ConnectionError:
+        current_app.logger.error("❌ Erro de conexão com Nominatim")
+        return jsonify({
+            'success': False,
+            'error': 'Erro de conexão com serviço de endereços'
         }), 500
     except requests.exceptions.RequestException as e:
+        current_app.logger.error(f"❌ Erro de rede: {str(e)}")
         return jsonify({
             'success': False,
             'error': f'Erro de rede: {str(e)}'
         }), 500
     except Exception as e:
-        current_app.logger.error(f"Erro no reverse geocoding: {str(e)}")
+        current_app.logger.error(f"❌ Erro crítico no reverse geocoding: {str(e)}")
         return jsonify({
             'success': False,
             'error': 'Erro interno do servidor'

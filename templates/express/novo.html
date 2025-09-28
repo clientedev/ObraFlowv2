@@ -909,8 +909,23 @@ function captureCurrentLocation() {
                     longitude: lon
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('🌍 Response status:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Resposta não é JSON válido');
+                }
+                
+                return response.json();
+            })
             .then(data => {
+                console.log('🌍 Response data:', data);
+                
                 if (data.success && data.endereco) {
                     let formattedAddress = data.endereco;
 
@@ -925,13 +940,13 @@ function captureCurrentLocation() {
                     }
 
                     // Mostrar mensagem de sucesso com endereço formatado
-                        if (locationAddress) {
-                            locationAddress.textContent = formattedAddress;
-                        }
+                    if (locationAddress) {
+                        locationAddress.textContent = formattedAddress;
+                    }
 
-                        if (successMessage) {
-                            successMessage.classList.remove('d-none');
-                        }
+                    if (successMessage) {
+                        successMessage.classList.remove('d-none');
+                    }
 
                     // Esconder seção manual se necessário
                     if (manualSection) {
@@ -941,7 +956,7 @@ function captureCurrentLocation() {
                     console.log('✅ Endereço obtido:', formattedAddress);
                 } else {
                     // Fallback para coordenadas se o proxy falhar ou não retornar endereço
-                    console.error('Erro no proxy de geocoding:', data.error || 'Endereço não retornado');
+                    console.error('❌ Erro no proxy de geocoding:', data.error || 'Endereço não retornado');
                     const fallbackAddress = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
                     if (enderecoField) {
                         enderecoField.value = fallbackAddress;
@@ -952,10 +967,15 @@ function captureCurrentLocation() {
                     if (successMessage) {
                         successMessage.classList.remove('d-none');
                     }
+                    
+                    // Mostrar erro para o usuário se disponível
+                    if (data.error) {
+                        console.warn('⚠️ Motivo:', data.error);
+                    }
                 }
             })
             .catch(error => {
-                console.error('Erro ao obter endereço via proxy:', error);
+                console.error('❌ Erro ao obter endereço via proxy:', error);
 
                 // Mesmo com erro no geocoding, salvar as coordenadas
                 const fallbackAddress = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
@@ -971,6 +991,12 @@ function captureCurrentLocation() {
                 if (successMessage) {
                     successMessage.classList.remove('d-none');
                 }
+                
+                // Log do erro específico
+                console.error('❌ Detalhes do erro:', {
+                    message: error.message,
+                    stack: error.stack
+                });
             })
             .finally(() => {
                 // Restaurar botão
