@@ -1754,10 +1754,7 @@ function handleCategoryTouch(e) {
     selectPhotoCategory(category, this);
 }
 
-// Localização GPS
-document.getElementById('getLocationBtn').addEventListener('click', function() {
-    getCurrentLocation(this);
-});
+// Event listener para localização removido - elemento não existe no template
 
 function getCurrentLocation(btn) {
     const originalText = btn.innerHTML;
