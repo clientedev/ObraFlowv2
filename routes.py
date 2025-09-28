@@ -791,12 +791,22 @@ def reports():
             # Contar total primeiro
             total_count = base_query.count()
             current_app.logger.info(f"📊 Total de relatórios encontrados: {total_count}")
+            
+            # Log da query SQL para debug (apenas em desenvolvimento)
+            if current_app.debug or current_app.config.get('SQLALCHEMY_ECHO'):
+                current_app.logger.debug(f"🔍 SQL Query: {str(base_query)}")
 
             # Buscar os relatórios da página atual
             offset_value = (page - 1) * 10
             relatorios_list = base_query.order_by(Relatorio.created_at.desc()).offset(offset_value).limit(10).all()
 
             current_app.logger.info(f"✅ {len(relatorios_list)} relatórios carregados para página {page}")
+            
+            # Log detalhado dos relatórios encontrados
+            if relatorios_list:
+                current_app.logger.info(f"📋 Primeiros relatórios: {[r.numero for r in relatorios_list[:3]]}")
+            else:
+                current_app.logger.info("📋 Nenhum relatório encontrado na consulta")
 
             # Criar paginação manual simples
             class SimplePagination:
@@ -878,9 +888,22 @@ def reports():
 
     except Exception as e:
         current_app.logger.exception(f"❌ ERRO CRÍTICO /reports: {str(e)}")
+        
+        # Verificar se é um erro grave (tabela não encontrada, conexão perdida, etc.)
+        error_str = str(e).lower()
+        is_critical_error = any(keyword in error_str for keyword in [
+            'table', 'relation', 'column', 'connection', 'database', 'does not exist'
+        ])
+        
+        if is_critical_error:
+            current_app.logger.critical(f"🚨 ERRO CRÍTICO DE INFRAESTRUTURA: {str(e)}")
+            flash('Erro crítico no sistema. Verifique a configuração do banco de dados.', 'error')
+        else:
+            current_app.logger.warning(f"⚠️ Erro temporário na listagem de relatórios: {str(e)}")
+            flash('Erro temporário ao carregar relatórios. Tente novamente.', 'warning')
 
-        # Em caso de erro crítico, retornar lista vazia
-        class CriticalErrorPagination:
+        # Em caso de erro, retornar lista vazia mas funcional
+        class EmptyPagination:
             def __init__(self):
                 self.items = []
                 self.total = 0
@@ -893,8 +916,7 @@ def reports():
             def iter_pages(self):
                 return []
 
-        flash('Erro ao carregar relatórios. Sistema em modo de recuperação.', 'error')
-        return render_template('reports/list.html', relatorios=CriticalErrorPagination())
+        return render_template('reports/list.html', relatorios=EmptyPagination())
 
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
