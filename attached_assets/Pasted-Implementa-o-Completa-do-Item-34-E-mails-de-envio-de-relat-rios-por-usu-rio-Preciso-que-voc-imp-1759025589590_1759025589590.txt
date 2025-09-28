@@ -1,0 +1,79 @@
+Implementação Completa do Item 34 (E-mails de envio de relatórios por usuário)
+
+Preciso que você implemente o Item 34 – E-mails de envio de relatórios no meu sistema, garantindo que tudo esteja funcional, integrado ao PostgreSQL (Railway) e com tela de gerenciamento no painel admin.
+
+🎯 Requisitos funcionais:
+
+Banco de Dados (Alembic Migration):
+
+Criar tabela user_email_config com os campos:
+
+id (PK)
+
+user_id (FK → users.id, ON DELETE CASCADE, UNIQUE)
+
+smtp_server (VARCHAR, obrigatório)
+
+smtp_port (INTEGER, obrigatório)
+
+email_address (VARCHAR, obrigatório)
+
+email_password (VARCHAR, armazenado criptografado ou base64)
+
+use_tls (BOOLEAN, default=True)
+
+use_ssl (BOOLEAN, default=False)
+
+created_at e updated_at
+
+Garantir que o Alembic gere a migration correta e que seja aplicada no Railway sem erro.
+
+Envio de relatórios:
+
+Quando um relatório for preenchido, deve ser enviado pelo e-mail configurado do usuário que preencheu.
+
+Quando for aprovado, deve ser enviado pelo e-mail configurado do aprovador.
+
+Sempre enviar cópia automática (CC) para o outro usuário envolvido (exemplo: se enviado pelo preenchedor, copia o aprovador, e vice-versa).
+
+Se o usuário não tiver configuração própria → usar o e-mail padrão do sistema (configuracao_email).
+
+Interface de Administração:
+
+Criar uma tela acessível apenas a administradores no painel de administração:
+
+Listar usuários e suas configurações de e-mail.
+
+Permitir adicionar/editar/excluir configuração de e-mail de cada usuário.
+
+Campos obrigatórios: Servidor SMTP, Porta, E-mail, Senha, TLS/SSL.
+
+Validar se o e-mail funciona antes de salvar (teste de conexão SMTP rápido).
+
+Integração Backend:
+
+No envio de relatórios, buscar a configuração do usuário em user_email_config.
+
+Caso exista, utilizar essas credenciais SMTP.
+
+Caso não exista, fallback para configuracao_email.
+
+Registrar em log_envio_emails qual conta foi usada para o envio.
+
+Restrições:
+
+Apenas administradores podem visualizar/editar configurações de e-mail de usuários.
+
+Usuários comuns não podem ver ou alterar essas configurações.
+
+✅ Resultado esperado:
+
+Relatórios são enviados dinamicamente pela conta do usuário que preencheu/aprovou.
+
+Cópia (CC) automática para o outro responsável.
+
+Tela de gerenciamento completa no painel admin para configurar e-mails por usuário.
+
+Fallback garantido para o e-mail padrão.
+
+Logs atualizados mostrando a conta usada no envio.
