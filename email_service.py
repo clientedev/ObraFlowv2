@@ -21,15 +21,26 @@ class EmailService:
     def __init__(self):
         self.mail = None
     
-    def configure_smtp(self, config):
-        """Configurar SMTP baseado na configuração"""
-        current_app.config['MAIL_SERVER'] = config.servidor_smtp
-        current_app.config['MAIL_PORT'] = config.porta_smtp
-        current_app.config['MAIL_USE_TLS'] = config.use_tls
-        current_app.config['MAIL_USE_SSL'] = config.use_ssl
-        current_app.config['MAIL_USERNAME'] = config.email_remetente
-        current_app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')
-        current_app.config['MAIL_DEFAULT_SENDER'] = (config.nome_remetente, config.email_remetente)
+    def configure_smtp(self, config, user_config=None):
+        """Configurar SMTP baseado na configuração do sistema ou usuário"""
+        if user_config:
+            # Usar configuração específica do usuário
+            current_app.config['MAIL_SERVER'] = user_config.smtp_server
+            current_app.config['MAIL_PORT'] = user_config.smtp_port
+            current_app.config['MAIL_USE_TLS'] = user_config.use_tls
+            current_app.config['MAIL_USE_SSL'] = user_config.use_ssl
+            current_app.config['MAIL_USERNAME'] = user_config.email_address
+            current_app.config['MAIL_PASSWORD'] = user_config.get_password()
+            current_app.config['MAIL_DEFAULT_SENDER'] = user_config.email_address
+        else:
+            # Usar configuração do sistema (fallback)
+            current_app.config['MAIL_SERVER'] = config.servidor_smtp
+            current_app.config['MAIL_PORT'] = config.porta_smtp
+            current_app.config['MAIL_USE_TLS'] = config.use_tls
+            current_app.config['MAIL_USE_SSL'] = config.use_ssl
+            current_app.config['MAIL_USERNAME'] = config.email_remetente
+            current_app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')
+            current_app.config['MAIL_DEFAULT_SENDER'] = (config.nome_remetente, config.email_remetente)
         
         self.mail = Mail(current_app)
         return True
@@ -37,6 +48,11 @@ class EmailService:
     def get_configuracao_ativa(self):
         """Buscar configuração de email ativa"""
         return ConfiguracaoEmail.query.filter_by(ativo=True).first()
+    
+    def get_user_email_config(self, user_id):
+        """Buscar configuração de email específica do usuário"""
+        from models import UserEmailConfig
+        return UserEmailConfig.query.filter_by(user_id=user_id).first()
     
     def enviar_relatorio_por_email(self, relatorio, destinatarios_data, usuario_id):
         """
@@ -54,27 +70,50 @@ class EmailService:
             usuario_id: ID do usuário que está enviando
         """
         try:
-            # Buscar configuração ativa
-            config = self.get_configuracao_ativa()
-            if not config:
-                raise Exception("Nenhuma configuração de e-mail ativa encontrada")
+            # Buscar configuração específica do usuário primeiro
+            user_config = self.get_user_email_config(usuario_id)
             
-            # Configurar SMTP
-            self.configure_smtp(config)
+            # Se não houver configuração do usuário, usar configuração do sistema
+            system_config = None
+            if not user_config:
+                system_config = self.get_configuracao_ativa()
+                if not system_config:
+                    raise Exception("Nenhuma configuração de e-mail encontrada (nem do usuário nem do sistema)")
+            
+            # Configurar SMTP (prioridade: usuário > sistema)
+            self.configure_smtp(system_config, user_config)
+            
+            # Determinar qual configuração está sendo usada para logging
+            config_usado = user_config if user_config else system_config
+            email_remetente = user_config.email_address if user_config else system_config.email_remetente
             
             # Preparar dados do e-mail
             projeto = relatorio.projeto
             data_visita = relatorio.data_visita.strftime('%d/%m/%Y') if relatorio.data_visita else 'N/A'
             data_atual = datetime.now().strftime('%d/%m/%Y')
             
-            # Gerar assunto
-            assunto = destinatarios_data.get('assunto_custom') or config.template_assunto.format(
-                projeto_nome=projeto.nome,
-                data=data_atual
-            )
+            # Gerar assunto (usar templates do sistema se disponível)
+            if destinatarios_data.get('assunto_custom'):
+                assunto = destinatarios_data['assunto_custom']
+            elif system_config and system_config.template_assunto:
+                assunto = system_config.template_assunto.format(
+                    projeto_nome=projeto.nome,
+                    data=data_atual
+                )
+            else:
+                assunto = f"Relatório de Visita - {projeto.nome} - {data_atual}"
             
-            # Gerar corpo do e-mail
-            corpo_base = destinatarios_data.get('corpo_custom') or config.template_corpo
+            # Gerar corpo do e-mail (usar templates do sistema se disponível)
+            if destinatarios_data.get('corpo_custom'):
+                corpo_base = destinatarios_data['corpo_custom']
+            elif system_config and system_config.template_corpo:
+                corpo_base = system_config.template_corpo
+            else:
+                corpo_base = """
+                <p>Olá {nome_cliente},</p>
+                <p>Segue anexo o relatório de visita do projeto {projeto_nome} realizada em {data_visita}.</p>
+                <p>Atenciosamente,<br>Equipe ELP Consultoria</p>
+                """
             
             # Lista para armazenar logs de cada envio
             logs_envio = []
@@ -97,11 +136,16 @@ class EmailService:
                         projeto_nome=projeto.nome
                     )
                     
+                    # Implementar CC automático - adicionar email do usuário se usando conta pessoal
+                    cc_emails = destinatarios_data.get('cc', []).copy()
+                    if user_config and user_config.email_address not in cc_emails:
+                        cc_emails.append(user_config.email_address)
+                    
                     # Criar mensagem
                     msg = Message(
                         subject=assunto,
                         recipients=[email_dest],
-                        cc=destinatarios_data.get('cc', []),
+                        cc=cc_emails,
                         bcc=destinatarios_data.get('bcc', []),
                         html=corpo_html
                     )
@@ -121,17 +165,19 @@ class EmailService:
                     # Enviar e-mail
                     self.mail.send(msg)
                     
-                    # Log de sucesso
+                    # Log de sucesso com informação da conta usada
                     log_envio = LogEnvioEmail(
                         projeto_id=projeto.id,
                         relatorio_id=relatorio.id,
                         usuario_id=usuario_id,
                         destinatarios=json.dumps([email_dest]),
-                        cc=json.dumps(destinatarios_data.get('cc', [])),
+                        cc=json.dumps(cc_emails),
                         bcc=json.dumps(destinatarios_data.get('bcc', [])),
                         assunto=assunto,
                         status='enviado'
                     )
+                    # Adicionar informação da conta utilizada para envio no campo de erro (temporário)
+                    log_envio.erro_detalhes = f"Enviado via: {email_remetente} ({'Conta pessoal' if user_config else 'Conta sistema'})"
                     logs_envio.append(log_envio)
                     
                     # Limpar arquivo PDF temporário
@@ -142,17 +188,20 @@ class EmailService:
                             pass
                     
                 except Exception as e:
-                    # Log de erro
+                    # Para erros, usar CC original pois cc_emails pode não estar definido
+                    cc_fallback = destinatarios_data.get('cc', [])
+                    
+                    # Log de erro com informação da conta usada
                     log_envio = LogEnvioEmail(
                         projeto_id=projeto.id,
                         relatorio_id=relatorio.id,
                         usuario_id=usuario_id,
                         destinatarios=json.dumps([email_dest]),
-                        cc=json.dumps(destinatarios_data.get('cc', [])),
+                        cc=json.dumps(cc_fallback),
                         bcc=json.dumps(destinatarios_data.get('bcc', [])),
                         assunto=assunto,
                         status='falhou',
-                        erro_detalhes=str(e)
+                        erro_detalhes=f"Erro: {str(e)} | Tentativa via: {email_remetente} ({'Conta pessoal' if user_config else 'Conta sistema'})"
                     )
                     logs_envio.append(log_envio)
             
@@ -236,13 +285,21 @@ class EmailService:
             usuario_id: ID do usuário que está enviando (aprovador)
         """
         try:
-            # Buscar configuração ativa
-            config = self.get_configuracao_ativa()
-            if not config:
-                raise Exception("Nenhuma configuração de e-mail ativa encontrada")
+            # Buscar configuração específica do usuário primeiro
+            user_config = self.get_user_email_config(usuario_id)
             
-            # Configurar SMTP
-            self.configure_smtp(config)
+            # Se não houver configuração do usuário, usar configuração do sistema
+            system_config = None
+            if not user_config:
+                system_config = self.get_configuracao_ativa()
+                if not system_config:
+                    raise Exception("Nenhuma configuração de e-mail encontrada (nem do usuário nem do sistema)")
+            
+            # Configurar SMTP (prioridade: usuário > sistema)
+            self.configure_smtp(system_config, user_config)
+            
+            # Determinar qual configuração está sendo usada para logging
+            email_remetente = user_config.email_address if user_config else system_config.email_remetente
             
             # Dados do relatório e projeto
             projeto = relatorio.projeto
