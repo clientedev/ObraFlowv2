@@ -79,8 +79,7 @@ from google_drive_backup import backup_to_drive, test_drive_connection
 import math
 import json
 
-# Importar rotas de e-mail
-import routes_email
+# Rotas de e-mail movidas para routes_email.py - import removido para evitar conflito de endpoints
 
 # Função helper para verificar se usuário é aprovador
 def current_user_is_aprovador(projeto_id=None):

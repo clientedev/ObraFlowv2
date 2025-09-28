@@ -21,6 +21,7 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):
 
 # Run the Flask development server
 if __name__ == '__main__':
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    import routes_email  # noqa: F401
+
+    logging.info("🌐 Starting Flask server...")
+    app.run(host='0.0.0.0', port=5000, debug=False)
