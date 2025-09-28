@@ -1,0 +1,74 @@
+Pasted-Implementa-o-do-Item-34-E-mails-de-envio-de-relat-rios-por-usu-rio-Preciso-que-voc-ajuste-o-sis-1759021946270_1759021946270.txt
+Implementação do Item 34 (E-mails de envio de relatórios por usuário)
+
+Preciso que você ajuste o sistema para que os relatórios possam ser enviados de acordo com o usuário responsável pela ação (quem preencheu ou aprovou), e não apenas pelo e-mail único configurado atualmente.
+
+Requisitos:
+
+Banco de Dados (PostgreSQL via Alembic):
+
+Criar uma tabela chamada user_email_config com os campos:
+
+id (PK)
+
+user_id (FK → users.id, ON DELETE CASCADE)
+
+smtp_server (VARCHAR)
+
+smtp_port (INTEGER)
+
+email_address (VARCHAR)
+
+email_password (VARCHAR, criptografado ou base64)
+
+use_tls (BOOLEAN, default=True)
+
+use_ssl (BOOLEAN, default=False)
+
+created_at e updated_at
+
+Essa configuração só poderá ser editada/visualizada por usuários administradores.
+
+Fluxo de envio de relatórios:
+
+Quando um relatório for preenchido, deve ser enviado pelo e-mail do usuário que preencheu.
+
+Quando um relatório for aprovado, deve ser enviado pelo e-mail do usuário aprovador.
+
+Sempre que o relatório for enviado, adicionar cópia (CC) automática para o outro responsável (exemplo: se foi enviado pelo preenchedor, copia o aprovador; se foi enviado pelo aprovador, copia o preenchedor).
+
+Fallback:
+
+Se o usuário não tiver configuração própria de e-mail, o sistema deve utilizar o e-mail padrão já existente em configuracao_email.
+
+Interface/Administração:
+
+Criar uma tela no painel de administração para gerenciar as configurações de e-mail por usuário (user_email_config).
+
+Apenas administradores podem criar/editar/excluir essas configurações.
+
+Envio real de e-mails:
+
+No momento de enviar, o sistema deve:
+
+Consultar se o usuário possui configuração própria em user_email_config.
+
+Se sim, usar essas credenciais SMTP para envio.
+
+Caso contrário, usar o e-mail padrão do sistema.
+
+Registro de envios:
+
+Atualizar a tabela log_envio_emails para registrar qual conta de e-mail foi usada para o envio do relatório.
+
+✅ Resumo esperado:
+
+Relatórios não usam mais só o e-mail fixo → agora podem ser enviados pela conta do usuário responsável.
+
+Cópia automática para aprovador/preenchedor.
+
+Administração de contas de e-mail por usuário (apenas admins).
+
+Fallback garantido caso o usuário não tenha e-mail configurado.
+
+Logs de envio atualizados com a conta utilizada.
