@@ -2,6 +2,7 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from app import db
+import base64
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -32,6 +33,35 @@ class User(UserMixin, db.Model):
             return current_user_is_aprovador()
         except Exception:
             return False
+
+class UserEmailConfig(db.Model):
+    """Configuração de e-mail por usuário para envio de relatórios"""
+    __tablename__ = 'user_email_config'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True)
+    smtp_server = db.Column(db.String(255), nullable=False)
+    smtp_port = db.Column(db.Integer, nullable=False, default=587)
+    email_address = db.Column(db.String(255), nullable=False)
+    email_password = db.Column(db.Text, nullable=False)  # Base64 encoded password
+    use_tls = db.Column(db.Boolean, nullable=False, default=True)
+    use_ssl = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    user = db.relationship('User', backref='email_config')
+    
+    def set_password(self, password):
+        """Encode password using base64"""
+        self.email_password = base64.b64encode(password.encode()).decode()
+    
+    def get_password(self):
+        """Decode password from base64"""
+        return base64.b64decode(self.email_password.encode()).decode()
+    
+    def __repr__(self):
+        return f'<UserEmailConfig {self.email_address} for user {self.user_id}>'
 
 class TipoObra(db.Model):
     __tablename__ = 'tipos_obra'
