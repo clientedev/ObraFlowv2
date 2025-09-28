@@ -76,3 +76,4 @@ SQLAlchemy
 weasyprint
 Werkzeug
 WTForms
+cryptography

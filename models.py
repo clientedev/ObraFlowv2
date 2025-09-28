@@ -2,7 +2,8 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from app import db
-import base64
+import os
+from cryptography.fernet import Fernet
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -53,12 +54,28 @@ class UserEmailConfig(db.Model):
     user = db.relationship('User', backref='email_config')
     
     def set_password(self, password):
-        """Encode password using base64"""
-        self.email_password = base64.b64encode(password.encode()).decode()
+        """Encrypt password using Fernet encryption"""
+        key = self._get_encryption_key()
+        f = Fernet(key)
+        encrypted_password = f.encrypt(password.encode())
+        self.email_password = encrypted_password.decode()
     
     def get_password(self):
-        """Decode password from base64"""
-        return base64.b64decode(self.email_password.encode()).decode()
+        """Decrypt password using Fernet encryption"""
+        key = self._get_encryption_key()
+        f = Fernet(key)
+        decrypted_password = f.decrypt(self.email_password.encode())
+        return decrypted_password.decode()
+    
+    def _get_encryption_key(self):
+        """Get encryption key for password encryption - REQUIRED environment variable"""
+        key = os.environ.get('EMAIL_PASSWORD_ENCRYPTION_KEY')
+        if not key:
+            raise ValueError(
+                "EMAIL_PASSWORD_ENCRYPTION_KEY environment variable is required for user email password encryption. "
+                "Generate a key using: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
+            )
+        return key.encode() if isinstance(key, str) else key
     
     def __repr__(self):
         return f'<UserEmailConfig {self.email_address} for user {self.user_id}>'
