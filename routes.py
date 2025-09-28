@@ -1034,8 +1034,10 @@ def create_report():
         try:
             # Create report with explicit values
             from models import Relatorio
+            from report_numbering import generate_project_report_number
             relatorio = Relatorio()
-            relatorio.numero = generate_report_number()
+            relatorio.numero = generate_report_number()  # Keep global numbering for compatibility
+            relatorio.numero_projeto = generate_project_report_number(projeto_id)  # New project-specific numbering
             relatorio.titulo = titulo
             relatorio.projeto_id = projeto_id
             relatorio.autor_id = current_user.id
