@@ -268,12 +268,33 @@ function getCurrentLocation(button) {
     );
 }
 
-// Reverse geocoding (optional - would need an API key)
+// Reverse geocoding using backend proxy
 function reverseGeocode(lat, lng, addressInput) {
-    // This is a placeholder for reverse geocoding
-    // In a real implementation, you would use a service like Google Maps API
-    // For now, we'll just keep the coordinates
-    console.log('Reverse geocoding not implemented. Coordinates:', lat, lng);
+    if (!addressInput) return;
+
+    fetch('/api/reverse-geocoding', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
+        },
+        body: JSON.stringify({
+            latitude: lat,
+            longitude: lng
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.endereco) {
+            addressInput.value = data.endereco;
+            console.log('Endereço obtido:', data.endereco);
+        } else {
+            console.log('Não foi possível obter endereço, mantendo coordenadas');
+        }
+    })
+    .catch(error => {
+        console.log('Erro no reverse geocoding:', error);
+    });
 }
 
 // Show alert message

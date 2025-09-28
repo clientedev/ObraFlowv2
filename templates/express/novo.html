@@ -889,6 +889,7 @@ function captureCurrentLocation() {
         function(position) {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
 
             console.log('📍 Localização capturada:', lat, lon);
 
@@ -896,68 +897,65 @@ function captureCurrentLocation() {
             if (latitudeField) latitudeField.value = lat;
             if (longitudeField) longitudeField.value = lon;
 
-            // Fazer reverse geocoding para obter endereço
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1&language=pt-BR`, {
+            // Fazer reverse geocoding através do proxy do backend
+            fetch('/api/reverse-geocoding', {
+                method: 'POST',
                 headers: {
-                    'User-Agent': 'ELP-Sistema-Relatorios/1.0'
-                }
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    latitude: lat,
+                    longitude: lon
+                })
             })
             .then(response => response.json())
             .then(data => {
-                let formattedAddress = '';
+                if (data.success && data.endereco) {
+                    let formattedAddress = data.endereco;
 
-                if (data && data.address) {
-                    const addr = data.address;
-                    const addressParts = [];
-
-                    if (addr.house_number && addr.road) {
-                        addressParts.push(`${addr.road}, ${addr.house_number}`);
-                    } else if (addr.road) {
-                        addressParts.push(addr.road);
+                    // Adicionar precisão se disponível
+                    if (accuracy) {
+                        formattedAddress += ` (precisão ${Math.round(accuracy)}m)`;
                     }
 
-                    if (addr.suburb || addr.neighbourhood) {
-                        addressParts.push(addr.suburb || addr.neighbourhood);
+                    // Preencher campo de endereço automaticamente
+                    if (enderecoField) {
+                        enderecoField.value = formattedAddress;
                     }
 
-                    const city = addr.city || addr.town || addr.village;
-                    if (city) {
-                        const state = addr.state;
-                        if (state) {
-                            addressParts.push(`${city} - ${state}`);
-                        } else {
-                            addressParts.push(city);
+                    // Mostrar mensagem de sucesso com endereço formatado
+                        if (locationAddress) {
+                            locationAddress.textContent = formattedAddress;
                         }
+
+                        if (successMessage) {
+                            successMessage.classList.remove('d-none');
+                        }
+
+                    // Esconder seção manual se necessário
+                    if (manualSection) {
+                        manualSection.style.display = 'block'; // Manter visível para edição
                     }
 
-                    formattedAddress = addressParts.length > 0 ? addressParts.join(', ') : data.display_name;
+                    console.log('✅ Endereço obtido:', formattedAddress);
                 } else {
-                    formattedAddress = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
-                }
-
-                // Preencher campo de endereço automaticamente
-                if (enderecoField) {
-                    enderecoField.value = formattedAddress;
-                }
-
-                // Mostrar mensagem de sucesso com endereço formatado
-                    if (locationAddress) {
-                        locationAddress.textContent = formattedAddress;
+                    // Fallback para coordenadas se o proxy falhar ou não retornar endereço
+                    console.error('Erro no proxy de geocoding:', data.error || 'Endereço não retornado');
+                    const fallbackAddress = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
+                    if (enderecoField) {
+                        enderecoField.value = fallbackAddress;
                     }
-
+                    if (locationAddress) {
+                        locationAddress.textContent = fallbackAddress;
+                    }
                     if (successMessage) {
                         successMessage.classList.remove('d-none');
                     }
-
-                // Esconder seção manual se necessário
-                if (manualSection) {
-                    manualSection.style.display = 'block'; // Manter visível para edição
                 }
-
-                console.log('✅ Endereço obtido:', formattedAddress);
             })
             .catch(error => {
-                console.error('Erro ao obter endereço:', error);
+                console.error('Erro ao obter endereço via proxy:', error);
 
                 // Mesmo com erro no geocoding, salvar as coordenadas
                 const fallbackAddress = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
@@ -1103,7 +1101,7 @@ function showPhotoConfigurationModal(files, category) {
                 grid.appendChild(col);
 
                 // Carregar legendas para a categoria
-                loadLegends(photoId, finalCategory);
+                loadLegends(photoId, finalCategory); // Usar finalCategory aqui
 
                 console.log('🔧 CARD DEBUG: photoId =', photoId, 'categoria =', finalCategory);
             };
@@ -1116,73 +1114,8 @@ function showPhotoConfigurationModal(files, category) {
 function loadLegends(photoId, category) {
     console.log(`Carregando legendas para foto ${photoId}, categoria: ${category}`);
 
-    // Mapear categoria para formato do backend
-    const categoryMap = {
-        'Estrutura': 'Estrutural',
-        'Acabamento': 'Acabamentos',
-        'Instalações': 'Elétrica',  // ou 'Hidráulica' dependendo do contexto
-        'Problema': 'Segurança',
-        'Geral': 'Geral'
-    };
-
-    const mappedCategory = categoryMap[category] || category;
-    console.log(`Categoria mapeada: ${mappedCategory}`);
-
     const selectElement = document.querySelector(`[data-photo-id="${photoId}"] .legend-select`);
     if (!selectElement) return;
-
-    // Legendas fixas para garantir funcionamento no mobile
-    const legendas = [
-        // Acabamentos - 16 itens
-        {"categoria": "Acabamentos", "texto": "Lixamento corretamente executado"},
-        {"categoria": "Acabamentos", "texto": "Lixamento com falhas, necessário correção"},
-        {"categoria": "Acabamentos", "texto": "Lixamento executado sem preenchimento do encunhamento. Preenchimentos devem ser executados antes do lixamento"},
-        {"categoria": "Acabamentos", "texto": "Lixamento executado sem preenchimento de chupetas. Preenchimentos devem ser executados antes do lixamento"},
-        {"categoria": "Acabamentos", "texto": "Necessário retirada do excesso de massa da junta dos blocos de alvenaria"},
-        {"categoria": "Acabamentos", "texto": "Necessário retirada de etiquetas"},
-        {"categoria": "Acabamentos", "texto": "Necessário retirada de madeiras encrustadas no concreto"},
-        {"categoria": "Acabamentos", "texto": "Necessário preenchimento das juntas dos blocos"},
-        {"categoria": "Acabamentos", "texto": "Pendente lixamento das requadrações superiores dos caixilhos"},
-        {"categoria": "Acabamentos", "texto": "Necessário retirada de pregos"},
-        {"categoria": "Acabamentos", "texto": "Necessário retirada de pó de serra incrustado no concreto"},
-        {"categoria": "Acabamentos", "texto": "Emboço bem-acabado"},
-        {"categoria": "Acabamentos", "texto": "Emboço mal-acabado"},
-        {"categoria": "Acabamentos", "texto": "Friso torto"},
-        {"categoria": "Acabamentos", "texto": "Friso com profundidade irregular"},
-        {"categoria": "Acabamentos", "texto": "Pingadeira mal-acabada"},
-
-        // Estrutural - 18 itens
-        {"categoria": "Estrutural", "texto": "Ordem de execução do chapisco incorreta. Necessário execução do chapisco desempenado na estrutura antes da execução do chapisco de areia e cimento"},
-        {"categoria": "Estrutural", "texto": "Chapisco corretamente executado"},
-        {"categoria": "Estrutural", "texto": "Chapisco com dentes baixos"},
-        {"categoria": "Estrutural", "texto": "Chapisco com falhas. Necessário correção"},
-        {"categoria": "Estrutural", "texto": "Lavagem correta"},
-        {"categoria": "Estrutural", "texto": "Falha de lavagem"},
-        {"categoria": "Estrutural", "texto": "Pendente chapiscamento das massas de chumbamento dos contramarcos"},
-        {"categoria": "Estrutural", "texto": "Chapisco com resistência baixa"},
-        {"categoria": "Estrutural", "texto": "Chapisco com resistência atingida"},
-        {"categoria": "Estrutural", "texto": "Emboço executado corretamente"},
-        {"categoria": "Estrutural", "texto": "Emboço executado com projeção mecânica"},
-        {"categoria": "Estrutural", "texto": "Emboço executado manualmente"},
-        {"categoria": "Estrutural", "texto": "Cheia de massa sem reforço"},
-        {"categoria": "Estrutural", "texto": "Reforço corretamente executado"},
-        {"categoria": "Estrutural", "texto": "Emboço com traço incorreto"},
-        {"categoria": "Estrutural", "texto": "Emboço com traço correto"},
-        {"categoria": "Estrutural", "texto": "Telas corretamente posicionadas"},
-        {"categoria": "Estrutural", "texto": "Caída invertida"},
-
-        // Geral - 6 itens
-        {"categoria": "Geral", "texto": "Evidenciado pó de cimento aplicado sobre emboço. Necessário retirada completa. Proibido a utilização de pó de cimento"},
-        {"categoria": "Geral", "texto": "Evidenciado pó de gesso aplicado sobre emboço. Necessário retirada completa. Proibido a utilização de pó de gesso"},
-        {"categoria": "Geral", "texto": "Uso de talisca de madeira. Necessário retirada. É proibido o uso de talisca de madeira"},
-        {"categoria": "Geral", "texto": "Não evidenciado uso de chapisco colante antes da aplicação do emboço sobre mureta"},
-        {"categoria": "Geral", "texto": "Não evidenciado uso de chapisco colante antes da aplicação do emboço sobre aba"},
-        {"categoria": "Geral", "texto": "Uso incorreto de chapisco colante em pó sobre superfície"},
-
-        // Segurança - 2 itens
-        {"categoria": "Segurança", "texto": "Pendente corte dos ganchos"},
-        {"categoria": "Segurança", "texto": "Pendente tratamentos dos ganchos cortados com pintura anti-corrosiva tipo zarcão"}
-    ];
 
     // COMUNICAÇÃO OBRIGATÓRIA COM BANCO DE DADOS POSTGRESQL
     selectElement.innerHTML = '<option value="">🔗 Conectando com banco...</option>';
@@ -1190,7 +1123,7 @@ function loadLegends(photoId, category) {
 
     // Comunicação direta com API PostgreSQL - SEM FALLBACK
     const xhr = new XMLHttpRequest();
-    xhr.open('GET', `/api/legendas?categoria=all&t=${Date.now()}`, true);
+    xhr.open('GET', `/api/legendas?categoria=${encodeURIComponent(category)}&t=${Date.now()}`, true);
     xhr.timeout = 30000; // 30 segundos para garantir conexão
 
     // Configurar headers para mobile
@@ -1209,40 +1142,26 @@ function loadLegends(photoId, category) {
                     // SUCESSO: Dados carregados do PostgreSQL
                     selectElement.innerHTML = '<option value="">📊 Selecione uma legenda...</option>';
 
-                    const cats = {
-                        'Acabamentos': [],
-                        'Estrutural': [],
-                        'Geral': [],
-                        'Segurança': []
-                    };
+                    const legendasFiltradas = data.legendas.filter(leg => leg.categoria === category);
 
-                    // Organizar por categoria
-                    data.legendas.forEach(leg => {
-                        if (cats[leg.categoria]) {
-                            cats[leg.categoria].push(leg);
-                        }
-                    });
+                    if (legendasFiltradas.length > 0) {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = `${category} (${legendasFiltradas.length} itens do BD)`;
 
-                    // Criar optgroups organizados
-                    Object.keys(cats).forEach(cat => {
-                        if (cats[cat].length > 0) {
-                            const optgroup = document.createElement('optgroup');
-                            optgroup.label = `${cat} (${cats[cat].length} itens do BD)`;
+                        legendasFiltradas.forEach(legenda => {
+                            const option = document.createElement('option');
+                            option.value = legenda.texto;
+                            option.textContent = legenda.texto;
+                            option.setAttribute('data-id', legenda.id);
+                            option.setAttribute('data-categoria', legenda.categoria);
+                            optgroup.appendChild(option);
+                        });
+                        selectElement.appendChild(optgroup);
+                    } else {
+                         selectElement.innerHTML = '<option value="">ℹ️ Nenhuma legenda encontrada para esta categoria no BD</option>';
+                    }
 
-                            cats[cat].forEach(legenda => {
-                                const option = document.createElement('option');
-                                option.value = legenda.texto;
-                                option.textContent = legenda.texto;
-                                option.setAttribute('data-id', legenda.id);
-                                option.setAttribute('data-categoria', legenda.categoria);
-                                optgroup.appendChild(option);
-                            });
-
-                            selectElement.appendChild(optgroup);
-                        }
-                    });
-
-                    console.log(`✅ MOBILE DB: ${data.total} legendas carregadas do PostgreSQL!`);
+                    console.log(`✅ MOBILE DB: ${legendasFiltradas.length} legendas carregadas do PostgreSQL para ${category}!`);
 
                 } else {
                     // ERRO: API funcionou mas sem dados
@@ -1763,65 +1682,65 @@ function getCurrentLocation(btn) {
             document.getElementById('latitude').value = lat;
             document.getElementById('longitude').value = lon;
 
-            // Fazer reverse geocoding para obter o endereço
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`)
-                .then(response => response.json())
-                .then(data => {
-                    let addressText = '';
+            // Fazer reverse geocoding através do proxy do backend
+            fetch('/api/reverse-geocoding', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    latitude: lat,
+                    longitude: lon
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.endereco) {
+                    let formattedAddress = data.endereco;
 
-                    if (data && data.display_name) {
-                        // Preencher o campo de endereço (hidden)
-                        const enderecoField = document.getElementById('endereco_visita');
-                        if (enderecoField) {
-                            enderecoField.value = data.display_name;
-                        }
+                    // Adicionar precisão se disponível
+                    if (accuracy) {
+                        formattedAddress += ` (precisão ${Math.round(accuracy)}m)`;
+                    }
 
-                        // Formatar endereço para exibição como na referência
-                        const address = data.address || {};
-                        const road = address.road || '';
-                        const suburb = address.suburb || address.neighbourhood || '';
-                        const city = address.city || address.town || address.village || '';
-                        const state = address.state || '';
-
-                        if (road && suburb && city && state) {
-                            addressText = `${road}, ${suburb}, ${city} - ${state}`;
-                        } else {
-                            addressText = data.display_name;
-                        }
-
-                        // Adicionar precisão se disponível
-                        if (accuracy) {
-                            addressText += ` (precisão ${Math.round(accuracy)}m)`;
-                        }
-                    } else {
-                        // Fallback para coordenadas
-                        addressText = `Localização: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
-                        if (accuracy) {
-                            addressText += ` (precisão ${Math.round(accuracy)}m)`;
-                        }
-
-                        const enderecoField = document.getElementById('endereco_visita');
-                        if (enderecoField) {
-                            enderecoField.value = addressText;
-                        }
+                    // Preencher o campo de endereço (hidden)
+                    const enderecoField = document.getElementById('endereco_visita');
+                    if (enderecoField) {
+                        enderecoField.value = formattedAddress;
                     }
 
                     // Mostrar mensagem de sucesso
-                    showLocationSuccess(addressText);
-                })
-                .catch(error => {
-                    console.log('Erro ao obter endereço:', error);
-                    // Fallback para coordenadas
-                    const addressText = `Localização: ${lat.toFixed(6)}, ${lon.toFixed(6)}` + 
-                                      (accuracy ? ` (precisão ${Math.round(accuracy)}m)` : '');
+                    showLocationSuccess(formattedAddress);
+                } else {
+                    // Fallback para coordenadas se o proxy falhar ou não retornar endereço
+                    console.error('Erro no proxy de geocoding:', data.error || 'Endereço não retornado');
+                    const fallbackAddress = `Localização: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                    if (accuracy) {
+                        fallbackAddress += ` (precisão ${Math.round(accuracy)}m)`;
+                    }
 
                     const enderecoField = document.getElementById('endereco_visita');
                     if (enderecoField) {
-                        enderecoField.value = addressText;
+                        enderecoField.value = fallbackAddress;
                     }
+                    showLocationSuccess(fallbackAddress);
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao obter endereço via proxy:', error);
+                // Fallback para coordenadas
+                const fallbackAddress = `Localização: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                if (accuracy) {
+                    fallbackAddress += ` (precisão ${Math.round(accuracy)}m)`;
+                }
 
-                    showLocationSuccess(addressText);
-                });
+                const enderecoField = document.getElementById('endereco_visita');
+                if (enderecoField) {
+                    enderecoField.value = fallbackAddress;
+                }
+                showLocationSuccess(fallbackAddress);
+            });
 
             // Resetar botão
             btn.innerHTML = originalText;

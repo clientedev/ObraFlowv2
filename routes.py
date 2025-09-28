@@ -375,6 +375,95 @@ def api_dashboard_stats():
         'is_master': current_user.is_master
     })
 
+# Proxy route for reverse geocoding to avoid CORS issues
+@app.route('/api/reverse-geocoding', methods=['POST'])
+@login_required
+def reverse_geocoding():
+    """Proxy para reverse geocoding usando Nominatim - evita problemas de CORS"""
+    try:
+        data = request.get_json()
+        if not data or 'latitude' not in data or 'longitude' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Latitude e longitude são obrigatórias'
+            }), 400
+
+        lat = data['latitude']
+        lon = data['longitude']
+
+        # Fazer requisição para Nominatim através do servidor
+        import requests
+        url = f"https://nominatim.openstreetmap.org/reverse"
+        params = {
+            'format': 'json',
+            'lat': lat,
+            'lon': lon,
+            'addressdetails': 1,
+            'language': 'pt-BR'
+        }
+        headers = {
+            'User-Agent': 'ELP-Sistema-Relatorios/1.0 (https://elpconsultoria.pro)'
+        }
+
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            geocoding_data = response.json()
+            
+            # Formatar endereço
+            formatted_address = ''
+            if geocoding_data and geocoding_data.get('address'):
+                addr = geocoding_data['address']
+                address_parts = []
+
+                if addr.get('house_number') and addr.get('road'):
+                    address_parts.append(f"{addr['road']}, {addr['house_number']}")
+                elif addr.get('road'):
+                    address_parts.append(addr['road'])
+
+                if addr.get('suburb') or addr.get('neighbourhood'):
+                    address_parts.append(addr.get('suburb') or addr.get('neighbourhood'))
+
+                city = addr.get('city') or addr.get('town') or addr.get('village')
+                if city:
+                    state = addr.get('state')
+                    if state:
+                        address_parts.append(f"{city} - {state}")
+                    else:
+                        address_parts.append(city)
+
+                formatted_address = ', '.join(filter(None, address_parts))
+                if not formatted_address:
+                    formatted_address = geocoding_data.get('display_name', '')
+
+            return jsonify({
+                'success': True,
+                'endereco': formatted_address,
+                'raw_data': geocoding_data
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Erro do serviço de geocoding: {response.status_code}'
+            }), 500
+
+    except requests.exceptions.Timeout:
+        return jsonify({
+            'success': False,
+            'error': 'Timeout ao obter endereço'
+        }), 500
+    except requests.exceptions.RequestException as e:
+        return jsonify({
+            'success': False,
+            'error': f'Erro de rede: {str(e)}'
+        }), 500
+    except Exception as e:
+        current_app.logger.error(f"Erro no reverse geocoding: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
+
 # Authentication routes
 @app.route('/login', methods=['GET', 'POST'])
 def login():
