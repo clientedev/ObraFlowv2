@@ -11,6 +11,35 @@ from app import app, db
 
 logger = logging.getLogger(__name__)
 
+def fix_migration_issues():
+    """Fix common migration issues in Railway environment"""
+    try:
+        import sqlalchemy as sa
+        
+        # Check if problematic migration needs fixing
+        inspector = sa.inspect(db.engine)
+        table_names = inspector.get_table_names()
+        
+        if 'user_email_config' in table_names:
+            logger.info("🔧 Found existing user_email_config table, fixing migration state")
+            
+            # Ensure alembic_version table exists and is up to date
+            if 'alembic_version' in table_names:
+                # Update to latest migration
+                db.engine.execute("UPDATE alembic_version SET version_num = 'c18fc0f1e85a'")
+                logger.info("✅ Updated alembic_version to latest migration")
+            else:
+                # Create alembic_version table
+                db.engine.execute(
+                    "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, "
+                    "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+                )
+                db.engine.execute("INSERT INTO alembic_version (version_num) VALUES ('c18fc0f1e85a')")
+                logger.info("✅ Created alembic_version table with latest migration")
+                
+    except Exception as e:
+        logger.warning(f"⚠️ Migration fix attempt failed: {e}")
+
 @app.route('/railway/health')
 def railway_health():
     """Health check específico para Railway"""

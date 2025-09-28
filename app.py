@@ -410,6 +410,36 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
             except Exception as test_error:
                 logging.warning(f"⚠️ Reports test failed: {test_error}")
             
+            # Fix migration state issues
+            logging.info("🔧 Checking and fixing migration state...")
+            try:
+                import sqlalchemy as sa
+                
+                inspector = sa.inspect(db.engine)
+                table_names = inspector.get_table_names()
+                
+                if 'user_email_config' in table_names:
+                    logging.info("🔧 Found existing user_email_config table, ensuring migration state is correct")
+                    
+                    # Ensure alembic_version table exists and is up to date
+                    if 'alembic_version' in table_names:
+                        # Check current version
+                        result = db.engine.execute("SELECT version_num FROM alembic_version").fetchone()
+                        if result and result[0] != 'c18fc0f1e85a':
+                            db.engine.execute("UPDATE alembic_version SET version_num = 'c18fc0f1e85a'")
+                            logging.info("✅ Updated alembic_version to latest migration")
+                    else:
+                        # Create alembic_version table
+                        db.engine.execute(
+                            "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, "
+                            "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+                        )
+                        db.engine.execute("INSERT INTO alembic_version (version_num) VALUES ('c18fc0f1e85a')")
+                        logging.info("✅ Created alembic_version table with latest migration")
+                        
+            except Exception as migration_fix_error:
+                logging.warning(f"⚠️ Migration fix attempt failed: {migration_fix_error}")
+            
             logging.info("✅ RAILWAY DATABASE INITIALIZATION COMPLETE")
             
     except Exception as e:
