@@ -47,6 +47,9 @@ class UserEmailConfig(db.Model):
     email_password = db.Column(db.Text, nullable=False)  # Base64 encoded password
     use_tls = db.Column(db.Boolean, nullable=False, default=True)
     use_ssl = db.Column(db.Boolean, nullable=False, default=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    last_test_status = db.Column(db.String(20), default='pending')  # 'pending', 'success', 'error'
+    last_test_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     

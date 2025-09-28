@@ -1,0 +1,73 @@
+Implemente e valide no sistema o Item 34 – E-mails de envio de relatórios, garantindo que todas as rotas, templates e integrações estejam 100% funcionais em produção (Railway/PostgreSQL).
+
+✅ Requisitos já atendidos:
+
+Rotas completas para CRUD de configurações de e-mail:
+
+/admin/configuracao-email → lista todas as configs
+
+/admin/configuracao-email/nova → criar nova config global
+
+/admin/configuracao-email/{id}/editar → editar config existente
+
+/admin/configuracao-email/{id}/ativar → ativar/desativar config
+
+/admin/configuracao-email/{id}/testar → testar conectividade SMTP
+
+/admin/user-email-configs → configs individuais por usuário
+
+Sistema de configuração por usuário (UserEmailConfig)
+
+Templates HTML funcionais no padrão do sistema
+
+Validações completas e tratamento de erros no formulário
+
+Teste de configurações com SMTP antes de salvar
+
+Sistema de ativação/desativação de configs
+
+🎯 O que precisa ser garantido:
+
+Integração com envio de relatórios:
+
+Se usuário possui configuração própria ativa → usar essa conta SMTP.
+
+Caso contrário → fallback para configuração global (configuracao_email).
+
+Sempre enviar cópia automática (CC) para aprovador/preenchedor envolvido.
+
+Compatibilidade com o sistema existente:
+
+Deve usar email_service.py existente.
+
+Modelos ConfiguracaoEmail e UserEmailConfig funcionando com SQLAlchemy.
+
+Registro de logs em log_envio_emails informando qual conta foi usada.
+
+Tela de Administração:
+
+Apenas administradores podem acessar as rotas /admin/configuracao-email e /admin/user-email-configs.
+
+Interface responsiva no mesmo padrão visual do sistema.
+
+Mostrar status (ativa/inativa/testada com sucesso).
+
+Banco de Dados (Alembic Migration):
+
+Garantir que a tabela user_email_config já exista e seja atualizada se necessário.
+
+Se não existir → criar com os campos:
+
+id, user_id, smtp_server, smtp_port, email_address, email_password, use_tls, use_ssl, is_active, created_at, updated_at.
+
+⚡ Resultado esperado:
+
+Usuário Isadora preenche relatório → envio pelo e-mail dela.
+
+Usuário Leopoldo aprova relatório → envio pelo e-mail dele.
+
+Sistema Luciana recebe cópia (CC).
+
+Se usuário não tem configuração → envio pelo e-mail global configurado.
+
+Admin consegue gerenciar, ativar, editar e testar e-mails de qualquer usuário.

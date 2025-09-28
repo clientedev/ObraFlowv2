@@ -52,7 +52,7 @@ class EmailService:
     def get_user_email_config(self, user_id):
         """Buscar configuração de email específica do usuário"""
         from models import UserEmailConfig
-        return UserEmailConfig.query.filter_by(user_id=user_id).first()
+        return UserEmailConfig.query.filter_by(user_id=user_id, is_active=True).first()
     
     def enviar_relatorio_por_email(self, relatorio, destinatarios_data, usuario_id):
         """
@@ -136,10 +136,42 @@ class EmailService:
                         projeto_nome=projeto.nome
                     )
                     
-                    # Implementar CC automático - adicionar email do usuário se usando conta pessoal
+                    # Implementar CC automático conforme Item 34
                     cc_emails = destinatarios_data.get('cc', []).copy()
+                    
+                    # Auto-CC: Sempre adicionar o outro usuário envolvido (preenchedor ou aprovador)
+                    relatorio_autor_email = relatorio.autor.email if relatorio.autor else None
+                    aprovador_email = None
+                    
+                    # Buscar e-mail do aprovador se relatório foi aprovado
+                    if hasattr(relatorio, 'aprovador') and relatorio.aprovador:
+                        aprovador_email = relatorio.aprovador.email
+                    elif hasattr(relatorio, 'aprovado_por') and relatorio.aprovado_por:
+                        from models import User
+                        aprovador = User.query.get(relatorio.aprovado_por)
+                        if aprovador:
+                            aprovador_email = aprovador.email
+                    
+                    # Auto-CC: Se usuário atual é o preenchedor, adicionar aprovador na cópia
+                    # Se usuário atual é o aprovador, adicionar preenchedor na cópia
+                    user_email = user_config.email_address if user_config else email_remetente
+                    
+                    if relatorio_autor_email and relatorio_autor_email != user_email and relatorio_autor_email not in cc_emails:
+                        cc_emails.append(relatorio_autor_email)
+                        
+                    if aprovador_email and aprovador_email != user_email and aprovador_email not in cc_emails:
+                        cc_emails.append(aprovador_email)
+                    
+                    # Se usando configuração pessoal, garantir que a conta pessoal está no CC
                     if user_config and user_config.email_address not in cc_emails:
                         cc_emails.append(user_config.email_address)
+                    
+                    # CC Centralizada (Luciana): Adicionar e-mail admin do sistema se configurado
+                    admin_cc_email = os.environ.get('ADMIN_CC_EMAIL')
+                    if admin_cc_email and admin_cc_email not in cc_emails:
+                        cc_emails.append(admin_cc_email)
+                    elif system_config and hasattr(system_config, 'cc_admin') and system_config.cc_admin and system_config.cc_admin not in cc_emails:
+                        cc_emails.append(system_config.cc_admin)
                     
                     # Criar mensagem
                     msg = Message(
@@ -176,7 +208,7 @@ class EmailService:
                         assunto=assunto,
                         status='enviado'
                     )
-                    # Adicionar informação da conta utilizada para envio no campo de erro (temporário)
+                    # Adicionar informação da conta utilizada para envio nos logs
                     log_envio.erro_detalhes = f"Enviado via: {email_remetente} ({'Conta pessoal' if user_config else 'Conta sistema'})"
                     logs_envio.append(log_envio)
                     

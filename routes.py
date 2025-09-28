@@ -5300,7 +5300,8 @@ def admin_user_email_config_new():
                 smtp_port=form.smtp_port.data,
                 email_address=form.email_address.data,
                 use_tls=form.use_tls.data,
-                use_ssl=form.use_ssl.data
+                use_ssl=form.use_ssl.data,
+                is_active=True
             )
             config.set_password(form.email_password.data)
             
@@ -5382,6 +5383,86 @@ def admin_user_email_config_delete(config_id):
         db.session.rollback()
         current_app.logger.exception(f"❌ Erro ao excluir configuração de e-mail: {str(e)}")
         flash('Erro ao excluir configuração de e-mail. Tente novamente.', 'error')
+    
+    return redirect(url_for('admin_user_email_configs'))
+
+@app.route('/admin/user-email-configs/<int:config_id>/toggle', methods=['POST'])
+@login_required
+def admin_user_email_config_toggle(config_id):
+    """Ativar/desativar configuração de e-mail por usuário"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem gerenciar configurações de e-mail.', 'error')
+        return redirect(url_for('index'))
+
+    from models import UserEmailConfig
+    
+    try:
+        config = UserEmailConfig.query.get_or_404(config_id)
+        user_name = config.user.nome_completo
+        
+        # Toggle status
+        config.is_active = not config.is_active
+        status_text = "ativada" if config.is_active else "desativada"
+        
+        db.session.commit()
+        
+        flash(f'Configuração de e-mail de {user_name} {status_text} com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception(f"❌ Erro ao alterar status da configuração de e-mail: {str(e)}")
+        flash('Erro ao alterar status da configuração de e-mail. Tente novamente.', 'error')
+    
+    return redirect(url_for('admin_user_email_configs'))
+
+@app.route('/admin/user-email-configs/<int:config_id>/test', methods=['POST'])
+@login_required
+def admin_user_email_config_test(config_id):
+    """Testar configuração SMTP de e-mail por usuário"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem gerenciar configurações de e-mail.', 'error')
+        return redirect(url_for('index'))
+
+    from models import UserEmailConfig
+    import smtplib
+    
+    try:
+        config = UserEmailConfig.query.get_or_404(config_id)
+        user_name = config.user.nome_completo
+        
+        # Testar conexão SMTP
+        try:
+            # Configurar conexão SMTP
+            if config.use_ssl:
+                server = smtplib.SMTP_SSL(config.smtp_server, config.smtp_port)
+            else:
+                server = smtplib.SMTP(config.smtp_server, config.smtp_port)
+                if config.use_tls:
+                    server.starttls()
+            
+            # Tentar login
+            server.login(config.email_address, config.get_password())
+            server.quit()
+            
+            # Sucesso - atualizar status
+            config.last_test_status = 'success'
+            config.last_test_at = datetime.utcnow()
+            db.session.commit()
+            
+            flash(f'Teste SMTP para {user_name} realizado com sucesso!', 'success')
+            
+        except Exception as smtp_error:
+            # Erro SMTP - atualizar status
+            config.last_test_status = 'error'
+            config.last_test_at = datetime.utcnow()
+            db.session.commit()
+            
+            flash(f'Erro no teste SMTP para {user_name}: {str(smtp_error)}', 'error')
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception(f"❌ Erro ao testar configuração SMTP: {str(e)}")
+        flash('Erro ao testar configuração SMTP. Tente novamente.', 'error')
     
     return redirect(url_for('admin_user_email_configs'))
 

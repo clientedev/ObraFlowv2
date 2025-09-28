@@ -69,9 +69,47 @@
                         <div>
                             <h5 class="card-title mb-1">{{ user.nome_completo }}</h5>
                             <small class="text-muted">{{ user.cargo or 'Sem cargo definido' }}</small>
+                            <br>
+                            {% if config.is_active %}
+                                <span class="badge bg-success badge-sm">Ativa</span>
+                            {% else %}
+                                <span class="badge bg-warning badge-sm">Inativa</span>
+                            {% endif %}
+                            
+                            {% if config.last_test_status == 'success' %}
+                                <span class="badge bg-success badge-sm" title="Testada com sucesso em {{ config.last_test_at.strftime('%d/%m/%Y às %H:%M') if config.last_test_at else 'Data desconhecida' }}">
+                                    <i class="fas fa-check"></i> Testada
+                                </span>
+                            {% elif config.last_test_status == 'error' %}
+                                <span class="badge bg-danger badge-sm" title="Erro no teste em {{ config.last_test_at.strftime('%d/%m/%Y às %H:%M') if config.last_test_at else 'Data desconhecida' }}">
+                                    <i class="fas fa-times"></i> Erro
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary badge-sm">Não testada</span>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="config-actions d-flex gap-2">
+                        <form method="POST" action="{{ url_for('admin_user_email_config_test', config_id=config.id) }}" 
+                              style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-sm btn-outline-info" title="Testar configuração SMTP">
+                                <i class="fas fa-vial"></i>
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin_user_email_config_toggle', config_id=config.id) }}" 
+                              style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            {% if config.is_active %}
+                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Desativar configuração">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            {% else %}
+                            <button type="submit" class="btn btn-sm btn-outline-success" title="Ativar configuração">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            {% endif %}
+                        </form>
                         <a href="{{ url_for('admin_user_email_config_edit', config_id=config.id) }}" 
                            class="btn btn-sm btn-outline-primary"
                            title="Editar configuração">
@@ -80,6 +118,7 @@
                         <form method="POST" action="{{ url_for('admin_user_email_config_delete', config_id=config.id) }}" 
                               style="display: inline;"
                               onsubmit="return confirm('Tem certeza que deseja excluir esta configuração de e-mail?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir configuração">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -100,7 +139,10 @@
                     <div class="row mt-3">
                         <div class="col-12">
                             <strong>Configurações:</strong><br>
-                            <span class="badge bg-success me-1">
+                            <span class="badge bg-{{ 'success' if config.is_active else 'warning' }} me-1">
+                                {{ 'Ativa' if config.is_active else 'Inativa' }}
+                            </span>
+                            <span class="badge bg-info me-1">
                                 {% if config.use_tls %}TLS{% else %}No TLS{% endif %}
                             </span>
                             <span class="badge bg-info me-1">
