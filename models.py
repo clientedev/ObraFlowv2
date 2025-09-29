@@ -115,6 +115,28 @@ class Projeto(db.Model):
     def responsavel(self):
         return db.session.get(User, self.responsavel_id)
 
+class CategoriaObra(db.Model):
+    """Modelo para categorias customizáveis por obra/projeto - Item 16"""
+    __tablename__ = 'categorias_obra'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id', ondelete='CASCADE'), nullable=False)
+    nome_categoria = db.Column(db.String(100), nullable=False)
+    ordem = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relacionamento com Projeto
+    projeto = db.relationship('Projeto', backref=db.backref('categorias', lazy='dynamic', order_by='CategoriaObra.ordem'))
+    
+    # Evitar duplicação de nomes dentro da mesma obra
+    __table_args__ = (
+        db.UniqueConstraint('projeto_id', 'nome_categoria', name='uq_categoria_por_projeto'),
+    )
+    
+    def __repr__(self):
+        return f'<CategoriaObra {self.nome_categoria} - Projeto {self.projeto_id}>'
+
 class Contato(db.Model):
     __tablename__ = 'contatos'
     
