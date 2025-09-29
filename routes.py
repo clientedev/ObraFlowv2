@@ -1893,31 +1893,7 @@ def create_report():
                          existing_checklist=existing_checklist,
                          today=date.today().isoformat())
 
-def get_aprovador_padrao_para_projeto(projeto_id):
-    """Busca aprovador padrão para um projeto específico ou global"""
-    try:
-        from models import AprovadorPadrao
-
-        # Buscar aprovador específico para o projeto
-        if projeto_id:
-            aprovador = AprovadorPadrao.query.filter_by(
-                projeto_id=projeto_id,
-                ativo=True
-            ).first()
-            if aprovador:
-                return aprovador.aprovador
-
-        # Buscar aprovador global
-        aprovador_global = AprovadorPadrao.query.filter_by(
-            projeto_id=None,
-            ativo=True
-        ).first()
-
-        return aprovador_global.aprovador if aprovador_global else None
-
-    except Exception as e:
-        current_app.logger.error(f"Erro ao buscar aprovador padrão: {str(e)}")
-        return None
+# Removed duplicate function - using the more comprehensive version below at line 7415
 
 # Função deprecated removida para evitar conflitos
 
@@ -7445,7 +7421,9 @@ def get_aprovador_padrao_para_projeto(projeto_id=None):
         return None
 
     except Exception as e:
-        print(f"Erro ao buscar aprovador padrão: {e}")
+        current_app.logger.error(f"Erro ao buscar aprovador padrão: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return None
 
 # ==================== ADMIN: Aprovadores Padrão ====================
