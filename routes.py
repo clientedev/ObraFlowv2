@@ -86,10 +86,6 @@ def debug_reports_data():
             'type': type(e).__name__
         }), 500
 
-
-            'version': '1.0.1'
-        }), 500
-
     except Exception as e:
         current_app.logger.error(f"Health check error: {e}")
         return jsonify({
@@ -1174,78 +1170,23 @@ def projects_list():
 
 # Reports routes - Versão DEFINITIVA para PostgreSQL Railway
 @app.route('/reports')
-@login_required
-def reports():
-    """Listar relatórios - versão ultra-robusta para Railway PostgreSQL"""
+@login_required  
+def listar_reports():
+    """Listar relatórios de obra - versão corrigida com ORM e fallback SQL"""
     try:
-        current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
-        
-        # Buscar parâmetro de pesquisa
-        q = request.args.get('q', '').strip()
-        
-        # Query ultra-robusta com múltiplos fallbacks
-        relatorios = []
-        try:
-            # Tentativa 1: Query completa
-            if q:
-                from sqlalchemy import or_
-                search_term = f"%{q}%"
-                relatorios = Relatorio.query.filter(or_(
-                    Relatorio.numero.ilike(search_term),
-                    Relatorio.titulo.ilike(search_term)
-                )).order_by(Relatorio.created_at.desc()).limit(200).all()
-            else:
-                relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(200).all()
-            
-            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados com sucesso")
-            
-        except Exception as query_error:
-            current_app.logger.error(f"❌ Erro na query principal: {str(query_error)}")
-            try:
-                db.session.rollback()
-                # Fallback 1: Query simples sem ordenação
-                relatorios = Relatorio.query.limit(50).all()
-                current_app.logger.info(f"🔄 Fallback 1: {len(relatorios)} relatórios carregados")
-            except Exception as fallback_error:
-                current_app.logger.error(f"❌ Erro no fallback: {str(fallback_error)}")
-                db.session.rollback()
-                relatorios = []
-        
-        # Garantir que sempre temos uma lista válida
-        if not isinstance(relatorios, list):
-            relatorios = list(relatorios) if relatorios else []
-        
-        # Renderizar template principal
-        try:
-            return render_template("reports/list.html", relatorios=relatorios)
-        except Exception as template_error:
-            current_app.logger.error(f"❌ Erro no template principal: {str(template_error)}")
-            # Fallback para template simplificado
-            return render_template("reports/list_fallback.html", relatorios=relatorios, fallback=True)
-            
-    except Exception as e:
-        current_app.logger.exception(f"❌ ERRO CRÍTICO na rota /reports: {str(e)}")
-        db.session.rollback()
-        
-        # Template de emergência absoluta
-        try:
-            return render_template("reports/list_fallback.html", relatorios=[], fallback=True)
-        except Exception:
-            # Se até o fallback falhar, retornar HTML básico
-            return '''
-            <!DOCTYPE html>
-            <html>
-            <head><title>Relatórios - ELP</title></head>
-            <body>
-                <h1>Sistema de Relatórios</h1>
-                <div style="background:#ffebee;padding:15px;border-radius:5px;margin:20px;">
-                    <p>Sistema temporariamente indisponível. Por favor, recarregue a página.</p>
-                    <a href="/reports" style="background:#2196F3;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">Tentar Novamente</a>
-                    <a href="/" style="background:#4CAF50;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;margin-left:10px;">Dashboard</a>
-                </div>
-            </body>
-            </html>
-            ''', 500
+        relatorios = (
+            db.session.query(Relatorio, Projeto, User)
+            .outerjoin(Projeto, Relatorio.projeto_id == Projeto.id)
+            .outerjoin(User, Relatorio.autor_id == User.id)
+            .order_by(Relatorio.created_at.desc())
+            .all()
+        )
+        return render_template("reports/list.html", relatorios=relatorios)
+    except Exception:
+        current_app.logger.exception("Erro ao carregar relatórios via ORM")
+        from sqlalchemy import text
+        rows = db.session.execute(text("SELECT * FROM relatorios ORDER BY created_at DESC LIMIT 200")).fetchall()
+        return render_template("reports/list.html", relatorios=rows)
 
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])

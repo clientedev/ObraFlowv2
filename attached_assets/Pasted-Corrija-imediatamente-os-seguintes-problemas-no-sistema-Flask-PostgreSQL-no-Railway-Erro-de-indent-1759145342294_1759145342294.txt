@@ -1,0 +1,89 @@
+Corrija imediatamente os seguintes problemas no sistema Flask/PostgreSQL no Railway:
+
+Erro de indentação em routes.py (linha 90)
+
+O bloco do dicionário precisa ser corretamente alinhado.
+
+Ajuste para:
+
+debug_info = {
+    "status": "success",
+    "version": "1.0.1",
+    "database_connection": "OK",
+    "reports_count": db.session.query(Relatorio).count()
+}
+
+
+Problema com o template de relatórios de obra (/reports)
+
+O banco retorna corretamente os 23 relatórios, mas o template quebra.
+
+Solução:
+
+Copiar e adaptar o template usado no Relatório Express, que já funciona.
+
+Criar templates/relatorios/list.html baseado em templates/relatorios_express/list.html.
+
+Exibir para cada relatório:
+
+Número (REL-0007)
+
+Título (Relatório - Casa Jardim Kansas)
+
+Projeto (Projeto.nome se existir, ou “Projeto não vinculado”)
+
+Autor (User.nome se existir, ou “Autor desconhecido”)
+
+Status
+
+Datas (início, aprovação, criação)
+
+Usar o mesmo CSS/cards que o Relatório Express já utiliza para consistência visual.
+
+Exemplo de bloco no template:
+
+<div class="card mb-3 shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title">{{ relatorio.numero }} - {{ relatorio.titulo }}</h5>
+        <p class="card-text">
+            <strong>Projeto:</strong> {{ projeto.nome if projeto else 'Projeto não vinculado' }}<br>
+            <strong>Autor:</strong> {{ autor.nome if autor else 'Autor desconhecido' }}<br>
+            <strong>Status:</strong> {{ relatorio.status or 'Sem status' }}<br>
+            <strong>Criado em:</strong> {{ relatorio.created_at.strftime('%d/%m/%Y %H:%M') if relatorio.created_at else 'N/D' }}
+        </p>
+        <a href="{{ url_for('ver_relatorio', id=relatorio.id) }}" class="btn btn-primary">Ver Relatório</a>
+    </div>
+</div>
+
+
+Garantia de compatibilidade ORM e fallback SQL
+
+Ajustar a rota /reports em routes.py para usar ORM com fallback:
+
+@app.route("/reports")
+@login_required
+def listar_reports():
+    try:
+        relatorios = (
+            db.session.query(Relatorio, Projeto, User)
+            .outerjoin(Projeto, Relatorio.projeto_id == Projeto.id)
+            .outerjoin(User, Relatorio.autor_id == User.id)
+            .order_by(Relatorio.created_at.desc())
+            .all()
+        )
+        return render_template("relatorios/list.html", relatorios=relatorios)
+    except Exception:
+        current_app.logger.exception("Erro ao carregar relatórios via ORM")
+        rows = db.session.execute(text("SELECT * FROM relatorios ORDER BY created_at DESC LIMIT 200")).fetchall()
+        return render_template("relatorios/list.html", relatorios=rows)
+
+
+✅ Com isso, o sistema:
+
+Carrega corretamente os relatórios de obra da tabela relatorios.
+
+Usa o mesmo estilo de cards que o Relatório Express (coerência visual).
+
+Corrige o erro de indentação que estava quebrando o deploy.
+
+Garante fallback SQL caso o ORM falhe.

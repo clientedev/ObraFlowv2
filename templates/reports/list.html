@@ -1,386 +1,221 @@
 {% extends "base.html" %}
 
-{% block title %}Relatórios{% endblock %}
-
+{% block title %}Relatórios de Obra{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="fas fa-file-alt"></i> Relatórios de Obra</h3>
+                <a href="{{ url_for('new_report') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Relatório
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3><i class="fas fa-file-alt"></i> Relatórios de Obra</h3>
-                    <a href="{{ url_for('create_report') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Novo Relatório
-                    </a>
-                </div>
-
-                <!-- Busca Simples -->
-                <div class="card-body border-bottom">
-                    <form method="GET" action="{{ url_for('reports') }}">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-8">
-                                <label class="form-label fw-bold">🔍 Busca Rápida</label>
-                                <input type="text" class="form-control" name="q" value="{{ request.args.get('q', '') }}" 
-                                       placeholder="Digite o número, título ou projeto do relatório...">
-                            </div>
-                            <div class="col-md-4">
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-search me-1"></i>Buscar
-                                    </button>
-                                    {% if request.args.get('q') %}
-                                    <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary">
-                                        <i class="fas fa-times me-1"></i>Limpar
-                                    </a>
-                                    {% endif %}
-                                    <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#filtrosAvancadosReports">
-                                        <i class="fas fa-filter me-1"></i>Busca Avançada
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Filtros Avançados (Colapsáveis) -->
-                <div class="collapse" id="filtrosAvancadosReports">
-                    <div class="card-body border-bottom">
-                        <h6 class="mb-3"><i class="fas fa-filter me-2"></i>Filtros Avançados</h6>
-                        <div class="row g-3">
-                            <div class="col-md-3 col-sm-6">
-                                <label class="form-label small fw-bold">Status:</label>
-                                <select class="form-select form-select-sm" id="filterStatus">
-                                    <option value="">Todos os Status</option>
-                                    <option value="preenchimento">Em preenchimento</option>
-                                    <option value="Aprovado">Aprovado</option>
-                                    <option value="Rejeitado">Rejeitado</option>
-                                    <option value="Aguardando Aprovação">Aguardando Aprovação</option>
-                                    <option value="Rascunho">Rascunho</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <label class="form-label small fw-bold">Projeto:</label>
-                                <select class="form-select form-select-sm" id="filterProjeto">
-                                    <option value="">Todos os Projetos</option>
-                                    <!-- Será preenchido dinamicamente -->
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <label class="form-label small fw-bold">Autor:</label>
-                                <select class="form-select form-select-sm" id="filterAutor">
-                                    <option value="">Todos Autores</option>
-                                    <!-- Será preenchido dinamicamente -->
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <label class="form-label small fw-bold">Pesquisar nos filtros:</label>
-                                <input type="text" class="form-control form-control-sm" id="searchReport" placeholder="Número ou título">
-                            </div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-12">
-                                <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearReportFilters()">
-                                    <i class="fas fa-times"></i> Limpar Filtros Avançados
-                                </button>
-                                <small class="text-muted">
-                                    <span id="reportFilteredCount">{{ relatorios|length if relatorios else 0 }}</span> relatório(s) encontrado(s)
-                                </small>
-                            </div>
-                        </div>
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">📋 Lista de Relatórios de Obra</h6>
+                        <span class="badge bg-info">{{ relatorios|length }} relatórios</span>
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Debug: {{ relatorios|length if relatorios else 0 }} relatórios encontrados -->
                     {% if relatorios %}
                         <!-- Layout de cards mobile-first sem rolagem horizontal -->
-                        <div class="mobile-reports-list" id="reportsTable">
-                            {% for relatorio in relatorios %}
-                            <div class="report-card mb-2" 
-                                 data-status="{{ relatorio.status or 'Indefinido' }}" 
-                                 data-projeto="{{ relatorio.projeto.nome if relatorio.projeto else 'Sem projeto' }}"
-                                 data-autor="{{ relatorio.autor.nome_completo if relatorio.autor else 'Sem autor' }}"
-                                 data-search="{{ (relatorio.numero|default('') ~ ' ' ~ relatorio.titulo|default(''))|lower }}">
-
-                                <div class="card border-0 shadow-sm h-100" style="background: #f8f9fa;">
-                                    <div class="card-body p-3">
+                        <div class="mobile-express-list" id="reportsTable">
+                            {% for item in relatorios %}
+                                {% if item|length == 3 %}
+                                    {# ORM result (relatorio, projeto, autor) #}
+                                    {% set relatorio = item[0] %}
+                                    {% set projeto = item[1] %}
+                                    {% set autor = item[2] %}
+                                {% else %}
+                                    {# SQL fallback result - single object #}
+                                    {% set relatorio = item %}
+                                    {% set projeto = None %}
+                                    {% set autor = None %}
+                                {% endif %}
+                                
+                                <div class="card mb-3 shadow-sm">
+                                    <div class="card-body">
                                         <div class="row align-items-center">
                                             <!-- Coluna principal com informações -->
                                             <div class="col-8">
-                                                <!-- Número do relatório -->
-                                                <div class="fw-bold text-primary mb-1" style="font-size: 0.9rem;">
-                                                    {{ relatorio.numero or 'N/A' }}
-                                                </div>
-
-                                                <!-- Título do relatório -->
-                                                <div class="fw-semibold text-dark mb-1" style="font-size: 0.95rem; line-height: 1.2;">
-                                                    {{ relatorio.titulo or 'Sem título' }}
-                                                </div>
-
-                                                <!-- Informações adicionais -->
-                                                <div class="text-muted" style="font-size: 0.8rem;">
-                                                    {% if relatorio.projeto %}
-                                                        {{ relatorio.projeto.nome }}
-                                                    {% else %}
-                                                        Sem projeto
+                                                <!-- Número e título do relatório -->
+                                                <h5 class="card-title">
+                                                    <i class="fas fa-file-alt me-1"></i>
+                                                    {{ relatorio.numero or 'SEM-NUM' }} - {{ relatorio.titulo or 'Sem título' }}
+                                                </h5>
+                                                <p class="card-text">
+                                                    <strong>Projeto:</strong> {{ projeto.nome if projeto else 'Projeto não vinculado' }}<br>
+                                                    <strong>Autor:</strong> {{ autor.nome_completo if autor else 'Autor desconhecido' }}<br>
+                                                    <strong>Status:</strong> {{ relatorio.status or 'Sem status' }}<br>
+                                                    <strong>Criado em:</strong> {{ relatorio.created_at.strftime('%d/%m/%Y %H:%M') if relatorio.created_at else 'N/D' }}
+                                                    {% if relatorio.data_inicio %}
+                                                    <br><strong>Data Início:</strong> {{ relatorio.data_inicio.strftime('%d/%m/%Y') }}
                                                     {% endif %}
-                                                    {% if relatorio.data_relatorio %} • {{ relatorio.data_relatorio.strftime('%d/%m/%Y') }}{% endif %}
-                                                </div>
-
-                                                <!-- Autor -->
-                                                <div class="text-muted" style="font-size: 0.75rem;">
-                                                    {% if relatorio.autor %}
-                                                        Por: {{ relatorio.autor.nome_completo }}
+                                                    {% if relatorio.data_aprovacao %}
+                                                    <br><strong>Aprovado em:</strong> {{ relatorio.data_aprovacao.strftime('%d/%m/%Y') }}
                                                     {% endif %}
-                                                </div>
+                                                </p>
                                             </div>
 
                                             <!-- Coluna lateral com status e ações -->
                                             <div class="col-4 text-end">
                                                 <!-- Status -->
-                                                <div class="mb-2 d-flex justify-content-end">
-                                                    {% if relatorio.status == 'preenchimento' %}
-                                                        <span class="badge bg-warning text-dark" style="font-size: 0.65rem; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">Em preenchimento</span>
-                                                    {% elif relatorio.status == 'Aprovado' %}
-                                                        <span class="badge bg-success" style="font-size: 0.65rem; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">Aprovado</span>
-                                                    {% elif relatorio.status == 'Rejeitado' or relatorio.status == 'Em edição' %}
-                                                        <span class="badge bg-danger" style="font-size: 0.65rem; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">
-                                                            {% if relatorio.status == 'Em edição' %}Em edição{% else %}Rejeitado{% endif %}
+                                                <div class="mb-2">
+                                                    {% if relatorio.status == 'Rascunho' %}
+                                                        <span class="badge bg-warning" style="font-size: 0.7rem;">
+                                                            <i class="fas fa-edit me-1"></i>Rascunho
+                                                        </span>
+                                                    {% elif relatorio.status == 'Finalizado' %}
+                                                        <span class="badge bg-success" style="font-size: 0.7rem;">
+                                                            <i class="fas fa-check me-1"></i>Finalizado
                                                         </span>
                                                     {% elif relatorio.status == 'Aguardando Aprovação' %}
-                                                        <span class="badge bg-warning" style="font-size: 0.6rem; white-space: nowrap; max-width: 90px; overflow: hidden; text-overflow: ellipsis; padding: 2px 6px;">Aguardando</span>
+                                                        <span class="badge bg-info" style="font-size: 0.7rem;">
+                                                            <i class="fas fa-clock me-1"></i>Aguardando
+                                                        </span>
+                                                    {% elif relatorio.status == 'Aprovado' %}
+                                                        <span class="badge bg-success" style="font-size: 0.7rem;">
+                                                            <i class="fas fa-check-circle me-1"></i>Aprovado
+                                                        </span>
                                                     {% else %}
-                                                        <span class="badge bg-secondary" style="font-size: 0.65rem; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">{{ relatorio.status or 'Indefinido' }}</span>
+                                                        <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ relatorio.status|title }}</span>
                                                     {% endif %}
                                                 </div>
 
                                                 <!-- Ações -->
                                                 <div class="d-flex flex-column gap-1">
-                                                    <!-- Botão principal -->
-                                                    {% if relatorio.status == 'Aprovado' %}
-                                                        <a href="{{ url_for('view_report', report_id=relatorio.id) }}" 
-                                                           class="btn btn-sm btn-outline-success" 
-                                                           title="Abrir relatório aprovado (somente leitura)">
-                                                            <i class="fas fa-eye me-1"></i>Abrir
-                                                        </a>
-                                                    {% elif relatorio.status == 'Rejeitado' or relatorio.status == 'Em edição' %}
-                                                        <a href="{{ url_for('view_report', report_id=relatorio.id) }}" 
-                                                           class="btn btn-sm btn-outline-primary" 
-                                                           title="Abrir relatório rejeitado">
-                                                            <i class="fas fa-eye me-1"></i>Abrir
-                                                        </a>
-                                                    {% elif relatorio.status == 'preenchimento' %}
-                                                        <a href="{{ url_for('report_edit', report_id=relatorio.id) }}" 
-                                                           class="btn btn-sm btn-outline-primary" 
-                                                           title="Continuar editando">
-                                                            <i class="fas fa-edit me-1"></i>Continuar
-                                                        </a>
-                                                    {% else %}
-                                                        <a href="{{ url_for('view_report', report_id=relatorio.id) }}" 
-                                                           class="btn btn-sm btn-outline-primary" 
-                                                           title="Abrir relatório">
-                                                            <i class="fas fa-eye me-1"></i>Abrir
-                                                        </a>
-                                                    {% endif %}
+                                                    <!-- Botão Visualizar -->
+                                                    <a href="{{ url_for('ver_relatorio', id=relatorio.id) }}" 
+                                                       class="btn btn-sm btn-outline-primary" 
+                                                       title="Visualizar">
+                                                        <i class="fas fa-eye me-1"></i>Ver
+                                                    </a>
 
-                                                    <!-- Dropdown PDF -->
-                                                    <div class="dropdown">
-                                                        <button class="btn btn-sm btn-outline-success dropdown-toggle w-100" 
-                                                                type="button" 
-                                                                id="dropdownPDF{{ relatorio.id }}" 
-                                                                data-bs-toggle="dropdown" 
-                                                                aria-expanded="false">
-                                                            <i class="fas fa-file-pdf me-1"></i>PDF
-                                                        </button>
-                                                        <ul class="dropdown-menu" aria-labelledby="dropdownPDF{{ relatorio.id }}">
-                                                            <li>
-                                                                <a class="dropdown-item" href="{{ url_for('generate_pdf_report', report_id=relatorio.id) }}" target="_blank">
-                                                                    <i class="fas fa-eye me-2"></i>Visualizar PDF
-                                                                </a>
-                                                            </li>
-                                                            <li>
-                                                                <a class="dropdown-item" href="{{ url_for('generate_report_pdf_download', id=relatorio.id) }}">
-                                                                    <i class="fas fa-download me-2"></i>Baixar PDF
-                                                                </a>
-                                                            </li>
-                                                        </ul>
-                                                    </div>
-
-                                                    <!-- Botão de Revisão para relatórios aguardando aprovação -->
-                                                    {% if relatorio.status == 'Aguardando Aprovação' %}
-                                                    <a href="{{ url_for('review_report', report_id=relatorio.id) }}" class="btn btn-sm btn-warning w-100" title="Revisar relatório">
-                                                        <i class="fas fa-search-plus me-1"></i>Revisão
+                                                    <!-- Botão Editar (apenas rascunhos) -->
+                                                    {% if relatorio.status == 'Rascunho' %}
+                                                    <a href="{{ url_for('edit_report', report_id=relatorio.id) }}" 
+                                                       class="btn btn-sm btn-outline-secondary" 
+                                                       title="Editar">
+                                                        <i class="fas fa-edit me-1"></i>Editar
                                                     </a>
                                                     {% endif %}
-                                                    
-                                                    <!-- Ações de administrador -->
+
+                                                    <!-- Botão PDF (finalizados e aprovados) -->
+                                                    {% if relatorio.status in ['Finalizado', 'Aprovado'] %}
+                                                    <a href="{{ url_for('report_pdf', report_id=relatorio.id) }}" 
+                                                       class="btn btn-sm btn-outline-danger" 
+                                                       title="Baixar PDF">
+                                                        <i class="fas fa-file-pdf me-1"></i>PDF
+                                                    </a>
+                                                    {% endif %}
+
+                                                    <!-- Botão Excluir (apenas masters) -->
                                                     {% if current_user.is_master %}
-                                                        <a href="{{ url_for('delete_report', id=relatorio.id) }}" class="btn btn-sm btn-outline-danger w-100"
-                                                           onclick="return confirm('Excluir relatório {{ relatorio.numero or &quot;este&quot; }}? Esta ação não pode ser desfeita.')"
-                                                            <i class="fas fa-trash me-1"></i>Excluir
-                                                        </a>
+                                                    <button onclick="confirmarExclusao({{ relatorio.id }}, '{{ relatorio.numero }}')" 
+                                                            class="btn btn-sm btn-outline-danger" 
+                                                            title="Excluir">
+                                                        <i class="fas fa-trash me-1"></i>Excluir
+                                                    </button>
                                                     {% endif %}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
                             {% endfor %}
                         </div>
-
-                        <!-- Nota sobre limitação de resultados -->
-                        {% if relatorios|length == 200 %}
-                        <div class="alert alert-info mt-3">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Mostrando os 200 relatórios mais recentes. Use a busca para encontrar relatórios específicos.
-                        </div>
-                        {% endif %}
-
                     {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
-                            <h4>Nenhum relatório encontrado</h4>
-                            {% if request.args.get('q') %}
-                                <p class="text-muted">Nenhum relatório encontrado para a busca "{{ request.args.get('q') }}".</p>
-                                <a href="{{ url_for('reports') }}" class="btn btn-outline-primary">Ver todos os relatórios</a>
-                            {% else %}
-                                <p class="text-muted">Crie seu primeiro relatório de obra clicando no botão acima.</p>
-                                <a href="{{ url_for('create_report') }}" class="btn btn-primary">
-                                    <i class="fas fa-plus"></i> Criar Primeiro Relatório
-                                </a>
-                            {% endif %}
-                        </div>
+                    <div class="text-center py-5">
+                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                        <h5>Nenhum Relatório de Obra encontrado</h5>
+                        <p class="text-muted">Crie seu primeiro relatório para começar a documentar suas visitas</p>
+                        <a href="{{ url_for('new_report') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Criar Primeiro Relatório
+                        </a>
+                    </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Informações sobre Relatórios -->
+    <div class="row mt-4">
+        <div class="col-lg-6">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Sobre os Relatórios</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li><i class="fas fa-check text-success me-2"></i> Documentação completa de visitas</li>
+                        <li><i class="fas fa-check text-success me-2"></i> Vinculação com projetos cadastrados</li>
+                        <li><i class="fas fa-check text-success me-2"></i> Fluxo de aprovação profissional</li>
+                        <li><i class="fas fa-check text-success me-2"></i> Geração automática de PDFs</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Acesso Rápido</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('new_report') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-plus"></i> Novo Relatório
+                        </a>
+                        <a href="{{ url_for('express_new') }}" class="btn btn-outline-info">
+                            <i class="fas fa-bolt"></i> Relatório Express
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
+<!-- Modal de confirmação de exclusão -->
+<div class="modal fade" id="modalExcluir" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o relatório <strong id="relatorioNumero"></strong>?</p>
+                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> Esta ação não pode ser desfeita!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formExcluir" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const reportsList = document.getElementById('reportsTable');
-    if (!reportsList) return;
+function confirmarExclusao(id, numero) {
+    document.getElementById('relatorioNumero').textContent = numero;
+    document.getElementById('formExcluir').action = `/reports/${id}/delete`;
 
-    const reportCards = reportsList.querySelectorAll('.report-card');
-    console.log('Relatórios: encontrados', reportCards.length, 'cards');
-
-    // Preencher filtros dinamicamente
-    fillReportFilterOptions();
-
-    // Configurar eventos dos filtros
-    setupReportFilters();
-
-    function fillReportFilterOptions() {
-        const projetoSet = new Set();
-        const autorSet = new Set();
-
-        reportCards.forEach(card => {
-            const projeto = card.getAttribute('data-projeto');
-            const autor = card.getAttribute('data-autor');
-
-            if (projeto && projeto !== '-' && projeto !== 'Sem projeto') projetoSet.add(projeto);
-            if (autor && autor !== '-' && autor !== 'Sem autor') autorSet.add(autor);
-        });
-
-        console.log('Projetos encontrados:', Array.from(projetoSet));
-        console.log('Autores encontrados:', Array.from(autorSet));
-
-        // Preencher select de projetos
-        const projetoSelect = document.getElementById('filterProjeto');
-        if (projetoSelect) {
-            projetoSet.forEach(projeto => {
-                const option = document.createElement('option');
-                option.value = projeto;
-                option.textContent = projeto;
-                projetoSelect.appendChild(option);
-            });
-        }
-
-        // Preencher select de autores
-        const autorSelect = document.getElementById('filterAutor');
-        if (autorSelect) {
-            autorSet.forEach(autor => {
-                const option = document.createElement('option');
-                option.value = autor;
-                option.textContent = autor;
-                autorSelect.appendChild(option);
-            });
-        }
-    }
-
-    function setupReportFilters() {
-        const filterStatus = document.getElementById('filterStatus');
-        const filterProjeto = document.getElementById('filterProjeto');
-        const filterAutor = document.getElementById('filterAutor');
-        const searchInput = document.getElementById('searchReport');
-
-        [filterStatus, filterProjeto, filterAutor].forEach(filter => {
-            if (filter) filter.addEventListener('change', applyReportFilters);
-        });
-
-        if (searchInput) searchInput.addEventListener('input', applyReportFilters);
-    }
-
-    function applyReportFilters() {
-        const statusFilter = document.getElementById('filterStatus')?.value || '';
-        const projetoFilter = document.getElementById('filterProjeto')?.value || '';
-        const autorFilter = document.getElementById('filterAutor')?.value || '';
-        const searchText = (document.getElementById('searchReport')?.value || '').toLowerCase();
-
-        console.log('Aplicando filtros de relatórios:', { statusFilter, projetoFilter, autorFilter, searchText });
-
-        let visibleCount = 0;
-
-        reportCards.forEach(card => {
-            const status = card.getAttribute('data-status') || '';
-            const projeto = card.getAttribute('data-projeto') || '';
-            const autor = card.getAttribute('data-autor') || '';
-            const searchData = card.getAttribute('data-search') || '';
-
-            const statusMatch = !statusFilter || status.includes(statusFilter);
-            const projetoMatch = !projetoFilter || projeto === projetoFilter;
-            const autorMatch = !autorFilter || autor === autorFilter;
-            const searchMatch = !searchText || searchData.includes(searchText);
-
-            if (statusMatch && projetoMatch && autorMatch && searchMatch) {
-                card.style.display = '';
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
-        });
-
-        const countElement = document.getElementById('reportFilteredCount');
-        if (countElement) countElement.textContent = visibleCount;
-
-        console.log('Filtros aplicados. Visíveis:', visibleCount);
-    }
-
-    // Expor função global para o botão de limpar
-    window.clearReportFilters = function() {
-        console.log('Limpando filtros de relatórios');
-
-        const filters = ['filterStatus', 'filterProjeto', 'filterAutor', 'searchReport'];
-        filters.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.value = '';
-        });
-
-        reportCards.forEach(card => {
-            card.style.display = '';
-        });
-
-        const countElement = document.getElementById('reportFilteredCount');
-        if (countElement) countElement.textContent = reportCards.length;
-    };
-
-    // Inicializar dropdowns Bootstrap
-    const dropdownElementList = document.querySelectorAll('.dropdown-toggle');
-    const dropdownList = [...dropdownElementList].map(dropdownToggleEl => new bootstrap.Dropdown(dropdownToggleEl));
-});
+    const modal = new bootstrap.Modal(document.getElementById('modalExcluir'));
+    modal.show();
+}
 </script>
 {% endblock %}
