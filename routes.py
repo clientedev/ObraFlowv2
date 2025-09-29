@@ -17,7 +17,7 @@ from models import (
     ComunicacaoVisita, EmailCliente, ChecklistPadrao,
     ChecklistObra, FuncionarioProjeto, AprovadorPadrao, ProjetoChecklistConfig,
     LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress,
-    VisitaParticipante, TipoObra
+    VisitaParticipante, TipoObra, CategoriaObra
 )
 
 # Health check endpoint for Railway deployment - LIGHTWEIGHT VERSION
@@ -3161,6 +3161,156 @@ def project_edit(project_id):
         return redirect(url_for('project_view', project_id=project.id))
 
     return render_template('projects/form.html', form=form, project=project)
+
+# Category management routes - Item 16
+@app.route('/projects/<int:project_id>/categorias')
+@login_required
+def project_categorias_list(project_id):
+    """Lista categorias de um projeto"""
+    project = Projeto.query.get_or_404(project_id)
+    categorias = CategoriaObra.query.filter_by(projeto_id=project_id).order_by(CategoriaObra.ordem).all()
+    return jsonify({
+        'categorias': [{
+            'id': c.id,
+            'nome_categoria': c.nome_categoria,
+            'ordem': c.ordem
+        } for c in categorias]
+    })
+
+@app.route('/projects/<int:project_id>/categorias/add', methods=['POST'])
+@login_required
+def project_categoria_add(project_id):
+    """Adiciona uma nova categoria ao projeto"""
+    project = Projeto.query.get_or_404(project_id)
+    
+    try:
+        data = request.get_json()
+        nome_categoria = data.get('nome_categoria', '').strip()
+        ordem = data.get('ordem', 0)
+        
+        if not nome_categoria:
+            return jsonify({'error': 'Nome da categoria é obrigatório'}), 400
+        
+        # Verificar duplicação
+        existe = CategoriaObra.query.filter_by(
+            projeto_id=project_id,
+            nome_categoria=nome_categoria
+        ).first()
+        
+        if existe:
+            return jsonify({'error': 'Categoria já existe para este projeto'}), 400
+        
+        # Se não informou ordem, usar a próxima sequencial
+        if not ordem:
+            max_ordem = db.session.query(db.func.max(CategoriaObra.ordem)).filter_by(projeto_id=project_id).scalar() or 0
+            ordem = max_ordem + 1
+        
+        categoria = CategoriaObra(
+            projeto_id=project_id,
+            nome_categoria=nome_categoria,
+            ordem=ordem
+        )
+        
+        db.session.add(categoria)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'categoria': {
+                'id': categoria.id,
+                'nome_categoria': categoria.nome_categoria,
+                'ordem': categoria.ordem
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/projects/<int:project_id>/categorias/<int:categoria_id>/edit', methods=['PUT'])
+@login_required
+def project_categoria_edit(project_id, categoria_id):
+    """Edita uma categoria existente"""
+    categoria = CategoriaObra.query.filter_by(id=categoria_id, projeto_id=project_id).first_or_404()
+    
+    try:
+        data = request.get_json()
+        nome_categoria = data.get('nome_categoria', '').strip()
+        ordem = data.get('ordem')
+        
+        if not nome_categoria:
+            return jsonify({'error': 'Nome da categoria é obrigatório'}), 400
+        
+        # Verificar duplicação (exceto a própria categoria)
+        existe = CategoriaObra.query.filter(
+            CategoriaObra.projeto_id == project_id,
+            CategoriaObra.nome_categoria == nome_categoria,
+            CategoriaObra.id != categoria_id
+        ).first()
+        
+        if existe:
+            return jsonify({'error': 'Categoria já existe para este projeto'}), 400
+        
+        categoria.nome_categoria = nome_categoria
+        if ordem is not None:
+            categoria.ordem = ordem
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'categoria': {
+                'id': categoria.id,
+                'nome_categoria': categoria.nome_categoria,
+                'ordem': categoria.ordem
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/projects/<int:project_id>/categorias/<int:categoria_id>/delete', methods=['DELETE'])
+@login_required
+def project_categoria_delete(project_id, categoria_id):
+    """Remove uma categoria (mantém histórico se houver fotos vinculadas)"""
+    categoria = CategoriaObra.query.filter_by(id=categoria_id, projeto_id=project_id).first_or_404()
+    
+    try:
+        # Aqui poderíamos verificar se há fotos vinculadas e manter histórico
+        # Por enquanto, apenas removemos
+        db.session.delete(categoria)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/projects/<int:project_id>/categorias')
+@login_required
+def api_project_categorias(project_id):
+    """API para obter categorias de um projeto para uso em forms"""
+    categorias = CategoriaObra.query.filter_by(projeto_id=project_id).order_by(CategoriaObra.ordem).all()
+    
+    # Se não houver categorias, retornar categorias padrão
+    if not categorias:
+        categorias_padrao = [
+            {'id': '', 'nome': 'Torre 1'},
+            {'id': '', 'nome': 'Torre 2'},
+            {'id': '', 'nome': 'Área Comum'},
+            {'id': '', 'nome': 'Piscina'}
+        ]
+        return jsonify({'categorias': categorias_padrao, 'is_default': True})
+    
+    return jsonify({
+        'categorias': [{
+            'id': c.id,
+            'nome': c.nome_categoria
+        } for c in categorias],
+        'is_default': False
+    })
 
 # Contact management routes
 @app.route('/contacts')
