@@ -1,0 +1,112 @@
+Preciso que você implemente e corrija definitivamente o Item 2 – Numeração dos relatórios, garantindo que:
+
+Cada obra (projeto_id) tenha sua própria sequência de relatórios.
+
+Exemplo:
+
+Projeto Y → REL-0001, REL-0002, REL-0003...
+
+Projeto Z → REL-0001, REL-0002, REL-0003...
+
+Ou seja, a contagem sempre recomeça do 1 para cada projeto.
+
+Estrutura da tabela relatorios já existente:
+
+id, numero, titulo, projeto_id, visita_id, autor_id, aprovador_id,
+data_relatorio, data_aprovacao, conteudo, checklist_data, status,
+comentario_aprovacao, created_at, updated_at, numero_projeto
+
+
+A coluna numero_projeto já existe mas está vazia (NULL).
+
+A coluna numero hoje gera sequência global (mistura relatórios de diferentes projetos).
+
+O que você deve fazer:
+🔹 1. Corrigir retroativamente os relatórios existentes
+
+Usar a coluna created_at para ordenar os relatórios dentro de cada projeto_id.
+
+Preencher numero_projeto com a sequência correta (1, 2, 3…).
+
+Atualizar também a coluna numero para refletir a sequência dentro do projeto (REL-000X).
+
+SQL a ser usado dentro de uma migração Alembic:
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.sql import text
+
+revision = 'xxxxxx_fix_numero_relatorio_por_projeto'
+down_revision = 'ULTIMO_REVISION_EXISTENTE'
+branch_labels = None
+depends_on = None
+
+def upgrade():
+    conn = op.get_bind()
+
+    update_sql = """
+    WITH ranked AS (
+        SELECT id,
+               projeto_id,
+               ROW_NUMBER() OVER (PARTITION BY projeto_id ORDER BY created_at ASC) AS seq
+        FROM relatorios
+    )
+    UPDATE relatorios r
+    SET numero_projeto = ranked.seq,
+        numero = 'REL-' || LPAD(ranked.seq::text, 4, '0')
+    FROM ranked
+    WHERE r.id = ranked.id;
+    """
+    conn.execute(text(update_sql))
+
+def downgrade():
+    conn = op.get_bind()
+    conn.execute(text("UPDATE relatorios SET numero_projeto = NULL;"))
+
+🔹 2. Corrigir a criação de novos relatórios (routes.py)
+
+Na rota de criação de relatórios, substituir a lógica atual por:
+
+ultimo_numero = db.session.query(
+    db.func.max(Relatorio.numero_projeto)
+).filter_by(projeto_id=projeto_id).scalar()
+
+if ultimo_numero is None:
+    proximo_numero = 1
+else:
+    proximo_numero = ultimo_numero + 1
+
+relatorio.numero_projeto = proximo_numero
+relatorio.numero = f"REL-{proximo_numero:04d}"
+
+
+Assim, cada projeto terá sua própria contagem.
+
+🔹 3. Garantir compatibilidade com relatórios antigos
+
+Depois da migração, todos os relatórios existentes terão numero_projeto preenchido corretamente.
+
+Novos relatórios vão continuar a sequência correta por projeto.
+
+PDFs, templates e listagens devem exibir relatorio.numero.
+
+✅ Requisitos finais
+
+Criar um arquivo Alembic novo para atualizar o banco.
+
+Validar que /reports exibe relatórios numerados corretamente por obra.
+
+Testar criando relatórios em diferentes projetos: cada um deve iniciar em REL-0001.
+
+Banco: PostgreSQL no Railway.
+
+📌 Resumo para desenvolvedor:
+A regra é simples: relatórios são numerados sempre por obra/projeto.
+
+Primeiro relatório da obra X → REL-0001.
+
+Segundo relatório da obra X → REL-0002.
+
+Se for obra Y, começa do REL-0001 de novo.
+
+👉 Quer que eu também monte um comando SQL puro (s

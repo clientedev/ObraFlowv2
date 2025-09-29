@@ -251,7 +251,7 @@ class Relatorio(db.Model):
     __tablename__ = 'relatorios'
     
     id = db.Column(db.Integer, primary_key=True)
-    numero = db.Column(db.String(20), unique=True, nullable=False)
+    numero = db.Column(db.String(20), nullable=False)  # Unique per project, not globally
     numero_projeto = db.Column(db.Integer, nullable=True)  # Project-specific sequential numbering
     titulo = db.Column(db.String(300), nullable=False, default='Relatório de visita')
     projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
@@ -266,6 +266,9 @@ class Relatorio(db.Model):
     comentario_aprovacao = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Composite unique constraint: numero must be unique within each project
+    __table_args__ = (db.UniqueConstraint('projeto_id', 'numero', name='uq_relatorios_projeto_numero'),)
     
     # Relacionamentos SQLAlchemy otimizados (evitam queries adicionais)
     autor = db.relationship('User', foreign_keys=[autor_id], backref='relatorios_criados', lazy='select')
