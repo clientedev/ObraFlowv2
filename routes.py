@@ -760,132 +760,40 @@ def projects_list():
 @app.route('/reports')
 @login_required
 def reports():
-    """Listar relatórios - versão robusta corrigida"""
+    """Listar relatórios - corrigido conforme especificação"""
     try:
         current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
-
-        # Parâmetros de busca
-        page = request.args.get('page', 1, type=int)
-        q = request.args.get('q', '').strip()
-
-        # Query simples e direta - SEM JOINS complexos
+        
+        # Buscar todos os relatórios usando SQLAlchemy com outer joins
         try:
-            if current_user.is_master:
-                # Master vê todos os relatórios
-                base_query = Relatorio.query
-            else:
-                # Usuários não-master veem apenas seus próprios relatórios
-                base_query = Relatorio.query.filter(Relatorio.autor_id == current_user.id)
-
-            # Aplicar busca se fornecida - SEM JOINS
-            if q:
-                from sqlalchemy import or_
-                search_term = f'%{q}%'
-                base_query = base_query.filter(
-                    or_(
-                        Relatorio.numero.ilike(search_term),
-                        Relatorio.titulo.ilike(search_term)
-                    )
-                )
-
-            # Contar total primeiro
-            total_count = base_query.count()
-            current_app.logger.info(f"📊 Total de relatórios encontrados: {total_count}")
+            relatorios = (
+                db.session.query(Relatorio, Projeto, User)
+                .outerjoin(Projeto, Relatorio.projeto_id == Projeto.id)
+                .outerjoin(User, Relatorio.autor_id == User.id)
+                .order_by(Relatorio.created_at.desc())
+                .limit(200)
+                .all()
+            )
             
-            # Log da query SQL para debug (apenas em desenvolvimento)
-            if current_app.debug or current_app.config.get('SQLALCHEMY_ECHO'):
-                current_app.logger.debug(f"🔍 SQL Query: {str(base_query)}")
-
-            # Buscar os relatórios da página atual
-            offset_value = (page - 1) * 10
-            relatorios_list = base_query.order_by(Relatorio.created_at.desc()).offset(offset_value).limit(10).all()
-
-            current_app.logger.info(f"✅ {len(relatorios_list)} relatórios carregados para página {page}")
+            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados com joins")
+            return render_template("reports/list.html", relatorios=relatorios)
             
-            # Log detalhado dos relatórios encontrados
-            if relatorios_list:
-                current_app.logger.info(f"📋 Primeiros relatórios: {[r.numero for r in relatorios_list[:3]]}")
-            else:
-                current_app.logger.info("📋 Nenhum relatório encontrado na consulta")
-
-            # Criar paginação manual simples
-            class SimplePagination:
-                def __init__(self, items, page, per_page, total):
-                    self.items = items
-                    self.page = page
-                    self.per_page = per_page
-                    self.total = total
-                    self.pages = max(1, (total + per_page - 1) // per_page)  # Ceiling division
-                    self.has_prev = page > 1
-                    self.has_next = page < self.pages
-
-                def iter_pages(self, left_edge=2, left_current=2, right_current=3, right_edge=2):
-                    last = self.pages
-                    for num in range(1, last + 1):
-                        if num <= left_edge or \
-                           (self.page - left_current - 1 < num < self.page + right_current) or \
-                           num > last - right_edge:
-                            yield num
-
-            relatorios = SimplePagination(relatorios_list, page, 10, total_count)
+        except Exception:
+            current_app.logger.exception("Erro ao carregar relatórios com ORM, tentando fallback SQL")
             
-            # Garantir que relatorios.items está sempre definido
-            if not hasattr(relatorios, 'items'):
-                relatorios.items = relatorios_list
-
-        except Exception as query_error:
-            current_app.logger.error(f"❌ Erro na query de relatórios: {str(query_error)}")
-
-            # Fallback extremamente simples
-            try:
-                relatorios_list = Relatorio.query.filter(
-                    Relatorio.autor_id == current_user.id if not current_user.is_master else True
-                ).order_by(Relatorio.created_at.desc()).limit(10).all()
-
-                class FallbackPagination:
-                    def __init__(self, items):
-                        self.items = items
-                        self.total = len(items)
-                        self.page = 1
-                        self.pages = 1
-                        self.has_prev = False
-                        self.has_next = False
-                        self.per_page = 10
-
-                    def iter_pages(self):
-                        return [1]
-
-                relatorios = FallbackPagination(relatorios_list)
-                # Garantir que relatorios.items está sempre definido
-                if not hasattr(relatorios, 'items'):
-                    relatorios.items = relatorios_list
-                current_app.logger.info(f"🔄 Fallback: {len(relatorios.items)} relatórios carregados")
-
-            except Exception as fallback_error:
-                current_app.logger.error(f"❌ Erro no fallback: {str(fallback_error)}")
-
-                # Lista completamente vazia como último recurso
-                class EmptyPagination:
-                    def __init__(self):
-                        self.items = []
-                        self.total = 0
-                        self.page = 1
-                        self.pages = 0
-                        self.has_prev = False
-                        self.has_next = False
-                        self.per_page = 10
-
-                    def iter_pages(self):
-                        return []
-
-                relatorios = EmptyPagination()
-                # Garantir que relatorios.items está sempre definido
-                if not hasattr(relatorios, 'items'):
-                    relatorios.items = []
-
-        # Renderizar template
-        return render_template('reports/list.html', relatorios=relatorios)
-
+            # Fallback SQL caso ORM quebre
+            from sqlalchemy import text
+            rows = db.session.execute(text("""
+                SELECT id, numero, titulo, projeto_id, autor_id, aprovador_id, status, created_at
+                FROM relatorios
+                ORDER BY created_at DESC
+                LIMIT 200
+            """)).fetchall()
+            
+            relatorios = [dict(r) for r in rows]
+            current_app.logger.info(f"🔄 Fallback SQL: {len(relatorios)} relatórios carregados")
+            return render_template("reports/list_fallback.html", relatorios=relatorios, fallback=True)
+            
     except Exception as e:
         current_app.logger.exception(f"❌ ERRO CRÍTICO /reports: {str(e)}")
         

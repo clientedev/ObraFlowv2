@@ -1,0 +1,113 @@
+Corrija a rota /reports do sistema Flask, garantindo que os relatórios sejam carregados corretamente a partir do banco PostgreSQL (tabela relatorios).
+
+Detalhes:
+
+Banco: PostgreSQL
+
+URL: postgresql://postgres:KgyYkEmMztCNMSPHVbOpWLTiKZFXYwpB@postgres.railway.internal:5432/railway
+
+Tabela relatorios possui os campos:
+id, numero, titulo, projeto_id, visita_id, autor_id, aprovador_id, data_relatorio, data_aprovacao, conteudo, checklist_data, status, comentario_aprovacao, created_at, updated_at, numero_projeto
+
+O que corrigir:
+
+Na rota /reports:
+
+Buscar todos os relatórios usando SQLAlchemy.
+
+Fazer outerjoin com projetos e users (autor/aprovador).
+
+Garantir que mesmo relatórios sem projeto ou autor ainda apareçam.
+
+Ordenar por created_at desc.
+
+Limitar a 200 registros.
+
+Criar fallback SQL caso ORM quebre:
+
+SELECT id, numero, titulo, projeto_id, autor_id, aprovador_id, status, created_at
+FROM relatorios
+ORDER BY created_at DESC
+LIMIT 200;
+
+
+No template relatorios/list.html:
+
+Renderizar dados mesmo se projeto ou autor for None.
+
+Mostrar título, número, status, data_relatorio e projeto.
+
+Se usar fallback, exibir com um aviso "modo simplificado".
+
+Logar exceções reais com current_app.logger.exception.
+Nunca esconder o erro com mensagem genérica apenas (“modo recuperação”).
+
+Exemplo da rota /reports corrigida:
+from flask import Blueprint, render_template, current_app
+from flask_login import login_required
+from sqlalchemy import text
+from app import db
+from app.models import Relatorio, Projeto, User
+
+bp = Blueprint("reports", __name__)
+
+@bp.route("/reports")
+@login_required
+def listar_reports():
+    try:
+        relatorios = (
+            db.session.query(Relatorio, Projeto, User)
+            .outerjoin(Projeto, Relatorio.projeto_id == Projeto.id)
+            .outerjoin(User, Relatorio.autor_id == User.id)
+            .order_by(Relatorio.created_at.desc())
+            .limit(200)
+            .all()
+        )
+        return render_template("relatorios/list.html", relatorios=relatorios)
+    except Exception:
+        current_app.logger.exception("Erro ao carregar relatórios com ORM, tentando fallback SQL")
+        rows = db.session.execute(text("""
+            SELECT id, numero, titulo, projeto_id, autor_id, aprovador_id, status, created_at
+            FROM relatorios
+            ORDER BY created_at DESC
+            LIMIT 200
+        """)).fetchall()
+        relatorios = [dict(r) for r in rows]
+        return render_template("relatorios/list_fallback.html", relatorios=relatorios, fallback=True)
+
+Exemplo de fallback no template (relatorios/list_fallback.html):
+{% extends "base.html" %}
+{% block content %}
+<h2>Relatórios (modo simplificado)</h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th><th>Número</th><th>Título</th><th>Projeto</th><th>Autor</th><th>Status</th><th>Data</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in relatorios %}
+    <tr>
+      <td>{{ r.id }}</td>
+      <td>{{ r.numero }}</td>
+      <td>{{ r.titulo or "Sem título" }}</td>
+      <td>{{ r.projeto_id }}</td>
+      <td>{{ r.autor_id }}</td>
+      <td>{{ r.status }}</td>
+      <td>{{ r.created_at }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
+
+✅ Com isso:
+
+/reports passa a carregar os relatórios direto do banco.
+
+Se ORM falhar, o fallback SQL garante listagem.
+
+Evita mensagens genéricas e exibe dados corretamente.
+
+Totalmente compatível com PostgreSQL no Railway.
