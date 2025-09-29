@@ -2293,7 +2293,7 @@ def generate_pdf_report(report_id):
 
     except Exception as e:
         flash(f'Erro ao gerar PDF: {str(e)}', 'error')
-        return redirect(url_for('edit_report', id=id))
+        return redirect(url_for('report_edit', report_id=report_id))
 
 @app.route('/reports/<int:id>/pdf/download')
 @login_required
@@ -2326,7 +2326,7 @@ def generate_report_pdf_download(id):
 
     except Exception as e:
         flash(f'Erro ao gerar PDF: {str(e)}', 'error')
-        return redirect(url_for('edit_report', id=id))
+        return redirect(url_for('report_edit', report_id=report_id))
 
 @app.route('/reports/<int:id>/pdf/legacy')
 @login_required
@@ -2359,7 +2359,7 @@ def generate_pdf_report_legacy(id):
 
     except Exception as e:
         flash(f'Erro ao gerar PDF: {str(e)}', 'error')
-        return redirect(url_for('edit_report', id=id))
+        return redirect(url_for('report_edit', report_id=report_id))
 
 @app.route('/api/nearby-projects')
 def get_nearby_projects():
