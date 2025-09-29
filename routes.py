@@ -192,7 +192,17 @@ def debug_reports_test():
     except Exception as e:
         return jsonify({'error': f'Erro geral: {str(e)}'}), 500
 
-
+@app.route('/debug/reports-connectivity')
+@login_required
+def debug_reports_connectivity():
+    """Debug específico para conectividade da tabela de relatórios"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    debug_info = {
+        'database_status': 'unknown',
+        'relatorios_table': 'unknown',
+        'relatorios_count': 0,
         'sample_relatorio': None,
         'connection_test': 'unknown',
         'errors': []
