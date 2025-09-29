@@ -6937,6 +6937,26 @@ def express_new():
     is_mobile = any(device in user_agent for device in ['mobile', 'android', 'iphone', 'ipad']) or request.args.get('mobile') == '1'
 
     form = RelatorioExpressForm()
+    
+    # Carregar categorias dinâmicas se projeto_id for fornecido (Item 16)
+    projeto_id = request.args.get('projeto_id', type=int)
+    if projeto_id:
+        from models import CategoriaObra
+        categorias = CategoriaObra.query.filter_by(projeto_id=projeto_id).order_by(CategoriaObra.ordem).all()
+        if categorias:
+            categoria_choices = [(cat.nome_categoria, cat.nome_categoria) for cat in categorias]
+            for foto_form in form.foto_forms:
+                foto_form.tipo_servico.choices = categoria_choices
+        else:
+            # Se não houver categorias, usar padrão
+            default_choices = [
+                ('Torre 1', 'Torre 1'),
+                ('Torre 2', 'Torre 2'),
+                ('Área Comum', 'Área Comum'),
+                ('Piscina', 'Piscina')
+            ]
+            for foto_form in form.foto_forms:
+                foto_form.tipo_servico.choices = default_choices
 
     if form.validate_on_submit():
         try:
