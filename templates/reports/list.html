@@ -91,7 +91,8 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    {% if relatorios and relatorios|length > 0 %}
+                    <!-- Debug: {{ relatorios|length if relatorios else 0 }} relatórios encontrados -->
+                    {% if relatorios %}
                         <!-- Layout de cards mobile-first sem rolagem horizontal -->
                         <div class="mobile-reports-list" id="reportsTable">
                             {% for relatorio in relatorios %}

@@ -47,6 +47,46 @@ def health_check():
             'note': 'Sistema em modo de fallback devido a erro de inicialização',
             'error': str(e),
             'timestamp': datetime.utcnow().isoformat(),
+
+@app.route('/debug/reports-data')
+@login_required
+def debug_reports_data():
+    """Debug para verificar dados dos relatórios"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        # Testar conexão básica
+        count = Relatorio.query.count()
+        
+        # Buscar alguns relatórios
+        relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(5).all()
+        
+        debug_data = {
+            'total_relatorios': count,
+            'relatorios_amostra': []
+        }
+        
+        for rel in relatorios:
+            debug_data['relatorios_amostra'].append({
+                'id': rel.id,
+                'numero': rel.numero,
+                'titulo': rel.titulo,
+                'status': rel.status,
+                'projeto_id': rel.projeto_id,
+                'autor_id': rel.autor_id,
+                'created_at': rel.created_at.isoformat() if rel.created_at else None
+            })
+        
+        return jsonify(debug_data)
+        
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'type': type(e).__name__
+        }), 500
+
+
             'version': '1.0.1'
         }), 500
 
@@ -1136,24 +1176,15 @@ def projects_list():
 @app.route('/reports')
 @login_required
 def reports():
-    """Listar relatórios - versão ROBUSTA com fallbacks"""
+    """Listar relatórios - versão corrigida para Railway PostgreSQL"""
     try:
         current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
         
         # Buscar parâmetro de pesquisa
         q = request.args.get('q', '').strip()
         
-        # Forçar rollback para limpar transações pendentes
+        # Query direta com tratamento de erro simples
         try:
-            db.session.rollback()
-        except Exception:
-            pass
-        
-        # Query com múltiplos fallbacks
-        relatorios = []
-        
-        try:
-            # Tentativa 1: Query completa
             if q:
                 # Com busca
                 from sqlalchemy import or_
@@ -1161,68 +1192,44 @@ def reports():
                 relatorios = Relatorio.query.filter(or_(
                     Relatorio.numero.ilike(search_term),
                     Relatorio.titulo.ilike(search_term)
-                )).order_by(Relatorio.created_at.desc()).limit(100).all()
+                )).order_by(Relatorio.created_at.desc()).limit(200).all()
             else:
-                # Sem busca - carregar últimos 50
-                relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(50).all()
+                # Sem busca - carregar todos os relatórios
+                relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(200).all()
             
-            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados com sucesso")
+            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados para template")
             
         except Exception as query_error:
-            current_app.logger.error(f"❌ Erro na query principal: {str(query_error)}")
-            try:
-                db.session.rollback()
-                # Fallback 1: Query mais simples
-                relatorios = Relatorio.query.limit(10).all()
-                current_app.logger.info(f"🔄 Fallback 1: {len(relatorios)} relatórios carregados")
-            except Exception as fallback_error:
-                current_app.logger.error(f"❌ Erro no fallback: {str(fallback_error)}")
-                try:
-                    db.session.rollback()
-                    # Fallback 2: Lista vazia
-                    relatorios = []
-                    current_app.logger.warning("🔄 Fallback 2: Lista vazia retornada")
-                except Exception:
-                    relatorios = []
+            current_app.logger.error(f"❌ Erro na query de relatórios: {str(query_error)}")
+            # Em caso de erro, usar lista vazia
+            relatorios = []
         
-        # Garantir que sempre temos uma lista
-        if not isinstance(relatorios, list):
-            relatorios = list(relatorios) if relatorios else []
-        
-        # Renderizar template com tratamento de erro
-        try:
-            return render_template("reports/list.html", relatorios=relatorios)
-        except Exception as template_error:
-            current_app.logger.error(f"❌ Erro no template: {str(template_error)}")
-            # Template de emergência
-            return f"""
-            <!DOCTYPE html>
-            <html><head><title>Relatórios - ELP</title></head>
-            <body>
-                <h1>Sistema de Relatórios</h1>
-                <p>Encontrados {len(relatorios)} relatórios.</p>
-                <p><a href="/">Voltar ao Dashboard</a></p>
-                <p>Erro no template principal. <a href="/reports">Tentar novamente</a></p>
-            </body></html>
-            """, 200
+        # Renderizar template
+        return render_template("reports/list.html", relatorios=relatorios)
             
     except Exception as e:
-        current_app.logger.exception(f"❌ ERRO CRÍTICO na rota /reports: {str(e)}")
-        
-        # Resposta de emergência absoluta
+        current_app.logger.error(f"❌ Erro crítico na rota /reports: {str(e)}")
+        # Fallback para template de erro
         try:
-            db.session.rollback()
-            return render_template("reports/list.html", relatorios=[])
+            return render_template("reports/list_fallback.html", relatorios=[], fallback=True)
         except Exception:
-            # Se até o template básico falhar, retornar HTML simples
             return f"""
             <!DOCTYPE html>
-            <html><head><title>Erro - ELP</title></head>
+            <html lang="pt-BR">
+            <head>
+                <meta charset="UTF-8">
+                <title>Relatórios - ELP</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            </head>
             <body>
-                <h1>Erro Temporário</h1>
-                <p>Sistema em manutenção. <a href="/">Voltar ao início</a></p>
-                <p>Erro: {str(e)[:100]}</p>
-            </body></html>
+                <div class="container mt-4">
+                    <h1>Sistema de Relatórios</h1>
+                    <div class="alert alert-warning">
+                        Sistema temporariamente indisponível. <a href="/" class="btn btn-primary">Voltar ao Dashboard</a>
+                    </div>
+                </div>
+            </body>
+            </html>
             """, 500
 
 
