@@ -77,6 +77,24 @@ def debug_reports_connectivity():
         'database_status': 'unknown',
         'relatorios_table': 'unknown',
         'relatorios_count': 0,
+        'message': 'Debug endpoint for reports connectivity'
+    }
+    
+    try:
+        # Test database connection
+        db.session.execute(db.text('SELECT 1'))
+        debug_info['database_status'] = 'connected'
+        
+        # Test reports table
+        relatorios_count = db.session.query(Relatorio).count()
+        debug_info['relatorios_count'] = relatorios_count
+        debug_info['relatorios_table'] = 'accessible'
+        
+    except Exception as e:
+        debug_info['error'] = str(e)
+        current_app.logger.error(f"Debug connectivity error: {e}")
+    
+    return jsonify(debug_info)
 
 
 @app.route('/debug/reports-test')

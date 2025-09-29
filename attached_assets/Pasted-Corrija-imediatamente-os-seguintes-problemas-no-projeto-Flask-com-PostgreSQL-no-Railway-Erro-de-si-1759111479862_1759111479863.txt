@@ -1,0 +1,81 @@
+Corrija imediatamente os seguintes problemas no projeto Flask com PostgreSQL no Railway:
+
+Erro de sintaxe em routes.py
+
+Na linha 76 existe debug_info = { ... } sem o fechamento correto.
+
+Corrija fechando o dicionário JSON com }.
+
+Garanta que todo bloco esteja válido em Python.
+
+Exemplo válido:
+
+debug_info = {
+    "database_connection": "OK",
+    "database_url": str(db.engine.url),
+    "projetos_count": db.session.query(Projeto).count(),
+    "relatorios_count": db.session.query(Relatorio).count(),
+    "usuarios_count": db.session.query(User).count(),
+}
+return jsonify(debug_info)
+
+
+Erro Engine has no attribute 'execute'
+
+Substituir todo uso de engine.execute(...) por:
+
+from sqlalchemy import text
+
+with db.engine.connect() as conn:
+    result = conn.execute(text("SELECT 1")).scalar()
+
+
+Isso garante compatibilidade com SQLAlchemy 2.x.
+
+Rota /reports não lista relatórios
+
+Ajustar para buscar corretamente os relatórios do banco.
+
+Usar ORM com outerjoin para Projeto e User.
+
+Garantir fallback SQL se ORM falhar.
+
+Exemplo:
+
+@app.route("/reports")
+@login_required
+def listar_reports():
+    try:
+        relatorios = (
+            db.session.query(Relatorio, Projeto, User)
+            .outerjoin(Projeto, Relatorio.projeto_id == Projeto.id)
+            .outerjoin(User, Relatorio.autor_id == User.id)
+            .order_by(Relatorio.created_at.desc())
+            .limit(200)
+            .all()
+        )
+        return render_template("relatorios/list.html", relatorios=relatorios)
+    except Exception:
+        current_app.logger.exception("Erro ORM, fallback SQL")
+        rows = db.session.execute(text("""
+            SELECT id, numero, titulo, projeto_id, autor_id, status, created_at
+            FROM relatorios
+            ORDER BY created_at DESC
+            LIMIT 200
+        """)).fetchall()
+        return render_template("relatorios/list_fallback.html", relatorios=rows)
+
+
+Validação final
+
+Testar /debug/db-test para validar que tudo retorna JSON válido.
+
+Testar /reports para garantir que os 23 relatórios cadastrados aparecem.
+
+✅ Isso resolve:
+
+O SyntaxError { não fechado
+
+O erro de engine.execute()
+
+A rota /reports que estava sem carregar dados.
