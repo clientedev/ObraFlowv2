@@ -997,117 +997,28 @@ def projects_list():
 @app.route('/reports')
 @login_required
 def reports():
-    """Listar relatórios - versão corrigida baseada nos dados do debug"""
-    try:
-        current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
-        
-        # Buscar parâmetro de pesquisa
-        q = request.args.get('q', '').strip()
-        
-        # Query SIMPLIFICADA baseada no sucesso do debug
-        try:
-            # Usar query direta simples que sabemos que funciona
-            if q:
-                # Com busca
-                from sqlalchemy import or_
-                search_term = f"%{q}%"
-                relatorios_query = Relatorio.query.filter(or_(
-                    Relatorio.numero.ilike(search_term),
-                    Relatorio.titulo.ilike(search_term)
-                )).order_by(Relatorio.created_at.desc()).limit(100)
-            else:
-                # Sem busca - carregar todos
-                relatorios_query = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(100)
-            
-            relatorios_raw = relatorios_query.all()
-            current_app.logger.info(f"✅ Query executada: {len(relatorios_raw)} relatórios encontrados")
-            
-            # Preparar dados para o template de forma SIMPLES
-            relatorios = []
-            for relatorio in relatorios_raw:
-                try:
-                    # Buscar projeto e autor de forma individual e segura
-                    projeto = None
-                    autor = None
-                    
-                    if relatorio.projeto_id:
-                        try:
-                            projeto = Projeto.query.get(relatorio.projeto_id)
-                        except Exception as pe:
-                            current_app.logger.warning(f"⚠️ Erro ao buscar projeto {relatorio.projeto_id}: {pe}")
-                    
-                    if relatorio.autor_id:
-                        try:
-                            autor = User.query.get(relatorio.autor_id)
-                        except Exception as ae:
-                            current_app.logger.warning(f"⚠️ Erro ao buscar autor {relatorio.autor_id}: {ae}")
-                    
-                    # Adicionar na lista no formato esperado pelo template
-                    relatorios.append((relatorio, projeto, autor))
-                    
-                except Exception as item_error:
-                    current_app.logger.warning(f"⚠️ Erro ao processar relatório {relatorio.id}: {item_error}")
-                    # Adicionar mesmo com dados parciais
-                    relatorios.append((relatorio, None, None))
-            
-            current_app.logger.info(f"✅ {len(relatorios)} relatórios processados para exibição")
-            
-            # Verificar se há relatórios para exibir
-            if not relatorios:
-                current_app.logger.info(f"📋 Nenhum relatório encontrado - isso é normal se não há relatórios criados ainda")
-                # Não é um erro - apenas não há relatórios criados ainda
-                
-            return render_template("reports/list.html", relatorios=relatorios)
-            
-        except Exception as query_error:
-            current_app.logger.error(f"❌ Erro na query principal: {str(query_error)}")
-            
-            # FALLBACK: Tentar query mais básica ainda
-            try:
-                db.session.rollback()
-                current_app.logger.info("🔄 Tentando query de fallback...")
-                
-                # Query mais básica possível
-                relatorios_fallback = db.session.execute(
-                    db.text("SELECT * FROM relatorios ORDER BY created_at DESC LIMIT 50")
-                ).fetchall()
-                
-                current_app.logger.info(f"🔄 Fallback SQL raw: {len(relatorios_fallback)} registros")
-                
-                # Converter para objetos Relatorio
-                relatorios = []
-                for row in relatorios_fallback:
-                    try:
-                        relatorio = Relatorio.query.get(row.id)
-                        if relatorio:
-                            relatorios.append((relatorio, None, None))
-                    except Exception as conversion_error:
-                        current_app.logger.warning(f"⚠️ Erro ao converter linha {row.id}: {conversion_error}")
-                
-                current_app.logger.info(f"🔄 Fallback: {len(relatorios)} relatórios convertidos")
-                return render_template("reports/list.html", relatorios=relatorios)
-                
-            except Exception as fallback_error:
-                current_app.logger.error(f"❌ Fallback também falhou: {str(fallback_error)}")
-                
-                # Último recurso: lista vazia com mensagem adequada
-                flash('Não foi possível carregar os relatórios no momento. Tente novamente.', 'warning')
-                return render_template("reports/list.html", relatorios=[])
-            
-    except Exception as e:
-        current_app.logger.exception(f"❌ ERRO CRÍTICO /reports: {str(e)}")
-        
-        # Limpar transações pendentes
-        try:
-            db.session.rollback()
-        except:
-            pass
-        
-        # Flash de erro para o usuário
-        flash('Erro temporário ao carregar relatórios. Tente novamente.', 'error')
-        
-        # Retornar página com lista vazia
-        return render_template('reports/list.html', relatorios=[])
+    """Listar relatórios - versão SIMPLIFICADA igual ao Express"""
+    current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
+    
+    # Buscar parâmetro de pesquisa
+    q = request.args.get('q', '').strip()
+    
+    # Query SIMPLES igual ao Express
+    if q:
+        # Com busca
+        from sqlalchemy import or_
+        search_term = f"%{q}%"
+        relatorios = Relatorio.query.filter(or_(
+            Relatorio.numero.ilike(search_term),
+            Relatorio.titulo.ilike(search_term)
+        )).order_by(Relatorio.created_at.desc()).limit(100).all()
+    else:
+        # Sem busca - carregar todos
+        relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(100).all()
+    
+    current_app.logger.info(f"✅ {len(relatorios)} relatórios encontrados")
+    
+    return render_template("reports/list.html", relatorios=relatorios)
 
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
