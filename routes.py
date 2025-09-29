@@ -1054,7 +1054,8 @@ def reports():
             
             # Verificar se há relatórios para exibir
             if not relatorios:
-                current_app.logger.warning(f"⚠️ Nenhum relatório encontrado (query retornou {len(relatorios_raw)} registros)")
+                current_app.logger.info(f"📋 Nenhum relatório encontrado - isso é normal se não há relatórios criados ainda")
+                # Não é um erro - apenas não há relatórios criados ainda
                 
             return render_template("reports/list.html", relatorios=relatorios)
             
@@ -1089,8 +1090,8 @@ def reports():
             except Exception as fallback_error:
                 current_app.logger.error(f"❌ Fallback também falhou: {str(fallback_error)}")
                 
-                # Último recurso: lista vazia com mensagem
-                flash('Erro ao carregar relatórios. Os dados estão no banco mas há um problema na consulta.', 'error')
+                # Último recurso: lista vazia com mensagem adequada
+                flash('Não foi possível carregar os relatórios no momento. Tente novamente.', 'warning')
                 return render_template("reports/list.html", relatorios=[])
             
     except Exception as e:
