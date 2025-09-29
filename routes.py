@@ -3098,7 +3098,7 @@ def project_new():
 def project_view(project_id):
     project = Projeto.query.get_or_404(project_id)
     contatos = ContatoProjeto.query.filter_by(projeto_id=project_id).all()
-    visitas = Visita.query.filter_by(projeto_id=project_id).order_by(Visita.data_agendada.desc()).all()
+    visitas = Visita.query.filter_by(projeto_id=project_id).order_by(Visita.data_inicio.desc()).all()
     relatorios = Relatorio.query.filter_by(projeto_id=project_id).order_by(Relatorio.created_at.desc()).all()
     relatorios_express = RelatorioExpress.query.order_by(RelatorioExpress.created_at.desc()).all()
 
