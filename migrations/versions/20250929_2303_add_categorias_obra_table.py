@@ -19,24 +19,32 @@ def upgrade():
     """
     Create categorias_obra table for customizable categories per project - Item 16
     """
-    # Create the categorias_obra table
-    op.create_table(
-        'categorias_obra',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('projeto_id', sa.Integer(), nullable=False),
-        sa.Column('nome_categoria', sa.String(length=100), nullable=False),
-        sa.Column('ordem', sa.Integer(), nullable=True, server_default='0'),
-        sa.Column('created_at', sa.DateTime(), nullable=True, server_default=sa.text('CURRENT_TIMESTAMP')),
-        sa.Column('updated_at', sa.DateTime(), nullable=True, server_default=sa.text('CURRENT_TIMESTAMP')),
-        sa.ForeignKeyConstraint(['projeto_id'], ['projetos.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('projeto_id', 'nome_categoria', name='uq_categoria_por_projeto')
-    )
+    # Check if table already exists
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing_tables = inspector.get_table_names()
     
-    # Create index for faster queries
-    op.create_index('ix_categorias_obra_projeto_id', 'categorias_obra', ['projeto_id'])
-    
-    print("✅ Tabela categorias_obra criada com sucesso - Item 16")
+    if 'categorias_obra' not in existing_tables:
+        # Create the categorias_obra table
+        op.create_table(
+            'categorias_obra',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('projeto_id', sa.Integer(), nullable=False),
+            sa.Column('nome_categoria', sa.String(length=100), nullable=False),
+            sa.Column('ordem', sa.Integer(), nullable=True, server_default='0'),
+            sa.Column('created_at', sa.DateTime(), nullable=True, server_default=sa.text('CURRENT_TIMESTAMP')),
+            sa.Column('updated_at', sa.DateTime(), nullable=True, server_default=sa.text('CURRENT_TIMESTAMP')),
+            sa.ForeignKeyConstraint(['projeto_id'], ['projetos.id'], ondelete='CASCADE'),
+            sa.PrimaryKeyConstraint('id'),
+            sa.UniqueConstraint('projeto_id', 'nome_categoria', name='uq_categoria_por_projeto')
+        )
+        
+        # Create index for faster queries
+        op.create_index('ix_categorias_obra_projeto_id', 'categorias_obra', ['projeto_id'])
+        
+        print("✅ Tabela categorias_obra criada com sucesso - Item 16")
+    else:
+        print("ℹ️ Tabela categorias_obra já existe - pulando criação")
 
 def downgrade():
     """Revert the changes"""

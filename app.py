@@ -424,18 +424,22 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
                     # Ensure alembic_version table exists and is up to date
                     if 'alembic_version' in table_names:
                         # Check current version
-                        result = db.engine.execute("SELECT version_num FROM alembic_version").fetchone()
-                        if result and result[0] != 'c18fc0f1e85a':
-                            db.engine.execute("UPDATE alembic_version SET version_num = 'c18fc0f1e85a'")
-                            logging.info("✅ Updated alembic_version to latest migration")
+                        with db.engine.connect() as connection:
+                            result = connection.execute(text("SELECT version_num FROM alembic_version")).fetchone()
+                            if result and result[0] != '20250929_2303':
+                                connection.execute(text("UPDATE alembic_version SET version_num = '20250929_2303'"))
+                                connection.commit()
+                                logging.info("✅ Updated alembic_version to latest migration")
                     else:
                         # Create alembic_version table
-                        db.engine.execute(
-                            "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, "
-                            "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
-                        )
-                        db.engine.execute("INSERT INTO alembic_version (version_num) VALUES ('c18fc0f1e85a')")
-                        logging.info("✅ Created alembic_version table with latest migration")
+                        with db.engine.connect() as connection:
+                            connection.execute(text(
+                                "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, "
+                                "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+                            ))
+                            connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('20250929_2303')"))
+                            connection.commit()
+                            logging.info("✅ Created alembic_version table with latest migration")
                         
             except Exception as migration_fix_error:
                 logging.warning(f"⚠️ Migration fix attempt failed: {migration_fix_error}")
