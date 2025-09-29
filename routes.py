@@ -47,6 +47,55 @@ def health_check():
 
 @app.route('/health/full')
 def health_check_full():
+
+
+@app.route('/debug/db-test')
+@login_required
+def debug_db_test():
+    """Debug endpoint para testar conexão com banco"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        # Teste 1: Conexão básica
+        from sqlalchemy import text
+        result = db.session.execute(text("SELECT 1")).scalar()
+        
+        # Teste 2: Contar relatórios
+        relatorios_count = Relatorio.query.count()
+        
+        # Teste 3: Contar projetos
+        projetos_count = Projeto.query.count()
+        
+        # Teste 4: Contar usuários
+        usuarios_count = User.query.count()
+        
+        # Teste 5: Buscar um relatório específico
+        primeiro_relatorio = Relatorio.query.first()
+        
+        return jsonify({
+            'status': 'success',
+            'database_connection': 'OK',
+            'test_query_result': result,
+            'relatorios_count': relatorios_count,
+            'projetos_count': projetos_count,
+            'usuarios_count': usuarios_count,
+            'primeiro_relatorio': {
+                'id': primeiro_relatorio.id if primeiro_relatorio else None,
+                'numero': primeiro_relatorio.numero if primeiro_relatorio else None,
+                'titulo': primeiro_relatorio.titulo if primeiro_relatorio else None
+            } if primeiro_relatorio else None,
+            'database_url': app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')[:50] + '...'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'database_connection': 'FAILED'
+        }), 500
+
+
     """Full health check with database connectivity"""
     try:
         # Basic database connectivity test
@@ -760,71 +809,83 @@ def projects_list():
 @app.route('/reports')
 @login_required
 def reports():
-    """Listar relatórios - corrigido conforme especificação"""
+    """Listar relatórios - versão corrigida e robusta"""
     try:
         current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
         
-        # Buscar todos os relatórios usando SQLAlchemy com outer joins
+        # Buscar parâmetro de pesquisa
+        q = request.args.get('q', '').strip()
+        
+        # Query mais simples e robusta
         try:
-            relatorios = (
-                db.session.query(Relatorio, Projeto, User)
-                .outerjoin(Projeto, Relatorio.projeto_id == Projeto.id)
-                .outerjoin(User, Relatorio.autor_id == User.id)
-                .order_by(Relatorio.created_at.desc())
-                .limit(200)
-                .all()
-            )
+            # Começar com query básica
+            query = Relatorio.query
             
-            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados com joins")
+            # Aplicar filtro de pesquisa se fornecido
+            if q:
+                from sqlalchemy import or_
+                search_term = f"%{q}%"
+                query = query.filter(or_(
+                    Relatorio.numero.ilike(search_term),
+                    Relatorio.titulo.ilike(search_term)
+                ))
+            
+            # Buscar relatórios com ordenação por data de criação
+            relatorios_simples = query.order_by(Relatorio.created_at.desc()).limit(200).all()
+            
+            # Preparar dados completos para o template
+            relatorios = []
+            for relatorio in relatorios_simples:
+                try:
+                    # Buscar projeto e autor de forma segura
+                    projeto = Projeto.query.get(relatorio.projeto_id) if relatorio.projeto_id else None
+                    autor = User.query.get(relatorio.autor_id) if relatorio.autor_id else None
+                    
+                    # Adicionar tupla (relatorio, projeto, autor) como esperado pelo template
+                    relatorios.append((relatorio, projeto, autor))
+                except Exception as item_error:
+                    current_app.logger.warning(f"Erro ao processar relatório {relatorio.id}: {item_error}")
+                    # Adicionar mesmo com dados parciais
+                    relatorios.append((relatorio, None, None))
+            
+            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados com sucesso")
             return render_template("reports/list.html", relatorios=relatorios)
             
-        except Exception:
-            current_app.logger.exception("Erro ao carregar relatórios com ORM, tentando fallback SQL")
+        except Exception as query_error:
+            current_app.logger.error(f"❌ Erro na query principal: {str(query_error)}")
             
-            # Fallback SQL caso ORM quebre
-            from sqlalchemy import text
-            rows = db.session.execute(text("""
-                SELECT id, numero, titulo, projeto_id, autor_id, aprovador_id, status, created_at
-                FROM relatorios
-                ORDER BY created_at DESC
-                LIMIT 200
-            """)).fetchall()
-            
-            relatorios = [dict(r) for r in rows]
-            current_app.logger.info(f"🔄 Fallback SQL: {len(relatorios)} relatórios carregados")
-            return render_template("reports/list_fallback.html", relatorios=relatorios, fallback=True)
+            # Fallback para query mais simples ainda
+            try:
+                db.session.rollback()
+                relatorios_basicos = Relatorio.query.order_by(Relatorio.id.desc()).limit(50).all()
+                
+                # Converter para formato esperado pelo template
+                relatorios = []
+                for rel in relatorios_basicos:
+                    relatorios.append((rel, None, None))
+                
+                current_app.logger.info(f"🔄 Fallback: {len(relatorios)} relatórios carregados")
+                return render_template("reports/list.html", relatorios=relatorios)
+                
+            except Exception as fallback_error:
+                current_app.logger.error(f"❌ Fallback também falhou: {str(fallback_error)}")
+                # Retornar lista vazia
+                return render_template("reports/list.html", relatorios=[])
             
     except Exception as e:
         current_app.logger.exception(f"❌ ERRO CRÍTICO /reports: {str(e)}")
         
-        # Verificar se é um erro grave (tabela não encontrada, conexão perdida, etc.)
-        error_str = str(e).lower()
-        is_critical_error = any(keyword in error_str for keyword in [
-            'table', 'relation', 'column', 'connection', 'database', 'does not exist'
-        ])
+        # Rollback para limpar transações
+        try:
+            db.session.rollback()
+        except:
+            pass
         
-        if is_critical_error:
-            current_app.logger.critical(f"🚨 ERRO CRÍTICO DE INFRAESTRUTURA: {str(e)}")
-            flash('Erro crítico no sistema. Verifique a configuração do banco de dados.', 'error')
-        else:
-            current_app.logger.warning(f"⚠️ Erro temporário na listagem de relatórios: {str(e)}")
-            flash('Erro temporário ao carregar relatórios. Tente novamente.', 'warning')
-
-        # Em caso de erro, retornar lista vazia mas funcional
-        class EmptyPagination:
-            def __init__(self):
-                self.items = []
-                self.total = 0
-                self.page = 1
-                self.pages = 0
-                self.has_prev = False
-                self.has_next = False
-                self.per_page = 10
-
-            def iter_pages(self):
-                return []
-
-        return render_template('reports/list.html', relatorios=EmptyPagination())
+        # Exibir erro para o usuário
+        flash('Erro ao carregar relatórios. Tente novamente.', 'error')
+        
+        # Retornar página com lista vazia
+        return render_template('reports/list.html', relatorios=[])
 
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])

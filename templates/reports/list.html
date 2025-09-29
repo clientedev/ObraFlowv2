@@ -91,7 +91,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    {% if relatorios %}
+                    {% if relatorios and relatorios|length > 0 %}
                         <!-- Layout de cards mobile-first sem rolagem horizontal -->
                         <div class="mobile-reports-list" id="reportsTable">
                             {% for relatorio_data in relatorios %}
@@ -101,9 +101,11 @@
                                     {% set autor = relatorio_data[2] %}
                                 {% else %}
                                     {% set report = relatorio_data %}
-                                    {% set projeto = report.projeto %}
-                                    {% set autor = report.autor %}
+                                    {% set projeto = report.projeto if report else None %}
+                                    {% set autor = report.autor if report else None %}
                                 {% endif %}
+                                
+                                {% if report %}
                             <div class="report-card mb-2" 
                                  data-status="{{ report.status or 'Indefinido' }}" 
                                  data-projeto="{{ projeto.nome if projeto else 'Sem projeto' }}"
@@ -234,6 +236,7 @@
                                     </div>
                                 </div>
                             </div>
+                                {% endif %}
                             {% endfor %}
                         </div>
 
