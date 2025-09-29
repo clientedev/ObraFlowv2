@@ -9,7 +9,7 @@ deploymentTarget = "vm"
 run = ["python", "main_production.py"]
 
 [workflows]
-runButton = "Project"
+runButton = "Flask Server Corrigido"
 
 [[workflows.workflow]]
 name = "Flask Server Fixed"

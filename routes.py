@@ -1176,14 +1176,14 @@ def projects_list():
 @app.route('/reports')
 @login_required
 def reports():
-    """Listar relatórios - versão corrigida para Railway PostgreSQL"""
+    """Listar relatórios - versão corrigida e simplificada"""
     try:
         current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
         
         # Buscar parâmetro de pesquisa
         q = request.args.get('q', '').strip()
         
-        # Query direta com tratamento de erro simples
+        # Query com tratamento de erro
         try:
             if q:
                 # Com busca
@@ -1197,40 +1197,20 @@ def reports():
                 # Sem busca - carregar todos os relatórios
                 relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(200).all()
             
-            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados para template")
+            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados")
             
         except Exception as query_error:
-            current_app.logger.error(f"❌ Erro na query de relatórios: {str(query_error)}")
-            # Em caso de erro, usar lista vazia
+            current_app.logger.error(f"❌ Erro na query: {str(query_error)}")
+            db.session.rollback()
             relatorios = []
         
         # Renderizar template
         return render_template("reports/list.html", relatorios=relatorios)
             
     except Exception as e:
-        current_app.logger.error(f"❌ Erro crítico na rota /reports: {str(e)}")
-        # Fallback para template de erro
-        try:
-            return render_template("reports/list_fallback.html", relatorios=[], fallback=True)
-        except Exception:
-            return f"""
-            <!DOCTYPE html>
-            <html lang="pt-BR">
-            <head>
-                <meta charset="UTF-8">
-                <title>Relatórios - ELP</title>
-                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-            </head>
-            <body>
-                <div class="container mt-4">
-                    <h1>Sistema de Relatórios</h1>
-                    <div class="alert alert-warning">
-                        Sistema temporariamente indisponível. <a href="/" class="btn btn-primary">Voltar ao Dashboard</a>
-                    </div>
-                </div>
-            </body>
-            </html>
-            """, 500
+        current_app.logger.error(f"❌ Erro crítico: {str(e)}")
+        db.session.rollback()
+        return render_template("reports/list_fallback.html", relatorios=[], fallback=True)
 
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
