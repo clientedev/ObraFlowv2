@@ -1,0 +1,100 @@
+
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+  File "/usr/local/lib/python3.10/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'reports'. Did you mean 'report_send' instead?
+ERROR:app:Exception on /favicon.ico [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "/usr/local/lib/python3.10/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "/usr/local/lib/python3.10/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1511, in wsgi_app
+    return render_template('500.html'), 500
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.10/site-packages/werkzeug/routing/map.py", line 924, in build
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/site-packages/flask/templating.py", line 150, in render_template
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 919, in full_dispatch_request
+  File "/usr/local/lib/python3.10/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise BuildError(endpoint, values, method, self)
+    return _render(app, template, context)
+    rv = self.handle_user_exception(e)
+    raise rewrite_traceback_stack(source=source)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'reports'. Did you mean 'report_send' instead?
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 802, in handle_user_exception
+    return self.handle_http_exception(e)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 777, in handle_http_exception
+  File "/app/templates/500.html", line 1, in top-level template code
+  File "/usr/local/lib/python3.10/site-packages/flask/templating.py", line 131, in _render
+    {% extends "base.html" %}
+    return self.ensure_sync(handler)(e)  # type: ignore[no-any-return]
+    rv = template.render(context)
+  File "/app/templates/base.html", line 143, in top-level template code
+  File "/app/routes.py", line 7513, in not_found_error
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/jinja2/environment.py", line 1295, in render
+    return render_template('404.html'), 404
+    <li><a class="dropdown-item" href="{{ url_for('reports') }}">Listar Relatórios</a></li>
+  File "/usr/local/lib/python3.10/site-packages/werkzeug/serving.py", line 370, in run_wsgi
+  File "/usr/local/lib/python3.10/site-packages/flask/templating.py", line 150, in render_template
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+    execute(self.server.app)
+    return _render(app, template, context)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1110, in url_for
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1536, in __call__
+  File "/usr/local/lib/python3.10/site-packages/flask/templating.py", line 131, in _render
+  File "/usr/local/lib/python3.10/site-packages/werkzeug/serving.py", line 331, in execute
+    rv = url_adapter.build(  # type: ignore[union-attr]
+    return self.wsgi_app(environ, start_response)
+    rv = template.render(context)
+    application_iter = app(environ, start_response)
+  File "/usr/local/lib/python3.10/site-packages/werkzeug/middleware/proxy_fix.py", line 183, in __call__
+  File "/usr/local/lib/python3.10/site-packages/jinja2/environment.py", line 1295, in render
+    return self.app(environ, start_response)
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1514, in wsgi_app
+  File "/usr/local/lib/python3.10/site-packages/jinja2/environment.py", line 942, in handle_exception
+    response = self.handle_exception(e)
+    raise rewrite_traceback_stack(source=source)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 860, in handle_exception
+  File "/app/templates/404.html", line 1, in top-level template code
+    server_error = self.ensure_sync(handler)(server_error)
+    {% extends "base.html" %}
+  File "/app/routes.py", line 7518, in internal_error
+  File "/app/templates/base.html", line 143, in top-level template code
+    <li><a class="dropdown-item" href="{{ url_for('reports') }}">Listar Relatórios</a></li>
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+  File "/usr/local/lib/python3.10/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'reports'. Did you mean 'report_send' instead?
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 11:40:26] "GET /favicon.ico HTTP/1.1" 500 -
+ERROR:werkzeug:Error on request:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "/usr/local/lib/python3.10/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "/usr/local/lib/python3.10/site-packages/werkzeug/routing/map.py", line 629, in match
