@@ -267,16 +267,22 @@ class Relatorio(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    # Relacionamentos SQLAlchemy otimizados (evitam queries adicionais)
+    autor = db.relationship('User', foreign_keys=[autor_id], backref='relatorios_criados', lazy='select')
+    aprovador = db.relationship('User', foreign_keys=[aprovador_id], backref='relatorios_aprovados', lazy='select')  
+    projeto = db.relationship('Projeto', foreign_keys=[projeto_id], backref='relatorios', lazy='select')
+    
+    # Manter properties para compatibilidade (caso sejam usadas em outros lugares)
     @property
-    def autor(self):
+    def autor_legacy(self):
         return db.session.get(User, self.autor_id)
     
     @property
-    def aprovador(self):
+    def aprovador_legacy(self):
         return db.session.get(User, self.aprovador_id) if self.aprovador_id else None
 
     @property
-    def projeto(self):
+    def projeto_legacy(self):
         return db.session.get(Projeto, self.projeto_id)
 
     @property

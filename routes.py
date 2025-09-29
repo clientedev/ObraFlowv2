@@ -66,6 +66,55 @@ def health_check_full():
             'service': 'flask-app'
         }), 503
 
+@app.route('/debug/reports-connectivity')
+@login_required
+def debug_reports_connectivity():
+    """Debug específico para conectividade da tabela de relatórios"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    debug_info = {
+        'database_status': 'unknown',
+        'relatorios_table': 'unknown',
+        'relatorios_count': 0,
+        'sample_relatorio': None,
+        'connection_test': 'unknown',
+        'errors': []
+    }
+    
+    try:
+        # Teste 1: Conexão básica
+        from sqlalchemy import text
+        result = db.session.execute(text("SELECT 1")).scalar()
+        debug_info['connection_test'] = 'OK' if result == 1 else 'FAILED'
+        
+        # Teste 2: Tabela relatórios existe
+        table_check = db.session.execute(text("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'relatorios'")).scalar()
+        debug_info['relatorios_table'] = 'EXISTS' if table_check > 0 else 'MISSING'
+        
+        # Teste 3: Contar relatórios
+        if table_check > 0:
+            debug_info['relatorios_count'] = Relatorio.query.count()
+            
+            # Teste 4: Buscar um relatório de exemplo
+            primeiro_relatorio = Relatorio.query.first()
+            if primeiro_relatorio:
+                debug_info['sample_relatorio'] = {
+                    'id': primeiro_relatorio.id,
+                    'numero': primeiro_relatorio.numero,
+                    'titulo': primeiro_relatorio.titulo,
+                    'status': primeiro_relatorio.status,
+                    'created_at': primeiro_relatorio.created_at.isoformat() if primeiro_relatorio.created_at else None
+                }
+        
+        debug_info['database_status'] = 'HEALTHY'
+        
+    except Exception as e:
+        debug_info['errors'].append(f"Database error: {str(e)}")
+        debug_info['database_status'] = 'ERROR'
+    
+    return jsonify(debug_info)
+
 @app.route('/debug/db-test')
 @login_required
 def debug_db_test():
@@ -826,17 +875,21 @@ def projects_list():
 @app.route('/reports')
 @login_required
 def reports():
-    """Listar relatórios - versão corrigida e robusta"""
+    """Listar relatórios - versão otimizada com JOIN para evitar queries N+1"""
     try:
         current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
         
         # Buscar parâmetro de pesquisa
         q = request.args.get('q', '').strip()
         
-        # Query mais simples e robusta
         try:
-            # Começar com query básica
-            query = Relatorio.query
+            # SOLUÇÃO: Query otimizada com JOIN para evitar queries N+1
+            from sqlalchemy.orm import joinedload
+            
+            query = db.session.query(Relatorio).options(
+                joinedload(Relatorio.projeto),
+                joinedload(Relatorio.autor)
+            )
             
             # Aplicar filtro de pesquisa se fornecido
             if q:
@@ -847,59 +900,86 @@ def reports():
                     Relatorio.titulo.ilike(search_term)
                 ))
             
-            # Buscar relatórios com ordenação por data de criação
-            relatorios_simples = query.order_by(Relatorio.created_at.desc()).limit(200).all()
+            # Executar query única com JOIN
+            relatorios_raw = query.order_by(Relatorio.created_at.desc()).limit(200).all()
             
-            # Preparar dados completos para o template
+            # Preparar dados no formato esperado pelo template: lista de tuplas (relatorio, projeto, autor)
             relatorios = []
-            for relatorio in relatorios_simples:
+            for relatorio in relatorios_raw:
                 try:
-                    # Buscar projeto e autor de forma segura
-                    projeto = Projeto.query.get(relatorio.projeto_id) if relatorio.projeto_id else None
-                    autor = User.query.get(relatorio.autor_id) if relatorio.autor_id else None
+                    # Usar relacionamentos já carregados pelo joinedload
+                    projeto = relatorio.projeto  # Já carregado pelo JOIN
+                    autor = relatorio.autor      # Já carregado pelo JOIN
                     
-                    # Adicionar tupla (relatorio, projeto, autor) como esperado pelo template
+                    # Formato esperado pelo template: tupla (relatorio, projeto, autor)
                     relatorios.append((relatorio, projeto, autor))
+                    
                 except Exception as item_error:
-                    current_app.logger.warning(f"Erro ao processar relatório {relatorio.id}: {item_error}")
+                    current_app.logger.warning(f"⚠️ Erro ao processar relatório {relatorio.id}: {item_error}")
                     # Adicionar mesmo com dados parciais
                     relatorios.append((relatorio, None, None))
             
-            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados com sucesso")
+            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados com JOIN otimizado")
             return render_template("reports/list.html", relatorios=relatorios)
             
         except Exception as query_error:
-            current_app.logger.error(f"❌ Erro na query principal: {str(query_error)}")
+            current_app.logger.error(f"❌ Erro na query otimizada: {str(query_error)}")
             
-            # Fallback para query mais simples ainda
+            # FALLBACK 1: Query simples sem JOIN
             try:
                 db.session.rollback()
-                relatorios_basicos = Relatorio.query.order_by(Relatorio.id.desc()).limit(50).all()
+                current_app.logger.info("🔄 Tentando fallback sem JOIN...")
                 
-                # Converter para formato esperado pelo template
+                relatorios_simples = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(50).all()
+                
                 relatorios = []
-                for rel in relatorios_basicos:
-                    relatorios.append((rel, None, None))
+                for relatorio in relatorios_simples:
+                    try:
+                        # Buscar relacionamentos individualmente (menos eficiente, mas funciona)
+                        projeto = db.session.get(Projeto, relatorio.projeto_id) if relatorio.projeto_id else None
+                        autor = db.session.get(User, relatorio.autor_id) if relatorio.autor_id else None
+                        
+                        relatorios.append((relatorio, projeto, autor))
+                    except Exception:
+                        relatorios.append((relatorio, None, None))
                 
-                current_app.logger.info(f"🔄 Fallback: {len(relatorios)} relatórios carregados")
+                current_app.logger.info(f"🔄 Fallback 1: {len(relatorios)} relatórios carregados")
                 return render_template("reports/list.html", relatorios=relatorios)
                 
             except Exception as fallback_error:
-                current_app.logger.error(f"❌ Fallback também falhou: {str(fallback_error)}")
-                # Retornar lista vazia
-                return render_template("reports/list.html", relatorios=[])
+                current_app.logger.error(f"❌ Fallback 1 falhou: {str(fallback_error)}")
+                
+                # FALLBACK 2: Query mínima apenas com relatórios
+                try:
+                    db.session.rollback()
+                    current_app.logger.info("🔄 Tentando fallback mínimo...")
+                    
+                    relatorios_basicos = Relatorio.query.order_by(Relatorio.id.desc()).limit(20).all()
+                    
+                    # Formato mínimo para o template
+                    relatorios = []
+                    for rel in relatorios_basicos:
+                        relatorios.append((rel, None, None))
+                    
+                    current_app.logger.info(f"🔄 Fallback 2: {len(relatorios)} relatórios básicos carregados")
+                    return render_template("reports/list.html", relatorios=relatorios)
+                    
+                except Exception as final_error:
+                    current_app.logger.error(f"❌ Fallback final falhou: {str(final_error)}")
+                    # Retornar lista vazia como último recurso
+                    return render_template("reports/list.html", relatorios=[])
             
     except Exception as e:
         current_app.logger.exception(f"❌ ERRO CRÍTICO /reports: {str(e)}")
         
-        # Rollback para limpar transações
+        # Limpar transações pendentes
         try:
             db.session.rollback()
         except:
             pass
         
-        # Exibir erro para o usuário
-        flash('Erro ao carregar relatórios. Tente novamente.', 'error')
+        # Flash de erro para o usuário
+        flash('Erro temporário ao carregar relatórios. Tente novamente em alguns instantes.', 'error')
         
         # Retornar página com lista vazia
         return render_template('reports/list.html', relatorios=[])
