@@ -14,7 +14,7 @@
                 <small class="text-muted d-block d-md-inline">({{ relatorio.numero }})</small>
             </h1>
             <div class="btn-group" role="group">
-                <a href="{{ url_for('generate_pdf_report', id=relatorio.id) }}" class="btn btn-outline-info btn-sm btn-md-normal" target="_blank">
+                <a href="{{ url_for('generate_pdf_report', report_id=relatorio.id) }}" class="btn btn-outline-info btn-sm btn-md-normal" target="_blank">
                     <i class="fas fa-file-pdf me-1 me-md-2"></i><span class="d-none d-sm-inline">Visualizar </span>PDF
                 </a>
 
@@ -170,7 +170,7 @@
                     <br>{{ relatorio.comentario_aprovacao }}
                 </div>
                 <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                    <a href="{{ url_for('edit_report', id=relatorio.id) }}" class="btn btn-warning btn-lg">
+                    <a href="{{ url_for('report_edit', report_id=relatorio.id) }}" class="btn btn-warning btn-lg">
                         <i class="fas fa-edit me-2"></i>Editar e Corrigir
                     </a>
                 </div>
@@ -198,7 +198,7 @@
             </div>
             <div class="card-body text-center">
                 <p class="mb-3">Este relatório foi aprovado e está disponível para download.</p>
-                <a href="{{ url_for('generate_pdf_report', id=relatorio.id) }}" class="btn btn-success btn-lg" target="_blank">
+                <a href="{{ url_for('generate_pdf_report', report_id=relatorio.id) }}" class="btn btn-success btn-lg" target="_blank">
                     <i class="fas fa-download me-2"></i>Baixar PDF
                 </a>
             </div>

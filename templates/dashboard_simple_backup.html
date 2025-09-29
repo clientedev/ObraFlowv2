@@ -123,7 +123,7 @@
                                 <div class="text-end">
                                     <small class="text-muted">{{ rel.data_relatorio.strftime('%d/%m') if rel.data_relatorio else 'Sem data' }}</small>
                                     <br>
-                                    <a href="{{ url_for('edit_report', id=rel.id) }}" class="btn btn-sm btn-outline-primary">Ver</a>
+                                    <a href="{{ url_for('report_edit', report_id=rel.id) }}" class="btn btn-sm btn-outline-primary">Ver</a>
                                 </div>
                             </div>
                             {% endfor %}
