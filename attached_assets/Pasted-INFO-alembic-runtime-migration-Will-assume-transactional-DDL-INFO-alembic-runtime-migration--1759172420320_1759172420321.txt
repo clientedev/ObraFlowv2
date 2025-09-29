@@ -1,0 +1,73 @@
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 20250928_1300 -> 20250929_1845, fix numero_projeto retroactively
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/usr/local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "relatorios_numero_key"
+DETAIL:  Key (numero)=(REL-0001) already exists.
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "/usr/local/bin/alembic", line 7, in <module>
+    sys.exit(main())
+  File "/usr/local/lib/python3.10/site-packages/alembic/config.py", line 1022, in main
+    CommandLine(prog=prog).main(argv=argv)
+  File "/usr/local/lib/python3.10/site-packages/alembic/config.py", line 1012, in main
+    self.run_cmd(cfg, options)
+  File "/usr/local/lib/python3.10/site-packages/alembic/config.py", line 946, in run_cmd
+    fn(
+  File "/usr/local/lib/python3.10/site-packages/alembic/command.py", line 483, in upgrade
+    script.run_env()
+  File "/usr/local/lib/python3.10/site-packages/alembic/script/base.py", line 549, in run_env
+    util.load_python_file(self.dir, "env.py")
+  File "/usr/local/lib/python3.10/site-packages/alembic/util/pyfiles.py", line 116, in load_python_file
+    module = load_module_py(module_id, path)
+  File "/usr/local/lib/python3.10/site-packages/alembic/util/pyfiles.py", line 136, in load_module_py
+    spec.loader.exec_module(module)  # type: ignore
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/app/migrations/env.py", line 96, in <module>
+    run_migrations_online()
+  File "/app/migrations/env.py", line 90, in run_migrations_online
+    context.run_migrations()
+  File "<string>", line 8, in run_migrations
+  File "/usr/local/lib/python3.10/site-packages/alembic/runtime/environment.py", line 946, in run_migrations
+    self.get_context().run_migrations(**kw)
+  File "/usr/local/lib/python3.10/site-packages/alembic/runtime/migration.py", line 627, in run_migrations
+    step.migration_fn(**kw)
+  File "/app/migrations/versions/20250929_1845_fix_numero_projeto_retroactively.py", line 36, in upgrade
+    conn.execute(text(update_sql))
+  File "/usr/local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/usr/local/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/usr/local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/usr/local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/usr/local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/usr/local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/usr/local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/usr/local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "relatorios_numero_key"
+DETAIL:  Key (numero)=(REL-0001) already exists.
+[SQL: 
+    WITH ranked AS (
+        SELECT id,
+               projeto_id,
+               ROW_NUMBER() OVER (PARTITION BY projeto_id ORDER BY created_at ASC) AS seq
+        FROM relatorios
+    )
+    UPDATE relatorios r
+    SET numero_projeto = ranked.seq,
+        numero = 'REL-' || LPAD(ranked.seq::text, 4, '0')
+    FROM ranked
+    WHERE r.id = ranked.id;
+    ]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Stopping Container
