@@ -49,18 +49,22 @@ def fix_migration_state():
                 # Check if alembic_version table exists
                 if 'alembic_version' in table_names:
                     # Update the version to the latest migration
-                    db.engine.execute(
-                        "UPDATE alembic_version SET version_num = 'c18fc0f1e85a'"
-                    )
+                    with db.engine.connect() as conn:
+                        conn.execute(db.text(
+                            "UPDATE alembic_version SET version_num = 'c18fc0f1e85a'"
+                        ))
+                        conn.commit()
                     logger.info("✅ Migration state updated successfully")
                 else:
                     # Create alembic_version table if it doesn't exist
-                    db.engine.execute(
-                        "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
-                    )
-                    db.engine.execute(
-                        "INSERT INTO alembic_version (version_num) VALUES ('c18fc0f1e85a')"
-                    )
+                    with db.engine.connect() as conn:
+                        conn.execute(db.text(
+                            "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+                        ))
+                        conn.execute(db.text(
+                            "INSERT INTO alembic_version (version_num) VALUES ('c18fc0f1e85a')"
+                        ))
+                        conn.commit()
                     logger.info("✅ Created alembic_version table and set migration state")
             else:
                 logger.info("❌ Table 'user_email_config' does not exist. Migration needs to run.")
