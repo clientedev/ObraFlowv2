@@ -1,0 +1,114 @@
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 11:59:59] "GET /static/js/mobile-utils.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 11:59:59] "GET /static/js/pwa-install-only.js HTTP/1.1" 304 -
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 11:59:59] "GET /api/legendas?categoria=all&_t=1759147192468 HTTP/1.1" 200 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 11:59:59] "GET /static/icons/icon-192x192.png HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 11:59:59] "GET /static/manifest.json HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 11:59:59] "GET /static/icons/icon-144x144.png HTTP/1.1" 304 -
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:00] "GET /api/legendas?categoria=all&_t=1759147193516&sync=realtime HTTP/1.1" 200 -
+ERROR:app:Erro ao carregar relatórios via ORM
+Traceback (most recent call last):
+  File "/app/routes.py", line 1184, in reports
+    return render_template("reports/list.html", relatorios=relatorios)
+  File "/usr/local/lib/python3.10/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/usr/local/lib/python3.10/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/usr/local/lib/python3.10/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.10/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/app/templates/reports/list.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/app/templates/base.html", line 269, in top-level template code
+    {% block content %}{% endblock %}
+  File "/app/templates/reports/list.html", line 11, in block 'content'
+    <a href="{{ url_for('new_report') }}" class="btn btn-primary">
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+  File "/usr/local/lib/python3.10/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'new_report'. Did you mean 'view_report' instead?
+ERROR:app:Exception on /reports [GET]
+Traceback (most recent call last):
+  File "/app/routes.py", line 1184, in reports
+    return render_template("reports/list.html", relatorios=relatorios)
+  File "/usr/local/lib/python3.10/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/usr/local/lib/python3.10/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/usr/local/lib/python3.10/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.10/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/app/templates/reports/list.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/app/templates/base.html", line 269, in top-level template code
+    {% block content %}{% endblock %}
+  File "/app/templates/reports/list.html", line 11, in block 'content'
+    <a href="{{ url_for('new_report') }}" class="btn btn-primary">
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+  File "/usr/local/lib/python3.10/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'new_report'. Did you mean 'view_report' instead?
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/usr/local/lib/python3.10/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+  File "/app/routes.py", line 1189, in reports
+    return render_template("reports/list.html", relatorios=rows)
+  File "/usr/local/lib/python3.10/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/usr/local/lib/python3.10/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/usr/local/lib/python3.10/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.10/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/app/templates/reports/list.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/app/templates/base.html", line 269, in top-level template code
+    {% block content %}{% endblock %}
+  File "/app/templates/reports/list.html", line 11, in block 'content'
+    <a href="{{ url_for('new_report') }}" class="btn btn-primary">
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+  File "/usr/local/lib/python3.10/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'new_report'. Did you mean 'view_report' instead?
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /reports HTTP/1.1" 500 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/css/style.css HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/css/mobile-accessibility.css HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/css/mobile.css HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/js/notifications.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/logo_elp_transparent.png HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/js/image-error-handler.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/js/main.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/js/legendas-selector.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/js/fix-all-images.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/js/realtime-sync.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/js/pwa-install-only.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/js/mobile-utils.js HTTP/1.1" 304 -
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/manifest.json HTTP/1.1" 304 -
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /api/legendas?categoria=all&_t=1759147195553 HTTP/1.1" 200 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 12:00:02] "GET /static/icons/icon-144x144.png HTTP/1.1" 304 -
