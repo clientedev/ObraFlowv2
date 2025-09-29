@@ -1172,21 +1172,90 @@ def projects_list():
 @app.route('/reports')
 @login_required  
 def reports():
-    """Listar relatórios de obra - versão corrigida com ORM e fallback SQL"""
+    """Listar relatórios de obra - versão corrigida com paginação"""
     try:
-        relatorios = (
-            db.session.query(Relatorio, Projeto, User)
-            .outerjoin(Projeto, Relatorio.projeto_id == Projeto.id)
-            .outerjoin(User, Relatorio.autor_id == User.id)
-            .order_by(Relatorio.created_at.desc())
-            .all()
+        # Obter parâmetros de busca e paginação
+        page = request.args.get('page', 1, type=int)
+        search_query = request.args.get('q', '')
+        per_page = 20  # Relatórios por página
+
+        # Query básica com joins
+        query = db.session.query(Relatorio).join(
+            User, Relatorio.autor_id == User.id
+        ).outerjoin(
+            Projeto, Relatorio.projeto_id == Projeto.id
         )
+
+        # Aplicar filtro de busca se fornecido
+        if search_query and search_query.strip():
+            from sqlalchemy import or_
+            search_term = f"%{search_query.strip()}%"
+            query = query.filter(or_(
+                Relatorio.numero.ilike(search_term),
+                Relatorio.titulo.ilike(search_term),
+                Projeto.nome.ilike(search_term),
+                User.nome_completo.ilike(search_term)
+            ))
+
+        # Ordenar por data de criação (mais recente primeiro)
+        query = query.order_by(Relatorio.created_at.desc())
+
+        # Aplicar paginação
+        relatorios = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+        current_app.logger.info(f"✅ Relatórios carregados: {relatorios.total} total, página {page}")
         return render_template("reports/list.html", relatorios=relatorios)
-    except Exception:
-        current_app.logger.exception("Erro ao carregar relatórios via ORM")
-        from sqlalchemy import text
-        rows = db.session.execute(text("SELECT * FROM relatorios ORDER BY created_at DESC LIMIT 200")).fetchall()
-        return render_template("reports/list.html", relatorios=rows)
+
+    except Exception as e:
+        current_app.logger.exception(f"❌ Erro ao carregar relatórios: {str(e)}")
+        
+        # Fallback com SQL direto
+        try:
+            from sqlalchemy import text
+            offset = (page - 1) * per_page if 'page' in locals() else 0
+            
+            sql_query = """
+                SELECT r.*, p.nome as projeto_nome, u.nome_completo as autor_nome
+                FROM relatorios r
+                LEFT JOIN projetos p ON r.projeto_id = p.id
+                LEFT JOIN users u ON r.autor_id = u.id
+                ORDER BY r.created_at DESC
+                LIMIT :limit OFFSET :offset
+            """
+            
+            rows = db.session.execute(text(sql_query), {
+                'limit': per_page if 'per_page' in locals() else 20,
+                'offset': offset
+            }).fetchall()
+
+            # Criar objeto mock para paginação
+            class MockPagination:
+                def __init__(self, items, current_page=1, per_page=20):
+                    self.items = items
+                    self.total = len(items)
+                    self.page = current_page
+                    self.per_page = per_page
+                    self.pages = max(1, (self.total // self.per_page) + (1 if self.total % self.per_page > 0 else 0))
+                    self.has_prev = self.page > 1
+                    self.has_next = self.page < self.pages
+
+                def iter_pages(self):
+                    """Método para compatibilidade com template"""
+                    return range(1, min(self.pages + 1, 6))  # Máximo 5 páginas
+
+            current_page = page if 'page' in locals() else 1
+            per_page_value = per_page if 'per_page' in locals() else 20
+            relatorios = MockPagination(rows, current_page, per_page_value)
+            current_app.logger.warning(f"⚠️ Usando fallback SQL: {len(rows)} relatórios")
+            return render_template("reports/list.html", relatorios=relatorios, fallback=True)
+
+        except Exception as fallback_error:
+            current_app.logger.error(f"❌ Fallback também falhou: {str(fallback_error)}")
+            return render_template("reports/list.html", relatorios=MockPagination([]), fallback=True, error=str(e))
 
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
