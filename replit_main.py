@@ -20,6 +20,10 @@ def main():
         logger.info("🏗️  Starting Construction Tracking System - ELP")
         logger.info("🔧 Environment: Replit")
         
+        # Configure Railway database connection for production
+        os.environ['DATABASE_URL'] = "postgresql://postgres:KgyYkEmMztCNMSPHVbOpWLTiKZFXYwpB@switchback.proxy.rlwy.net:17107/railway"
+        logger.info("🚂 Configured Railway database connection")
+        
         # Import and configure the main Flask app
         from main import app
         
