@@ -1,0 +1,72 @@
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:42] "GET /static/css/mobile-accessibility.css HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:42] "GET /static/manifest.json HTTP/1.1" 304 -
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:42] "GET /api/legendas?categoria=all&_t=1759188455210&sync=realtime HTTP/1.1" 200 -
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:42] "GET /api/legendas?categoria=all&_t=1759188455354&sync=realtime HTTP/1.1" 200 -
+ERROR:app:Exception on /projects/4 [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/usr/local/lib/python3.10/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+  File "/app/routes.py", line 3101, in project_view
+    visitas = Visita.query.filter_by(projeto_id=project_id).order_by(Visita.data_agendada.desc()).all()
+AttributeError: 'property' object has no attribute 'desc'
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:44] "GET /projects/4 HTTP/1.1" 500 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:44] "GET /static/css/mobile-accessibility.css HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:44] "GET /static/css/mobile.css HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:44] "GET /static/css/style.css HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:44] "GET /static/js/image-error-handler.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:44] "GET /static/js/notifications.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:44] "GET /static/logo_elp_transparent.png HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:44] "GET /static/js/main.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:45] "GET /static/js/legendas-selector.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:45] "GET /static/js/fix-all-images.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:45] "GET /static/js/realtime-sync.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:45] "GET /static/js/pwa-install-only.js HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:45] "GET /static/js/mobile-utils.js HTTP/1.1" 304 -
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:45] "GET /api/legendas?categoria=all&_t=1759188458245 HTTP/1.1" 200 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:45] "GET /static/manifest.json HTTP/1.1" 304 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:45] "GET /static/icons/icon-144x144.png HTTP/1.1" 304 -
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:46] "GET /api/legendas?categoria=all&_t=1759188459272&sync=realtime HTTP/1.1" 200 -
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:46] "GET /api/legendas?categoria=all&_t=1759188459605&sync=realtime HTTP/1.1" 200 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:46] "GET /static/icons/icon-144x144.png HTTP/1.1" 304 -
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:46] "GET /api/legendas?categoria=all&_t=1759188459605&sync=realtime HTTP/1.1" 200 -
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:46] "GET /api/legendas?categoria=all&_t=1759188459605&sync=realtime HTTP/1.1" 200 -
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:46] "GET /api/legendas?categoria=all&_t=1759188459861&sync=realtime HTTP/1.1" 200 -
+ERROR:app:Exception on /projects/1 [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/usr/local/lib/python3.10/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+  File "/app/routes.py", line 3101, in project_view
+    visitas = Visita.query.filter_by(projeto_id=project_id).order_by(Visita.data_agendada.desc()).all()
+AttributeError: 'property' object has no attribute 'desc'
+INFO:werkzeug:138.204.90.107 - - [29/Sep/2025 23:27:47] "GET /projects/1 HTTP/1.1" 500 -

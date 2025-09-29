@@ -1,0 +1,88 @@
+Item 16 (Lista de Categorias/Editável por Obra)
+
+Implemente a funcionalidade do Item 16 – Lista de categorias deve ser editável por obra, garantindo que cada obra/projeto tenha sua própria lista customizável (exemplo: Torre 1, Torre 2, Área Comum, Piscina).
+
+🔹 Contexto
+
+Hoje essa lista é carregada de forma fixa/padrão, igual para todas as obras.
+
+O cliente precisa que cada obra/projeto defina suas próprias categorias (3, 4, 7 ou qualquer número).
+
+Exemplo:
+
+Obra A → Torre 1, Torre 2, Piscina
+
+Obra B → Bloco A, Bloco B, Estacionamento, Cobertura
+
+🔹 Alterações necessárias
+
+Banco de Dados (PostgreSQL via Alembic)
+
+Criar uma nova tabela chamada categorias_obra (se já não existir) com os campos:
+
+id
+projeto_id (FK -> projetos.id)
+nome_categoria
+ordem
+created_at
+updated_at
+
+
+Cada registro corresponde a uma categoria personalizada de uma obra.
+
+Criar migração Alembic de acordo com o revision mais recente.
+
+Backend (Flask)
+
+Criar rotas CRUD para gerenciar as categorias por obra:
+
+/projetos/<int:projeto_id>/categorias         -> Listar categorias
+/projetos/<int:projeto_id>/categorias/add     -> Adicionar categoria
+/projetos/<int:projeto_id>/categorias/<id>/edit -> Editar categoria
+/projetos/<int:projeto_id>/categorias/<id>/delete -> Excluir categoria
+
+
+A API deve retornar apenas as categorias da obra selecionada.
+
+Caso a obra ainda não tenha categorias cadastradas, permitir herdar um conjunto padrão inicial (opcional).
+
+Frontend (Templates + JS)
+
+Na tela de configuração de cada projeto/obra, adicionar uma seção “Categorias da Obra”.
+
+Exibir lista atual de categorias da obra, com opções:
+
+➕ Adicionar nova categoria
+
+✏️ Editar categoria existente
+
+🗑 Excluir categoria
+
+Na tela de upload/relatórios, carregar somente as categorias da obra selecionada.
+
+Integração com Relatórios/Fotos
+
+Quando o usuário fizer upload de fotos, o campo “Categoria padrão para novas fotos” deve mostrar apenas as categorias cadastradas para aquela obra.
+
+Garantir que os relatórios daquela obra exibam corretamente as categorias usadas.
+
+Regras de Negócio / Validações
+
+Não permitir duplicação de nomes dentro da mesma obra.
+
+Ordem configurável (exibir conforme campo ordem).
+
+Se remover categoria que já tem fotos vinculadas, manter histórico (não apagar em cascata).
+
+🔹 Resultado esperado
+
+Cada obra pode ter sua própria lista de categorias personalizada.
+
+O usuário pode editar, adicionar ou excluir categorias sem impactar outras obras.
+
+O upload de fotos e relatórios exibe sempre as categorias corretas da obra atual.
+
+Relatórios antigos continuam íntegros mesmo se a lista mudar.
+
+📌 Resumo para dev:
+Transformar a lista fixa de categorias em uma lista dinâmica por obra, armazenada no banco (categorias_obra), com CRUD completo, rotas Flask, templates editáveis e integração total com relatórios/fotos.
