@@ -9,7 +9,7 @@ deploymentTarget = "vm"
 run = ["python", "main_production.py"]
 
 [workflows]
-runButton = "Flask Server Definitivo"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Flask Server Fixed"
@@ -56,16 +56,12 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python replit_main.py"
+args = "python main.py"
 waitForPort = 5000
 
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 33757
-externalPort = 8080
 
 [[ports]]
 localPort = 38779
@@ -94,6 +90,10 @@ externalPort = 8000
 [[ports]]
 localPort = 42907
 externalPort = 3000
+
+[[ports]]
+localPort = 44007
+externalPort = 8080
 
 [[ports]]
 localPort = 44063
