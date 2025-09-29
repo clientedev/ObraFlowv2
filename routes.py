@@ -1823,7 +1823,9 @@ def create_report():
                 # Load existing photos
                 try:
                     existing_fotos = FotoRelatorio.query.filter_by(relatorio_id=existing_report.id).order_by(FotoRelatorio.ordem).all()
-                except:
+                    current_app.logger.info(f"📸 Loaded {len(existing_fotos)} photos for report {edit_report_id}")
+                except Exception as e:
+                    current_app.logger.error(f"❌ Error loading photos for report {edit_report_id}: {str(e)}")
                     existing_fotos = []
                 
                 # Load existing checklist
@@ -1831,12 +1833,27 @@ def create_report():
                     if existing_report.checklist_data:
                         import json
                         existing_checklist = json.loads(existing_report.checklist_data)
-                except:
+                        current_app.logger.info(f"✅ Loaded checklist for report {edit_report_id}")
+                    else:
+                        existing_checklist = {}
+                except Exception as e:
+                    current_app.logger.error(f"❌ Error loading checklist for report {edit_report_id}: {str(e)}")
                     existing_checklist = {}
                     
                 current_app.logger.info(f"📝 Loading existing report {existing_report.numero} for editing")
-        except (ValueError, TypeError):
+            else:
+                current_app.logger.warning(f"⚠️ Report {edit_report_id} not found")
+                flash('Relatório não encontrado.', 'error')
+                return redirect(url_for('reports'))
+        except (ValueError, TypeError) as e:
+            current_app.logger.error(f"❌ Invalid report ID format: {edit_report_id} - {str(e)}")
             flash('ID de relatório inválido.', 'error')
+            return redirect(url_for('reports'))
+        except Exception as e:
+            current_app.logger.error(f"❌ Unexpected error loading report {edit_report_id}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            flash('Erro ao carregar relatório para edição.', 'error')
             return redirect(url_for('reports'))
 
     # Auto-preenchimento: Verificar se projeto_id foi passado como parâmetro da URL
