@@ -107,15 +107,30 @@ class FotoExpressForm(FlaskForm):
                             validators=[Optional()],
                             render_kw={'rows': 3, 'placeholder': 'Descrição detalhada da foto'})
     
-    tipo_servico = SelectField('Tipo de Serviço',
-                              choices=[
-                                  ('', 'Selecione...'),
-                                  ('Torre 1', 'Torre 1'),
-                                  ('Torre 2', 'Torre 2'),
-                                  ('Área Comum', 'Área Comum'),
-                                  ('Piscina', 'Piscina')
-                              ],
+    tipo_servico = SelectField('Tipo de Serviço (Categoria)',
+                              choices=[('', 'Selecione...')],
                               validators=[Optional()])
+    
+    def set_categoria_choices(self, projeto_id):
+        """Define as escolhas de categoria baseado no projeto"""
+        from models import CategoriaObra
+        
+        categorias = CategoriaObra.query.filter_by(projeto_id=projeto_id).order_by(CategoriaObra.ordem).all()
+        
+        # Se houver categorias customizadas, usa elas
+        if categorias:
+            self.tipo_servico.choices = [('', 'Selecione...')] + [
+                (c.nome_categoria, c.nome_categoria) for c in categorias
+            ]
+        else:
+            # Senão, usa as categorias padrão
+            self.tipo_servico.choices = [
+                ('', 'Selecione...'),
+                ('Torre 1', 'Torre 1'),
+                ('Torre 2', 'Torre 2'),
+                ('Área Comum', 'Área Comum'),
+                ('Piscina', 'Piscina')
+            ]
 
 # Alias para compatibilidade com imports existentes
 EditarFotoExpressForm = FotoExpressForm
