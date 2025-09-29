@@ -33,6 +33,22 @@ This project is a comprehensive construction site visit tracking system built wi
    - `20250928_1300_add_numero_projeto_to_relatorios.py` - Added numero_projeto column
    - `20250929_2100_fix_numero_unique_constraint_per_project.py` - Fixed unique constraints
 
+## Report Form Redirect Fix (September 29, 2025)
+**Issue:** After creating a report, the browser displayed raw JSON instead of redirecting to the reports list.
+
+**Root Cause:** The form submission had two conflicting event listeners:
+1. First listener (lines 1486-1592): Uses `fetch()` to submit form and expects JSON response
+2. Second listener (lines 2710-2746): Validates and processes photos, then called `form.submit()`
+
+The `form.submit()` method bypasses all event listeners, submitting the form normally. The server returned JSON (for the fetch handler), but since fetch wasn't used, the browser displayed the raw JSON.
+
+**Solution:**
+- Changed line 2736 from `form.submit()` to `form.dispatchEvent(submitEvent)`
+- This triggers the fetch-based submit handler properly
+- The fetch handler receives JSON, processes it, and redirects via `window.location.href`
+
+**Result:** Form now correctly redirects to `/reports` after successful submission.
+
 ## Login Credentials
 - **Username:** admin
 - **Password:** admin123

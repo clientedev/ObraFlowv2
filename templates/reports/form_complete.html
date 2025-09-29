@@ -2731,9 +2731,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     await prepareMobilePhotoFormData();
                     console.log('✅ Formulário validado - enviando...');
                     
-                    // Now submit the form
+                    // Remove this listener to prevent infinite loop
                     form.removeEventListener('submit', arguments.callee);
-                    form.submit();
+                    
+                    // Dispatch a new submit event to trigger the fetch-based submission
+                    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                    form.dispatchEvent(submitEvent);
                 } catch (error) {
                     console.error('❌ Erro ao processar fotos:', error);
                     alert('Erro ao processar as fotos. Tente novamente.');
