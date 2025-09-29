@@ -675,22 +675,12 @@ input, textarea, select {
                             <p class="mb-3 text-muted">Selecione a categoria antes de adicionar a foto:</p>
                             <div class="category-selector">
                                 <div class="category-grid">
-                                    <div class="category-option" data-category="Torre 1">
-                                        <i class="fas fa-building category-icon"></i>
-                                        <div class="category-name">Torre 1</div>
+                                    {% for categoria in categorias %}
+                                    <div class="category-option" data-category="{{ categoria.nome }}">
+                                        <i class="fas {{ categoria.icon }} category-icon"></i>
+                                        <div class="category-name">{{ categoria.nome }}</div>
                                     </div>
-                                    <div class="category-option" data-category="Torre 2">
-                                        <i class="fas fa-building category-icon"></i>
-                                        <div class="category-name">Torre 2</div>
-                                    </div>
-                                    <div class="category-option" data-category="Área Comum">
-                                        <i class="fas fa-users category-icon"></i>
-                                        <div class="category-name">Área Comum</div>
-                                    </div>
-                                    <div class="category-option" data-category="Piscina">
-                                        <i class="fas fa-swimmer category-icon"></i>
-                                        <div class="category-name">Piscina</div>
-                                    </div>
+                                    {% endfor %}
                                 </div>
                             </div>
                         </div>

@@ -6943,23 +6943,41 @@ def express_new():
     
     # Carregar categorias dinâmicas se projeto_id for fornecido (Item 16)
     projeto_id = request.args.get('projeto_id', type=int)
+    categorias_lista = []
+    
     if projeto_id:
-        from models import CategoriaObra
+        from models import CategoriaObra, Projeto
+        projeto = Projeto.query.get(projeto_id)
         categorias = CategoriaObra.query.filter_by(projeto_id=projeto_id).order_by(CategoriaObra.ordem).all()
+        
         if categorias:
+            # Usar categorias customizadas do projeto
+            categorias_lista = [{'nome': cat.nome_categoria, 'icon': 'fa-tag'} for cat in categorias]
             categoria_choices = [(cat.nome_categoria, cat.nome_categoria) for cat in categorias]
             for foto_form in form.foto_forms:
                 foto_form.tipo_servico.choices = categoria_choices
         else:
             # Se não houver categorias, usar padrão
-            default_choices = [
-                ('Torre 1', 'Torre 1'),
-                ('Torre 2', 'Torre 2'),
-                ('Área Comum', 'Área Comum'),
-                ('Piscina', 'Piscina')
+            categorias_lista = [
+                {'nome': 'Torre 1', 'icon': 'fa-building'},
+                {'nome': 'Torre 2', 'icon': 'fa-building'},
+                {'nome': 'Área Comum', 'icon': 'fa-users'},
+                {'nome': 'Piscina', 'icon': 'fa-swimmer'}
             ]
+            default_choices = [(cat['nome'], cat['nome']) for cat in categorias_lista]
             for foto_form in form.foto_forms:
                 foto_form.tipo_servico.choices = default_choices
+    else:
+        # Sem projeto_id, usar categorias padrão
+        categorias_lista = [
+            {'nome': 'Torre 1', 'icon': 'fa-building'},
+            {'nome': 'Torre 2', 'icon': 'fa-building'},
+            {'nome': 'Área Comum', 'icon': 'fa-users'},
+            {'nome': 'Piscina', 'icon': 'fa-swimmer'}
+        ]
+        default_choices = [(cat['nome'], cat['nome']) for cat in categorias_lista]
+        for foto_form in form.foto_forms:
+            foto_form.tipo_servico.choices = default_choices
 
     if form.validate_on_submit():
         try:
@@ -7132,7 +7150,8 @@ def express_new():
 
     # SEMPRE usar template desktop para garantir estilização adequada
     template = 'express/novo.html'
-    return render_template(template, form=form, is_mobile=is_mobile)
+    return render_template(template, form=form, is_mobile=is_mobile, 
+                         categorias=categorias_lista, projeto_id=projeto_id)
 
 @app.route('/express/<int:id>')
 @login_required
