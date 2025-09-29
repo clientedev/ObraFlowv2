@@ -47,6 +47,137 @@ def health_check():
             'note': 'Sistema em modo de fallback devido a erro de inicialização',
             'error': str(e),
             'timestamp': datetime.utcnow().isoformat(),
+
+@app.route('/debug/reports-status')
+@login_required
+def debug_reports_status():
+    """Debug específico para problemas da rota /reports no Railway"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        debug_info = {
+            'database_status': 'unknown',
+            'reports_table_exists': False,
+            'reports_count': 0,
+            'sample_reports': [],
+            'user_info': {
+                'id': current_user.id,
+                'username': current_user.username,
+                'is_master': current_user.is_master
+            },
+            'environment': 'railway' if os.environ.get('RAILWAY_ENVIRONMENT') else 'local',
+            'errors': []
+        }
+        
+        # Teste 1: Conexão com banco
+        try:
+            from sqlalchemy import text
+            with db.engine.connect() as connection:
+                result = connection.execute(text("SELECT 1")).scalar()
+            debug_info['database_status'] = 'connected'
+        except Exception as e:
+            debug_info['database_status'] = f'error: {str(e)}'
+            debug_info['errors'].append(f"Database connection: {str(e)}")
+        
+        # Teste 2: Verificar se tabela relatórios existe
+        try:
+            from sqlalchemy import text
+            result = db.session.execute(text("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'relatorios'")).scalar()
+            debug_info['reports_table_exists'] = result > 0
+        except Exception as e:
+            debug_info['errors'].append(f"Table check: {str(e)}")
+        
+        # Teste 3: Contar relatórios
+        try:
+            debug_info['reports_count'] = Relatorio.query.count()
+        except Exception as e:
+            debug_info['errors'].append(f"Reports count: {str(e)}")
+        
+        # Teste 4: Buscar exemplos de relatórios
+        try:
+            sample_reports = Relatorio.query.limit(3).all()
+            for report in sample_reports:
+                debug_info['sample_reports'].append({
+                    'id': report.id,
+                    'numero': report.numero,
+                    'titulo': report.titulo,
+                    'status': report.status,
+                    'created_at': report.created_at.isoformat() if report.created_at else None
+                })
+        except Exception as e:
+            debug_info['errors'].append(f"Sample reports: {str(e)}")
+        
+        return jsonify(debug_info)
+        
+    except Exception as e:
+        return jsonify({
+            'error': 'Debug failed',
+            'details': str(e)
+        }), 500
+
+
+
+@app.route('/health/reports')
+def health_reports():
+    """Health check específico para funcionalidade de relatórios"""
+    try:
+        health_data = {
+            'status': 'healthy',
+            'timestamp': datetime.utcnow().isoformat(),
+            'reports_functional': False,
+            'database_connected': False,
+            'table_exists': False,
+            'sample_data': False,
+            'details': {}
+        }
+        
+        # Teste 1: Conexão com banco
+        try:
+            from sqlalchemy import text
+            db.session.execute(text('SELECT 1'))
+            health_data['database_connected'] = True
+            health_data['details']['database'] = 'connected'
+        except Exception as e:
+            health_data['details']['database'] = f'error: {str(e)}'
+        
+        # Teste 2: Tabela relatórios existe
+        try:
+            from sqlalchemy import text
+            result = db.session.execute(text("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'relatorios'")).scalar()
+            health_data['table_exists'] = result > 0
+            health_data['details']['table_check'] = f'exists: {result > 0}'
+        except Exception as e:
+            health_data['details']['table_check'] = f'error: {str(e)}'
+        
+        # Teste 3: Dados de exemplo
+        try:
+            count = Relatorio.query.count()
+            health_data['sample_data'] = count >= 0
+            health_data['details']['reports_count'] = count
+        except Exception as e:
+            health_data['details']['reports_count'] = f'error: {str(e)}'
+        
+        # Status geral
+        health_data['reports_functional'] = (
+            health_data['database_connected'] and 
+            health_data['table_exists']
+        )
+        
+        if not health_data['reports_functional']:
+            health_data['status'] = 'unhealthy'
+        
+        status_code = 200 if health_data['reports_functional'] else 503
+        return jsonify(health_data), status_code
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'timestamp': datetime.utcnow().isoformat(),
+            'error': str(e)
+        }), 500
+
+
             'version': '1.0.1'
         }), 200
 
@@ -997,28 +1128,94 @@ def projects_list():
 @app.route('/reports')
 @login_required
 def reports():
-    """Listar relatórios - versão SIMPLIFICADA igual ao Express"""
-    current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
-    
-    # Buscar parâmetro de pesquisa
-    q = request.args.get('q', '').strip()
-    
-    # Query SIMPLES igual ao Express
-    if q:
-        # Com busca
-        from sqlalchemy import or_
-        search_term = f"%{q}%"
-        relatorios = Relatorio.query.filter(or_(
-            Relatorio.numero.ilike(search_term),
-            Relatorio.titulo.ilike(search_term)
-        )).order_by(Relatorio.created_at.desc()).limit(100).all()
-    else:
-        # Sem busca - carregar todos
-        relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(100).all()
-    
-    current_app.logger.info(f"✅ {len(relatorios)} relatórios encontrados")
-    
-    return render_template("reports/list.html", relatorios=relatorios)
+    """Listar relatórios - versão ROBUSTA com fallbacks"""
+    try:
+        current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
+        
+        # Buscar parâmetro de pesquisa
+        q = request.args.get('q', '').strip()
+        
+        # Forçar rollback para limpar transações pendentes
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        
+        # Query com múltiplos fallbacks
+        relatorios = []
+        
+        try:
+            # Tentativa 1: Query completa
+            if q:
+                # Com busca
+                from sqlalchemy import or_
+                search_term = f"%{q}%"
+                relatorios = Relatorio.query.filter(or_(
+                    Relatorio.numero.ilike(search_term),
+                    Relatorio.titulo.ilike(search_term)
+                )).order_by(Relatorio.created_at.desc()).limit(100).all()
+            else:
+                # Sem busca - carregar últimos 50
+                relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(50).all()
+            
+            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados com sucesso")
+            
+        except Exception as query_error:
+            current_app.logger.error(f"❌ Erro na query principal: {str(query_error)}")
+            try:
+                db.session.rollback()
+                # Fallback 1: Query mais simples
+                relatorios = Relatorio.query.limit(10).all()
+                current_app.logger.info(f"🔄 Fallback 1: {len(relatorios)} relatórios carregados")
+            except Exception as fallback_error:
+                current_app.logger.error(f"❌ Erro no fallback: {str(fallback_error)}")
+                try:
+                    db.session.rollback()
+                    # Fallback 2: Lista vazia
+                    relatorios = []
+                    current_app.logger.warning("🔄 Fallback 2: Lista vazia retornada")
+                except Exception:
+                    relatorios = []
+        
+        # Garantir que sempre temos uma lista
+        if not isinstance(relatorios, list):
+            relatorios = list(relatorios) if relatorios else []
+        
+        # Renderizar template com tratamento de erro
+        try:
+            return render_template("reports/list.html", relatorios=relatorios)
+        except Exception as template_error:
+            current_app.logger.error(f"❌ Erro no template: {str(template_error)}")
+            # Template de emergência
+            return f"""
+            <!DOCTYPE html>
+            <html><head><title>Relatórios - ELP</title></head>
+            <body>
+                <h1>Sistema de Relatórios</h1>
+                <p>Encontrados {len(relatorios)} relatórios.</p>
+                <p><a href="/">Voltar ao Dashboard</a></p>
+                <p>Erro no template principal. <a href="/reports">Tentar novamente</a></p>
+            </body></html>
+            """, 200
+            
+    except Exception as e:
+        current_app.logger.exception(f"❌ ERRO CRÍTICO na rota /reports: {str(e)}")
+        
+        # Resposta de emergência absoluta
+        try:
+            db.session.rollback()
+            return render_template("reports/list.html", relatorios=[])
+        except Exception:
+            # Se até o template básico falhar, retornar HTML simples
+            return f"""
+            <!DOCTYPE html>
+            <html><head><title>Erro - ELP</title></head>
+            <body>
+                <h1>Erro Temporário</h1>
+                <p>Sistema em manutenção. <a href="/">Voltar ao início</a></p>
+                <p>Erro: {str(e)[:100]}</p>
+            </body></html>
+            """, 500
 
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
