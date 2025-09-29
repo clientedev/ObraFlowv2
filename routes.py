@@ -47,6 +47,18 @@ def health_check():
             'note': 'Sistema em modo de fallback devido a erro de inicialização',
             'error': str(e),
             'timestamp': datetime.utcnow().isoformat(),
+            'version': '1.0.1'
+        }), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Health check error: {e}")
+        return jsonify({
+            'message': 'Sistema de Gestão de Construção - ELP',
+            'status': 'ERROR',
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat(),
+            'version': '1.0.1'
+        }), 500
 
 @app.route('/debug/reports-data')
 @login_required
@@ -1172,21 +1184,22 @@ def projects_list():
 
     return render_template('projects/list.html', projects=projects)
 
-# Reports routes - Versão CORRIGIDA para PostgreSQL Railway
+# Reports routes - Versão DEFINITIVA para PostgreSQL Railway
 @app.route('/reports')
 @login_required
 def reports():
-    """Listar relatórios - versão corrigida e simplificada"""
+    """Listar relatórios - versão ultra-robusta para Railway PostgreSQL"""
     try:
         current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
         
         # Buscar parâmetro de pesquisa
         q = request.args.get('q', '').strip()
         
-        # Query com tratamento de erro
+        # Query ultra-robusta com múltiplos fallbacks
+        relatorios = []
         try:
+            # Tentativa 1: Query completa
             if q:
-                # Com busca
                 from sqlalchemy import or_
                 search_term = f"%{q}%"
                 relatorios = Relatorio.query.filter(or_(
@@ -1194,23 +1207,57 @@ def reports():
                     Relatorio.titulo.ilike(search_term)
                 )).order_by(Relatorio.created_at.desc()).limit(200).all()
             else:
-                # Sem busca - carregar todos os relatórios
                 relatorios = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(200).all()
             
-            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados")
+            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados com sucesso")
             
         except Exception as query_error:
-            current_app.logger.error(f"❌ Erro na query: {str(query_error)}")
-            db.session.rollback()
-            relatorios = []
+            current_app.logger.error(f"❌ Erro na query principal: {str(query_error)}")
+            try:
+                db.session.rollback()
+                # Fallback 1: Query simples sem ordenação
+                relatorios = Relatorio.query.limit(50).all()
+                current_app.logger.info(f"🔄 Fallback 1: {len(relatorios)} relatórios carregados")
+            except Exception as fallback_error:
+                current_app.logger.error(f"❌ Erro no fallback: {str(fallback_error)}")
+                db.session.rollback()
+                relatorios = []
         
-        # Renderizar template
-        return render_template("reports/list.html", relatorios=relatorios)
+        # Garantir que sempre temos uma lista válida
+        if not isinstance(relatorios, list):
+            relatorios = list(relatorios) if relatorios else []
+        
+        # Renderizar template principal
+        try:
+            return render_template("reports/list.html", relatorios=relatorios)
+        except Exception as template_error:
+            current_app.logger.error(f"❌ Erro no template principal: {str(template_error)}")
+            # Fallback para template simplificado
+            return render_template("reports/list_fallback.html", relatorios=relatorios, fallback=True)
             
     except Exception as e:
-        current_app.logger.error(f"❌ Erro crítico: {str(e)}")
+        current_app.logger.exception(f"❌ ERRO CRÍTICO na rota /reports: {str(e)}")
         db.session.rollback()
-        return render_template("reports/list_fallback.html", relatorios=[], fallback=True)
+        
+        # Template de emergência absoluta
+        try:
+            return render_template("reports/list_fallback.html", relatorios=[], fallback=True)
+        except Exception:
+            # Se até o fallback falhar, retornar HTML básico
+            return '''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Relatórios - ELP</title></head>
+            <body>
+                <h1>Sistema de Relatórios</h1>
+                <div style="background:#ffebee;padding:15px;border-radius:5px;margin:20px;">
+                    <p>Sistema temporariamente indisponível. Por favor, recarregue a página.</p>
+                    <a href="/reports" style="background:#2196F3;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">Tentar Novamente</a>
+                    <a href="/" style="background:#4CAF50;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;margin-left:10px;">Dashboard</a>
+                </div>
+            </body>
+            </html>
+            ''', 500
 
 
 @app.route('/reports/autosave/<int:report_id>', methods=['POST'])
