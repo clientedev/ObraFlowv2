@@ -1,0 +1,66 @@
+Pasted--SyntaxError-invalid-syntax-INFO-root-Using-PostgreSQL-database-Railway-Replit-INFO-root--1759116095085_1759116095086.txt
+
+SyntaxError: invalid syntax
+INFO:root:✅ Using PostgreSQL database (Railway/Replit)
+INFO:root:📁 UPLOAD_FOLDER configurado: uploads
+INFO:root:✅ Flask extensions initialized successfully
+INFO:root:🚂 Railway environment detected - initializing database
+INFO:root:✅ Database connection successful
+INFO:root:✅ Database tables created successfully
+INFO:root:Admin user already exists.
+INFO:root:✅ Checklist padrão já existe: 6 itens encontrados
+INFO:root:🧪 Testing reports functionality...
+INFO:root:✅ Reports table accessible: 23 reports found
+INFO:root:🔧 Checking and fixing migration state...
+INFO:root:🔧 Found existing user_email_config table, ensuring migration state is correct
+WARNING:root:⚠️ Migration fix attempt failed: 'Engine' object has no attribute 'execute'
+INFO:root:✅ RAILWAY DATABASE INITIALIZATION COMPLETE
+Traceback (most recent call last):
+  File "/app/main.py", line 3, in <module>
+    import routes  # noqa: F401
+  File "/app/routes.py", line 51
+    @app.route('/debug/reports-data')
+    ^
+SyntaxError: invalid syntax
+INFO:root:✅ Using PostgreSQL database (Railway/Replit)
+INFO:root:📁 UPLOAD_FOLDER configurado: uploads
+INFO:root:✅ Flask extensions initialized successfully
+INFO:root:🚂 Railway environment detected - initializing database
+INFO:root:✅ Database connection successful
+INFO:root:✅ Database tables created successfully
+INFO:root:Admin user already exists.
+INFO:root:✅ Checklist padrão já existe: 6 itens encontrados
+INFO:root:🧪 Testing reports functionality...
+INFO:root:✅ Reports table accessible: 23 reports found
+INFO:root:🔧 Checking and fixing migration state...
+INFO:root:🔧 Found existing user_email_config table, ensuring migration state is correct
+WARNING:root:⚠️ Migration fix attempt failed: 'Engine' object has no attribute 'execute'
+INFO:root:✅ RAILWAY DATABASE INITIALIZATION COMPLETE
+Traceback (most recent call last):
+  File "/app/main.py", line 3, in <module>
+    import routes  # noqa: F401
+  File "/app/routes.py", line 51
+    @app.route('/debug/reports-data')
+    ^
+SyntaxError: invalid syntax
+INFO:root:✅ Using PostgreSQL database (Railway/Replit)
+INFO:root:📁 UPLOAD_FOLDER configurado: uploads
+INFO:root:✅ Flask extensions initialized successfully
+INFO:root:🚂 Railway environment detected - initializing database
+INFO:root:✅ Database connection successful
+INFO:root:✅ Database tables created successfully
+INFO:root:Admin user already exists.
+INFO:root:✅ Checklist padrão já existe: 6 itens encontrados
+INFO:root:🧪 Testing reports functionality...
+INFO:root:✅ Reports table accessible: 23 reports found
+INFO:root:🔧 Checking and fixing migration state...
+INFO:root:🔧 Found existing user_email_config table, ensuring migration state is correct
+WARNING:root:⚠️ Migration fix attempt failed: 'Engine' object has no attribute 'execute'
+INFO:root:✅ RAILWAY DATABASE INITIALIZATION COMPLETE
+Traceback (most recent call last):
+  File "/app/main.py", line 3, in <module>
+    import routes  # noqa: F401
+  File "/app/routes.py", line 51
+    @app.route('/debug/reports-data')
+    ^
+SyntaxError: invalid syntax
