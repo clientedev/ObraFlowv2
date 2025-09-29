@@ -1414,11 +1414,20 @@ def create_report():
                 current_app.logger.info(f"📝 Updating existing report {relatorio.numero}")
             else:
                 # Create new report
-                from report_numbering import generate_project_report_number
-                from utils import generate_report_number
                 relatorio = Relatorio()
-                relatorio.numero = generate_report_number()  # Keep global numbering for compatibility
-                relatorio.numero_projeto = generate_project_report_number(projeto_id)  # New project-specific numbering
+                
+                # Get next numero_projeto for this project
+                ultimo_numero = db.session.query(
+                    db.func.max(Relatorio.numero_projeto)
+                ).filter_by(projeto_id=projeto_id).scalar()
+                
+                if ultimo_numero is None:
+                    proximo_numero = 1
+                else:
+                    proximo_numero = ultimo_numero + 1
+                
+                relatorio.numero_projeto = proximo_numero
+                relatorio.numero = f"REL-{proximo_numero:04d}"
                 relatorio.titulo = titulo
                 relatorio.projeto_id = projeto_id
                 relatorio.autor_id = current_user.id
