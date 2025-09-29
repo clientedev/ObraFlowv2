@@ -3,6 +3,44 @@ This project is a comprehensive construction site visit tracking system built wi
 
 # Recent Changes (September 29, 2025)
 
+## Customizable Category Lists per Project (Item 16)
+**Feature:** Each project can now have its own custom categories for organizing photos in reports, replacing the previous hardcoded category system.
+
+**Implementation:**
+1. **Database Schema:**
+   - Created `categorias_obra` table with fields: `id`, `projeto_id`, `nome_categoria`, `ordem`, `created_at`, `updated_at`
+   - Migration: `20250929_2303_add_categorias_obra_table.py`
+   - Foreign key relationship to `projetos` table
+
+2. **Backend (models.py & routes.py):**
+   - Added `CategoriaObra` model with relationship to `Projeto`
+   - Created CRUD API endpoints:
+     - `GET /projects/<id>/categorias` - List all categories for a project
+     - `POST /projects/<id>/categorias/add` - Create new category
+     - `PUT /projects/<id>/categorias/<cat_id>/edit` - Update category
+     - `DELETE /projects/<id>/categorias/<cat_id>/delete` - Delete category
+   - Updated express report forms to load dynamic categories based on `projeto_id` parameter
+
+3. **Frontend UI (templates/projects/view.html):**
+   - Added "Categorias" tab to project view page
+   - JavaScript functions for category management:
+     - `carregarCategorias()` - Loads categories via API
+     - `adicionarCategoria()` - Creates new category
+     - `editarCategoria()` - Updates category name
+     - `excluirCategoria()` - Deletes category with confirmation
+   - Bootstrap-styled list interface with edit/delete buttons
+
+4. **Dynamic Form Integration:**
+   - Express report forms (`express_new` route) now check for `projeto_id` query parameter
+   - If project has custom categories, they replace default hardcoded options
+   - Fallback to default categories (Torre 1, Torre 2, Área Comum, Piscina) if none exist
+
+**Benefits:**
+- Projects can define specific categories relevant to their construction type
+- Examples: Multi-tower buildings can have "Torre 1", "Torre 2"; Simple projects can use "Fachada", "Interior"
+- More flexible photo organization in reports
+- Each project's categories are independent
+
 ## Replit Environment Setup
 - ✅ Installed Python 3.11 with all dependencies
 - ✅ Configured PostgreSQL database connection
