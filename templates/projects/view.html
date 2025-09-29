@@ -543,6 +543,13 @@
 <script>
 const projetoId = {{ project.id }};
 
+// Função para obter o token CSRF
+function getCSRFToken() {
+    const tokenElement = document.querySelector('meta[name="csrf-token"]') || 
+                        document.querySelector('input[name="csrf_token"]');
+    return tokenElement ? tokenElement.getAttribute('content') || tokenElement.value : '';
+}
+
 // Carregar categorias ao abrir a aba
 document.getElementById('categorias-tab').addEventListener('shown.bs.tab', function () {
     carregarCategorias();
@@ -599,13 +606,17 @@ function adicionarCategoria() {
     const nome = prompt('Digite o nome da nova categoria:');
     if (!nome || nome.trim() === '') return;
     
+    const csrfToken = getCSRFToken();
+    
     fetch(`/projects/${projetoId}/categorias/add`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         },
         body: JSON.stringify({
-            nome_categoria: nome.trim()
+            nome_categoria: nome.trim(),
+            csrf_token: csrfToken
         })
     })
     .then(response => response.json())
@@ -627,14 +638,18 @@ function editarCategoria(id, nomeAtual, ordemAtual) {
     const novoNome = prompt('Digite o novo nome da categoria:', nomeAtual);
     if (!novoNome || novoNome.trim() === '' || novoNome === nomeAtual) return;
     
+    const csrfToken = getCSRFToken();
+    
     fetch(`/projects/${projetoId}/categorias/${id}/edit`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         },
         body: JSON.stringify({
             nome_categoria: novoNome.trim(),
-            ordem: ordemAtual
+            ordem: ordemAtual,
+            csrf_token: csrfToken
         })
     })
     .then(response => response.json())
@@ -655,8 +670,13 @@ function editarCategoria(id, nomeAtual, ordemAtual) {
 function excluirCategoria(id, nome) {
     if (!confirm(`Tem certeza que deseja excluir a categoria "${nome}"?`)) return;
     
+    const csrfToken = getCSRFToken();
+    
     fetch(`/projects/${projetoId}/categorias/${id}/delete`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
     })
     .then(response => response.json())
     .then(data => {
@@ -671,5 +691,5 @@ function excluirCategoria(id, nome) {
         alert('Erro ao excluir categoria. Tente novamente.');
     });
 }
-</script>
+</script></head></old_str>
 {% endblock %}

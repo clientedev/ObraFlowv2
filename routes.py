@@ -3179,6 +3179,7 @@ def project_categorias_list(project_id):
 
 @app.route('/projects/<int:project_id>/categorias/add', methods=['POST'])
 @login_required
+@csrf.exempt
 def project_categoria_add(project_id):
     """Adiciona uma nova categoria ao projeto"""
     project = Projeto.query.get_or_404(project_id)
@@ -3229,6 +3230,7 @@ def project_categoria_add(project_id):
 
 @app.route('/projects/<int:project_id>/categorias/<int:categoria_id>/edit', methods=['PUT'])
 @login_required
+@csrf.exempt
 def project_categoria_edit(project_id, categoria_id):
     """Edita uma categoria existente"""
     categoria = CategoriaObra.query.filter_by(id=categoria_id, projeto_id=project_id).first_or_404()
@@ -3272,6 +3274,7 @@ def project_categoria_edit(project_id, categoria_id):
 
 @app.route('/projects/<int:project_id>/categorias/<int:categoria_id>/delete', methods=['DELETE'])
 @login_required
+@csrf.exempt
 def project_categoria_delete(project_id, categoria_id):
     """Remove uma categoria (mantém histórico se houver fotos vinculadas)"""
     categoria = CategoriaObra.query.filter_by(id=categoria_id, projeto_id=project_id).first_or_404()
