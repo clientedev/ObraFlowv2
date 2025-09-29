@@ -1,6 +1,42 @@
 # Overview
 This project is a comprehensive construction site visit tracking system built with Flask, designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
+# Recent Changes (September 29, 2025)
+
+## Replit Environment Setup
+- ✅ Installed Python 3.11 with all dependencies
+- ✅ Configured PostgreSQL database connection
+- ✅ Set up Flask workflow on port 5000 with 0.0.0.0 host
+- ✅ Configured deployment with gunicorn for production (autoscale)
+
+## Report Numbering Fix - Per-Project Sequential Numbering
+**Issue:** Reports were using global numbering, causing conflicts between different projects.
+
+**Solution Implemented:**
+1. **Database Schema Update:**
+   - Added `numero_projeto` column for per-project sequential numbering
+   - Changed `numero` column from globally unique to unique per project
+   - Added composite unique constraint `uq_relatorios_projeto_numero` on `(projeto_id, numero)`
+
+2. **Report Creation Logic (routes.py):**
+   - Gets max `numero_projeto` for the specific project
+   - Increments to get next sequential number
+   - Formats as `REL-XXXX` (e.g., REL-0001, REL-0002)
+
+3. **How It Works:**
+   - Each project has independent numbering starting from REL-0001
+   - Project A: REL-0001, REL-0002, REL-0003...
+   - Project B: REL-0001, REL-0002, REL-0003...
+   - Sequential numbering maintained within each project
+
+4. **Migration Files:**
+   - `20250928_1300_add_numero_projeto_to_relatorios.py` - Added numero_projeto column
+   - `20250929_2100_fix_numero_unique_constraint_per_project.py` - Fixed unique constraints
+
+## Login Credentials
+- **Username:** admin
+- **Password:** admin123
+
 # User Preferences
 Preferred communication style: Simple, everyday language.
 Mobile-first design: Date field should be the first input field in report forms.
