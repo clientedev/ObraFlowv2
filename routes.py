@@ -1397,7 +1397,6 @@ def create_report():
             edit_report_id = request.form.get('edit_report_id')
             if edit_report_id:
                 # Update existing report
-                from models import Relatorio
                 relatorio = Relatorio.query.get(int(edit_report_id))
                 if not relatorio:
                     flash('Relatório não encontrado para edição.', 'error')
@@ -1415,7 +1414,6 @@ def create_report():
                 current_app.logger.info(f"📝 Updating existing report {relatorio.numero}")
             else:
                 # Create new report
-                from models import Relatorio
                 from report_numbering import generate_project_report_number
                 from utils import generate_report_number
                 relatorio = Relatorio()
