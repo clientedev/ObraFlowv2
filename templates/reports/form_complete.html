@@ -331,6 +331,9 @@
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('create_report') }}" enctype="multipart/form-data" id="reportForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        {% if existing_report %}
+                        <input type="hidden" name="edit_report_id" value="{{ existing_report.id }}">
+                        {% endif %}
                         {% if selected_project %}
                         <input type="hidden" name="projeto_id" value="{{ selected_project.id }}">
                         {% endif %}

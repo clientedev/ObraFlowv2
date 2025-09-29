@@ -1393,15 +1393,38 @@ def create_report():
             flash('Dados inválidos no formulário.', 'error')
             return redirect(url_for('create_report'))
         try:
-            # Create report with explicit values
-            from models import Relatorio
-            from report_numbering import generate_project_report_number
-            relatorio = Relatorio()
-            relatorio.numero = generate_report_number()  # Keep global numbering for compatibility
-            relatorio.numero_projeto = generate_project_report_number(projeto_id)  # New project-specific numbering
-            relatorio.titulo = titulo
-            relatorio.projeto_id = projeto_id
-            relatorio.autor_id = current_user.id
+            # Check if we're editing an existing report
+            edit_report_id = request.form.get('edit_report_id')
+            if edit_report_id:
+                # Update existing report
+                from models import Relatorio
+                relatorio = Relatorio.query.get(int(edit_report_id))
+                if not relatorio:
+                    flash('Relatório não encontrado para edição.', 'error')
+                    return redirect(url_for('create_report'))
+                
+                # Check permissions
+                if relatorio.autor_id != current_user.id and not current_user.is_master:
+                    flash('Você não tem permissão para editar este relatório.', 'error')
+                    return redirect(url_for('reports'))
+                
+                # Update fields
+                relatorio.titulo = titulo
+                relatorio.projeto_id = projeto_id
+                relatorio.updated_at = datetime.utcnow()
+                current_app.logger.info(f"📝 Updating existing report {relatorio.numero}")
+            else:
+                # Create new report
+                from models import Relatorio
+                from report_numbering import generate_project_report_number
+                from utils import generate_report_number
+                relatorio = Relatorio()
+                relatorio.numero = generate_report_number()  # Keep global numbering for compatibility
+                relatorio.numero_projeto = generate_project_report_number(projeto_id)  # New project-specific numbering
+                relatorio.titulo = titulo
+                relatorio.projeto_id = projeto_id
+                relatorio.autor_id = current_user.id
+                current_app.logger.info(f"📝 Creating new report for project {projeto_id}")
             # Process checklist data from form
             checklist_text = ""
             checklist_items = []
@@ -1781,22 +1804,64 @@ def create_report():
     # Get admin users for approver selection
     admin_users = User.query.filter_by(is_master=True).all()
 
+    # Check if we're editing an existing report
+    edit_report_id = request.args.get('edit')
+    existing_report = None
+    existing_fotos = []
+    existing_checklist = {}
+    
+    if edit_report_id:
+        try:
+            edit_report_id = int(edit_report_id)
+            existing_report = Relatorio.query.get(edit_report_id)
+            if existing_report:
+                # Check permissions - only author or master can edit
+                if existing_report.autor_id != current_user.id and not current_user.is_master:
+                    flash('Você não tem permissão para editar este relatório.', 'error')
+                    return redirect(url_for('reports'))
+                
+                # Load existing photos
+                try:
+                    existing_fotos = FotoRelatorio.query.filter_by(relatorio_id=existing_report.id).order_by(FotoRelatorio.ordem).all()
+                except:
+                    existing_fotos = []
+                
+                # Load existing checklist
+                try:
+                    if existing_report.checklist_data:
+                        import json
+                        existing_checklist = json.loads(existing_report.checklist_data)
+                except:
+                    existing_checklist = {}
+                    
+                current_app.logger.info(f"📝 Loading existing report {existing_report.numero} for editing")
+        except (ValueError, TypeError):
+            flash('ID de relatório inválido.', 'error')
+            return redirect(url_for('reports'))
+
     # Auto-preenchimento: Verificar se projeto_id foi passado como parâmetro da URL
     selected_project = None
     selected_aprovador = None
-    projeto_id_param = request.args.get('projeto_id')
-    if projeto_id_param:
-        try:
-            projeto_id_param = int(projeto_id_param)
-            selected_project = Projeto.query.get(projeto_id_param)
-            # Buscar aprovador padrão para este projeto
-            if selected_project:
-                selected_aprovador = get_aprovador_padrao_para_projeto(selected_project.id)
-        except (ValueError, TypeError):
-            selected_project = None
+    
+    # If editing, use the existing report's project
+    if existing_report:
+        selected_project = existing_report.projeto
+        if selected_project:
+            selected_aprovador = get_aprovador_padrao_para_projeto(selected_project.id)
     else:
-        # Se não há projeto específico, buscar aprovador global
-        selected_aprovador = get_aprovador_padrao_para_projeto(None)
+        projeto_id_param = request.args.get('projeto_id')
+        if projeto_id_param:
+            try:
+                projeto_id_param = int(projeto_id_param)
+                selected_project = Projeto.query.get(projeto_id_param)
+                # Buscar aprovador padrão para este projeto
+                if selected_project:
+                    selected_aprovador = get_aprovador_padrao_para_projeto(selected_project.id)
+            except (ValueError, TypeError):
+                selected_project = None
+        else:
+            # Se não há projeto específico, buscar aprovador global
+            selected_aprovador = get_aprovador_padrao_para_projeto(None)
 
     # Render the form for GET requests
     return render_template('reports/form_complete.html', 
@@ -1806,6 +1871,9 @@ def create_report():
                          selected_aprovador=selected_aprovador,
                          disable_fields=disable_fields,
                          preselected_project_id=preselected_project_id,
+                         existing_report=existing_report,
+                         existing_fotos=existing_fotos,
+                         existing_checklist=existing_checklist,
                          today=date.today().isoformat())
 
 def get_aprovador_padrao_para_projeto(projeto_id):
