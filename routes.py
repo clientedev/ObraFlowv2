@@ -1171,7 +1171,7 @@ def projects_list():
 # Reports routes - Versão DEFINITIVA para PostgreSQL Railway
 @app.route('/reports')
 @login_required  
-def listar_reports():
+def reports():
     """Listar relatórios de obra - versão corrigida com ORM e fallback SQL"""
     try:
         relatorios = (
