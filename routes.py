@@ -47,7 +47,24 @@ def health_check():
 
 @app.route('/health/full')
 def health_check_full():
-
+    """Full health check with database connectivity"""
+    try:
+        # Basic database connectivity test
+        db.session.execute(db.text('SELECT 1'))
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.utcnow().isoformat(),
+            'database': 'connected',
+            'service': 'flask-app'
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'timestamp': datetime.utcnow().isoformat(),
+            'database': 'disconnected',
+            'error': str(e),
+            'service': 'flask-app'
+        }), 503
 
 @app.route('/debug/db-test')
 @login_required
