@@ -47,6 +47,18 @@ def health_check():
             'note': 'Sistema em modo de fallback devido a erro de inicialização',
             'error': str(e),
             'timestamp': datetime.utcnow().isoformat(),
+            'version': '1.0.1'
+        }), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Health check error: {e}")
+        return jsonify({
+            'message': 'Sistema de Gestão de Construção - ELP',
+            'status': 'ERROR',
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat(),
+            'version': '1.0.1'
+        }), 500
 
 @app.route('/debug/reports-status')
 @login_required
