@@ -190,10 +190,6 @@ def health_reports():
         }), 500
 
 
-            'version': '1.0.1'
-        }), 200
-
-
 
 
 @app.route('/health/full')
