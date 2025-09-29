@@ -77,6 +77,122 @@ def debug_reports_connectivity():
         'database_status': 'unknown',
         'relatorios_table': 'unknown',
         'relatorios_count': 0,
+
+
+@app.route('/debug/reports-test')
+@login_required
+def debug_reports_test():
+    """Debug específico para testar carregamento de relatórios"""
+    if not current_user.is_master:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        # Testar diferentes queries
+        results = {
+            'basic_count': 0,
+            'with_relationships': [],
+            'raw_sql': [],
+            'template_data': [],
+            'errors': []
+        }
+        
+        # Teste 1: Contagem básica
+        try:
+            results['basic_count'] = Relatorio.query.count()
+            current_app.logger.info(f"✅ Contagem básica: {results['basic_count']}")
+        except Exception as e:
+            results['errors'].append(f"Contagem básica falhou: {str(e)}")
+        
+        # Teste 2: Query com relacionamentos
+        try:
+            relatorios = Relatorio.query.limit(5).all()
+            for rel in relatorios:
+                rel_data = {
+                    'id': rel.id,
+                    'numero': rel.numero,
+                    'titulo': rel.titulo,
+                    'projeto_id': rel.projeto_id,
+                    'autor_id': rel.autor_id,
+                    'status': rel.status
+                }
+                
+                # Tentar buscar projeto
+                if rel.projeto_id:
+                    try:
+                        projeto = Projeto.query.get(rel.projeto_id)
+                        rel_data['projeto_nome'] = projeto.nome if projeto else 'Projeto não encontrado'
+                    except Exception as pe:
+                        rel_data['projeto_erro'] = str(pe)
+                
+                # Tentar buscar autor
+                if rel.autor_id:
+                    try:
+                        autor = User.query.get(rel.autor_id)
+                        rel_data['autor_nome'] = autor.nome_completo if autor else 'Autor não encontrado'
+                    except Exception as ae:
+                        rel_data['autor_erro'] = str(ae)
+                
+                results['with_relationships'].append(rel_data)
+                
+        except Exception as e:
+            results['errors'].append(f"Query com relacionamentos falhou: {str(e)}")
+        
+        # Teste 3: SQL raw
+        try:
+            raw_results = db.session.execute(
+                db.text("SELECT id, numero, titulo, projeto_id, autor_id, status FROM relatorios LIMIT 5")
+            ).fetchall()
+            
+            for row in raw_results:
+                results['raw_sql'].append({
+                    'id': row.id,
+                    'numero': row.numero,
+                    'titulo': row.titulo,
+                    'projeto_id': row.projeto_id,
+                    'autor_id': row.autor_id,
+                    'status': row.status
+                })
+                
+        except Exception as e:
+            results['errors'].append(f"SQL raw falhou: {str(e)}")
+        
+        # Teste 4: Formato do template
+        try:
+            relatorios_template = []
+            relatorios = Relatorio.query.limit(3).all()
+            
+            for relatorio in relatorios:
+                projeto = Projeto.query.get(relatorio.projeto_id) if relatorio.projeto_id else None
+                autor = User.query.get(relatorio.autor_id) if relatorio.autor_id else None
+                
+                relatorios_template.append({
+                    'relatorio': {
+                        'id': relatorio.id,
+                        'numero': relatorio.numero,
+                        'titulo': relatorio.titulo,
+                        'status': relatorio.status
+                    },
+                    'projeto': {
+                        'id': projeto.id if projeto else None,
+                        'nome': projeto.nome if projeto else None
+                    } if projeto else None,
+                    'autor': {
+                        'id': autor.id if autor else None,
+                        'nome_completo': autor.nome_completo if autor else None
+                    } if autor else None
+                })
+            
+            results['template_data'] = relatorios_template
+            
+        except Exception as e:
+            results['errors'].append(f"Formato template falhou: {str(e)}")
+        
+        return jsonify(results)
+        
+    except Exception as e:
+        return jsonify({'error': f'Erro geral: {str(e)}'}), 500
+
+
         'sample_relatorio': None,
         'connection_test': 'unknown',
         'errors': []
@@ -871,47 +987,56 @@ def projects_list():
 
     return render_template('projects/list.html', projects=projects)
 
-# Reports routes - Versão corrigida e robusta
+# Reports routes - Versão CORRIGIDA para PostgreSQL Railway
 @app.route('/reports')
 @login_required
 def reports():
-    """Listar relatórios - versão otimizada com JOIN para evitar queries N+1"""
+    """Listar relatórios - versão corrigida baseada nos dados do debug"""
     try:
         current_app.logger.info(f"📋 /reports: Usuário {current_user.username} acessando lista de relatórios")
         
         # Buscar parâmetro de pesquisa
         q = request.args.get('q', '').strip()
         
+        # Query SIMPLIFICADA baseada no sucesso do debug
         try:
-            # SOLUÇÃO: Query otimizada com JOIN para evitar queries N+1
-            from sqlalchemy.orm import joinedload
-            
-            query = db.session.query(Relatorio).options(
-                joinedload(Relatorio.projeto),
-                joinedload(Relatorio.autor)
-            )
-            
-            # Aplicar filtro de pesquisa se fornecido
+            # Usar query direta simples que sabemos que funciona
             if q:
+                # Com busca
                 from sqlalchemy import or_
                 search_term = f"%{q}%"
-                query = query.filter(or_(
+                relatorios_query = Relatorio.query.filter(or_(
                     Relatorio.numero.ilike(search_term),
                     Relatorio.titulo.ilike(search_term)
-                ))
+                )).order_by(Relatorio.created_at.desc()).limit(100)
+            else:
+                # Sem busca - carregar todos
+                relatorios_query = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(100)
             
-            # Executar query única com JOIN
-            relatorios_raw = query.order_by(Relatorio.created_at.desc()).limit(200).all()
+            relatorios_raw = relatorios_query.all()
+            current_app.logger.info(f"✅ Query executada: {len(relatorios_raw)} relatórios encontrados")
             
-            # Preparar dados no formato esperado pelo template: lista de tuplas (relatorio, projeto, autor)
+            # Preparar dados para o template de forma SIMPLES
             relatorios = []
             for relatorio in relatorios_raw:
                 try:
-                    # Usar relacionamentos já carregados pelo joinedload
-                    projeto = relatorio.projeto  # Já carregado pelo JOIN
-                    autor = relatorio.autor      # Já carregado pelo JOIN
+                    # Buscar projeto e autor de forma individual e segura
+                    projeto = None
+                    autor = None
                     
-                    # Formato esperado pelo template: tupla (relatorio, projeto, autor)
+                    if relatorio.projeto_id:
+                        try:
+                            projeto = Projeto.query.get(relatorio.projeto_id)
+                        except Exception as pe:
+                            current_app.logger.warning(f"⚠️ Erro ao buscar projeto {relatorio.projeto_id}: {pe}")
+                    
+                    if relatorio.autor_id:
+                        try:
+                            autor = User.query.get(relatorio.autor_id)
+                        except Exception as ae:
+                            current_app.logger.warning(f"⚠️ Erro ao buscar autor {relatorio.autor_id}: {ae}")
+                    
+                    # Adicionar na lista no formato esperado pelo template
                     relatorios.append((relatorio, projeto, autor))
                     
                 except Exception as item_error:
@@ -919,55 +1044,48 @@ def reports():
                     # Adicionar mesmo com dados parciais
                     relatorios.append((relatorio, None, None))
             
-            current_app.logger.info(f"✅ {len(relatorios)} relatórios carregados com JOIN otimizado")
+            current_app.logger.info(f"✅ {len(relatorios)} relatórios processados para exibição")
+            
+            # Verificar se há relatórios para exibir
+            if not relatorios:
+                current_app.logger.warning(f"⚠️ Nenhum relatório encontrado (query retornou {len(relatorios_raw)} registros)")
+                
             return render_template("reports/list.html", relatorios=relatorios)
             
         except Exception as query_error:
-            current_app.logger.error(f"❌ Erro na query otimizada: {str(query_error)}")
+            current_app.logger.error(f"❌ Erro na query principal: {str(query_error)}")
             
-            # FALLBACK 1: Query simples sem JOIN
+            # FALLBACK: Tentar query mais básica ainda
             try:
                 db.session.rollback()
-                current_app.logger.info("🔄 Tentando fallback sem JOIN...")
+                current_app.logger.info("🔄 Tentando query de fallback...")
                 
-                relatorios_simples = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(50).all()
+                # Query mais básica possível
+                relatorios_fallback = db.session.execute(
+                    db.text("SELECT * FROM relatorios ORDER BY created_at DESC LIMIT 50")
+                ).fetchall()
                 
+                current_app.logger.info(f"🔄 Fallback SQL raw: {len(relatorios_fallback)} registros")
+                
+                # Converter para objetos Relatorio
                 relatorios = []
-                for relatorio in relatorios_simples:
+                for row in relatorios_fallback:
                     try:
-                        # Buscar relacionamentos individualmente (menos eficiente, mas funciona)
-                        projeto = db.session.get(Projeto, relatorio.projeto_id) if relatorio.projeto_id else None
-                        autor = db.session.get(User, relatorio.autor_id) if relatorio.autor_id else None
-                        
-                        relatorios.append((relatorio, projeto, autor))
-                    except Exception:
-                        relatorios.append((relatorio, None, None))
+                        relatorio = Relatorio.query.get(row.id)
+                        if relatorio:
+                            relatorios.append((relatorio, None, None))
+                    except Exception as conversion_error:
+                        current_app.logger.warning(f"⚠️ Erro ao converter linha {row.id}: {conversion_error}")
                 
-                current_app.logger.info(f"🔄 Fallback 1: {len(relatorios)} relatórios carregados")
+                current_app.logger.info(f"🔄 Fallback: {len(relatorios)} relatórios convertidos")
                 return render_template("reports/list.html", relatorios=relatorios)
                 
             except Exception as fallback_error:
-                current_app.logger.error(f"❌ Fallback 1 falhou: {str(fallback_error)}")
+                current_app.logger.error(f"❌ Fallback também falhou: {str(fallback_error)}")
                 
-                # FALLBACK 2: Query mínima apenas com relatórios
-                try:
-                    db.session.rollback()
-                    current_app.logger.info("🔄 Tentando fallback mínimo...")
-                    
-                    relatorios_basicos = Relatorio.query.order_by(Relatorio.id.desc()).limit(20).all()
-                    
-                    # Formato mínimo para o template
-                    relatorios = []
-                    for rel in relatorios_basicos:
-                        relatorios.append((rel, None, None))
-                    
-                    current_app.logger.info(f"🔄 Fallback 2: {len(relatorios)} relatórios básicos carregados")
-                    return render_template("reports/list.html", relatorios=relatorios)
-                    
-                except Exception as final_error:
-                    current_app.logger.error(f"❌ Fallback final falhou: {str(final_error)}")
-                    # Retornar lista vazia como último recurso
-                    return render_template("reports/list.html", relatorios=[])
+                # Último recurso: lista vazia com mensagem
+                flash('Erro ao carregar relatórios. Os dados estão no banco mas há um problema na consulta.', 'error')
+                return render_template("reports/list.html", relatorios=[])
             
     except Exception as e:
         current_app.logger.exception(f"❌ ERRO CRÍTICO /reports: {str(e)}")
@@ -979,7 +1097,7 @@ def reports():
             pass
         
         # Flash de erro para o usuário
-        flash('Erro temporário ao carregar relatórios. Tente novamente em alguns instantes.', 'error')
+        flash('Erro temporário ao carregar relatórios. Tente novamente.', 'error')
         
         # Retornar página com lista vazia
         return render_template('reports/list.html', relatorios=[])
