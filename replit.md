@@ -1,6 +1,50 @@
 # Overview
 This project is a comprehensive construction site visit tracking system built with Flask, designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
+# Recent Changes (September 30, 2025)
+
+## Replit Environment Setup & Hardcoded Categories Fix
+**Date:** September 30, 2025
+
+### Environment Setup Completed
+- ✅ Installed Python 3.11 and all dependencies from requirements.txt
+- ✅ Configured PostgreSQL database (Railway/Replit)
+- ✅ Executed database migrations successfully
+- ✅ Set up Flask Server workflow on port 5000 with 0.0.0.0 host
+- ✅ Configured deployment for production (autoscale with gunicorn)
+- ✅ System running successfully in Replit environment
+
+### Hardcoded Categories Removal (Complete)
+**Issue:** Categories were hardcoded in multiple locations (Torre 1, Torre 2, Área Comum, Piscina), preventing custom categories per project from working properly.
+
+**Changes Made:**
+1. **forms_express.py:**
+   - Removed hardcoded category fallback from `FotoExpressForm.set_categoria_choices()`
+   - Now shows message "Nenhuma categoria cadastrada para este projeto" when no categories exist
+   - Fully dynamic category loading from database
+
+2. **routes.py:**
+   - Updated `api_project_categorias` endpoint to return only database categories (no hardcoded fallback)
+   - Fixed `express_new` route to load categories dynamically or show appropriate message
+   - Removed all hardcoded category references from backend
+
+3. **Database:**
+   - `categorias_obra` table exists and working
+   - Created `create_default_categories.py` script to add default categories to existing projects
+   - Each project can now have independent, customizable categories
+
+**Result:**
+- No more hardcoded categories anywhere in the backend
+- Categories are 100% dynamic from database
+- Projects without categories show appropriate message instead of fake hardcoded options
+- CRUD operations for categories per project fully functional
+
+### Files Modified:
+- `forms_express.py` - Removed hardcoded category fallback
+- `routes.py` - Removed hardcoded categories from API and express routes
+- `create_default_categories.py` - New script for migrating existing projects
+- `.replit` - Configured deployment settings
+
 # Recent Changes (September 29, 2025)
 
 ## Customizable Category Lists per Project (Item 16)
