@@ -1,0 +1,76 @@
+Corrija a funcionalidade de categorias de fotos por obra no sistema, garantindo que:
+
+Remover hardcoded
+
+Elimine os quatro itens fixos ("Torre 1", "Torre 2", "Área Comum", "Piscina") do código-fonte.
+
+Eles não devem mais estar definidos manualmente no código, apenas no banco.
+
+Banco de Dados (PostgreSQL)
+
+Use a tabela de categorias por obra (categorias_projetos ou equivalente; se não existir, criar com Alembic).
+
+Estrutura mínima:
+
+id SERIAL PRIMARY KEY,
+projeto_id INTEGER NOT NULL REFERENCES projetos(id) ON DELETE CASCADE,
+nome VARCHAR(255) NOT NULL,
+ordem INTEGER DEFAULT 0,
+created_at TIMESTAMP DEFAULT now()
+
+
+As categorias são vinculadas diretamente ao projeto/obra.
+
+Administração de Categorias
+
+Já existe tela de gerenciamento (aba “Categorias”), mantenha mas corrija para refletir apenas dados reais do banco.
+
+Permitir criar, editar e excluir categorias por obra.
+
+Garantir que a ordem seja respeitada (campo ordem).
+
+Criação de Relatório
+
+No dropdown “Categoria padrão para novas fotos”:
+
+Deve carregar todas as categorias cadastradas no banco para aquela obra.
+
+Nada hardcoded.
+
+Inclua a categoria adicionada pelo usuário (TESTEa, etc.) de forma automática.
+
+Quando uma categoria for excluída no painel da obra, não deve mais aparecer no dropdown.
+
+Fluxo Completo Funcional
+
+Quando criar relatório → categorias da obra aparecem.
+
+Quando editar relatório → categorias continuam corretas.
+
+Quando excluir ou renomear categoria → refletir em todos os pontos.
+
+Garante consistência no banco: categorias pertencem sempre ao projeto/obra.
+
+Alembic Migration
+
+Se não houver tabela de categorias específicas por obra, criar com Alembic.
+
+Ajustar migrations sem duplicar tabelas (verificar se já existe).
+
+Testes
+
+Criar uma categoria → deve aparecer na criação de relatório.
+
+Excluir categoria → some imediatamente do dropdown.
+
+Criar categorias diferentes em obras diferentes → cada obra mostra apenas as suas categorias.
+
+📌 Resumo:
+
+Categorias não podem mais ser hardcoded.
+
+Categorias passam a ser vinculadas 100% ao projeto/obra.
+
+Fluxo de relatórios deve respeitar apenas o que está no banco.
+
+Todas as categorias criadas devem aparecer corretamente na tela de criação/edição de relatório.

@@ -828,25 +828,14 @@ textarea {
             </div>
             <div class="section-content">
                 <!-- Seleção de Categoria -->
+                <!-- NOTA: Este arquivo (novo_mobile.html) é LEGADO e não está mais em uso.
+                     O sistema usa templates/express/novo.html para relatórios express.
+                     Categorias são carregadas dinamicamente do banco de dados por projeto. -->
                 <div id="categorySelection">
                     <label class="form-label">Selecione a categoria para as fotos:</label>
-                    <div class="category-grid">
-                        <div class="category-card" data-category="Torre 1">
-                            <div class="category-icon"><i class="fas fa-building"></i></div>
-                            <div class="category-name">Torre 1</div>
-                        </div>
-                        <div class="category-card" data-category="Torre 2">
-                            <div class="category-icon"><i class="fas fa-building"></i></div>
-                            <div class="category-name">Torre 2</div>
-                        </div>
-                        <div class="category-card" data-category="Área Comum">
-                            <div class="category-icon"><i class="fas fa-users"></i></div>
-                            <div class="category-name">Área Comum</div>
-                        </div>
-                        <div class="category-card" data-category="Piscina">
-                            <div class="category-icon"><i class="fas fa-swimmer"></i></div>
-                            <div class="category-name">Piscina</div>
-                        </div>
+                    <div class="category-grid" id="dynamicCategoryGrid">
+                        <!-- Categorias seriam carregadas dinamicamente aqui via JavaScript -->
+                        <p class="text-muted">Template legado - categorias devem ser carregadas do banco</p>
                     </div>
                 </div>
 
