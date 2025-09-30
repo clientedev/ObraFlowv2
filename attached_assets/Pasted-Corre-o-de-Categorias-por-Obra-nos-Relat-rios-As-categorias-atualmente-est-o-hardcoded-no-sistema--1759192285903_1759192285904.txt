@@ -1,0 +1,100 @@
+Correção de Categorias por Obra nos Relatórios
+
+As categorias atualmente estão hardcoded no sistema (ex: Torre 1, Torre 2, Área Comum, Piscina). Isso gera os seguintes problemas:
+
+✅ Categorias fixas não podem ser editadas ou excluídas.
+
+✅ Categorias personalizadas adicionadas por obra não aparecem ao criar relatórios.
+
+✅ Não há vínculo direto no banco de dados, dificultando a gestão individual por projeto.
+
+🔹 Objetivo
+
+Corrigir a gestão de categorias de fotos/relatórios, garantindo que:
+
+Não existam mais categorias hardcoded.
+
+Cada obra tenha suas próprias categorias, armazenadas em banco.
+
+Todas as categorias da obra apareçam corretamente ao criar relatórios e ao subir fotos.
+
+Categorias possam ser criadas, editadas e excluídas por projeto sem impactar outras obras.
+
+🔹 Alterações necessárias
+1. Banco de Dados (PostgreSQL + Alembic)
+
+Criar (ou corrigir) a tabela categorias_obra com os campos:
+
+id SERIAL PRIMARY KEY
+projeto_id INTEGER REFERENCES projetos(id) ON DELETE CASCADE
+nome_categoria VARCHAR NOT NULL
+ordem INTEGER DEFAULT 0
+created_at TIMESTAMP DEFAULT NOW()
+updated_at TIMESTAMP DEFAULT NOW()
+
+
+Migrar todas categorias hardcoded (Torre 1, Torre 2, Área Comum, Piscina) para registros iniciais em categorias_obra, vinculando a cada projeto que já existe no banco.
+
+2. Backend (Flask)
+
+Remover completamente qualquer referência hardcoded de categorias no código.
+
+Substituir pelo carregamento dinâmico:
+
+categorias = CategoriasObra.query.filter_by(projeto_id=projeto.id).order_by(CategoriasObra.ordem).all()
+
+
+Ajustar os endpoints:
+
+/projetos/<id>/categorias → Listar categorias da obra.
+
+/projetos/<id>/categorias/add → Criar categoria.
+
+/projetos/<id>/categorias/<cat_id>/edit → Editar categoria.
+
+/projetos/<id>/categorias/<cat_id>/delete → Excluir categoria.
+
+3. Frontend (Templates + JS)
+
+No formulário de criação de relatórios, carregar dinamicamente as categorias da obra selecionada.
+
+Na tela de configuração do projeto, adicionar CRUD completo para gerenciar categorias:
+
+➕ Adicionar categoria
+
+✏️ Editar categoria
+
+🗑 Excluir categoria
+
+Garantir que ao excluir uma categoria usada em relatórios antigos, os relatórios mantenham histórico sem quebrar.
+
+4. Integração com Relatórios e Upload de Fotos
+
+No campo “Categoria padrão para novas fotos”, exibir apenas as categorias da obra corrente.
+
+Garantir que ao criar ou editar relatório, todas as categorias personalizadas da obra apareçam.
+
+Upload de fotos deve obrigatoriamente associar a categoria ao projeto_id.
+
+5. Regras de Negócio
+
+Cada obra tem sua lista de categorias independente.
+
+Não permitir duplicação de categorias com mesmo nome dentro da mesma obra.
+
+Ordem configurável pelo campo ordem.
+
+Histórico preservado ao excluir (não apagar em cascata fotos/relatórios já vinculados).
+
+🔹 Resultado esperado
+
+Categorias não serão mais hardcoded.
+
+Cada obra terá sua lista própria, editável e independente.
+
+Todas categorias cadastradas de uma obra aparecerão automaticamente na criação de relatórios e upload de fotos.
+
+Usuários poderão adicionar, editar e excluir categorias livremente por obra.
+
+📌 Resumo para dev (ação imediata):
+“Remover categorias fixas do código, criar vínculo dinâmico via tabela categorias_obra, garantir CRUD por obra e exibição correta nas telas de criação/edição de relatórios e upload de fotos.”
