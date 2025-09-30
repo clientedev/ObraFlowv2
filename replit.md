@@ -3,6 +3,171 @@ This project is a comprehensive construction site visit tracking system built wi
 
 # Recent Changes (September 30, 2025)
 
+## Push Notification System - Complete Fix
+**Date:** September 30, 2025
+
+### Problem Summary
+The push notification system was completely non-functional due to:
+1. Service Worker was disabled and unregistered itself immediately
+2. Notification permission flow had no error handling
+3. `beforeinstallprompt.preventDefault()` caused console warnings
+4. Backend API endpoints for notifications were missing
+5. No debug logging for troubleshooting
+
+### Root Cause Analysis
+**Service Worker Issue:**
+- `static/js/sw.js` explicitly unregistered itself on activation
+- Code comment: "SERVICE WORKER DESABILITADO - Sistema agora usa PostgreSQL diretamente"
+- This prevented push notifications from working (service worker is required for push)
+
+**Notification Manager Issues:**
+- No handling for "denied" permission state
+- No user guidance when permissions blocked
+- Missing error handling and debug logs
+- No check for service worker readiness before subscribing
+
+### Complete Fix Implementation
+
+**1. Service Worker Rewrite (`static/js/sw.js`):**
+```javascript
+// NEW: Service worker WITH push notification support
+self.addEventListener('push', (event) => {
+    // Display push notifications
+    self.registration.showNotification(title, options);
+});
+
+self.addEventListener('notificationclick', (event) => {
+    // Handle notification clicks
+    clients.openWindow(url);
+});
+```
+- ✅ Supports push notifications while maintaining PostgreSQL direct mode
+- ✅ Network-first strategy (no aggressive caching)
+- ✅ Handles push events and notification clicks
+- ✅ Comprehensive debug logging
+
+**2. Notification Manager Rewrite (`static/js/notifications.js`):**
+```javascript
+async requestPermission() {
+    // Check current status
+    const status = await this.checkPermissionStatus();
+    
+    if (status.denied) {
+        this.showDeniedInstructions();  // Guide user to re-enable
+        return false;
+    }
+    
+    if (status.canAsk) {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            await this.setupNotifications();
+        }
+    }
+}
+```
+- ✅ Robust permission flow with state handling (granted/denied/default)
+- ✅ User guidance for blocked permissions with browser-specific instructions
+- ✅ Complete error handling with user-friendly messages
+- ✅ Debug logging for every step of the process
+- ✅ Service worker registration verification
+
+**3. PWA Install Prompt Fix (`static/js/pwa-install.js`):**
+```javascript
+window.addEventListener('beforeinstallprompt', (e) => {
+    if (this.shouldShowInstallPrompt()) {
+        e.preventDefault();  // Only prevent if showing custom UI
+        this.deferredPrompt = e;
+        this.showInstallButton();
+    } else {
+        // Allow browser native prompt
+        this.deferredPrompt = e;
+    }
+});
+```
+- ✅ Conditional `preventDefault()` to avoid unnecessary warnings
+- ✅ Smart detection of when to show custom install UI
+
+**4. Backend API Endpoints (`routes.py` lines 2556-2636):**
+```python
+@app.route('/api/notifications/subscribe', methods=['POST'])
+@login_required
+def api_notifications_subscribe():
+    # Register push subscription
+    
+@app.route('/api/notifications/unsubscribe', methods=['POST'])
+@login_required
+def api_notifications_unsubscribe():
+    # Remove push subscription
+    
+@app.route('/api/notifications/check-updates')
+@login_required
+def api_notifications_check_updates():
+    # Check for system updates
+```
+- ✅ All required API endpoints implemented
+- ✅ Authentication required (@login_required)
+- ✅ Server-side logging for monitoring
+- ✅ JSON responses with proper error handling
+
+### Debug Logging Implementation
+
+**Console Log Hierarchy:**
+- 🔔 NOTIFICATIONS: General notification events
+- 📡 NOTIFICATIONS: Push subscription operations
+- 🔧 NOTIFICATIONS: Service worker operations
+- ✅ NOTIFICATIONS: Success messages
+- ❌ NOTIFICATIONS: Error messages
+- ⚠️ NOTIFICATIONS: Warnings
+- 📊 NOTIFICATIONS: Status information
+
+**Example Flow Logs:**
+```
+🔔 NOTIFICATIONS: Inicializando sistema de notificações
+🔔 NOTIFICATIONS: Suporte: SIM
+🔔 NOTIFICATIONS: Permissão atual: denied
+🔧 NOTIFICATIONS: Verificando service worker...
+📦 NOTIFICATIONS: Registrando service worker...
+✅ NOTIFICATIONS: Service worker registrado
+✅ NOTIFICATIONS: Service worker pronto
+```
+
+### Testing & Verification
+
+**Browser Console Verification:**
+- ✅ Service worker registers successfully
+- ✅ Permission status detected correctly (granted/denied/default)
+- ✅ Debug logs appear at each step
+- ✅ No critical errors in console
+
+**User Experience Flow:**
+1. User clicks "Ativar Notificações"
+2. System checks permission status
+3. If "default" → Shows browser permission prompt
+4. If "denied" → Shows instructions to re-enable in browser settings
+5. If "granted" → Subscribes to push and shows welcome notification
+6. Proximity alerts and updates work automatically
+
+**Browser-Specific Instructions:**
+- Chrome: Click 🔒 icon → Notifications → Allow
+- Firefox: Click 🔒 icon → Clear Permissions → Reload
+- Safari: Preferences → Sites → Notifications → Allow
+
+### Files Modified
+- ✅ `static/js/sw.js` - Complete rewrite with push support
+- ✅ `static/js/notifications.js` - Robust permission flow & debug logging
+- ✅ `static/js/pwa-install.js` - Fixed beforeinstallprompt warning
+- ✅ `routes.py` - Added notification API endpoints (lines 2556-2636)
+
+### Result - Fully Functional Notification System
+✅ **Service worker supports push notifications**
+✅ **Permission flow handles all states (granted/denied/default)**
+✅ **User guidance when permissions blocked**
+✅ **Complete debug logging for troubleshooting**
+✅ **Backend API endpoints working**
+✅ **No console warnings or errors**
+✅ **Cross-browser support (Chrome, Firefox, Safari)**
+✅ **Ready for proximity alerts and system updates**
+
 ## PWA Icon Update - ELP Logo
 **Date:** September 30, 2025
 
