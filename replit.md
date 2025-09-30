@@ -3,6 +3,27 @@ This project is a comprehensive construction site visit tracking system built wi
 
 # Recent Changes (September 30, 2025)
 
+## PWA Icon Update - ELP Logo
+**Date:** September 30, 2025
+
+### Atualização do Ícone do Aplicativo
+Substituído todos os ícones PWA (Progressive Web App) para usar o logo oficial da ELP fornecido pelo cliente.
+
+**Ícones gerados (8 resoluções):**
+- 72x72, 96x96, 128x128, 144x144, 152x152, 192x192, 384x384, 512x512
+
+**Cobertura Android:**
+- ✅ mdpi (48dp) → 72x72
+- ✅ hdpi (72dp) → 96x96  
+- ✅ xhdpi (96dp) → 144x144
+- ✅ xxhdpi (144dp) → 192x192
+- ✅ xxxhdpi (192dp) → 512x512
+
+**Resultado:**
+- Quando o aplicativo for instalado em dispositivos Android, o ícone da ELP aparecerá na tela inicial
+- O app abre em modo standalone (sem barra do navegador)
+- `manifest.json` configurado corretamente com todos os ícones
+
 ## Complete Hardcoded Categories Fix - FINAL
 **Date:** September 30, 2025
 
