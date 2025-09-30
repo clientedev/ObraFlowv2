@@ -506,6 +506,9 @@ input, textarea, select {
 
     <form method="POST" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
+        {% if projeto_id %}
+        <input type="hidden" name="projeto_id" value="{{ projeto_id }}">
+        {% endif %}
 
         <div class="row">
             <div class="col-lg-8">

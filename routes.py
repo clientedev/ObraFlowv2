@@ -6942,7 +6942,8 @@ def express_new():
     form = RelatorioExpressForm()
     
     # Carregar categorias dinâmicas se projeto_id for fornecido (Item 16)
-    projeto_id = request.args.get('projeto_id', type=int)
+    # Pegar de args (GET) ou form (POST)
+    projeto_id = request.args.get('projeto_id', type=int) or request.form.get('projeto_id', type=int)
     categorias_lista = []
     
     if projeto_id:
@@ -6950,12 +6951,15 @@ def express_new():
         projeto = Projeto.query.get(projeto_id)
         categorias = CategoriaObra.query.filter_by(projeto_id=projeto_id).order_by(CategoriaObra.ordem).all()
         
+        current_app.logger.info(f"📂 EXPRESS: projeto_id={projeto_id}, categorias encontradas={len(categorias)}")
+        
         if categorias:
             # Usar categorias customizadas do projeto
             categorias_lista = [{'nome': cat.nome_categoria, 'icon': 'fa-tag'} for cat in categorias]
             categoria_choices = [(cat.nome_categoria, cat.nome_categoria) for cat in categorias]
             for foto_form in form.foto_forms:
                 foto_form.tipo_servico.choices = categoria_choices
+            current_app.logger.info(f"✅ EXPRESS: Usando {len(categorias_lista)} categorias customizadas: {[c['nome'] for c in categorias_lista]}")
         else:
             # Se não houver categorias, usar padrão
             categorias_lista = [
@@ -6969,6 +6973,7 @@ def express_new():
                 foto_form.tipo_servico.choices = default_choices
     else:
         # Sem projeto_id, usar categorias padrão
+        current_app.logger.info("⚠️ EXPRESS: Sem projeto_id, usando categorias padrão")
         categorias_lista = [
             {'nome': 'Torre 1', 'icon': 'fa-building'},
             {'nome': 'Torre 2', 'icon': 'fa-building'},
