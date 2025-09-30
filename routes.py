@@ -3170,6 +3170,7 @@ def project_categorias_list(project_id):
     project = Projeto.query.get_or_404(project_id)
     categorias = CategoriaObra.query.filter_by(projeto_id=project_id).order_by(CategoriaObra.ordem).all()
     return jsonify({
+        'success': True,
         'categorias': [{
             'id': c.id,
             'nome_categoria': c.nome_categoria,

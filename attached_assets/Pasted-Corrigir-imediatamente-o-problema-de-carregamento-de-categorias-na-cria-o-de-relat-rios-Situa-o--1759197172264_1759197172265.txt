@@ -1,0 +1,51 @@
+Corrigir imediatamente o problema de carregamento de categorias na criação de relatórios.
+
+Situação Atual:
+
+Categorias podem ser criadas individualmente por projeto (ex.: Ápice Aclimação → categoria "TESTEa").
+
+Porém, essas categorias não aparecem no dropdown de "Categoria padrão para novas fotos" ao criar um relatório daquele projeto.
+
+Atualmente, o sistema ainda carrega categorias hardcoded (Torre 1, Torre 2, Área Comum, Piscina), o que não é permitido.
+
+O que precisa ser feito:
+
+Remover completamente as categorias hardcoded do código. As categorias devem ser sempre carregadas a partir da tabela vinculada ao projeto.
+
+Garantir relacionamento correto no banco PostgreSQL:
+
+Cada categoria deve estar vinculada a um projeto_id.
+
+A consulta ao abrir /reports/new deve buscar apenas as categorias pertencentes ao projeto selecionado.
+
+Garantir exibição correta:
+
+Na tela de criação de relatório, o dropdown deve exibir todas as categorias cadastradas no projeto (exemplo: se no projeto "Ápice Aclimação" existe a categoria "TESTEa", ela deve aparecer imediatamente no dropdown).
+
+Caso não exista nenhuma categoria, deve mostrar a mensagem "Nenhuma categoria cadastrada. Cadastre categorias no projeto".
+
+CRUD completo por obra:
+
+Adicionar, editar e excluir categorias deve refletir diretamente nas opções disponíveis no dropdown da criação do relatório.
+
+Persistência:
+
+Quando selecionada uma categoria ao criar relatório, ela deve ser salva corretamente no banco de dados, vinculada ao relatório daquele projeto.
+
+Reforço Importante:
+
+O sistema usa PostgreSQL no Railway.
+
+O fluxo deve ser validado de ponta a ponta: criar categoria no projeto → abrir criação de relatório → dropdown carrega categorias → salvar relatório vinculado à categoria.
+
+Não pode haver duplicação nem fallback para valores hardcoded.
+
+Resultado esperado:
+
+Cada obra tem suas próprias categorias independentes.
+
+As categorias cadastradas aparecem corretamente ao criar relatório.
+
+Categorias padrão hardcoded são totalmente removidas.
+
+Fluxo completo 100% funcional em produção no Railway.
