@@ -269,6 +269,98 @@ function getCurrentLocation(button) {
 }
 
 // Reverse geocoding using backend proxy
+// Função para mostrar instruções sobre como habilitar localização
+function showLocationInstructions() {
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    let instructions = '';
+    
+    if (isAndroid) {
+        instructions = `
+            <strong>📱 Para habilitar localização no Android:</strong><br>
+            1. Toque no ícone de cadeado/informações na barra de endereço<br>
+            2. Selecione "Localização" → "Permitir"<br>
+            3. Ou vá em Configurações → Apps → Navegador → Permissões → Localização
+        `;
+    } else if (isIOS) {
+        instructions = `
+            <strong>📱 Para habilitar localização no iOS:</strong><br>
+            1. Vá em Configurações → Privacidade → Serviços de Localização<br>
+            2. Ative "Serviços de Localização"<br>
+            3. Role para baixo até seu navegador (Safari/Chrome) e ative
+        `;
+    } else {
+        instructions = `
+            <strong>💻 Para habilitar localização:</strong><br>
+            1. Clique no ícone de localização na barra de endereço<br>
+            2. Selecione "Sempre permitir"<br>
+            3. Recarregue a página
+        `;
+    }
+    
+    return instructions;
+}
+
+// Função melhorada para tratar erros de geolocalização
+function handleGeolocationError(error, buttonElement) {
+    let errorMessage = '';
+    let instructions = '';
+    
+    switch(error.code) {
+        case error.PERMISSION_DENIED:
+            errorMessage = '🚫 Permissão de localização negada';
+            instructions = showLocationInstructions();
+            break;
+        case error.POSITION_UNAVAILABLE:
+            errorMessage = '📍 Localização indisponível';
+            instructions = 'Verifique se o GPS está ativado e tente novamente.';
+            break;
+        case error.TIMEOUT:
+            errorMessage = '⏰ Tempo limite para obter localização';
+            instructions = 'Tente novamente em alguns segundos.';
+            break;
+        default:
+            errorMessage = '❌ Erro desconhecido de localização';
+            instructions = 'Verifique as configurações do seu dispositivo.';
+            break;
+    }
+    
+    // Mostrar modal com instruções
+    const modal = document.createElement('div');
+    modal.className = 'modal fade show';
+    modal.style.display = 'block';
+    modal.innerHTML = `
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">${errorMessage}</h5>
+                    <button type="button" class="btn-close" onclick="this.closest('.modal').remove()"></button>
+                </div>
+                <div class="modal-body">
+                    <p>${instructions}</p>
+                    <div class="alert alert-info">
+                        <strong>💡 Dica:</strong> Após alterar as configurações, recarregue a página e tente novamente.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="this.closest('.modal').remove()">Entendi</button>
+                    <button type="button" class="btn btn-primary" onclick="window.location.reload()">Recarregar Página</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Restaurar botão se fornecido
+    if (buttonElement) {
+        buttonElement.innerHTML = '<i class="fas fa-map-marker-alt"></i> Tentar Novamente';
+        buttonElement.disabled = false;
+        buttonElement.className = 'btn btn-outline-warning';
+    }
+}
+
 function reverseGeocode(lat, lng, addressInput) {
     if (!addressInput) return;
 

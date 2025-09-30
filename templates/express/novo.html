@@ -597,7 +597,7 @@ input, textarea, select {
                                 {{ form.longitude() }}
                             </div>
                         </div>
-                        
+
                         <!-- Campo de endereço -->
                         <div class="mb-3 mt-3">
                             {{ form.endereco_visita.label(class="form-label") }}
@@ -925,6 +925,40 @@ function capturarLocalizacao() {
     );
 }
 
+// Nova função para tratar erros de geolocalização de forma aprimorada
+function handleGeolocationError(error, btn) {
+    let errorMessage = 'Erro ao capturar localização.';
+    const errorDiv = document.getElementById('localizacao-info'); // Assumindo que este div existe
+
+    switch(error.code) {
+        case error.PERMISSION_DENIED:
+            errorMessage = '🚫 Permissão de localização negada. Clique no ícone de localização na barra de endereço e selecione "Permitir".';
+            break;
+        case error.POSITION_UNAVAILABLE:
+            errorMessage = '📍 Localização indisponível. Verifique se o GPS está ativo e se há sinal.';
+            break;
+        case error.TIMEOUT:
+            errorMessage = '⏰ Timeout ao capturar localização. Tente novamente em alguns segundos.';
+            break;
+        default:
+            errorMessage = `Erro desconhecido (${error.code}): ${error.message}`;
+            break;
+    }
+
+    if (errorDiv) {
+        errorDiv.innerHTML = `<div class="alert alert-danger">${errorMessage}</div>`;
+    } else {
+        alert(errorMessage); // Fallback para alert se o div não for encontrado
+    }
+
+    // Restaurar estado do botão se ele existir
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-crosshairs"></i> Capturar Localização Atual';
+        btn.className = 'btn btn-outline-primary';
+        btn.disabled = false;
+    }
+}
+
 function captureCurrentLocation() {
     const btn = document.getElementById('getLocationBtn');
     const successMessage = document.getElementById('locationSuccessMessage');
@@ -941,8 +975,10 @@ function captureCurrentLocation() {
     }
 
     // Mostrar loading no botão
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Capturando localização...';
-    btn.disabled = true;
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Capturando localização...';
+        btn.disabled = true;
+    }
 
     navigator.geolocation.getCurrentPosition(
         function(position) {
@@ -970,21 +1006,21 @@ function captureCurrentLocation() {
             })
             .then(response => {
                 console.log('🌍 Response status:', response.status, response.statusText);
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
+
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
                     throw new Error('Resposta não é JSON válido');
                 }
-                
+
                 return response.json();
             })
             .then(data => {
                 console.log('🌍 Response data:', data);
-                
+
                 if (data.success && data.endereco) {
                     let formattedAddress = data.endereco;
 
@@ -1026,7 +1062,7 @@ function captureCurrentLocation() {
                     if (successMessage) {
                         successMessage.classList.remove('d-none');
                     }
-                    
+
                     // Mostrar erro para o usuário se disponível
                     if (data.error) {
                         console.warn('⚠️ Motivo:', data.error);
@@ -1050,7 +1086,7 @@ function captureCurrentLocation() {
                 if (successMessage) {
                     successMessage.classList.remove('d-none');
                 }
-                
+
                 // Log do erro específico
                 console.error('❌ Detalhes do erro:', {
                     message: error.message,
@@ -1059,10 +1095,12 @@ function captureCurrentLocation() {
             })
             .finally(() => {
                 // Restaurar botão
-                btn.innerHTML = '<i class="fas fa-check"></i> Localização Obtida';
-                btn.disabled = false;
-                btn.classList.remove('btn-outline-primary');
-                btn.classList.add('btn-success');
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-check"></i> Localização Obtida';
+                    btn.disabled = false;
+                    btn.classList.remove('btn-outline-primary');
+                    btn.classList.add('btn-success');
+                }
             });
         },
         function(error) {
@@ -1081,11 +1119,8 @@ function captureCurrentLocation() {
                     break;
             }
 
-            alert(errorMessage);
-
-            // Restaurar botão
-            btn.innerHTML = '<i class="fas fa-crosshairs"></i> Capturar Localização Atual';
-            btn.disabled = false;
+            // Usar a função melhorada de tratamento de erro, passando o botão para resetar seu estado
+            handleGeolocationError(error, btn);
         },
         {
             enableHighAccuracy: true,
@@ -1833,11 +1868,8 @@ function getCurrentLocation(btn) {
             btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro ao obter localização';
             btn.className = 'btn btn-outline-danger';
 
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-                btn.className = 'btn btn-outline-primary';
-                btn.disabled = false;
-            }, 3000);
+            // Chamar a função de erro aprimorada
+            handleGeolocationError(error, btn);
         });
     } else {
         btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Geolocalização não suportada';

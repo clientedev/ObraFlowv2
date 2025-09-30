@@ -1693,12 +1693,19 @@ function capturarLocalizacao() {
             });
         },
         function(error) {
-            let errorMsg = 'Erro ao capturar localização.';
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    errorMsg = 'Permissão negada para acessar localização.';
-                    break;
-                case error.POSITION_UNAVAILABLE:
+            console.error('Erro ao capturar localização:', error);
+            
+            // Usar a função melhorada de tratamento de erro
+            if (typeof handleGeolocationError === 'function') {
+                handleGeolocationError(error, btn);
+            } else {
+                // Fallback para tratamento básico
+                let errorMsg = 'Erro ao capturar localização.';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMsg = '🚫 Permissão de localização negada. Verifique as configurações do navegador.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
                     errorMsg = 'Localização indisponível.';
                     break;
                 case error.TIMEOUT:
