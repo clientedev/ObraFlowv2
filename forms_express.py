@@ -117,20 +117,14 @@ class FotoExpressForm(FlaskForm):
         
         categorias = CategoriaObra.query.filter_by(projeto_id=projeto_id).order_by(CategoriaObra.ordem).all()
         
-        # Se houver categorias customizadas, usa elas
+        # Carrega categorias dinâmicas do banco de dados
         if categorias:
             self.tipo_servico.choices = [('', 'Selecione...')] + [
                 (c.nome_categoria, c.nome_categoria) for c in categorias
             ]
         else:
-            # Senão, usa as categorias padrão
-            self.tipo_servico.choices = [
-                ('', 'Selecione...'),
-                ('Torre 1', 'Torre 1'),
-                ('Torre 2', 'Torre 2'),
-                ('Área Comum', 'Área Comum'),
-                ('Piscina', 'Piscina')
-            ]
+            # Projeto sem categorias - lista vazia
+            self.tipo_servico.choices = [('', 'Nenhuma categoria cadastrada para este projeto')]
 
 # Alias para compatibilidade com imports existentes
 EditarFotoExpressForm = FotoExpressForm

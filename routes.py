@@ -3297,22 +3297,13 @@ def api_project_categorias(project_id):
     """API para obter categorias de um projeto para uso em forms"""
     categorias = CategoriaObra.query.filter_by(projeto_id=project_id).order_by(CategoriaObra.ordem).all()
     
-    # Se não houver categorias, retornar categorias padrão
-    if not categorias:
-        categorias_padrao = [
-            {'id': '', 'nome': 'Torre 1'},
-            {'id': '', 'nome': 'Torre 2'},
-            {'id': '', 'nome': 'Área Comum'},
-            {'id': '', 'nome': 'Piscina'}
-        ]
-        return jsonify({'categorias': categorias_padrao, 'is_default': True})
-    
+    # Retorna categorias do banco de dados ou lista vazia
     return jsonify({
         'categorias': [{
             'id': c.id,
             'nome': c.nome_categoria
         } for c in categorias],
-        'is_default': False
+        'has_categories': len(categorias) > 0
     })
 
 # Contact management routes
@@ -6956,33 +6947,22 @@ def express_new():
         if categorias:
             # Usar categorias customizadas do projeto
             categorias_lista = [{'nome': cat.nome_categoria, 'icon': 'fa-tag'} for cat in categorias]
-            categoria_choices = [(cat.nome_categoria, cat.nome_categoria) for cat in categorias]
+            categoria_choices = [('', 'Selecione...')] + [(cat.nome_categoria, cat.nome_categoria) for cat in categorias]
             for foto_form in form.foto_forms:
                 foto_form.tipo_servico.choices = categoria_choices
             current_app.logger.info(f"✅ EXPRESS: Usando {len(categorias_lista)} categorias customizadas: {[c['nome'] for c in categorias_lista]}")
         else:
-            # Se não houver categorias, usar padrão
-            categorias_lista = [
-                {'nome': 'Torre 1', 'icon': 'fa-building'},
-                {'nome': 'Torre 2', 'icon': 'fa-building'},
-                {'nome': 'Área Comum', 'icon': 'fa-users'},
-                {'nome': 'Piscina', 'icon': 'fa-swimmer'}
-            ]
-            default_choices = [(cat['nome'], cat['nome']) for cat in categorias_lista]
+            # Projeto sem categorias cadastradas
+            categorias_lista = []
             for foto_form in form.foto_forms:
-                foto_form.tipo_servico.choices = default_choices
+                foto_form.tipo_servico.choices = [('', 'Nenhuma categoria cadastrada para este projeto')]
+            current_app.logger.warning(f"⚠️ EXPRESS: Projeto {projeto_id} não tem categorias cadastradas")
     else:
-        # Sem projeto_id, usar categorias padrão
-        current_app.logger.info("⚠️ EXPRESS: Sem projeto_id, usando categorias padrão")
-        categorias_lista = [
-            {'nome': 'Torre 1', 'icon': 'fa-building'},
-            {'nome': 'Torre 2', 'icon': 'fa-building'},
-            {'nome': 'Área Comum', 'icon': 'fa-users'},
-            {'nome': 'Piscina', 'icon': 'fa-swimmer'}
-        ]
-        default_choices = [(cat['nome'], cat['nome']) for cat in categorias_lista]
+        # Sem projeto_id
+        current_app.logger.warning("⚠️ EXPRESS: Sem projeto_id fornecido")
+        categorias_lista = []
         for foto_form in form.foto_forms:
-            foto_form.tipo_servico.choices = default_choices
+            foto_form.tipo_servico.choices = [('', 'Projeto não selecionado')]
 
     if form.validate_on_submit():
         try:
