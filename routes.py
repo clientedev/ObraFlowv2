@@ -2548,6 +2548,91 @@ def api_nearby_projects():
         print(f"❌ Erro na API de projetos próximos: {e}")
         return jsonify({'error': str(e)}), 500
 
+# ==================== NOTIFICATION API ENDPOINTS ====================
+
+@app.route('/api/notifications/subscribe', methods=['POST'])
+@login_required
+def api_notifications_subscribe():
+    """API para registrar subscription de push notifications"""
+    try:
+        data = request.get_json()
+        subscription = data.get('subscription')
+        user_agent = data.get('user_agent')
+        timestamp = data.get('timestamp')
+        
+        # Log the subscription (in production, save to database)
+        print(f"✅ NOTIFICATION SUBSCRIBE: User {current_user.id} ({current_user.username})")
+        print(f"   Endpoint: {subscription.get('endpoint', 'N/A')[:80]}...")
+        print(f"   User Agent: {user_agent}")
+        print(f"   Timestamp: {timestamp}")
+        
+        # TODO: Save subscription to database for future use
+        # For now, just acknowledge the subscription
+        
+        return jsonify({
+            'success': True,
+            'message': 'Subscription registrada com sucesso',
+            'user_id': current_user.id
+        })
+        
+    except Exception as e:
+        print(f"❌ NOTIFICATION SUBSCRIBE ERROR: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/notifications/unsubscribe', methods=['POST'])
+@login_required
+def api_notifications_unsubscribe():
+    """API para remover subscription de push notifications"""
+    try:
+        print(f"🔕 NOTIFICATION UNSUBSCRIBE: User {current_user.id} ({current_user.username})")
+        
+        # TODO: Remove subscription from database
+        # For now, just acknowledge the unsubscription
+        
+        return jsonify({
+            'success': True,
+            'message': 'Subscription removida com sucesso',
+            'user_id': current_user.id
+        })
+        
+    except Exception as e:
+        print(f"❌ NOTIFICATION UNSUBSCRIBE ERROR: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/notifications/check-updates')
+@login_required
+def api_notifications_check_updates():
+    """API para verificar se há atualizações/novidades no sistema"""
+    try:
+        # TODO: Check for real updates in the database
+        # For now, return no updates
+        
+        print(f"🔍 NOTIFICATION CHECK: User {current_user.id} ({current_user.username})")
+        
+        # Example: Check for pending reports, new visits, etc.
+        # For demo, return no updates
+        
+        return jsonify({
+            'success': True,
+            'has_updates': False,
+            'updates': []
+        })
+        
+    except Exception as e:
+        print(f"❌ NOTIFICATION CHECK ERROR: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ==================== END NOTIFICATION API ENDPOINTS ====================
+
 @app.route('/api/save-annotated-photo', methods=['POST'])
 @login_required  
 def save_annotated_photo():
