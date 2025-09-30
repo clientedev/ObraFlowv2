@@ -39,11 +39,31 @@ This project is a comprehensive construction site visit tracking system built wi
 - Projects without categories show appropriate message instead of fake hardcoded options
 - CRUD operations for categories per project fully functional
 
+### Fixes Applied (Final):
+1. **form_complete.html**:
+   - Fixed DOM lookup issue: Added `id="projeto_id"` to hidden input for preselected projects
+   - Categories now load correctly for both normal and preselected project scenarios
+   
+2. **novo_mobile.html** (legacy file):
+   - Removed all 4 hardcoded categories (Torre 1, Torre 2, Área Comum, Piscina)
+   - Added note that file is legacy and not in use
+   
+3. **projects/view.html**:
+   - Updated help text to remove hardcoded category examples
+
 ### Files Modified:
 - `forms_express.py` - Removed hardcoded category fallback
 - `routes.py` - Removed hardcoded categories from API and express routes
+- `templates/reports/form_complete.html` - Dynamic category loading with proper DOM handling
+- `templates/express/novo_mobile.html` - Removed hardcoded categories from legacy file
+- `templates/projects/view.html` - Updated help text to be generic
 - `create_default_categories.py` - New script for migrating existing projects
 - `.replit` - Configured deployment settings
+
+### Testing:
+- Created test project (ID=1) with 4 custom categories: Fundação, Estrutura Metálica, Revestimento, Instalações Elétricas
+- Verified API endpoint `/projects/<id>/categorias` returns correct JSON format
+- All architect reviews passed ✅
 
 # Recent Changes (September 29, 2025)
 
