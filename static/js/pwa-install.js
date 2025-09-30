@@ -12,10 +12,19 @@ class PWAInstaller {
         
         // Escutar evento de instalação
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('PWA: Install prompt disponível');
-            e.preventDefault();
-            this.deferredPrompt = e;
-            this.showInstallButton();
+            console.log('✅ PWA: Install prompt disponível');
+            
+            // Verificar se devemos interceptar o prompt
+            if (this.shouldShowInstallPrompt()) {
+                console.log('🎯 PWA: Interceptando prompt para exibição customizada');
+                e.preventDefault();
+                this.deferredPrompt = e;
+                this.showInstallButton();
+            } else {
+                console.log('ℹ️ PWA: Permitindo prompt nativo do navegador');
+                // Não chamar preventDefault - deixar o navegador mostrar o banner nativo
+                this.deferredPrompt = e;
+            }
         });
 
         // Escutar quando é instalado
