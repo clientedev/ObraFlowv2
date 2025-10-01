@@ -92,10 +92,26 @@ try:
     csrf.init_app(app)
     
     # Configure CORS for geolocation and API calls
-    CORS(app, supports_credentials=True, resources={
-        r"/api/*": {"origins": "*"},
-        r"/save_location": {"origins": "*"}
-    })
+    # Restringir origins para segurança - permitir apenas domínios conhecidos
+    import re
+    allowed_origins = [
+        "https://elpconsultoria.pro",
+        re.compile(r"https://.*\.elpconsultoria\.pro"),  # Subdomínios
+        "http://localhost:5000",
+        "http://127.0.0.1:5000"
+    ]
+    
+    # Se estiver no ambiente Replit, adicionar domínio Replit
+    if os.environ.get("REPL_SLUG") and os.environ.get("REPL_OWNER"):
+        replit_domain = f"https://{os.environ['REPL_SLUG']}.{os.environ['REPL_OWNER']}.repl.co"
+        allowed_origins.append(replit_domain)
+    
+    CORS(app, 
+         supports_credentials=True, 
+         resources={
+             r"/api/*": {"origins": allowed_origins},
+             r"/save_location": {"origins": allowed_origins}
+         })
     
     logging.info("✅ Flask extensions initialized successfully")
 except Exception as e:

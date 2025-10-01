@@ -1,0 +1,101 @@
+Implemente a seguinte solução para o erro "User denied Geolocation", mesmo quando o usuário já concedeu a permissão:
+
+1. Uso Correto da API de Permissões
+
+Antes de chamar navigator.geolocation.getCurrentPosition, verificar explicitamente o status da permissão com:
+
+async function requestLocation() {
+    try {
+        const permission = await navigator.permissions.query({ name: "geolocation" });
+
+        if (permission.state === "granted") {
+            getUserLocation(); // já autorizado
+        } else if (permission.state === "prompt") {
+            getUserLocation(); // vai abrir popup
+        } else if (permission.state === "denied") {
+            alert("⚠️ Localização desativada no navegador. Ative manualmente nas configurações de permissão do site.");
+        }
+
+        // Se o estado mudar, reagir automaticamente
+        permission.onchange = () => {
+            if (permission.state === "granted") {
+                getUserLocation();
+            }
+        };
+    } catch (error) {
+        console.error("Erro ao verificar permissões:", error);
+        getUserLocation(); // fallback
+    }
+}
+
+function getUserLocation() {
+    if (!navigator.geolocation) {
+        alert("Geolocalização não suportada neste dispositivo.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            console.log("📍 Localização:", latitude, longitude);
+
+            // Enviar ao backend
+            fetch("/save_location", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ lat: latitude, lng: longitude })
+            });
+        },
+        (error) => {
+            if (error.code === error.PERMISSION_DENIED) {
+                alert("Permissão de localização negada. Ative manualmente nas configurações do navegador.");
+            } else if (error.code === error.POSITION_UNAVAILABLE) {
+                alert("Posição indisponível. Verifique se o GPS está ativo.");
+            } else if (error.code === error.TIMEOUT) {
+                alert("Tempo excedido ao capturar localização.");
+            } else {
+                alert("Erro inesperado ao capturar localização.");
+            }
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+}
+
+// Executar no botão "Tentar Novamente"
+document.getElementById("localizarBtn").addEventListener("click", requestLocation);
+
+2. Forçar HTTPS e CORS no Railway
+
+A API navigator.geolocation não funciona em HTTP.
+
+No backend Flask:
+
+from flask_cors import CORS
+CORS(app, supports_credentials=True)
+
+@app.before_request
+def force_https():
+    if request.url.startswith("http://"):
+        return redirect(request.url.replace("http://", "https://", 1), code=301)
+
+3. Fluxo Correto
+
+Ao abrir a tela → sistema verifica permissão atual (granted, prompt, denied).
+
+Se denied → alerta claro ao usuário pedindo para ativar manualmente no navegador.
+
+Se prompt → abre popup de permissão.
+
+Se granted → captura localização e envia ao backend.
+
+Botão "Tentar Novamente" força nova solicitação.
+
+✅ Resultado esperado:
+
+Usuário clica em Localizar → se permissão ainda não foi dada, o navegador solicita corretamente.
+
+Se já concedida, captura imediatamente.
+
+Se negada permanentemente, mensagem clara para o usuário ativar manualmente em Configurações do navegador → Permissões do site.
+
+Backend Railway recebe as coordenadas e vincula ao relatório/obra.

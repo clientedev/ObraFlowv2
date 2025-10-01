@@ -23,6 +23,48 @@ class EnhancedGeolocation {
     }
 
     /**
+     * Verificar status da permissão de geolocalização
+     */
+    async checkPermission() {
+        try {
+            // Tentar usar a API de Permissions (não suportada em todos os navegadores)
+            if ('permissions' in navigator) {
+                const permission = await navigator.permissions.query({ name: 'geolocation' });
+                console.log('🔐 PERMISSÃO: Status atual:', permission.state);
+                
+                // Configurar listener para mudanças na permissão
+                permission.onchange = () => {
+                    console.log('🔐 PERMISSÃO: Mudou para:', permission.state);
+                    if (permission.state === 'granted') {
+                        console.log('✅ PERMISSÃO: Concedida! Capturando localização automaticamente...');
+                        // Reagir à mudança de permissão capturando localização
+                        this.getLocation({
+                            enableHighAccuracy: true,
+                            timeout: 15000,
+                            maximumAge: 0,
+                            showUI: true,
+                            fallbackToIP: true,
+                            reverseGeocode: true
+                        }).catch(error => {
+                            console.error('❌ Erro ao capturar localização após permissão concedida:', error);
+                        });
+                    }
+                };
+                
+                return permission.state; // 'granted', 'prompt', ou 'denied'
+            }
+            
+            // Fallback se a API de Permissions não estiver disponível
+            console.log('⚠️ PERMISSÃO: API não disponível, tentando geolocalização diretamente');
+            return 'prompt'; // Assume que precisará solicitar
+            
+        } catch (error) {
+            console.warn('⚠️ PERMISSÃO: Erro ao verificar:', error);
+            return 'prompt'; // Em caso de erro, assume que precisará solicitar
+        }
+    }
+
+    /**
      * Obter localização com fallback automático
      */
     async getLocation(options = {}) {
@@ -56,6 +98,31 @@ class EnhancedGeolocation {
             
             throw new Error('Geolocalização não suportada');
         }
+
+        // NOVO: Verificar permissão antes de tentar obter localização
+        const permissionStatus = await this.checkPermission();
+        
+        if (permissionStatus === 'denied') {
+            console.error('❌ GEOLOCALIZAÇÃO: Permissão negada permanentemente');
+            
+            if (config.showUI) {
+                this.showDetailedError(
+                    '🚫 Permissão de Localização Negada',
+                    'Você bloqueou o acesso à sua localização.',
+                    this.getPermissionInstructions()
+                );
+            }
+            
+            // Se permissão negada, usar fallback por IP
+            if (config.fallbackToIP) {
+                console.log('🔄 GEOLOCALIZAÇÃO: Usando fallback por IP devido a permissão negada');
+                return await this.getLocationByIP();
+            }
+            
+            throw new Error('Permissão de geolocalização negada');
+        }
+        
+        console.log('✅ GEOLOCALIZAÇÃO: Permissão OK, capturando localização...');
 
         // Tentar obter localização GPS
         try {
@@ -489,6 +556,63 @@ class EnhancedGeolocation {
 
     wasFallbackUsed() {
         return this.fallbackUsed;
+    }
+
+    /**
+     * Solicitar localização e enviar ao backend automaticamente
+     * Método público para ser usado em botões "Tentar Novamente"
+     */
+    async requestAndSaveLocation(options = {}) {
+        try {
+            console.log('🔄 Solicitando localização...');
+            
+            // Obter localização (já verifica permissões internamente)
+            const position = await this.getLocation({
+                ...options,
+                showUI: true,
+                fallbackToIP: true,
+                reverseGeocode: true
+            });
+
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy || 5000;
+            const source = position.source || 'gps';
+            const address = position.address || '';
+
+            console.log('📍 Localização obtida, enviando ao backend...');
+
+            // Enviar ao backend
+            const response = await fetch('/save_location', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
+                },
+                body: JSON.stringify({
+                    lat: lat,
+                    lng: lng,
+                    accuracy: accuracy,
+                    source: source,
+                    address: address,
+                    projeto_id: options.projeto_id,
+                    relatorio_id: options.relatorio_id
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Localização salva no backend:', data);
+                return { success: true, position, data };
+            } else {
+                console.error('❌ Erro ao salvar no backend:', response.status);
+                return { success: false, position, error: 'Falha ao salvar' };
+            }
+
+        } catch (error) {
+            console.error('❌ Erro ao solicitar/salvar localização:', error);
+            return { success: false, error: error.message };
+        }
     }
 }
 
