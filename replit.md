@@ -16,7 +16,31 @@ Mobile-first design: Date field should be the first input field in report forms.
 
 # Recent Improvements (October 2025)
 
-## Chrome Mobile & PWA Permission Fix - User Gesture Context (October 1, 2025 - Latest)
+## Nearby Projects Module Enhancement (October 1, 2025 - Latest)
+- **Backend API Improvements** (`/api/projects/nearby` in `routes.py`):
+  - ✅ **Dual Parameter Support**: Accepts both `lat`/`lng` AND `latitude`/`longitude` for compatibility
+  - ✅ **Coordinate Validation**: Validates latitude (-90 to 90) and longitude (-180 to 180) ranges
+  - ✅ **Type Conversion**: Robust error handling for invalid coordinate types
+  - ✅ **No Radius Filtering**: Returns ALL nearby projects sorted by distance (top 10 closest)
+  - ✅ **Address Normalization**: New `normalizar_endereco()` function expands common abbreviations
+    - Av./Avenida → Avenida
+    - R./Rua → Rua
+    - Estr./Estrada → Estrada
+    - Rod./Rodovia → Rodovia
+    - Trav./Travessa → Travessa
+    - Pç./Praça → Praça
+    - Al./Alameda → Alameda
+  - ✅ **Enhanced Logging**: Detailed logging for debugging geolocation issues
+  - ✅ **Haversine Distance**: Accurate distance calculation using Haversine formula
+- **Frontend Improvements** (`localizarObrasProximas()` in `main.js`):
+  - ✅ **Improved Error Handling**: Specific error messages for different geolocation failure scenarios
+  - ✅ **Cleaner Code**: Removed CSRF token dependency (not needed for this endpoint)
+  - ✅ **Better UX**: Shows loading states and clear error messages
+  - ✅ **Coordinates Sent Correctly**: Sends `latitude`/`longitude` in JSON body
+  - ✅ **API Error Display**: Shows backend error messages to user when API fails
+  - ✅ **Mobile & Desktop Compatible**: Works on all devices and browsers
+
+## Chrome Mobile & PWA Permission Fix - User Gesture Context (October 1, 2025)
 - **Critical Fix for Mobile**: Rewrote `toggleNotifications()` to call `getCurrentPosition()` **synchronously** within click event
   - ✅ **No await/setTimeout before getCurrentPosition()** - maintains user gesture context required by Chrome Mobile
   - ✅ **Direct call in click handler** - browser recognizes it as user-initiated action
