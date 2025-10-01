@@ -86,8 +86,42 @@ class NotificationManager {
         };
     }
 
+    async requestLocationPermission() {
+        console.log('📍 NOTIFICATIONS: Solicitando permissão de localização...');
+        
+        if (!navigator.geolocation) {
+            console.warn('⚠️ NOTIFICATIONS: Geolocalização não suportada');
+            return false;
+        }
+
+        try {
+            // Tentar obter localização para triggerar o prompt de permissão
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    resolve,
+                    reject,
+                    { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
+                );
+            });
+            
+            console.log('✅ NOTIFICATIONS: Permissão de localização concedida');
+            return true;
+        } catch (error) {
+            console.warn('🚫 NOTIFICATIONS: Permissão de localização negada:', error.message);
+            
+            this.showUserMessage(
+                'Localização Necessária',
+                'Para receber alertas de obras próximas, é necessário permitir o acesso à sua localização.',
+                'warning',
+                8000
+            );
+            
+            return false;
+        }
+    }
+
     async requestPermission() {
-        console.log('🔔 NOTIFICATIONS: Solicitando permissão...');
+        console.log('🔔 NOTIFICATIONS: Solicitando permissões...');
         
         if (!this.isSupported) {
             const error = 'Notificações não suportadas neste navegador';
@@ -99,9 +133,21 @@ class NotificationManager {
         const status = await this.checkPermissionStatus();
         console.log('📊 NOTIFICATIONS: Status antes de pedir:', status);
 
-        // Se já concedido, apenas configurar
+        // Se já concedido, verificar localização e configurar
         if (status.granted) {
-            console.log('✅ NOTIFICATIONS: Permissão já concedida');
+            console.log('✅ NOTIFICATIONS: Permissão de notificação já concedida');
+            
+            // Ainda precisa verificar localização
+            const hasLocation = await this.requestLocationPermission();
+            if (!hasLocation) {
+                this.showUserMessage(
+                    'Atenção',
+                    'Notificações ativas, mas localização não permitida. Você não receberá alertas de obras próximas.',
+                    'warning',
+                    6000
+                );
+            }
+            
             await this.setupNotifications();
             return true;
         }
@@ -113,21 +159,37 @@ class NotificationManager {
             return false;
         }
 
-        // Se default, pedir permissão
+        // Se default, pedir AMBAS as permissões (localização primeiro, depois notificação)
         if (status.canAsk) {
             try {
-                console.log('❓ NOTIFICATIONS: Exibindo prompt de permissão...');
+                // 1. PRIMEIRO: Solicitar permissão de LOCALIZAÇÃO
+                console.log('📍 NOTIFICATIONS: Passo 1/2 - Solicitando permissão de localização...');
+                const hasLocation = await this.requestLocationPermission();
+                
+                if (!hasLocation) {
+                    this.showUserMessage(
+                        'Permissão Negada',
+                        'A permissão de localização é necessária para receber alertas de obras próximas.',
+                        'warning',
+                        6000
+                    );
+                    // Não continua se localização for negada
+                    return false;
+                }
+
+                // 2. SEGUNDO: Solicitar permissão de NOTIFICAÇÃO
+                console.log('🔔 NOTIFICATIONS: Passo 2/2 - Solicitando permissão de notificação...');
                 const permission = await Notification.requestPermission();
                 this.permission = permission;
                 
                 console.log('📊 NOTIFICATIONS: Resposta do usuário:', permission);
                 
                 if (permission === 'granted') {
-                    console.log('✅ NOTIFICATIONS: Permissão concedida!');
+                    console.log('✅ NOTIFICATIONS: AMBAS permissões concedidas!');
                     await this.setupNotifications();
                     return true;
                 } else if (permission === 'denied') {
-                    console.warn('🚫 NOTIFICATIONS: Permissão negada pelo usuário');
+                    console.warn('🚫 NOTIFICATIONS: Permissão de notificação negada pelo usuário');
                     this.showDeniedInstructions();
                     return false;
                 } else {

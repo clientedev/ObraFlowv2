@@ -1,0 +1,83 @@
+Implemente as seguintes modificações para garantir que a funcionalidade "Localizar Obras Próximas" funcione corretamente:
+
+1. Ajuste no Backend Flask
+
+No endpoint /api/projects/nearby, permitir requisições AJAX autenticadas enviando o CSRF token no header.
+
+Exemplo:
+
+@app.route('/api/projects/nearby', methods=['POST'])
+@csrf.exempt  # apenas se realmente necessário
+def projects_nearby():
+    data = request.get_json()
+    lat = data.get("lat")
+    lng = data.get("lng")
+
+    if not lat or not lng:
+        return jsonify({"error": "Coordenadas inválidas"}), 400
+
+    projetos = Project.query.all()
+    # Lógica de cálculo da distância
+    nearby = []
+    for p in projetos:
+        if p.latitude and p.longitude:
+            dist = haversine((lat, lng), (p.latitude, p.longitude))
+            if dist <= 10:  # raio de 10 km (ajustar conforme regra de negócio)
+                nearby.append({
+                    "id": p.id,
+                    "nome": p.nome,
+                    "distancia": round(dist, 2)
+                })
+    return jsonify({"nearby": nearby})
+
+
+Obs: Se quiser manter CSRF ativo, não use @csrf.exempt, mas garanta que o frontend envie corretamente o token.
+
+2. Ajuste no Frontend (JavaScript)
+
+Incluir o token CSRF no header de cada requisição:
+
+async function localizarObras(lat, lng) {
+    const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+
+    const resp = await fetch("/api/projects/nearby", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify({ lat: lat, lng: lng })
+    });
+
+    if (!resp.ok) {
+        console.error("Erro ao buscar obras próximas:", resp.status);
+        return;
+    }
+
+    const data = await resp.json();
+    console.log("Obras próximas:", data);
+    renderizarObrasProximas(data.nearby);
+}
+
+
+E garantir no HTML:
+
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
+3. Fluxo Final
+
+Usuário clica em "Localizar" → navegador captura a localização via navigator.geolocation.
+
+Envia coordenadas para /api/projects/nearby com CSRF token no header.
+
+Backend valida e retorna os projetos no raio configurado.
+
+Frontend exibe os projetos próximos na tela.
+
+✅ Resultado esperado:
+
+O erro "CSRF token is missing" desaparece.
+
+O botão Localizar/Tentar Novamente funciona corretamente, enviando coordenadas para o backend.
+
+Projetos próximos são listados conforme a distância configurada.
