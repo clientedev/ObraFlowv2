@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
+from flask_cors import CORS
 import time
 import logging
 from sqlalchemy.orm import DeclarativeBase
@@ -89,6 +90,13 @@ try:
     login_manager.init_app(app)
     mail.init_app(app)
     csrf.init_app(app)
+    
+    # Configure CORS for geolocation and API calls
+    CORS(app, supports_credentials=True, resources={
+        r"/api/*": {"origins": "*"},
+        r"/save_location": {"origins": "*"}
+    })
+    
     logging.info("✅ Flask extensions initialized successfully")
 except Exception as e:
     logging.error(f"❌ Error initializing Flask extensions: {e}")
