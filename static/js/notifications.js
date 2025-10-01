@@ -1193,77 +1193,137 @@ document.addEventListener('DOMContentLoaded', () => {
 async function toggleNotifications() {
     console.log('🔄 NOTIFICATIONS: Toggle solicitado');
 
+    // Se já está concedido, desativar
     if (notificationManager.permission === 'granted') {
         console.log('🔕 NOTIFICATIONS: Desativando (já concedido)');
         await notificationManager.unsubscribe();
-        return false;
-    } else {
-        console.log('🔔 NOTIFICATIONS: Ativando (não concedido)');
         
-        // 🔥 FIX MOBILE: CHAMADA SÍNCRONA E DIRETA no clique para garantir prompt no Chrome Mobile
-        // IMPORTANTE: getCurrentPosition() DEVE ser chamado DIRETAMENTE no clique (sem await/setTimeout antes)
-        try {
-            navigator.geolocation.getCurrentPosition(
-                async function(position) {
-                    console.info('✅ GEO OK (user gesture):', position.coords);
-                    
-                    // 2) Só depois pedir permissão de notificação
-                    const notifPermission = await Notification.requestPermission();
-                    console.info('📊 Notification permission:', notifPermission);
-                    
-                    if (notifPermission === 'granted') {
-                        // Ativar notificações com a posição obtida
-                        notificationManager.permission = notifPermission;
-                        await notificationManager.setupNotifications();
-                        notificationManager.currentPosition = position;
-                        
-                        notificationManager.showUserMessage(
-                            'Notificações Ativadas',
-                            'Você receberá alertas quando estiver próximo de obras cadastradas.',
-                            'success'
-                        );
-                    } else {
-                        notificationManager.showUserMessage(
-                            'Permissão Negada',
-                            'Permissão de notificação negada. Alertas de proximidade não serão ativados.',
-                            'warning'
-                        );
-                    }
-                },
-                function(error) {
-                    console.warn('🚫 GEO ERROR:', error);
-                    
-                    if (error && error.code === 1) {
-                        // PERMISSION_DENIED
-                        notificationManager.showUserMessage(
-                            'Localização Necessária',
-                            'É obrigatório permitir acesso à localização para ativar notificações de proximidade. Por favor, habilite nas configurações do navegador.',
-                            'danger',
-                            8000
-                        );
-                    } else {
-                        notificationManager.showUserMessage(
-                            'Erro de Localização',
-                            'Erro ao obter localização: ' + (error.message || error),
-                            'danger'
-                        );
-                    }
-                },
-                { 
-                    enableHighAccuracy: true, 
-                    timeout: 10000, 
-                    maximumAge: 0  // 🔥 IMPORTANTE: 0 = sem cache, força prompt
-                }
-            );
-        } catch (err) {
-            console.error('❌ Erro no click handler geo:', err);
-            notificationManager.showUserMessage(
-                'Erro',
-                'Erro ao solicitar permissões. Tente novamente.',
-                'danger'
-            );
+        // Atualizar UI
+        const toggleBtn = document.getElementById('notification-toggle');
+        const toggleText = document.getElementById('toggle-text');
+        if (toggleBtn && toggleText) {
+            toggleBtn.classList.remove('btn-danger');
+            toggleBtn.classList.add('btn-outline-primary');
+            toggleText.textContent = 'Ativar';
         }
         
         return false;
     }
+    
+    // ATIVANDO: Verificações antes de pedir permissões
+    console.log('🔔 NOTIFICATIONS: Ativando (não concedido)');
+    
+    // 1) Verificar se geolocation está disponível
+    if (!navigator.geolocation) {
+        notificationManager.showUserMessage(
+            'Geolocalização Não Disponível',
+            'Seu navegador não suporta geolocalização. Use um navegador moderno (Chrome, Firefox, Safari).',
+            'danger',
+            8000
+        );
+        return false;
+    }
+    
+    // 2) Verificar se Notification já está DENIED
+    if (Notification.permission === 'denied') {
+        notificationManager.showUserMessage(
+            'Permissão Bloqueada',
+            'Você bloqueou as notificações anteriormente. Para ativar: toque no ícone 🔒 na barra de endereço → Permissões → Ative Notificações e Localização → Recarregue a página.',
+            'danger',
+            10000
+        );
+        return false;
+    }
+    
+    // 3) 🔥 FIX MOBILE: CHAMADA SÍNCRONA E DIRETA no clique para garantir prompt no Chrome Mobile
+    // IMPORTANTE: getCurrentPosition() DEVE ser chamado DIRETAMENTE no clique (sem await/setTimeout antes)
+    try {
+        navigator.geolocation.getCurrentPosition(
+            async function(position) {
+                console.info('✅ GEO OK (user gesture):', position.coords);
+                
+                // 4) Só depois pedir permissão de notificação
+                const notifPermission = await Notification.requestPermission();
+                console.info('📊 Notification permission:', notifPermission);
+                
+                if (notifPermission === 'granted') {
+                    // Ativar notificações com a posição obtida
+                    notificationManager.permission = notifPermission;
+                    await notificationManager.setupNotifications();
+                    notificationManager.currentPosition = position;
+                    
+                    notificationManager.showUserMessage(
+                        'Notificações Ativadas',
+                        'Você receberá alertas quando estiver próximo de obras cadastradas.',
+                        'success'
+                    );
+                    
+                    // Atualizar UI
+                    const toggleBtn = document.getElementById('notification-toggle');
+                    const toggleText = document.getElementById('toggle-text');
+                    if (toggleBtn && toggleText) {
+                        toggleBtn.classList.remove('btn-outline-primary');
+                        toggleBtn.classList.add('btn-danger');
+                        toggleText.textContent = 'Desativar';
+                    }
+                } else {
+                    notificationManager.showUserMessage(
+                        'Permissão Negada',
+                        'Você negou a permissão de notificação. Para ativar: toque no ícone 🔒 na barra de endereço → Permissões → Ative Notificações.',
+                        'warning',
+                        8000
+                    );
+                }
+            },
+            function(error) {
+                console.warn('🚫 GEO ERROR:', error);
+                
+                if (error && error.code === 1) {
+                    // PERMISSION_DENIED
+                    notificationManager.showUserMessage(
+                        'Localização Bloqueada',
+                        'Você bloqueou o acesso à localização. Para ativar: toque no ícone 🔒 na barra de endereço → Permissões → Ative Localização → Recarregue e tente novamente.',
+                        'danger',
+                        10000
+                    );
+                } else if (error.code === 2) {
+                    // POSITION_UNAVAILABLE
+                    notificationManager.showUserMessage(
+                        'Localização Indisponível',
+                        'Não foi possível obter sua localização. Verifique se o GPS está ativado e tente novamente.',
+                        'warning',
+                        8000
+                    );
+                } else if (error.code === 3) {
+                    // TIMEOUT
+                    notificationManager.showUserMessage(
+                        'Timeout',
+                        'A solicitação de localização demorou muito. Tente novamente.',
+                        'warning',
+                        5000
+                    );
+                } else {
+                    notificationManager.showUserMessage(
+                        'Erro de Localização',
+                        'Erro ao obter localização: ' + (error.message || error),
+                        'danger'
+                    );
+                }
+            },
+            { 
+                enableHighAccuracy: true, 
+                timeout: 10000, 
+                maximumAge: 0  // 🔥 IMPORTANTE: 0 = sem cache, força prompt
+            }
+        );
+    } catch (err) {
+        console.error('❌ Erro no click handler geo:', err);
+        notificationManager.showUserMessage(
+            'Erro',
+            'Erro ao solicitar permissões: ' + (err.message || err),
+            'danger'
+        );
+    }
+    
+    return false;
 }
