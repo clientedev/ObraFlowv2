@@ -116,6 +116,27 @@ def load_user(user_id):
         app.logger.error(f"Error loading user {user_id}: {e}")
         return None
 
+# HTTPS enforcement for production (Railway)
+@app.before_request
+def enforce_https():
+    """Redirecionar para HTTPS em produção (Railway)"""
+    from flask import request, redirect
+    
+    # Apenas em produção (Railway)
+    if os.environ.get("RAILWAY_ENVIRONMENT"):
+        # Verificar se a requisição não é HTTPS
+        if not request.is_secure:
+            # Permitir health checks sem HTTPS
+            if request.path in ['/health', '/health/']:
+                return None
+            
+            # Redirecionar para HTTPS
+            url = request.url.replace('http://', 'https://', 1)
+            logging.info(f"🔒 Redirecionando para HTTPS: {url}")
+            return redirect(url, code=301)
+    
+    return None
+
 # Create upload directory
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
