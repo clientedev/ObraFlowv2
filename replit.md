@@ -5,6 +5,15 @@ This project is a comprehensive construction site visit tracking system built wi
 Preferred communication style: Simple, everyday language.
 Mobile-first design: Date field should be the first input field in report forms.
 
+# Replit Environment Setup
+- **Python Version**: Python 3.11 with full toolchain (pip, poetry, pyright, debugpy)
+- **Database**: PostgreSQL (via Replit database service)
+- **Development Server**: Flask development server on port 5000 (host: 0.0.0.0)
+- **Production Server**: Gunicorn with 4 workers (configured for VM deployment)
+- **System Dependencies**: pango, cairo, gdk-pixbuf, harfbuzz, libffi (for WeasyPrint PDF generation)
+- **Entry Point**: main.py
+- **Default Admin**: username: admin, password: admin123 (created on first run)
+
 # System Architecture
 
 ## Backend Architecture
