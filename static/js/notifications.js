@@ -1,4 +1,3 @@
-
 // Sistema de Notificações Push - Versão Robusta com Debug Completo
 class NotificationManager {
     constructor() {
@@ -232,7 +231,7 @@ class NotificationManager {
         // PASSO 1: LOCALIZAÇÃO (OBRIGATÓRIA) - FORÇAR SEMPRE EM MOBILE
         try {
             console.log('📍 NOTIFICATIONS: 🔥 PASSO 1/2 - FORÇANDO permissão de localização...');
-            
+
             // Mostrar mensagem explicativa ANTES de solicitar
             this.showUserMessage(
                 'Primeira Permissão: Localização',
@@ -251,7 +250,7 @@ class NotificationManager {
 
             if (!hasLocation) {
                 console.error('❌ NOTIFICATIONS: Localização NEGADA - não é possível continuar');
-                
+
                 // Mostrar instruções específicas para mobile
                 if (isMobile) {
                     this.showMobileLocationDeniedInstructions();
@@ -267,7 +266,7 @@ class NotificationManager {
             }
 
             console.log('✅ NOTIFICATIONS: ✅ LOCALIZAÇÃO CONCEDIDA! Preparando para notificações...');
-            
+
             // Delay maior para o mobile processar a primeira permissão
             if (isMobile) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
@@ -306,7 +305,7 @@ class NotificationManager {
         if (status.canAsk) {
             try {
                 console.log('🔔 NOTIFICATIONS: 🔥 PASSO 2/2 - FORÇANDO permissão de notificação...');
-                
+
                 // Mostrar mensagem explicativa para a segunda permissão
                 this.showUserMessage(
                     'Segunda Permissão: Notificações',
@@ -373,7 +372,7 @@ class NotificationManager {
         for (let i = 0; i < strategies.length; i++) {
             const strategy = strategies[i];
             console.log(`🔥 MOBILE: Tentativa ${i + 1}/3 com estratégia:`, strategy);
-            
+
             try {
                 const position = await new Promise((resolve, reject) => {
                     const timeoutId = setTimeout(() => {
@@ -400,14 +399,14 @@ class NotificationManager {
 
             } catch (error) {
                 console.error(`❌ MOBILE: Tentativa ${i + 1} falhou:`, error.message);
-                
+
                 // Se for erro de permissão, não tentar mais
                 if (error.code === 1) { // PERMISSION_DENIED
                     console.error('🚫 MOBILE: Permissão negada definitivamente');
                     this.showMobileLocationDeniedInstructions();
                     return false;
                 }
-                
+
                 // Se não for a última tentativa, continuar
                 if (i < strategies.length - 1) {
                     console.log(`🔄 MOBILE: Aguardando antes da próxima tentativa...`);
@@ -546,7 +545,7 @@ class NotificationManager {
         // MOBILE FIX: Usar getCurrentPosition de forma mais agressiva
         try {
             console.log('🔥 MOBILE: Forçando prompt de localização...');
-            
+
             const position = await new Promise((resolve, reject) => {
                 // Timeout menor para forçar o prompt mais rapidamente
                 const timeoutId = setTimeout(() => {
@@ -563,7 +562,7 @@ class NotificationManager {
                     (error) => {
                         clearTimeout(timeoutId);
                         console.error('🚫 MOBILE: Erro ao solicitar localização:', error.code, error.message);
-                        
+
                         // Mostrar instruções detalhadas baseadas no tipo de erro
                         if (error.code === 1) { // PERMISSION_DENIED
                             this.showMobileLocationInstructions();
@@ -582,7 +581,7 @@ class NotificationManager {
                                 5000
                             );
                         }
-                        
+
                         reject(error);
                     },
                     { 
@@ -597,10 +596,10 @@ class NotificationManager {
 
         } catch (error) {
             console.error('❌ MOBILE: Falha ao obter permissão de localização:', error.message);
-            
+
             // Se falhou, tentar uma segunda vez com configurações diferentes
             console.log('🔄 MOBILE: Tentativa secundária com enableHighAccuracy: false...');
-            
+
             try {
                 const fallbackPosition = await new Promise((resolve, reject) => {
                     const timeoutId = setTimeout(() => {
@@ -627,7 +626,7 @@ class NotificationManager {
                 });
 
                 return true;
-                
+
             } catch (fallbackError) {
                 console.error('❌ MOBILE: Todas as tentativas falharam');
                 this.showMobileLocationInstructions();
@@ -659,8 +658,10 @@ class NotificationManager {
                     <p><strong>📱 Safari iOS - Como permitir localização:</strong></p>
                     <ol>
                         <li>Vá em <strong>Configurações</strong> do iOS</li>
-                        <li>Role para baixo e toque em <strong>Safari</strong></li>
-                        <li>Toque em <strong>Localização</strong></li>
+                        <li>Role para baixo e toque em <strong>Privacidade e Segurança</strong></li>
+                        <li>Toque em <strong>Serviços de Localização</strong></li>
+                        <li>Certifique-se de que está <strong>ATIVADO</strong></li>
+                        <li>Role até <strong>Safari</strong> e toque</li>
                         <li>Selecione <strong>"Ao Usar o App"</strong></li>
                     </ol>
                     <p><strong>Ou:</strong> Configurações → Privacidade → Serviços de Localização → Safari</p>
