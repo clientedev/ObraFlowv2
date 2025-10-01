@@ -1,0 +1,78 @@
+Correção do Fluxo de Permissões (Notificação + Localização em Mobile Chrome)
+
+Implemente a seguinte correção para garantir que no mobile Chrome seja exibido o popup de permissão de localização da mesma forma que o de notificações:
+
+1. Alterar fluxo JS do botão "Ativar Notificações"
+
+No main.js ou script que trata o botão "Ativar", modifique para que notificação e localização sejam pedidas dentro da mesma interação do clique:
+
+async function ativarNotificacoes() {
+    try {
+        // 1. Solicitar permissão de notificações
+        const notifPermission = await Notification.requestPermission();
+        if (notifPermission !== "granted") {
+            alert("Você precisa permitir notificações para ativar esta funcionalidade.");
+            return;
+        }
+
+        // 2. Solicitar localização dentro do mesmo clique do usuário
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                console.log("Localização autorizada:", position.coords);
+                registrarNotificacaoProximidade(position.coords);
+            },
+            (error) => {
+                console.error("Erro ao obter localização:", error);
+                if (error.code === error.PERMISSION_DENIED) {
+                    alert("⚠️ Você precisa permitir acesso à localização para que notificações de proximidade funcionem.");
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+
+    } catch (err) {
+        console.error("Erro no fluxo de ativação:", err);
+        alert("❌ Ocorreu um erro ao tentar ativar notificações.");
+    }
+}
+
+function registrarNotificacaoProximidade(coords) {
+    fetch("/api/notifications/subscribe", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector("meta[name='csrf-token']").content
+        },
+        body: JSON.stringify({
+            latitude: coords.latitude,
+            longitude: coords.longitude
+        })
+    }).then(resp => {
+        if (resp.ok) {
+            alert("✅ Notificações de proximidade ativadas com sucesso!");
+        } else {
+            alert("❌ Falha ao ativar notificações.");
+        }
+    });
+}
+
+2. Ajuste importante (exclusivo mobile Chrome)
+
+A chamada de geolocalização precisa estar diretamente dentro do clique do botão.
+
+Evite encadear a geolocalização apenas em callbacks assíncronos de Notification.requestPermission(), senão o Chrome mobile não abre o prompt.
+
+Por isso, o código acima chama navigator.geolocation.getCurrentPosition() ainda dentro do mesmo async function ativarNotificacoes() disparado pelo clique.
+
+3. Testes recomendados
+
+Testar em Chrome Android → deve abrir DOIS popups:
+
+"elconsultoria.pro quer enviar notificações"
+
+"elconsultoria.pro quer acessar sua localização"
+
+Testar em Safari iOS → deve abrir também a permissão de localização, já que o fluxo respeita o clique.
+
+✅ Resultado esperado:
+Agora, ao clicar em Ativar Notificações, o usuário receberá dois prompts no mobile (notificação + localização). Se negar a localização, a ativação não é concluída.
