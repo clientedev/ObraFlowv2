@@ -16,6 +16,22 @@ Mobile-first design: Date field should be the first input field in report forms.
 
 # Recent Improvements (October 2025)
 
+## Mandatory Location Validation for Notifications (October 1, 2025 - Latest)
+- **Backend Location Validation**: Updated `/api/notifications/subscribe` endpoint to require and validate location coordinates
+  - ✅ Validates both notification subscription AND location coordinates are provided
+  - ✅ Validates latitude range (-90 to 90) and longitude range (-180 to 180)
+  - ✅ Returns error if location data is missing or invalid
+  - ✅ Logs successful activations with user location for proximity alerts
+- **Frontend Location Capture**: Enhanced `subscribeToPush()` in `notifications.js`
+  - ✅ Captures current location with high accuracy before sending subscription
+  - ✅ Includes latitude, longitude, and accuracy in subscription request
+  - ✅ Shows clear error message if location permission is denied
+  - ✅ Prevents notification activation if location is not available
+- **Dual Permission Flow**: Ensures both permissions are required together
+  - ✅ User must grant BOTH notification AND location permissions
+  - ✅ Clear error messages explain why each permission is needed
+  - ✅ System only activates when both permissions are granted successfully
+
 ## Dual Permission System for Location & Notifications (October 1, 2025)
 - **Enhanced Permission Flow**: Sistema agora solicita AMBAS permissões (localização E notificação) sequencialmente
   - **SEMPRE pede localização PRIMEIRO** (independente do status de notificação)
