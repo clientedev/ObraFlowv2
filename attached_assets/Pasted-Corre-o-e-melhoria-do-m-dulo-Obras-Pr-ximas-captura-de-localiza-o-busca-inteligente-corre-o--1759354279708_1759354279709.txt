@@ -1,0 +1,167 @@
+Correção e melhoria do módulo Obras Próximas (captura de localização + busca inteligente + correção de erros 400)
+
+Objetivo:
+
+Garantir que ao clicar em Localizar:
+
+O sistema peça corretamente permissão de localização no mobile e desktop;
+
+Capture latitude e longitude válidos;
+
+Envie esses valores no formato correto para a API /api/projects/nearby;
+
+O back-end valide e processe corretamente, evitando erro 400;
+
+O sistema identifique e normalize endereços (Av., Rua, Estrada etc.);
+
+Liste obras próximas ordenadas por distância real (Haversine formula).
+
+1. Front-end (captura e envio de coordenadas)
+
+Alterar o código do botão “Localizar” para:
+
+document.querySelector('#btnLocalizar').addEventListener('click', function() {
+  if (!navigator.geolocation) {
+    alert('Seu dispositivo não suporta geolocalização.');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const latitude = pos.coords.latitude;
+      const longitude = pos.coords.longitude;
+
+      console.log('Coordenadas capturadas:', latitude, longitude);
+
+      try {
+        const resp = await fetch('/api/projects/nearby', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ latitude, longitude })
+        });
+
+        if (!resp.ok) {
+          const errorMsg = await resp.text();
+          console.error('Erro no nearby API:', errorMsg);
+          alert('Erro ao buscar obras próximas: ' + errorMsg);
+          return;
+        }
+
+        const projetos = await resp.json();
+        renderProjetosProximos(projetos);
+
+      } catch (err) {
+        console.error('Erro ao buscar obras próximas:', err);
+        alert('Erro de comunicação com o servidor.');
+      }
+    },
+    (err) => {
+      console.error('Erro de geolocalização:', err);
+      if (err.code === 1) {
+        alert('Permissão de localização negada. Habilite para usar esta função.');
+      } else {
+        alert('Não foi possível capturar sua localização. Tente novamente.');
+      }
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+});
+
+function renderProjetosProximos(projetos) {
+  const container = document.querySelector('#listaObrasProximas');
+  container.innerHTML = '';
+  projetos.forEach(p => {
+    const li = document.createElement('li');
+    li.textContent = `${p.nome} - ${p.distancia.toFixed(2)} km`;
+    container.appendChild(li);
+  });
+}
+
+2. Back-end (Flask API /api/projects/nearby)
+
+No routes.py ou controlador da API, garantir:
+
+from flask import request, jsonify
+from math import radians, sin, cos, sqrt, atan2
+
+@app.route('/api/projects/nearby', methods=['POST'])
+def projects_nearby():
+    data = request.get_json()
+    lat = data.get('latitude')
+    lon = data.get('longitude')
+
+    if not lat or not lon:
+        return jsonify({'error': 'Coordenadas inválidas'}), 400
+
+    lat = float(lat)
+    lon = float(lon)
+
+    # Haversine para calcular distância
+    def haversine(lat1, lon1, lat2, lon2):
+        R = 6371.0  # km
+        dlat = radians(lat2 - lat1)
+        dlon = radians(lon2 - lon1)
+        a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return R * c
+
+    projetos = Projeto.query.all()
+    proximos = []
+
+    for p in projetos:
+        if p.latitude and p.longitude:
+            dist = haversine(lat, lon, p.latitude, p.longitude)
+            proximos.append({
+                'id': p.id,
+                'nome': p.nome,
+                'endereco': normalizar_endereco(p.endereco),
+                'distancia': dist
+            })
+
+    # ordenar por distância
+    proximos.sort(key=lambda x: x['distancia'])
+    return jsonify(proximos[:10])  # retorna só os 10 mais próximos
+
+3. Normalização inteligente de endereços
+
+Adicionar função:
+
+import re
+
+def normalizar_endereco(endereco):
+    if not endereco:
+        return ''
+    endereco = endereco.strip()
+    endereco = re.sub(r'^(Av\.?|Avenida)\b', 'Avenida', endereco, flags=re.IGNORECASE)
+    endereco = re.sub(r'^(R\.?|Rua)\b', 'Rua', endereco, flags=re.IGNORECASE)
+    endereco = re.sub(r'^(Estr\.?|Estrada)\b', 'Estrada', endereco, flags=re.IGNORECASE)
+    endereco = re.sub(r'^(Rod\.?|Rodovia)\b', 'Rodovia', endereco, flags=re.IGNORECASE)
+    return endereco
+
+4. Correção dos erros 400
+
+Erro 400 acontece porque latitude/longitude não estavam chegando ao back-end.
+
+O prompt acima garante que sempre são enviados no corpo JSON.
+
+Caso contrário, retornar resposta clara: {"error": "Coordenadas inválidas"}.
+
+5. Testes
+
+Desktop Chrome: permitir localização → listar projetos ordenados.
+
+Mobile Chrome: garantir que o prompt apareça → enviar coords válidas → listar.
+
+APK/PWA: confirmar que permissões nativas Android estão configuradas (ACCESS_FINE_LOCATION) e WebView habilita geolocalização.
+
+👉 Esse prompt garante:
+
+Correção dos erros 400.
+
+Captura correta de latitude/longitude.
+
+Normalização de endereços.
+
+Retorno de obras ordenadas por distância.
+
+Compatibilidade Desktop, Mobile e APK.
