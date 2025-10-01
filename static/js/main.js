@@ -571,7 +571,7 @@ async function localizarObrasProximas() {
         const data = await response.json();
         console.log("✅ Obras próximas recebidas:", data);
         
-        // Renderizar resultados
+        // Renderizar resultados - API retorna data.nearby
         renderizarObrasProximas(data.nearby || []);
         
         // Esconder loading

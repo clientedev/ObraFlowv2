@@ -314,60 +314,49 @@ function loadNearbyProjects() {
     .then(data => {
         const projectsList = document.getElementById('projectsList');
         
-        if (data && Array.isArray(data)) {
-            if (statusEl) {
-                statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Encontradas ${data.length} obras próximas`;
-                statusEl.className = 'alert alert-success';
-            }
-            
-            if (data.length === 0) {
-                if (projectsList) {
-                    projectsList.innerHTML = '<div class="text-center text-muted p-3"><i class="fas fa-info-circle"></i><br>Nenhuma obra encontrada próxima à sua localização</div>';
-                }
-            } else {
-                let projectsHtml = '';
-                
-                // Limit to top 10 and sort by distance
-                const topProjects = data.slice(0, 10);
-                
-                topProjects.forEach((project, index) => {
-                    let rankingEmoji = '';
-                    if (index === 0) rankingEmoji = '🥇';
-                    else if (index === 1) rankingEmoji = '🥈';
-                    else if (index === 2) rankingEmoji = '🥉';
-                    else rankingEmoji = '📍';
-                    
-                    const statusBadge = 'bg-success'; // Default to active since API returns active projects
-                    
-                    projectsHtml += `
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1">${rankingEmoji} ${project.nome}</h6>
-                                <p class="mb-1 text-muted small">${project.endereco || 'Endereço não informado'}</p>
-                                <small class="text-primary">${project.tipo_obra || 'Tipo não informado'}</small>
-                                <br><small class="badge ${statusBadge}">Ativo</small>
-                            </div>
-                            <div class="text-end">
-                                <span class="badge bg-primary rounded-pill">${project.distance_km}km</span>
-                                <div class="mt-1">
-                                    <a href="/projects/${project.id}" class="btn btn-sm btn-outline-primary">Ver Projeto</a>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                if (projectsList) {
-                    projectsList.innerHTML = projectsHtml;
-                }
+        // API retorna {'nearby': [...]} 
+        const projects = data.nearby || [];
+        
+        if (statusEl) {
+            statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Encontradas ${projects.length} obras próximas`;
+            statusEl.className = 'alert alert-success';
+        }
+        
+        if (projects.length === 0) {
+            if (projectsList) {
+                projectsList.innerHTML = '<div class="text-center text-muted p-3"><i class="fas fa-info-circle"></i><br>Nenhuma obra encontrada próxima à sua localização</div>';
             }
         } else {
-            const errorMsg = data && data.error ? data.error : 'Erro desconhecido';
-            if (statusEl) {
-                statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erro: ${errorMsg}`;
-                statusEl.className = 'alert alert-danger';
-            }
+            let projectsHtml = '';
+            
+            projects.forEach((project, index) => {
+                let rankingEmoji = '';
+                if (index === 0) rankingEmoji = '🥇';
+                else if (index === 1) rankingEmoji = '🥈';
+                else if (index === 2) rankingEmoji = '🥉';
+                else rankingEmoji = '📍';
+                
+                const statusBadge = 'bg-success';
+                
+                projectsHtml += `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${rankingEmoji} ${project.nome}</h6>
+                            <p class="mb-1 text-muted small">${project.endereco || 'Endereço não informado'}</p>
+                            <small class="text-primary">${project.tipo_obra || 'Tipo não informado'}</small>
+                            <br><small class="badge ${statusBadge}">Ativo</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-primary rounded-pill">${project.distancia}km</span>
+                            <div class="mt-1">
+                                <a href="/projects/${project.id}" class="btn btn-sm btn-outline-primary">Ver Projeto</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
             if (projectsList) {
-                projectsList.innerHTML = '<div class="text-center text-muted p-3"><i class="fas fa-exclamation-triangle"></i><br>Erro ao carregar obras</div>';
+                projectsList.innerHTML = projectsHtml;
             }
         }
     })
