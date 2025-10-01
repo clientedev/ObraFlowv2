@@ -1,0 +1,80 @@
+Correção da Ativação de Notificações com Geolocalização Obrigatória
+
+Implemente a seguinte modificação no fluxo de ativação de notificações:
+
+1. Requisitar duas permissões obrigatórias
+
+Ao clicar em "Ativar Notificações", o sistema deve solicitar:
+
+Permissão de Notificação (Notification API / Push API)
+
+Permissão de Localização (Geolocation API)
+
+2. Fluxo no Frontend (JavaScript)
+
+Atualizar o código JS responsável pelo botão Ativar Notificações para que primeiro peça a permissão de notificação e, imediatamente após, valide/solicite a permissão de localização:
+
+async function ativarNotificacoes() {
+    try {
+        // 1. Solicitar permissão para notificações
+        const notifPermission = await Notification.requestPermission();
+        if (notifPermission !== "granted") {
+            alert("Você precisa permitir notificações para continuar.");
+            return;
+        }
+
+        // 2. Solicitar permissão para geolocalização
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                console.log("Localização autorizada:", position.coords);
+                registrarNotificacaoProximidade(position.coords);
+            },
+            (error) => {
+                console.error("Erro ao obter localização:", error);
+                alert("Você precisa permitir acesso à localização para habilitar notificações de proximidade.");
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+
+    } catch (err) {
+        console.error("Erro ao ativar notificações:", err);
+    }
+}
+
+function registrarNotificacaoProximidade(coords) {
+    fetch("/api/notifications/subscribe", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector("meta[name='csrf-token']").content
+        },
+        body: JSON.stringify({
+            latitude: coords.latitude,
+            longitude: coords.longitude
+        })
+    }).then(resp => {
+        if (resp.ok) {
+            alert("✅ Notificações de proximidade e novidades ativadas com sucesso!");
+        } else {
+            alert("❌ Falha ao ativar notificações.");
+        }
+    });
+}
+
+3. Validação no Backend
+
+No endpoint /api/notifications/subscribe, validar se vieram tanto:
+
+Token de notificação/push
+
+Coordenadas de localização
+
+Se não houver localização → retornar erro e não ativar as notificações.
+
+✅ Resultado esperado:
+
+Quando o usuário clicar em Ativar Notificações, o sistema obrigatoriamente pedirá notificação + localização.
+
+Se negar a localização, a ativação não será concluída.
+
+Se aceitar ambos, as notificações de proximidade e novidades passam a funcionar corretamente.

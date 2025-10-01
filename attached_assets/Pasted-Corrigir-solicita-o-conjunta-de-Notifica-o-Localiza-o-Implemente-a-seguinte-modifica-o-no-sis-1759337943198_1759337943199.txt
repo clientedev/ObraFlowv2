@@ -1,0 +1,81 @@
+Corrigir solicitação conjunta de Notificação + Localização
+
+Implemente a seguinte modificação no sistema:
+
+🔹 Problema: Atualmente, ao clicar em "Ativar Notificações", o sistema pede somente permissão de notificações (Notification).
+🔹 Objetivo: Sempre que o usuário clicar em Ativar Notificações, o sistema deve pedir as duas permissões:
+
+Permissão de Notificações (Push)
+
+Permissão de Localização (Geolocation)
+
+🔹 Solução no Frontend (JavaScript):
+
+async function ativarNotificacoes() {
+    try {
+        // 1. Solicitar permissão para notificações
+        const notifPerm = await Notification.requestPermission();
+
+        if (notifPerm !== "granted") {
+            alert("É necessário permitir notificações para continuar.");
+            return;
+        }
+
+        // 2. Solicitar permissão para localização
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                console.log("Localização autorizada:", position.coords);
+                registrarPermissoes(position.coords); 
+            },
+            (error) => {
+                console.error("Erro ao obter localização:", error);
+                alert("É necessário permitir a localização para ativar as notificações.");
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+
+    } catch (err) {
+        console.error("Erro ao ativar notificações e localização:", err);
+        alert("Ocorreu um erro. Tente novamente.");
+    }
+}
+
+function registrarPermissoes(coords) {
+    fetch("/api/user/permissions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector("meta[name='csrf-token']").content
+        },
+        body: JSON.stringify({
+            notifications: true,
+            location: {
+                lat: coords.latitude,
+                lng: coords.longitude
+            }
+        })
+    }).then(resp => {
+        if (resp.ok) {
+            console.log("Permissões registradas com sucesso.");
+        } else {
+            console.error("Falha ao registrar permissões.");
+        }
+    });
+}
+
+
+🔹 Regras adicionais:
+
+O fluxo só deve ser considerado ativo se as duas permissões forem concedidas.
+
+Se o usuário negar qualquer uma, exibir mensagem clara “Para usar as notificações, é obrigatório também permitir a localização”.
+
+O backend deve salvar no banco que ambas permissões foram concedidas antes de habilitar notificações de proximidade.
+
+✅ Resultado esperado:
+
+Ao clicar em Ativar Notificações, o navegador pedirá dois diálogos: Notificações e Localização.
+
+Se a localização for negada, as notificações não são ativadas.
+
+Garante que o sistema só funcione se o usuário conceder ambas as permissões.
