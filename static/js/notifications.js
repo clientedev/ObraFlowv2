@@ -1,3 +1,4 @@
+
 // Sistema de Notificações Push - Versão Robusta com Debug Completo
 class NotificationManager {
     constructor() {
@@ -38,6 +39,32 @@ class NotificationManager {
         // Make the manager globally available
         window.notificationManager = this;
         console.log('✅ NOTIFICATIONS: Gerenciador disponível globalmente');
+    }
+
+    async registerServiceWorker() {
+        try {
+            console.log('🔧 NOTIFICATIONS: Registrando service worker...');
+
+            if ('serviceWorker' in navigator) {
+                // Tentar obter registration existente
+                this.swRegistration = await navigator.serviceWorker.getRegistration();
+
+                if (!this.swRegistration) {
+                    console.log('📦 NOTIFICATIONS: Registrando service worker...');
+                    this.swRegistration = await navigator.serviceWorker.register('/static/js/sw.js');
+                    console.log('✅ NOTIFICATIONS: Service worker registrado');
+                } else {
+                    console.log('✅ NOTIFICATIONS: Service worker já registrado');
+                }
+
+                // Aguardar estar pronto
+                await navigator.serviceWorker.ready;
+                console.log('✅ NOTIFICATIONS: Service worker pronto');
+            }
+        } catch (error) {
+            console.error('❌ NOTIFICATIONS: Erro ao configurar service worker:', error);
+            // Não fazer throw aqui para continuar funcionando sem push notifications
+        }
     }
 
     async autoCheckPermissions() {
@@ -81,7 +108,6 @@ class NotificationManager {
             return false;
         }
     }
-
 
     async ensureServiceWorker() {
         try {
@@ -135,12 +161,16 @@ class NotificationManager {
         }
 
         try {
-            // Tentar obter localização para triggerar o prompt de permissão
+            // MOBILE: Forçar prompt de localização IMEDIATAMENTE
             const position = await new Promise((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition(
                     resolve,
                     reject,
-                    { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
+                    { 
+                        enableHighAccuracy: true, 
+                        timeout: 15000, 
+                        maximumAge: 0 // Sempre pedir permissão fresca
+                    }
                 );
             });
 
@@ -185,7 +215,6 @@ class NotificationManager {
         }
     }
 
-
     async requestPermission() {
         console.log('🔔 NOTIFICATIONS: Solicitando permissões...');
 
@@ -196,13 +225,15 @@ class NotificationManager {
             throw new Error(error);
         }
 
-        // SEMPRE pedir localização PRIMEIRO, independente do status de notificação
-        try {
-            // 1. PRIMEIRO: Solicitar permissão de LOCALIZAÇÃO IMEDIATAMENTE
-            console.log('📍 NOTIFICATIONS: Passo 1/2 - Solicitando permissão de localização AGORA...');
+        // MOBILE FIX: Detectar se é mobile e ajustar comportamento
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        console.log('📱 MOBILE DETECTED:', isMobile);
 
-            // Forçar prompt de localização IMEDIATAMENTE
-            const hasLocation = await this.forceLocationPermission();
+        try {
+            // 1. PRIMEIRO: Solicitar permissão de LOCALIZAÇÃO com timeout maior para mobile
+            console.log('📍 NOTIFICATIONS: Passo 1/2 - Solicitando permissão de localização...');
+
+            const hasLocation = await this.requestLocationPermissionMobile();
 
             if (!hasLocation) {
                 this.showUserMessage(
@@ -211,11 +242,16 @@ class NotificationManager {
                     'warning',
                     8000
                 );
-                // Não continua se localização for negada
                 return false;
             }
 
             console.log('✅ NOTIFICATIONS: Localização permitida, verificando notificações...');
+
+            // Small delay for mobile to process location permission
+            if (isMobile) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
         } catch (error) {
             console.error('❌ NOTIFICATIONS: Erro ao solicitar localização:', error);
             this.showUserMessage(
@@ -275,6 +311,66 @@ class NotificationManager {
         }
 
         return false;
+    }
+
+    async requestLocationPermissionMobile() {
+        console.log('📍 MOBILE: Solicitando permissão de localização específica para mobile...');
+
+        if (!navigator.geolocation) {
+            console.warn('⚠️ MOBILE: Geolocalização não suportada');
+            return false;
+        }
+
+        return new Promise((resolve) => {
+            // Timeout maior para mobile
+            const timeout = setTimeout(() => {
+                console.warn('⏰ MOBILE: Timeout ao solicitar localização');
+                resolve(false);
+            }, 20000);
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    clearTimeout(timeout);
+                    console.log('✅ MOBILE: Permissão de localização concedida');
+                    resolve(true);
+                },
+                (error) => {
+                    clearTimeout(timeout);
+                    console.warn('🚫 MOBILE: Permissão de localização negada:', error.message);
+                    
+                    // Mostrar instruções específicas para mobile
+                    this.showMobileLocationInstructions();
+                    resolve(false);
+                },
+                { 
+                    enableHighAccuracy: true, 
+                    timeout: 18000,
+                    maximumAge: 0 // Sempre pedir permissão fresca
+                }
+            );
+        });
+    }
+
+    showMobileLocationInstructions() {
+        const instructions = `
+            <div class="text-start">
+                <p><strong>📱 Como permitir localização no mobile:</strong></p>
+                <ol>
+                    <li>Toque no ícone <strong>🔒</strong> na barra de endereço</li>
+                    <li>Procure por <strong>"Localização"</strong> ou <strong>"Location"</strong></li>
+                    <li>Altere para <strong>"Permitir"</strong> ou <strong>"Allow"</strong></li>
+                    <li>Recarregue a página e tente novamente</li>
+                </ol>
+                <p><small>💡 <strong>Dica:</strong> Em alguns navegadores mobile, a permissão pode aparecer como uma notificação no topo da tela.</small></p>
+            </div>
+        `;
+
+        this.showUserMessage(
+            'Instruções para Mobile',
+            instructions,
+            'info',
+            12000
+        );
     }
 
     async setupNotifications() {
