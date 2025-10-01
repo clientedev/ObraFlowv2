@@ -9,48 +9,88 @@ class NotificationManager {
         this.nearbyProjects = [];
         this.notifiedProjects = new Set();
         this.swRegistration = null;
-        
+
         console.log('🔔 NOTIFICATIONS: Inicializando sistema de notificações');
         console.log('🔔 NOTIFICATIONS: Suporte:', this.isSupported ? 'SIM' : 'NÃO');
         console.log('🔔 NOTIFICATIONS: Permissão atual:', this.permission);
-        
+
         this.init();
     }
 
     async init() {
+        console.log('🔔 NOTIFICATIONS: Inicializando sistema de notificações');
+        console.log('🔔 NOTIFICATIONS: Suporte:', this.isSupported ? 'SIM' : 'NÃO');
+        console.log('🔔 NOTIFICATIONS: Permissão atual:', Notification.permission);
+
         if (!this.isSupported) {
-            console.warn('⚠️ NOTIFICATIONS: Notificações não suportadas neste navegador');
+            console.warn('⚠️ NOTIFICATIONS: Navegador não suporta notificações');
             return;
         }
 
-        try {
-            // Registrar service worker se necessário
-            await this.ensureServiceWorker();
-            
-            // Verificar se há uma subscription ativa
-            await this.checkExistingSubscription();
-            
-            // Se já tem permissão, iniciar funcionalidades
-            if (this.permission === 'granted') {
-                console.log('✅ NOTIFICATIONS: Permissão já concedida, iniciando recursos');
-                this.startLocationMonitoring();
-                this.startPeriodicCheck();
-            } else {
-                console.log('ℹ️ NOTIFICATIONS: Aguardando permissão do usuário');
-            }
-        } catch (error) {
-            console.error('❌ NOTIFICATIONS: Erro na inicialização:', error);
+        this.permission = Notification.permission;
+
+        // Register service worker for push notifications
+        await this.registerServiceWorker();
+
+        // AUTO-DETECTAR E FORÇAR PERMISSÕES SE NECESSÁRIO
+        await this.autoCheckPermissions();
+
+        // Make the manager globally available
+        window.notificationManager = this;
+        console.log('✅ NOTIFICATIONS: Gerenciador disponível globalmente');
+    }
+
+    async autoCheckPermissions() {
+        console.log('🔍 NOTIFICATIONS: Auto-verificando permissões...');
+
+        // Verificar se já temos as duas permissões
+        const notificationStatus = Notification.permission;
+        const hasLocationAccess = await this.checkLocationAccess();
+
+        console.log('📊 AUTO-CHECK: Notificação:', notificationStatus, '| Localização:', hasLocationAccess);
+
+        // Se não temos localização, mostrar aviso proativo
+        if (!hasLocationAccess) {
+            console.log('⚠️ AUTO-CHECK: Localização não disponível - usuário precisa ativar');
+            // Não forçar agora, apenas logar
+        }
+
+        // Se não temos notificação, mostrar aviso proativo  
+        if (notificationStatus === 'default') {
+            console.log('⚠️ AUTO-CHECK: Notificação em default - usuário precisa ativar');
+            // Não forçar agora, apenas logar
         }
     }
+
+    async checkLocationAccess() {
+        if (!navigator.geolocation) {
+            return false;
+        }
+
+        try {
+            // Teste rápido e silencioso se já temos acesso
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    resolve,
+                    reject,
+                    { enableHighAccuracy: false, timeout: 1000, maximumAge: 60000 }
+                );
+            });
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
 
     async ensureServiceWorker() {
         try {
             console.log('🔧 NOTIFICATIONS: Verificando service worker...');
-            
+
             if ('serviceWorker' in navigator) {
                 // Tentar obter registration existente
                 this.swRegistration = await navigator.serviceWorker.getRegistration();
-                
+
                 if (!this.swRegistration) {
                     console.log('📦 NOTIFICATIONS: Registrando service worker...');
                     this.swRegistration = await navigator.serviceWorker.register('/static/js/sw.js');
@@ -58,7 +98,7 @@ class NotificationManager {
                 } else {
                     console.log('✅ NOTIFICATIONS: Service worker já registrado');
                 }
-                
+
                 // Aguardar estar pronto
                 await navigator.serviceWorker.ready;
                 console.log('✅ NOTIFICATIONS: Service worker pronto');
@@ -71,12 +111,12 @@ class NotificationManager {
 
     async checkPermissionStatus() {
         console.log('🔍 NOTIFICATIONS: Verificando status da permissão...');
-        
+
         const status = Notification.permission;
         this.permission = status;
-        
+
         console.log(`📊 NOTIFICATIONS: Status = "${status}"`);
-        
+
         return {
             granted: status === 'granted',
             denied: status === 'denied',
@@ -88,7 +128,7 @@ class NotificationManager {
 
     async requestLocationPermission() {
         console.log('📍 NOTIFICATIONS: Solicitando permissão de localização...');
-        
+
         if (!navigator.geolocation) {
             console.warn('⚠️ NOTIFICATIONS: Geolocalização não suportada');
             return false;
@@ -103,26 +143,52 @@ class NotificationManager {
                     { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
                 );
             });
-            
+
             console.log('✅ NOTIFICATIONS: Permissão de localização concedida');
             return true;
         } catch (error) {
             console.warn('🚫 NOTIFICATIONS: Permissão de localização negada:', error.message);
-            
+
             this.showUserMessage(
                 'Localização Necessária',
                 'Para receber alertas de obras próximas, é necessário permitir o acesso à sua localização.',
                 'warning',
                 8000
             );
-            
+
             return false;
         }
     }
 
+    async forceLocationPermission() {
+        console.log('📍 NOTIFICATIONS: Forçando prompt de permissão de localização...');
+
+        if (!navigator.geolocation) {
+            console.warn('⚠️ NOTIFICATIONS: Geolocalização não suportada');
+            return false;
+        }
+
+        try {
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    resolve,
+                    reject,
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 } // Tentar obter com alta precisão para garantir o prompt
+                );
+            });
+
+            console.log('✅ NOTIFICATIONS: Prompt de localização ativado e concedido');
+            return true;
+        } catch (error) {
+            console.warn('🚫 NOTIFICATIONS: Prompt de localização negado ou falhou:', error.message);
+            return false;
+        }
+    }
+
+
     async requestPermission() {
         console.log('🔔 NOTIFICATIONS: Solicitando permissões...');
-        
+
         if (!this.isSupported) {
             const error = 'Notificações não suportadas neste navegador';
             console.error('❌ NOTIFICATIONS:', error);
@@ -132,24 +198,32 @@ class NotificationManager {
 
         // SEMPRE pedir localização PRIMEIRO, independente do status de notificação
         try {
-            // 1. PRIMEIRO: Solicitar permissão de LOCALIZAÇÃO
-            console.log('📍 NOTIFICATIONS: Passo 1/2 - Solicitando permissão de localização...');
-            const hasLocation = await this.requestLocationPermission();
-            
+            // 1. PRIMEIRO: Solicitar permissão de LOCALIZAÇÃO IMEDIATAMENTE
+            console.log('📍 NOTIFICATIONS: Passo 1/2 - Solicitando permissão de localização AGORA...');
+
+            // Forçar prompt de localização IMEDIATAMENTE
+            const hasLocation = await this.forceLocationPermission();
+
             if (!hasLocation) {
                 this.showUserMessage(
-                    'Permissão Negada',
-                    'A permissão de localização é necessária para receber alertas de obras próximas.',
+                    'Permissão de Localização Necessária',
+                    'Para receber alertas de obras próximas, é necessário permitir o acesso à sua localização.',
                     'warning',
-                    6000
+                    8000
                 );
                 // Não continua se localização for negada
                 return false;
             }
-            
+
             console.log('✅ NOTIFICATIONS: Localização permitida, verificando notificações...');
         } catch (error) {
             console.error('❌ NOTIFICATIONS: Erro ao solicitar localização:', error);
+            this.showUserMessage(
+                'Erro de Localização',
+                'Não foi possível obter permissão de localização. Verifique as configurações do seu navegador.',
+                'error',
+                6000
+            );
             return false;
         }
 
@@ -178,9 +252,9 @@ class NotificationManager {
                 console.log('🔔 NOTIFICATIONS: Passo 2/2 - Solicitando permissão de notificação...');
                 const permission = await Notification.requestPermission();
                 this.permission = permission;
-                
+
                 console.log('📊 NOTIFICATIONS: Resposta do usuário:', permission);
-                
+
                 if (permission === 'granted') {
                     console.log('✅ NOTIFICATIONS: AMBAS permissões concedidas!');
                     await this.setupNotifications();
@@ -194,42 +268,43 @@ class NotificationManager {
                     return false;
                 }
             } catch (error) {
-                console.error('❌ NOTIFICATIONS: Erro ao solicitar permissão:', error);
+                console.error('❌ NOTIFICATIONS: Erro ao solicitar notificação:', error);
+                this.showUserMessage('Erro', 'Erro ao solicitar permissão de notificação.', 'error');
                 throw error;
             }
         }
-        
+
         return false;
     }
 
     async setupNotifications() {
         try {
             console.log('⚙️ NOTIFICATIONS: Configurando notificações...');
-            
+
             // 1. Garantir service worker
             await this.ensureServiceWorker();
             console.log('✅ NOTIFICATIONS: Service worker OK');
-            
+
             // 2. Fazer subscription
             await this.subscribeToPush();
             console.log('✅ NOTIFICATIONS: Subscription criada');
-            
+
             // 3. Mostrar notificação de boas-vindas
             this.showWelcomeNotification();
             console.log('✅ NOTIFICATIONS: Boas-vindas exibida');
-            
+
             // 4. Iniciar monitoramento
             this.startLocationMonitoring();
             this.startPeriodicCheck();
             console.log('✅ NOTIFICATIONS: Monitoramento iniciado');
-            
+
             // 5. Mensagem de sucesso ao usuário
             this.showUserMessage(
                 'Notificações Ativadas!',
                 'Você receberá alertas sobre obras próximas e novidades do sistema.',
                 'success'
             );
-            
+
         } catch (error) {
             console.error('❌ NOTIFICATIONS: Erro ao configurar:', error);
             this.showUserMessage(
@@ -244,34 +319,34 @@ class NotificationManager {
     async subscribeToPush() {
         try {
             console.log('📡 NOTIFICATIONS: Iniciando subscription push...');
-            
+
             if (!this.swRegistration) {
                 await this.ensureServiceWorker();
             }
-            
+
             // Verificar se já existe uma subscription
             let subscription = await this.swRegistration.pushManager.getSubscription();
-            
+
             if (subscription) {
                 console.log('✅ NOTIFICATIONS: Subscription existente encontrada');
                 this.subscriptionKey = subscription;
             } else {
                 console.log('📡 NOTIFICATIONS: Criando nova subscription...');
-                
+
                 // Criar nova subscription
                 subscription = await this.swRegistration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: this.urlBase64ToUint8Array(this.getVapidPublicKey())
                 });
-                
+
                 console.log('✅ NOTIFICATIONS: Nova subscription criada');
                 this.subscriptionKey = subscription;
             }
-            
+
             // Obter localização atual (obrigatória para notificações de proximidade)
             console.log('📍 NOTIFICATIONS: Obtendo localização para registro...');
             let locationData = null;
-            
+
             try {
                 const position = await new Promise((resolve, reject) => {
                     navigator.geolocation.getCurrentPosition(
@@ -280,13 +355,13 @@ class NotificationManager {
                         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                     );
                 });
-                
+
                 locationData = {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                     accuracy: position.coords.accuracy
                 };
-                
+
                 console.log('✅ NOTIFICATIONS: Localização obtida para registro:', locationData);
             } catch (locationError) {
                 console.error('❌ NOTIFICATIONS: Erro ao obter localização:', locationError);
@@ -298,7 +373,7 @@ class NotificationManager {
                 );
                 throw new Error('Localização é obrigatória para ativar notificações');
             }
-            
+
             // Enviar subscription para o servidor COM localização
             console.log('📤 NOTIFICATIONS: Enviando subscription ao servidor...');
             const response = await fetch('/api/notifications/subscribe', {
@@ -314,7 +389,7 @@ class NotificationManager {
                     location: locationData
                 })
             });
-            
+
             if (response.ok) {
                 console.log('✅ NOTIFICATIONS: Subscription registrada no servidor');
             } else {
@@ -322,7 +397,7 @@ class NotificationManager {
                 console.warn('⚠️ NOTIFICATIONS: Falha ao registrar no servidor:', response.status, errorData);
                 throw new Error(errorData.error || 'Falha ao registrar notificações');
             }
-            
+
         } catch (error) {
             console.error('❌ NOTIFICATIONS: Erro ao criar push subscription:', error);
             console.error('❌ NOTIFICATIONS: Detalhes do erro:', error.message, error.stack);
@@ -333,13 +408,13 @@ class NotificationManager {
     async checkExistingSubscription() {
         try {
             console.log('🔍 NOTIFICATIONS: Verificando subscription existente...');
-            
+
             if (!this.swRegistration) {
                 await this.ensureServiceWorker();
             }
-            
+
             const subscription = await this.swRegistration.pushManager.getSubscription();
-            
+
             if (subscription) {
                 this.subscriptionKey = subscription;
                 console.log('✅ NOTIFICATIONS: Subscription ativa encontrada');
@@ -377,7 +452,7 @@ class NotificationManager {
                 source: position.source || 'gps'
             });
             this.checkNearbyProjects();
-            
+
             // Monitorar mudanças de localização com sistema avançado
             this.watchId = window.geoLocation.watchLocation(
                 (newPosition, error) => {
@@ -385,7 +460,7 @@ class NotificationManager {
                         console.warn('⚠️ NOTIFICATIONS: Erro no monitoramento:', error.message);
                         return;
                     }
-                    
+
                     if (newPosition) {
                         this.currentPosition = newPosition;
                         console.log('📍 NOTIFICATIONS: Localização atualizada');
@@ -418,9 +493,9 @@ class NotificationManager {
         try {
             const lat = this.currentPosition.coords.latitude;
             const lon = this.currentPosition.coords.longitude;
-            
+
             console.log(`🔍 NOTIFICATIONS: Buscando obras próximas (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
-            
+
             const response = await fetch(`/api/nearby-projects?lat=${lat}&lon=${lon}&radius=1`, {
                 method: 'GET',
                 headers: {
@@ -431,9 +506,9 @@ class NotificationManager {
             if (response.ok) {
                 const data = await response.json();
                 this.nearbyProjects = data.projects || [];
-                
+
                 console.log(`📊 NOTIFICATIONS: ${this.nearbyProjects.length} obra(s) próxima(s)`);
-                
+
                 this.nearbyProjects.forEach(project => {
                     if (!this.notifiedProjects.has(project.id) && project.distance < 500) {
                         console.log(`🔔 NOTIFICATIONS: Notificando obra próxima: ${project.nome}`);
@@ -449,7 +524,7 @@ class NotificationManager {
 
     startPeriodicCheck() {
         console.log('⏰ NOTIFICATIONS: Iniciando verificação periódica de atualizações');
-        
+
         // Verificar a cada 30 minutos
         setInterval(() => {
             console.log('⏰ NOTIFICATIONS: Executando verificação periódica...');
@@ -463,12 +538,12 @@ class NotificationManager {
     async checkForUpdates() {
         try {
             console.log('🔍 NOTIFICATIONS: Verificando atualizações...');
-            
+
             const response = await fetch('/api/notifications/check-updates');
-            
+
             if (response.ok) {
                 const data = await response.json();
-                
+
                 if (data.has_updates) {
                     console.log(`📬 NOTIFICATIONS: ${data.updates.length} atualização(ões) encontrada(s)`);
                     data.updates.forEach(update => {
@@ -486,7 +561,7 @@ class NotificationManager {
     showWelcomeNotification() {
         if (this.permission === 'granted') {
             console.log('🎉 NOTIFICATIONS: Exibindo boas-vindas');
-            
+
             new Notification('ELP Relatórios', {
                 body: 'Notificações ativadas! Você será avisado sobre obras próximas e novidades.',
                 icon: '/static/icons/icon-192x192.png',
@@ -499,7 +574,7 @@ class NotificationManager {
     showProximityNotification(project) {
         if (this.permission === 'granted') {
             console.log(`📍 NOTIFICATIONS: Exibindo alerta de proximidade: ${project.nome}`);
-            
+
             new Notification('Obra Próxima Detectada', {
                 body: `Você está próximo da obra: ${project.nome}\nDistância: ${Math.round(project.distance)}m`,
                 icon: '/static/icons/icon-192x192.png',
@@ -518,7 +593,7 @@ class NotificationManager {
     showUpdateNotification(update) {
         if (this.permission === 'granted') {
             console.log(`📢 NOTIFICATIONS: Exibindo atualização: ${update.title}`);
-            
+
             new Notification(update.title || 'Novidade no App', {
                 body: update.message,
                 icon: '/static/icons/icon-192x192.png',
@@ -535,7 +610,7 @@ class NotificationManager {
 
     showDeniedInstructions() {
         const instructions = this.getBrowserInstructions();
-        
+
         this.showUserMessage(
             'Notificações Bloqueadas',
             `<p>As notificações foram bloqueadas anteriormente. Para ativá-las:</p>${instructions}`,
@@ -546,7 +621,7 @@ class NotificationManager {
 
     getBrowserInstructions() {
         const userAgent = navigator.userAgent.toLowerCase();
-        
+
         if (userAgent.includes('chrome')) {
             return `
                 <ol class="text-start">
@@ -646,11 +721,11 @@ class NotificationManager {
     async unsubscribe() {
         try {
             console.log('🔕 NOTIFICATIONS: Desativando notificações...');
-            
+
             if (this.subscriptionKey) {
                 await this.subscriptionKey.unsubscribe();
                 console.log('✅ NOTIFICATIONS: Subscription removida');
-                
+
                 // Informar o servidor
                 await fetch('/api/notifications/unsubscribe', {
                     method: 'POST',
@@ -659,22 +734,22 @@ class NotificationManager {
                         'X-CSRFToken': this.getCSRFToken()
                     }
                 });
-                
+
                 this.subscriptionKey = null;
             }
-            
+
             if (this.watchId && window.geoLocation) {
                 window.geoLocation.stopWatching(this.watchId);
                 this.watchId = null;
                 console.log('✅ NOTIFICATIONS: Monitoramento de localização parado');
             }
-            
+
             this.showUserMessage(
                 'Notificações Desativadas',
                 'Você não receberá mais alertas de proximidade e novidades.',
                 'info'
             );
-            
+
             console.log('✅ NOTIFICATIONS: Notificações desativadas completamente');
         } catch (error) {
             console.error('❌ NOTIFICATIONS: Erro ao desativar:', error);
@@ -688,7 +763,7 @@ let notificationManager;
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 NOTIFICATIONS: DOM carregado, inicializando...');
     notificationManager = new NotificationManager();
-    
+
     // Expor globalmente
     window.notificationManager = notificationManager;
     console.log('✅ NOTIFICATIONS: Gerenciador disponível globalmente');
@@ -697,7 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Interface para ativar/desativar notificações
 async function toggleNotifications() {
     console.log('🔄 NOTIFICATIONS: Toggle solicitado');
-    
+
     if (notificationManager.permission === 'granted') {
         console.log('🔕 NOTIFICATIONS: Desativando (já concedido)');
         await notificationManager.unsubscribe();
