@@ -2621,9 +2621,9 @@ def api_nearby_projects():
         if not data:
             return jsonify({'error': 'Dados não fornecidos'}), 400
         
-        # Aceitar tanto lat/lng quanto latitude/longitude para compatibilidade
+        # Aceitar todas as variações: lat/lng, lat/lon, latitude/longitude
         lat = data.get('lat') or data.get('latitude')
-        lng = data.get('lng') or data.get('longitude')
+        lng = data.get('lng') or data.get('lon') or data.get('longitude')
         
         if not lat or not lng:
             current_app.logger.error(f'❌ Coordenadas inválidas recebidas: {data}')
