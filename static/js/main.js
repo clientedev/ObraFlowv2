@@ -523,54 +523,53 @@ async function localizarObrasProximas() {
     
     // Verificar se geolocalização está disponível
     if (!navigator.geolocation) {
-        showAlert('Geolocalização não disponível no seu navegador', 'warning');
+        showAlert('Seu dispositivo não suporta geolocalização.', 'warning');
         return;
     }
     
+    const btnLocalizar = document.getElementById('btnLocalizarObras');
+    const originalContent = btnLocalizar ? showLoading(btnLocalizar) : null;
+    
     try {
-        // Mostrar loading
-        const btnLocalizar = document.getElementById('btnLocalizarObras');
-        const originalContent = btnLocalizar ? showLoading(btnLocalizar) : null;
+        // Obter localização do usuário com configurações otimizadas
+        console.log('🔍 Solicitando permissão de localização...');
         
-        // Obter localização do usuário
         const position = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
-                resolve,
-                reject,
+                (pos) => {
+                    console.log('✅ Coordenadas capturadas:', pos.coords.latitude, pos.coords.longitude);
+                    resolve(pos);
+                },
+                (err) => {
+                    console.error('❌ Erro de geolocalização:', err);
+                    reject(err);
+                },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         });
         
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
         
-        console.log(`📍 Localização obtida: ${lat}, ${lng}`);
-        
-        // Obter CSRF token
-        const csrfToken = document.querySelector("meta[name='csrf-token']")?.getAttribute("content");
-        
-        if (!csrfToken) {
-            console.error('❌ CSRF token não encontrado');
-            showAlert('Erro de segurança. Recarregue a página.', 'danger');
-            return;
-        }
+        console.log(`📍 Coordenadas capturadas: lat=${latitude}, lng=${longitude}`);
         
         // Fazer requisição para API
-        const response = await fetch("/api/projects/nearby", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": csrfToken
+        const response = await fetch('/api/projects/nearby', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ lat: lat, lng: lng, radius: 10 })
+            body: JSON.stringify({ latitude, longitude })
         });
         
         if (!response.ok) {
-            throw new Error(`Erro na API: ${response.status}`);
+            const errorMsg = await response.text();
+            console.error('❌ Erro no nearby API:', errorMsg);
+            throw new Error(`Erro ao buscar obras próximas: ${errorMsg}`);
         }
         
         const data = await response.json();
-        console.log("✅ Obras próximas:", data);
+        console.log("✅ Obras próximas recebidas:", data);
         
         // Renderizar resultados
         renderizarObrasProximas(data.nearby || []);
@@ -583,19 +582,22 @@ async function localizarObrasProximas() {
     } catch (error) {
         console.error('❌ Erro ao buscar obras próximas:', error);
         
+        // Tratamento específico de erros de geolocalização
         if (error.code === 1) {
-            showAlert('Permissão de localização negada. Por favor, habilite nas configurações do navegador.', 'warning');
+            showAlert('Permissão de localização negada. Habilite para usar esta função.', 'warning');
         } else if (error.code === 2) {
-            showAlert('Não foi possível obter sua localização. Verifique o GPS.', 'warning');
+            showAlert('Não foi possível capturar sua localização. Tente novamente.', 'warning');
         } else if (error.code === 3) {
-            showAlert('Tempo esgotado ao tentar obter localização.', 'warning');
+            showAlert('Tempo esgotado ao tentar obter localização. Tente novamente.', 'warning');
+        } else if (error.message && error.message.includes('API')) {
+            showAlert(error.message, 'danger');
         } else {
-            showAlert('Erro ao buscar obras próximas. Tente novamente.', 'danger');
+            showAlert('Erro de comunicação com o servidor.', 'danger');
         }
         
-        const btnLocalizar = document.getElementById('btnLocalizarObras');
-        if (btnLocalizar) {
-            hideLoading(btnLocalizar, '<i class="fas fa-map-marker-alt me-1"></i>Localizar Obras Próximas');
+        // Esconder loading em caso de erro
+        if (btnLocalizar && originalContent) {
+            hideLoading(btnLocalizar, originalContent);
         }
     }
 }
