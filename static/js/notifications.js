@@ -268,7 +268,38 @@ class NotificationManager {
                 this.subscriptionKey = subscription;
             }
             
-            // Enviar subscription para o servidor
+            // Obter localização atual (obrigatória para notificações de proximidade)
+            console.log('📍 NOTIFICATIONS: Obtendo localização para registro...');
+            let locationData = null;
+            
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(
+                        resolve,
+                        reject,
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                    );
+                });
+                
+                locationData = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                };
+                
+                console.log('✅ NOTIFICATIONS: Localização obtida para registro:', locationData);
+            } catch (locationError) {
+                console.error('❌ NOTIFICATIONS: Erro ao obter localização:', locationError);
+                this.showUserMessage(
+                    'Localização Necessária',
+                    'É obrigatório permitir acesso à localização para ativar notificações de proximidade.',
+                    'warning',
+                    8000
+                );
+                throw new Error('Localização é obrigatória para ativar notificações');
+            }
+            
+            // Enviar subscription para o servidor COM localização
             console.log('📤 NOTIFICATIONS: Enviando subscription ao servidor...');
             const response = await fetch('/api/notifications/subscribe', {
                 method: 'POST',
@@ -279,14 +310,17 @@ class NotificationManager {
                 body: JSON.stringify({
                     subscription: subscription.toJSON(),
                     user_agent: navigator.userAgent,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    location: locationData
                 })
             });
             
             if (response.ok) {
                 console.log('✅ NOTIFICATIONS: Subscription registrada no servidor');
             } else {
-                console.warn('⚠️ NOTIFICATIONS: Falha ao registrar no servidor:', response.status);
+                const errorData = await response.json();
+                console.warn('⚠️ NOTIFICATIONS: Falha ao registrar no servidor:', response.status, errorData);
+                throw new Error(errorData.error || 'Falha ao registrar notificações');
             }
             
         } catch (error) {
