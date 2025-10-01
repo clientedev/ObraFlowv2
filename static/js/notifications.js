@@ -130,53 +130,50 @@ class NotificationManager {
             throw new Error(error);
         }
 
-        const status = await this.checkPermissionStatus();
-        console.log('📊 NOTIFICATIONS: Status antes de pedir:', status);
-
-        // Se já concedido, verificar localização e configurar
-        if (status.granted) {
-            console.log('✅ NOTIFICATIONS: Permissão de notificação já concedida');
-            
-            // Ainda precisa verificar localização
+        // SEMPRE pedir localização PRIMEIRO, independente do status de notificação
+        try {
+            // 1. PRIMEIRO: Solicitar permissão de LOCALIZAÇÃO
+            console.log('📍 NOTIFICATIONS: Passo 1/2 - Solicitando permissão de localização...');
             const hasLocation = await this.requestLocationPermission();
+            
             if (!hasLocation) {
                 this.showUserMessage(
-                    'Atenção',
-                    'Notificações ativas, mas localização não permitida. Você não receberá alertas de obras próximas.',
+                    'Permissão Negada',
+                    'A permissão de localização é necessária para receber alertas de obras próximas.',
                     'warning',
                     6000
                 );
+                // Não continua se localização for negada
+                return false;
             }
             
+            console.log('✅ NOTIFICATIONS: Localização permitida, verificando notificações...');
+        } catch (error) {
+            console.error('❌ NOTIFICATIONS: Erro ao solicitar localização:', error);
+            return false;
+        }
+
+        // Agora verificar status de notificação
+        const status = await this.checkPermissionStatus();
+        console.log('📊 NOTIFICATIONS: Status de notificação:', status);
+
+        // Se já concedido, apenas configurar
+        if (status.granted) {
+            console.log('✅ NOTIFICATIONS: Permissão de notificação já concedida');
             await this.setupNotifications();
             return true;
         }
 
         // Se negado, orientar usuário
         if (status.denied) {
-            console.warn('🚫 NOTIFICATIONS: Permissão negada anteriormente');
+            console.warn('🚫 NOTIFICATIONS: Permissão de notificação negada anteriormente');
             this.showDeniedInstructions();
             return false;
         }
 
-        // Se default, pedir AMBAS as permissões (localização primeiro, depois notificação)
+        // Se default, pedir permissão de NOTIFICAÇÃO
         if (status.canAsk) {
             try {
-                // 1. PRIMEIRO: Solicitar permissão de LOCALIZAÇÃO
-                console.log('📍 NOTIFICATIONS: Passo 1/2 - Solicitando permissão de localização...');
-                const hasLocation = await this.requestLocationPermission();
-                
-                if (!hasLocation) {
-                    this.showUserMessage(
-                        'Permissão Negada',
-                        'A permissão de localização é necessária para receber alertas de obras próximas.',
-                        'warning',
-                        6000
-                    );
-                    // Não continua se localização for negada
-                    return false;
-                }
-
                 // 2. SEGUNDO: Solicitar permissão de NOTIFICAÇÃO
                 console.log('🔔 NOTIFICATIONS: Passo 2/2 - Solicitando permissão de notificação...');
                 const permission = await Notification.requestPermission();

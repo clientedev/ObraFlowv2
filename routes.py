@@ -2592,6 +2592,7 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 
 @app.route('/api/projects/nearby', methods=['POST'])
 @login_required
+@csrf.exempt
 def api_nearby_projects():
     """API para retornar obras próximas dentro de um raio específico"""
     try:
