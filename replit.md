@@ -16,6 +16,24 @@ Mobile-first design: Date field should be the first input field in report forms.
 
 # Recent Improvements (October 2025)
 
+## Dual Permission System for Location & Notifications (October 1, 2025)
+- **Enhanced Permission Flow**: Sistema agora solicita AMBAS permissões (localização E notificação) sequencialmente
+  - Primeiro solicita permissão de localização via GPS
+  - Depois solicita permissão de notificações push
+  - Só ativa o sistema completo se ambas forem concedidas
+  - Mensagens claras ao usuário explicando cada permissão
+- **Nearby Projects API**: Novo endpoint `/api/projects/nearby` com:
+  - Cálculo de distância usando fórmula Haversine
+  - Filtro por raio configurável (padrão 10km)
+  - Suporte completo a CSRF token para segurança
+  - Retorna obras ordenadas por proximidade
+- **Frontend Integration**: Função `localizarObrasProximas()` em `main.js`
+  - Obtém localização do usuário com alta precisão
+  - Envia coordenadas para API com CSRF token
+  - Renderiza resultados em lista visual com distâncias
+  - Tratamento robusto de erros de geolocalização
+- **CSRF Token Support**: Meta tag `csrf-token` adicionada em `base.html` para requisições AJAX seguras
+
 ## Geolocation and Railway Integration Fixes (October 1, 2025)
 - **Flask-CORS Integration**: Added Flask-CORS 5.0.0 to enable proper API calls from frontend
   - Configured CORS with credentials support for `/api/*` and `/save_location` routes
