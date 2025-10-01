@@ -1,0 +1,80 @@
+Correção de Geolocalização e Integração Railway
+
+Implemente as seguintes correções para o sistema de relatórios em Flask + Railway:
+
+Correção do Erro "User denied Geolocation"
+
+Atualmente, mesmo com permissões concedidas no mobile, o navegador retorna erro de geolocalização.
+
+Ajustar o código para usar corretamente a API de geolocalização do navegador:
+
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            console.log("Localização capturada:", latitude, longitude);
+            // enviar para backend
+            fetch("/save_location", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ lat: latitude, lng: longitude })
+            });
+        },
+        (error) => {
+            console.error("Erro ao capturar localização:", error);
+            alert("Não foi possível capturar sua localização. Verifique se a permissão está ativa.");
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+} else {
+    alert("Geolocalização não suportada neste dispositivo.");
+}
+
+
+Importante: incluir enableHighAccuracy: true e timeout para garantir captura em Android/iOS.
+
+Tratar erros de PERMISSION_DENIED, POSITION_UNAVAILABLE e TIMEOUT.
+
+Correção CORS e HTTPS no Railway
+
+Garantir que chamadas à geolocalização sejam feitas em conexões seguras (HTTPS).
+
+Adicionar no backend Flask:
+
+from flask_cors import CORS
+CORS(app, supports_credentials=True)
+
+
+Forçar HTTPS em produção no Railway.
+
+Integração com Railway
+
+No main.py, criar rota para salvar localização:
+
+@app.route('/save_location', methods=['POST'])
+def save_location():
+    data = request.get_json()
+    lat, lng = data.get("lat"), data.get("lng")
+    if not lat or not lng:
+        return {"status": "error", "message": "Localização inválida"}, 400
+    # salvar em banco ou log
+    print(f"📍 Localização recebida: {lat}, {lng}")
+    return {"status": "success", "lat": lat, "lng": lng}, 200
+
+
+Validação no Railway
+
+Usar navigator.permissions.query({ name: 'geolocation' }) para verificar se a permissão está realmente concedida e, caso contrário, solicitar novamente ao usuário.
+
+Teste no Mobile
+
+Testar em Android Chrome e iOS Safari, garantindo que a permissão solicitada apareça apenas 1 vez e, após concedida, não retorne mais User denied Geolocation.
+
+✅ Objetivo final:
+
+Usuário clica em Localizar → Captura localização corretamente em mobile.
+
+Dados são enviados para /save_location e vinculados ao relatório/obra.
+
+Nenhum erro "User denied Geolocation" deve aparecer se a permissão foi concedida.
