@@ -1,0 +1,71 @@
+(garante que o Chrome mobile mostre permissão de localização ANTES da notificação):
+
+Substitua dentro da classe NotificationManager o trecho da função requestPermission():
+
+// PASSO 1: LOCALIZAÇÃO (OBRIGATÓRIA) - FORÇAR SEMPRE EM MOBILE
+try {
+    console.log('📍 NOTIFICATIONS: 🔥 PASSO 1/2 - FORÇANDO permissão de localização...');
+
+    // Mostrar mensagem explicativa ANTES de solicitar
+    this.showUserMessage(
+        'Primeira Permissão: Localização',
+        'Primeiro vamos solicitar acesso à sua localização para alertas de proximidade.',
+        'info',
+        3000
+    );
+
+    // Aguardar um pouco para o usuário ler
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // 🚀 FIX: chamada direta única que SEMPRE dispara prompt no Chrome mobile
+    const hasLocation = await new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+            () => {
+                console.log("✅ Permissão de localização concedida");
+                resolve(true);
+            },
+            (error) => {
+                console.warn("🚫 Permissão de localização negada:", error.message);
+                resolve(false);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0  // 🔥 IMPORTANTE: SEM CACHE
+            }
+        );
+    });
+
+    if (!hasLocation) {
+        this.showUserMessage(
+            'Localização Obrigatória',
+            'É obrigatório permitir acesso à localização para ativar notificações de proximidade.',
+            'danger',
+            8000
+        );
+        return false;
+    }
+
+    console.log('✅ LOCALIZAÇÃO CONCEDIDA! Agora pedindo permissão de notificação...');
+} catch (error) {
+    console.error('❌ ERRO ao solicitar localização:', error);
+    return false;
+}
+
+🔑 Ajustes importantes:
+
+maximumAge: 0 → força o navegador a solicitar sempre a localização nova, evitando cache.
+
+Somente UMA chamada ao getCurrentPosition → garante o prompt no Chrome mobile.
+
+Prompt de localização vem antes do de notificação → agora o fluxo fica:
+
+Primeiro popup → localização.
+
+Segundo popup → notificações.
+
+👉 Assim, no Chrome Mobile, ao clicar "Ativar notificações", o usuário verá dois popups sequenciais:
+
+"Permitir localização para elpconsultoria.pro"
+
+"elpconsultoria.pro quer enviar notificações"

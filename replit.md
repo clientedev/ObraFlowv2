@@ -16,7 +16,17 @@ Mobile-first design: Date field should be the first input field in report forms.
 
 # Recent Improvements (October 2025)
 
-## Mandatory Location Validation for Notifications (October 1, 2025 - Latest)
+## Chrome Mobile Permission Fix (October 1, 2025 - Latest)
+- **Simplified Location Request**: Updated notification permission flow to use single direct `getCurrentPosition()` call
+  - ✅ Ensures Chrome Mobile shows location permission prompt BEFORE notification prompt
+  - ✅ Uses `maximumAge: 0` to force fresh location request (no cache)
+  - ✅ Removed complex multi-strategy fallback that was causing issues
+  - ✅ Clear sequential flow: Location prompt → Notification prompt
+- **User Experience**: Two clear sequential popups on Chrome Mobile:
+  1. First popup: "Allow location for elpconsultoria.pro"
+  2. Second popup: "elpconsultoria.pro wants to send notifications"
+
+## Mandatory Location Validation for Notifications (October 1, 2025)
 - **Backend Location Validation**: Updated `/api/notifications/subscribe` endpoint to require and validate location coordinates
   - ✅ Validates both notification subscription AND location coordinates are provided
   - ✅ Validates latitude range (-90 to 90) and longitude range (-180 to 180)

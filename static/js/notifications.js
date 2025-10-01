@@ -243,43 +243,38 @@ class NotificationManager {
             // Aguardar um pouco para o usuário ler
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // MOBILE: FORÇAR PROMPT DE LOCALIZAÇÃO DE FORMA MAIS AGRESSIVA
-            const hasLocation = isMobile ? 
-                await this.forceLocationPermissionMobile() : 
-                await this.requestLocationPermissionMobile();
+            // 🚀 FIX: chamada direta única que SEMPRE dispara prompt no Chrome mobile
+            const hasLocation = await new Promise((resolve) => {
+                navigator.geolocation.getCurrentPosition(
+                    () => {
+                        console.log("✅ Permissão de localização concedida");
+                        resolve(true);
+                    },
+                    (error) => {
+                        console.warn("🚫 Permissão de localização negada:", error.message);
+                        resolve(false);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0  // 🔥 IMPORTANTE: SEM CACHE
+                    }
+                );
+            });
 
             if (!hasLocation) {
-                console.error('❌ NOTIFICATIONS: Localização NEGADA - não é possível continuar');
-
-                // Mostrar instruções específicas para mobile
-                if (isMobile) {
-                    this.showMobileLocationDeniedInstructions();
-                } else {
-                    this.showUserMessage(
-                        'Localização Obrigatória',
-                        'A permissão de localização é obrigatória para ativar notificações de proximidade.',
-                        'danger',
-                        10000
-                    );
-                }
+                this.showUserMessage(
+                    'Localização Obrigatória',
+                    'É obrigatório permitir acesso à localização para ativar notificações de proximidade.',
+                    'danger',
+                    8000
+                );
                 return false;
             }
 
-            console.log('✅ NOTIFICATIONS: ✅ LOCALIZAÇÃO CONCEDIDA! Preparando para notificações...');
-
-            // Delay maior para o mobile processar a primeira permissão
-            if (isMobile) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-
+            console.log('✅ LOCALIZAÇÃO CONCEDIDA! Agora pedindo permissão de notificação...');
         } catch (error) {
-            console.error('❌ NOTIFICATIONS: ERRO CRÍTICO ao solicitar localização:', error);
-            this.showUserMessage(
-                'Erro de Localização',
-                'Erro crítico ao solicitar localização. Verifique as configurações do seu navegador e tente novamente.',
-                'danger',
-                8000
-            );
+            console.error('❌ ERRO ao solicitar localização:', error);
             return false;
         }
 
