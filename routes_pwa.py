@@ -106,15 +106,70 @@ def subscribe_notifications():
         data = request.get_json()
         subscription = data.get('subscription')
         user_agent = data.get('user_agent', '')
+        location = data.get('location')
+        
+        # Validar que a subscription foi fornecida
+        if not subscription:
+            return jsonify({
+                'success': False,
+                'error': 'Subscription de notificação é obrigatória'
+            }), 400
+        
+        # Validar que a localização foi fornecida (obrigatória para notificações de proximidade)
+        if not location:
+            return jsonify({
+                'success': False,
+                'error': 'Localização é obrigatória para ativar notificações de proximidade'
+            }), 400
+        
+        # Validar coordenadas de localização
+        latitude = location.get('latitude')
+        longitude = location.get('longitude')
+        
+        if latitude is None or longitude is None:
+            return jsonify({
+                'success': False,
+                'error': 'Coordenadas de localização inválidas'
+            }), 400
+        
+        # Validar range de coordenadas
+        try:
+            lat = float(latitude)
+            lon = float(longitude)
+            
+            if not (-90 <= lat <= 90):
+                return jsonify({
+                    'success': False,
+                    'error': 'Latitude deve estar entre -90 e 90'
+                }), 400
+            
+            if not (-180 <= lon <= 180):
+                return jsonify({
+                    'success': False,
+                    'error': 'Longitude deve estar entre -180 e 180'
+                }), 400
+        except (ValueError, TypeError):
+            return jsonify({
+                'success': False,
+                'error': 'Coordenadas de localização devem ser números válidos'
+            }), 400
         
         # Salvar subscription no banco (adicionar modelo posteriormente)
         # Por enquanto, apenas confirmar recebimento
+        # TODO: Salvar no banco: subscription, location, user_id, timestamp
+        
+        app.logger.info(f'✅ Notificações ativadas para usuário {current_user.username} '
+                       f'em lat: {lat}, lon: {lon}')
         
         return jsonify({
             'success': True,
-            'message': 'Notificações ativadas com sucesso'
+            'message': 'Notificações ativadas com sucesso',
+            'location_confirmed': True,
+            'latitude': lat,
+            'longitude': lon
         })
     except Exception as e:
+        app.logger.error(f'❌ Erro ao ativar notificações: {str(e)}')
         return jsonify({
             'success': False,
             'error': str(e)
