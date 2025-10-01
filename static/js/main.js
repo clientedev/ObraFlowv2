@@ -666,6 +666,58 @@ function renderizarObrasProximas(obras) {
     `;
 }
 
+// Carregar funcionários e e-mails de um projeto
+async function carregarFuncionariosEmails(projetoId) {
+    if (!projetoId) {
+        console.log('⚠️ Projeto não selecionado');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/projeto/${projetoId}/funcionarios-emails`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Atualizar select de funcionários
+            const funcionariosSelect = document.getElementById('funcionarios_ids');
+            if (funcionariosSelect) {
+                funcionariosSelect.innerHTML = '<option value="">Selecione os funcionários...</option>';
+                
+                data.funcionarios.forEach(func => {
+                    const option = document.createElement('option');
+                    option.value = func.id;
+                    option.textContent = `${func.nome_funcionario}${func.cargo ? ' - ' + func.cargo : ''}`;
+                    funcionariosSelect.appendChild(option);
+                });
+            }
+            
+            // Atualizar select de e-mails
+            const emailsSelect = document.getElementById('emails_ids');
+            if (emailsSelect) {
+                emailsSelect.innerHTML = '<option value="">Selecione os e-mails...</option>';
+                
+                data.emails.forEach(email => {
+                    const option = document.createElement('option');
+                    option.value = email.id;
+                    option.textContent = `${email.nome_contato} (${email.email})`;
+                    emailsSelect.appendChild(option);
+                });
+            }
+            
+            console.log(`✅ Carregados ${data.funcionarios.length} funcionários e ${data.emails.length} e-mails`);
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar funcionários/e-mails:', error);
+        showAlert('Erro ao carregar dados do projeto', 'warning');
+    }
+}
+
 // Export functions for global use
 window.ConstructionApp = {
     showAlert,
@@ -678,5 +730,9 @@ window.ConstructionApp = {
     copyToClipboard,
     getCurrentLocation,
     localizarObrasProximas,
-    renderizarObrasProximas
+    renderizarObrasProximas,
+    carregarFuncionariosEmails
 };
+
+// Tornar função disponível globalmente
+window.carregarFuncionariosEmails = carregarFuncionariosEmails;

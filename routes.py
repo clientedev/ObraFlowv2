@@ -690,21 +690,23 @@ def api_projeto_funcionarios_emails(projeto_id):
         for func in funcionarios:
             funcionarios_data.append({
                 'id': func.id,
-                'nome_funcionario': func.nome_funcionario,
-                'cargo': func.cargo,
-                'empresa': func.empresa,
-                'is_responsavel_principal': func.is_responsavel_principal
+                'nome_funcionario': func.nome_funcionario or '',
+                'cargo': func.cargo or '',
+                'empresa': func.empresa or '',
+                'is_responsavel_principal': func.is_responsavel_principal or False
             })
 
         emails_data = []
         for email in emails:
             emails_data.append({
                 'id': email.id,
-                'email': email.email,
-                'nome_contato': email.nome_contato,
-                'cargo': email.cargo,
-                'is_principal': email.is_principal
+                'email': email.email or '',
+                'nome_contato': email.nome_contato or '',
+                'cargo': email.cargo or '',
+                'is_principal': email.is_principal or False
             })
+
+        current_app.logger.info(f"✅ API funcionários/emails: {len(funcionarios_data)} funcionários, {len(emails_data)} e-mails para projeto {projeto_id}")
 
         return jsonify({
             'success': True,
@@ -716,7 +718,7 @@ def api_projeto_funcionarios_emails(projeto_id):
         # Allow HTTP exceptions (like 404) to propagate correctly
         raise
     except Exception as e:
-        print(f"❌ Erro ao buscar funcionários e e-mails: {e}")
+        current_app.logger.error(f"❌ Erro ao buscar funcionários e e-mails do projeto {projeto_id}: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
