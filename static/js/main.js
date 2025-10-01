@@ -517,6 +517,153 @@ window.addEventListener('offline', function() {
     showAlert('Você está offline!', 'warning');
 });
 
+// Localizar Obras Próximas
+async function localizarObrasProximas() {
+    console.log('🔍 Iniciando busca de obras próximas...');
+    
+    // Verificar se geolocalização está disponível
+    if (!navigator.geolocation) {
+        showAlert('Geolocalização não disponível no seu navegador', 'warning');
+        return;
+    }
+    
+    try {
+        // Mostrar loading
+        const btnLocalizar = document.getElementById('btnLocalizarObras');
+        const originalContent = btnLocalizar ? showLoading(btnLocalizar) : null;
+        
+        // Obter localização do usuário
+        const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+                resolve,
+                reject,
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        });
+        
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        
+        console.log(`📍 Localização obtida: ${lat}, ${lng}`);
+        
+        // Obter CSRF token
+        const csrfToken = document.querySelector("meta[name='csrf-token']")?.getAttribute("content");
+        
+        if (!csrfToken) {
+            console.error('❌ CSRF token não encontrado');
+            showAlert('Erro de segurança. Recarregue a página.', 'danger');
+            return;
+        }
+        
+        // Fazer requisição para API
+        const response = await fetch("/api/projects/nearby", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken
+            },
+            body: JSON.stringify({ lat: lat, lng: lng, radius: 10 })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Erro na API: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("✅ Obras próximas:", data);
+        
+        // Renderizar resultados
+        renderizarObrasProximas(data.nearby || []);
+        
+        // Esconder loading
+        if (btnLocalizar && originalContent) {
+            hideLoading(btnLocalizar, originalContent);
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao buscar obras próximas:', error);
+        
+        if (error.code === 1) {
+            showAlert('Permissão de localização negada. Por favor, habilite nas configurações do navegador.', 'warning');
+        } else if (error.code === 2) {
+            showAlert('Não foi possível obter sua localização. Verifique o GPS.', 'warning');
+        } else if (error.code === 3) {
+            showAlert('Tempo esgotado ao tentar obter localização.', 'warning');
+        } else {
+            showAlert('Erro ao buscar obras próximas. Tente novamente.', 'danger');
+        }
+        
+        const btnLocalizar = document.getElementById('btnLocalizarObras');
+        if (btnLocalizar) {
+            hideLoading(btnLocalizar, '<i class="fas fa-map-marker-alt me-1"></i>Localizar Obras Próximas');
+        }
+    }
+}
+
+// Renderizar obras próximas
+function renderizarObrasProximas(obras) {
+    console.log(`🏗️ Renderizando ${obras.length} obra(s) próxima(s)`);
+    
+    const container = document.getElementById('obrasProximasContainer');
+    
+    if (!container) {
+        console.warn('⚠️ Container de obras próximas não encontrado');
+        
+        // Mostrar em alerta se não houver container
+        if (obras.length === 0) {
+            showAlert('Nenhuma obra encontrada em um raio de 10km', 'info');
+        } else {
+            const listaObras = obras.map(o => 
+                `${o.nome} (${o.distancia}km)`
+            ).join(', ');
+            showAlert(`${obras.length} obra(s) próxima(s): ${listaObras}`, 'success');
+        }
+        return;
+    }
+    
+    // Limpar container
+    container.innerHTML = '';
+    
+    if (obras.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Nenhuma obra encontrada em um raio de 10km
+            </div>
+        `;
+        return;
+    }
+    
+    // Renderizar lista de obras
+    container.innerHTML = `
+        <div class="alert alert-success mb-3">
+            <i class="fas fa-check-circle me-2"></i>
+            ${obras.length} obra(s) encontrada(s) próxima(s)
+        </div>
+        <div class="list-group">
+            ${obras.map(obra => `
+                <a href="/projects/${obra.id}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">
+                                <i class="fas fa-building me-2 text-primary"></i>
+                                ${obra.nome}
+                            </h5>
+                            <p class="mb-1 text-muted">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                ${obra.endereco}
+                            </p>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">
+                            ${obra.distancia} km
+                        </span>
+                    </div>
+                </a>
+            `).join('')}
+        </div>
+    `;
+}
+
 // Export functions for global use
 window.ConstructionApp = {
     showAlert,
@@ -527,5 +674,7 @@ window.ConstructionApp = {
     showLoading,
     hideLoading,
     copyToClipboard,
-    getCurrentLocation
+    getCurrentLocation,
+    localizarObrasProximas,
+    renderizarObrasProximas
 };
