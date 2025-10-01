@@ -1199,6 +1199,71 @@ async function toggleNotifications() {
         return false;
     } else {
         console.log('🔔 NOTIFICATIONS: Ativando (não concedido)');
-        return await notificationManager.requestPermission();
+        
+        // 🔥 FIX MOBILE: CHAMADA SÍNCRONA E DIRETA no clique para garantir prompt no Chrome Mobile
+        // IMPORTANTE: getCurrentPosition() DEVE ser chamado DIRETAMENTE no clique (sem await/setTimeout antes)
+        try {
+            navigator.geolocation.getCurrentPosition(
+                async function(position) {
+                    console.info('✅ GEO OK (user gesture):', position.coords);
+                    
+                    // 2) Só depois pedir permissão de notificação
+                    const notifPermission = await Notification.requestPermission();
+                    console.info('📊 Notification permission:', notifPermission);
+                    
+                    if (notifPermission === 'granted') {
+                        // Ativar notificações com a posição obtida
+                        notificationManager.permission = notifPermission;
+                        await notificationManager.setupNotifications();
+                        notificationManager.currentPosition = position;
+                        
+                        notificationManager.showUserMessage(
+                            'Notificações Ativadas',
+                            'Você receberá alertas quando estiver próximo de obras cadastradas.',
+                            'success'
+                        );
+                    } else {
+                        notificationManager.showUserMessage(
+                            'Permissão Negada',
+                            'Permissão de notificação negada. Alertas de proximidade não serão ativados.',
+                            'warning'
+                        );
+                    }
+                },
+                function(error) {
+                    console.warn('🚫 GEO ERROR:', error);
+                    
+                    if (error && error.code === 1) {
+                        // PERMISSION_DENIED
+                        notificationManager.showUserMessage(
+                            'Localização Necessária',
+                            'É obrigatório permitir acesso à localização para ativar notificações de proximidade. Por favor, habilite nas configurações do navegador.',
+                            'danger',
+                            8000
+                        );
+                    } else {
+                        notificationManager.showUserMessage(
+                            'Erro de Localização',
+                            'Erro ao obter localização: ' + (error.message || error),
+                            'danger'
+                        );
+                    }
+                },
+                { 
+                    enableHighAccuracy: true, 
+                    timeout: 10000, 
+                    maximumAge: 0  // 🔥 IMPORTANTE: 0 = sem cache, força prompt
+                }
+            );
+        } catch (err) {
+            console.error('❌ Erro no click handler geo:', err);
+            notificationManager.showUserMessage(
+                'Erro',
+                'Erro ao solicitar permissões. Tente novamente.',
+                'danger'
+            );
+        }
+        
+        return false;
     }
 }

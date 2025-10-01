@@ -16,15 +16,24 @@ Mobile-first design: Date field should be the first input field in report forms.
 
 # Recent Improvements (October 2025)
 
-## Chrome Mobile Permission Fix (October 1, 2025 - Latest)
-- **Simplified Location Request**: Updated notification permission flow to use single direct `getCurrentPosition()` call
-  - ✅ Ensures Chrome Mobile shows location permission prompt BEFORE notification prompt
-  - ✅ Uses `maximumAge: 0` to force fresh location request (no cache)
-  - ✅ Removed complex multi-strategy fallback that was causing issues
-  - ✅ Clear sequential flow: Location prompt → Notification prompt
-- **User Experience**: Two clear sequential popups on Chrome Mobile:
-  1. First popup: "Allow location for elpconsultoria.pro"
-  2. Second popup: "elpconsultoria.pro wants to send notifications"
+## Chrome Mobile & PWA Permission Fix - User Gesture Context (October 1, 2025 - Latest)
+- **Critical Fix for Mobile**: Rewrote `toggleNotifications()` to call `getCurrentPosition()` **synchronously** within click event
+  - ✅ **No await/setTimeout before getCurrentPosition()** - maintains user gesture context required by Chrome Mobile
+  - ✅ **Direct call in click handler** - browser recognizes it as user-initiated action
+  - ✅ **maximumAge: 0** - forces fresh permission prompt (no cached position)
+  - ✅ **enableHighAccuracy: true** - requests best accuracy available
+  - ✅ Works on: Desktop Chrome, Chrome Mobile, PWA (standalone), and APK/WebView
+- **Sequential Permission Flow**: 
+  1. User clicks "Ativar" button
+  2. `getCurrentPosition()` called **immediately** (synchronous)
+  3. Location permission prompt appears FIRST
+  4. After location granted → `Notification.requestPermission()` called
+  5. Notification permission prompt appears SECOND
+  6. Both granted → System activates with user position
+- **Error Handling**:
+  - Location denied (code 1) → Shows clear message to enable in browser settings
+  - Other errors → Shows specific error message
+  - Notification denied → Shows warning that proximity alerts won't work
 
 ## Mandatory Location Validation for Notifications (October 1, 2025)
 - **Backend Location Validation**: Updated `/api/notifications/subscribe` endpoint to require and validate location coordinates

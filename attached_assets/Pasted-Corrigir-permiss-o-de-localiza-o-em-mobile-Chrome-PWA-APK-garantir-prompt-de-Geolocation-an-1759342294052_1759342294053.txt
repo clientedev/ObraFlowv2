@@ -1,0 +1,206 @@
+Corrigir permissão de localização em mobile (Chrome / PWA / APK) — garantir prompt de Geolocation antes de Notificações
+
+Resumo / objetivo
+
+O botão “Ativar notificações” deve abrir primeiro o prompt de Localização (geolocation) e após aceitação abrir o prompt de Notificações — isso deve funcionar em: Desktop, Chrome Mobile (navegador), PWA (instalado/standalone) e no APK (WebView/Capacitor/Cordova/TWA). Atualmente funciona no desktop, mas não pede localização no Chrome Mobile nem no APK.
+
+Hipóteses / causas analisadas
+
+O getCurrentPosition() não é chamado diretamente no clique (user gesture). Chrome Mobile exige chamada no mesmo callstack do evento de clique; se houver await, setTimeout, Promise ou modal que quebra a stack, o browser pode não abrir o prompt e retornar PERMISSION_DENIED.
+
+O site está em PWA / TWA / WebView (APK) — nestes casos são necessárias permissões nativas e configurações na parte Android (AndroidManifest + runtime permissions + WebView geolocation callbacks).
+
+O service worker / fetch handlers podem estar interferindo (raro, mas possível) — registrar / interceptar pode mudar o timing e causar falha.
+
+O usuário já negou permissão anteriormente (status denied) — nesse caso apenas instruções para usuário ou reset nas configurações resolvem.
+
+Site não em secure context (https) — geolocation só funciona em https. (Verificar)
+
+Uso indevido do navigator.permissions.query('geolocation') — permissions.query não dispara prompt; é necessário chamar getCurrentPosition().
+
+Tarefas concretas (ordem recomendada para patch e testes)
+
+1) Instrumentação / debug (obrigatório antes de mudanças grandes)
+
+Adicionar logs temporários no console de notifications.js e no handler do botão:
+
+console.log('CLICK at', new Date().toISOString());
+console.log('permissions.query geolocation ->', await navigator.permissions.query({name:'geolocation'}).then(r=>r.state).catch(e=>e));
+
+
+Registrar resposta de getCurrentPosition (sucesso/erro) e Notification.requestPermission().
+
+Teste inicial: abra DevTools remoto (Chrome on Android remote) e verifique navigator.permissions.query({name:'geolocation'}) e que getCurrentPosition é chamado dentro do clique.
+
+2) Correção front-end (JS) — garantir chamada síncrona no clique
+
+Substituir a lógica atual por este padrão (exato, sem setTimeout nem await antes de getCurrentPosition). Colar no arquivo notifications.js (ou no handler do botão):
+
+// handler do botão "Ativar"
+const btn = document.querySelector('#btnAtivarNotificacoes'); // ajustar seletor
+btn && btn.addEventListener('click', function onClickActivate(e) {
+  // 1) chamada imediata e SÍNCRONA para forçar prompt de localização no Chrome Mobile
+  try {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        console.info('GEO OK (user gesture):', pos.coords);
+        // 2) só depois pedir permissão de notificação
+        const nperm = await Notification.requestPermission();
+        console.info('Notification permission:', nperm);
+        if (nperm === 'granted') {
+          // executar ativação das notificações/procedimentos
+          activateProximityNotifications(pos);
+        } else {
+          // feedback ao usuário
+          alert('Permissão de notificação negada. Aprox. não será ativada.');
+        }
+      },
+      (err) => {
+        console.warn('GEO error:', err);
+        if (err && err.code === 1) {
+          // PERMISSION_DENIED
+          showModalAllowLocationInstructions();
+        } else {
+          showUserMessage('Erro ao capturar localização: ' + (err.message||err));
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 } // máximo 0 para forçar prompt
+    );
+  } catch (err) {
+    console.error('Erro no click handler geo:', err);
+  }
+});
+
+
+Observações importantes
+
+Não abra um modal explicativo e depois, após await, faça getCurrentPosition — isso perde o contexto do clique. Se precisar de explicação, faça um modal com um botão “Continuar” e coloque no click desse botão exatamente o código acima (chamar getCurrentPosition diretamente no clique do modal).
+
+maximumAge: 0 impede retorno rápido de cache (que pode fazer o browser não exibir prompt).
+
+enableHighAccuracy: true é opcional, mas recomendado.
+
+3) Teste web (Chrome Mobile)
+
+Limpar site permissions: Chrome → Configurações do site → Localização → remover (ou testar em modo incógnito).
+
+Abrir site em mobile Chrome (não PWA) e clicar no botão.
+
+Logs esperados:
+
+navigator.permissions.query (se disponível) deve mostrar prompt antes de solicitar.
+
+getCurrentPosition deve acionar o popup de localização.
+
+Se aceitar, em seguida deve aparecer o popup de Notificação.
+
+Se ainda não aparece, capture console logs e o navigator.userAgent — cole nas respostas.
+
+4) PWA / Service Worker: teste e correções
+
+Temporariamente desabilitar ou neutralizar o service worker para testar (ex.: navigator.serviceWorker.getRegistrations().then(r=>r.forEach(reg=>reg.unregister()))).
+
+Se desabilitar o SW corrigir o prompt, ajuste o SW para não interceptar chamadas que influenciam o fluxo de permissão (ou execute a requisição getCurrentPosition antes de qualquer fetch interceptado).
+
+Confirme o manifest.json e scope corretos; PWA instalado executa como "standalone" mas deve manter mesmo origin e feature policy.
+
+5) APK / WebView (CORREÇÃO NATIVE — obrigatório para APK)
+
+Se o aplicativo for empacotado em WebView (APK), além do JS acima, é necessário:
+
+A) No AndroidManifest.xml (app Android) incluir:
+
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+
+B) Pedir permissão em runtime (Android 6+). Exemplo (Java):
+
+String[] perms = { Manifest.permission.ACCESS_FINE_LOCATION };
+if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+    ActivityCompat.requestPermissions(this, perms, REQUEST_LOCATION);
+}
+
+
+C) Se usar WebView (MainActivity), habilitar geolocation e tratar permissões do WebView:
+
+webView.getSettings().setJavaScriptEnabled(true);
+webView.getSettings().setGeolocationEnabled(true);
+
+// override to allow geolocation permission from web page
+webView.setWebChromeClient(new WebChromeClient() {
+  @Override
+  public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+    // permitir (após checar se app possui permissão Android)
+    callback.invoke(origin, true, false);
+  }
+});
+
+
+D) Se você usa Capacitor/Cordova/Bubblewrap:
+
+Capacitor: instale plugin @capacitor/geolocation e solicite permissão nativa.
+
+Cordova: incluir plugin cordova-plugin-geolocation e permissões no config.
+
+TWA (Trusted Web Activity via Bubblewrap): geralmente utiliza Chrome do device — assegurar que a build do wrapper solicitou runtime permissions (se for WebView-based wrapper).
+
+Importante: sem essas alterações nativas, o APK não vai conseguir disparar prompt de localização nem retornar coords, porque WebView pode estar bloqueando por falta de permissão nativa.
+
+6) UX de fallback quando permission = 'denied'
+
+Detecte navigator.permissions.query({name:'geolocation'}) === 'denied' e mostre um modal com instruções passo-a-passo para habilitar localização nas configurações do Chrome / App (links/instruções).
+
+Forneça botão “Testar novamente” que re-lança getCurrentPosition (apenas vai funcionar se usuário alterar config).
+
+7) Lista de verificação final antes de merge
+
+ Confirmar que getCurrentPosition é chamado diretamente no clique (ver console).
+
+ Testar em: desktop Chrome, mobile Chrome (não PWA), PWA instalado (standalone), APK (em dispositivo real).
+
+ Para APK: confirmar permissões Android e callbacks WebView.
+
+ Verificar service worker não interfere.
+
+ Remover logs e comentar bem o código; adicionar testes manuais documentados no PR.
+
+ Commit + Pull Request com descrição e instruções de teste.
+
+Código pronto (resumo para colar em notifications.js)
+
+(1) handler do botão — certifique-se que o botão que dispara seja o mesmo que o usuário clica):
+
+document.querySelector('#btnAtivarNotificacoes').addEventListener('click', function() {
+  // CHAMADA SÍNCRONA QUE GARANTE PROMPT NO MOBILE
+  navigator.geolocation.getCurrentPosition(
+    async function(position) {
+      console.log('GEO OK', position.coords);
+      const notif = await Notification.requestPermission();
+      console.log('NOTIF PERMISSION', notif);
+      if (notif === 'granted') {
+        // ativa notificação de proximidade
+        activateProximityNotifications(position);
+      } else {
+        alert('Permissão de notificação negada.');
+      }
+    },
+    function(error) {
+      console.warn('GEO ERROR', error);
+      if (error.code === 1) {
+        // permission denied
+        // instruções para habilitar
+        showModalAllowLocationInstructions();
+      } else {
+        showUserMessage('Erro ao obter localização: ' + error.message);
+      }
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+});
+
+Mensagem final para QA / deploy:
+
+Antes do deploy final, testar em dispositivo real Android (não apenas em emulador). Se for APK, aplique as correções nativas e gere nova build.
+
+Se após aplicar tudo acima o problema persistir, cole aqui os logs do console mobile (remoto) e a string do navigator.userAgent + resultado de navigator.permissions.query({name:'geolocation'}) — eu vou analisar e dar patch fino.
