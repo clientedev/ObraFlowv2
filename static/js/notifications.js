@@ -260,44 +260,63 @@ class NotificationManager {
     }
 
     startLocationMonitoring() {
-        if (!navigator.geolocation) {
-            console.warn('⚠️ NOTIFICATIONS: Geolocalização não suportada');
+        if (!window.geoLocation) {
+            console.warn('⚠️ NOTIFICATIONS: Sistema de geolocalização não disponível');
             return;
         }
 
-        console.log('📍 NOTIFICATIONS: Iniciando monitoramento de localização...');
+        console.log('📍 NOTIFICATIONS: Iniciando monitoramento de localização com sistema avançado...');
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                this.currentPosition = position;
-                console.log('📍 NOTIFICATIONS: Localização obtida:', {
-                    lat: position.coords.latitude,
-                    lon: position.coords.longitude
-                });
-                this.checkNearbyProjects();
-                
-                // Monitorar mudanças de localização
-                this.watchId = navigator.geolocation.watchPosition(
-                    (newPosition) => {
+        // Usar o sistema de geolocalização avançado com fallback para IP
+        window.geoLocation.getLocation({
+            enableHighAccuracy: false,
+            timeout: 30000,
+            maximumAge: 300000,
+            showUI: false,  // Não mostrar UI para notificações em background
+            fallbackToIP: true,  // Usar IP se GPS falhar
+            reverseGeocode: false  // Não precisa de endereço para notificações
+        })
+        .then((position) => {
+            this.currentPosition = position;
+            console.log('📍 NOTIFICATIONS: Localização inicial obtida:', {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude,
+                source: position.source || 'gps'
+            });
+            this.checkNearbyProjects();
+            
+            // Monitorar mudanças de localização com sistema avançado
+            this.watchId = window.geoLocation.watchLocation(
+                (newPosition, error) => {
+                    if (error) {
+                        console.warn('⚠️ NOTIFICATIONS: Erro no monitoramento:', error.message);
+                        return;
+                    }
+                    
+                    if (newPosition) {
                         this.currentPosition = newPosition;
                         console.log('📍 NOTIFICATIONS: Localização atualizada');
                         this.checkNearbyProjects();
-                    },
-                    (error) => {
-                        console.warn('⚠️ NOTIFICATIONS: Erro de geolocalização:', error.message);
-                    },
-                    {
-                        enableHighAccuracy: false,
-                        timeout: 60000,
-                        maximumAge: 300000
                     }
-                );
-                console.log('✅ NOTIFICATIONS: Watch position ativo');
-            },
-            (error) => {
-                console.warn('⚠️ NOTIFICATIONS: Geolocalização negada ou erro:', error.message);
-            }
-        );
+                },
+                {
+                    enableHighAccuracy: false,
+                    timeout: 60000,
+                    maximumAge: 300000
+                }
+            );
+            console.log('✅ NOTIFICATIONS: Watch position ativo (ID:', this.watchId, ')');
+        })
+        .catch((error) => {
+            console.warn('⚠️ NOTIFICATIONS: Não foi possível obter localização:', error.message);
+            // Mostrar erro ao usuário com instruções
+            this.showUserMessage(
+                'Erro de Localização',
+                'Não foi possível obter sua localização. Verifique as permissões do GPS.',
+                'warning',
+                3000
+            );
+        });
     }
 
     async checkNearbyProjects() {
@@ -551,8 +570,8 @@ class NotificationManager {
                 this.subscriptionKey = null;
             }
             
-            if (this.watchId) {
-                navigator.geolocation.clearWatch(this.watchId);
+            if (this.watchId && window.geoLocation) {
+                window.geoLocation.stopWatching(this.watchId);
                 this.watchId = null;
                 console.log('✅ NOTIFICATIONS: Monitoramento de localização parado');
             }

@@ -14,6 +14,20 @@ Mobile-first design: Date field should be the first input field in report forms.
 - **Entry Point**: main.py
 - **Default Admin**: username: admin, password: admin123 (created on first run)
 
+# Recent Improvements (October 2025)
+
+## Geolocation System Enhancement
+- **Enhanced Geolocation Module** (`static/js/geolocation-enhanced.js`): Sistema robusto de geolocalização com:
+  - **HTTPS Enforcement**: Detecta e avisa se não estiver em HTTPS
+  - **Error Handling**: Tratamento detalhado de erros com mensagens específicas por dispositivo/navegador
+  - **IP Fallback**: Fallback automático para geolocalização por IP (ipapi.co) quando GPS falha
+  - **Reverse Geocoding**: Conversão automática de coordenadas em endereço legível
+  - **Platform-Specific Instructions**: Instruções customizadas para Android, iOS, Chrome, Firefox, Safari
+  - **maximumAge = 0**: Sempre força localização fresca (resolve cache issues)
+  - **Watch Location**: Monitoramento contínuo com tratamento robusto de erros
+- **Integration**: Sistema integrado em `main.js` e `notifications.js` para captura consistente de localização
+- **User Experience**: Modais informativos com instruções claras quando permissão é negada ou GPS indisponível
+
 # System Architecture
 
 ## Backend Architecture

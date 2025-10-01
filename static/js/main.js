@@ -199,73 +199,71 @@ function previewImage(input) {
     reader.readAsDataURL(file);
 }
 
-// Get current location using GPS
-function getCurrentLocation(button) {
-    if (!navigator.geolocation) {
-        showAlert('Geolocalização não é suportada neste navegador.', 'warning');
-        return;
-    }
-
+// Get current location using GPS com sistema avançado
+async function getCurrentLocation(button) {
     const originalText = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Obtendo...';
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Obtendo localização...';
     button.disabled = true;
 
-    const options = {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
-    };
+    try {
+        // Usar o sistema de geolocalização avançado (com fallback automático para IP)
+        const position = await window.geoLocation.getLocation({
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0,
+            showUI: true,
+            fallbackToIP: true,
+            reverseGeocode: true
+        });
 
-    navigator.geolocation.getCurrentPosition(
-        function(position) {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const accuracy = position.coords.accuracy || 5000;
 
-            // Fill form fields
-            const latInput = document.querySelector('input[name="latitude"]');
-            const lngInput = document.querySelector('input[name="longitude"]');
-            const addressInput = document.querySelector('input[name="endereco_gps"]');
+        // Preencher campos do formulário
+        const latInput = document.querySelector('input[name="latitude"]');
+        const lngInput = document.querySelector('input[name="longitude"]');
+        const addressInput = document.querySelector('input[name="endereco_gps"]');
 
-            if (latInput) latInput.value = lat;
-            if (lngInput) lngInput.value = lng;
-            if (addressInput) {
+        if (latInput) latInput.value = lat;
+        if (lngInput) lngInput.value = lng;
+        
+        if (addressInput) {
+            if (position.address) {
+                // Se temos endereço completo do reverse geocoding
+                addressInput.value = position.address;
+            } else if (position.source === 'ip') {
+                // Se veio do IP
+                addressInput.value = `📍 Localização aproximada por IP: ${position.address || `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`}`;
+            } else {
+                // GPS sem reverse geocoding
                 addressInput.value = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)} (±${Math.round(accuracy)}m)`;
             }
+        }
 
-            // Show success
-            button.innerHTML = '<i class="fas fa-check me-1"></i>Localização Obtida';
-            button.classList.remove('btn-outline-primary');
-            button.classList.add('btn-success');
+        // Mostrar sucesso
+        button.innerHTML = '<i class="fas fa-check me-1"></i>Localização Obtida';
+        button.classList.remove('btn-outline-primary', 'btn-warning');
+        button.classList.add('btn-success');
 
-            showAlert('Localização obtida com sucesso!', 'success');
+        // Indicar se foi usado fallback
+        if (position.source === 'ip') {
+            showAlert('📍 Localização aproximada obtida por IP (GPS não disponível)', 'warning');
+        } else {
+            showAlert('✅ Localização GPS obtida com precisão de ±' + Math.round(accuracy) + 'm', 'success');
+        }
 
-            // Try to get address from coordinates (optional)
-            reverseGeocode(lat, lng, addressInput);
-        },
-        function(error) {
-            let errorMessage;
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    errorMessage = 'Acesso à localização foi negado pelo usuário.';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    errorMessage = 'Informação de localização não disponível.';
-                    break;
-                case error.TIMEOUT:
-                    errorMessage = 'Tempo esgotado ao obter localização.';
-                    break;
-                default:
-                    errorMessage = 'Erro desconhecido ao obter localização.';
-                    break;
-            }
-
-            showAlert(errorMessage, 'danger');
-            button.innerHTML = originalText;
-            button.disabled = false;
-        },
-        options
-    );
+    } catch (error) {
+        console.error('❌ Erro ao obter localização:', error);
+        
+        // Restaurar botão
+        button.innerHTML = '<i class="fas fa-map-marker-alt me-1"></i>Tentar Novamente';
+        button.disabled = false;
+        button.classList.remove('btn-outline-primary', 'btn-success');
+        button.classList.add('btn-warning');
+        
+        showAlert('❌ Não foi possível obter localização: ' + error.message, 'danger');
+    }
 }
 
 // Reverse geocoding using backend proxy

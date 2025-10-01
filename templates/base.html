@@ -84,6 +84,10 @@ img[src*="no-image"] {
 
     <!-- Mobile Utilities -->
     <script src="{{ url_for('static', filename='js/mobile-utils.js') }}" defer></script>
+    
+    <!-- Sistema de Geolocalização Avançado - DEVE SER CARREGADO ANTES DO MAIN.JS -->
+    <script src="{{ url_for('static', filename='js/geolocation-enhanced.js') }}"></script>
+    
     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
 
     <!-- Sistema de Notificações -->
