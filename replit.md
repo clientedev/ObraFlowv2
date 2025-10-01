@@ -16,6 +16,23 @@ Mobile-first design: Date field should be the first input field in report forms.
 
 # Recent Improvements (October 2025)
 
+## Geolocation and Railway Integration Fixes (October 1, 2025)
+- **Flask-CORS Integration**: Added Flask-CORS 5.0.0 to enable proper API calls from frontend
+  - Configured CORS with credentials support for `/api/*` and `/save_location` routes
+  - Resolves "User denied Geolocation" errors caused by CORS restrictions
+- **New /save_location Route**: Created dedicated endpoint for geolocation tracking
+  - Validates latitude/longitude ranges (-90 to 90, -180 to 180)
+  - Logs user location with source (GPS/IP), accuracy, and address
+  - Supports optional project_id and relatorio_id for context binding
+  - Returns proper JSON responses with error handling
+- **HTTPS Enforcement**: Added automatic HTTPS redirect for Railway production
+  - Uses `@app.before_request` hook to enforce HTTPS in RAILWAY_ENVIRONMENT
+  - Exempts health check endpoints from redirect
+  - Works with existing ProxyFix middleware configuration
+- **Requirements Cleanup**: Removed duplicate packages from requirements.txt
+  - Consolidated to single entries for each package
+  - Added Flask-CORS as new dependency
+
 ## Geolocation System Enhancement
 - **Enhanced Geolocation Module** (`static/js/geolocation-enhanced.js`): Sistema robusto de geolocalização com:
   - **HTTPS Enforcement**: Detecta e avisa se não estiver em HTTPS
