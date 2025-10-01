@@ -62,11 +62,7 @@
                     </div>
 
                     <div>
-                        {% if relatorio.status == 'Aguardando Aprovação' %}
-                            <span class="text-warning">
-                                <i class="fas fa-clock me-1"></i>Aguardando aprovação
-                            </span>
-                        {% elif relatorio.status == 'Aprovado' %}
+                        {% if relatorio.status == 'Aprovado' %}
                             <span class="text-success">
                                 <i class="fas fa-check-circle me-1"></i>Relatório aprovado
                                 {% if relatorio.data_aprovacao %}

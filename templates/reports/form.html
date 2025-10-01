@@ -297,7 +297,7 @@
                             <div class="col-md-12">
                                 <div class="form-group">
                                     <label class="form-label" for="projeto_id">Projeto</label>
-                                    <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails()">
+                                    <select name="projeto_id" id="projeto_id" class="form-control" required>
                                         <option value="">Selecione um projeto</option>
                                         {% for projeto in projetos %}
                                         <option value="{{ projeto.id }}">{{ projeto.numero }} - {{ projeto.nome }}</option>
@@ -676,6 +676,26 @@ document.addEventListener('DOMContentLoaded', function() {
     updatePhotoInput();
     updatePhotoCounter();
     
+    // Adicionar event listener para o select do projeto
+    const projetoSelect = document.getElementById('projeto_id');
+    if (projetoSelect) {
+        projetoSelect.addEventListener('change', carregarFuncionariosEmails);
+    }
+    
+    // Monitorar upload de fotos
+    const photoInput = document.getElementById('photoInput');
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            if (!selectedCategory) {
+                alert('Por favor, selecione uma categoria primeiro.');
+                this.value = '';
+                return;
+            }
+            
+            handlePhotoSelection(e.target.files);
+        });
+    }
+    
     // Adicionar event listeners para as categorias de foto
     document.querySelectorAll('.category-option').forEach(option => {
         // Remover eventos antigos para evitar duplicação
@@ -686,17 +706,6 @@ document.addEventListener('DOMContentLoaded', function() {
         option.addEventListener('click', handleCategoryClick);
         option.addEventListener('touchend', handleCategoryTouch);
     });
-});
-
-// Monitorar upload de fotos
-document.getElementById('photoInput').addEventListener('change', function(e) {
-    if (!selectedCategory) {
-        alert('Por favor, selecione uma categoria primeiro.');
-        this.value = '';
-        return;
-    }
-    
-    handlePhotoSelection(e.target.files);
 });
 
 function handlePhotoSelection(files) {
