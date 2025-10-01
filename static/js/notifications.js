@@ -229,7 +229,7 @@ class NotificationManager {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         console.log('📱 MOBILE DETECTED:', isMobile);
 
-        // PASSO 1: LOCALIZAÇÃO (OBRIGATÓRIA)
+        // PASSO 1: LOCALIZAÇÃO (OBRIGATÓRIA) - FORÇAR SEMPRE EM MOBILE
         try {
             console.log('📍 NOTIFICATIONS: 🔥 PASSO 1/2 - FORÇANDO permissão de localização...');
             
@@ -244,16 +244,25 @@ class NotificationManager {
             // Aguardar um pouco para o usuário ler
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            const hasLocation = await this.requestLocationPermissionMobile();
+            // MOBILE: FORÇAR PROMPT DE LOCALIZAÇÃO DE FORMA MAIS AGRESSIVA
+            const hasLocation = isMobile ? 
+                await this.forceLocationPermissionMobile() : 
+                await this.requestLocationPermissionMobile();
 
             if (!hasLocation) {
                 console.error('❌ NOTIFICATIONS: Localização NEGADA - não é possível continuar');
-                this.showUserMessage(
-                    'Localização Obrigatória',
-                    'A permissão de localização é obrigatória para ativar notificações de proximidade. Siga as instruções que apareceram.',
-                    'danger',
-                    10000
-                );
+                
+                // Mostrar instruções específicas para mobile
+                if (isMobile) {
+                    this.showMobileLocationDeniedInstructions();
+                } else {
+                    this.showUserMessage(
+                        'Localização Obrigatória',
+                        'A permissão de localização é obrigatória para ativar notificações de proximidade.',
+                        'danger',
+                        10000
+                    );
+                }
                 return false;
             }
 
@@ -261,7 +270,7 @@ class NotificationManager {
             
             // Delay maior para o mobile processar a primeira permissão
             if (isMobile) {
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
 
         } catch (error) {
@@ -306,8 +315,8 @@ class NotificationManager {
                     3000
                 );
 
-                // Aguardar um pouco
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Aguardar um pouco mais em mobile
+                await new Promise(resolve => setTimeout(resolve, isMobile ? 3000 : 2000));
 
                 console.log('🔔 NOTIFICATIONS: Chamando Notification.requestPermission()...');
                 const permission = await Notification.requestPermission();
@@ -341,6 +350,189 @@ class NotificationManager {
         }
 
         return false;
+    }
+
+    async forceLocationPermissionMobile() {
+        console.log('📍 MOBILE: FORÇA BRUTA - Solicitando permissão de localização específica para mobile...');
+
+        if (!navigator.geolocation) {
+            console.warn('⚠️ MOBILE: Geolocalização não suportada');
+            return false;
+        }
+
+        // MOBILE FIX: Múltiplas tentativas com estratégias diferentes
+        const strategies = [
+            // Estratégia 1: Alta precisão com timeout curto
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
+            // Estratégia 2: Baixa precisão com timeout maior
+            { enableHighAccuracy: false, timeout: 12000, maximumAge: 0 },
+            // Estratégia 3: Cache permitido para acelerar
+            { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+        ];
+
+        for (let i = 0; i < strategies.length; i++) {
+            const strategy = strategies[i];
+            console.log(`🔥 MOBILE: Tentativa ${i + 1}/3 com estratégia:`, strategy);
+            
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    const timeoutId = setTimeout(() => {
+                        console.warn(`⏰ MOBILE: Timeout na tentativa ${i + 1}`);
+                        reject(new Error(`Timeout na tentativa ${i + 1}`));
+                    }, strategy.timeout);
+
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            clearTimeout(timeoutId);
+                            console.log(`✅ MOBILE: Tentativa ${i + 1} bem-sucedida!`);
+                            resolve(position);
+                        },
+                        (error) => {
+                            clearTimeout(timeoutId);
+                            console.error(`🚫 MOBILE: Tentativa ${i + 1} falhou:`, error.code, error.message);
+                            reject(error);
+                        },
+                        strategy
+                    );
+                });
+
+                return true; // Sucesso!
+
+            } catch (error) {
+                console.error(`❌ MOBILE: Tentativa ${i + 1} falhou:`, error.message);
+                
+                // Se for erro de permissão, não tentar mais
+                if (error.code === 1) { // PERMISSION_DENIED
+                    console.error('🚫 MOBILE: Permissão negada definitivamente');
+                    this.showMobileLocationDeniedInstructions();
+                    return false;
+                }
+                
+                // Se não for a última tentativa, continuar
+                if (i < strategies.length - 1) {
+                    console.log(`🔄 MOBILE: Aguardando antes da próxima tentativa...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+        }
+
+        console.error('❌ MOBILE: Todas as tentativas falharam');
+        this.showMobileLocationDeniedInstructions();
+        return false;
+    }
+
+    showMobileLocationDeniedInstructions() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        let instructions = '';
+        let browserName = '';
+
+        if (userAgent.includes('chrome') && userAgent.includes('android')) {
+            browserName = 'Chrome Android';
+            instructions = `
+                <div class="alert alert-warning">
+                    <h6><strong>📱 ${browserName} - Como permitir localização:</strong></h6>
+                    <ol class="text-start mb-2">
+                        <li>Toque no ícone <strong>🔒</strong> ou <strong>ℹ️</strong> na barra de endereço</li>
+                        <li>Toque em <strong>"Permissões"</strong> ou <strong>"Configurações do site"</strong></li>
+                        <li>Encontre <strong>"Localização"</strong> e altere para <strong>"Permitir"</strong></li>
+                        <li>Recarregue a página e tente novamente</li>
+                    </ol>
+                    <div class="alert alert-info mb-0">
+                        <strong>💡 Alternativa rápida:</strong><br>
+                        Configurações do Android → Apps → Chrome → Permissões → Localização → Permitir
+                    </div>
+                </div>
+            `;
+        } else if (userAgent.includes('safari') && (userAgent.includes('iphone') || userAgent.includes('ipad'))) {
+            browserName = 'Safari iOS';
+            instructions = `
+                <div class="alert alert-warning">
+                    <h6><strong>📱 ${browserName} - Como permitir localização:</strong></h6>
+                    <ol class="text-start mb-2">
+                        <li>Abra <strong>Configurações</strong> do iOS</li>
+                        <li>Role para baixo e toque em <strong>Privacidade e Segurança</strong></li>
+                        <li>Toque em <strong>Serviços de Localização</strong></li>
+                        <li>Certifique-se de que está <strong>ATIVADO</strong></li>
+                        <li>Role até <strong>Safari</strong> e toque</li>
+                        <li>Selecione <strong>"Ao Usar o App"</strong></li>
+                        <li>Volte ao app e tente novamente</li>
+                    </ol>
+                </div>
+            `;
+        } else if (userAgent.includes('firefox') && userAgent.includes('android')) {
+            browserName = 'Firefox Android';
+            instructions = `
+                <div class="alert alert-warning">
+                    <h6><strong>📱 ${browserName} - Como permitir localização:</strong></h6>
+                    <ol class="text-start mb-2">
+                        <li>Toque no ícone <strong>🔒</strong> na barra de endereço</li>
+                        <li>Toque em <strong>"Editar permissões do site"</strong></li>
+                        <li>Altere <strong>"Localização"</strong> para <strong>"Permitir"</strong></li>
+                        <li>Recarregue a página</li>
+                    </ol>
+                </div>
+            `;
+        } else {
+            browserName = 'Mobile';
+            instructions = `
+                <div class="alert alert-warning">
+                    <h6><strong>📱 Como permitir localização no ${browserName}:</strong></h6>
+                    <ol class="text-start mb-2">
+                        <li>Toque no ícone <strong>🔒</strong> ou <strong>ℹ️</strong> na barra de endereço</li>
+                        <li>Procure por <strong>"Localização"</strong> ou <strong>"Location"</strong></li>
+                        <li>Altere para <strong>"Permitir"</strong> ou <strong>"Allow"</strong></li>
+                        <li>Recarregue a página e tente novamente</li>
+                    </ol>
+                    <div class="alert alert-info mb-0">
+                        <strong>💡 Dica:</strong> O prompt de permissão pode aparecer como uma notificação no topo da tela.
+                    </div>
+                </div>
+            `;
+        }
+
+        // Criar modal específico para instruções mobile
+        const modal = document.createElement('div');
+        modal.className = 'modal fade show';
+        modal.style.display = 'block';
+        modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title">
+                            <i class="fas fa-map-marker-alt"></i> 
+                            Permissão de Localização Necessária
+                        </h5>
+                        <button type="button" class="btn-close" onclick="this.closest('.modal').remove()"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="lead mb-3">
+                            <strong>Para ativar notificações de proximidade, é obrigatório permitir acesso à sua localização.</strong>
+                        </p>
+                        ${instructions}
+                        <div class="alert alert-danger mt-3">
+                            <strong>⚠️ Importante:</strong> Sem a permissão de localização, não será possível ativar as notificações de obras próximas.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="this.closest('.modal').remove()">
+                            Cancelar
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="window.location.reload()">
+                            <i class="fas fa-redo"></i> Recarregar e Tentar Novamente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        // Auto-remover modal após 30 segundos
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.remove();
+            }
+        }, 30000);
     }
 
     async requestLocationPermissionMobile() {
