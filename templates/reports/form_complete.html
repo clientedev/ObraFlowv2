@@ -830,67 +830,53 @@ function carregarFuncionariosEmailsPorId(projetoId) {
         return;
     }
 
-    // Buscar funcionários e e-mails do projeto via AJAX
-    fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Renderizar funcionários
-            let funcionariosHtml = '';
-            if (data.funcionarios && data.funcionarios.length > 0) {
-                data.funcionarios.forEach(func => {
-                    const checked = func.is_responsavel_principal ? 'checked' : '';
-                    funcionariosHtml += `
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="func_${func.id}" 
-                                   name="funcionarios_selecionados[]" value="${func.id}" ${checked}>
-                            <label class="form-check-label" for="func_${func.id}">
-                                <strong>${func.nome_funcionario}</strong><br>
-                                <small class="text-muted">${func.cargo || 'Sem cargo'} - ${func.empresa || 'Sem empresa'}</small>
-                                ${func.is_responsavel_principal ? '<span class="badge bg-primary">Principal</span>' : ''}
-                            </label>
-                        </div>
-                    `;
-                });
-            } else {
-                funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
-            }
-            funcionariosDiv.innerHTML = funcionariosHtml;
-
-            // Renderizar e-mails
-            let emailsHtml = '';
-            if (data.emails && data.emails.length > 0) {
-                data.emails.forEach(email => {
-                    const checked = email.is_principal ? 'checked' : '';
-                    emailsHtml += `
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="email_${email.id}" 
-                                   name="emails_selecionados[]" value="${email.id}" ${checked}>
-                            <label class="form-check-label" for="email_${email.id}">
-                                <strong>${email.email}</strong><br>
-                                <small class="text-muted">${email.nome_contato} - ${email.cargo || 'Sem cargo'}</small>
-                                ${email.is_principal ? '<span class="badge bg-success">Principal</span>' : ''}
-                            </label>
-                        </div>
-                    `;
-                });
-            } else {
-                emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para este projeto</p>';
-            }
-            emailsDiv.innerHTML = emailsHtml;
+    // Buscar funcionários e e-mails do projeto via endpoints separados
+    Promise.all([
+        fetch(`/api/projetos/${projetoId}/funcionarios`).then(r => r.json()),
+        fetch(`/api/projetos/${projetoId}/emails`).then(r => r.json())
+    ])
+    .then(([funcionarios, emails]) => {
+        // Renderizar funcionários
+        let funcionariosHtml = '';
+        if (funcionarios && funcionarios.length > 0) {
+            funcionarios.forEach(func => {
+                funcionariosHtml += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="func_${func.id}" 
+                               name="funcionarios_selecionados[]" value="${func.id}">
+                        <label class="form-check-label" for="func_${func.id}">
+                            <strong>${func.nome}</strong><br>
+                            <small class="text-muted">${func.cargo || 'Sem cargo'} - ${func.empresa || 'Sem empresa'}</small>
+                        </label>
+                    </div>
+                `;
+            });
         } else {
-            funcionariosDiv.innerHTML = '<p class="text-danger">Erro ao carregar funcionários</p>';
-            emailsDiv.innerHTML = '<p class="text-danger">Erro ao carregar e-mails</p>';
+            funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
         }
+        funcionariosDiv.innerHTML = funcionariosHtml;
+
+        // Renderizar e-mails
+        let emailsHtml = '';
+        if (emails && emails.length > 0) {
+            emails.forEach(email => {
+                emailsHtml += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="email_${email.email}" 
+                               name="emails_selecionados[]" value="${email.email}">
+                        <label class="form-check-label" for="email_${email.email}">
+                            <strong>${email.email}</strong>
+                        </label>
+                    </div>
+                `;
+            });
+        } else {
+            emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para este projeto</p>';
+        }
+        emailsDiv.innerHTML = emailsHtml;
     })
     .catch(error => {
-        console.error('Erro:', error);
+        console.error('Erro ao carregar dados do projeto:', error);
         funcionariosDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
         emailsDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
     });
