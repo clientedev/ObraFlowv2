@@ -724,6 +724,35 @@ def api_projeto_funcionarios_emails(projeto_id):
             'error': str(e)
         }), 500
 
+@app.route('/api/projetos/<int:projeto_id>/funcionarios')
+@login_required
+def get_funcionarios_projeto(projeto_id):
+    """Retorna funcionários de um projeto específico"""
+    try:
+        funcionarios = FuncionarioProjeto.query.filter_by(projeto_id=projeto_id, ativo=True).all()
+        return jsonify([{
+            'id': f.id, 
+            'nome': f.nome_funcionario,
+            'cargo': f.cargo or '',
+            'empresa': f.empresa or ''
+        } for f in funcionarios])
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao buscar funcionários do projeto {projeto_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/projetos/<int:projeto_id>/emails')
+@login_required
+def get_emails_projeto(projeto_id):
+    """Retorna e-mails de um projeto específico"""
+    try:
+        emails = EmailCliente.query.filter_by(projeto_id=projeto_id, ativo=True).all()
+        return jsonify([{
+            'email': e.email
+        } for e in emails])
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao buscar e-mails do projeto {projeto_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/dashboard-stats')
 @login_required
