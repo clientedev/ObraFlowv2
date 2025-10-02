@@ -397,7 +397,7 @@
                                 <div class="form-group">
                                     <label class="form-label" for="projeto_id">Projeto *</label>
                                     {% if disable_fields %}
-                                        <input type="hidden" name="projeto_id" id="projeto_id" value="{{ selected_project.id }}">
+                                        <input type="hidden" name="projeto_id" value="{{ selected_project.id }}">
                                         <div class="form-control-plaintext bg-light border rounded p-2">
                                             <strong>{{ selected_project.numero }} - {{ selected_project.nome }}</strong>
                                         </div>
@@ -585,13 +585,15 @@
                                 </div>
                             </div>
 
-                            <!-- Seleção de Categoria (Dinâmica) -->
+                            <!-- Seleção de Categoria (Simplificada) -->
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Categoria padrão para novas fotos:</label>
                                 <select id="defaultCategory" class="form-select" style="min-height: 48px;">
-                                    <option value="">Selecione uma categoria...</option>
+                                    <option value="Torre 1">Torre 1</option>
+                                    <option value="Torre 2">Torre 2</option>
+                                    <option value="Área Comum">Área Comum</option>
+                                    <option value="Piscina">Piscina</option>
                                 </select>
-                                <small class="text-muted" id="categoriasHelp">As categorias são carregadas do projeto selecionado</small>
                             </div>
 
                             <!-- Preview das Fotos com Cards Mobile-First -->
@@ -817,7 +819,6 @@ document.addEventListener('DOMContentLoaded', function() {
 function carregarFuncionariosEmails() {
     const projetoId = document.getElementById('projeto_id').value;
     carregarFuncionariosEmailsPorId(projetoId);
-    carregarCategoriasDoProjeto(projetoId);
 }
 
 function carregarFuncionariosEmailsPorId(projetoId) {
@@ -893,56 +894,6 @@ function carregarFuncionariosEmailsPorId(projetoId) {
         console.error('Erro:', error);
         funcionariosDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
         emailsDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
-    });
-}
-
-// Função para carregar categorias do projeto selecionado (dinâmico - sem hardcoded)
-function carregarCategoriasDoProjeto(projetoId) {
-    const categoriaSelect = document.getElementById('defaultCategory');
-    const categoriaHelp = document.getElementById('categoriasHelp');
-    
-    if (!projetoId) {
-        categoriaSelect.innerHTML = '<option value="">Selecione um projeto primeiro...</option>';
-        categoriaHelp.innerHTML = 'Selecione um projeto para ver as categorias disponíveis';
-        return;
-    }
-    
-    // Mostrar loading
-    categoriaSelect.innerHTML = '<option value="">Carregando categorias...</option>';
-    categoriaSelect.disabled = true;
-    
-    // Buscar categorias via API
-    fetch(`/projects/${projetoId}/categorias`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.categorias && data.categorias.length > 0) {
-            let options = '<option value="">Selecione uma categoria...</option>';
-            data.categorias.forEach(cat => {
-                options += `<option value="${cat.nome_categoria}">${cat.nome_categoria}</option>`;
-            });
-            categoriaSelect.innerHTML = options;
-            categoriaHelp.innerHTML = `${data.categorias.length} categoria(s) disponível(is) para este projeto`;
-            categoriaHelp.className = 'text-success';
-            console.log(`✅ ${data.categorias.length} categorias carregadas do banco`);
-        } else {
-            categoriaSelect.innerHTML = '<option value="">Nenhuma categoria cadastrada</option>';
-            categoriaHelp.innerHTML = 'Nenhuma categoria encontrada. <a href="/projects/' + projetoId + '">Cadastre categorias no projeto</a>';
-            categoriaHelp.className = 'text-warning';
-            console.log('⚠️ Nenhuma categoria encontrada para o projeto');
-        }
-        categoriaSelect.disabled = false;
-    })
-    .catch(error => {
-        console.error('❌ Erro ao carregar categorias:', error);
-        categoriaSelect.innerHTML = '<option value="">Erro ao carregar</option>';
-        categoriaHelp.innerHTML = 'Erro ao carregar categorias. Tente novamente.';
-        categoriaHelp.className = 'text-danger';
-        categoriaSelect.disabled = false;
     });
 }
 
@@ -1693,19 +1644,12 @@ function capturarLocalizacao() {
             });
         },
         function(error) {
-            console.error('Erro ao capturar localização:', error);
-            
-            // Usar a função melhorada de tratamento de erro
-            if (typeof handleGeolocationError === 'function') {
-                handleGeolocationError(error, btn);
-            } else {
-                // Fallback para tratamento básico
-                let errorMsg = 'Erro ao capturar localização.';
-                switch(error.code) {
-                    case error.PERMISSION_DENIED:
-                        errorMsg = '🚫 Permissão de localização negada. Verifique as configurações do navegador.';
-                        break;
-                    case error.POSITION_UNAVAILABLE:
+            let errorMsg = 'Erro ao capturar localização.';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg = 'Permissão negada para acessar localização.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
                     errorMsg = 'Localização indisponível.';
                     break;
                 case error.TIMEOUT:
@@ -1726,6 +1670,29 @@ function capturarLocalizacao() {
 
 // FUNÇÃO DUPLICADA REMOVIDA - usar apenas a versão do início do arquivo
 
+// Função para alternar checkbox e mostrar/ocultar campo de observações
+function toggleChecklistItem(checkbox) {
+    const itemId = checkbox.id.replace('check_', '');
+    const obsField = document.getElementById(`obs_${itemId}`);
+    const parentItem = checkbox.closest('.checklist-item');
+
+    if (checkbox.checked) {
+        if (obsField) {
+            obsField.style.display = 'block';
+        }
+        if (parentItem) {
+            parentItem.classList.add('completed');
+        }
+    } else {
+        if (obsField) {
+            obsField.style.display = 'none';
+        }
+        if (parentItem) {
+            parentItem.classList.remove('completed');
+        }
+    }
+}
+
 // Função para alternar estado do checklist item
 function toggleChecklistItem(checkbox) {
     const itemId = checkbox.id.replace('check_', '');
@@ -1734,18 +1701,14 @@ function toggleChecklistItem(checkbox) {
 
     if (checkbox.checked) {
         // Marcar como completo
-        if (checklistItem) {
-            checklistItem.classList.add('completed');
-        }
+        checklistItem.classList.add('completed');
         // Mostrar campo de observações
         if (obsSection) {
             obsSection.style.display = 'block';
         }
     } else {
         // Desmarcar como completo
-        if (checklistItem) {
-            checklistItem.classList.remove('completed');
-        }
+        checklistItem.classList.remove('completed');
         // Ocultar campo de observações
         if (obsSection) {
             obsSection.style.display = 'none';
@@ -1809,14 +1772,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Para projeto pré-selecionado com campos desabilitados
     console.log('🏗️ Projeto pré-selecionado detectado (campos desabilitados):', {{ preselected_project_id }});
     carregarFuncionariosEmailsPorId({{ preselected_project_id }});
-    carregarCategoriasDoProjeto({{ preselected_project_id }});
-    {% elif preselected_project_id %}
-    // Para projeto selecionado normalmente
-    console.log('🏗️ Projeto pré-selecionado detectado:', {{ preselected_project_id }});
-    carregarFuncionariosEmailsPorId({{ preselected_project_id }});
-    carregarCategoriasDoProjeto({{ preselected_project_id }});
     {% else %}
-    // Para projeto selecionado normalmente via dropdown
+    // Para projeto selecionado normalmente
     const projetoSelect = document.getElementById('projeto_id');
     if (projetoSelect && projetoSelect.value) {
         console.log('🏗️ Projeto pré-selecionado detectado:', projetoSelect.value);
@@ -2107,8 +2064,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Auto-populate project coordinates script -->
 <script>
 // Auto-populate project coordinates and location info when coming from project view
+{% if selected_project %}
 document.addEventListener('DOMContentLoaded', function() {
-    {% if selected_project %}
     // Ensure required elements exist
     const latitudeEl = document.getElementById('latitude');
     const longitudeEl = document.getElementById('longitude');
@@ -2142,8 +2099,8 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     `;
     {% endif %}
-    {% endif %}
 });
+{% endif %}
 
 // Sistema de touch inteligente IGUAL AO EXPRESS - funcional 100%
 document.addEventListener('DOMContentLoaded', function() {
