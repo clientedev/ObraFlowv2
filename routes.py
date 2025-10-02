@@ -1779,13 +1779,13 @@ def create_report():
                             else:
                                 current_app.logger.warning(f"⚠️ Foto mobile {i+1} sem dados binários")
 
-                            # Salvar anotações se disponível
+                            # Salvar anotações se disponível (JSONB aceita dict diretamente)
                             if photo_data.get('annotations'):
-                                foto.anotacoes_dados = json.dumps(photo_data['annotations'])
+                                foto.anotacoes_dados = photo_data['annotations']
 
-                            # Salvar coordenadas se disponível
+                            # Salvar coordenadas se disponível (JSONB aceita dict diretamente)
                             if photo_data.get('coordinates'):
-                                foto.coordenadas_anotacao = json.dumps(photo_data['coordinates'])
+                                foto.coordenadas_anotacao = photo_data['coordinates']
 
                             db.session.add(foto)
                             current_app.logger.info(f"✅ Foto mobile {i+1} completa: legenda='{foto.legenda}', tipo='{foto.tipo_servico}', imagem={len(foto.imagem) if foto.imagem else 0} bytes")
@@ -1851,10 +1851,14 @@ def create_report():
                         foto.ordem = photo_count + 1
                         foto.imagem = image_data  # Salvar dados binários da imagem editada
 
-                        # Salvar anotações se disponível
+                        # Salvar anotações se disponível (parse JSON string)
                         annotations = request.form.get(f'photo_annotations_{i}')
                         if annotations:
-                            foto.anotacoes_dados = annotations
+                            try:
+                                foto.anotacoes_dados = json.loads(annotations)
+                            except (json.JSONDecodeError, TypeError):
+                                current_app.logger.warning(f"⚠️ Anotações inválidas para foto {i}, ignorando")
+                                foto.anotacoes_dados = None
 
                         db.session.add(foto)
                         photo_count += 1
@@ -1893,10 +1897,14 @@ def create_report():
                             foto.ordem = photo_count + 1
                             foto.imagem = file_data  # Salvar dados binários da imagem original
 
-                            # Salvar anotações se disponível
+                            # Salvar anotações se disponível (parse JSON string)
                             annotations = request.form.get(f'photo_annotations_{i}')
                             if annotations:
-                                foto.anotacoes_dados = annotations
+                                try:
+                                    foto.anotacoes_dados = json.loads(annotations)
+                                except (json.JSONDecodeError, TypeError):
+                                    current_app.logger.warning(f"⚠️ Anotações inválidas para foto {i}, ignorando")
+                                    foto.anotacoes_dados = None
 
                             db.session.add(foto)
                             photo_count += 1
@@ -2142,7 +2150,10 @@ def annotate_photo(photo_id):
 
         # Update photo record with binary data
         foto.filename = annotated_filename
-        foto.coordenadas_anotacao = data.get('annotations', '')
+        # Salvar annotations como JSON (não como string vazia)
+        annotations_data = data.get('annotations')
+        if annotations_data:
+            foto.coordenadas_anotacao = annotations_data if isinstance(annotations_data, (dict, list)) else None
         foto.imagem = image_binary  # Salvar dados binários da imagem anotada
         db.session.commit()
 
