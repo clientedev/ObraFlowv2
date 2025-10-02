@@ -72,14 +72,12 @@ class ReportsAutoSave {
         window.addEventListener('online', () => {
             this.isConnected = true;
             console.log('🔗 AutoSave: Conexão restaurada');
-            this.showStatus('Conexão restaurada', 'success');
             this.retrySaveFromLocalStorage();
         });
         
         window.addEventListener('offline', () => {
             this.isConnected = false;
-            console.log('📴 AutoSave: Conexão perdida');
-            this.showStatus('Offline - dados salvos localmente', 'warning');
+            console.log('📴 AutoSave: Conexão perdida - salvando localmente');
         });
     }
     
@@ -131,11 +129,11 @@ class ReportsAutoSave {
     collectFormData() {
         const data = {};
         
-        // Coletar dados dos campos permitidos
+        // Coletar dados dos campos permitidos - APENAS SE NÃO VAZIOS
         this.allowedFields.forEach(fieldName => {
             const element = document.querySelector(`[name="${fieldName}"]`);
-            if (element) {
-                data[fieldName] = element.value;
+            if (element && element.value && element.value.trim() !== '') {
+                data[fieldName] = element.value.trim();
             }
         });
         
@@ -177,20 +175,17 @@ class ReportsAutoSave {
     
     async performSave() {
         if (this.isSaving) {
-            // Auto save já em progresso - aguardando
+            console.log('⏸️ AutoSave: Já em progresso, aguardando...');
             return;
         }
         
         this.isSaving = true;
-        console.log('💾 AutoSave: Iniciando salvamento...');
         
         const data = this.collectFormData();
         
         // Verificar se há mudanças
         if (JSON.stringify(data) === JSON.stringify(this.lastSavedData)) {
-            // Nenhuma alteração para salvar
             this.isSaving = false;
-            this.hideStatus();
             return;
         }
         
@@ -199,10 +194,9 @@ class ReportsAutoSave {
                 await this.saveToServer(data);
             } else {
                 this.saveToLocalStorage(data);
-                this.showStatus('Salvo localmente (offline)', 'warning');
+                console.log('💾 AutoSave: Salvo localmente (offline)');
             }
         } catch (error) {
-            // Erro no auto save - tentando novamente
             this.handleSaveError(data, error);
         } finally {
             this.isSaving = false;
@@ -230,21 +224,11 @@ class ReportsAutoSave {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
             
-            // Logar detalhes no console dev, mas não expor para usuário
+            // APENAS LOG - SEM MENSAGENS NA TELA
             console.error(`❌ AutoSave: Erro HTTP ${response.status}:`, errorData);
             
-            // Para erro 400, usar mensagem genérica conforme especificação
-            if (response.status === 400) {
-                throw new Error('Erro ao salvar dados - verifique os campos preenchidos');
-            } else if (response.status === 403) {
-                throw new Error('Sem permissão para editar este relatório');
-            } else if (response.status === 404) {
-                throw new Error('Relatório não encontrado');
-            } else if (response.status >= 500) {
-                throw new Error('Erro interno do servidor - tente novamente');
-            }
-            
-            throw new Error(`Erro ${response.status}: ${errorData.error || 'Erro desconhecido'}`);
+            // Não mostrar mensagens de erro na tela
+            throw new Error(errorData.error || `HTTP ${response.status}`);
         }
         
         const result = await response.json();
@@ -252,16 +236,14 @@ class ReportsAutoSave {
         if (result.success) {
             this.lastSavedData = { ...data };
             this.retryCount = 0;
-            this.clearLocalStorage(); // Limpar cache local após sucesso
+            this.clearLocalStorage();
             
-            // Garantir que status seja atualizado para "Em preenchimento" se necessário
-            if (result.status === 'preenchimento') {
-                console.log('✅ AutoSave: Relatório em status "Em preenchimento"');
-            }
+            console.log('✅ AutoSave: Dados salvos com sucesso');
             
-            // Auto save concluído com sucesso - mensagem discreta
-            this.showStatus('💾 Salvo', 'success');
+            // NÃO MOSTRAR STATUS VISUAL - apenas log
+            this.hideStatus();
         } else {
+            console.error('❌ AutoSave: Falha', result.error);
             throw new Error(result.error || 'Falha no auto-save');
         }
     }
@@ -322,7 +304,7 @@ class ReportsAutoSave {
     handleSaveError(data, error) {
         this.retryCount++;
         
-        // Logar detalhes completos no console dev
+        // APENAS LOG - SEM MENSAGENS NA TELA
         console.error(`❌ AutoSave: Erro (tentativa ${this.retryCount}/${this.maxRetries})`, error);
         
         // Salvar localmente como backup
@@ -332,15 +314,13 @@ class ReportsAutoSave {
             // Implementar retry com backoff exponencial
             const backoffDelay = this.retryDelay * Math.pow(2, this.retryCount - 1);
             
-            // Mensagem discreta para usuário (sem stacktrace)
-            this.showStatus(`⚠️ Erro ao salvar - nova tentativa em ${Math.ceil(backoffDelay/1000)}s`, 'warning');
+            console.log(`🔄 AutoSave: Nova tentativa em ${Math.ceil(backoffDelay/1000)}s`);
             
             setTimeout(() => {
                 this.performSave();
             }, backoffDelay);
         } else {
-            // Após esgotar tentativas, mostrar mensagem discreta e salvar localmente
-            this.showStatus('❌ Erro ao salvar - dados preservados localmente', 'error');
+            console.error('❌ AutoSave: Máximo de tentativas atingido - dados salvos localmente');
         }
     }
     
@@ -350,38 +330,10 @@ class ReportsAutoSave {
     }
     
     showStatus(message, type = 'info') {
-        // Mensagens discretas habilitadas conforme especificação
-        // Mostrar apenas para warnings e erros importantes 
-        
-        const statusElement = document.getElementById('autosave-status');
-        if (!statusElement) return;
-        
-        statusElement.textContent = message;
-        statusElement.style.display = 'block';
-        
-        // Configurar cores baseadas no tipo
-        const colors = {
-            info: { bg: '#17a2b8', color: 'white' },
-            success: { bg: '#28a745', color: 'white' },
-            warning: { bg: '#ffc107', color: 'black' },
-            error: { bg: '#dc3545', color: 'white' },
-            saving: { bg: '#6f42c1', color: 'white' }
-        };
-        
-        const colorConfig = colors[type] || colors.info;
-        statusElement.style.backgroundColor = colorConfig.bg;
-        statusElement.style.color = colorConfig.color;
-        
-        // Auto-hide após alguns segundos - mensagens discretas
-        if (type === 'success') {
-            setTimeout(() => this.hideStatus(), 2000); // Sucesso: 2s
-        } else if (type === 'warning') {
-            setTimeout(() => this.hideStatus(), 4000); // Warning: 4s
-        } else if (type === 'error') {
-            setTimeout(() => this.hideStatus(), 6000); // Erro: 6s
-        } else {
-            setTimeout(() => this.hideStatus(), 3000); // Info: 3s (padrão)
-        }
+        // MENSAGENS DE STATUS DESABILITADAS - APENAS LOGS
+        // Não mostrar nada na tela, apenas logar no console
+        console.log(`AutoSave [${type}]: ${message}`);
+        return;
     }
     
     hideStatus() {
