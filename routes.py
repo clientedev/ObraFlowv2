@@ -1964,8 +1964,6 @@ def create_report():
             for foto_debug in fotos_debug:
                 current_app.logger.info(f"🔍 FOTO PRÉ-COMMIT: ID={foto_debug.id}, filename='{foto_debug.filename}', legenda='{foto_debug.legenda}', descricao='{foto_debug.descricao}', tipo='{foto_debug.tipo_servico}', imagem_size={len(foto_debug.imagem) if foto_debug.imagem else 0}")
 
-            # Log database info before commit
-            current_app.logger.info(f"🔧 DATABASE_URL: {app.config.get('SQLALCHEMY_DATABASE_URI', 'not set')[:50]}...")
             current_app.logger.info(f"🔧 Fazendo COMMIT de {photo_count} fotos para relatório {relatorio.id}")
             
             db.session.commit()

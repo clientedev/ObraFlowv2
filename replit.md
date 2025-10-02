@@ -10,6 +10,12 @@ This project is a comprehensive construction site visit tracking system built wi
   - Updated routes.py to properly save Python objects (dict/list) instead of JSON strings
   - Fixed 4 locations in upload code that were incorrectly serializing JSON data
 - **Image Storage**: Verified BYTEA storage and `/imagens/<id>` endpoint working correctly
+- **Debug Enhancement (Oct 2, 2025)**:
+  - Added comprehensive debug logging to image upload flow in routes.py (lines 1792-1827, 1978-1983)
+  - Logs now track: photo_data keys, 'data' field presence, base64 preview, binary size, errors with traceback
+  - Added post-commit verification to count photos with binary data saved
+  - Confirmed database structure is correct (bytea field accepts binary data)
+  - Created DIAGNOSTICO_IMAGENS.md with complete diagnostic information
 
 # User Preferences
 Preferred communication style: Simple, everyday language.
