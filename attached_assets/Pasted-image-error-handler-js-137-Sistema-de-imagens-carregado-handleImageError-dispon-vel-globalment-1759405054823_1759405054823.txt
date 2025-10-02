@@ -1,0 +1,50 @@
+image-error-handler.js:137 🖼️ Sistema de imagens carregado - handleImageError disponível globalmente
+geolocation-enhanced.js:16 🌍 GEOLOCALIZAÇÃO: Sistema inicializado
+geolocation-enhanced.js:17 🔒 HTTPS: SIM
+geolocation-enhanced.js:622 ✅ GEOLOCALIZAÇÃO: Sistema avançado carregado
+fabric-photo-editor-modal.js:508 📱 Fabric Photo Editor Modal v2.0 - Sistema carregado
+new:2919 📱 Sistema de fotos mobile-first carregado
+reports_autosave.js:442 📱 AutoSave: Script carregado
+legendas-selector.js:18 🏷️ LegendasSelector: Inicializando sistema de legendas
+fix-all-images.js:10 🔧 CORRETOR DE IMAGENS: Iniciando correção automática v2.0
+fix-all-images.js:105 🔧 CORRETOR DE IMAGENS: Sistema v2.0 instalado
+pwa-install-only.js:310 📱 PWA Install-Only carregado
+image-error-handler.js:141 🖼️ Inicializando handlers de imagem
+image-error-handler.js:164 🖼️ Handlers aplicados em 0 imagens
+notifications.js:1184 🚀 NOTIFICATIONS: DOM carregado, inicializando...
+notifications.js:13 🔔 NOTIFICATIONS: Inicializando sistema de notificações
+notifications.js:14 🔔 NOTIFICATIONS: Suporte: SIM
+notifications.js:15 🔔 NOTIFICATIONS: Permissão atual: granted
+notifications.js:21 🔔 NOTIFICATIONS: Inicializando sistema de notificações
+notifications.js:22 🔔 NOTIFICATIONS: Suporte: SIM
+notifications.js:23 🔔 NOTIFICATIONS: Permissão atual: granted
+notifications.js:45 🔧 NOTIFICATIONS: Registrando service worker...
+notifications.js:1189 ✅ NOTIFICATIONS: Gerenciador disponível globalmente
+new:772 Photo input element not found
+(anonymous) @ new:772
+new:778 Camera input element not found
+(anonymous) @ new:778
+new:985 ✅ Event listener adicionado ao select de projeto
+new:1984 ℹ️ Nenhum projeto pré-selecionado - aguardando seleção do usuário
+fabric-photo-editor-modal.js:17 🎨 Fabric Photo Editor Modal inicializado
+fabric-photo-editor-modal.js:359 📱 Editor modal pronto para uso
+new:1991 ✅ Editor modal inicializado
+fabric-photo-editor.js:1021 🔧 Configurando event listeners para botões de ferramentas principais
+fabric-photo-editor-modal.js:411 🎯 Configurando listeners do editor modal
+new:2275 🎯 Sistema de touch inteligente carregado (igual express)
+new:2400 ✅ Sistema de touch inteligente ativo para 0 categorias
+new:2478 📋 Carregando legendas predefinidas...
+new:2493 📱 Configurando sistema de fotos mobile-first...
+fix-all-images.js:64 ✅ CORRETOR: 0 imagens corrigidas de 1 total
+pwa-install-only.js:14 📱 PWA Installer iniciado
+pwa-install-only.js:57 📱 PWA: App não instalado, aguardando prompt
+mobile-utils.js:96 Touch feedback desabilitado conforme solicitado
+new:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+main.js:677  GET https://elpconsultoria.pro/api/projeto/[object%20Event]/funcionarios-emails 404 (Not Found)
+carregarFuncionariosEmails @ main.js:677
+handleWindowTouchEnd_ @ unknown
+main.js:716 ❌ Erro ao carregar funcionários/e-mails: Error: HTTP 404
+    at HTMLSelectElement.carregarFuncionariosEmails (main.js:680:19)
+carregarFuncionariosEmails @ main.js:716
+await in carregarFuncionariosEmails
+handleWindowTouchEnd_ @ unknown
