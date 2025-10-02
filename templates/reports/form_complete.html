@@ -1807,14 +1807,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-carregar dados do projeto se pre-selecionado
     {% if disable_fields and preselected_project_id %}
     // Para projeto pré-selecionado com campos desabilitados
-    console.log('🏗️ Projeto pré-selecionado detectado (campos desabilitados):', {{ preselected_project_id }});
-    carregarFuncionariosEmailsPorId({{ preselected_project_id }});
-    carregarCategoriasDoProjeto({{ preselected_project_id }});
+    console.log('🏗️ Projeto pré-selecionado detectado (campos desabilitados):', {{ preselected_project_id|tojson }});
+    carregarFuncionariosEmailsPorId({{ preselected_project_id|tojson }});
+    carregarCategoriasDoProjeto({{ preselected_project_id|tojson }});
     {% elif preselected_project_id %}
     // Para projeto selecionado normalmente
-    console.log('🏗️ Projeto pré-selecionado detectado:', {{ preselected_project_id }});
-    carregarFuncionariosEmailsPorId({{ preselected_project_id }});
-    carregarCategoriasDoProjeto({{ preselected_project_id }});
+    console.log('🏗️ Projeto pré-selecionado detectado:', {{ preselected_project_id|tojson }});
+    carregarFuncionariosEmailsPorId({{ preselected_project_id|tojson }});
+    carregarCategoriasDoProjeto({{ preselected_project_id|tojson }});
     {% else %}
     // Para projeto selecionado normalmente via dropdown
     const projetoSelect = document.getElementById('projeto_id');
