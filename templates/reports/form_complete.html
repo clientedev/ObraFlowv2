@@ -324,7 +324,6 @@
                             <span class="badge bg-warning">
                                 <i class="fas fa-edit me-1"></i>Em preenchimento
                             </span>
-                            <div id="autosave-status"></div>
                         </div>
                     </div>
                 </div>
@@ -717,11 +716,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Remover seleção anterior
         document.querySelectorAll('.photo-category').forEach(cat => {
-            cat.classList.remove('selected');
+            if (cat && cat.classList) cat.classList.remove('selected');
         });
 
         // Adicionar seleção atual
-        element.classList.add('selected');
+        if (element && element.classList) element.classList.add('selected');
 
         // Atualizar categoria global
         selectedCategory = category;
@@ -771,8 +770,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 100);
 
             // Atualizar ferramentas
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
+            document.querySelectorAll('.tool-btn').forEach(b => { if (b && b.classList) b.classList.remove('active'); });
+            if (this && this.classList) this.classList.add('active');
             currentTool = this.dataset.tool;
 
             console.log('🔧 Ferramenta selecionada:', currentTool);
@@ -1122,12 +1121,12 @@ function addCustomChecklistItem() {
 
 // Marcar checklist como concluído
 document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('form-check-input') && e.target.type === 'checkbox') {
+    if (e.target && e.target.classList && e.target.classList.contains('form-check-input') && e.target.type === 'checkbox') {
         const item = e.target.closest('.checklist-item');
         if (e.target.checked) {
-            item.classList.add('completed');
+            if (item && item.classList) item.classList.add('completed');
         } else {
-            item.classList.remove('completed');
+            if (item && item.classList) item.classList.remove('completed');
         }
     }
 });
@@ -1159,7 +1158,7 @@ function openPhotoEditor(photoId) {
             img.dataset.legend = data.legend;
 
             // Marcar visualmente como editada
-            card.classList.add('edited');
+            if (card && card.classList) card.classList.add('edited');
 
             // Adicionar badge de editado se não existir
             if (!card.querySelector('.edited-badge')) {
@@ -1287,7 +1286,7 @@ function updatePhotoFromFabricEditor(photoId, editedImageData) {
 
     // Adicionar indicador visual de foto editada
     const card = photoElement.querySelector('.card');
-    if (card && !card.classList.contains('border-success')) {
+    if (card && card.classList && !card.classList.contains('border-success')) {
         card.classList.add('border-success', 'border-2');
 
         // Remover indicador anterior se existir
@@ -1419,9 +1418,13 @@ function saveEditedPhoto() {
 
         // Add visual indicator that photo was edited
         const editButton = currentEditingPhoto.element.querySelector('.btn-primary');
-        editButton.innerHTML = '<i class="fas fa-check"></i> Editada';
-        editButton.classList.remove('btn-primary');
-        editButton.classList.add('btn-success');
+        if (editButton) {
+            editButton.innerHTML = '<i class="fas fa-check"></i> Editada';
+            if (editButton.classList) {
+                editButton.classList.remove('btn-primary');
+                editButton.classList.add('btn-success');
+            }
+        }
     }
 
     const modal = bootstrap.Modal.getInstance(document.getElementById('photoEditorModal'));
@@ -1650,14 +1653,14 @@ function toggleChecklistItem(checkbox) {
         if (obsField) {
             obsField.style.display = 'block';
         }
-        if (parentItem) {
+        if (parentItem && parentItem.classList) {
             parentItem.classList.add('completed');
         }
     } else {
         if (obsField) {
             obsField.style.display = 'none';
         }
-        if (parentItem) {
+        if (parentItem && parentItem.classList) {
             parentItem.classList.remove('completed');
         }
     }
@@ -1671,14 +1674,14 @@ function toggleChecklistItem(checkbox) {
 
     if (checkbox.checked) {
         // Marcar como completo
-        checklistItem.classList.add('completed');
+        if (checklistItem && checklistItem.classList) checklistItem.classList.add('completed');
         // Mostrar campo de observações
         if (obsSection) {
             obsSection.style.display = 'block';
         }
     } else {
         // Desmarcar como completo
-        checklistItem.classList.remove('completed');
+        if (checklistItem && checklistItem.classList) checklistItem.classList.remove('completed');
         // Ocultar campo de observações
         if (obsSection) {
             obsSection.style.display = 'none';
@@ -2214,11 +2217,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function selectPhotoCategory(category, element) {
         // Remover seleção anterior
         document.querySelectorAll('.photo-category').forEach(cat => {
-            cat.classList.remove('selected');
+            if (cat && cat.classList) cat.classList.remove('selected');
         });
 
         // Adicionar seleção atual
-        element.classList.add('selected');
+        if (element && element.classList) element.classList.add('selected');
 
         // Feedback tátil
         if (navigator.vibrate) {
@@ -2255,7 +2258,7 @@ document.addEventListener('DOMContentLoaded', function() {
             touchData.element = categoryElement;
 
             // Feedback visual imediato
-            categoryElement.classList.add('touching');
+            if (categoryElement && categoryElement.classList) categoryElement.classList.add('touching');
         }, { passive: true });
 
         // Touch Move
@@ -2270,7 +2273,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Se movimento exceder threshold, marcar como drag
             if (totalDelta > TOUCH_THRESHOLD) {
                 touchData.isDragging = true;
-                categoryElement.classList.remove('touching');
+                if (categoryElement && categoryElement.classList) categoryElement.classList.remove('touching');
                 console.log('🔄 Movimento detectado - modo drag ativado');
             }
         }, { passive: true });
@@ -2280,7 +2283,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('👆 TouchEnd categoria');
 
             // Remover feedback visual
-            categoryElement.classList.remove('touching');
+            if (categoryElement && categoryElement.classList) categoryElement.classList.remove('touching');
 
             if (!touchData.element) return;
 
@@ -2341,47 +2344,10 @@ window.selectPhotoCategory = function(category, element) {
 </script>
 
 <!-- Auto Save Script -->
-<!-- Sistema de autosave antigo desabilitado para evitar conflitos -->
-<!-- <script src="{{ url_for('static', filename='js/autosave.js') }}"></script> -->
-<script>
-// Inicializar Auto Save apenas se estivermos editando um relatório existente
-document.addEventListener('DOMContentLoaded', function() {
-    // Verificar se temos um ID de relatório para auto save
-    const urlParams = new URLSearchParams(window.location.search);
-    const reportId = urlParams.get('report_id') || document.querySelector('input[name="report_id"]')?.value;
-
-    if (reportId) {
-        // Inicializar auto save
-        const autoSave = initAutoSave(reportId, {
-            interval: 10000, // 10 segundos
-            statusElement: document.getElementById('autosave-status'),
-            form: document.getElementById('reportForm')
-        });
-
-        console.log('Auto Save ativado para relatório', reportId);
-
-        // Modificar o comportamento do botão de finalizar
-        const submitBtn = document.querySelector('button[type="submit"]');
-        if (submitBtn) {
-            submitBtn.addEventListener('click', function(e) {
-                // Parar auto save antes de finalizar
-                autoSave.stop();
-
-                // Salvar uma última vez e depois prosseguir
-                autoSave.saveNow().then(() => {
-                    // Alterar status para finalizado
-                    const statusBadge = document.querySelector('.badge.bg-warning');
-                    if (statusBadge) {
-                        statusBadge.innerHTML = '<i class="fas fa-check me-1"></i>Finalizando...';
-                        statusBadge.classList.remove('bg-warning');
-                        statusBadge.classList.add('bg-success');
-                    }
-                });
-            });
-        }
-    }
-});
-</script>
+<!-- Sistema de autosave gerenciado automaticamente pelo reports_autosave.js -->
+{% if existing_report and existing_report.id %}
+<div data-report-id="{{ existing_report.id }}" style="display:none;"></div>
+{% endif %}
 
 <!-- Mobile-First Photo System JavaScript -->
 <script>
