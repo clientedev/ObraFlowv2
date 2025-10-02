@@ -16,7 +16,15 @@ Mobile-first design: Date field should be the first input field in report forms.
 
 # Recent Improvements (October 2025)
 
-## Nearby Projects Module Enhancement (October 1, 2025 - Latest)
+## Project Selection Employee/Email Loading Fix (October 2, 2025 - Latest)
+- **Fixed Project Employee/Email Loading**: Corrected the `onchange` handler in report forms to properly pass values
+  - ✅ **Issue**: When selecting a project, the inline `onchange="carregarFuncionariosEmails()"` was not passing the value, causing undefined to be sent
+  - ✅ **Fix**: Changed to `onchange="carregarFuncionariosEmails(this.value)"` to properly pass the project ID
+  - ✅ **Result**: Employees and emails now load correctly when a project is selected
+  - ✅ **Files Updated**: templates/reports/form_complete.html (line 411)
+  - ✅ **API Endpoint**: `/api/projeto/<int:projeto_id>/funcionarios-emails` working correctly
+
+## Nearby Projects Module Enhancement (October 1, 2025)
 - **Backend API Improvements** (`/api/projects/nearby` in `routes.py`):
   - ✅ **Dual Parameter Support**: Accepts both `lat`/`lng` AND `latitude`/`longitude` for compatibility
   - ✅ **Coordinate Validation**: Validates latitude (-90 to 90) and longitude (-180 to 180) ranges
