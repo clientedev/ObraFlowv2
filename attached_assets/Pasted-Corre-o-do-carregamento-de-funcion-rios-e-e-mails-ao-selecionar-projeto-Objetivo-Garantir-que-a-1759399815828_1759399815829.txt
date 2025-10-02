@@ -1,0 +1,72 @@
+Correção do carregamento de funcionários e e-mails ao selecionar projeto
+
+Objetivo:
+
+Garantir que, ao selecionar um projeto, os campos Funcionários do Projeto e E-mails para Envio sejam preenchidos automaticamente.
+
+Corrigir tanto o front-end (evento onchange + renderização) quanto o back-end (endpoints de dados).
+
+1. Front-end (JS)
+
+Adicionar o listener no campo de seleção de projeto:
+
+document.querySelector('#projeto').addEventListener('change', async function() {
+  const projetoId = this.value; // Ex: PROJ-0001
+  if (!projetoId) return;
+
+  try {
+    // Buscar funcionários
+    const respFunc = await fetch(`/api/projetos/${projetoId}/funcionarios`);
+    const funcionarios = await respFunc.json();
+
+    const funcSelect = document.querySelector('#funcionarios_projeto');
+    funcSelect.innerHTML = '<option value="">Selecione um funcionário</option>';
+    funcionarios.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.nome;
+      funcSelect.appendChild(opt);
+    });
+
+    // Buscar e-mails
+    const respEmails = await fetch(`/api/projetos/${projetoId}/emails`);
+    const emails = await respEmails.json();
+
+    const emailSelect = document.querySelector('#emails_projeto');
+    emailSelect.innerHTML = '<option value="">Selecione um e-mail</option>';
+    emails.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.email;
+      opt.textContent = e.email;
+      emailSelect.appendChild(opt);
+    });
+
+  } catch (err) {
+    console.error('Erro ao carregar dados do projeto:', err);
+    alert('Erro ao carregar funcionários e e-mails do projeto.');
+  }
+});
+
+
+⚠️ Observação: Os IDs dos selects devem ser #projeto, #funcionarios_projeto e #emails_projeto. Ajuste se os seus forem diferentes.
+
+2. Back-end (Flask)
+
+Criar endpoints para retornar funcionários e e-mails vinculados ao projeto:
+
+@app.route('/api/projetos/<string:projeto_id>/funcionarios')
+def get_funcionarios_projeto(projeto_id):
+    funcionarios = Funcionario.query.filter_by(projeto_id=projeto_id).all()
+    return jsonify([{'id': f.id, 'nome': f.nome} for f in funcionarios])
+
+@app.route('/api/projetos/<string:projeto_id>/emails')
+def get_emails_projeto(projeto_id):
+    emails = EmailProjeto.query.filter_by(projeto_id=projeto_id).all()
+    return jsonify([{'email': e.email} for e in emails])
+
+3. Resultado esperado
+
+Ao selecionar um projeto na lista:
+✅ O sistema chama /api/projetos/{id}/funcionarios e /api/projetos/{id}/emails.
+✅ Os selects são preenchidos automaticamente.
+✅ Funciona tanto no desktop quanto no mobile.
