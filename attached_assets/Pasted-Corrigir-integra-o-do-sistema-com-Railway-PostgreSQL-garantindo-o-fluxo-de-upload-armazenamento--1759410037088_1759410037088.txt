@@ -1,0 +1,65 @@
+Corrigir integração do sistema com Railway + PostgreSQL garantindo o fluxo de upload, armazenamento e exibição de imagens:
+
+Configuração do Banco
+
+Validar a URL de conexão no ambiente Railway:
+
+postgresql://postgres:KgyYkEmMztCNMSPHVbOpWLTiKZFXYwpB@postgres.railway.internal:5432/railway
+
+
+ou, para acesso externo:
+
+postgresql://postgres:KgyYkEmMztCNMSPHVbOpWLTiKZFXYwpB@switchback.proxy.rlwy.net:17107/railway
+
+
+Usar variáveis de ambiente no backend (DATABASE_URL).
+
+Confirmar que a aplicação utiliza a mesma instância configurada no Railway.
+
+Estrutura da Tabela – fotos_relatorio
+
+Ajustar para garantir que os campos suportem armazenamento e leitura de imagem:
+
+CREATE TABLE IF NOT EXISTS fotos_relatorio (
+    id SERIAL PRIMARY KEY,
+    relatorio_id INT NOT NULL REFERENCES relatorios(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    filename_original TEXT,
+    filename_anotada TEXT,
+    titulo TEXT,
+    legenda TEXT,
+    descricao TEXT,
+    tipo_servico TEXT,
+    anotacoes_dados JSONB,
+    ordem INT DEFAULT 1,
+    coordenadas_anotacao JSONB,
+    created_at TIMESTAMP DEFAULT NOW(),
+    imagem BYTEA  -- armazenar conteúdo binário da imagem
+);
+
+
+Fluxo de Upload → DB → Exibição
+
+Upload: Backend recebe a imagem (via API).
+
+Armazenamento: Converter o arquivo em BYTEA (binário) ou armazenar em bucket externo (ex.: S3/Cloudinary) e salvar apenas a URL.
+
+Registro no banco: salvar metadados (filename, titulo, descricao, ordem, etc.) junto com imagem (quando armazenada em binário).
+
+Exibição: Endpoint deve retornar a imagem corretamente convertida de BYTEA → base64 → exibida no <img src="...">.
+
+Correção de Erros Atuais
+
+Substituir registros inválidos ([object Object]) por dados válidos JSON (ex.: {x:10,y:20}).
+
+Garantir que coordenadas_anotacao e anotacoes_dados sejam validados como JSON antes de inserir.
+
+Resolver erro 400 Bad Request no endpoint /api/projects/nearby validando que as coordenadas enviadas sejam float válidos (latitude/longitude).
+
+Objetivo Final
+
+O sistema deve permitir que, ao concluir um relatório, as imagens sejam salvas corretamente em fotos_relatorio.
+
+Cada relatório poderá exibir suas imagens vinculadas no frontend, mantendo metadados organizados (titulo, descricao, legenda, etc.).
+
+Corrigir problemas de leitura para que ao abrir um relatório todas as imagens carreguem corretamente sem erros de tipo.
