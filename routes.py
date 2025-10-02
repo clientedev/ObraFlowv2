@@ -7209,21 +7209,25 @@ def express_new():
             # Usar categorias customizadas do projeto
             categorias_lista = [{'nome': cat.nome_categoria, 'icon': 'fa-tag'} for cat in categorias]
             categoria_choices = [('', 'Selecione...')] + [(cat.nome_categoria, cat.nome_categoria) for cat in categorias]
-            for foto_form in form.foto_forms:
-                foto_form.tipo_servico.choices = categoria_choices
+            # RelatorioExpressForm não tem foto_forms (usa MultipleFileField simples)
+            if hasattr(form, 'foto_forms'):
+                for foto_form in form.foto_forms:
+                    foto_form.tipo_servico.choices = categoria_choices
             current_app.logger.info(f"✅ EXPRESS: Usando {len(categorias_lista)} categorias customizadas: {[c['nome'] for c in categorias_lista]}")
         else:
             # Projeto sem categorias cadastradas
             categorias_lista = []
-            for foto_form in form.foto_forms:
-                foto_form.tipo_servico.choices = [('', 'Nenhuma categoria cadastrada para este projeto')]
+            if hasattr(form, 'foto_forms'):
+                for foto_form in form.foto_forms:
+                    foto_form.tipo_servico.choices = [('', 'Nenhuma categoria cadastrada para este projeto')]
             current_app.logger.warning(f"⚠️ EXPRESS: Projeto {projeto_id} não tem categorias cadastradas")
     else:
         # Sem projeto_id
         current_app.logger.warning("⚠️ EXPRESS: Sem projeto_id fornecido")
         categorias_lista = []
-        for foto_form in form.foto_forms:
-            foto_form.tipo_servico.choices = [('', 'Projeto não selecionado')]
+        if hasattr(form, 'foto_forms'):
+            for foto_form in form.foto_forms:
+                foto_form.tipo_servico.choices = [('', 'Projeto não selecionado')]
 
     if form.validate_on_submit():
         try:

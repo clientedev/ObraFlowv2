@@ -16,7 +16,16 @@ Mobile-first design: Date field should be the first input field in report forms.
 
 # Recent Improvements (October 2025)
 
-## Project Selection Employee/Email Loading Fix (October 2, 2025 - Latest)
+## Express Report Form Fix (October 2, 2025 - Latest)
+- **Fixed AttributeError in Express Report Creation**: Resolved crash when creating new express reports
+  - ✅ **Root Cause**: Route code tried to access `form.foto_forms` which doesn't exist in `RelatorioExpressForm`
+  - ✅ **Issue**: Express form uses simple `MultipleFileField` for photos, not individual photo forms
+  - ✅ **Solution**: Added `hasattr(form, 'foto_forms')` safety checks before iterating over foto_forms
+  - ✅ **Impact**: Express reports can now be created without 500 Internal Server Error
+  - ✅ **File Updated**: `routes.py` - Added safety checks at lines 7216, 7223, 7231 in `/express/novo` route
+  - ✅ **Error Fixed**: `AttributeError: 'RelatorioExpressForm' object has no attribute 'foto_forms'`
+
+## Project Selection Employee/Email Loading Fix (October 2, 2025)
 - **Fixed Project Employee/Email Loading**: Corrected authentication issue causing 302 redirects instead of JSON responses
   - ✅ **Root Cause**: AJAX requests were not sending session cookies, causing Flask-Login to redirect to `/login` (HTTP 302)
   - ✅ **Solution**: Added `credentials: 'same-origin'` to fetch() calls in `static/js/main.js` (line 698)
