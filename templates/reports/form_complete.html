@@ -816,16 +816,33 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Função para carregar funcionários e e-mails quando projeto é selecionado
-function carregarFuncionariosEmails(event) {
-    // Se receber um evento, usar o target, senão buscar o elemento diretamente
-    const projetoSelect = event && event.target ? event.target : document.getElementById('projeto_id');
+function carregarFuncionariosEmails(eventOrId) {
+    console.log('🔄 carregarFuncionariosEmails chamado com:', typeof eventOrId, eventOrId);
     
-    if (!projetoSelect) {
-        console.error('❌ Select de projeto não encontrado');
+    let projetoId;
+    
+    // Extrair projetoId do evento ou usar diretamente
+    if (typeof eventOrId === 'object' && eventOrId && eventOrId.target) {
+        // É um evento, pegar o valor do select
+        projetoId = eventOrId.target.value;
+        console.log('📋 ProjetoId extraído do evento:', projetoId);
+    } else if (typeof eventOrId === 'number' || typeof eventOrId === 'string') {
+        // É o ID direto
+        projetoId = eventOrId;
+        console.log('📋 ProjetoId usado diretamente:', projetoId);
+    } else if (!eventOrId) {
+        // Buscar do select diretamente
+        const projetoSelect = document.getElementById('projeto_id');
+        if (projetoSelect) {
+            projetoId = projetoSelect.value;
+            console.log('📋 ProjetoId do select:', projetoId);
+        }
+    }
+    
+    if (!projetoId) {
+        console.error('❌ ProjetoId não encontrado');
         return;
     }
-
-    const projetoId = projetoSelect.value;
     const funcionariosDiv = document.getElementById('funcionarios-projeto');
     const emailsDiv = document.getElementById('emails-projeto');
 
@@ -833,7 +850,7 @@ function carregarFuncionariosEmails(event) {
         console.error('❌ Divs de funcionários ou emails não encontradas');
         return;
     }
-
+    
     if (!projetoId) {
         funcionariosDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os funcionários disponíveis</p>';
         emailsDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os e-mails disponíveis</p>';

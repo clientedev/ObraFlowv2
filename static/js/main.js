@@ -667,11 +667,27 @@ function renderizarObrasProximas(obras) {
 }
 
 // Carregar funcionários e e-mails de um projeto
-async function carregarFuncionariosEmails(projetoId) {
+async function carregarFuncionariosEmails(eventOrId) {
+    // Extrair projetoId do evento ou usar diretamente se for um número
+    let projetoId;
+    
+    if (typeof eventOrId === 'object' && eventOrId.target) {
+        // É um evento, pegar o valor do select
+        projetoId = eventOrId.target.value;
+    } else if (typeof eventOrId === 'number' || typeof eventOrId === 'string') {
+        // É o ID direto
+        projetoId = eventOrId;
+    } else {
+        console.log('⚠️ Parâmetro inválido para carregarFuncionariosEmails:', eventOrId);
+        return;
+    }
+    
     if (!projetoId) {
         console.log('⚠️ Projeto não selecionado');
         return;
     }
+    
+    console.log('🔄 Carregando funcionários/e-mails para projeto:', projetoId);
     
     try {
         const response = await fetch(`/api/projeto/${projetoId}/funcionarios-emails`);
@@ -683,6 +699,8 @@ async function carregarFuncionariosEmails(projetoId) {
         const data = await response.json();
         
         if (data.success) {
+            console.log('✅ Dados carregados:', data.funcionarios.length, 'funcionários e', data.emails.length, 'e-mails');
+            
             // Atualizar select de funcionários
             const funcionariosSelect = document.getElementById('funcionarios_ids');
             if (funcionariosSelect) {
