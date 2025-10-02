@@ -1920,13 +1920,27 @@ def create_report():
             for foto_debug in fotos_debug:
                 current_app.logger.info(f"🔍 FOTO PRÉ-COMMIT: ID={foto_debug.id}, filename='{foto_debug.filename}', legenda='{foto_debug.legenda}', descricao='{foto_debug.descricao}', tipo='{foto_debug.tipo_servico}', imagem_size={len(foto_debug.imagem) if foto_debug.imagem else 0}")
 
+            # Log database info before commit
+            current_app.logger.info(f"🔧 DATABASE_URL: {app.config.get('SQLALCHEMY_DATABASE_URI', 'not set')[:50]}...")
+            current_app.logger.info(f"🔧 Fazendo COMMIT de {photo_count} fotos para relatório {relatorio.id}")
+            
             db.session.commit()
+            
+            current_app.logger.info(f"✅ COMMIT REALIZADO COM SUCESSO")
 
-            # Debug: Verificar fotos após o commit
+            # Debug: Verificar fotos após o commit diretamente do banco
             fotos_post = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).all()
-            current_app.logger.info(f"✅ PÓS-COMMIT: {len(fotos_post)} fotos salvas no banco")
+            current_app.logger.info(f"✅ PÓS-COMMIT: {len(fotos_post)} fotos encontradas no banco para relatório {relatorio.id}")
+            
             for foto_post in fotos_post:
-                current_app.logger.info(f"💾 FOTO SALVA: ID={foto_post.id}, legenda='{foto_post.legenda}', imagem_presente={foto_post.imagem is not None}")
+                imagem_size = len(foto_post.imagem) if foto_post.imagem else 0
+                current_app.logger.info(f"💾 FOTO ID={foto_post.id}: legenda='{foto_post.legenda}', filename='{foto_post.filename}', imagem_bytes={imagem_size}, imagem_presente={foto_post.imagem is not None}")
+                
+                # Verificar dados JSON
+                if foto_post.anotacoes_dados:
+                    current_app.logger.info(f"   📝 Anotações: {type(foto_post.anotacoes_dados).__name__}")
+                if foto_post.coordenadas_anotacao:
+                    current_app.logger.info(f"   📍 Coordenadas: {type(foto_post.coordenadas_anotacao).__name__}")
 
             flash('Relatório criado com sucesso!', 'success')
 
