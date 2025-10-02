@@ -1712,29 +1712,6 @@ function capturarLocalizacao() {
 
 // FUNÇÃO DUPLICADA REMOVIDA - usar apenas a versão do início do arquivo
 
-// Função para alternar checkbox e mostrar/ocultar campo de observações
-function toggleChecklistItem(checkbox) {
-    const itemId = checkbox.id.replace('check_', '');
-    const obsField = document.getElementById(`obs_${itemId}`);
-    const parentItem = checkbox.closest('.checklist-item');
-
-    if (checkbox.checked) {
-        if (obsField) {
-            obsField.style.display = 'block';
-        }
-        if (parentItem) {
-            parentItem.classList.add('completed');
-        }
-    } else {
-        if (obsField) {
-            obsField.style.display = 'none';
-        }
-        if (parentItem) {
-            parentItem.classList.remove('completed');
-        }
-    }
-}
-
 // Função para alternar estado do checklist item
 function toggleChecklistItem(checkbox) {
     const itemId = checkbox.id.replace('check_', '');
@@ -1743,14 +1720,18 @@ function toggleChecklistItem(checkbox) {
 
     if (checkbox.checked) {
         // Marcar como completo
-        checklistItem.classList.add('completed');
+        if (checklistItem) {
+            checklistItem.classList.add('completed');
+        }
         // Mostrar campo de observações
         if (obsSection) {
             obsSection.style.display = 'block';
         }
     } else {
         // Desmarcar como completo
-        checklistItem.classList.remove('completed');
+        if (checklistItem) {
+            checklistItem.classList.remove('completed');
+        }
         // Ocultar campo de observações
         if (obsSection) {
             obsSection.style.display = 'none';
@@ -1815,8 +1796,13 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🏗️ Projeto pré-selecionado detectado (campos desabilitados):', {{ preselected_project_id }});
     carregarFuncionariosEmailsPorId({{ preselected_project_id }});
     carregarCategoriasDoProjeto({{ preselected_project_id }});
-    {% else %}
+    {% elif preselected_project_id %}
     // Para projeto selecionado normalmente
+    console.log('🏗️ Projeto pré-selecionado detectado:', {{ preselected_project_id }});
+    carregarFuncionariosEmailsPorId({{ preselected_project_id }});
+    carregarCategoriasDoProjeto({{ preselected_project_id }});
+    {% else %}
+    // Para projeto selecionado normalmente via dropdown
     const projetoSelect = document.getElementById('projeto_id');
     if (projetoSelect && projetoSelect.value) {
         console.log('🏗️ Projeto pré-selecionado detectado:', projetoSelect.value);
@@ -2107,8 +2093,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Auto-populate project coordinates script -->
 <script>
 // Auto-populate project coordinates and location info when coming from project view
-{% if selected_project %}
 document.addEventListener('DOMContentLoaded', function() {
+    {% if selected_project %}
     // Ensure required elements exist
     const latitudeEl = document.getElementById('latitude');
     const longitudeEl = document.getElementById('longitude');
@@ -2142,8 +2128,8 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     `;
     {% endif %}
+    {% endif %}
 });
-{% endif %}
 
 // Sistema de touch inteligente IGUAL AO EXPRESS - funcional 100%
 document.addEventListener('DOMContentLoaded', function() {
