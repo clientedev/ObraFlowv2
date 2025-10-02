@@ -422,29 +422,35 @@
                         <!-- Seleção de Funcionários e E-mails -->
                         <div class="row mb-4">
                             <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
                                         <h6 class="mb-0">
                                             <i class="fas fa-users me-2"></i>Funcionários do Projeto
                                         </h6>
                                     </div>
-                                    <div class="card-body">
+                                    <div class="card-body" style="min-height: 150px;">
                                         <div id="funcionarios-projeto">
-                                            <p class="text-muted">Selecione um projeto para ver os funcionários disponíveis</p>
+                                            <div class="alert alert-info mb-0">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                Selecione um projeto para ver os funcionários disponíveis
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
+                                <div class="card border-success">
+                                    <div class="card-header bg-success text-white">
                                         <h6 class="mb-0">
                                             <i class="fas fa-envelope me-2"></i>E-mails para Envio
                                         </h6>
                                     </div>
-                                    <div class="card-body">
+                                    <div class="card-body" style="min-height: 150px;">
                                         <div id="emails-projeto">
-                                            <p class="text-muted">Selecione um projeto para ver os e-mails disponíveis</p>
+                                            <div class="alert alert-info mb-0">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                Selecione um projeto para ver os e-mails disponíveis
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -845,9 +851,15 @@ function carregarFuncionariosEmails(eventOrId) {
         return;
     }
     
-    // Buscar elementos DOM
+    // Buscar elementos DOM com debug detalhado
     const funcionariosDiv = document.getElementById('funcionarios-projeto');
     const emailsDiv = document.getElementById('emails-projeto');
+
+    console.log('🔍 DEBUG DOM:');
+    console.log('  - funcionariosDiv existe?', !!funcionariosDiv);
+    console.log('  - funcionariosDiv innerHTML:', funcionariosDiv ? funcionariosDiv.innerHTML.substring(0, 100) : 'NULL');
+    console.log('  - emailsDiv existe?', !!emailsDiv);
+    console.log('  - emailsDiv innerHTML:', emailsDiv ? emailsDiv.innerHTML.substring(0, 100) : 'NULL');
 
     if (!funcionariosDiv || !emailsDiv) {
         console.error('❌ Divs de funcionários ou emails não encontradas');
