@@ -656,7 +656,10 @@ def api_user_data_counts():
 def api_projeto_funcionarios_emails(projeto_id):
     """Retorna funcionários e e-mails de um projeto específico para seleção em relatórios"""
     try:
+        current_app.logger.info(f"📡 API chamada: /api/projeto/{projeto_id}/funcionarios-emails por usuário {current_user.id}")
+        
         projeto = Projeto.query.get_or_404(projeto_id)
+        current_app.logger.info(f"✅ Projeto encontrado: {projeto.nome}")
 
         # Verificação de autorização: usuário deve ter acesso ao projeto
         if not current_user.is_master:
@@ -669,6 +672,7 @@ def api_projeto_funcionarios_emails(projeto_id):
 
             # Se não for funcionário do projeto e não for responsável, negar acesso
             if not user_project_access and projeto.responsavel_id != current_user.id:
+                current_app.logger.warning(f"🚫 Acesso negado para usuário {current_user.id} ao projeto {projeto_id}")
                 return jsonify({
                     'success': False,
                     'error': 'Acesso negado ao projeto'
@@ -679,12 +683,14 @@ def api_projeto_funcionarios_emails(projeto_id):
             projeto_id=projeto_id, 
             ativo=True
         ).all()
+        current_app.logger.info(f"📋 Funcionários encontrados: {len(funcionarios)}")
 
         # Buscar e-mails do projeto
         emails = EmailCliente.query.filter_by(
             projeto_id=projeto_id, 
             ativo=True
         ).all()
+        current_app.logger.info(f"📧 E-mails encontrados: {len(emails)}")
 
         funcionarios_data = []
         for func in funcionarios:
@@ -711,17 +717,18 @@ def api_projeto_funcionarios_emails(projeto_id):
         return jsonify({
             'success': True,
             'funcionarios': funcionarios_data,
-            'emails': emails_data
+            'emails': emails_data,
+            'projeto_nome': projeto.nome
         })
 
     except HTTPException as e:
-        # Allow HTTP exceptions (like 404) to propagate correctly
+        current_app.logger.error(f"❌ HTTPException: {e}")
         raise
     except Exception as e:
-        current_app.logger.error(f"❌ Erro ao buscar funcionários e e-mails do projeto {projeto_id}: {e}")
+        current_app.logger.exception(f"❌ Erro CRÍTICO ao buscar funcionários e e-mails do projeto {projeto_id}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'Erro interno: {str(e)}'
         }), 500
 
 @app.route('/api/projetos/<int:projeto_id>/funcionarios')

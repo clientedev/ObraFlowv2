@@ -59,7 +59,7 @@
             pointer-events: auto !important;
             transition: all 0.15s ease;
         }
-        
+
         /* Feedback visual do touch - igual Express */
         .photo-category.touching {
             transform: scale(0.95);
@@ -95,7 +95,7 @@
             border-width: 1px !important;
             background: #f8f9fa;
         }
-        
+
         #data_relatorio {
             font-size: 16px;
             font-weight: 400;
@@ -103,32 +103,32 @@
             border-radius: 0.375rem;
             box-shadow: none;
         }
-        
+
         #data_relatorio:focus {
             border-color: #86b7fe;
             box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
     }
-    
+
     @media (max-width: 768px) {
         #data_relatorio {
             font-size: 16px !important;
             min-height: 44px !important;
             padding: 12px !important;
         }
-        
+
         .form-label {
             font-size: 14px !important;
             margin-bottom: 0.5rem !important;
         }
-        
+
         .alert.border-primary {
             margin-bottom: 1rem !important;
             padding: 1rem !important;
             border-radius: 0.375rem !important;
         }
     }
-    
+
     @media (max-width: 576px) {
         #data_relatorio {
             font-size: 16px !important;
@@ -296,15 +296,15 @@
         .mobile-photo-card {
             margin-bottom: 20px;
         }
-        
+
         .photo-card-image {
             height: 160px;
         }
-        
+
         .photo-card-content {
             padding: 12px;
         }
-        
+
         .caption-input, .caption-select {
             font-size: 16px !important; /* Prevent zoom on iOS */
         }
@@ -337,7 +337,7 @@
                         {% if selected_project %}
                         <input type="hidden" name="projeto_id" value="{{ selected_project.id }}">
                         {% endif %}
-                        
+
                         <!-- Data do Relatório -->
                         <div class="mb-3">
                             <label class="form-label" for="data_relatorio">
@@ -598,7 +598,7 @@
 
                             <!-- Preview das Fotos com Cards Mobile-First -->
                             <div id="mobilePhotoCards" class="row g-3"></div>
-                            
+
                             <!-- Quick Action Bar para adicionar mais fotos -->
                             <div id="quickPhotoActions" class="text-center mt-3 p-3 bg-light rounded" style="display: none;">
                                 <div class="d-flex justify-content-center gap-2 flex-wrap">
@@ -611,7 +611,7 @@
                                 </div>
                                 <small class="text-muted d-block mt-2">Total: <span id="quickPhotoCount">0</span> fotos (máximo 200)</small>
                             </div>
-                            
+
                             <!-- Fotos antigas (mantido para compatibilidade) -->
                             <div id="photoPreview" class="row" style="display: none;"></div>
                         </div>
@@ -708,27 +708,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listener para função global
     document.addEventListener('selectCategory', function(e) {
         const { category, element } = e.detail;
-        
+
         // Remover seleção anterior
         document.querySelectorAll('.photo-category').forEach(cat => {
             cat.classList.remove('selected');
         });
-        
+
         // Adicionar seleção atual
         element.classList.add('selected');
-        
+
         // Atualizar categoria global
         selectedCategory = category;
-        
+
         // Habilitar botões de upload
         const galleryBtn = document.getElementById('galleryBtn');
         const cameraBtn = document.getElementById('cameraBtn');
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
-        
+
         // Atualizar input de fotos
         updatePhotoInput();
-        
+
         // Categoria global selecionada
     });
 
@@ -815,15 +815,22 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Função para carregar funcionários e e-mails do projeto selecionado
+// Função para carregar funcionários e e-mails quando projeto é selecionado
 function carregarFuncionariosEmails() {
-    const projetoId = document.getElementById('projeto_id').value;
-    carregarFuncionariosEmailsPorId(projetoId);
-}
+    const projetoSelect = document.getElementById('projeto_id');
+    if (!projetoSelect) {
+        console.error('❌ Select de projeto não encontrado');
+        return;
+    }
 
-function carregarFuncionariosEmailsPorId(projetoId) {
+    const projetoId = projetoSelect.value;
     const funcionariosDiv = document.getElementById('funcionarios-projeto');
     const emailsDiv = document.getElementById('emails-projeto');
+
+    if (!funcionariosDiv || !emailsDiv) {
+        console.error('❌ Divs de funcionários ou emails não encontradas');
+        return;
+    }
 
     if (!projetoId) {
         funcionariosDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os funcionários disponíveis</p>';
@@ -832,7 +839,7 @@ function carregarFuncionariosEmailsPorId(projetoId) {
     }
 
     console.log('🔄 Carregando funcionários e e-mails para projeto ID:', projetoId);
-    
+
     funcionariosDiv.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Carregando funcionários...</p>';
     emailsDiv.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Carregando e-mails...</p>';
 
@@ -840,12 +847,13 @@ function carregarFuncionariosEmailsPorId(projetoId) {
     fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         },
         credentials: 'same-origin'
     })
     .then(response => {
-        console.log('📡 Resposta da API:', response.status);
+        console.log('📡 Resposta da API:', response.status, response.statusText);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
@@ -853,11 +861,12 @@ function carregarFuncionariosEmailsPorId(projetoId) {
     })
     .then(data => {
         console.log('📦 Dados recebidos:', data);
-        
+
         if (data.success) {
             // Renderizar funcionários
             let funcionariosHtml = '';
             if (data.funcionarios && data.funcionarios.length > 0) {
+                console.log(`✅ ${data.funcionarios.length} funcionários encontrados`);
                 data.funcionarios.forEach(func => {
                     const checked = func.is_responsavel_principal ? 'checked' : '';
                     funcionariosHtml += `
@@ -872,7 +881,6 @@ function carregarFuncionariosEmailsPorId(projetoId) {
                         </div>
                     `;
                 });
-                console.log(`✅ ${data.funcionarios.length} funcionários carregados`);
             } else {
                 funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
                 console.log('⚠️ Nenhum funcionário encontrado');
@@ -904,16 +912,32 @@ function carregarFuncionariosEmailsPorId(projetoId) {
             emailsDiv.innerHTML = emailsHtml;
         } else {
             console.error('❌ API retornou erro:', data.error || 'Erro desconhecido');
-            funcionariosDiv.innerHTML = `<p class="text-danger">Erro: ${data.error || 'Erro ao carregar funcionários'}</p>`;
-            emailsDiv.innerHTML = `<p class="text-danger">Erro: ${data.error || 'Erro ao carregar e-mails'}</p>`;
+            funcionariosDiv.innerHTML = `<p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erro: ${data.error || 'Erro ao carregar funcionários'}</p>`;
+            emailsDiv.innerHTML = `<p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erro: ${data.error || 'Erro ao carregar e-mails'}</p>`;
         }
     })
     .catch(error => {
-        console.error('❌ Erro ao carregar funcionários/e-mails:', error);
-        funcionariosDiv.innerHTML = `<p class="text-danger">Erro de conexão: ${error.message}</p>`;
-        emailsDiv.innerHTML = `<p class="text-danger">Erro de conexão: ${error.message}</p>`;
+        console.error('❌ Erro ao carregar funcionários e e-mails:', error);
+        funcionariosDiv.innerHTML = `<p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erro ao carregar: ${error.message}</p>`;
+        emailsDiv.innerHTML = `<p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erro ao carregar: ${error.message}</p>`;
     });
 }
+
+// Inicializar carregamento ao abrir a página se já houver projeto selecionado
+document.addEventListener('DOMContentLoaded', function() {
+    const projetoSelect = document.getElementById('projeto_id');
+    if (projetoSelect && projetoSelect.value) {
+        console.log('🔄 Projeto já selecionado ao carregar página, carregando dados...');
+        carregarFuncionariosEmails();
+    }
+
+    // Adicionar evento de mudança ao select
+    if (projetoSelect) {
+        projetoSelect.addEventListener('change', carregarFuncionariosEmails);
+        console.log('✅ Event listener adicionado ao select de projeto');
+    }
+});
+
 
 function handlePhotoUpload(event) {
     // Upload de fotos iniciado
@@ -1479,15 +1503,15 @@ function saveEditedPhoto() {
 // Função para criar relatório inicial em preenchimento
 async function createInitialReport() {
     const formData = new FormData(document.getElementById('reportForm'));
-    
+
     try {
         const response = await fetch('{{ url_for("create_report") }}', {
             method: 'POST',
             body: formData
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success && result.report_id) {
             console.log('✅ Relatório inicial criado:', result.report_id);
             return result.report_id;
@@ -1526,7 +1550,7 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
             console.error('Erro ao finalizar:', error);
             alert('Erro ao finalizar relatório: ' + error.message);
         });
-        
+
         return;
     }
 
@@ -1812,24 +1836,24 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.error('❌ Editor modal não disponível');
     }
-    
+
     // Criar relatório inicial e ativar auto save após preencher dados básicos
     let autoSaveInitialized = false;
-    
+
     // Função para inicializar auto save quando houver dados suficientes
     function tryInitializeAutoSave() {
         if (autoSaveInitialized) return;
-        
+
         const titulo = document.getElementById('titulo').value;
         const projetoId = document.getElementById('projeto_id').value;
-        
+
         if (titulo && projetoId) {
             console.log('📝 Dados básicos preenchidos, criando relatório inicial...');
-            
+
             // Criar relatório inicial
             createInitialReport().then(reportId => {
                 window.currentReportId = reportId;
-                
+
                 // Inicializar auto save
                 if (typeof initAutoSave === 'function') {
                     window.autoSaveInstance = initAutoSave(reportId, {
@@ -1837,7 +1861,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         statusElement: document.getElementById('autosave-status'),
                         form: document.getElementById('reportForm')
                     });
-                    
+
                     autoSaveInitialized = true;
                     console.log('✅ Auto save ativado para relatório', reportId);
                 } else {
@@ -1848,15 +1872,15 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    
+
     // Observar mudanças nos campos básicos
     const tituloField = document.getElementById('titulo');
     const projetoField = document.getElementById('projeto_id');
-    
+
     if (tituloField) {
         tituloField.addEventListener('blur', tryInitializeAutoSave);
     }
-    
+
     if (projetoField) {
         projetoField.addEventListener('change', tryInitializeAutoSave);
     }
@@ -2129,11 +2153,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // Sistema de touch inteligente IGUAL AO EXPRESS - funcional 100%
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Sistema de touch inteligente carregado (igual express)');
-    
+
     // Configurações EXATAS do Express
     const TOUCH_THRESHOLD = 10; // pixels
     const TOUCH_TIME_LIMIT = 500; // ms
-    
+
     let touchData = {
         startX: 0,
         startY: 0,
@@ -2141,64 +2165,64 @@ document.addEventListener('DOMContentLoaded', function() {
         isDragging: false,
         element: null
     };
-    
+
     // Função para seleção de categoria IDÊNTICA ao Express
     function selectPhotoCategory(category, element) {
         // Remover seleção anterior
         document.querySelectorAll('.photo-category').forEach(cat => {
             cat.classList.remove('selected');
         });
-        
+
         // Adicionar seleção atual
         element.classList.add('selected');
-        
+
         // Feedback tátil
         if (navigator.vibrate) {
             navigator.vibrate(50);
         }
-        
+
         console.log('📷 Categoria selecionada:', category);
-        
+
         // Atualizar categoria global
         selectedCategory = category;
-        
+
         // Habilitar botões de upload
         const galleryBtn = document.getElementById('galleryBtn');
         const cameraBtn = document.getElementById('cameraBtn');
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
-        
+
         // Atualizar input de fotos
         updatePhotoInput();
     }
-    
+
     // Event listeners para categorias - CÓDIGO EXATO DO EXPRESS
     document.querySelectorAll('.photo-category').forEach(categoryElement => {
-        
+
         // Touch Start
         categoryElement.addEventListener('touchstart', function(e) {
             console.log('👆 TouchStart categoria');
-            
+
             const touch = e.touches[0];
             touchData.startX = touch.clientX;
             touchData.startY = touch.clientY;
             touchData.startTime = Date.now();
             touchData.isDragging = false;
             touchData.element = categoryElement;
-            
+
             // Feedback visual imediato
             categoryElement.classList.add('touching');
         }, { passive: true });
-        
+
         // Touch Move
         categoryElement.addEventListener('touchmove', function(e) {
             if (!touchData.element) return;
-            
+
             const touch = e.touches[0];
             const deltaX = Math.abs(touch.clientX - touchData.startX);
             const deltaY = Math.abs(touch.clientY - touchData.startY);
             const totalDelta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            
+
             // Se movimento exceder threshold, marcar como drag
             if (totalDelta > TOUCH_THRESHOLD) {
                 touchData.isDragging = true;
@@ -2206,53 +2230,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('🔄 Movimento detectado - modo drag ativado');
             }
         }, { passive: true });
-        
+
         // Touch End
         categoryElement.addEventListener('touchend', function(e) {
             console.log('👆 TouchEnd categoria');
-            
+
             // Remover feedback visual
             categoryElement.classList.remove('touching');
-            
+
             if (!touchData.element) return;
-            
+
             const touchDuration = Date.now() - touchData.startTime;
-            
+
             // Apenas selecionar se foi um tap rápido e sem movimento
             if (!touchData.isDragging && touchDuration < TOUCH_TIME_LIMIT) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const category = categoryElement.getAttribute('data-category');
                 selectPhotoCategory(category, categoryElement);
-                
+
                 console.log('✅ Tap válido - categoria selecionada');
             } else {
                 console.log('❌ Drag detectado - não selecionar categoria');
             }
-            
+
             // Reset
             touchData.element = null;
             touchData.isDragging = false;
         }, { passive: false });
-        
+
         // Mouse events para desktop (fallback)
         categoryElement.addEventListener('click', function(e) {
             // Apenas processar se não houve toque recente
             if (touchData.startTime && (Date.now() - touchData.startTime) < 300) {
                 return; // Ignorar click após touch
             }
-            
+
             e.preventDefault();
             e.stopPropagation();
-            
+
             const category = categoryElement.getAttribute('data-category');
             selectPhotoCategory(category, categoryElement);
-            
+
             console.log('🖱️ Click desktop - categoria selecionada');
         });
     });
-    
+
     console.log('✅ Sistema de touch inteligente ativo para', document.querySelectorAll('.photo-category').length, 'categorias');
 });
 
@@ -2281,7 +2305,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Verificar se temos um ID de relatório para auto save
     const urlParams = new URLSearchParams(window.location.search);
     const reportId = urlParams.get('report_id') || document.querySelector('input[name="report_id"]')?.value;
-    
+
     if (reportId) {
         // Inicializar auto save
         const autoSave = initAutoSave(reportId, {
@@ -2289,16 +2313,16 @@ document.addEventListener('DOMContentLoaded', function() {
             statusElement: document.getElementById('autosave-status'),
             form: document.getElementById('reportForm')
         });
-        
+
         console.log('Auto Save ativado para relatório', reportId);
-        
+
         // Modificar o comportamento do botão de finalizar
         const submitBtn = document.querySelector('button[type="submit"]');
         if (submitBtn) {
             submitBtn.addEventListener('click', function(e) {
                 // Parar auto save antes de finalizar
                 autoSave.stop();
-                
+
                 // Salvar uma última vez e depois prosseguir
                 autoSave.saveNow().then(() => {
                     // Alterar status para finalizado
@@ -2334,7 +2358,7 @@ async function loadPredefinedLegendas() {
         console.log('📋 Carregando legendas predefinidas...');
         const response = await fetch('/api/legendas?categoria=all');
         const data = await response.json();
-        
+
         if (data.success) {
             predefinedLegendas = data.legendas;
             console.log(`✅ ${predefinedLegendas.length} legendas carregadas`);
@@ -2347,15 +2371,15 @@ async function loadPredefinedLegendas() {
 // Setup mobile photo system
 function setupMobilePhotoSystem() {
     console.log('📱 Configurando sistema de fotos mobile-first...');
-    
+
     // Setup file input event listeners
     const mobilePhotoInput = document.getElementById('mobilePhotoInput');
     const mobileCameraInput = document.getElementById('mobileCameraInput');
-    
+
     if (mobilePhotoInput) {
         mobilePhotoInput.addEventListener('change', handleMobilePhotoSelection);
     }
-    
+
     if (mobileCameraInput) {
         mobileCameraInput.addEventListener('change', handleMobilePhotoSelection);
     }
@@ -2384,16 +2408,16 @@ function handleMobilePhotoSelection(event) {
     console.log('📋 Processando fotos selecionadas...');
     const files = event.target.files;
     const defaultCategory = document.getElementById('defaultCategory').value;
-    
+
     if (files.length === 0) return;
-    
+
     Array.from(files).forEach(file => {
         createMobilePhotoCard(file, defaultCategory);
     });
-    
+
     // Clear input for next selection
     event.target.value = '';
-    
+
     updatePhotoCounter();
 }
 
@@ -2401,17 +2425,17 @@ function handleMobilePhotoSelection(event) {
 function createMobilePhotoCard(file, category) {
     const photoId = 'mobile_photo_' + (++mobilePhotoCounter);
     const reader = new FileReader();
-    
+
     reader.onload = function(e) {
         const photoCard = createPhotoCardHTML(photoId, e.target.result, category, file.name);
-        
+
         // Add to DOM
         const container = document.getElementById('mobilePhotoCards');
         const cardCol = document.createElement('div');
         cardCol.className = 'col-12 col-md-6 col-lg-4';
         cardCol.innerHTML = photoCard;
         container.appendChild(cardCol);
-        
+
         // Store photo data
         mobilePhotoData.push({
             id: photoId,
@@ -2421,16 +2445,16 @@ function createMobilePhotoCard(file, category) {
             predefinedCaption: '',
             filename: file.name
         });
-        
+
         // Setup event listeners for this card
         setupPhotoCardEvents(photoId);
-        
+
         // Immediately scroll to the new photo and focus on caption for better UX
         setTimeout(() => {
             const newCard = cardCol.querySelector('.mobile-photo-card');
             if (newCard) {
                 newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                
+
                 // Auto-focus on caption input for immediate editing
                 const captionInput = newCard.querySelector('.caption-input');
                 if (captionInput) {
@@ -2441,17 +2465,17 @@ function createMobilePhotoCard(file, category) {
                 }
             }
         }, 300);
-        
+
         console.log(`📷 Foto adicionada: ${file.name} (${category})`);
     };
-    
+
     reader.readAsDataURL(file);
 }
 
 // Create photo card HTML
 function createPhotoCardHTML(photoId, imageSrc, category, filename) {
     const legendaSelectHTML = createLegendaSelectHTML(photoId);
-    
+
     return `
         <div class="mobile-photo-card enhanced" data-photo-id="${photoId}" style="border: 2px solid #007bff; border-radius: 12px; padding: 12px; background: white; box-shadow: 0 4px 12px rgba(0,123,255,0.15); margin-bottom: 16px;">
             <!-- Layout Vertical: IMAGEM EM CIMA -->
@@ -2461,12 +2485,12 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
                      data-photo-id="${photoId}"
                      style="width: 100%; max-width: 200px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef; cursor: pointer;">
             </div>
-            
+
             <!-- Categoria (SEM nome do arquivo) -->
             <div class="text-center mb-2">
                 <span class="badge bg-primary">${category}</span>
             </div>
-            
+
             <!-- LEGENDA EM BAIXO -->
             <div class="mb-2">
                 <input type="text" 
@@ -2476,7 +2500,7 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
                        data-photo-id="${photoId}"
                        style="border: 2px solid #28a745; font-size: 14px; padding: 8px; background-color: #f8fff9;">
             </div>
-            
+
             <!-- Legenda Pré-definida -->
             <div class="mb-2">
                 <select class="form-select form-select-sm caption-select" 
@@ -2487,12 +2511,12 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
                     ${legendaSelectHTML}
                 </select>
             </div>
-            
+
             <!-- Status da Legenda -->
             <div class="caption-status pending alert alert-warning py-1 px-2 mb-2" id="caption_status_${photoId}" style="font-size: 12px; margin: 0;">
                 ⚠️ Legenda obrigatória - preencha o campo acima
             </div>
-            
+
             <!-- Ações -->
             <div class="d-flex gap-2 justify-content-center">
                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="editMobilePhoto('${photoId}')">
@@ -2509,7 +2533,7 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
 // Create legend select HTML
 function createLegendaSelectHTML(photoId) {
     let html = '';
-    
+
     // Group legends by category
     const legendsByCategory = {};
     predefinedLegendas.forEach(legenda => {
@@ -2518,7 +2542,7 @@ function createLegendaSelectHTML(photoId) {
         }
         legendsByCategory[legenda.categoria].push(legenda);
     });
-    
+
     // Create optgroups
     Object.keys(legendsByCategory).forEach(categoria => {
         html += `<optgroup label="${categoria}">`;
@@ -2527,7 +2551,7 @@ function createLegendaSelectHTML(photoId) {
         });
         html += `</optgroup>`;
     });
-    
+
     return html;
 }
 
@@ -2535,19 +2559,19 @@ function createLegendaSelectHTML(photoId) {
 function setupPhotoCardEvents(photoId) {
     const manualInput = document.getElementById(`manual_caption_${photoId}`);
     const predefinedSelect = document.getElementById(`predefined_caption_${photoId}`);
-    
+
     if (manualInput) {
         manualInput.addEventListener('input', () => saveCaptionData(photoId));
         manualInput.addEventListener('blur', () => saveCaptionData(photoId));
     }
-    
+
     if (predefinedSelect) {
         predefinedSelect.addEventListener('change', function() {
             if (this.value) {
                 // Copy predefined to manual field
                 manualInput.value = this.value;
                 saveCaptionData(photoId);
-                
+
                 // Reset select for next use
                 setTimeout(() => {
                     this.selectedIndex = 0;
@@ -2562,17 +2586,17 @@ async function saveCaptionData(photoId) {
     const manualInput = document.getElementById(`manual_caption_${photoId}`);
     const predefinedSelect = document.getElementById(`predefined_caption_${photoId}`);
     const statusDiv = document.getElementById(`caption_status_${photoId}`);
-    
+
     const manualCaption = manualInput.value.trim();
     const predefinedCaption = predefinedSelect.value.trim();
-    
+
     // Update local data
     const photoData = mobilePhotoData.find(p => p.id === photoId);
     if (photoData) {
         photoData.manualCaption = manualCaption;
         photoData.predefinedCaption = predefinedCaption;
     }
-    
+
     // Update status
     const hasCaption = manualCaption || predefinedCaption;
     if (hasCaption) {
@@ -2582,7 +2606,7 @@ async function saveCaptionData(photoId) {
         statusDiv.className = 'caption-status pending';
         statusDiv.innerHTML = '⚠️ Legenda obrigatória - preencha pelo menos um campo';
     }
-    
+
     console.log(`💾 Caption saved for ${photoId}: "${manualCaption}"`);
 }
 
@@ -2590,16 +2614,16 @@ async function saveCaptionData(photoId) {
 function editMobilePhoto(photoId) {
     const photoData = mobilePhotoData.find(p => p.id === photoId);
     if (!photoData) return;
-    
+
     // Encontrar o elemento img da foto
     const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
     const imgElement = photoCard.querySelector('img');
-    
+
     if (!imgElement) {
         console.error('Imagem não encontrada para edição');
         return;
     }
-    
+
     // Abrir editor modal como funcionava antes
     openPhotoEditorFromElement(imgElement);
 }
@@ -2607,16 +2631,16 @@ function editMobilePhoto(photoId) {
 // Delete mobile photo
 function deleteMobilePhoto(photoId) {
     if (!confirm('Deseja excluir esta foto?')) return;
-    
+
     // Remove from data array
     mobilePhotoData = mobilePhotoData.filter(p => p.id !== photoId);
-    
+
     // Remove from DOM
     const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
     if (photoCard) {
         photoCard.closest('.col-12, .col-md-6, .col-lg-4').remove();
     }
-    
+
     updatePhotoCounter();
     console.log(`🗑️ Foto ${photoId} excluída`);
 }
@@ -2624,19 +2648,19 @@ function deleteMobilePhoto(photoId) {
 // Update photo counter and show quick actions
 function updatePhotoCounter() {
     const count = mobilePhotoData.length;
-    
+
     // Update main counter
     const counter = document.getElementById('photoCount');
     if (counter) {
         counter.textContent = count;
     }
-    
+
     // Update quick action counter
     const quickCounter = document.getElementById('quickPhotoCount');
     if (quickCounter) {
         quickCounter.textContent = count;
     }
-    
+
     // Show quick action bar after first photo
     const quickActionBar = document.getElementById('quickPhotoActions');
     if (quickActionBar) {
@@ -2651,12 +2675,12 @@ function updatePhotoCounter() {
 // Validate captions before form submission
 function validateCaptions() {
     let hasInvalidPhotos = false;
-    
+
     mobilePhotoData.forEach(photoData => {
         const hasCaption = photoData.manualCaption || photoData.predefinedCaption;
         if (!hasCaption) {
             hasInvalidPhotos = true;
-            
+
             // Highlight invalid photo
             const statusDiv = document.getElementById(`caption_status_${photoData.id}`);
             if (statusDiv) {
@@ -2666,19 +2690,19 @@ function validateCaptions() {
             }
         }
     });
-    
+
     return !hasInvalidPhotos;
 }
 
 // Prepare form data for submission
 async function prepareMobilePhotoFormData() {
     console.log('📱 Preparando dados das fotos mobile...');
-    
+
     // Convert files to base64 data
     const photosWithData = await Promise.all(
         mobilePhotoData.map(async (photoData) => {
             let imageBase64 = null;
-            
+
             try {
                 // Convert file to base64
                 imageBase64 = await fileToBase64(photoData.file);
@@ -2686,7 +2710,7 @@ async function prepareMobilePhotoFormData() {
             } catch (error) {
                 console.error(`❌ Erro ao converter foto ${photoData.id}:`, error);
             }
-            
+
             return {
                 id: photoData.id,
                 filename: photoData.filename,
@@ -2697,23 +2721,23 @@ async function prepareMobilePhotoFormData() {
             };
         })
     );
-    
+
     // Create form data for mobile photos
     const formData = {
         photos: photosWithData
     };
-    
+
     // Add hidden input with photo data
     const hiddenInput = document.createElement('input');
     hiddenInput.type = 'hidden';
     hiddenInput.name = 'mobile_photos_data';
     hiddenInput.value = JSON.stringify(formData);
-    
+
     const form = document.getElementById('reportForm');
     if (form) {
         form.appendChild(hiddenInput);
     }
-    
+
     console.log(`📤 Preparados ${mobilePhotoData.length} fotos com dados binários para envio`);
 }
 
@@ -2736,28 +2760,28 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!validateCaptions()) {
                 e.preventDefault();
                 alert('⚠️ ATENÇÃO: Todas as fotos devem ter pelo menos uma legenda (manual ou pré-definida). Verifique as fotos marcadas em vermelho.');
-                
+
                 // Scroll to first invalid photo
                 const firstInvalid = document.querySelector('.caption-status.pending');
                 if (firstInvalid) {
                     firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-                
+
                 return false;
             }
-            
+
             // If there are photos, prepare mobile photo data
             if (mobilePhotoData.length > 0) {
                 e.preventDefault(); // Prevent default submission while processing photos
-                
+
                 console.log('📸 Processando fotos...');
                 try {
                     await prepareMobilePhotoFormData();
                     console.log('✅ Formulário validado - enviando...');
-                    
+
                     // Remove this listener to prevent infinite loop
                     form.removeEventListener('submit', arguments.callee);
-                    
+
                     // Dispatch a new submit event to trigger the fetch-based submission
                     const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
                     form.dispatchEvent(submitEvent);
