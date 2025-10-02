@@ -668,26 +668,46 @@ function renderizarObrasProximas(obras) {
 
 // Carregar funcionários e e-mails de um projeto
 async function carregarFuncionariosEmails(eventOrId) {
-    // Extrair projetoId do evento ou usar diretamente se for um número
     let projetoId;
     
-    if (typeof eventOrId === 'object' && eventOrId.target) {
-        // É um evento, pegar o valor do select
-        projetoId = eventOrId.target.value;
-    } else if (typeof eventOrId === 'number' || typeof eventOrId === 'string') {
-        // É o ID direto
+    // Extrair projetoId do evento ou usar diretamente
+    if (typeof eventOrId === 'object' && eventOrId && eventOrId.target) {
+        projetoId = parseInt(eventOrId.target.value);
+    } else if (typeof eventOrId === 'number') {
         projetoId = eventOrId;
-    } else {
-        console.log('⚠️ Parâmetro inválido para carregarFuncionariosEmails:', eventOrId);
-        return;
+    } else if (typeof eventOrId === 'string') {
+        projetoId = parseInt(eventOrId);
+    } else if (!eventOrId) {
+        const projetoHidden = document.querySelector('input[name="projeto_id"][type="hidden"]');
+        if (projetoHidden && projetoHidden.value) {
+            projetoId = parseInt(projetoHidden.value);
+        } else {
+            const projetoSelect = document.getElementById('projeto_id');
+            if (projetoSelect && projetoSelect.value) {
+                projetoId = parseInt(projetoSelect.value);
+            }
+        }
     }
     
-    if (!projetoId) {
+    if (!projetoId || isNaN(projetoId)) {
         console.log('⚠️ Projeto não selecionado');
         return;
     }
     
     console.log('🔄 Carregando funcionários/e-mails para projeto:', projetoId);
+    
+    // Buscar elementos DOM com IDs corretos
+    const funcionariosDiv = document.getElementById('funcionarios-projeto');
+    const emailsDiv = document.getElementById('emails-projeto');
+
+    if (!funcionariosDiv || !emailsDiv) {
+        console.log('⚠️ Elementos DOM não encontrados');
+        return;
+    }
+    
+    // Mostrar loading
+    funcionariosDiv.innerHTML = '<div class="alert alert-info mb-0"><i class="fas fa-spinner fa-spin me-2"></i>Carregando funcionários...</div>';
+    emailsDiv.innerHTML = '<div class="alert alert-info mb-0"><i class="fas fa-spinner fa-spin me-2"></i>Carregando e-mails...</div>';
     
     try {
         const response = await fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
@@ -699,7 +719,6 @@ async function carregarFuncionariosEmails(eventOrId) {
             }
         });
         
-        // Verificar se foi redirecionado (sessão expirada)
         if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
             throw new Error('Sessão expirada - faça login novamente');
         }
@@ -711,40 +730,59 @@ async function carregarFuncionariosEmails(eventOrId) {
         const data = await response.json();
         
         if (data.success) {
-            console.log('✅ Dados carregados:', data.funcionarios.length, 'funcionários e', data.emails.length, 'e-mails');
-            
-            // Atualizar select de funcionários
-            const funcionariosSelect = document.getElementById('funcionarios_ids');
-            if (funcionariosSelect) {
-                funcionariosSelect.innerHTML = '<option value="">Selecione os funcionários...</option>';
-                
+            // Renderizar funcionários como checkboxes
+            let funcionariosHtml = '';
+            if (data.funcionarios && data.funcionarios.length > 0) {
                 data.funcionarios.forEach(func => {
-                    const option = document.createElement('option');
-                    option.value = func.id;
-                    option.textContent = `${func.nome_funcionario}${func.cargo ? ' - ' + func.cargo : ''}`;
-                    funcionariosSelect.appendChild(option);
+                    const checked = func.is_responsavel_principal ? 'checked' : '';
+                    funcionariosHtml += `
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="func_${func.id}" 
+                                   name="funcionarios_selecionados[]" value="${func.id}" ${checked}>
+                            <label class="form-check-label" for="func_${func.id}">
+                                <strong>${func.nome_funcionario || 'Sem nome'}</strong><br>
+                                <small class="text-muted">${func.cargo || 'Não informado'} - ${func.empresa || 'Não informado'}</small>
+                                ${func.is_responsavel_principal ? '<span class="badge bg-primary ms-2">Principal</span>' : ''}
+                            </label>
+                        </div>
+                    `;
                 });
+            } else {
+                funcionariosHtml = '<div class="alert alert-info mb-0"><i class="fas fa-info-circle me-2"></i>Nenhum funcionário cadastrado para este projeto</div>';
             }
+            funcionariosDiv.innerHTML = funcionariosHtml;
             
-            // Atualizar select de e-mails
-            const emailsSelect = document.getElementById('emails_ids');
-            if (emailsSelect) {
-                emailsSelect.innerHTML = '<option value="">Selecione os e-mails...</option>';
-                
+            // Renderizar e-mails como checkboxes
+            let emailsHtml = '';
+            if (data.emails && data.emails.length > 0) {
                 data.emails.forEach(email => {
-                    const option = document.createElement('option');
-                    option.value = email.id;
-                    option.textContent = `${email.nome_contato} (${email.email})`;
-                    emailsSelect.appendChild(option);
+                    const checked = email.is_principal ? 'checked' : '';
+                    emailsHtml += `
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="email_${email.id}" 
+                                   name="emails_selecionados[]" value="${email.id}" ${checked}>
+                            <label class="form-check-label" for="email_${email.id}">
+                                <strong>${email.email || 'Sem email'}</strong><br>
+                                <small class="text-muted">${email.nome_contato || 'Sem nome'} - ${email.cargo || 'Não informado'}</small>
+                                ${email.is_principal ? '<span class="badge bg-success ms-2">Principal</span>' : ''}
+                            </label>
+                        </div>
+                    `;
                 });
+            } else {
+                emailsHtml = '<div class="alert alert-info mb-0"><i class="fas fa-info-circle me-2"></i>Nenhum e-mail cadastrado para este projeto</div>';
             }
+            emailsDiv.innerHTML = emailsHtml;
             
             console.log(`✅ Carregados ${data.funcionarios.length} funcionários e ${data.emails.length} e-mails`);
+        } else {
+            throw new Error(data.error || 'Erro ao carregar dados');
         }
         
     } catch (error) {
         console.error('❌ Erro ao carregar funcionários/e-mails:', error);
-        showAlert('Erro ao carregar dados do projeto', 'warning');
+        funcionariosDiv.innerHTML = `<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Erro: ${error.message}</div>`;
+        emailsDiv.innerHTML = `<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Erro: ${error.message}</div>`;
     }
 }
 

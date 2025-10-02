@@ -16,7 +16,21 @@ Mobile-first design: Date field should be the first input field in report forms.
 
 # Recent Improvements (October 2025)
 
-## Express Report Form Fix (October 2, 2025 - Latest)
+## Project Employees & Emails Loading Fix (October 2, 2025 - Latest)
+- **Fixed Employees/Emails Not Loading on Project Selection**: Resolved issue where data wasn't populating after selecting a project
+  - ✅ **Root Cause**: Function `carregarFuncionariosEmails()` in `main.js` was using wrong DOM IDs (`funcionarios_ids`, `emails_ids`)
+  - ✅ **Correct IDs**: Should be `funcionarios-projeto` and `emails-projeto` (as defined in template)
+  - ✅ **Duplicate Code**: Found duplicate function definitions in both `main.js` and template inline script
+  - ✅ **Solution**: 
+    - Updated `main.js` to use correct IDs and render checkboxes (not selects)
+    - Removed duplicate function from `templates/reports/form_complete.html`
+    - Kept DOMContentLoaded initializer for auto-loading on page load
+  - ✅ **Files Updated**: 
+    - `static/js/main.js` - Fixed IDs and rendering logic (line 672-790)
+    - `templates/reports/form_complete.html` - Removed duplicate function (kept only comment)
+  - ✅ **Impact**: Employees and emails now load correctly as checkboxes when project is selected
+
+## Express Report Form Fix (October 2, 2025)
 - **Fixed AttributeError in Express Report Creation**: Resolved crash when creating new express reports
   - ✅ **Root Cause**: Route code tried to access `form.foto_forms` which doesn't exist in `RelatorioExpressForm`
   - ✅ **Issue**: Express form uses simple `MultipleFileField` for photos, not individual photo forms

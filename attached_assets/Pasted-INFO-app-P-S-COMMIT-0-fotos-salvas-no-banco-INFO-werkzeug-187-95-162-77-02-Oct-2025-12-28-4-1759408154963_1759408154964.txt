@@ -1,0 +1,45 @@
+INFO:app:✅ PÓS-COMMIT: 0 fotos salvas no banco
+INFO:werkzeug:187.95.162.77 - - [02/Oct/2025 12:28:42] "POST /reports/new HTTP/1.1" 200 -
+INFO:app:📡 API chamada: /api/projeto/13/funcionarios-emails por usuário 1
+INFO:app:✅ Projeto encontrado: Biotique Ibirapuera (ID: 13)
+INFO:app:📋 Funcionários encontrados: 4
+INFO:app:📧 E-mails encontrados: 4
+INFO:app:  📋 Funcionário: {'id': 24, 'nome_funcionario': 'Luana Assis', 'cargo': '', 'empresa': '', 'is_responsavel_principal': True}
+INFO:app:  📋 Funcionário: {'id': 25, 'nome_funcionario': 'Carlos Marques', 'cargo': 'Não informado', 'empresa': 'Porto Ferraz', 'is_responsavel_principal': False}
+INFO:app:  📋 Funcionário: {'id': 26, 'nome_funcionario': 'Bruna Costa', 'cargo': 'Não informado', 'empresa': 'Porto Ferraz', 'is_responsavel_principal': False}
+INFO:app:  📋 Funcionário: {'id': 27, 'nome_funcionario': 'Caio Brito', 'cargo': 'Não informado', 'empresa': 'Porto Ferraz', 'is_responsavel_principal': False}
+INFO:app:  📧 Email: {'id': 28, 'email': 'luana.assis@portoferraz.com.br', 'nome_contato': 'Contato Principal', 'cargo': '', 'is_principal': True}
+INFO:app:  📧 Email: {'id': 29, 'email': 'carlos.marques@portoferraz.com.br', 'nome_contato': 'Carlos Marques', 'cargo': 'Não informado', 'is_principal': False}
+INFO:app:  📧 Email: {'id': 30, 'email': 'bruna.costa@portoferraz.com.br', 'nome_contato': 'Bruna Costa', 'cargo': 'Não informado', 'is_principal': False}
+INFO:app:  📧 Email: {'id': 31, 'email': 'caio.brito@portoferraz.com.br', 'nome_contato': 'Caio Brito', 'cargo': 'Não informado', 'is_principal': False}
+INFO:app:✅ API retornando: 4 funcionários, 4 e-mails
+INFO:app:📤 Response completo: {'success': True, 'funcionarios': [{'id': 24, 'nome_funcionario': 'Luana Assis', 'cargo': '', 'empresa': '', 'is_responsavel_principal': True}, {'id': 25, 'nome_funcionario': 'Carlos Marques', 'cargo': 'Não informado', 'empresa': 'Porto Ferraz', 'is_responsavel_principal': False}, {'id': 26, 'nome_funcionario': 'Bruna Costa', 'cargo': 'Não informado', 'empresa': 'Porto Ferraz', 'is_responsavel_principal': False}, {'id': 27, 'nome_funcionario': 'Caio Brito', 'cargo': 'Não informado', 'empresa': 'Porto Ferraz', 'is_responsavel_principal': False}], 'emails': [{'id': 28, 'email': 'luana.assis@portoferraz.com.br', 'nome_contato': 'Contato Principal', 'cargo': '', 'is_principal': True}, {'id': 29, 'email': 'carlos.marques@portoferraz.com.br', 'nome_contato': 'Carlos Marques', 'cargo': 'Não informado', 'is_principal': False}, {'id': 30, 'email': 'bruna.costa@portoferraz.com.br', 'nome_contato': 'Bruna Costa', 'cargo': 'Não informado', 'is_principal': False}, {'id': 31, 'email': 'caio.brito@portoferraz.com.br', 'nome_contato': 'Caio Brito', 'cargo': 'Não informado', 'is_principal': False}], 'projeto_nome': 'Biotique Ibirapuera'}
+INFO:werkzeug:187.95.162.77 - - [02/Oct/2025 12:28:42] "GET /api/projeto/13/funcionarios-emails HTTP/1.1" 200 -
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:werkzeug:187.95.162.77 - - [02/Oct/2025 12:28:44] "GET /api/legendas?categoria=all&_t=1759408125033&sync=realtime HTTP/1.1" 200 -
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+INFO:werkzeug:187.95.162.77 - - [02/Oct/2025 12:28:45] "GET /api/legendas?categoria=all&_t=1759408125161&sync=realtime HTTP/1.1" 200 -
+INFO:app:📡 API chamada: /api/projeto/19/funcionarios-emails por usuário 1
+INFO:app:✅ Projeto encontrado: Casa Magnólia (ID: 19)
+INFO:app:📋 Funcionários encontrados: 3
+INFO:app:📧 E-mails encontrados: 1
+INFO:app:  📋 Funcionário: {'id': 52, 'nome_funcionario': 'Cintia Santos', 'cargo': '', 'empresa': '', 'is_responsavel_principal': True}
+INFO:app:  📋 Funcionário: {'id': 53, 'nome_funcionario': 'Mirella Cavalcante ', 'cargo': 'Não informado', 'empresa': 'R. Yazbek', 'is_responsavel_principal': False}
+INFO:app:  📋 Funcionário: {'id': 54, 'nome_funcionario': 'Henry Camargo', 'cargo': 'Não informado', 'empresa': 'R. Yazbek', 'is_responsavel_principal': False}
+INFO:app:  📧 Email: {'id': 58, 'email': 'henry.camargo@ryazbek.com.br', 'nome_contato': 'Henry Camargo', 'cargo': 'Não informado', 'is_principal': False}
+INFO:app:✅ API retornando: 3 funcionários, 1 e-mails
+INFO:app:📤 Response completo: {'success': True, 'funcionarios': [{'id': 52, 'nome_funcionario': 'Cintia Santos', 'cargo': '', 'empresa': '', 'is_responsavel_principal': True}, {'id': 53, 'nome_funcionario': 'Mirella Cavalcante ', 'cargo': 'Não informado', 'empresa': 'R. Yazbek', 'is_responsavel_principal': False}, {'id': 54, 'nome_funcionario': 'Henry Camargo', 'cargo': 'Não informado', 'empresa': 'R. Yazbek', 'is_responsavel_principal': False}], 'emails': [{'id': 58, 'email': 'henry.camargo@ryazbek.com.br', 'nome_contato': 'Henry Camargo', 'cargo': 'Não informado', 'is_principal': False}], 'projeto_nome': 'Casa Magnólia'}
+INFO:werkzeug:187.95.162.77 - - [02/Oct/2025 12:28:47] "GET /api/projeto/19/funcionarios-emails HTTP/1.1" 200 -
+INFO:app:📡 API chamada: /api/projeto/19/funcionarios-emails por usuário 1
+INFO:app:✅ Projeto encontrado: Casa Magnólia (ID: 19)
+INFO:app:📋 Funcionários encontrados: 3
+INFO:app:📧 E-mails encontrados: 1
+INFO:app:  📋 Funcionário: {'id': 52, 'nome_funcionario': 'Cintia Santos', 'cargo': '', 'empresa': '', 'is_responsavel_principal': True}
+INFO:app:  📋 Funcionário: {'id': 53, 'nome_funcionario': 'Mirella Cavalcante ', 'cargo': 'Não informado', 'empresa': 'R. Yazbek', 'is_responsavel_principal': False}
+INFO:app:  📋 Funcionário: {'id': 54, 'nome_funcionario': 'Henry Camargo', 'cargo': 'Não informado', 'empresa': 'R. Yazbek', 'is_responsavel_principal': False}
+INFO:app:  📧 Email: {'id': 58, 'email': 'henry.camargo@ryazbek.com.br', 'nome_contato': 'Henry Camargo', 'cargo': 'Não informado', 'is_principal': False}
+INFO:app:✅ API retornando: 3 funcionários, 1 e-mails
+INFO:app:📤 Response completo: {'success': True, 'funcionarios': [{'id': 52, 'nome_funcionario': 'Cintia Santos', 'cargo': '', 'empresa': '', 'is_responsavel_principal': True}, {'id': 53, 'nome_funcionario': 'Mirella Cavalcante ', 'cargo': 'Não informado', 'empresa': 'R. Yazbek', 'is_responsavel_principal': False}, {'id': 54, 'nome_funcionario': 'Henry Camargo', 'cargo': 'Não informado', 'empresa': 'R. Yazbek', 'is_responsavel_principal': False}], 'emails': [{'id': 58, 'email': 'henry.camargo@ryazbek.com.br', 'nome_contato': 'Henry Camargo', 'cargo': 'Não informado', 'is_principal': False}], 'projeto_nome': 'Casa Magnólia'}
+INFO:werkzeug:187.95.162.77 - - [02/Oct/2025 12:28:47] "GET /api/projeto/19/funcionarios-emails HTTP/1.1" 200 -
