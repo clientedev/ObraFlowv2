@@ -1786,6 +1786,9 @@ def create_report():
                     # If validation passes, save mobile photos
                     for i, photo_data in enumerate(photos_list):
                         try:
+                            # DEBUG: Log all keys in photo_data
+                            current_app.logger.info(f"🔍 DEBUG Foto {i+1}: Keys disponíveis = {list(photo_data.keys())}")
+                            
                             foto = FotoRelatorio()
                             foto.relatorio_id = relatorio.id
                             foto.filename = photo_data.get('filename', f'mobile_foto_{photo_count + i + 1}.jpg')
@@ -1795,10 +1798,16 @@ def create_report():
                             foto.ordem = photo_count + i + 1
 
                             # CRÍTICO: Salvar dados binários da imagem
-                            if photo_data.get('data'):
+                            has_data_field = photo_data.get('data') is not None
+                            current_app.logger.info(f"🔍 DEBUG Foto {i+1}: Campo 'data' existe? {has_data_field}")
+                            
+                            if has_data_field:
                                 try:
                                     import base64
                                     image_data_b64 = photo_data['data']
+                                    data_preview = image_data_b64[:100] if isinstance(image_data_b64, str) else str(type(image_data_b64))
+                                    current_app.logger.info(f"🔍 DEBUG Foto {i+1}: Preview dos dados = {data_preview}")
+                                    
                                     if ',' in image_data_b64:
                                         image_data_b64 = image_data_b64.split(',')[1]
 
@@ -1808,9 +1817,11 @@ def create_report():
                                     current_app.logger.info(f"✅ IMAGEM BINÁRIA SALVA: {len(image_binary)} bytes para foto {i+1}")
                                 except Exception as e:
                                     current_app.logger.error(f"❌ Erro ao processar dados binários da foto mobile {i+1}: {e}")
+                                    import traceback
+                                    current_app.logger.error(f"❌ Traceback: {traceback.format_exc()}")
                                     # Continuar sem a imagem binária
                             else:
-                                current_app.logger.warning(f"⚠️ Foto mobile {i+1} sem dados binários")
+                                current_app.logger.warning(f"⚠️ Foto mobile {i+1} sem dados binários - 'data' field não encontrado")
 
                             # Salvar anotações se disponível (JSONB aceita dict diretamente)
                             if photo_data.get('annotations'):
@@ -1960,6 +1971,13 @@ def create_report():
             db.session.commit()
             
             current_app.logger.info(f"✅ COMMIT REALIZADO COM SUCESSO")
+            
+            # VERIFICAÇÃO PÓS-COMMIT: Contar imagens salvas com dados binários
+            fotos_com_imagem = db.session.query(FotoRelatorio).filter(
+                FotoRelatorio.relatorio_id == relatorio.id,
+                FotoRelatorio.imagem != None
+            ).count()
+            current_app.logger.info(f"📊 VERIFICAÇÃO: {fotos_com_imagem} de {photo_count} fotos têm dados binários salvos")
 
             # Debug: Verificar fotos após o commit diretamente do banco
             fotos_post = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).all()
