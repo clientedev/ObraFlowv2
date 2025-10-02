@@ -375,10 +375,10 @@ class FotoRelatorio(db.Model):
     legenda = db.Column(db.String(500))
     descricao = db.Column(db.Text)
     tipo_servico = db.Column(db.String(100))
-    anotacoes_dados = db.Column(db.Text)
+    anotacoes_dados = db.Column(db.JSON)
     ordem = db.Column(db.Integer, default=1)
-    coordenadas_anotacao = db.Column(db.Text)
-    imagem = db.Column(db.LargeBinary, nullable=True)  # Armazenamento da imagem no banco
+    coordenadas_anotacao = db.Column(db.JSON)
+    imagem = db.Column(db.LargeBinary, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class EnvioRelatorio(db.Model):
