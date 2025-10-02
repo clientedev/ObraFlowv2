@@ -895,6 +895,12 @@ function carregarFuncionariosEmails(eventOrId) {
     })
     .then(response => {
         console.log('📡 Status da resposta:', response.status);
+        
+        // Verificar se foi redirecionado (sessão expirada)
+        if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
+            throw new Error('Sessão expirada - faça login novamente');
+        }
+        
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }

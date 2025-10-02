@@ -690,7 +690,19 @@ async function carregarFuncionariosEmails(eventOrId) {
     console.log('🔄 Carregando funcionários/e-mails para projeto:', projetoId);
     
     try {
-        const response = await fetch(`/api/projeto/${projetoId}/funcionarios-emails`);
+        const response = await fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
+        
+        // Verificar se foi redirecionado (sessão expirada)
+        if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
+            throw new Error('Sessão expirada - faça login novamente');
+        }
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);

@@ -17,12 +17,16 @@ Mobile-first design: Date field should be the first input field in report forms.
 # Recent Improvements (October 2025)
 
 ## Project Selection Employee/Email Loading Fix (October 2, 2025 - Latest)
-- **Fixed Project Employee/Email Loading**: Corrected the `onchange` handler in report forms to properly pass values
-  - ✅ **Issue**: When selecting a project, the inline `onchange="carregarFuncionariosEmails()"` was not passing the value, causing undefined to be sent
-  - ✅ **Fix**: Changed to `onchange="carregarFuncionariosEmails(this.value)"` to properly pass the project ID
-  - ✅ **Result**: Employees and emails now load correctly when a project is selected
-  - ✅ **Files Updated**: templates/reports/form_complete.html (line 411)
-  - ✅ **API Endpoint**: `/api/projeto/<int:projeto_id>/funcionarios-emails` working correctly
+- **Fixed Project Employee/Email Loading**: Corrected authentication issue causing 302 redirects instead of JSON responses
+  - ✅ **Root Cause**: AJAX requests were not sending session cookies, causing Flask-Login to redirect to `/login` (HTTP 302)
+  - ✅ **Solution**: Added `credentials: 'same-origin'` to fetch() calls in `static/js/main.js` (line 698)
+  - ✅ **Template Fix**: Corrected `onchange` handler to pass project ID: `onchange="carregarFuncionariosEmails(this.value)"` 
+  - ✅ **Result**: Employees and emails now load correctly when a project is selected after user authentication
+  - ✅ **Files Updated**: 
+    - `static/js/main.js` - Added credentials to fetch (line 696-703)
+    - `templates/reports/form_complete.html` - Fixed onchange handler (line 411)
+  - ✅ **API Endpoint**: `/api/projeto/<int:projeto_id>/funcionarios-emails` returns JSON with credentials
+  - ✅ **Test Data Created**: Sample project (PROJ-0009) with 3 employees and 3 emails for testing
 
 ## Nearby Projects Module Enhancement (October 1, 2025)
 - **Backend API Improvements** (`/api/projects/nearby` in `routes.py`):
