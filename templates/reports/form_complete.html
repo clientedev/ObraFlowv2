@@ -831,16 +831,29 @@ function carregarFuncionariosEmailsPorId(projetoId) {
         return;
     }
 
+    console.log('🔄 Carregando funcionários e e-mails para projeto ID:', projetoId);
+    
+    funcionariosDiv.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Carregando funcionários...</p>';
+    emailsDiv.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Carregando e-mails...</p>';
+
     // Buscar funcionários e e-mails do projeto via AJAX
     fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-        }
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('📡 Resposta da API:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('📦 Dados recebidos:', data);
+        
         if (data.success) {
             // Renderizar funcionários
             let funcionariosHtml = '';
@@ -859,8 +872,10 @@ function carregarFuncionariosEmailsPorId(projetoId) {
                         </div>
                     `;
                 });
+                console.log(`✅ ${data.funcionarios.length} funcionários carregados`);
             } else {
                 funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
+                console.log('⚠️ Nenhum funcionário encontrado');
             }
             funcionariosDiv.innerHTML = funcionariosHtml;
 
@@ -881,19 +896,22 @@ function carregarFuncionariosEmailsPorId(projetoId) {
                         </div>
                     `;
                 });
+                console.log(`✅ ${data.emails.length} e-mails carregados`);
             } else {
                 emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para este projeto</p>';
+                console.log('⚠️ Nenhum e-mail encontrado');
             }
             emailsDiv.innerHTML = emailsHtml;
         } else {
-            funcionariosDiv.innerHTML = '<p class="text-danger">Erro ao carregar funcionários</p>';
-            emailsDiv.innerHTML = '<p class="text-danger">Erro ao carregar e-mails</p>';
+            console.error('❌ API retornou erro:', data.error || 'Erro desconhecido');
+            funcionariosDiv.innerHTML = `<p class="text-danger">Erro: ${data.error || 'Erro ao carregar funcionários'}</p>`;
+            emailsDiv.innerHTML = `<p class="text-danger">Erro: ${data.error || 'Erro ao carregar e-mails'}</p>`;
         }
     })
     .catch(error => {
-        console.error('Erro:', error);
-        funcionariosDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
-        emailsDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
+        console.error('❌ Erro ao carregar funcionários/e-mails:', error);
+        funcionariosDiv.innerHTML = `<p class="text-danger">Erro de conexão: ${error.message}</p>`;
+        emailsDiv.innerHTML = `<p class="text-danger">Erro de conexão: ${error.message}</p>`;
     });
 }
 
