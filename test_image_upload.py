@@ -36,14 +36,27 @@ def test_image_upload():
         if not projeto:
             print("❌ Nenhum projeto encontrado no banco")
             print("📝 Criando projeto de teste...")
+            
+            # Gerar número do projeto
+            ultimo_projeto = Projeto.query.order_by(Projeto.id.desc()).first()
+            if ultimo_projeto and ultimo_projeto.numero:
+                try:
+                    ultimo_num = int(ultimo_projeto.numero.split('-')[0])
+                    novo_numero = f"{ultimo_num + 1:03d}"
+                except:
+                    novo_numero = "001"
+            else:
+                novo_numero = "001"
+            
             projeto = Projeto(
+                numero=novo_numero,
                 nome="Projeto Teste - Upload Imagens",
                 endereco="Rua Teste, 123",
                 status="Ativo"
             )
             db.session.add(projeto)
             db.session.commit()
-            print(f"✅ Projeto criado: ID={projeto.id}")
+            print(f"✅ Projeto criado: ID={projeto.id}, Número={projeto.numero}")
         
         # Criar relatório de teste
         print("📝 Criando relatório de teste...")

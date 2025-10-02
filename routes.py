@@ -48,6 +48,39 @@ def health_check():
             'version': '1.0.1'
         }), 500
 
+@app.route('/debug/images-data')
+def debug_images_data():
+    """Debug para verificar dados das imagens - PÚBLICO PARA TESTE"""
+    try:
+        # Informações do banco de dados
+        db_url = app.config.get('SQLALCHEMY_DATABASE_URI', 'not set')[:100]
+        
+        # Buscar fotos
+        fotos = FotoRelatorio.query.order_by(FotoRelatorio.created_at.desc()).limit(20).all()
+        
+        debug_data = {
+            'database_url': db_url,
+            'total_fotos': FotoRelatorio.query.count(),
+            'fotos_com_imagem': FotoRelatorio.query.filter(FotoRelatorio.imagem.isnot(None)).count(),
+            'fotos_sem_imagem': FotoRelatorio.query.filter(FotoRelatorio.imagem.is_(None)).count(),
+            'fotos_recentes': []
+        }
+        
+        for foto in fotos:
+            debug_data['fotos_recentes'].append({
+                'id': foto.id,
+                'relatorio_id': foto.relatorio_id,
+                'filename': foto.filename,
+                'legenda': foto.legenda,
+                'imagem_presente': foto.imagem is not None,
+                'imagem_size': len(foto.imagem) if foto.imagem else 0,
+                'created_at': foto.created_at.isoformat() if foto.created_at else None
+            })
+        
+        return jsonify(debug_data)
+    except Exception as e:
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
 @app.route('/debug/reports-data')
 @login_required
 def debug_reports_data():
