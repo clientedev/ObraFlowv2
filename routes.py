@@ -694,32 +694,39 @@ def api_projeto_funcionarios_emails(projeto_id):
 
         funcionarios_data = []
         for func in funcionarios:
-            funcionarios_data.append({
+            func_data = {
                 'id': func.id,
                 'nome_funcionario': func.nome_funcionario or '',
                 'cargo': func.cargo or '',
                 'empresa': func.empresa or '',
                 'is_responsavel_principal': func.is_responsavel_principal or False
-            })
+            }
+            funcionarios_data.append(func_data)
+            current_app.logger.info(f"  📋 Funcionário: {func_data}")
 
         emails_data = []
         for email in emails:
-            emails_data.append({
+            email_data = {
                 'id': email.id,
                 'email': email.email or '',
                 'nome_contato': email.nome_contato or '',
                 'cargo': email.cargo or '',
                 'is_principal': email.is_principal or False
-            })
+            }
+            emails_data.append(email_data)
+            current_app.logger.info(f"  📧 Email: {email_data}")
 
-        current_app.logger.info(f"✅ API funcionários/emails: {len(funcionarios_data)} funcionários, {len(emails_data)} e-mails para projeto {projeto_id}")
-
-        return jsonify({
+        response_data = {
             'success': True,
             'funcionarios': funcionarios_data,
             'emails': emails_data,
             'projeto_nome': projeto.nome
-        })
+        }
+
+        current_app.logger.info(f"✅ API retornando: {len(funcionarios_data)} funcionários, {len(emails_data)} e-mails")
+        current_app.logger.info(f"📤 Response completo: {response_data}")
+
+        return jsonify(response_data)
 
     except HTTPException as e:
         current_app.logger.error(f"❌ HTTPException: {e}")
