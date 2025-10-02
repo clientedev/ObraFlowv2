@@ -1790,12 +1790,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Para projeto pré-selecionado com campos desabilitados
     console.log('🏗️ Projeto pré-selecionado detectado (campos desabilitados):', {{ preselected_project_id }});
     carregarFuncionariosEmailsPorId({{ preselected_project_id }});
+    {% elif selected_project and selected_project.id %}
+    // Para projeto pré-selecionado (selected_project existe no template)
+    console.log('🏗️ Projeto selected_project detectado:', {{ selected_project.id }});
+    carregarFuncionariosEmailsPorId({{ selected_project.id }});
     {% else %}
-    // Para projeto selecionado normalmente
+    // Para projeto selecionado normalmente via dropdown
     const projetoSelect = document.getElementById('projeto_id');
-    if (projetoSelect && projetoSelect.value) {
-        console.log('🏗️ Projeto pré-selecionado detectado:', projetoSelect.value);
-        carregarFuncionariosEmails();
+    if (projetoSelect && projetoSelect.value && !isNaN(parseInt(projetoSelect.value))) {
+        console.log('🏗️ Projeto via select detectado:', projetoSelect.value);
+        carregarFuncionariosEmailsPorId(parseInt(projetoSelect.value));
+    } else {
+        console.log('ℹ️ Nenhum projeto pré-selecionado - aguardando seleção do usuário');
     }
     {% endif %}
 
