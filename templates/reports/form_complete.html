@@ -844,7 +844,10 @@ function carregarFuncionariosEmails() {
     emailsDiv.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Carregando e-mails...</p>';
 
     // Buscar funcionários e e-mails do projeto via AJAX
-    fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
+    const apiUrl = `/api/projeto/${projetoId}/funcionarios-emails`;
+    console.log('📡 Chamando API:', apiUrl);
+    
+    fetch(apiUrl, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -918,8 +921,21 @@ function carregarFuncionariosEmails() {
     })
     .catch(error => {
         console.error('❌ Erro ao carregar funcionários e e-mails:', error);
-        funcionariosDiv.innerHTML = `<p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erro ao carregar: ${error.message}</p>`;
-        emailsDiv.innerHTML = `<p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erro ao carregar: ${error.message}</p>`;
+        funcionariosDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Erro ao carregar funcionários</strong><br>
+                <small>${error.message}</small><br>
+                <small>URL: /api/projeto/${projetoId}/funcionarios-emails</small>
+            </div>
+        `;
+        emailsDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Erro ao carregar e-mails</strong><br>
+                <small>${error.message}</small>
+            </div>
+        `;
     });
 }
 

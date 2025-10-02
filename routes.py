@@ -659,7 +659,7 @@ def api_projeto_funcionarios_emails(projeto_id):
         current_app.logger.info(f"📡 API chamada: /api/projeto/{projeto_id}/funcionarios-emails por usuário {current_user.id}")
         
         projeto = Projeto.query.get_or_404(projeto_id)
-        current_app.logger.info(f"✅ Projeto encontrado: {projeto.nome}")
+        current_app.logger.info(f"✅ Projeto encontrado: {projeto.nome} (ID: {projeto.id})")
 
         # Verificação de autorização: usuário deve ter acesso ao projeto
         if not current_user.is_master:
