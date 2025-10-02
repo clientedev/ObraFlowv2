@@ -419,8 +419,8 @@
                             </div>
                         </div>
 
-                        <!-- Seleção de Funcionários e E-mails -->
-                        <div class="row mb-4">
+                        <!-- Seleção de Funcionários e E-mails (SEMPRE RENDERIZADO) -->
+                        <div class="row mb-4" id="funcionarios-emails-section">
                             <div class="col-md-6">
                                 <div class="card border-primary">
                                     <div class="card-header bg-primary text-white">
@@ -431,8 +431,8 @@
                                     <div class="card-body" style="min-height: 150px;">
                                         <div id="funcionarios-projeto">
                                             <div class="alert alert-info mb-0">
-                                                <i class="fas fa-info-circle me-2"></i>
-                                                Selecione um projeto para ver os funcionários disponíveis
+                                                <i class="fas fa-spinner fa-spin me-2"></i>
+                                                Carregando funcionários...
                                             </div>
                                         </div>
                                     </div>
@@ -448,8 +448,8 @@
                                     <div class="card-body" style="min-height: 150px;">
                                         <div id="emails-projeto">
                                             <div class="alert alert-info mb-0">
-                                                <i class="fas fa-info-circle me-2"></i>
-                                                Selecione um projeto para ver os e-mails disponíveis
+                                                <i class="fas fa-spinner fa-spin me-2"></i>
+                                                Carregando e-mails...
                                             </div>
                                         </div>
                                     </div>
@@ -986,7 +986,7 @@ function carregarFuncionariosEmails(eventOrId) {
     });
 }
 
-// REMOVER inicialização duplicada - manter apenas uma
+// Inicialização ÚNICA do sistema de funcionários/emails
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM carregado, inicializando sistema de funcionários/emails');
     
@@ -994,6 +994,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (!projetoSelect) {
         console.warn('⚠️ Select de projeto não encontrado no DOM');
+        
+        // Se o projeto está desabilitado (pré-selecionado), usar input hidden
+        const projetoHidden = document.querySelector('input[name="projeto_id"]');
+        if (projetoHidden && projetoHidden.value) {
+            console.log('🔄 Projeto pré-selecionado (hidden input):', projetoHidden.value);
+            setTimeout(() => {
+                carregarFuncionariosEmails(projetoHidden.value);
+            }, 200);
+        }
         return;
     }
     
@@ -1005,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Aguardar um momento para garantir que o DOM está completamente pronto
         setTimeout(() => {
             carregarFuncionariosEmails(projetoSelect.value);
-        }, 100);
+        }, 200);
     }
 
     // Adicionar evento de mudança ao select (APENAS UMA VEZ)
