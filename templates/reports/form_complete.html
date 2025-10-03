@@ -2724,17 +2724,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('📸 Processando fotos...');
                 try {
                     await prepareMobilePhotoFormData();
-                    console.log('✅ Formulário validado - enviando...');
+                    console.log('✅ Fotos preparadas - enviando formulário com arquivos binários...');
                     
-                    // Remove this listener to prevent infinite loop
-                    form.removeEventListener('submit', arguments.callee);
-                    
-                    // Dispatch a new submit event to trigger the fetch-based submission
-                    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                    form.dispatchEvent(submitEvent);
+                    // Submit the form with the prepared files (native form submission)
+                    form.submit();
                 } catch (error) {
                     console.error('❌ Erro ao processar fotos:', error);
-                    alert('Erro ao processar as fotos. Tente novamente.');
+                    alert('❌ Erro ao processar as fotos. Por favor, tente novamente.');
+                    return false;
                 }
             } else {
                 console.log('✅ Formulário validado sem fotos - enviando...');
