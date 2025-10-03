@@ -2,6 +2,22 @@
 This project is a comprehensive construction site visit tracking system built with Flask, designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 ## Recent Changes
+- **Date**: October 3, 2025 - Correção de Duplicação de Relatórios e Confirmação de Exibição de Imagens
+- **Problema 1**: Relatórios duplicados sendo criados quando usuário já tinha um relatório "em preenchimento" para o mesmo projeto
+- **Solução 1**: Adicionada verificação em `routes.py` (linhas 2149-2160) antes de criar novo relatório
+  - Sistema agora verifica se já existe relatório com status "preenchimento" para o mesmo projeto e usuário
+  - Se existir, redireciona para editar o existente ao invés de criar duplicado
+  - Mensagem clara ao usuário informando que já tem um relatório em andamento
+  - ✅ Elimina completamente a duplicação de relatórios em status "preenchimento"
+  
+- **Problema 2**: Verificação de exibição correta de imagens armazenadas no banco de dados
+- **Solução 2**: Confirmado que sistema já está funcionando corretamente
+  - Imagens armazenadas em campo BYTEA do PostgreSQL
+  - Rota `/imagens/<int:id>` serve imagens diretamente do banco com Content-Type correto
+  - Templates (view.html, edit.html) já utilizam `url_for('get_imagem', id=foto.id)` corretamente
+  - Fallback para placeholder SVG quando imagem não encontrada
+  - ✅ Nenhuma alteração necessária - sistema já funcional
+
 - **Date**: October 3, 2025 - Image Upload Fix & Replit Environment Setup
 - **Issue**: Images were not being saved to the database - the form submission handler was dispatching a new submit event with no handler, causing the form to never actually submit
 - **Root Cause**: After preparing photo files, the code removed the submit listener and dispatched a new submit event that had no handler
