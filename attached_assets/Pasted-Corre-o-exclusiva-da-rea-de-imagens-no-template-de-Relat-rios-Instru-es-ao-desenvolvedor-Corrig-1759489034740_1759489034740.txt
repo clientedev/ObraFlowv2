@@ -1,0 +1,68 @@
+Correção exclusiva da área de imagens no template de Relatórios
+
+Instruções ao desenvolvedor:
+Corrigir única e exclusivamente o fluxo de upload/salvamento de imagens dentro do template templates/reports/form_complete.html.
+⚠️ Não alterar nenhuma outra parte ou funcionalidade já existente no template. O layout, os campos (obra, data, relatorio, etc.), validações, botões, status e lógicas atuais devem permanecer inalterados e funcionando como já estão.
+
+🎯 Escopo da correção (somente imagens)
+
+Garantir que as imagens selecionadas pelo usuário sejam efetivamente enviadas ao backend e gravadas na tabela fotos_relatorio.imagem.
+
+Resolver o problema atual onde o relatório, data e obra salvam corretamente, mas as imagens não são salvas nem exibem erro (simplesmente são ignoradas).
+
+Manter o mesmo template e funcionalidades existentes, corrigindo somente:
+
+Inputs de upload (photoInput, mobileCameraInput, mobilePhotoInput).
+
+Inclusão dos arquivos no FormData ou envio via /api/reports/<id>/photos.
+
+Event listeners que hoje estão ausentes ou não integram com o submit.
+
+Inclusão de mensagens de erro visíveis caso upload falhe.
+
+🛠 Diagnóstico encontrado (somente imagens)
+
+Inputs mobile (mobileCameraInput, mobilePhotoInput) apenas abrem a câmera, mas não possuem handlers de envio.
+
+Arquivo test-upload-api.js não está incluído no template.
+
+Existem 3 fluxos de upload conflitantes e nenhum finaliza o envio corretamente.
+
+No submit, o array selectedPhotos[] não é anexado ao FormData, por isso o backend não recebe arquivos.
+
+Resultado: backend salva tudo menos a imagem, sem erro explícito.
+
+✅ Solução (somente imagens)
+
+Unificar o sistema de upload em um fluxo único que funcione tanto no desktop quanto no mobile.
+
+No submit do formulário:
+
+Anexar todas as imagens escolhidas ao FormData com o campo imagem ou imagens[] (ajustar conforme API backend).
+
+Garantir envio multipart/form-data válido para o endpoint já existente.
+
+Exibir previews e permitir remover imagens antes do envio.
+
+Exibir mensagem de erro se upload falhar.
+
+Não modificar lógica de salvar relatório, data, obra, categorias, checklists, etc. — somente o envio das imagens.
+
+🔎 Critérios de aceite
+
+Apenas imagens são corrigidas; todo o resto do template continua idêntico.
+
+Ao cadastrar um relatório com imagens, os registros são criados em fotos_relatorio.imagem (coluna bytea com conteúdo válido).
+
+Testes confirmam que:
+
+Chrome desktop → salva imagens corretamente.
+
+Chrome mobile / WebView APK → pede câmera/galeria, envia e salva corretamente.
+
+Backend recebe request.files com os arquivos no submit.
+
+Caso upload falhe, usuário vê mensagem clara de erro.
+
+👉 Resumo curto para commit:
+“Correção exclusiva do fluxo de upload de imagens no template form_complete.html, garantindo que arquivos sejam enviados e gravados em fotos_relatorio.imagem. Nenhuma outra funcionalidade foi alterada.”
