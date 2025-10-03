@@ -1486,30 +1486,30 @@ async function createInitialReport() {
 document.getElementById('reportForm').addEventListener('submit', function(e) {
     e.preventDefault(); // Prevent default form submission
 
-    // Se há um reportId global, finalizar o relatório
+    // CRÍTICO: Se há currentReportId, garantir que edit_report_id está no form
+    // Isso previne duplicação - sempre ATUALIZA o relatório existente
     if (window.currentReportId) {
-        fetch(`/reports/${window.currentReportId}/finalize`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Relatório finalizado com sucesso!');
-                window.location.href = data.redirect;
-            } else {
-                throw new Error(data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Erro ao finalizar:', error);
-            alert('Erro ao finalizar relatório: ' + error.message);
-        });
+        // Adicionar ou atualizar campo edit_report_id no formulário
+        let editField = this.querySelector('input[name="edit_report_id"]');
+        if (!editField) {
+            editField = document.createElement('input');
+            editField.type = 'hidden';
+            editField.name = 'edit_report_id';
+            this.appendChild(editField);
+        }
+        editField.value = window.currentReportId;
+        console.log('✅ edit_report_id adicionado ao form:', window.currentReportId);
         
-        return;
+        // Adicionar flag para finalizar após salvar
+        let finalizeField = this.querySelector('input[name="should_finalize"]');
+        if (!finalizeField) {
+            finalizeField = document.createElement('input');
+            finalizeField.type = 'hidden';
+            finalizeField.name = 'should_finalize';
+            this.appendChild(finalizeField);
+        }
+        finalizeField.value = 'true';
+        console.log('✅ Flag should_finalize adicionada ao form');
     }
 
     // Create FormData object for proper file handling

@@ -2546,6 +2546,38 @@ def create_report():
                 if foto_post.coordenadas_anotacao:
                     current_app.logger.info(f"   📍 Coordenadas: {type(foto_post.coordenadas_anotacao).__name__}")
 
+            # CRÍTICO: Se flag should_finalize está presente, finalizar relatório
+            # Isso muda status de "preenchimento" para "Aguardando Aprovação" e remove duplicados
+            should_finalize = request.form.get('should_finalize') == 'true'
+            if should_finalize and relatorio.status == 'preenchimento':
+                current_app.logger.info(f"🎯 FLAG should_finalize detectado - finalizando relatório {relatorio.id}")
+                
+                # Mudar status para Aguardando Aprovação
+                relatorio.status = 'Aguardando Aprovação'
+                relatorio.updated_at = datetime.utcnow()
+                
+                # Deletar TODOS os outros relatórios em "preenchimento" do mesmo projeto
+                duplicados = Relatorio.query.filter(
+                    Relatorio.id != relatorio.id,
+                    Relatorio.projeto_id == relatorio.projeto_id,
+                    Relatorio.status == 'preenchimento'
+                ).all()
+                
+                for dup in duplicados:
+                    # Deletar fotos associadas ao relatório duplicado
+                    fotos_dup = FotoRelatorio.query.filter_by(relatorio_id=dup.id).all()
+                    for foto in fotos_dup:
+                        db.session.delete(foto)
+                    db.session.delete(dup)
+                    current_app.logger.info(f"🗑️ Deletado relatório duplicado ID={dup.id} (estava em preenchimento)")
+                
+                db.session.commit()
+                
+                if duplicados:
+                    current_app.logger.info(f"✅ Relatório {relatorio.numero} FINALIZADO e {len(duplicados)} duplicado(s) removido(s)")
+                else:
+                    current_app.logger.info(f"✅ Relatório {relatorio.numero} FINALIZADO sem duplicados")
+
             flash('Relatório criado com sucesso!', 'success')
 
             # Return JSON response for AJAX submission
