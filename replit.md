@@ -2,6 +2,18 @@
 This project is a comprehensive construction site visit tracking system built with Flask, designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 ## Recent Changes
+- **Date**: October 3, 2025
+- **Photo Upload System Overhaul**: Complete rewrite of image upload/storage/retrieval system
+  - Added SHA-256 hash calculation for all uploaded images (64-character hex string)
+  - Added content_type (MIME type) detection and storage for proper image serving
+  - Added imagem_size field to track image file sizes
+  - Implemented duplicate detection based on image hash to prevent redundant storage
+  - Updated `/api/fotos/upload` endpoint with hash calculation, MIME detection, and metadata storage
+  - Updated `/api/fotos/<foto_id>` endpoint to serve images with correct Content-Type headers
+  - Added migration `20251003_0100` to add metadata fields to `fotos_relatorio` and `fotos_relatorios_express` tables
+  - Filename now uses hash-based naming for consistency (`{hash}.{ext}`)
+  - Cross-device compatibility ensured (Android, iOS, Desktop, APK)
+  
 - **Date**: October 2, 2025
 - **Migration**: Updated `FotoRelatorio` model to use PostgreSQL JSONB for annotation data fields
   - Changed `anotacoes_dados` from Text to JSONB (db.JSON)
@@ -48,7 +60,7 @@ Mobile-first design: Date field should be the first input field in report forms.
 - **Reimbursements**: Expense tracking with categories and approval workflow.
 - **Checklist Templates**: Defines `ChecklistTemplate` and `ChecklistItem`.
 - **ComunicacaoVisita**: Model for visit-based communication.
-- **FotoRelatorio**: Photo storage with BYTEA for binary data, JSONB for annotation metadata (`anotacoes_dados`, `coordenadas_anotacao`).
+- **FotoRelatorio**: Photo storage with BYTEA for binary data, JSONB for annotation metadata (`anotacoes_dados`, `coordenadas_anotacao`), SHA-256 hash for deduplication (`imagem_hash`), MIME type storage (`content_type`), and file size tracking (`imagem_size`).
 
 ## Key Features
 - **Project Management**: CRUD operations, automatic numbering, GPS location.
