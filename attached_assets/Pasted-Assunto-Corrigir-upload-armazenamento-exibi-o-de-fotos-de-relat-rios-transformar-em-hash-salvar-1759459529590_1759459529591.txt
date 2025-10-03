@@ -1,0 +1,171 @@
+Assunto: Corrigir upload/armazenamento/exibição de fotos de relatórios — transformar em hash, salvar corretamente em BYTEA e expor com Content-Type correto
+
+Contexto / Problema atual:
+As fotos estão sendo salvas apenas como nome (ou inconsistentes entre dispositivos). No iPhone funciona, nos outros dispositivos não. Precisamos de um fluxo robusto e unificado: gerar um hash da imagem ao receber, salvar o binário no PostgreSQL (BYTEA) com metadados (hash, tipo MIME, tamanho, nome original), e expor a imagem por uma rota que retorne o binário com o Content-Type correto para ser exibida pelo front.
+
+Objetivo
+
+Garantir que toda imagem anexada a um relatório seja:
+
+Recebida corretamente (Android, iOS, Desktop, APK).
+
+Convertida em bytes e hash (SHA-256).
+
+Gravada no PostgreSQL na tabela fotos_relatorio no campo imagem (BYTEA) + metadados: imagem_hash, content_type, imagem_size, filename_original.
+
+Servida por rota que retorna o binário com cabeçalho Content-Type correto para exibição <img> / download.
+
+Tabela alvo
+
+Tabela: fotos_relatorio
+Colunas já existentes (confirmadas): id, relatorio_id, filename, filename_original, filename_anotada, titulo, legenda, descricao, ... , created_at, imagem (BYTEA)
+
+Recomendado adicionar (se ainda não existirem):
+
+imagem_hash VARCHAR(64)
+
+content_type VARCHAR(100)
+
+imagem_size INTEGER
+
+Se não for possível alterar o schema agora, armazenar imagem_hash em filename prefixando com hash_ como fallback. Mas o ideal é criar as colunas.
+
+Exemplo Alembic (adicionar novo migration):
+
+def upgrade():
+    op.add_column('fotos_relatorio', sa.Column('imagem_hash', sa.String(length=64), nullable=True))
+    op.add_column('fotos_relatorio', sa.Column('content_type', sa.String(length=100), nullable=True))
+    op.add_column('fotos_relatorio', sa.Column('imagem_size', sa.Integer(), nullable=True))
+
+Fluxo detalhado (frontend → backend → DB → exibição)
+1) Frontend (mobile, web, apk)
+
+Sempre enviar multipart/form-data (não JSON base64).
+
+Se a captura retorna base64 (ex: canvas), converter para Blob/File antes de enviar:
+
+// Se tem base64: convert -> blob -> file
+const res = await fetch(base64DataUrl);
+const blob = await res.blob();
+const file = new File([blob], originalName, { type: blob.type });
+const fd = new FormData();
+fd.append('imagem', file);
+fd.append('relatorio_id', reportId);
+// enviar via fetch sem setar Content-Type (browser seta boundary)
+await fetch('/api/reports/{reportId}/photos', { method: 'POST', body: fd, credentials: 'include' });
+
+
+Incluir CSRF token se a aplicação exige.
+
+Validar no cliente tamanho máximo (ex.: 8MB) e tipos permitidos (image/jpeg, image/png, image/webp) para evitar erros no upload.
+
+2) Backend (Flask/Python — sugerido)
+
+Endpoint: POST /api/reports/<report_id>/photos
+
+Lógica:
+
+Receber arquivo file = request.files.get('imagem'). Se não existir, suportar fallback imagem_base64 em request.form (decodificar).
+
+Ler bytes: file_bytes = file.read()
+
+Validar file.mimetype e tamanho (len(file_bytes)).
+
+Calcular hash SHA-256:
+
+import hashlib
+imagem_hash = hashlib.sha256(file_bytes).hexdigest()
+
+
+Gerar nome de arquivo único: stored_filename = f"{imagem_hash}{ext}" (ext obtido via mimetypes ou file.filename).
+
+Checar duplicata opcional: SELECT id FROM fotos_relatorio WHERE imagem_hash = :hash AND relatorio_id = :r → se existir, retornar o registro existente (evita duplicação).
+
+Inserir no DB (SQLAlchemy exemplo):
+
+foto = FotosRelatorio(
+    relatorio_id=report_id,
+    filename=stored_filename,
+    filename_original=file.filename,
+    imagem=db.LargeBinary(file_bytes),  # se model usa LargeBinary
+    imagem_hash=imagem_hash,
+    content_type=file.mimetype,
+    imagem_size=len(file_bytes),
+    created_at=datetime.utcnow()
+)
+db.session.add(foto)
+db.session.commit()
+
+
+Se usar psycopg2 direto: usar psycopg2.Binary(file_bytes) ao inserir.
+
+Retornar JSON com photo_id, url (ex: /api/reports/photos/{photo_id}/raw) e status 201.
+
+Transação: tudo dentro de transaction; em caso de erro, rollback.
+
+3) Rota de exibição / download
+
+GET /api/reports/photos/<photo_id>/raw (autorização obrigatória):
+
+photo = FotosRelatorio.query.get(photo_id)
+if not photo: abort(404)
+return Response(photo.imagem, mimetype=photo.content_type,
+                headers={'Content-Disposition': f'inline; filename="{photo.filename}"'})
+
+
+Para <img src="..."> usar exatamente essa URL. Para lazy loading, pode usar fetch -> blob -> URL.createObjectURL.
+
+4) Se estiver usando armazenamento em disco/S3 (opcional recomendado)
+
+Ao invés de salvar grande binário no DB, salvar arquivo em storage (S3 ou /uploads/relatorios/<hoje>/<imagem_hash>.jpg) e armazenar path/url no DB. Ainda manter imagem_hash, content_type, imagem_size.
+
+Debug / Logs / Verificações
+
+Logue no backend ao receber arquivo: logger.info("Upload recebido: relatorio=%s, filename=%s, size=%d, mimetype=%s", id, file.filename, len(file_bytes), file.mimetype)
+
+Após salvar, logue imagem_hash e photo_id.
+
+Testes com curl:
+
+curl -v -X POST -F "imagem=@/tmp/test.jpg" -F "relatorio_id=11" https://elpconsultoria.pro/api/reports/11/photos
+
+
+Verificar se coluna imagem tem dados via psql: SELECT id, filename, length(imagem), imagem_hash FROM fotos_relatorio WHERE relatorio_id=11;
+
+Possíveis causas do problema atual (para investigação imediata)
+
+Frontend enviando base64 via JSON e o backend não decodificando corretamente (ou truncando).
+
+WebView / APK enviando data: URL e o backend recebendo como texto - não como multipart form.
+
+Falta de Content-Type correto no retorno (quando a imagem é servida), impedindo exibição.
+
+Charset/encoding/transformação indevida do binário antes de gravar (ex.: convertendo bytes em string).
+
+Tamanho excedido e truncamento (max request size no server).
+
+Falta de commit/rollback ou exceção silenciosa durante insert (veja logs).
+
+Coluna imagem não sendo usada no SELECT/rota de exibição (apenas filename é lido).
+
+Critérios de aceitação (QA)
+
+Enviar foto via curl (multipart) salva imagem BYTEA, gera imagem_hash, content_type, imagem_size e retorna photo_id.
+
+Abrir /api/reports/photos/<photo_id>/raw e a imagem aparece no browser <img src="...">.
+
+Upload feito por Android, iOS (WebView), Desktop, APK funciona da mesma forma sem perda de dados.
+
+Caso de duplicata (mesmo conteúdo) detectado por hash retorna já existente (sem criar duplicata) — opcional.
+
+Logs mostram size e hash — não há exceções silenciosas.
+
+Se migration for necessário, um arquivo Alembic é criado e validado.
+
+Observações finais (instruções para o dev que for implementar)
+
+Não use JSON base64 para transferir imagens grandes — use multipart/form-data.
+
+Se for manter imagens no DB (BYTEA), confirmar limites e performance; para produção com muitas imagens considere S3 e armazenar apenas path no DB.
+
+Se necessário, eu posso fornecer trecho completo pronto de rota Flask + modelo SQLAlchemy + snippet JS de upload. Quer que eu gere o código completo agora?
