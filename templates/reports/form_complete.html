@@ -566,7 +566,7 @@
             <div class="row g-2">
                 <div class="col-6">
                     <button type="button" class="btn btn-outline-primary w-100 mobile-photo-btn"
-                            id="mobileCameraBtn" style="min-height: 56px;">
+                            id="mobileCameraBtn" onclick="openPhotoPicker('mobile-camera')" style="min-height: 56px;">
                         <div class="d-flex flex-column align-items-center">
                             <i class="fas fa-camera fa-lg mb-1"></i>
                             <small>Câmera</small>
@@ -575,7 +575,7 @@
                 </div>
                 <div class="col-6">
                     <button type="button" class="btn btn-outline-success w-100 mobile-photo-btn"
-                            id="mobileGalleryBtn" style="min-height: 56px;">
+                            id="mobileGalleryBtn" onclick="openPhotoPicker('mobile-gallery')" style="min-height: 56px;">
                         <div class="d-flex flex-column align-items-center">
                             <i class="fas fa-images fa-lg mb-1"></i>
                             <small>Galeria</small>
@@ -583,8 +583,10 @@
                     </button>
                 </div>
             </div>
-            <input type="file" id="mobilePhotoInput" class="form-control" multiple accept="image/*" style="display: none;">
-            <input type="file" id="mobileCameraInput" class="form-control" accept="image/*" capture="environment" style="display: none;">
+            <!-- Hidden file inputs for unified upload system -->
+            <input type="file" id="photoInput" name="imagens[]" multiple accept="image/*" style="display: none;">
+            <input type="file" id="mobilePhotoInput" name="imagens[]" class="form-control" multiple accept="image/*" style="display: none;">
+            <input type="file" id="mobileCameraInput" name="imagens[]" class="form-control" accept="image/*" capture="environment" style="display: none;">
             <div class="text-center mt-2">
                 <small class="text-muted"><strong>Máximo 200 fotos - Limite total: 3GB</strong></small>
             </div>
@@ -617,8 +619,12 @@
                                 <small class="text-muted d-block mt-2">Total: <span id="quickPhotoCount">0</span> fotos (máximo 200)</small>
                             </div>
 
-                            <!-- Fotos antigas (mantido para compatibilidade) -->
+                            <!-- Novo sistema unificado de preview de fotos -->
+                            <div id="photosPreview" class="row g-3 mt-3"></div>
+                            
+                            <!-- Fotos antigas (desabilitado - sistema legacy) -->
                             <div id="photoPreview" class="row" style="display: none;"></div>
+                            <div id="mobilePhotoCards" class="row g-3" style="display: none;"></div>
                         </div>
 
                         <div class="d-flex justify-content-between">
@@ -2975,7 +2981,9 @@ function fileToBase64(file) {
     });
 }
 
+// OLD SUBMIT HANDLER - DESABILITADO (substituído pelo sistema unificado em reports-upload.js)
 // Form submission validation
+/*
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('reportForm');
     if (form) {
@@ -3045,11 +3053,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+*/
 
 console.log('📱 Mobile-first photo system loaded');
 </script>
 
 <!-- Auto Save Script -->
 <script src="{{ url_for('static', filename='js/reports_autosave.js') }}"></script>
+
+<!-- Unified Photo Upload System (NEW - Fixes image upload to database) -->
+<script src="{{ url_for('static', filename='js/reports-upload.js') }}"></script>
 
 {% endblock %}

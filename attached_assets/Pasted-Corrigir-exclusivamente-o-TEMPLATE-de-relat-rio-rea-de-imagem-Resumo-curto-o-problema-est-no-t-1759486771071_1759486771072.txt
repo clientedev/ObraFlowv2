@@ -1,0 +1,269 @@
+Corrigir exclusivamente o TEMPLATE de relatório (área de imagem)
+
+Resumo curto: o problema está no template templates/reports/form_complete.html / javascript cliente: o campo/fluxo de imagens não está enviando os ficheiros para o backend. Tudo (relatório, data, obra, etc.) salva — menos a imagem, porque o template não anexa nem envia os arquivos (inputs mobile sem listeners, FormData sem imagens, múltiplos sistemas de upload conflitantes). Peço correção única e exclusiva nesta área (front / template / js), sem mexer na API server-side além de validar o recebimento.
+
+Objetivos do patch (exigir apenas no template/js)
+
+Unificar o uploader do template em um único fluxo mobile-first.
+
+Garantir que, ao criar/editar um relatório, as imagens sejam enviadas ao servidor (multipart/form-data) — nunca ignoradas.
+
+Se o relatório ainda não existir (criação primeiro), criar, obter report_id e permitir upload imediato; se já existir, enviar direto para /api/reports/<report_id>/photos (ou rota equivalente).
+
+Remover / desativar os sistemas legados conflitantes; incluir logs / mensagens de erro no cliente visíveis (toast/error banner).
+
+Garantir compatibilidade mobile (WebView / APK) e desktop.
+
+Diagnóstico (o que foi identificado)
+
+Inputs mobile (mobileCameraInput, mobilePhotoInput) abrem a câmera/galeria mas não têm event listeners que façam upload ou armazenem o arquivo.
+
+test-upload-api.js existe mas não está incluído no template.
+
+Há 3 sistemas de upload no template (antigo photoInput, mobile mobile*, cards mobilePhotoCards) que não se comunicam.
+
+No submit do formulário, selectedPhotos[] não é anexado ao FormData — portanto o backend recebe apenas campos de texto, sem arquivos.
+
+Resultado: backend não recebe request.files e não grava imagem em fotos_relatorio. Não há erro visível porque o frontend não checa nem mostra erro.
+
+Correção recomendada (passo-a-passo) — aplicar apenas no template/js
+1) Remover/encapsular os upload legacy
+
+Desabilitar os blocos JS antigos (comentá-los) e deixar somente um uploader unificado: photoInput + mobileCameraInput (ambos alimentam a mesma fila selectedFiles).
+
+2) HTML mínimo (adicionar/ajustar no form_complete.html)
+
+Certifique-se que existe um <form id="reportForm" method="post" action="{{ url_for('report_create_or_update') }}"> (ou rota atual) e adicione inputs:
+
+<!-- Inputs para fotos (desktop e mobile) -->
+<input id="photoInput" name="imagens[]" type="file" accept="image/*" multiple style="display:none">
+<input id="mobileCameraInput" name="imagens[]" type="file" accept="image/*" capture="environment" style="display:none">
+<!-- Local onde mostra previews -->
+<div id="photosPreview" class="photos-preview"></div>
+
+
+IMPORTANTE: name="imagens[]" ou name="imagem" deve bater com o que o backend espera. Se a API aceita imagens[], usar esse nome.
+
+3) JS: Uploader unificado completo (substitua/insira em static/js/reports-upload.js e inclua no template)
+
+Cole este script no final do template (antes do </body>) ou adicione src para o arquivo JS:
+
+// reports-upload.js (incluir no template)
+(() => {
+  const form = document.getElementById('reportForm');
+  const photoInput = document.getElementById('photoInput');
+  const mobileInput = document.getElementById('mobileCameraInput');
+  const preview = document.getElementById('photosPreview');
+  const submitButton = form.querySelector('button[type="submit"]');
+
+  // Fila de arquivos selecionados (File objects or Blob)
+  const selectedFiles = []; // persistente por edição da UI
+
+  // Helper: render preview
+  function renderPreviews() {
+    preview.innerHTML = '';
+    selectedFiles.forEach((file, i) => {
+      const url = URL.createObjectURL(file);
+      const el = document.createElement('div');
+      el.className = 'photo-card';
+      el.innerHTML = `
+        <img src="${url}" alt="foto ${i}" style="max-width:120px; max-height:120px; display:block"/>
+        <button type="button" data-index="${i}" class="btn-remove-photo">Remover</button>
+      `;
+      preview.appendChild(el);
+    });
+  }
+
+  // Add files to fila
+  function addFiles(filesList) {
+    for (let i = 0; i < filesList.length; i++) {
+      const f = filesList[i];
+      // opcional: validar tipo/tamanho aqui
+      selectedFiles.push(f);
+    }
+    renderPreviews();
+  }
+
+  // Event listeners mobile/desktop
+  photoInput.addEventListener('change', e => addFiles(e.target.files));
+  mobileInput.addEventListener('change', e => addFiles(e.target.files));
+
+  // Remove preview
+  preview.addEventListener('click', (e) => {
+    if (e.target.classList.contains('btn-remove-photo')) {
+      const idx = Number(e.target.dataset.index);
+      selectedFiles.splice(idx, 1);
+      renderPreviews();
+    }
+  });
+
+  // Função que cria/atualiza relatório (se necessário) e retorna report_id
+  async function ensureReportExists() {
+    // Se o form já salva relatório via submit normal e retorna redirect,
+    // preferimos o fluxo "submit cria relatório" -> depois upload.
+    // Mas aqui implementamos fallback: se existe hidden input report_id, usamos
+    const existing = form.querySelector('input[name="report_id"]');
+    if (existing && existing.value) return existing.value;
+
+    // Caso não tenha, fazemos um POST para criar rascunho via fetch (AJAX)
+    const fd = new FormData(form);
+    // Remova imagens do FD para evitar duplicates:
+    // (não anexamos selectedFiles aqui)
+    // Enviar apenas campos do relatório
+    for (const p of fd.getAll('imagens[]')) { fd.delete('imagens[]'); }
+
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const res = await fetch(form.action, {
+      method: 'POST',
+      body: fd,
+      headers: token ? { 'X-CSRFToken': token } : {}
+    });
+    if (!res.ok) throw new Error('Erro ao criar relatório (AJAX).');
+    const json = await res.json();
+    // espera { success: true, report_id: 123 }
+    if (!json.report_id) throw new Error('Resposta inválida ao criar relatório.');
+    // insere hidden input para uso futuro
+    const input = document.createElement('input');
+    input.type = 'hidden'; input.name = 'report_id'; input.value = json.report_id;
+    form.appendChild(input);
+    return json.report_id;
+  }
+
+  // Função de upload de uma foto ao servidor
+  async function uploadPhotoToServer(reportId, file) {
+    const fd = new FormData();
+    fd.append('relatorio_id', reportId);
+    fd.append('imagem', file, file.name);
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const res = await fetch(`/api/reports/${reportId}/photos`, {
+      method: 'POST',
+      body: fd,
+      headers: token ? { 'X-CSRFToken': token } : {}
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(()=>null);
+      throw new Error('Upload falhou: ' + (text || res.statusText));
+    }
+    return res.json(); // espera { success:true, photo_id: xx, url: '...' }
+  }
+
+  // Upload all selected files (executado antes do finalize / submit final)
+  async function uploadAllFiles(reportId) {
+    const results = [];
+    for (const f of selectedFiles) {
+      results.push(await uploadPhotoToServer(reportId, f));
+    }
+    return results;
+  }
+
+  // Handler do submit: cria relatório (se necessário) → upload fotos → redireciona/atualiza
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      submitButton.disabled = true;
+      // 1) garante report criado e pega id
+      const reportId = await ensureReportExists();
+
+      // 2) se existirem arquivos selecionados faz upload
+      if (selectedFiles.length > 0) {
+        await uploadAllFiles(reportId);
+      }
+
+      // 3) final step: redirecionar para página do relatório ou atualizar interface
+      window.location.href = `/reports/${reportId}`; // ajustar conforme rota
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar relatório / enviar fotos: ' + err.message);
+      submitButton.disabled = false;
+    }
+  });
+
+  // Expor trigger para botões "Adicionar foto" (ex.: um botão que abre input)
+  window.openPhotoPicker = (from) => {
+    if (from === 'mobile') mobileInput.click();
+    else photoInput.click();
+  };
+})();
+
+
+Notas sobre o script:
+
+Ele não tenta gerir três sistemas diferentes: unifica seleção.
+
+Primeiro cria o relatório (AJAX) se necessário, depois realiza upload por foto para /api/reports/<reportId>/photos.
+
+Se quiser manter o fluxo “tudo em um submit” em vez de upload imediato, substitua uploadAllFiles(reportId) por anexar todos selectedFiles ao FormData enviado ao endpoint de criação/edição (veja alternativa abaixo).
+
+4) Alternativa simples: anexar imagens no submit final (se preferir não criar relatório antes)
+
+Substitua o corpo do submit por:
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(form);
+  // anexar arquivos selecionados
+  selectedFiles.forEach((file, i) => fd.append('imagens[]', file, file.name));
+  const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  const res = await fetch(form.action, { method: 'POST', body: fd, headers: token ? {'X-CSRFToken': token} : {} });
+  if (!res.ok) { /* mostrar erro */ }
+  const j = await res.json();
+  window.location.href = `/reports/${j.report_id}`; // ajuste
+});
+
+
+Escolha UM dos dois fluxos (upload imediato após criação vs enviesar imagens no submit). NÃO implemente ambos ao mesmo tempo, para evitar duplicação.
+
+5) Verificações servidor / CSRF / nomes de campo
+
+Confirme nome do campo aguardado pelo server: imagem, imagens[] ou file. Ajuste fd.append('imagem', ...) conforme backend.
+
+Se o app usar CSRF (Flask-WTF), inclua token: <meta name="csrf-token" content="{{ csrf_token() }}"> e envie header X-CSRFToken.
+
+Ajuste a rota de upload: /api/reports/<reportId>/photos ou /api/fotos/upload. O script acima assume /api/reports/:id/photos.
+
+Testes / Debug (passos para validar)
+
+No browser em DevTools → Network: ao submeter, confirmar request enviada com Content-Type: multipart/form-data; boundary=... e ver Form Data contendo imagem/imagens[].
+
+Verificar no backend logs se request.files contém os arquivos. Se não, inspecionar CSRF e nome do campo.
+
+Teste com curl:
+
+curl -v -F "relatorio_id=11" -F "imagem=@/tmp/test.jpg" https://elpconsultoria.pro/api/reports/11/photos
+
+
+Validar no DB (Postgres) que fotos_relatorio.imagem tem bytes:
+
+SELECT id, filename, octet_length(imagem) AS bytes, imagem_hash, content_type
+FROM fotos_relatorio WHERE relatorio_id = <ID>;
+
+
+Se a imagem não aparecer no frontend, abrir a rota raw /api/reports/photos/<photo_id>/raw para confirmar Content-Type e payload.
+
+Mensagens de erro / UX
+
+Se upload falhar, mostrar um banner vermelho com texto do erro.
+
+Em mobile, desabilitar botão de envio enquanto uploads estiverem em andamento.
+
+Critérios de aceite (QA)
+
+Ao criar/editar relatório com fotos via template, as imagens são gravadas em fotos_relatorio.imagem (octet_length > 0).
+
+No DevTools, Requests de upload mostram FormData com arquivos.
+
+O usuário vê preview das fotos antes de enviar.
+
+Funciona em Chrome desktop, Chrome mobile WebView e APK (testar upload via WebView/file chooser).
+
+Não há scripts duplicados ativos; apenas o uploader unificado opera.
+
+Entrega pedida ao aplicar o patch
+
+Commit com alterações em templates/reports/form_complete.html e novo static/js/reports-upload.js (ou patch inline no template).
+
+Incluir teste manual documentado (curl + steps no browser).
+
+Se alterarem rota AJAX de criação de relatório, documentar a resposta JSON esperada ({ success:true, report_id: <id> }).
+
+Reportar aqui os logs do primeiro upload (console + server log) para validação.
