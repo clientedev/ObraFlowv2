@@ -1543,48 +1543,103 @@ def api_upload_photo():
         foto.tipo_servico = categoria
         foto.ordem = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count() + 1
         
-        # GARANTIR que os dados binários sejam atribuídos ANTES do commit
-        # Converter explicitamente para bytes se necessário
+        # GARANTIR que os dados binários sejam bytes puros
         if isinstance(file_bytes, memoryview):
             file_bytes = bytes(file_bytes)
+        elif not isinstance(file_bytes, bytes):
+            file_bytes = bytes(file_bytes)
         
+        # LOG DETALHADO PRÉ-SAVE
+        current_app.logger.info(f"📊 PRÉ-SAVE: tipo={type(file_bytes).__name__}, tamanho={len(file_bytes)}, hash={imagem_hash[:12]}")
+        
+        # ATRIBUIR dados binários ao modelo SQLAlchemy
         foto.imagem = file_bytes
         foto.imagem_hash = imagem_hash
         foto.content_type = content_type
         foto.imagem_size = file_size
         
-        current_app.logger.info(f"💾 PREPARANDO SAVE: legenda='{legenda}', hash={imagem_hash[:12]}, size_before_commit={len(foto.imagem) if foto.imagem else 0}, type={type(foto.imagem).__name__}")
+        # LOG: Verificar atribuição
+        current_app.logger.info(f"💾 APÓS ATRIBUIÇÃO: foto.imagem type={type(foto.imagem).__name__}, size={len(foto.imagem) if foto.imagem else 0}")
         
-        # Adicionar ao session e fazer flush para obter o ID
+        # Adicionar ao session
         db.session.add(foto)
-        db.session.flush()
         
-        current_app.logger.info(f"🔄 APÓS FLUSH: ID={foto.id}, imagem_present={foto.imagem is not None}, size={len(foto.imagem) if foto.imagem else 0}, type={type(foto.imagem).__name__}")
-        
-        # Commit final
-        db.session.commit()
-        
-        # Verificação PÓS-COMMIT
-        db.session.expire_all()  # Forçar reload do banco
-        foto_verificada = FotoRelatorio.query.get(foto.id)
-        
-        if foto_verificada and foto_verificada.imagem:
-            imagem_size_db = len(foto_verificada.imagem) if isinstance(foto_verificada.imagem, (bytes, bytearray)) else len(bytes(foto_verificada.imagem))
-        else:
-            imagem_size_db = 0
-        
-        current_app.logger.info(f"✅ VERIFICAÇÃO PÓS-COMMIT: ID={foto.id}, bytes_db={imagem_size_db}, bytes_original={file_size}, type_db={type(foto_verificada.imagem).__name__ if foto_verificada and foto_verificada.imagem else 'None'}")
-        
-        if imagem_size_db == 0:
-            current_app.logger.error(f"❌ FALHA CRÍTICA: Imagem não foi salva! Rolling back...")
+        # FLUSH para obter ID
+        try:
+            db.session.flush()
+            current_app.logger.info(f"🔄 FLUSH OK: foto.id={foto.id}, imagem_presente={foto.imagem is not None}")
+        except Exception as flush_error:
+            current_app.logger.error(f"❌ ERRO NO FLUSH: {flush_error}")
             db.session.rollback()
             return jsonify({
                 'success': False,
-                'error': 'Erro ao salvar imagem no banco de dados'
+                'error': f'Erro ao preparar salvamento: {str(flush_error)}'
+            }), 500
+        
+        # COMMIT - Forçar salvamento no PostgreSQL
+        try:
+            db.session.commit()
+            current_app.logger.info(f"✅ COMMIT EXECUTADO para foto.id={foto.id}")
+        except Exception as commit_error:
+            current_app.logger.error(f"❌ ERRO NO COMMIT: {commit_error}")
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'error': f'Erro ao salvar no banco: {str(commit_error)}'
+            }), 500
+        
+        # VERIFICAÇÃO PÓS-COMMIT - Buscar do banco novamente
+        db.session.expire_all()  # Forçar reload do PostgreSQL
+        foto_verificada = FotoRelatorio.query.get(foto.id)
+        
+        if not foto_verificada:
+            current_app.logger.error(f"❌ CRÍTICO: Foto {foto.id} não encontrada após commit!")
+            return jsonify({
+                'success': False,
+                'error': 'Foto não foi salva no banco de dados'
+            }), 500
+        
+        # Verificar dados binários no PostgreSQL
+        if foto_verificada.imagem:
+            if isinstance(foto_verificada.imagem, (bytes, bytearray)):
+                imagem_size_db = len(foto_verificada.imagem)
+            elif isinstance(foto_verificada.imagem, memoryview):
+                imagem_size_db = len(bytes(foto_verificada.imagem))
+            else:
+                imagem_size_db = 0
+        else:
+            imagem_size_db = 0
+        
+        current_app.logger.info(f"✅ VERIFICAÇÃO POSTGRESQL: foto.id={foto.id}, imagem_size_db={imagem_size_db}, imagem_size_original={file_size}")
+        
+        # VALIDAÇÃO FINAL
+        if imagem_size_db == 0:
+            current_app.logger.error(f"❌ FALHA: Imagem NÃO foi salva no PostgreSQL! foto.id={foto.id}")
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'error': 'FALHA: Imagem não foi gravada no banco PostgreSQL'
             }), 500
         
         if imagem_size_db != file_size:
-            current_app.logger.warning(f"⚠️ ATENÇÃO: Tamanho difere! Enviado={file_size}, Salvo={imagem_size_db}")
+            current_app.logger.warning(f"⚠️ ATENÇÃO: Tamanho difere! Enviado={file_size}, PostgreSQL={imagem_size_db}")
+        
+        # DIAGNÓSTICO FINAL: Query SQL direta no PostgreSQL
+        try:
+            from sqlalchemy import text
+            sql_check = text("SELECT id, LENGTH(imagem) as img_size FROM fotos_relatorio WHERE id = :foto_id")
+            resultado = db.session.execute(sql_check, {'foto_id': foto.id}).fetchone()
+            
+            if resultado:
+                sql_img_size = resultado.img_size if resultado.img_size else 0
+                current_app.logger.info(f"🔍 SQL DIRETO: foto.id={foto.id}, LENGTH(imagem)={sql_img_size}")
+                
+                if sql_img_size == 0:
+                    current_app.logger.error(f"❌ POSTGRESQL VAZIO! foto.id={foto.id} tem imagem NULL ou vazia")
+            else:
+                current_app.logger.error(f"❌ SQL DIRETO: foto.id={foto.id} não encontrada!")
+        except Exception as sql_error:
+            current_app.logger.error(f"❌ ERRO SQL DIRETO: {sql_error}")
         
         return jsonify({
             'success': True,
