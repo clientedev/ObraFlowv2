@@ -1544,18 +1544,22 @@ def api_upload_photo():
         foto.ordem = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count() + 1
         
         # GARANTIR que os dados binários sejam atribuídos ANTES do commit
+        # Converter explicitamente para bytes se necessário
+        if isinstance(file_bytes, memoryview):
+            file_bytes = bytes(file_bytes)
+        
         foto.imagem = file_bytes
         foto.imagem_hash = imagem_hash
         foto.content_type = content_type
         foto.imagem_size = file_size
         
-        current_app.logger.info(f"💾 PREPARANDO SAVE: legenda='{legenda}', hash={imagem_hash[:12]}, size_before_commit={len(foto.imagem) if foto.imagem else 0}")
+        current_app.logger.info(f"💾 PREPARANDO SAVE: legenda='{legenda}', hash={imagem_hash[:12]}, size_before_commit={len(foto.imagem) if foto.imagem else 0}, type={type(foto.imagem).__name__}")
         
         # Adicionar ao session e fazer flush para obter o ID
         db.session.add(foto)
         db.session.flush()
         
-        current_app.logger.info(f"🔄 APÓS FLUSH: ID={foto.id}, imagem_present={foto.imagem is not None}, size={len(foto.imagem) if foto.imagem else 0}")
+        current_app.logger.info(f"🔄 APÓS FLUSH: ID={foto.id}, imagem_present={foto.imagem is not None}, size={len(foto.imagem) if foto.imagem else 0}, type={type(foto.imagem).__name__}")
         
         # Commit final
         db.session.commit()
@@ -1563,9 +1567,13 @@ def api_upload_photo():
         # Verificação PÓS-COMMIT
         db.session.expire_all()  # Forçar reload do banco
         foto_verificada = FotoRelatorio.query.get(foto.id)
-        imagem_size_db = len(foto_verificada.imagem) if foto_verificada and foto_verificada.imagem else 0
         
-        current_app.logger.info(f"✅ VERIFICAÇÃO PÓS-COMMIT: ID={foto.id}, bytes_db={imagem_size_db}, bytes_original={file_size}")
+        if foto_verificada and foto_verificada.imagem:
+            imagem_size_db = len(foto_verificada.imagem) if isinstance(foto_verificada.imagem, (bytes, bytearray)) else len(bytes(foto_verificada.imagem))
+        else:
+            imagem_size_db = 0
+        
+        current_app.logger.info(f"✅ VERIFICAÇÃO PÓS-COMMIT: ID={foto.id}, bytes_db={imagem_size_db}, bytes_original={file_size}, type_db={type(foto_verificada.imagem).__name__ if foto_verificada and foto_verificada.imagem else 'None'}")
         
         if imagem_size_db == 0:
             current_app.logger.error(f"❌ FALHA CRÍTICA: Imagem não foi salva! Rolling back...")
@@ -1614,10 +1622,16 @@ def api_get_photo(foto_id):
         # Verificar se tem dados binários
         if not foto.imagem:
             current_app.logger.warning(f"⚠️ Foto {foto_id} sem dados binários no campo imagem")
-            return jsonify({
-                'success': False,
-                'error': 'Imagem não encontrada no banco de dados'
-            }), 404
+            
+            # Retornar imagem placeholder
+            from flask import send_file
+            import io
+            placeholder = generate_placeholder_image(foto.filename)
+            return send_file(
+                io.BytesIO(placeholder),
+                mimetype='image/png',
+                as_attachment=False
+            )
         
         # Usar content_type do banco de dados (prioridade)
         mimetype = foto.content_type or 'image/jpeg'
@@ -1635,22 +1649,34 @@ def api_get_photo(foto_id):
         
         current_app.logger.info(f"📤 Servindo foto {foto_id}: size={len(foto.imagem)} bytes, type={mimetype}")
         
+        # CRÍTICO: Garantir que foto.imagem seja bytes
+        image_data = foto.imagem
+        if isinstance(image_data, memoryview):
+            image_data = bytes(image_data)
+        
         # Retornar a imagem com cabeçalhos corretos
-        return Response(
-            foto.imagem,
-            mimetype=mimetype,
-            headers={
-                'Content-Disposition': f'inline; filename="{foto.filename}"',
-                'Cache-Control': 'public, max-age=31536000'  # Cache por 1 ano
-            }
-        )
+        response = make_response(image_data)
+        response.headers['Content-Type'] = mimetype
+        response.headers['Content-Disposition'] = f'inline; filename="{foto.filename}"'
+        response.headers['Cache-Control'] = 'public, max-age=31536000'
+        response.headers['Content-Length'] = str(len(image_data))
+        
+        return response
         
     except Exception as e:
         current_app.logger.error(f"❌ Erro ao servir foto {foto_id}: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        import traceback
+        current_app.logger.error(f"❌ Traceback: {traceback.format_exc()}")
+        
+        # Retornar placeholder em caso de erro
+        from flask import send_file
+        import io
+        placeholder = generate_placeholder_image(f"Erro: {foto_id}")
+        return send_file(
+            io.BytesIO(placeholder),
+            mimetype='image/png',
+            as_attachment=False
+        )
 
 # ==================== END NEW UNIFIED IMAGE UPLOAD API ====================
 
