@@ -1177,6 +1177,212 @@ def register():
 
     return render_template('auth/register.html', form=form)
 
+# ==================== NEW UNIFIED IMAGE UPLOAD API ====================
+@app.route('/api/fotos/upload', methods=['POST'])
+@login_required
+@csrf.exempt
+def api_upload_photo():
+    """
+    API unificada para upload de imagens via multipart/form-data
+    Compatível com todos os dispositivos: iPhone, Android, Desktop, APK
+    
+    Aceita:
+    - multipart/form-data com campo 'imagem' (arquivo binário)
+    - metadados: relatorio_id, legenda, descricao, categoria, filename_original
+    """
+    try:
+        # Log para debug
+        current_app.logger.info(f"📸 API Upload - Início do processamento")
+        current_app.logger.info(f"📸 Content-Type: {request.content_type}")
+        current_app.logger.info(f"📸 Form keys: {list(request.form.keys())}")
+        current_app.logger.info(f"📸 Files keys: {list(request.files.keys())}")
+        
+        # Validar que temos um arquivo
+        if 'imagem' not in request.files:
+            current_app.logger.error(f"❌ Campo 'imagem' não encontrado nos files")
+            return jsonify({
+                'success': False,
+                'error': 'Campo "imagem" é obrigatório'
+            }), 400
+        
+        file = request.files['imagem']
+        
+        # Validar que o arquivo não está vazio
+        if not file or not file.filename:
+            current_app.logger.error(f"❌ Arquivo vazio ou sem nome")
+            return jsonify({
+                'success': False,
+                'error': 'Arquivo de imagem inválido'
+            }), 400
+        
+        # Validar extensão
+        allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+        file_ext = os.path.splitext(file.filename.lower())[1]
+        if file_ext not in allowed_extensions:
+            current_app.logger.error(f"❌ Extensão não permitida: {file_ext}")
+            return jsonify({
+                'success': False,
+                'error': f'Formato não suportado. Use: {", ".join(allowed_extensions)}'
+            }), 400
+        
+        # Ler dados binários do arquivo
+        file_bytes = file.read()
+        file_size = len(file_bytes)
+        
+        current_app.logger.info(f"📸 Arquivo lido: {file.filename}, {file_size} bytes")
+        
+        # Validar tamanho (máximo 10MB)
+        max_size = 10 * 1024 * 1024  # 10MB
+        if file_size > max_size:
+            current_app.logger.error(f"❌ Arquivo muito grande: {file_size} bytes")
+            return jsonify({
+                'success': False,
+                'error': f'Arquivo muito grande. Máximo: {max_size // (1024*1024)}MB'
+            }), 400
+        
+        if file_size == 0:
+            current_app.logger.error(f"❌ Arquivo vazio")
+            return jsonify({
+                'success': False,
+                'error': 'Arquivo de imagem está vazio'
+            }), 400
+        
+        # Obter metadados do form
+        relatorio_id = request.form.get('relatorio_id')
+        legenda = request.form.get('legenda', '').strip()
+        descricao = request.form.get('descricao', '').strip()
+        categoria = request.form.get('categoria', 'Geral').strip()
+        filename_original = request.form.get('filename_original', file.filename)
+        
+        # Validar relatorio_id
+        if not relatorio_id:
+            current_app.logger.error(f"❌ relatorio_id não fornecido")
+            return jsonify({
+                'success': False,
+                'error': 'relatorio_id é obrigatório'
+            }), 400
+        
+        try:
+            relatorio_id = int(relatorio_id)
+        except (ValueError, TypeError):
+            current_app.logger.error(f"❌ relatorio_id inválido: {relatorio_id}")
+            return jsonify({
+                'success': False,
+                'error': 'relatorio_id deve ser um número'
+            }), 400
+        
+        # Verificar se o relatório existe e o usuário tem permissão
+        relatorio = Relatorio.query.get(relatorio_id)
+        if not relatorio:
+            current_app.logger.error(f"❌ Relatório {relatorio_id} não encontrado")
+            return jsonify({
+                'success': False,
+                'error': 'Relatório não encontrado'
+            }), 404
+        
+        # Verificar permissão
+        if not current_user.is_master and relatorio.autor_id != current_user.id:
+            current_app.logger.error(f"❌ Usuário {current_user.id} sem permissão para relatório {relatorio_id}")
+            return jsonify({
+                'success': False,
+                'error': 'Você não tem permissão para adicionar fotos a este relatório'
+            }), 403
+        
+        # Validar legenda (obrigatória conforme especificação)
+        if not legenda:
+            legenda = f'Foto {FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count() + 1}'
+        
+        # Gerar nome único para o arquivo
+        unique_filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
+        
+        # Criar registro da foto no banco
+        foto = FotoRelatorio()
+        foto.relatorio_id = relatorio_id
+        foto.filename = unique_filename
+        foto.filename_original = filename_original
+        foto.legenda = legenda
+        foto.descricao = descricao
+        foto.tipo_servico = categoria
+        foto.ordem = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count() + 1
+        
+        # CRÍTICO: Salvar dados binários no campo BYTEA
+        foto.imagem = file_bytes
+        
+        current_app.logger.info(f"✅ Salvando foto: legenda='{legenda}', categoria='{categoria}', bytes={file_size}")
+        
+        # Salvar no banco de dados
+        db.session.add(foto)
+        db.session.commit()
+        
+        # Verificar se foi salvo corretamente
+        foto_salva = FotoRelatorio.query.get(foto.id)
+        imagem_size_db = len(foto_salva.imagem) if foto_salva.imagem else 0
+        
+        current_app.logger.info(f"✅ Foto salva com sucesso! ID={foto.id}, bytes no DB={imagem_size_db}")
+        
+        if imagem_size_db != file_size:
+            current_app.logger.warning(f"⚠️ ATENÇÃO: Tamanho difere! Enviado={file_size}, Salvo={imagem_size_db}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Imagem enviada com sucesso',
+            'foto_id': foto.id,
+            'filename': unique_filename,
+            'file_size': file_size,
+            'db_size': imagem_size_db,
+            'url': url_for('get_imagem', id=foto.id)
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"❌ Erro ao fazer upload da foto: {str(e)}")
+        import traceback
+        current_app.logger.error(f"❌ Traceback: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'Erro ao processar upload: {str(e)}'
+        }), 500
+
+@app.route('/api/fotos/<int:foto_id>', methods=['GET'])
+@login_required
+def api_get_photo(foto_id):
+    """
+    API para recuperar imagem do banco de dados PostgreSQL
+    Serve a imagem diretamente do campo BYTEA
+    """
+    try:
+        foto = FotoRelatorio.query.get_or_404(foto_id)
+        
+        # Verificar se tem dados binários
+        if not foto.imagem:
+            current_app.logger.warning(f"⚠️ Foto {foto_id} sem dados binários no campo imagem")
+            return jsonify({
+                'success': False,
+                'error': 'Imagem não encontrada no banco de dados'
+            }), 404
+        
+        # Determinar mimetype baseado no filename
+        mimetype = 'image/jpeg'  # padrão
+        if foto.filename:
+            if foto.filename.lower().endswith('.png'):
+                mimetype = 'image/png'
+            elif foto.filename.lower().endswith('.gif'):
+                mimetype = 'image/gif'
+            elif foto.filename.lower().endswith('.webp'):
+                mimetype = 'image/webp'
+        
+        # Retornar a imagem
+        return Response(foto.imagem, mimetype=mimetype)
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao servir foto {foto_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ==================== END NEW UNIFIED IMAGE UPLOAD API ====================
+
 # Main routes
 @app.route('/')
 def index():
