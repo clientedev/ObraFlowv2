@@ -1032,6 +1032,134 @@ def save_location():
         
         data = request.get_json()
         
+
+
+# ==================== ALTERNATIVE SIMPLE UPLOAD API ====================
+@app.route('/api/upload-photo-simple', methods=['POST'])
+@login_required
+def api_upload_photo_simple():
+    """
+    API simplificada para upload de fotos - MÁXIMA COMPATIBILIDADE
+    Aceita base64 ou multipart/form-data
+    """
+    try:
+        current_app.logger.info(f"📸 ========== UPLOAD SIMPLE CHAMADO ==========")
+        current_app.logger.info(f"📸 Method: {request.method}")
+        current_app.logger.info(f"📸 Content-Type: {request.content_type}")
+        current_app.logger.info(f"📸 Content-Length: {request.content_length}")
+        
+        # Tentar obter relatorio_id
+        relatorio_id = None
+        if request.is_json:
+            data = request.get_json()
+            relatorio_id = data.get('relatorio_id')
+            current_app.logger.info(f"📸 JSON data keys: {list(data.keys())}")
+        else:
+            relatorio_id = request.form.get('relatorio_id')
+            current_app.logger.info(f"📸 Form data keys: {list(request.form.keys())}")
+            current_app.logger.info(f"📸 Files keys: {list(request.files.keys())}")
+        
+        if not relatorio_id:
+            return jsonify({
+                'success': False,
+                'error': 'relatorio_id é obrigatório'
+            }), 400
+        
+        # Verificar se relatório existe
+        relatorio = Relatorio.query.get(int(relatorio_id))
+        if not relatorio:
+            return jsonify({
+                'success': False,
+                'error': 'Relatório não encontrado'
+            }), 404
+        
+        # Obter dados da imagem
+        image_data = None
+        filename = 'photo.jpg'
+        content_type = 'image/jpeg'
+        
+        # Método 1: Arquivo multipart
+        if 'imagem' in request.files:
+            file = request.files['imagem']
+            image_data = file.read()
+            filename = file.filename or 'photo.jpg'
+            content_type = file.mimetype or 'image/jpeg'
+            current_app.logger.info(f"📸 Imagem via FILES: {len(image_data)} bytes, tipo={content_type}")
+        
+        # Método 2: Base64 no JSON
+        elif request.is_json and 'imagem_base64' in data:
+            import base64
+            b64_data = data['imagem_base64']
+            if ',' in b64_data:
+                b64_data = b64_data.split(',')[1]
+            image_data = base64.b64decode(b64_data)
+            filename = data.get('filename', 'photo.jpg')
+            current_app.logger.info(f"📸 Imagem via BASE64 (JSON): {len(image_data)} bytes")
+        
+        # Método 3: Base64 no form
+        elif 'imagem_base64' in request.form:
+            import base64
+            b64_data = request.form['imagem_base64']
+            if ',' in b64_data:
+                b64_data = b64_data.split(',')[1]
+            image_data = base64.b64decode(b64_data)
+            filename = request.form.get('filename', 'photo.jpg')
+            current_app.logger.info(f"📸 Imagem via BASE64 (FORM): {len(image_data)} bytes")
+        
+        if not image_data:
+            current_app.logger.error(f"📸 ERRO: Nenhuma imagem encontrada!")
+            return jsonify({
+                'success': False,
+                'error': 'Nenhuma imagem fornecida'
+            }), 400
+        
+        # Calcular hash
+        import hashlib
+        imagem_hash = hashlib.sha256(image_data).hexdigest()
+        current_app.logger.info(f"📸 Hash calculado: {imagem_hash[:12]}...")
+        
+        # Criar registro da foto
+        foto = FotoRelatorio()
+        foto.relatorio_id = int(relatorio_id)
+        foto.filename = f"{imagem_hash[:12]}_{filename}"
+        foto.filename_original = filename
+        foto.legenda = request.form.get('legenda') or request.json.get('legenda', 'Foto') if request.is_json else request.form.get('legenda', 'Foto')
+        foto.descricao = request.form.get('descricao', '') if not request.is_json else request.json.get('descricao', '')
+        foto.tipo_servico = request.form.get('categoria', 'Geral') if not request.is_json else request.json.get('categoria', 'Geral')
+        foto.ordem = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count() + 1
+        
+        # Salvar imagem binária e metadados
+        foto.imagem = image_data
+        foto.imagem_hash = imagem_hash
+        foto.content_type = content_type
+        foto.imagem_size = len(image_data)
+        
+        current_app.logger.info(f"📸 Salvando foto: legenda='{foto.legenda}', hash={imagem_hash[:12]}, size={len(image_data)}")
+        
+        db.session.add(foto)
+        db.session.commit()
+        
+        current_app.logger.info(f"✅ FOTO SALVA COM SUCESSO! ID={foto.id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Foto salva com sucesso',
+            'foto_id': foto.id,
+            'hash': imagem_hash,
+            'size': len(image_data),
+            'url': url_for('api_get_photo', foto_id=foto.id)
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"❌ ERRO UPLOAD SIMPLE: {str(e)}")
+        import traceback
+        current_app.logger.error(f"❌ Traceback: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
         # Validar dados
         if not data:
             return jsonify({
@@ -1199,11 +1327,13 @@ def api_upload_photo():
     - Detecta duplicatas por hash
     """
     try:
-        # Log para debug
-        current_app.logger.info(f"📸 API Upload - Início do processamento")
+        # Log DETALHADO para debug
+        current_app.logger.info(f"📸 ========== API UPLOAD CHAMADA ==========")
+        current_app.logger.info(f"📸 Usuário: {current_user.id} ({current_user.username})")
         current_app.logger.info(f"📸 Content-Type: {request.content_type}")
         current_app.logger.info(f"📸 Form keys: {list(request.form.keys())}")
         current_app.logger.info(f"📸 Files keys: {list(request.files.keys())}")
+        current_app.logger.info(f"📸 Headers: {dict(request.headers)}")
         
         # Validar que temos um arquivo
         if 'imagem' not in request.files:
