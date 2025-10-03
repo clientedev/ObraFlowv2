@@ -2,16 +2,27 @@
 This project is a comprehensive construction site visit tracking system built with Flask, designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 ## Recent Changes
-- **Date**: October 3, 2025 - Photo Upload Fix (Minimal Correction)
-- **Issue**: Mobile photo upload system was converting images to base64/JSON instead of sending actual files
-- **Solution**: Modified `prepareMobilePhotoFormData()` function in `templates/reports/form_complete.html`
-  - Changed from base64 conversion to direct file transfer via DataTransfer API
-  - Creates hidden file inputs with actual File objects for multipart/form-data submission
-  - Preserves all existing functionality: photo cards, editing, captions, categories
-  - Backend receives files correctly as `photo_0`, `photo_1`, etc. with metadata
-  - ✅ Template fully restored with only minimal correction applied
+- **Date**: October 3, 2025 - Image Upload Fix & Replit Environment Setup
+- **Issue**: Images were not being saved to the database - the form submission handler was dispatching a new submit event with no handler, causing the form to never actually submit
+- **Root Cause**: After preparing photo files, the code removed the submit listener and dispatched a new submit event that had no handler
+- **Solution**: Fixed form submission in `templates/reports/form_complete.html` (lines 2720-2738)
+  - Replaced broken submit event dispatch with direct `form.submit()` call
+  - Ensures multipart/form-data form submits with all prepared files
+  - Improved error messages for better user feedback
+  - **ONLY changed image upload flow - all other functionality unchanged**
+  - ✅ Images now correctly sent to backend and saved to PostgreSQL BYTEA column
   
 - **Date**: October 3, 2025 - Replit Environment Setup
+- **Python Dependencies**: Successfully installed all requirements via pip
+  - Flask, SQLAlchemy, Flask-Login, Flask-WTF, and all other dependencies
+  - WeasyPrint for PDF generation, Pillow for image processing
+  - PostgreSQL support via psycopg2-binary
+- **Workflow Configuration**: Flask server running on port 5000
+  - Configured to use DATABASE_URL environment variable
+  - Auto-initialization of database tables and admin user
+  - Webview output for frontend preview
+  
+- **Date**: October 3, 2025 - Railway PostgreSQL Database Note
 - **Railway PostgreSQL Database**: Successfully configured and connected
   - Database URL: Railway PostgreSQL (external connection via switchback.proxy.rlwy.net:17107)
   - All tables created and verified with BYTEA support for image storage
