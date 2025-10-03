@@ -69,7 +69,7 @@
 
         /* Todos os inputs e controles - interação normal */
         input[type="text"],
-        input[type="date"], 
+        input[type="date"],
         input[type="file"],
         textarea,
         select,
@@ -381,13 +381,13 @@
                                 <div class="form-group">
                                     <label class="form-label" for="titulo">Título do Relatório *</label>
                                     {% if disable_fields %}
-                                        <input type="text" name="titulo" id="titulo" class="form-control" 
+                                        <input type="text" name="titulo" id="titulo" class="form-control"
                                                value="Relatório - {{ selected_project.nome }}" readonly>
                                         <small class="form-text text-muted">
                                             <i class="fas fa-lock me-1"></i>Título gerado automaticamente a partir do projeto selecionado
                                         </small>
                                     {% else %}
-                                        <input type="text" name="titulo" id="titulo" class="form-control" 
+                                        <input type="text" name="titulo" id="titulo" class="form-control"
                                                value="{% if selected_project %}Relatório - {{ selected_project.nome }}{% else %}Relatório de visita{% endif %}" required>
                                     {% endif %}
                                 </div>
@@ -407,7 +407,7 @@
                                         <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(this.value)">
                                             <option value="">Selecione um projeto</option>
                                             {% for projeto in projetos %}
-                                            <option value="{{ projeto.id }}" 
+                                            <option value="{{ projeto.id }}"
                                                     {% if selected_project and selected_project.id == projeto.id %}selected{% endif %}>
                                                 {{ projeto.numero }} - {{ projeto.nome }}
                                             </option>
@@ -536,7 +536,7 @@
                         <!-- Observações Gerais -->
                         <div class="mb-4">
                             <label class="form-label" for="conteudo">Observações Gerais</label>
-                            <textarea class="form-control" name="conteudo" id="conteudo" rows="4" 
+                            <textarea class="form-control" name="conteudo" id="conteudo" rows="4"
                                     placeholder="Descreva detalhes gerais da visita, pontos importantes, etc."></textarea>
                         </div>
 
@@ -561,34 +561,34 @@
                         <div class="mb-4">
                             <h5><i class="fas fa-camera"></i> Fotos (Até 200 fotos) <span id="photoCount" class="badge bg-primary ms-2">0</span></h5>
 
-                            <!-- Botões Fixos de Câmera e Galeria (Mobile-First) -->
-                            <div class="fixed-photo-buttons sticky-top bg-white p-3 mb-3 border rounded" style="z-index: 10;">
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <button type="button" class="btn btn-outline-primary w-100 mobile-photo-btn" 
-                                                id="mobileCameraBtn" onclick="mobileCaptureFromCamera()" style="min-height: 56px;">
-                                            <div class="d-flex flex-column align-items-center">
-                                                <i class="fas fa-camera fa-lg mb-1"></i>
-                                                <small>Câmera</small>
-                                            </div>
-                                        </button>
-                                    </div>
-                                    <div class="col-6">
-                                        <button type="button" class="btn btn-outline-success w-100 mobile-photo-btn" 
-                                                id="mobileGalleryBtn" onclick="mobileSelectFromGallery()" style="min-height: 56px;">
-                                            <div class="d-flex flex-column align-items-center">
-                                                <i class="fas fa-images fa-lg mb-1"></i>
-                                                <small>Galeria</small>
-                                            </div>
-                                        </button>
-                                    </div>
-                                </div>
-                                <input type="file" id="mobilePhotoInput" class="form-control" multiple accept="image/*" style="display: none;">
-                                <input type="file" id="mobileCameraInput" class="form-control" accept="image/*" capture="environment" style="display: none;">
-                                <div class="text-center mt-2">
-                                    <small class="text-muted"><strong>Máximo 200 fotos - Limite total: 3GB</strong></small>
-                                </div>
-                            </div>
+                            <!-- Botões Fixos de Câmera e Galeria (Mobile-First) - CORRIGIDO -->
+        <div class="fixed-photo-buttons sticky-top bg-white p-3 mb-3 border rounded" style="z-index: 10;">
+            <div class="row g-2">
+                <div class="col-6">
+                    <button type="button" class="btn btn-outline-primary w-100 mobile-photo-btn"
+                            id="mobileCameraBtn" style="min-height: 56px;">
+                        <div class="d-flex flex-column align-items-center">
+                            <i class="fas fa-camera fa-lg mb-1"></i>
+                            <small>Câmera</small>
+                        </div>
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button type="button" class="btn btn-outline-success w-100 mobile-photo-btn"
+                            id="mobileGalleryBtn" style="min-height: 56px;">
+                        <div class="d-flex flex-column align-items-center">
+                            <i class="fas fa-images fa-lg mb-1"></i>
+                            <small>Galeria</small>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <input type="file" id="mobilePhotoInput" class="form-control" multiple accept="image/*" style="display: none;">
+            <input type="file" id="mobileCameraInput" class="form-control" accept="image/*" capture="environment" style="display: none;">
+            <div class="text-center mt-2">
+                <small class="text-muted"><strong>Máximo 200 fotos - Limite total: 3GB</strong></small>
+            </div>
+        </div>
 
                             <!-- Seleção de Categoria (Simplificada) -->
                             <div class="mb-3">
@@ -696,48 +696,369 @@
 </div>
 
 <script>
-// Variáveis globais
+// Global variables
 let selectedCategory = '';
-let selectedPhotos = [];
+let selectedPhotos = []; // For old photo upload system
 let currentEditingPhoto = null;
 let canvas, ctx;
 let isDrawing = false;
 let currentTool = 'pen';
 let startX, startY;
+let reportId = null; // Variable to store the report ID
 
-// Inicialização
+// Initialize Fabric.js editor modal
+function initFabricPhotoEditorModal() {
+    const modalElement = document.getElementById('fabricPhotoEditorModal');
+    if (!modalElement) {
+        console.error('❌ Fabric Photo Editor Modal element not found.');
+        return;
+    }
+
+    const modal = new bootstrap.Modal(modalElement);
+    const canvasElement = document.getElementById('fabricModalCanvas');
+    const colorPicker = document.getElementById('modal-color-picker');
+    const strokeWidthInput = document.getElementById('modal-stroke-width');
+    const customLegendInput = document.getElementById('modal-custom-legend');
+    const saveButton = document.getElementById('modal-save-btn');
+    const cancelButton = document.getElementById('modal-cancel-btn');
+    const clearButton = modalElement.querySelector('button[onclick*="window.fabricPhotoEditorModal?.clear()"]');
+    const undoButton = modalElement.querySelector('button[onclick*="window.fabricPhotoEditorModal?.undo()"]');
+
+    let fabricCanvas = null;
+    let currentImageSrc = '';
+    let currentPhotoId = null;
+    let onSaveCallback = null;
+    let history = []; // For undo functionality
+    let historyIndex = -1;
+
+    const updateHistory = () => {
+        const data = JSON.stringify(fabricCanvas.toJSON());
+        history = history.slice(0, historyIndex + 1); // Remove future history if undoing
+        history.push(data);
+        historyIndex++;
+        undoButton.disabled = false;
+        console.log('History updated:', historyIndex);
+    };
+
+    const undo = () => {
+        if (historyIndex > 0) {
+            historyIndex--;
+            fabricCanvas.loadFromJSON(history[historyIndex], fabricCanvas.renderAll.bind(fabricCanvas), (o, object) => {
+                console.log('Undo loaded:', object);
+            });
+            undoButton.disabled = historyIndex === 0;
+            console.log('Undo performed:', historyIndex);
+        }
+    };
+
+    const clearCanvas = () => {
+        if (confirm('Tem certeza que deseja limpar todas as anotações desta foto?')) {
+            fabricCanvas.clear();
+            // Reload original image
+            fabric.Image.fromURL(currentImageSrc, (img) => {
+                fabricCanvas.setBackgroundImage(img, fabricCanvas.renderAll.bind(fabricCanvas), {
+                    scaleX: fabricCanvas.width / img.width,
+                    scaleY: fabricCanvas.height / img.height
+                });
+                history = []; // Clear history after clear
+                historyIndex = -1;
+                undoButton.disabled = true;
+                console.log('Canvas cleared and reloaded.');
+            });
+        }
+    };
+
+    const selectTool = (toolName) => {
+        // Remove active class from all tools
+        modalElement.querySelectorAll('.fabric-tool-btn').forEach(btn => btn.classList.remove('active'));
+        // Add active class to the selected tool
+        modalElement.querySelector(`.fabric-tool-btn[data-modal-tool="${toolName}"]`)?.classList.add('active');
+        console.log('Tool selected:', toolName);
+    };
+
+    const updateModalState = () => {
+        // Enable/disable buttons based on state
+        saveButton.disabled = !fabricCanvas || fabricCanvas.backgroundImage === null;
+        clearButton.disabled = !fabricCanvas || fabricCanvas.backgroundImage === null;
+        undoButton.disabled = historyIndex <= 0;
+    };
+
+    const openEditor = (imageSrc, photoId, callback) => {
+        console.log('Opening editor for:', photoId, 'from URL:', imageSrc.substring(0, 50) + '...');
+        currentImageSrc = imageSrc;
+        currentPhotoId = photoId;
+        onSaveCallback = callback;
+        history = []; // Reset history for new image
+        historyIndex = -1;
+
+        modal.show();
+
+        // Adjust canvas size to modal
+        const container = modalElement.querySelector('.canvas-wrapper');
+        const modalBody = modalElement.querySelector('.modal-body');
+        const toolbarHeight = modalElement.querySelector('.fabric-toolbar').offsetHeight;
+
+        const maxHeight = modalBody.offsetHeight - toolbarHeight - 40; // Subtract padding/margins
+        const maxWidth = container.offsetWidth - 40; // Subtract padding
+
+        fabricCanvas = new fabric.Canvas(canvasElement, {
+            width: maxWidth,
+            height: maxHeight,
+            backgroundColor: '#ffffff'
+        });
+
+        fabric.Image.fromURL(imageSrc, (img) => {
+            // Scale image to fit container while maintaining aspect ratio
+            const imgRatio = img.width / img.height;
+            const containerRatio = maxWidth / maxHeight;
+
+            let scaleFactor;
+            if (imgRatio > containerRatio) {
+                scaleFactor = maxWidth / img.width;
+            } else {
+                scaleFactor = maxHeight / img.height;
+            }
+
+            img.scale(scaleFactor);
+            img.set({ left: (maxWidth - img.getScaledWidth()) / 2, top: (maxHeight - img.getScaledHeight()) / 2 });
+
+            fabricCanvas.setBackgroundImage(img, fabricCanvas.renderAll.bind(fabricCanvas), {
+                scaleX: fabricCanvas.width / img.width,
+                scaleY: fabricCanvas.height / img.height
+            });
+
+            fabricCanvas.renderAll();
+            updateModalState();
+            selectTool('select'); // Set default tool
+            updateHistory(); // Initial state for undo
+        }, { crossOrigin: 'anonymous' }); // Important for data URLs
+
+        // Set initial values for controls
+        colorPicker.value = '#FF0000';
+        strokeWidthInput.value = '3';
+        customLegendInput.value = '';
+
+        // Attach event listeners to controls
+        colorPicker.oninput = () => fabricCanvas.freeDrawingBrush.color = colorPicker.value;
+        strokeWidthInput.oninput = () => fabricCanvas.freeDrawingBrush.width = parseInt(strokeWidthInput.value, 10);
+
+        // Tool selection logic
+        modalElement.querySelectorAll('.fabric-tool-btn').forEach(btn => {
+            btn.onclick = () => {
+                const tool = btn.dataset.modalTool;
+                selectTool(tool);
+                switch (tool) {
+                    case 'select':
+                        fabricCanvas.isDrawingMode = false;
+                        break;
+                    case 'brush':
+                        fabricCanvas.isDrawingMode = true;
+                        fabricCanvas.freeDrawingBrush = new fabric.PencilBrush(fabricCanvas);
+                        fabricCanvas.freeDrawingBrush.color = colorPicker.value;
+                        fabricCanvas.freeDrawingBrush.width = parseInt(strokeWidthInput.value, 10);
+                        break;
+                    case 'arrow':
+                    case 'circle':
+                    case 'rectangle':
+                    case 'text':
+                        fabricCanvas.isDrawingMode = false;
+                        // Logic to draw shapes will be handled in a separate function
+                        break;
+                    default:
+                        fabricCanvas.isDrawingMode = false;
+                }
+            };
+        });
+
+        // Handle shape drawing
+        let isDown = false;
+        let startCoords = { x: 0, y: 0 };
+        let currentShape = null;
+
+        fabricCanvas.on('mouse:down', (options) => {
+            if (!options.target && fabricCanvas.isDrawingMode) return; // Ignore clicks on canvas if not drawing mode
+
+            const pointer = fabricCanvas.getPointer(options.e);
+            startCoords = { x: pointer.x, y: pointer.y };
+            isDown = true;
+
+            const tool = modalElement.querySelector('.fabric-tool-btn.active')?.dataset.modalTool;
+
+            if (tool === 'arrow' || tool === 'rectangle' || tool === 'circle') {
+                if (currentShape) {
+                    fabricCanvas.remove(currentShape);
+                }
+                const options = {
+                    stroke: colorPicker.value,
+                    strokeWidth: parseInt(strokeWidthInput.value, 10),
+                    fill: 'transparent',
+                    originX: 'left',
+                    originY: 'top'
+                };
+                switch (tool) {
+                    case 'rectangle':
+                        currentShape = new fabric.Rect(options);
+                        break;
+                    case 'circle':
+                        currentShape = new fabric.Circle(options);
+                        break;
+                    case 'arrow':
+                        currentShape = new fabric.Path(`M ${startCoords.x} ${startCoords.y}`, options);
+                        break;
+                }
+                if (currentShape) {
+                    fabricCanvas.add(currentShape);
+                }
+            } else if (tool === 'text') {
+                const textValue = customLegendInput.value.trim();
+                if (textValue) {
+                    const text = new fabric.Textbox(textValue, {
+                        left: pointer.x,
+                        top: pointer.y,
+                        width: 150,
+                        fontSize: 20,
+                        fill: colorPicker.value,
+                        fontFamily: 'Arial'
+                    });
+                    fabricCanvas.add(text);
+                    customLegendInput.value = ''; // Clear input after adding
+                }
+            }
+        });
+
+        fabricCanvas.on('mouse:move', (options) => {
+            if (!isDown) return;
+
+            const pointer = fabricCanvas.getPointer(options.e);
+            const dx = pointer.x - startCoords.x;
+            const dy = pointer.y - startCoords.y;
+
+            const tool = modalElement.querySelector('.fabric-tool-btn.active')?.dataset.modalTool;
+
+            if (currentShape) {
+                switch (tool) {
+                    case 'rectangle':
+                        currentShape.set({ left: startCoords.x, top: startCoords.y, width: dx, height: dy });
+                        break;
+                    case 'circle':
+                        currentShape.set({ left: startCoords.x, top: startCoords.y, radius: Math.sqrt(dx * dx + dy * dy) / 2, originX: 'left', originY: 'top' });
+                        break;
+                    case 'arrow':
+                        const angle = Math.atan2(dy, dx);
+                        const headlen = 15; // Arrowhead length
+                        const arrowPath = `M ${startCoords.x} ${startCoords.y} L ${pointer.x} ${pointer.y} L ${pointer.x - headlen * Math.cos(angle - Math.PI / 6)} ${pointer.y - headlen * Math.sin(angle - Math.PI / 6)} M ${pointer.x} ${pointer.y} L ${pointer.x - headlen * Math.cos(angle + Math.PI / 6)} ${pointer.y - headlen * Math.sin(angle + Math.PI / 6)}`;
+                        currentShape.set({ path: arrowPath });
+                        break;
+                }
+                fabricCanvas.renderAll();
+            }
+        });
+
+        fabricCanvas.on('mouse:up', () => {
+            if (!isDown) return;
+            isDown = false;
+            if (currentShape) {
+                updateHistory(); // Add shape to history
+                currentShape = null;
+            }
+            updateModalState();
+        });
+
+        // Mouse Wheel for zooming (optional)
+        fabricCanvas.on('mouse:wheel', (options) => {
+            const delta = options.e.deltaY > 0 ? -1 : 1;
+            const zoom = fabricCanvas.getZoom();
+            const pointer = fabricCanvas.getPointer(options.e);
+
+            fabricCanvas.zoomToPoint({ x: pointer.x, y: pointer.y }, zoom + delta * 0.1);
+            options.e.preventDefault();
+        });
+
+        // Event listener for modal close
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            if (fabricCanvas) {
+                fabricCanvas.dispose(); // Clean up canvas
+                fabricCanvas = null;
+            }
+            onSaveCallback = null;
+            currentImageSrc = '';
+            currentPhotoId = null;
+            history = [];
+            historyIndex = -1;
+        });
+
+        // Save button functionality
+        saveButton.onclick = () => {
+            if (onSaveCallback && fabricCanvas) {
+                const imageData = fabricCanvas.toDataURL({ format: 'jpeg', quality: 0.9 });
+                const legend = customLegendInput.value.trim();
+                onSaveCallback({ imageData, legend });
+                modal.hide();
+            }
+        };
+
+        // Cancel button functionality
+        cancelButton.onclick = () => {
+            modal.hide();
+        };
+
+        // Clear button functionality
+        clearButton.onclick = clearCanvas;
+
+        // Undo button functionality
+        undoButton.onclick = undo;
+
+        // Update initial state
+        updateModalState();
+    };
+
+    window.fabricPhotoEditorModal = {
+        openEditor: openEditor,
+        clear: clearCanvas,
+        undo: undo
+    };
+}
+
+// Initialize the modal when the DOM is ready
+document.addEventListener('DOMContentLoaded', initFabricPhotoEditorModal);
+
+
+// Initializing reportId
+let reportId = null;
+
+// Initialization
 document.addEventListener('DOMContentLoaded', function() {
     canvas = document.getElementById('photoCanvas');
     ctx = canvas.getContext('2d');
 
-    // Event listener para função global
+    // Event listener for global function
     document.addEventListener('selectCategory', function(e) {
         const { category, element } = e.detail;
 
-        // Remover seleção anterior
+        // Remove previous selection
         document.querySelectorAll('.photo-category').forEach(cat => {
             if (cat && cat.classList) cat.classList.remove('selected');
         });
 
-        // Adicionar seleção atual
+        // Add current selection
         if (element && element.classList) element.classList.add('selected');
 
-        // Atualizar categoria global
+        // Update global category
         selectedCategory = category;
 
-        // Habilitar botões de upload
+        // Enable upload buttons
         const galleryBtn = document.getElementById('galleryBtn');
         const cameraBtn = document.getElementById('cameraBtn');
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
 
-        // Atualizar input de fotos
+        // Update photo input
         updatePhotoInput();
 
-        // Categoria global selecionada
+        // Global category selected
     });
 
-    // Event listeners para upload de fotos com error handling
+    // Event listeners for photo upload with error handling
     const photoInput = document.getElementById('photoInput');
     const cameraInput = document.getElementById('cameraInput');
 
@@ -753,9 +1074,9 @@ document.addEventListener('DOMContentLoaded', function() {
         console.warn('Camera input element not found');
     }
 
-    // Event listeners para ferramentas - OTIMIZADO PARA MOBILE
+    // Event listeners for tools - OPTIMIZED FOR MOBILE
     document.querySelectorAll('.tool-btn').forEach(btn => {
-        // Usar touchstart para resposta mais rápida no mobile
+        // Use touchstart for faster response on mobile
         const isMobile = window.innerWidth <= 768;
         const eventType = isMobile ? 'touchstart' : 'click';
 
@@ -763,21 +1084,21 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             e.stopPropagation();
 
-            // Feedback visual imediato
+            // Immediate visual feedback
             this.style.transform = 'scale(0.95)';
             setTimeout(() => {
                 this.style.transform = '';
             }, 100);
 
-            // Atualizar ferramentas
+            // Update tools
             document.querySelectorAll('.tool-btn').forEach(b => { if (b && b.classList) b.classList.remove('active'); });
             if (this && this.classList) this.classList.add('active');
             currentTool = this.dataset.tool;
 
-            console.log('🔧 Ferramenta selecionada:', currentTool);
+            console.log('🔧 Tool selected:', currentTool);
         });
 
-        // Prevenir eventos duplicados no mobile
+        // Prevent duplicate events on mobile
         if (isMobile) {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -820,87 +1141,87 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// A função carregarFuncionariosEmails está definida em static/js/main.js
+// The carregarFuncionariosEmails function is defined in static/js/main.js
 
-// Inicialização ÚNICA do sistema de funcionários/emails
+// UNIQUE Initialization of the staff/email system
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 DOM carregado, inicializando sistema de funcionários/emails');
-    
-    // PRIMEIRA VERIFICAÇÃO: Input hidden (projeto pré-selecionado desabilitado)
+    console.log('🚀 DOM loaded, initializing staff/email system');
+
+    // FIRST CHECK: Hidden input (disabled pre-selected project)
     const projetoHidden = document.querySelector('input[name="projeto_id"][type="hidden"]');
     if (projetoHidden && projetoHidden.value) {
-        console.log('✅ Projeto pré-selecionado via hidden input:', projetoHidden.value);
+        console.log('✅ Project pre-selected via hidden input:', projetoHidden.value);
         setTimeout(() => {
             carregarFuncionariosEmails(parseInt(projetoHidden.value));
         }, 300);
-        return; // Não precisa configurar select
+        return; // No need to configure select
     }
-    
-    // SEGUNDA VERIFICAÇÃO: Select normal de projeto
+
+    // SECOND CHECK: Normal project select
     const projetoSelect = document.getElementById('projeto_id');
-    
+
     if (!projetoSelect) {
-        console.warn('⚠️ Nenhum campo de projeto encontrado (nem select nem hidden)');
+        console.warn('⚠️ No project field found (neither select nor hidden)');
         return;
     }
-    
-    console.log('✅ Select de projeto encontrado:', projetoSelect.id);
-    
-    // Verificar se já tem projeto selecionado no select
+
+    console.log('✅ Project select found:', projetoSelect.id);
+
+    // Check if a project is already selected in the select
     if (projetoSelect.value && projetoSelect.value !== '') {
-        console.log('🔄 Projeto já selecionado no select:', projetoSelect.value);
+        console.log('🔄 Project already selected in select:', projetoSelect.value);
         setTimeout(() => {
             carregarFuncionariosEmails(parseInt(projetoSelect.value));
         }, 300);
     }
 
-    // Adicionar evento de mudança ao select (APENAS UMA VEZ)
+    // Add change event to the select (ONLY ONCE)
     projetoSelect.addEventListener('change', function(e) {
-        console.log('🔄 Select de projeto alterado para:', e.target.value);
+        console.log('🔄 Project select changed to:', e.target.value);
         if (e.target.value) {
             carregarFuncionariosEmails(parseInt(e.target.value));
         }
     });
-    
-    console.log('✅ Event listener adicionado ao select de projeto');
+
+    console.log('✅ Event listener added to project select');
 });
 
 
 function handlePhotoUpload(event) {
-    // Upload de fotos iniciado
+    // Photo upload initiated
 
     if (!selectedCategory) {
-        alert('Selecione uma categoria antes de adicionar fotos.');
+        alert('Please select a category before adding photos.');
         event.target.value = '';
         return;
     }
 
     const files = event.target.files;
-    // Processando arquivos selecionados
+    // Processing selected files
 
     if (files.length + selectedPhotos.length > 200) {
-        alert('Máximo de 200 fotos permitido.');
+        alert('Maximum of 200 photos allowed.');
         return;
     }
 
-    // Processar cada arquivo
+    // Process each file
     for (let file of files) {
         if (selectedPhotos.length >= 200) {
-            // Limite de fotos atingido
+            // Photo limit reached
             break;
         }
-        // Processando arquivo
+        // Processing file
         addPhotoPreview(file, selectedCategory);
     }
 
     event.target.value = ''; // Reset input
-    // Upload concluído
+    // Photo upload completed
 }
 
 // Camera and gallery functions with error handling
 function selectFromGallery() {
     if (!selectedCategory) {
-        alert('Selecione uma categoria antes de adicionar fotos.');
+        alert('Please select a category before adding photos.');
         return;
     }
     const photoInput = document.getElementById('photoInput');
@@ -913,7 +1234,7 @@ function selectFromGallery() {
 
 function captureFromCamera() {
     if (!selectedCategory) {
-        alert('Selecione uma categoria antes de adicionar fotos.');
+        alert('Please select a category before adding photos.');
         return;
     }
     const cameraInput = document.getElementById('cameraInput');
@@ -927,14 +1248,14 @@ function captureFromCamera() {
 // Remove duplicate updatePhotoInput function (already exists below)
 
 function addPhotoPreview(file, category) {
-    // Adicionando preview da foto
+    // Adding photo preview
 
     const reader = new FileReader();
     reader.onload = function(e) {
         const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const src = e.target.result;
 
-        // Criando elemento da foto
+        // Creating photo element
 
         const photoDiv = document.createElement('div');
         photoDiv.className = 'col-md-4 mb-3';
@@ -944,14 +1265,14 @@ function addPhotoPreview(file, category) {
             <div class="card">
                 <img src="${src}" class="card-img-top photo-preview" alt="Preview" style="cursor: pointer;" data-category="${category}">
                 <div class="card-body p-2">
-                    <!-- Seletor de Legendas -->
+                    <!-- Caption Selector -->
                     <select class="form-control form-control-sm mb-2" id="predefined_${photoId}" name="photo_caption_${photoId}" required>
-                        <option value="">Selecione uma legenda...</option>
+                        <option value="">Select a caption...</option>
                     </select>
-                    <small class="text-muted d-block">Categoria: ${category}</small>
+                    <small class="text-muted d-block">Category: ${category}</small>
                     <div class="btn-group w-100 mt-2">
                         <button type="button" class="btn btn-sm btn-primary" onclick="openPhotoEditor('${photoId}')">
-                            <i class="fas fa-edit"></i> Editar
+                            <i class="fas fa-edit"></i> Edit
                         </button>
                         <button type="button" class="btn btn-sm btn-danger" onclick="removePhoto('${photoId}')">
                             <i class="fas fa-trash"></i>
@@ -971,7 +1292,7 @@ function addPhotoPreview(file, category) {
             originalSrc: src
         });
 
-        // Foto adicionada ao array
+        // Photo added to array
 
         loadPredefinedCaptionsForPhoto(photoId, category);
     };
@@ -990,9 +1311,9 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
     const select = document.getElementById(`predefined_${photoId}`);
     if (!select) return;
 
-    select.innerHTML = '<option value="">Carregando legendas...</option>';
+    select.innerHTML = '<option value="">Loading captions...</option>';
 
-    // Carregar direto da API (PostgreSQL)
+    // Load directly from API (PostgreSQL)
     const xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/legendas?categoria=all', true);
     xhr.timeout = 10000;
@@ -1002,7 +1323,7 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
             try {
                 const data = JSON.parse(xhr.responseText);
                 if (data.success && data.legendas && data.legendas.length > 0) {
-                    select.innerHTML = '<option value="">Selecione uma legenda...</option>';
+                    select.innerHTML = '<option value="">Select a caption...</option>';
 
                     const cats = {
                         'Acabamentos': [],
@@ -1020,7 +1341,7 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
                     Object.keys(cats).forEach(cat => {
                         if (cats[cat].length > 0) {
                             const optgroup = document.createElement('optgroup');
-                            optgroup.label = cat + ' (' + cats[cat].length + ' itens)';
+                            optgroup.label = cat + ' (' + cats[cat].length + ' items)';
 
                             cats[cat].forEach(legenda => {
                                 const option = document.createElement('option');
@@ -1033,32 +1354,32 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
                         }
                     });
                 } else {
-                    select.innerHTML = '<option value="">Erro: nenhuma legenda encontrada</option>';
+                    select.innerHTML = '<option value="">Error: no captions found</option>';
                 }
             } catch (e) {
-                select.innerHTML = '<option value="">Erro: formato inválido</option>';
+                select.innerHTML = '<option value="">Error: invalid format</option>';
             }
         } else {
-            select.innerHTML = '<option value="">Erro: servidor indisponível</option>';
+            select.innerHTML = '<option value="">Error: server unavailable</option>';
         }
     };
 
     xhr.onerror = function() {
-        select.innerHTML = '<option value="">Erro: falha de rede</option>';
+        select.innerHTML = '<option value="">Error: network failure</option>';
     };
 
     xhr.ontimeout = function() {
-        select.innerHTML = '<option value="">Erro: tempo esgotado</option>';
+        select.innerHTML = '<option value="">Error: timeout</option>';
     };
 
     xhr.send();
 }
 
-// Mapear categoria da foto para categoria da legenda
+// Map photo category to legend category
 function mapCategoryToLegenda(photoCategory) {
     const mapping = {
         'Geral': 'Geral',
-        'Estrutura': 'Estrutural', 
+        'Estrutura': 'Estrutural',
         'Acabamento': 'Acabamentos',
         'Instalações': 'Elétrica',
         'Problema': 'Segurança'
@@ -1068,7 +1389,7 @@ function mapCategoryToLegenda(photoCategory) {
 
 function updatePhotoInput() {
     const input = document.getElementById('photoInput');
-    // Atualizando input de fotos
+    // Updating photo input
 
     if (selectedCategory) {
         input.disabled = false;
@@ -1081,7 +1402,7 @@ function updatePhotoInput() {
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
 
-        // Input de fotos habilitado
+        // Photo input enabled
     } else {
         input.disabled = true;
 
@@ -1092,7 +1413,7 @@ function updatePhotoInput() {
         if (cameraBtn) cameraBtn.disabled = true;
         input.style.opacity = '0.5';
         input.style.pointerEvents = 'none';
-        // Input de fotos desabilitado
+        // Photo input disabled
     }
 }
 
@@ -1106,20 +1427,20 @@ function addCustomChecklistItem() {
     itemDiv.innerHTML = `
         <div class="form-check">
             <input class="form-check-input" type="checkbox" id="${itemId}">
-            <input type="text" class="form-control d-inline-block fw-bold" style="width: 70%;" 
-                   name="custom_item_${itemId}" placeholder="Digite o item do checklist..." required>
-            <button type="button" class="btn btn-sm btn-outline-danger float-end" 
+            <input type="text" class="form-control d-inline-block fw-bold" style="width: 70%;"
+                   name="custom_item_${itemId}" placeholder="Enter checklist item..." required>
+            <button type="button" class="btn btn-sm btn-outline-danger float-end"
                     onclick="this.parentElement.parentElement.remove()">
                 <i class="fas fa-trash"></i>
             </button>
         </div>
-        <textarea class="form-control mt-2" name="custom_obs_${itemId}" placeholder="Observações..." rows="2"></textarea>
+        <textarea class="form-control mt-2" name="custom_obs_${itemId}" placeholder="Observations..." rows="2"></textarea>
     `;
 
     checklistItems.appendChild(itemDiv);
 }
 
-// Marcar checklist como concluído
+// Mark checklist as completed
 document.addEventListener('change', function(e) {
     if (e.target && e.target.classList && e.target.classList.contains('form-check-input') && e.target.type === 'checkbox') {
         const item = e.target.closest('.checklist-item');
@@ -1131,176 +1452,176 @@ document.addEventListener('change', function(e) {
     }
 });
 
-// Sistema Fabric.js Photo Editor - Exatamente como no Express
+// Fabric.js Photo Editor system - Exactly like Express
 function openPhotoEditor(photoId) {
     try {
-        // Abrindo editor para foto
+        // Opening editor for photo
 
         const card = document.querySelector(`[data-photo-id="${photoId}"]`);
         if (!card) {
-            console.error(`❌ Card não encontrado para foto: ${photoId}`);
+            console.error(`❌ Card not found for photo: ${photoId}`);
             return;
         }
 
         const img = card.querySelector('img');
         if (!img || !img.src) {
-            console.error(`❌ Imagem não encontrada para foto: ${photoId}`);
+            console.error(`❌ Image not found for photo: ${photoId}`);
             return;
         }
 
-        // Callback para salvar a foto editada (definir primeiro)
+        // Callback to save the edited photo (define first)
         const saveCallback = async (data) => {
-            // Salvando foto editada
+            // Saving edited photo
 
-            // Atualizar preview da foto no card
+            // Update photo preview in the card
             img.src = data.imageData;
             img.dataset.edited = 'true';
             img.dataset.legend = data.legend;
 
-            // Marcar visualmente como editada
+            // Visually mark as edited
             if (card && card.classList) card.classList.add('edited');
 
-            // Adicionar badge de editado se não existir
+            // Add edited badge if it doesn't exist
             if (!card.querySelector('.edited-badge')) {
                 const badge = document.createElement('div');
                 badge.className = 'edited-badge';
-                badge.innerHTML = '<i class="fas fa-edit"></i> Editado';
+                badge.innerHTML = '<i class="fas fa-edit"></i> Edited';
                 card.appendChild(badge);
             }
 
-            // Foto salva com sucesso
+            // Photo saved successfully
         };
 
-        // Verificar se o editor modal está disponível  
+        // Check if the editor modal is available
         if (!window.fabricPhotoEditorModal) {
-            console.error('❌ Editor modal não inicializado');
+            console.error('❌ Editor modal not initialized');
 
-            // Verificar se as dependências estão carregadas
+            // Check if dependencies are loaded
             if (typeof fabric === 'undefined') {
-                alert('Fabric.js não está carregado. Recarregue a página.');
+                alert('Fabric.js is not loaded. Please reload the page.');
                 return;
             }
 
             if (typeof bootstrap === 'undefined') {
-                alert('Bootstrap não está carregado. Recarregue a página.');
+                alert('Bootstrap is not loaded. Please reload the page.');
                 return;
             }
 
             if (typeof FabricPhotoEditor === 'undefined') {
-                alert('Editor de fotos não está carregado. Recarregue a página.');
+                alert('Photo editor script is not loaded. Please reload the page.');
                 return;
             }
 
-            // Tentar inicializar o editor modal
+            // Attempt to initialize the editor modal
             if (typeof initFabricPhotoEditorModal === 'function') {
-                // Tentando inicializar editor modal
+                // Attempting to initialize editor modal
                 initFabricPhotoEditorModal();
 
-                // Aguardar um momento para o editor ser inicializado
+                // Wait a moment for the editor to initialize
                 setTimeout(() => {
                     if (window.fabricPhotoEditorModal) {
-                        console.log('✅ Editor inicializado com sucesso');
+                        console.log('✅ Editor initialized successfully');
                         window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
                     } else {
-                        console.error('❌ Falha ao inicializar editor após tentativa');
-                        alert('Editor de fotos não pode ser carregado. Recarregue a página.');
+                        console.error('❌ Failed to initialize editor after attempt');
+                        alert('Photo editor could not be loaded. Please reload the page.');
                     }
                 }, 500);
                 return;
             }
         }
 
-        // Editor disponível, abrir diretamente
-        console.log('✅ Abrindo editor');
+        // Editor is available, open directly
+        console.log('✅ Opening editor');
         window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
 
     } catch (error) {
-        console.error('❌ Erro ao abrir editor:', error);
-        alert('Erro ao abrir editor de fotos. Tente novamente.');
+        console.error('❌ Error opening editor:', error);
+        alert('An error occurred while opening the photo editor. Please try again.');
     }
 }
 
-// Função para auto-scroll centralizado
+// Function for centered auto-scroll
 function scrollToEditorCenter() {
-    console.log('🎨 Executando auto-scroll para centro do editor');
+    console.log('🎨 Executing auto-scroll to editor center');
 
     const modal = document.getElementById('fabricPhotoEditorModal');
     if (!modal) {
-        console.log('⚠️ Modal não encontrado');
+        console.log('⚠️ Modal not found');
         return;
     }
 
     const canvasContainer = modal.querySelector('.canvas-container');
     if (!canvasContainer) {
-        console.log('⚠️ Canvas container não encontrado');
+        console.log('⚠️ Canvas container not found');
         return;
     }
 
     try {
-        // Scroll suave para o centro do canvas
-        canvasContainer.scrollIntoView({ 
-            behavior: 'smooth', 
+        // Smooth scroll to the center of the canvas
+        canvasContainer.scrollIntoView({
+            behavior: 'smooth',
             block: 'center',
             inline: 'center'
         });
 
-        // Centralizar o scroll na janela também
+        // Also center the scroll in the window
         window.scrollTo({
             top: window.innerHeight / 4,
             behavior: 'smooth'
         });
 
-        console.log('✅ Auto-scroll executado com sucesso');
+        console.log('✅ Auto-scroll executed successfully');
     } catch (error) {
-        console.error('❌ Erro no auto-scroll:', error);
+        console.error('❌ Error during auto-scroll:', error);
     }
 }
 
-// Nova função para atualizar foto do Fabric Editor
+// New function to update photo from Fabric Editor
 function updatePhotoFromFabricEditor(photoId, editedImageData) {
-    console.log('💾 Atualizando foto editada:', photoId);
+    console.log('💾 Updating edited photo:', photoId);
 
-    // Buscar elemento da foto diretamente pelo ID
+    // Find photo element directly by ID
     const photoElement = document.getElementById(photoId);
     if (!photoElement) {
-        console.error('❌ Elemento da foto não encontrado:', photoId);
+        console.error('❌ Photo element not found:', photoId);
         return;
     }
 
-    // Atualizar imagem no preview
+    // Update image in preview
     const img = photoElement.querySelector('.photo-preview');
     if (img && editedImageData.imageData) {
         img.src = editedImageData.imageData;
-        console.log('✅ Imagem do preview atualizada');
+        console.log('✅ Preview image updated');
 
-        // Também atualizar onclick para manter funcionalidade
+        // Also update onclick to maintain functionality
         img.setAttribute('onclick', `editPhoto('${photoId}', '${editedImageData.imageData}', '${img.getAttribute('data-category') || 'Geral'}')`);
     }
 
-    // Atualizar também em selectedPhotos se existir
+    // Also update in selectedPhotos if it exists
     const photo = selectedPhotos.find(p => p.id === photoId);
     if (photo) {
         photo.annotatedSrc = editedImageData.imageData;
-        console.log('✅ Dados da foto atualizados em selectedPhotos');
+        console.log('✅ Photo data updated in selectedPhotos');
     }
 
-    // Adicionar indicador visual de foto editada
+    // Add visual indicator for edited photo
     const card = photoElement.querySelector('.card');
     if (card && card.classList && !card.classList.contains('border-success')) {
         card.classList.add('border-success', 'border-2');
 
-        // Remover indicador anterior se existir
+        // Remove previous indicator if it exists
         const oldIndicator = card.querySelector('.edit-indicator');
         if (oldIndicator) oldIndicator.remove();
 
         const indicator = document.createElement('small');
         indicator.className = 'text-success fw-bold edit-indicator d-block mt-1';
-        indicator.innerHTML = '<i class="fas fa-check-circle"></i> Editada';
+        indicator.innerHTML = '<i class="fas fa-check-circle"></i> Edited';
         photoElement.querySelector('.card-body').appendChild(indicator);
-        console.log('✅ Indicador visual adicionado');
+        console.log('✅ Visual indicator added');
     }
 
-    console.log('✅ Foto atualizada com sucesso');
+    console.log('✅ Photo updated successfully');
 }
 
 // Canvas drawing functions
@@ -1313,7 +1634,7 @@ function startDrawing(e) {
     startY = (e.clientY - rect.top) * scaleY;
 
     if (currentTool === 'text') {
-        const text = prompt('Digite o texto:');
+        const text = prompt('Enter text:');
         if (text) {
             ctx.fillStyle = document.getElementById('colorPicker').value;
             ctx.font = 'bold 24px Arial';
@@ -1324,7 +1645,7 @@ function startDrawing(e) {
         return;
     }
 
-    // Para caneta, começar o path
+    // For pen, start the path
     if (currentTool === 'pen') {
         ctx.beginPath();
         ctx.moveTo(startX, startY);
@@ -1419,7 +1740,7 @@ function saveEditedPhoto() {
         // Add visual indicator that photo was edited
         const editButton = currentEditingPhoto.element.querySelector('.btn-primary');
         if (editButton) {
-            editButton.innerHTML = '<i class="fas fa-check"></i> Editada';
+            editButton.innerHTML = '<i class="fas fa-check"></i> Edited';
             if (editButton.classList) {
                 editButton.classList.remove('btn-primary');
                 editButton.classList.add('btn-success');
@@ -1431,7 +1752,7 @@ function saveEditedPhoto() {
     modal.hide();
 }
 
-// Função para criar relatório inicial em preenchimento
+// Function to create initial report in progress
 async function createInitialReport() {
     const formData = new FormData(document.getElementById('reportForm'));
 
@@ -1444,29 +1765,29 @@ async function createInitialReport() {
         const result = await response.json();
 
         if (result.success && result.report_id) {
-            console.log('✅ Relatório inicial criado:', result.report_id);
+            console.log('✅ Initial report created:', result.report_id);
             return result.report_id;
         } else {
-            throw new Error(result.error || 'Erro ao criar relatório');
+            throw new Error(result.error || 'Error creating report');
         }
     } catch (error) {
-        console.error('❌ Erro ao criar relatório inicial:', error);
+        console.error('❌ Error creating initial report:', error);
         throw error;
     }
 }
 
-// REMOVIDO - Listener duplicado causava conflito. Mantido apenas o listener principal nas linhas 2768-2806
+// REMOVED - Duplicate listener caused conflict. Only the main listener at lines 2768-2806 remains
 
-// Função para capturar localização
+// Function to capture location
 function capturarLocalizacao() {
     const infoDiv = document.getElementById('localizacao-info');
 
     if (!navigator.geolocation) {
-        infoDiv.innerHTML = '<div class="alert alert-danger">Geolocalização não é suportada pelo navegador.</div>';
+        infoDiv.innerHTML = '<div class="alert alert-danger">Geolocation is not supported by your browser.</div>';
         return;
     }
 
-    infoDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Capturando localização...</div>';
+    infoDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Capturing location...</div>';
 
     navigator.geolocation.getCurrentPosition(
         function(position) {
@@ -1479,12 +1800,12 @@ function capturarLocalizacao() {
 
             infoDiv.innerHTML = `
                 <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> Localização capturada com sucesso!<br>
-                    <small id="addressDisplay">Obtendo endereço... (precisão: ${Math.round(accuracy)}m)</small>
+                    <i class="fas fa-check-circle"></i> Location captured successfully!<br>
+                    <small id="addressDisplay">Getting address... (accuracy: ${Math.round(accuracy)}m)</small>
                 </div>
             `;
 
-            // Obter endereço formatado via API
+            // Get formatted address via API
             fetch('/get_location', {
                 method: 'POST',
                 headers: {
@@ -1499,27 +1820,27 @@ function capturarLocalizacao() {
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.endereco) {
-                    document.getElementById('addressDisplay').innerHTML = `<strong>📍 ${data.endereco}</strong> (precisão: ${Math.round(accuracy)}m)`;
+                    document.getElementById('addressDisplay').innerHTML = `<strong>📍 ${data.endereco}</strong> (accuracy: ${Math.round(accuracy)}m)`;
                 } else {
-                    document.getElementById('addressDisplay').innerHTML = `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)} (precisão: ${Math.round(accuracy)}m)`;
+                    document.getElementById('addressDisplay').innerHTML = `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)} (accuracy: ${Math.round(accuracy)}m)`;
                 }
             })
             .catch(error => {
-                console.error('Erro ao obter endereço:', error);
-                document.getElementById('addressDisplay').innerHTML = `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)} (precisão: ${Math.round(accuracy)}m)`;
+                console.error('Error getting address:', error);
+                document.getElementById('addressDisplay').innerHTML = `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)} (accuracy: ${Math.round(accuracy)}m)`;
             });
         },
         function(error) {
-            let errorMsg = 'Erro ao capturar localização.';
+            let errorMsg = 'Error capturing location.';
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    errorMsg = 'Permissão negada para acessar localização.';
+                    errorMsg = 'Permission denied to access location.';
                     break;
                 case error.POSITION_UNAVAILABLE:
-                    errorMsg = 'Localização indisponível.';
+                    errorMsg = 'Location unavailable.';
                     break;
                 case error.TIMEOUT:
-                    errorMsg = 'Tempo limite para capturar localização.';
+                    errorMsg = 'Timeout for capturing location.';
                     break;
             }
             infoDiv.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> ${errorMsg}</div>`;
@@ -1532,11 +1853,11 @@ function capturarLocalizacao() {
     );
 }
 
-// FUNÇÃO DUPLICADA REMOVIDA - usar apenas a versão otimizada para mobile
+// DUPLICATE FUNCTION REMOVED - use the optimized mobile version only
 
-// FUNÇÃO DUPLICADA REMOVIDA - usar apenas a versão do início do arquivo
+// DUPLICATE FUNCTION REMOVED - use the version at the start of the file
 
-// Função para alternar checkbox e mostrar/ocultar campo de observações
+// Function to toggle checkbox and show/hide observations field
 function toggleChecklistItem(checkbox) {
     const itemId = checkbox.id.replace('check_', '');
     const obsField = document.getElementById(`obs_${itemId}`);
@@ -1559,26 +1880,26 @@ function toggleChecklistItem(checkbox) {
     }
 }
 
-// Função para alternar estado do checklist item
+// Function to toggle checklist item state
 function toggleChecklistItem(checkbox) {
     const itemId = checkbox.id.replace('check_', '');
     const obsSection = document.getElementById(`obs_${itemId}`);
     const checklistItem = checkbox.closest('.checklist-item');
 
     if (checkbox.checked) {
-        // Marcar como completo
+        // Mark as completed
         if (checklistItem && checklistItem.classList) checklistItem.classList.add('completed');
-        // Mostrar campo de observações
+        // Show observations field
         if (obsSection) {
             obsSection.style.display = 'block';
         }
     } else {
-        // Desmarcar como completo
+        // Unmark as completed
         if (checklistItem && checklistItem.classList) checklistItem.classList.remove('completed');
-        // Ocultar campo de observações
+        // Hide observations field
         if (obsSection) {
             obsSection.style.display = 'none';
-            // Limpar observações se desejar
+            // Clear observations if desired
             const textarea = obsSection.querySelector('textarea');
             if (textarea) {
                 textarea.value = '';
@@ -1587,14 +1908,14 @@ function toggleChecklistItem(checkbox) {
     }
 }
 
-// Carregar checklist padrão do sistema
+// Load default checklist from the system
 function carregarChecklistPadrao() {
     fetch('/api/checklist-padrao')
         .then(response => response.json())
         .then(data => {
             if (data.success && data.checklist.length > 0) {
                 const container = document.getElementById('checklistItems');
-                container.innerHTML = ''; // Limpar conteúdo atual
+                container.innerHTML = ''; // Clear current content
 
                 data.checklist.forEach(item => {
                     const itemDiv = document.createElement('div');
@@ -1609,49 +1930,49 @@ function carregarChecklistPadrao() {
                             </div>
                         </div>
                         <div class="mt-2" style="display: none;" id="obs_${item.id}">
-                            <textarea class="form-control form-control-sm" rows="2" placeholder="Observações (opcional)..." name="obs_${item.id}"></textarea>
+                            <textarea class="form-control form-control-sm" rows="2" placeholder="Optional observations..." name="obs_${item.id}"></textarea>
                         </div>
                     `;
                     container.appendChild(itemDiv);
                 });
 
-                console.log(`${data.checklist.length} itens do checklist padrão carregados`);
+                console.log(`${data.checklist.length} default checklist items loaded`);
             } else {
                 const container = document.getElementById('checklistItems');
-                container.innerHTML = '<p class="text-muted">Nenhum item no checklist padrão. <a href="/admin/checklist-padrao">Configurar checklist</a></p>';
+                container.innerHTML = '<p class="text-muted">No default checklist items. <a href="/admin/checklist-padrao">Configure checklist</a></p>';
             }
         })
         .catch(error => {
-            console.error('Erro ao carregar checklist padrão:', error);
+            console.error('Error loading default checklist:', error);
             const container = document.getElementById('checklistItems');
-            container.innerHTML = '<p class="text-danger">Erro ao carregar checklist. <a href="#" onclick="carregarChecklistPadrao()">Tentar novamente</a></p>';
+            container.innerHTML = '<p class="text-danger">Error loading checklist. <a href="#" onclick="carregarChecklistPadrao()">Try again</a></p>';
         });
 }
 
-// Função auxiliar para carregar por ID direto
-function carregarFuncionariosEmailsPorId(projetoId) {
+// Helper function to load by ID directly
+function carregarFuncionariosEmails(projetoId) {
     if (!projetoId) {
-        console.log('⚠️ ID do projeto inválido');
+        console.log('⚠️ Invalid project ID');
         return;
     }
-    
+
     const funcionariosDiv = document.getElementById('funcionarios-projeto');
     const emailsDiv = document.getElementById('emails-projeto');
 
     if (!funcionariosDiv || !emailsDiv) {
-        console.error('❌ Divs de funcionários ou emails não encontradas');
+        console.error('❌ Staff or email divs not found');
         return;
     }
 
-    console.log('🔄 Carregando funcionários e e-mails para projeto ID:', projetoId);
+    console.log('🔄 Loading staff and emails for project ID:', projetoId);
 
-    funcionariosDiv.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Carregando funcionários...</p>';
-    emailsDiv.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Carregando e-mails...</p>';
+    funcionariosDiv.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading staff...</p>';
+    emailsDiv.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading emails...</p>';
 
-    // Buscar funcionários e e-mails do projeto via AJAX
+    // Fetch project staff and emails via AJAX
     const apiUrl = `/api/projeto/${projetoId}/funcionarios-emails`;
-    console.log('📡 Chamando API:', apiUrl);
-    
+    console.log('📡 Calling API:', apiUrl);
+
     fetch(apiUrl, {
         method: 'GET',
         headers: {
@@ -1661,75 +1982,75 @@ function carregarFuncionariosEmailsPorId(projetoId) {
         credentials: 'same-origin'
     })
     .then(response => {
-        console.log('📡 Resposta da API:', response.status, response.statusText);
+        console.log('📡 API Response:', response.status, response.statusText);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         return response.json();
     })
     .then(data => {
-        console.log('📦 Dados recebidos:', data);
+        console.log('📦 Received data:', data);
 
         if (data.success) {
-            // Renderizar funcionários
+            // Render staff
             let funcionariosHtml = '';
             if (data.funcionarios && data.funcionarios.length > 0) {
-                console.log(`✅ ${data.funcionarios.length} funcionários encontrados`);
+                console.log(`✅ ${data.funcionarios.length} staff found`);
                 data.funcionarios.forEach(func => {
                     const checked = func.is_responsavel_principal ? 'checked' : '';
                     funcionariosHtml += `
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="func_${func.id}" 
+                            <input class="form-check-input" type="checkbox" id="func_${func.id}"
                                    name="funcionarios_selecionados[]" value="${func.id}" ${checked}>
                             <label class="form-check-label" for="func_${func.id}">
                                 <strong>${func.nome_funcionario}</strong><br>
-                                <small class="text-muted">${func.cargo || 'Sem cargo'} - ${func.empresa || 'Sem empresa'}</small>
-                                ${func.is_responsavel_principal ? '<span class="badge bg-primary">Principal</span>' : ''}
+                                <small class="text-muted">${func.cargo || 'No position'} - ${func.empresa || 'No company'}</small>
+                                ${func.is_responsavel_principal ? '<span class="badge bg-primary">Primary</span>' : ''}
                             </label>
                         </div>
                     `;
                 });
             } else {
-                funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
-                console.log('⚠️ Nenhum funcionário encontrado');
+                funcionariosHtml = '<p class="text-muted">No staff found for this project</p>';
+                console.log('⚠️ No staff found');
             }
             funcionariosDiv.innerHTML = funcionariosHtml;
 
-            // Renderizar e-mails
+            // Render emails
             let emailsHtml = '';
             if (data.emails && data.emails.length > 0) {
                 data.emails.forEach(email => {
                     const checked = email.is_principal ? 'checked' : '';
                     emailsHtml += `
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="email_${email.id}" 
+                            <input class="form-check-input" type="checkbox" id="email_${email.id}"
                                    name="emails_selecionados[]" value="${email.id}" ${checked}>
                             <label class="form-check-label" for="email_${email.id}">
                                 <strong>${email.email}</strong><br>
-                                <small class="text-muted">${email.nome_contato} - ${email.cargo || 'Sem cargo'}</small>
-                                ${email.is_principal ? '<span class="badge bg-success">Principal</span>' : ''}
+                                <small class="text-muted">${email.nome_contato} - ${email.cargo || 'No position'}</small>
+                                ${email.is_principal ? '<span class="badge bg-success">Primary</span>' : ''}
                             </label>
                         </div>
                     `;
                 });
-                console.log(`✅ ${data.emails.length} e-mails carregados`);
+                console.log(`✅ ${data.emails.length} emails loaded`);
             } else {
-                emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para este projeto</p>';
-                console.log('⚠️ Nenhum e-mail encontrado');
+                emailsHtml = '<p class="text-muted">No emails found for this project</p>';
+                console.log('⚠️ No emails found');
             }
             emailsDiv.innerHTML = emailsHtml;
         } else {
-            console.error('❌ API retornou erro:', data.error || 'Erro desconhecido');
-            funcionariosDiv.innerHTML = `<p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erro: ${data.error || 'Erro ao carregar funcionários'}</p>`;
-            emailsDiv.innerHTML = `<p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erro: ${data.error || 'Erro ao carregar e-mails'}</p>`;
+            console.error('❌ API returned error:', data.error || 'Unknown error');
+            funcionariosDiv.innerHTML = `<p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error: ${data.error || 'Error loading staff'}</p>`;
+            emailsDiv.innerHTML = `<p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error: ${data.error || 'Error loading emails'}</p>`;
         }
     })
     .catch(error => {
-        console.error('❌ Erro ao carregar funcionários e e-mails:', error);
+        console.error('❌ Error loading staff and emails:', error);
         funcionariosDiv.innerHTML = `
             <div class="alert alert-danger">
                 <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>Erro ao carregar funcionários</strong><br>
+                <strong>Error loading staff</strong><br>
                 <small>${error.message}</small><br>
                 <small>URL: /api/projeto/${projetoId}/funcionarios-emails</small>
             </div>
@@ -1737,50 +2058,50 @@ function carregarFuncionariosEmailsPorId(projetoId) {
         emailsDiv.innerHTML = `
             <div class="alert alert-danger">
                 <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>Erro ao carregar e-mails</strong><br>
+                <strong>Error loading emails</strong><br>
                 <small>${error.message}</small>
             </div>
         `;
     });
 }
 
-// Inicializar sistema ao carregar a página
+// Initialize system on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Carregar checklist padrão automaticamente
+    // Load default checklist automatically
     carregarChecklistPadrao();
 
-    // Auto-carregar dados do projeto se pre-selecionado
+    // Auto-load project data if pre-selected
     {% if disable_fields and preselected_project_id %}
-    // Para projeto pré-selecionado com campos desabilitados
-    console.log('🏗️ Projeto pré-selecionado detectado (campos desabilitados):', {{ preselected_project_id }});
-    carregarFuncionariosEmailsPorId({{ preselected_project_id }});
+    // For pre-selected project with disabled fields
+    console.log('🏗️ Pre-selected project detected (disabled fields):', {{ preselected_project_id }});
+    carregarFuncionariosEmails({{ preselected_project_id }});
     {% elif selected_project and selected_project.id %}
-    // Para projeto pré-selecionado (selected_project existe no template)
-    console.log('🏗️ Projeto selected_project detectado:', {{ selected_project.id }});
-    carregarFuncionariosEmailsPorId({{ selected_project.id }});
+    // For pre-selected project (selected_project exists in template)
+    console.log('🏗️ selected_project detected:', {{ selected_project.id }});
+    carregarFuncionariosEmails({{ selected_project.id }});
     {% else %}
-    // Para projeto selecionado normalmente via dropdown
+    // For project selected normally via dropdown
     const projetoSelect = document.getElementById('projeto_id');
     if (projetoSelect && projetoSelect.value && !isNaN(parseInt(projetoSelect.value))) {
-        console.log('🏗️ Projeto via select detectado:', projetoSelect.value);
-        carregarFuncionariosEmailsPorId(parseInt(projetoSelect.value));
+        console.log('🏗️ Project via select detected:', projetoSelect.value);
+        carregarFuncionariosEmails(parseInt(projetoSelect.value));
     } else {
-        console.log('ℹ️ Nenhum projeto pré-selecionado - aguardando seleção do usuário');
+        console.log('ℹ️ No pre-selected project - awaiting user selection');
     }
     {% endif %}
 
-    // Inicializar editor modal Fabric.js - exatamente como no Express
+    // Initialize Fabric.js modal editor
     if (typeof initFabricPhotoEditorModal === 'function') {
         initFabricPhotoEditorModal();
-        console.log('✅ Editor modal inicializado');
+        console.log('✅ Modal editor initialized');
     } else {
-        console.error('❌ Editor modal não disponível');
+        console.error('❌ Modal editor not available');
     }
 
-    // Criar relatório inicial e ativar auto save após preencher dados básicos
+    // Create initial report and activate auto save after basic data is filled
     let autoSaveInitialized = false;
 
-    // Função para inicializar auto save quando houver dados suficientes
+    // Function to initialize auto save when sufficient data is available
     function tryInitializeAutoSave() {
         if (autoSaveInitialized) return;
 
@@ -1788,32 +2109,32 @@ document.addEventListener('DOMContentLoaded', function() {
         const projetoId = document.getElementById('projeto_id').value;
 
         if (titulo && projetoId) {
-            console.log('📝 Dados básicos preenchidos, criando relatório inicial...');
+            console.log('📝 Basic data filled, creating initial report...');
 
-            // Criar relatório inicial
+            // Create initial report
             createInitialReport().then(reportId => {
                 window.currentReportId = reportId;
 
-                // Inicializar auto save
+                // Initialize auto save
                 if (typeof initAutoSave === 'function') {
                     window.autoSaveInstance = initAutoSave(reportId, {
-                        interval: 10000, // 10 segundos
+                        interval: 10000, // 10 seconds
                         statusElement: document.getElementById('autosave-status'),
                         form: document.getElementById('reportForm')
                     });
 
                     autoSaveInitialized = true;
-                    console.log('✅ Auto save ativado para relatório', reportId);
+                    console.log('✅ Auto save activated for report', reportId);
                 } else {
-                    console.error('❌ Função initAutoSave não encontrada');
+                    console.error('❌ initAutoSave function not found');
                 }
             }).catch(error => {
-                console.error('❌ Erro ao criar relatório inicial:', error);
+                console.error('❌ Error creating initial report:', error);
             });
         }
     }
 
-    // Observar mudanças nos campos básicos
+    // Observe changes in basic fields
     const tituloField = document.getElementById('titulo');
     const projetoField = document.getElementById('projeto_id');
 
@@ -1828,21 +2149,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </script>
 
-<!-- Fabric.js CDN - Exatamente como no Express -->
+<!-- Fabric.js CDN - Exactly like Express -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 
-<!-- Editor Scripts - Exatamente como no Express -->
+<!-- Editor Scripts - Exactly like Express -->
 <script src="{{ url_for('static', filename='js/fabric-photo-editor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/fabric-photo-editor-modal.js') }}"></script>
 
-<!-- Modal do Editor de Fotos Professional - Exatamente como no Express -->
+<!-- Professional Photo Editor Modal - Exactly like Express -->
 <div class="modal fade" id="fabricPhotoEditorModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
         <div class="modal-content">
             <!-- Header -->
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title">
-                    <i class="fas fa-edit"></i> Editor de Fotos Professional
+                    <i class="fas fa-edit"></i> Professional Photo Editor
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -1850,55 +2171,55 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- Body -->
             <div class="modal-body p-0" style="height: calc(100vh - 160px);">
                 <div class="fabric-editor-container" style="height: 100%;">
-                    <!-- Área principal do editor -->
+                    <!-- Main editor area -->
                     <div class="fabric-editor-main" style="flex: 1; display: flex; flex-direction: column;">
-                        <!-- Container do canvas -->
+                        <!-- Canvas container -->
                         <div class="canvas-container" style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; background: #f8f9fa;">
                             <div class="canvas-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); overflow: hidden;">
                                 <canvas id="fabricModalCanvas"></canvas>
                             </div>
                         </div>
 
-                        <!-- Toolbar de ferramentas -->
+                        <!-- Toolbar -->
                         <div class="fabric-toolbar" style="background: white; border-top: 1px solid #e1e5e9; padding: 16px;">
-                            <!-- Ferramentas principais -->
+                            <!-- Main tools -->
                             <div class="tool-group mb-3">
-                                <h6 class="text-muted mb-2">Ferramentas</h6>
+                                <h6 class="text-muted mb-2">Tools</h6>
                                 <div class="d-flex gap-2 flex-wrap">
-                                    <button class="fabric-tool-btn active" data-modal-tool="select" title="Seleção">
+                                    <button class="fabric-tool-btn active" data-modal-tool="select" title="Select">
                                         <i class="fas fa-mouse-pointer"></i>
                                     </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="brush" title="Pincel">
+                                    <button class="fabric-tool-btn" data-modal-tool="brush" title="Brush">
                                         <i class="fas fa-paint-brush"></i>
                                     </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="arrow" title="Seta">
+                                    <button class="fabric-tool-btn" data-modal-tool="arrow" title="Arrow">
                                         <i class="fas fa-arrow-right"></i>
                                     </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="circle" title="Círculo">
+                                    <button class="fabric-tool-btn" data-modal-tool="circle" title="Circle">
                                         <i class="far fa-circle"></i>
                                     </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="rectangle" title="Retângulo">
+                                    <button class="fabric-tool-btn" data-modal-tool="rectangle" title="Rectangle">
                                         <i class="far fa-square"></i>
                                     </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="text" title="Texto">
+                                    <button class="fabric-tool-btn" data-modal-tool="text" title="Text">
                                         <i class="fas fa-font"></i>
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Propriedades -->
+                            <!-- Properties -->
                             <div class="row">
                                 <div class="col-md-4">
-                                    <label class="form-label">Cor:</label>
+                                    <label class="form-label">Color:</label>
                                     <input type="color" id="modal-color-picker" class="form-control form-control-color" value="#FF0000">
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label">Espessura:</label>
+                                    <label class="form-label">Thickness:</label>
                                     <input type="range" id="modal-stroke-width" class="form-range" min="1" max="20" value="3">
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label">Legenda:</label>
-                                    <input type="text" id="modal-custom-legend" class="form-control" placeholder="Digite uma legenda...">
+                                    <label class="form-label">Caption:</label>
+                                    <input type="text" id="modal-custom-legend" class="form-control" placeholder="Enter a caption...">
                                 </div>
                             </div>
                         </div>
@@ -1909,16 +2230,16 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- Footer -->
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" id="modal-cancel-btn">
-                    <i class="fas fa-times"></i> Cancelar
+                    <i class="fas fa-times"></i> Cancel
                 </button>
                 <button type="button" class="btn btn-danger" onclick="window.fabricPhotoEditorModal?.clear()">
-                    <i class="fas fa-trash"></i> Limpar
+                    <i class="fas fa-trash"></i> Clear
                 </button>
                 <button type="button" class="btn btn-warning" onclick="window.fabricPhotoEditorModal?.undo()">
-                    <i class="fas fa-undo"></i> Desfazer
+                    <i class="fas fa-undo"></i> Undo
                 </button>
                 <button type="button" class="btn btn-success" id="modal-save-btn">
-                    <i class="fas fa-check"></i> Salvar
+                    <i class="fas fa-check"></i> Save
                 </button>
             </div>
         </div>
@@ -1926,7 +2247,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <style>
-/* Estilos do modal do editor - Exatamente como no Express */
+/* Modal editor styles - Exactly like Express */
 .fabric-tool-btn {
     display: flex;
     align-items: center;
@@ -1953,7 +2274,7 @@ document.addEventListener('DOMContentLoaded', function() {
     border-color: #2563eb;
 }
 
-/* Indicador visual de foto editada */
+/* Visual indicator for edited photo */
 .photo-container.edited {
     position: relative;
 }
@@ -1992,7 +2313,7 @@ document.addEventListener('DOMContentLoaded', function() {
     transform: scale(1.1);
 }
 
-/* Responsivo mobile */
+/* Mobile responsive */
 @media (max-width: 768px) {
     .fabric-toolbar {
         max-height: 40vh;
@@ -2004,8 +2325,8 @@ document.addEventListener('DOMContentLoaded', function() {
         min-height: 40px;
     }
 
-    /* MOBILE: Otimizações específicas para legendas pré-definidas */
-    select[name^="photo_caption_"], 
+    /* MOBILE: Specific optimizations for predefined captions */
+    select[name^="photo_caption_"],
     select[id^="predefined_"] {
         font-size: 16px !important;
         min-height: 48px !important;
@@ -2020,7 +2341,7 @@ document.addEventListener('DOMContentLoaded', function() {
         appearance: menulist !important;
     }
 
-    /* Grupos de opções visíveis */
+    /* Visible option groups */
     optgroup {
         font-weight: bold !important;
         color: #007bff !important;
@@ -2035,12 +2356,12 @@ document.addEventListener('DOMContentLoaded', function() {
         background: white !important;
     }
 
-    /* Cards de fotos otimizados */
+    /* Optimized photo cards */
     .card-body.p-2 {
         padding: 16px !important;
     }
 
-    /* Texto de categoria mais visível */
+    /* More visible category text */
     .text-muted {
         font-size: 14px !important;
         color: #555 !important;
@@ -2070,31 +2391,31 @@ document.addEventListener('DOMContentLoaded', function() {
     longitudeEl.value = {{ selected_project.longitude | tojson }};
 
     // Display project location info (escaped properly)
-    const endereco = {{ selected_project.endereco | tojson or "'Coordenadas do projeto'" }};
+    const endereco = {{ selected_project.endereco | tojson or "'Project coordinates'" }};
     localizacaoInfo.innerHTML = `
         <div class="alert alert-success">
-            <i class="fas fa-check-circle"></i> Localização do projeto pré-carregada!<br>
+            <i class="fas fa-check-circle"></i> Project location pre-loaded!<br>
             <strong>📍 ${endereco}</strong>
-            <br><small class="text-muted">Você pode capturar nova localização se necessário</small>
+            <br><small class="text-muted">You can capture a new location if needed</small>
         </div>
     `;
     {% else %}
     // Show message that project has no coordinates
     localizacaoInfo.innerHTML = `
         <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle"></i> Este projeto não possui coordenadas cadastradas.<br>
-            <small>Use o botão "Capturar Localização Atual" para definir a localização da visita.</small>
+            <i class="fas fa-exclamation-triangle"></i> This project does not have coordinates registered.<br>
+            <small>Use the "Capture Current Location" button to set the visit location.</small>
         </div>
     `;
     {% endif %}
 });
 {% endif %}
 
-// Sistema de touch inteligente IGUAL AO EXPRESS - funcional 100%
+// Smart touch system EQUAL TO EXPRESS - 100% functional
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Sistema de touch inteligente carregado (igual express)');
+    console.log('🎯 Smart touch system loaded (equal to express)');
 
-    // Configurações EXATAS do Express
+    // EXACT Express Settings
     const TOUCH_THRESHOLD = 10; // pixels
     const TOUCH_TIME_LIMIT = 500; // ms
 
@@ -2106,42 +2427,42 @@ document.addEventListener('DOMContentLoaded', function() {
         element: null
     };
 
-    // Função para seleção de categoria IDÊNTICA ao Express
+    // Function for category selection IDENTICAL TO Express
     function selectPhotoCategory(category, element) {
-        // Remover seleção anterior
+        // Remove previous selection
         document.querySelectorAll('.photo-category').forEach(cat => {
             if (cat && cat.classList) cat.classList.remove('selected');
         });
 
-        // Adicionar seleção atual
+        // Add current selection
         if (element && element.classList) element.classList.add('selected');
 
-        // Feedback tátil
+        // Haptic feedback
         if (navigator.vibrate) {
             navigator.vibrate(50);
         }
 
-        console.log('📷 Categoria selecionada:', category);
+        console.log('📷 Category selected:', category);
 
-        // Atualizar categoria global
+        // Update global category
         selectedCategory = category;
 
-        // Habilitar botões de upload
+        // Enable upload buttons
         const galleryBtn = document.getElementById('galleryBtn');
         const cameraBtn = document.getElementById('cameraBtn');
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
 
-        // Atualizar input de fotos
+        // Update photo input
         updatePhotoInput();
     }
 
-    // Event listeners para categorias - CÓDIGO EXATO DO EXPRESS
+    // Event listeners for categories - EXACT EXPRESS CODE
     document.querySelectorAll('.photo-category').forEach(categoryElement => {
 
         // Touch Start
         categoryElement.addEventListener('touchstart', function(e) {
-            console.log('👆 TouchStart categoria');
+            console.log('👆 TouchStart category');
 
             const touch = e.touches[0];
             touchData.startX = touch.clientX;
@@ -2150,7 +2471,7 @@ document.addEventListener('DOMContentLoaded', function() {
             touchData.isDragging = false;
             touchData.element = categoryElement;
 
-            // Feedback visual imediato
+            // Immediate visual feedback
             if (categoryElement && categoryElement.classList) categoryElement.classList.add('touching');
         }, { passive: true });
 
@@ -2163,26 +2484,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const deltaY = Math.abs(touch.clientY - touchData.startY);
             const totalDelta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-            // Se movimento exceder threshold, marcar como drag
+            // If movement exceeds threshold, mark as drag
             if (totalDelta > TOUCH_THRESHOLD) {
                 touchData.isDragging = true;
                 if (categoryElement && categoryElement.classList) categoryElement.classList.remove('touching');
-                console.log('🔄 Movimento detectado - modo drag ativado');
+                console.log('🔄 Movement detected - drag mode activated');
             }
         }, { passive: true });
 
         // Touch End
         categoryElement.addEventListener('touchend', function(e) {
-            console.log('👆 TouchEnd categoria');
+            console.log('👆 TouchEnd category');
 
-            // Remover feedback visual
+            // Remove visual feedback
             if (categoryElement && categoryElement.classList) categoryElement.classList.remove('touching');
 
             if (!touchData.element) return;
 
             const touchDuration = Date.now() - touchData.startTime;
 
-            // Apenas selecionar se foi um tap rápido e sem movimento
+            // Only select if it was a quick tap without movement
             if (!touchData.isDragging && touchDuration < TOUCH_TIME_LIMIT) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -2190,9 +2511,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const category = categoryElement.getAttribute('data-category');
                 selectPhotoCategory(category, categoryElement);
 
-                console.log('✅ Tap válido - categoria selecionada');
+                console.log('✅ Valid tap - category selected');
             } else {
-                console.log('❌ Drag detectado - não selecionar categoria');
+                console.log('❌ Drag detected - do not select category');
             }
 
             // Reset
@@ -2200,11 +2521,11 @@ document.addEventListener('DOMContentLoaded', function() {
             touchData.isDragging = false;
         }, { passive: false });
 
-        // Mouse events para desktop (fallback)
+        // Mouse events for desktop (fallback)
         categoryElement.addEventListener('click', function(e) {
-            // Apenas processar se não houve toque recente
+            // Only process if there was no recent touch
             if (touchData.startTime && (Date.now() - touchData.startTime) < 300) {
-                return; // Ignorar click após touch
+                return; // Ignore click after touch
             }
 
             e.preventDefault();
@@ -2213,23 +2534,23 @@ document.addEventListener('DOMContentLoaded', function() {
             const category = categoryElement.getAttribute('data-category');
             selectPhotoCategory(category, categoryElement);
 
-            console.log('🖱️ Click desktop - categoria selecionada');
+            console.log('🖱️ Desktop click - category selected');
         });
     });
 
-    console.log('✅ Sistema de touch inteligente ativo para', document.querySelectorAll('.photo-category').length, 'categorias');
+    console.log('✅ Smart touch system active for', document.querySelectorAll('.photo-category').length, 'categories');
 });
 
-// Função global para compatibilidade - integrada com sistema de touch
+// Global function for compatibility - integrated with touch system
 window.selectPhotoCategory = function(category, element) {
     if (!element) {
         element = document.querySelector(`[data-category="${category}"]`);
     }
 
     if (element) {
-        // Usar a função interna que já tem toda a lógica
-        const selectEvent = new CustomEvent('selectCategory', { 
-            detail: { category: category, element: element } 
+        // Use the internal function that already has all the logic
+        const selectEvent = new CustomEvent('selectCategory', {
+            detail: { category: category, element: element }
         });
         document.dispatchEvent(selectEvent);
     }
@@ -2237,7 +2558,7 @@ window.selectPhotoCategory = function(category, element) {
 </script>
 
 <!-- Auto Save Script -->
-<!-- Sistema de autosave gerenciado automaticamente pelo reports_autosave.js -->
+<!-- Auto-managed autosave system by reports_autosave.js -->
 {% if existing_report and existing_report.id %}
 <div data-report-id="{{ existing_report.id }}" style="display:none;"></div>
 {% endif %}
@@ -2258,22 +2579,22 @@ document.addEventListener('DOMContentLoaded', function() {
 // Load predefined captions from API
 async function loadPredefinedLegendas() {
     try {
-        console.log('📋 Carregando legendas predefinidas...');
+        console.log('📋 Loading predefined captions...');
         const response = await fetch('/api/legendas?categoria=all');
         const data = await response.json();
 
         if (data.success) {
             predefinedLegendas = data.legendas;
-            console.log(`✅ ${predefinedLegendas.length} legendas carregadas`);
+            console.log(`✅ ${predefinedLegendas.length} captions loaded`);
         }
     } catch (error) {
-        console.error('❌ Erro ao carregar legendas:', error);
+        console.error('❌ Error loading captions:', error);
     }
 }
 
 // Setup mobile photo system
 function setupMobilePhotoSystem() {
-    console.log('📱 Configurando sistema de fotos mobile-first...');
+    console.log('📱 Setting up mobile-first photo system...');
 
     // Setup file input event listeners
     const mobilePhotoInput = document.getElementById('mobilePhotoInput');
@@ -2286,11 +2607,11 @@ function setupMobilePhotoSystem() {
     if (mobileCameraInput) {
         mobileCameraInput.addEventListener('change', handleMobilePhotoSelection);
     }
-}
+});
 
 // Mobile gallery selection
 function mobileSelectFromGallery() {
-    console.log('📸 Selecionando da galeria (mobile)...');
+    console.log('📸 Selecting from gallery (mobile)...');
     const input = document.getElementById('mobilePhotoInput');
     if (input) {
         input.click();
@@ -2299,7 +2620,7 @@ function mobileSelectFromGallery() {
 
 // Mobile camera capture
 function mobileCaptureFromCamera() {
-    console.log('📷 Capturando da câmera (mobile)...');
+    console.log('📷 Capturing from camera (mobile)...');
     const input = document.getElementById('mobileCameraInput');
     if (input) {
         input.click();
@@ -2308,7 +2629,7 @@ function mobileCaptureFromCamera() {
 
 // Handle photo selection from mobile inputs
 function handleMobilePhotoSelection(event) {
-    console.log('📋 Processando fotos selecionadas...');
+    console.log('📋 Processing selected photos...');
     const files = event.target.files;
     const defaultCategory = document.getElementById('defaultCategory').value;
 
@@ -2369,7 +2690,7 @@ function createMobilePhotoCard(file, category) {
             }
         }, 300);
 
-        console.log(`📷 Foto adicionada: ${file.name} (${category})`);
+        console.log(`📷 Photo added: ${file.name} (${category})`);
     };
 
     reader.readAsDataURL(file);
@@ -2381,52 +2702,52 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
 
     return `
         <div class="mobile-photo-card enhanced" data-photo-id="${photoId}" style="border: 2px solid #007bff; border-radius: 12px; padding: 12px; background: white; box-shadow: 0 4px 12px rgba(0,123,255,0.15); margin-bottom: 16px;">
-            <!-- Layout Vertical: IMAGEM EM CIMA -->
+            <!-- Vertical Layout: IMAGE ON TOP -->
             <div class="text-center mb-3">
-                <img src="${imageSrc}" 
-                     alt="${filename}" 
+                <img src="${imageSrc}"
+                     alt="${filename}"
                      data-photo-id="${photoId}"
                      style="width: 100%; max-width: 200px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef; cursor: pointer;">
             </div>
 
-            <!-- Categoria (SEM nome do arquivo) -->
+            <!-- Category (WITHOUT filename) -->
             <div class="text-center mb-2">
                 <span class="badge bg-primary">${category}</span>
             </div>
 
-            <!-- LEGENDA EM BAIXO -->
+            <!-- CAPTION BELOW -->
             <div class="mb-2">
-                <input type="text" 
-                       class="form-control caption-input" 
-                       id="manual_caption_${photoId}" 
-                       placeholder="✏️ Digite uma legenda (obrigatório)..."
+                <input type="text"
+                       class="form-control caption-input"
+                       id="manual_caption_${photoId}"
+                       placeholder="✏️ Enter a caption (required)..."
                        data-photo-id="${photoId}"
                        style="border: 2px solid #28a745; font-size: 14px; padding: 8px; background-color: #f8fff9;">
             </div>
 
-            <!-- Legenda Pré-definida -->
+            <!-- Predefined Caption -->
             <div class="mb-2">
-                <select class="form-select form-select-sm caption-select" 
-                        id="predefined_caption_${photoId}" 
+                <select class="form-select form-select-sm caption-select"
+                        id="predefined_caption_${photoId}"
                         data-photo-id="${photoId}"
                         style="font-size: 12px;">
-                    <option value="">📋 Ou escolha uma legenda pré-definida...</option>
+                    <option value="">📋 Or choose a predefined caption...</option>
                     ${legendaSelectHTML}
                 </select>
             </div>
 
-            <!-- Status da Legenda -->
+            <!-- Caption Status -->
             <div class="caption-status pending alert alert-warning py-1 px-2 mb-2" id="caption_status_${photoId}" style="font-size: 12px; margin: 0;">
-                ⚠️ Legenda obrigatória - preencha o campo acima
+                ⚠️ Caption required - fill at least one field
             </div>
 
-            <!-- Ações -->
+            <!-- Actions -->
             <div class="d-flex gap-2 justify-content-center">
                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="editMobilePhoto('${photoId}')">
-                    <i class="fas fa-edit"></i> Editar
+                    <i class="fas fa-edit"></i> Edit
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMobilePhoto('${photoId}')">
-                    <i class="fas fa-trash"></i> Excluir
+                    <i class="fas fa-trash"></i> Delete
                 </button>
             </div>
         </div>
@@ -2504,36 +2825,36 @@ async function saveCaptionData(photoId) {
     const hasCaption = manualCaption || predefinedCaption;
     if (hasCaption) {
         statusDiv.className = 'caption-status complete';
-        statusDiv.innerHTML = '✅ Legenda definida';
+        statusDiv.innerHTML = '✅ Caption set';
     } else {
         statusDiv.className = 'caption-status pending';
-        statusDiv.innerHTML = '⚠️ Legenda obrigatória - preencha pelo menos um campo';
+        statusDiv.innerHTML = '⚠️ Caption required - fill at least one field';
     }
 
     console.log(`💾 Caption saved for ${photoId}: "${manualCaption}"`);
 }
 
-// Edit mobile photo - RESTAURADO como funcionava antes
+// Edit mobile photo - RESTORED as it worked before
 function editMobilePhoto(photoId) {
     const photoData = mobilePhotoData.find(p => p.id === photoId);
     if (!photoData) return;
 
-    // Encontrar o elemento img da foto
+    // Find the photo's img element
     const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
     const imgElement = photoCard.querySelector('img');
 
     if (!imgElement) {
-        console.error('Imagem não encontrada para edição');
+        console.error('Image not found for editing');
         return;
     }
 
-    // Abrir editor modal como funcionava antes
+    // Open the modal editor as before
     openPhotoEditorFromElement(imgElement);
 }
 
 // Delete mobile photo
 function deleteMobilePhoto(photoId) {
-    if (!confirm('Deseja excluir esta foto?')) return;
+    if (!confirm('Do you want to delete this photo?')) return;
 
     // Remove from data array
     mobilePhotoData = mobilePhotoData.filter(p => p.id !== photoId);
@@ -2545,7 +2866,7 @@ function deleteMobilePhoto(photoId) {
     }
 
     updatePhotoCounter();
-    console.log(`🗑️ Foto ${photoId} excluída`);
+    console.log(`🗑️ Photo ${photoId} deleted`);
 }
 
 // Update photo counter and show quick actions
@@ -2588,7 +2909,7 @@ function validateCaptions() {
             const statusDiv = document.getElementById(`caption_status_${photoData.id}`);
             if (statusDiv) {
                 statusDiv.className = 'caption-status pending';
-                statusDiv.innerHTML = '❌ OBRIGATÓRIO: Adicione uma legenda';
+                statusDiv.innerHTML = '❌ REQUIRED: Add a caption';
                 statusDiv.style.animation = 'pulse 2s infinite';
             }
         }
@@ -2599,7 +2920,7 @@ function validateCaptions() {
 
 // Prepare form data for submission
 async function prepareMobilePhotoFormData() {
-    console.log('📱 Preparando dados das fotos mobile...');
+    console.log('📱 Preparing mobile photo data...');
 
     // Convert files to base64 data
     const photosWithData = await Promise.all(
@@ -2609,9 +2930,9 @@ async function prepareMobilePhotoFormData() {
             try {
                 // Convert file to base64
                 imageBase64 = await fileToBase64(photoData.file);
-                console.log(`✅ Foto ${photoData.id} convertida: ${imageBase64.length} chars`);
+                console.log(`✅ Photo ${photoData.id} converted: ${imageBase64.length} chars`);
             } catch (error) {
-                console.error(`❌ Erro ao converter foto ${photoData.id}:`, error);
+                console.error(`❌ Error converting photo ${photoData.id}:`, error);
             }
 
             return {
@@ -2620,7 +2941,7 @@ async function prepareMobilePhotoFormData() {
                 category: photoData.category,
                 caption: photoData.manualCaption || photoData.predefinedCaption,
                 description: '',
-                data: imageBase64 // CORRIGIDO: Agora envia base64
+                data: imageBase64 // CORRECTED: Now sends base64
             };
         })
     );
@@ -2641,7 +2962,7 @@ async function prepareMobilePhotoFormData() {
         form.appendChild(hiddenInput);
     }
 
-    console.log(`📤 Preparados ${mobilePhotoData.length} fotos com dados binários para envio`);
+    console.log(`📤 Prepared ${mobilePhotoData.length} photos with binary data for submission`);
 }
 
 // Helper function to convert file to base64
@@ -2659,39 +2980,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('reportForm');
     if (form) {
         form.addEventListener('submit', async function(e) {
-            e.preventDefault(); // Sempre prevenir default
+            e.preventDefault(); // Always prevent default
 
-            // Se há um reportId global, finalizar o relatório
+            // If we already have a reportId, just finalize
             if (window.currentReportId) {
-                console.log('📝 Finalizando relatório existente:', window.currentReportId);
-                try {
-                    const response = await fetch(`/reports/${window.currentReportId}/finalize`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-                        }
-                    });
-                    
-                    const data = await response.json();
-                    if (data.success) {
-                        alert('Relatório finalizado com sucesso!');
-                        window.location.href = data.redirect;
-                    } else {
-                        alert('Erro ao finalizar relatório: ' + data.error);
-                    }
-                } catch (error) {
-                    console.error('❌ Erro ao finalizar:', error);
-                    alert('Erro ao finalizar relatório. Tente novamente.');
-                }
+                this.submit();
                 return;
             }
 
             // Validate captions
             if (!validateCaptions()) {
-                alert('⚠️ ATENÇÃO: Todas as fotos devem ter pelo menos uma legenda (manual ou pré-definida). Verifique as fotos marcadas em vermelho.');
+                alert('⚠️ ATTENTION: All photos must have at least one caption (manual or predefined). Please check the photos marked in red.');
 
-                // Scroll to first invalid photo
+                // Scroll to the first invalid photo
                 const firstInvalid = document.querySelector('.caption-status.pending');
                 if (firstInvalid) {
                     firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2699,24 +3000,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
 
-            // Preparar dados das fotos mobile se houver
+            // Prepare mobile photo data if any exist
             if (mobilePhotoData.length > 0) {
-                console.log('📸 Processando fotos...');
+                console.log('📸 Processing photos...');
                 try {
                     await prepareMobilePhotoFormData();
-                    console.log('✅ Fotos processadas com base64');
+                    console.log('✅ Photos processed with base64');
                 } catch (error) {
-                    console.error('❌ Erro ao processar fotos:', error);
-                    alert('Erro ao processar as fotos. Tente novamente.');
+                    console.error('❌ Error processing photos:', error);
+                    alert('Error processing photos. Please try again.');
                     return;
                 }
             }
 
-            // Submeter formulário
-            console.log('📤 Enviando formulário...');
+            // Submit form
+            console.log('📤 Submitting form...');
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             submitBtn.disabled = true;
 
             const formData = new FormData(form);
@@ -2728,16 +3029,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success) {
-                    alert('Relatório salvo com sucesso!');
+                    alert('Report saved successfully!');
                     window.location.href = data.redirect || '/reports';
                 } else {
-                    throw new Error(data.error || 'Erro ao salvar relatório');
+                    throw new Error(data.error || 'Error saving report');
                 }
             } catch (error) {
-                console.error('❌ Erro:', error);
-                alert('Erro ao salvar relatório. Tente novamente.');
+                console.error('❌ Error:', error);
+                alert('Error saving report. Please try again.');
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
             }
@@ -2745,7 +3046,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-console.log('📱 Sistema de fotos mobile-first carregado');
+console.log('📱 Mobile-first photo system loaded');
 </script>
 
 <!-- Auto Save Script -->
