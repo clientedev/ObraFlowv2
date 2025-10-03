@@ -2,21 +2,30 @@
 This project is a comprehensive construction site visit tracking system built with Flask, designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 ## Recent Changes
-- **Date**: October 3, 2025 - Correção DEFINITIVA de Duplicação ao Concluir Relatórios
+- **Date**: October 3, 2025 - Correção DEFINITIVA de Duplicação ao Concluir Relatórios (v2 - Solução Robusta)
 - **Problema**: Ao clicar em "Concluir" relatório preenchido:
-  - Sistema gerava duplicado: um em "Aguardando aprovação" e outro em "Em preenchimento"
-  - Múltiplos registros para o mesmo projeto
-- **Causa Raiz**: Condições de corrida no fluxo de criação/finalização de relatórios
-  - `createInitialReport()` no template podia criar relatório em "preenchimento"
-  - Form submission também podia criar outro relatório se `window.currentReportId` não estivesse setado
-  - Timing issues causavam criação de múltiplos relatórios para o mesmo projeto
-- **Solução**: Modificada função `finalize_report()` em routes.py (linhas 3041-3123)
-  - Ao finalizar, busca TODOS os relatórios em "preenchimento" do mesmo `projeto_id`
-  - Deleta automaticamente os relatórios duplicados (exceto o que está sendo finalizado)
-  - Deleta também as fotos associadas aos relatórios duplicados
-  - Garante que apenas 1 relatório existe após conclusão: o em "Aguardando Aprovação"
-  - Logging completo para rastreamento de duplicados removidos
-  - ✅ Problema DEFINITIVAMENTE resolvido - sem duplicação garantida
+  - Sistema criava NOVO relatório ao invés de atualizar o existente
+  - Um relatório ficava em "Aguardando aprovação" e outro em "Em preenchimento"
+  - Múltiplos registros duplicados para o mesmo projeto
+- **Causa Raiz Identificada**: Fluxo de submit do formulário
+  - JavaScript criava relatório inicial via `createInitialReport()` e setava `window.currentReportId`
+  - No submit, se `currentReportId` existia, chamava `/finalize` (correto)
+  - **MAS** se `currentReportId` se perdia ou não estava setado, formulário submetia para `create_report` SEM `edit_report_id`
+  - Isso CRIAVA NOVO relatório ao invés de ATUALIZAR o existente
+- **Solução Implementada** (October 3, 2025):
+  1. **Frontend** (`templates/reports/form_complete.html` linhas 1488-1516):
+     - Submit handler agora SEMPRE adiciona campo `edit_report_id` ao form quando `window.currentReportId` existe
+     - Adiciona flag `should_finalize=true` para indicar que relatório deve ser finalizado
+     - Garante que POST para `create_report` sempre ATUALIZA relatório existente
+  2. **Backend** (`routes.py` linhas 2552-2582):
+     - Função `create_report()` verifica flag `should_finalize` após salvar dados
+     - Se `should_finalize=true`, muda status de "preenchimento" para "Aguardando Aprovação"
+     - Deleta automaticamente TODOS os outros relatórios em "preenchimento" do mesmo projeto
+     - Deleta fotos associadas aos relatórios duplicados
+     - Logging completo para rastreamento
+  3. **Resultado**: O MESMO relatório é atualizado com dados finais E status mudado para "Aguardando Aprovação"
+  - ✅ **SEM criação de duplicados - problema DEFINITIVAMENTE resolvido**
+  - ✅ **Fluxo correto**: preenchimento → atualiza dados → muda status → Aguardando Aprovação
 
 - **Date**: October 3, 2025 - Correção de Duplicação ao Concluir Relatórios (Primeira Tentativa)
 - **Problema**: Ao clicar em "Concluir" relatório preenchido:
