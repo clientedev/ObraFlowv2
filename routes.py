@@ -1,6 +1,8 @@
 import os
 import uuid
 import io
+import hashlib
+import mimetypes
 from datetime import datetime, date, timedelta
 from urllib.parse import urlparse
 from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response, session, Response, abort, send_file
@@ -1189,6 +1191,12 @@ def api_upload_photo():
     Aceita:
     - multipart/form-data com campo 'imagem' (arquivo binário)
     - metadados: relatorio_id, legenda, descricao, categoria, filename_original
+    
+    Recursos:
+    - Calcula SHA-256 hash da imagem
+    - Detecta e armazena content_type (MIME type)
+    - Armazena tamanho da imagem
+    - Detecta duplicatas por hash
     """
     try:
         # Log para debug
@@ -1247,6 +1255,18 @@ def api_upload_photo():
                 'error': 'Arquivo de imagem está vazio'
             }), 400
         
+        # Calcular hash SHA-256 da imagem
+        imagem_hash = hashlib.sha256(file_bytes).hexdigest()
+        current_app.logger.info(f"🔐 Hash calculado: {imagem_hash}")
+        
+        # Detectar content_type (MIME type)
+        content_type = file.mimetype
+        if not content_type or content_type == 'application/octet-stream':
+            # Fallback: tentar detectar pelo nome do arquivo
+            guessed_type, _ = mimetypes.guess_type(file.filename)
+            content_type = guessed_type or 'image/jpeg'
+        current_app.logger.info(f"📄 Content-Type detectado: {content_type}")
+        
         # Obter metadados do form
         relatorio_id = request.form.get('relatorio_id')
         legenda = request.form.get('legenda', '').strip()
@@ -1288,12 +1308,31 @@ def api_upload_photo():
                 'error': 'Você não tem permissão para adicionar fotos a este relatório'
             }), 403
         
+        # Checar se já existe uma foto com o mesmo hash para este relatório (evitar duplicatas)
+        foto_existente = FotoRelatorio.query.filter_by(
+            relatorio_id=relatorio_id,
+            imagem_hash=imagem_hash
+        ).first()
+        
+        if foto_existente:
+            current_app.logger.warning(f"⚠️ Imagem duplicada detectada! Retornando foto existente ID={foto_existente.id}")
+            return jsonify({
+                'success': True,
+                'message': 'Imagem já existe (duplicada)',
+                'foto_id': foto_existente.id,
+                'filename': foto_existente.filename,
+                'file_size': foto_existente.imagem_size,
+                'hash': foto_existente.imagem_hash,
+                'is_duplicate': True,
+                'url': url_for('api_get_photo', foto_id=foto_existente.id)
+            }), 200
+        
         # Validar legenda (obrigatória conforme especificação)
         if not legenda:
             legenda = f'Foto {FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count() + 1}'
         
-        # Gerar nome único para o arquivo
-        unique_filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
+        # Gerar nome único para o arquivo baseado no hash
+        unique_filename = f"{imagem_hash}{file_ext}"
         
         # Criar registro da foto no banco
         foto = FotoRelatorio()
@@ -1305,10 +1344,13 @@ def api_upload_photo():
         foto.tipo_servico = categoria
         foto.ordem = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count() + 1
         
-        # CRÍTICO: Salvar dados binários no campo BYTEA
+        # Salvar dados binários e metadados
         foto.imagem = file_bytes
+        foto.imagem_hash = imagem_hash
+        foto.content_type = content_type
+        foto.imagem_size = file_size
         
-        current_app.logger.info(f"✅ Salvando foto: legenda='{legenda}', categoria='{categoria}', bytes={file_size}")
+        current_app.logger.info(f"✅ Salvando foto: legenda='{legenda}', categoria='{categoria}', hash={imagem_hash[:12]}..., size={file_size}, type={content_type}")
         
         # Salvar no banco de dados
         db.session.add(foto)
@@ -1318,7 +1360,7 @@ def api_upload_photo():
         foto_salva = FotoRelatorio.query.get(foto.id)
         imagem_size_db = len(foto_salva.imagem) if foto_salva.imagem else 0
         
-        current_app.logger.info(f"✅ Foto salva com sucesso! ID={foto.id}, bytes no DB={imagem_size_db}")
+        current_app.logger.info(f"✅ Foto salva com sucesso! ID={foto.id}, bytes no DB={imagem_size_db}, hash={foto_salva.imagem_hash[:12]}...")
         
         if imagem_size_db != file_size:
             current_app.logger.warning(f"⚠️ ATENÇÃO: Tamanho difere! Enviado={file_size}, Salvo={imagem_size_db}")
@@ -1330,8 +1372,11 @@ def api_upload_photo():
             'filename': unique_filename,
             'file_size': file_size,
             'db_size': imagem_size_db,
-            'url': url_for('get_imagem', id=foto.id)
-        }), 200
+            'hash': imagem_hash,
+            'content_type': content_type,
+            'is_duplicate': False,
+            'url': url_for('api_get_photo', foto_id=foto.id)
+        }), 201
         
     except Exception as e:
         db.session.rollback()
@@ -1348,7 +1393,7 @@ def api_upload_photo():
 def api_get_photo(foto_id):
     """
     API para recuperar imagem do banco de dados PostgreSQL
-    Serve a imagem diretamente do campo BYTEA
+    Serve a imagem diretamente do campo BYTEA com Content-Type correto
     """
     try:
         foto = FotoRelatorio.query.get_or_404(foto_id)
@@ -1361,18 +1406,31 @@ def api_get_photo(foto_id):
                 'error': 'Imagem não encontrada no banco de dados'
             }), 404
         
-        # Determinar mimetype baseado no filename
-        mimetype = 'image/jpeg'  # padrão
-        if foto.filename:
+        # Usar content_type do banco de dados (prioridade)
+        mimetype = foto.content_type or 'image/jpeg'
+        
+        # Fallback: se content_type não estiver no DB, detectar pelo filename
+        if not foto.content_type and foto.filename:
             if foto.filename.lower().endswith('.png'):
                 mimetype = 'image/png'
             elif foto.filename.lower().endswith('.gif'):
                 mimetype = 'image/gif'
             elif foto.filename.lower().endswith('.webp'):
                 mimetype = 'image/webp'
+            else:
+                mimetype = 'image/jpeg'
         
-        # Retornar a imagem
-        return Response(foto.imagem, mimetype=mimetype)
+        current_app.logger.info(f"📤 Servindo foto {foto_id}: size={len(foto.imagem)} bytes, type={mimetype}")
+        
+        # Retornar a imagem com cabeçalhos corretos
+        return Response(
+            foto.imagem,
+            mimetype=mimetype,
+            headers={
+                'Content-Disposition': f'inline; filename="{foto.filename}"',
+                'Cache-Control': 'public, max-age=31536000'  # Cache por 1 ano
+            }
+        )
         
     except Exception as e:
         current_app.logger.error(f"❌ Erro ao servir foto {foto_id}: {str(e)}")
