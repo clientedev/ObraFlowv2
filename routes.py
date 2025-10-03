@@ -1730,6 +1730,7 @@ def create_report():
 
             db.session.add(relatorio)
             db.session.flush()  # Get the ID
+            current_app.logger.info(f"✅ RELATÓRIO ID={relatorio.id} NÚMERO={relatorio.numero}")
 
             # Handle photo uploads if any - APENAS pasta uploads
             upload_folder = 'uploads'  # Sempre uploads
@@ -1761,7 +1762,9 @@ def create_report():
 
             # Process mobile photos with mandatory caption validation
             mobile_photos_data = request.form.get('mobile_photos_data')
+            current_app.logger.info(f"🔍 MOBILE_PHOTOS_DATA PRESENTE? {mobile_photos_data is not None}")
             if mobile_photos_data:
+                current_app.logger.info(f"📦 TAMANHO DO JSON: {len(mobile_photos_data)} caracteres")
                 try:
                     import json
                     mobile_photos = json.loads(mobile_photos_data)
@@ -1774,6 +1777,7 @@ def create_report():
                         caption = photo_data.get('caption', '').strip()
                         if not caption:
                             db.session.rollback()
+                            current_app.logger.error(f"❌ FOTO SEM LEGENDA: {photo_data.get('filename')}")
                             flash('❌ ERRO: Todas as fotos devem ter uma legenda. Verifique se todas as fotos têm pelo menos uma legenda (manual ou pré-definida).', 'error')
                             return render_template('reports/form_complete.html', 
                                                  form=form, 

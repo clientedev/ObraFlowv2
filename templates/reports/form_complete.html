@@ -1455,114 +1455,7 @@ async function createInitialReport() {
     }
 }
 
-// Submissão do formulário
-document.getElementById('reportForm').addEventListener('submit', function(e) {
-    e.preventDefault(); // Prevent default form submission
-
-    // Se há um reportId global, finalizar o relatório
-    if (window.currentReportId) {
-        fetch(`/reports/${window.currentReportId}/finalize`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Relatório finalizado com sucesso!');
-                window.location.href = data.redirect;
-            } else {
-                throw new Error(data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Erro ao finalizar:', error);
-            alert('Erro ao finalizar relatório: ' + error.message);
-        });
-
-        return;
-    }
-
-    // Create FormData object for proper file handling
-    const formData = new FormData(this);
-
-    // Coletar dados do checklist
-    const checklistData = [];
-    document.querySelectorAll('.checklist-item').forEach(item => {
-        const checkbox = item.querySelector('.form-check-input[type="checkbox"]');
-        const label = item.querySelector('.form-check-label');
-        const customInput = item.querySelector('input[type="text"]');
-        const textarea = item.querySelector('textarea');
-
-        if (checkbox) {
-            const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
-            if (itemText) {
-                checklistData.push({
-                    item: itemText,
-                    completed: checkbox.checked,
-                    observations: textarea ? textarea.value : ''
-                });
-            }
-        }
-    });
-
-    // Add checklist data
-    formData.append('checklist_data', JSON.stringify(checklistData));
-
-    // Add photo files and metadata
-    selectedPhotos.forEach((photo, index) => {
-        // Add the actual file
-        formData.append(`photo_${index}`, photo.file);
-
-        // Add photo metadata
-        formData.append(`photo_category_${index}`, photo.category);
-
-        const caption = document.querySelector(`select[name="photo_caption_${photo.id}"]`);
-        if (caption && caption.value) {
-            formData.append(`photo_caption_${index}`, caption.value);
-        }
-
-        // Add edited photo data if exists
-        if (photo.editedSrc) {
-            formData.append(`edited_photo_${index}`, photo.editedSrc);
-        }
-    });
-
-    // Show loading state
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-    submitBtn.disabled = true;
-
-    // Submit via fetch
-    fetch(this.action, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        } else {
-            return response.json().then(err => Promise.reject(err));
-        }
-    })
-    .then(data => {
-        if (data.success) {
-            alert('Relatório salvo com sucesso!');
-            window.location.href = data.redirect || '/reports';
-        } else {
-            throw new Error(data.error || 'Erro ao salvar relatório');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Erro ao salvar relatório. Tente novamente.');
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    });
-});
+// REMOVIDO - Listener duplicado causava conflito. Mantido apenas o listener principal nas linhas 2768-2806
 
 // Função para capturar localização
 function capturarLocalizacao() {
@@ -2766,9 +2659,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('reportForm');
     if (form) {
         form.addEventListener('submit', async function(e) {
+            e.preventDefault(); // Sempre prevenir default
+
+            // Se há um reportId global, finalizar o relatório
+            if (window.currentReportId) {
+                console.log('📝 Finalizando relatório existente:', window.currentReportId);
+                try {
+                    const response = await fetch(`/reports/${window.currentReportId}/finalize`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('Relatório finalizado com sucesso!');
+                        window.location.href = data.redirect;
+                    } else {
+                        alert('Erro ao finalizar relatório: ' + data.error);
+                    }
+                } catch (error) {
+                    console.error('❌ Erro ao finalizar:', error);
+                    alert('Erro ao finalizar relatório. Tente novamente.');
+                }
+                return;
+            }
+
             // Validate captions
             if (!validateCaptions()) {
-                e.preventDefault();
                 alert('⚠️ ATENÇÃO: Todas as fotos devem ter pelo menos uma legenda (manual ou pré-definida). Verifique as fotos marcadas em vermelho.');
 
                 // Scroll to first invalid photo
@@ -2776,31 +2696,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (firstInvalid) {
                     firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-
                 return false;
             }
 
-            // If there are photos, prepare mobile photo data
+            // Preparar dados das fotos mobile se houver
             if (mobilePhotoData.length > 0) {
-                e.preventDefault(); // Prevent default submission while processing photos
-
                 console.log('📸 Processando fotos...');
                 try {
                     await prepareMobilePhotoFormData();
-                    console.log('✅ Formulário validado - enviando...');
-
-                    // Remove this listener to prevent infinite loop
-                    form.removeEventListener('submit', arguments.callee);
-
-                    // Dispatch a new submit event to trigger the fetch-based submission
-                    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                    form.dispatchEvent(submitEvent);
+                    console.log('✅ Fotos processadas com base64');
                 } catch (error) {
                     console.error('❌ Erro ao processar fotos:', error);
                     alert('Erro ao processar as fotos. Tente novamente.');
+                    return;
                 }
-            } else {
-                console.log('✅ Formulário validado sem fotos - enviando...');
+            }
+
+            // Submeter formulário
+            console.log('📤 Enviando formulário...');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            submitBtn.disabled = true;
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Relatório salvo com sucesso!');
+                    window.location.href = data.redirect || '/reports';
+                } else {
+                    throw new Error(data.error || 'Erro ao salvar relatório');
+                }
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                alert('Erro ao salvar relatório. Tente novamente.');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         });
     }
