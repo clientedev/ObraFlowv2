@@ -2,7 +2,14 @@
 This project is a comprehensive construction site visit tracking system built with Flask, designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 ## Recent Changes
-- **Date**: October 3, 2025
+- **Date**: October 3, 2025 - Replit Environment Setup
+- **Railway PostgreSQL Database**: Successfully configured and connected
+  - Database URL: Railway PostgreSQL (external connection via switchback.proxy.rlwy.net:17107)
+  - All tables created and verified with BYTEA support for image storage
+  - Migration system synchronized (all migrations marked as applied)
+  - Verified schema: 17 columns in fotos_relatorio including imagem (BYTEA), imagem_hash, content_type, imagem_size
+  - System ready for production use with Railway database
+  
 - **Photo Upload System Overhaul**: Complete rewrite of image upload/storage/retrieval system
   - Added SHA-256 hash calculation for all uploaded images (64-character hex string)
   - Added content_type (MIME type) detection and storage for proper image serving
@@ -13,6 +20,7 @@ This project is a comprehensive construction site visit tracking system built wi
   - Added migration `20251003_0100` to add metadata fields to `fotos_relatorio` and `fotos_relatorios_express` tables
   - Filename now uses hash-based naming for consistency (`{hash}.{ext}`)
   - Cross-device compatibility ensured (Android, iOS, Desktop, APK)
+  - ✅ CONFIRMED: All fields present in Railway PostgreSQL database
   
 - **Date**: October 2, 2025
 - **Migration**: Updated `FotoRelatorio` model to use PostgreSQL JSONB for annotation data fields
@@ -37,7 +45,11 @@ Mobile-first design: Date field should be the first input field in report forms.
 
 ## Backend Architecture
 - **Framework**: Flask with SQLAlchemy ORM.
-- **Database**: PostgreSQL for production, SQLite for development.
+- **Database**: Railway PostgreSQL (production), configured via DATABASE_URL environment variable.
+  - External connection: switchback.proxy.rlwy.net:17107
+  - Internal connection: postgres.railway.internal:5432
+  - Database name: railway
+  - Auto-reconnection enabled with pool_pre_ping and pool_recycle
 - **Authentication**: Flask-Login for session management and role-based access (regular/master users).
 - **Forms**: WTForms for secure form handling and CSRF protection.
 - **File Handling**: Manages file uploads (photos, documents) with a 16MB size limit, supporting binary image storage directly in the database with filesystem fallback.
