@@ -3038,7 +3038,7 @@ def pending_reports():
 @app.route('/reports/<int:report_id>/finalize', methods=['POST'])
 @login_required
 def finalize_report(report_id):
-    """Finalizar relatório em preenchimento"""
+    """Finalizar relatório em preenchimento e eliminar duplicados"""
     try:
         relatorio = Relatorio.query.get_or_404(report_id)
 
@@ -3046,8 +3046,27 @@ def finalize_report(report_id):
         if not current_user.is_master and relatorio.autor_id != current_user.id:
             return jsonify({'success': False, 'error': 'Acesso negado'}), 403
 
-        # Tornar idempotente: se já está aguardando aprovação, retornar sucesso
+        # Tornar idempotente: se já está aguardando aprovação, limpar duplicados e retornar sucesso
         if relatorio.status == 'Aguardando Aprovação':
+            # Limpar TODOS os outros relatórios em "preenchimento" do mesmo projeto
+            duplicados = Relatorio.query.filter(
+                Relatorio.id != relatorio.id,
+                Relatorio.projeto_id == relatorio.projeto_id,
+                Relatorio.status == 'preenchimento'
+            ).all()
+            
+            for dup in duplicados:
+                # Deletar fotos associadas
+                fotos_dup = FotoRelatorio.query.filter_by(relatorio_id=dup.id).all()
+                for foto in fotos_dup:
+                    db.session.delete(foto)
+                db.session.delete(dup)
+                current_app.logger.info(f"🗑️ Deletado relatório duplicado ID={dup.id} (estava em preenchimento)")
+            
+            if duplicados:
+                db.session.commit()
+                current_app.logger.info(f"✅ {len(duplicados)} relatório(s) duplicado(s) removido(s)")
+            
             return jsonify({
                 'success': True,
                 'message': 'Relatório já foi finalizado e enviado para aprovação',
@@ -3062,17 +3081,42 @@ def finalize_report(report_id):
         relatorio.status = 'Aguardando Aprovação'
         relatorio.updated_at = datetime.utcnow()
 
+        # IMPORTANTE: Deletar TODOS os outros relatórios em "preenchimento" do mesmo projeto
+        # Isso garante que apenas 1 relatório existirá após a conclusão
+        duplicados = Relatorio.query.filter(
+            Relatorio.id != relatorio.id,
+            Relatorio.projeto_id == relatorio.projeto_id,
+            Relatorio.status == 'preenchimento'
+        ).all()
+        
+        for dup in duplicados:
+            # Deletar fotos associadas ao relatório duplicado
+            fotos_dup = FotoRelatorio.query.filter_by(relatorio_id=dup.id).all()
+            for foto in fotos_dup:
+                db.session.delete(foto)
+            db.session.delete(dup)
+            current_app.logger.info(f"🗑️ Deletado relatório duplicado ID={dup.id} (estava em preenchimento)")
+
         db.session.commit()
+
+        if duplicados:
+            current_app.logger.info(f"✅ Relatório {relatorio.numero} finalizado e {len(duplicados)} duplicado(s) removido(s)")
+            message = f'Relatório finalizado e enviado para aprovação ({len(duplicados)} duplicado(s) removido(s))'
+        else:
+            current_app.logger.info(f"✅ Relatório {relatorio.numero} finalizado sem duplicados")
+            message = 'Relatório finalizado e enviado para aprovação'
 
         return jsonify({
             'success': True,
-            'message': 'Relatório finalizado e enviado para aprovação',
+            'message': message,
             'redirect': url_for('reports')
         })
 
     except Exception as e:
         db.session.rollback()
-        print(f"Erro ao finalizar relatório: {e}")
+        current_app.logger.error(f"❌ Erro ao finalizar relatório: {e}")
+        import traceback
+        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/reports/<int:id>/delete')

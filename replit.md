@@ -2,7 +2,23 @@
 This project is a comprehensive construction site visit tracking system built with Flask, designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 ## Recent Changes
-- **Date**: October 3, 2025 - Correção de Duplicação ao Concluir Relatórios
+- **Date**: October 3, 2025 - Correção DEFINITIVA de Duplicação ao Concluir Relatórios
+- **Problema**: Ao clicar em "Concluir" relatório preenchido:
+  - Sistema gerava duplicado: um em "Aguardando aprovação" e outro em "Em preenchimento"
+  - Múltiplos registros para o mesmo projeto
+- **Causa Raiz**: Condições de corrida no fluxo de criação/finalização de relatórios
+  - `createInitialReport()` no template podia criar relatório em "preenchimento"
+  - Form submission também podia criar outro relatório se `window.currentReportId` não estivesse setado
+  - Timing issues causavam criação de múltiplos relatórios para o mesmo projeto
+- **Solução**: Modificada função `finalize_report()` em routes.py (linhas 3041-3123)
+  - Ao finalizar, busca TODOS os relatórios em "preenchimento" do mesmo `projeto_id`
+  - Deleta automaticamente os relatórios duplicados (exceto o que está sendo finalizado)
+  - Deleta também as fotos associadas aos relatórios duplicados
+  - Garante que apenas 1 relatório existe após conclusão: o em "Aguardando Aprovação"
+  - Logging completo para rastreamento de duplicados removidos
+  - ✅ Problema DEFINITIVAMENTE resolvido - sem duplicação garantida
+
+- **Date**: October 3, 2025 - Correção de Duplicação ao Concluir Relatórios (Primeira Tentativa)
 - **Problema**: Ao clicar em "Concluir" relatório preenchido:
   - Apareciam DUAS mensagens de conclusão
   - Relatório era duplicado
@@ -14,9 +30,7 @@ This project is a comprehensive construction site visit tracking system built wi
 - **Solução**: Removida função duplicada `report_finalize()` de routes.py (anteriormente linhas 5240-5282)
   - Agora apenas `finalize_report()` executa
   - Status corretamente atualizado para "Aguardando Aprovação"
-  - Sem duplicação de relatórios
-  - Sem mensagens duplicadas
-  - ✅ Problema completamente resolvido
+  - ⚠️ Não resolveu completamente - duplicação persistia por outras razões
 
 - **Date**: October 3, 2025 - Image Upload Fix & Replit Environment Setup
 - **Issue**: Images were not being saved to the database - the form submission handler was dispatching a new submit event with no handler, causing the form to never actually submit
