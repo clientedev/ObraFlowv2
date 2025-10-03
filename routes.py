@@ -1533,7 +1533,7 @@ def api_upload_photo():
         # Gerar nome único para o arquivo baseado no hash
         unique_filename = f"{imagem_hash}{file_ext}"
         
-        # Criar registro da foto no banco
+        # CRÍTICO: Criar registro da foto com dados binários ANTES de adicionar ao session
         foto = FotoRelatorio()
         foto.relatorio_id = relatorio_id
         foto.filename = unique_filename
@@ -1543,23 +1543,37 @@ def api_upload_photo():
         foto.tipo_servico = categoria
         foto.ordem = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count() + 1
         
-        # Salvar dados binários e metadados
+        # GARANTIR que os dados binários sejam atribuídos ANTES do commit
         foto.imagem = file_bytes
         foto.imagem_hash = imagem_hash
         foto.content_type = content_type
         foto.imagem_size = file_size
         
-        current_app.logger.info(f"✅ Salvando foto: legenda='{legenda}', categoria='{categoria}', hash={imagem_hash[:12]}..., size={file_size}, type={content_type}")
+        current_app.logger.info(f"💾 PREPARANDO SAVE: legenda='{legenda}', hash={imagem_hash[:12]}, size_before_commit={len(foto.imagem) if foto.imagem else 0}")
         
-        # Salvar no banco de dados
+        # Adicionar ao session e fazer flush para obter o ID
         db.session.add(foto)
+        db.session.flush()
+        
+        current_app.logger.info(f"🔄 APÓS FLUSH: ID={foto.id}, imagem_present={foto.imagem is not None}, size={len(foto.imagem) if foto.imagem else 0}")
+        
+        # Commit final
         db.session.commit()
         
-        # Verificar se foi salvo corretamente
-        foto_salva = FotoRelatorio.query.get(foto.id)
-        imagem_size_db = len(foto_salva.imagem) if foto_salva.imagem else 0
+        # Verificação PÓS-COMMIT
+        db.session.expire_all()  # Forçar reload do banco
+        foto_verificada = FotoRelatorio.query.get(foto.id)
+        imagem_size_db = len(foto_verificada.imagem) if foto_verificada and foto_verificada.imagem else 0
         
-        current_app.logger.info(f"✅ Foto salva com sucesso! ID={foto.id}, bytes no DB={imagem_size_db}, hash={foto_salva.imagem_hash[:12]}...")
+        current_app.logger.info(f"✅ VERIFICAÇÃO PÓS-COMMIT: ID={foto.id}, bytes_db={imagem_size_db}, bytes_original={file_size}")
+        
+        if imagem_size_db == 0:
+            current_app.logger.error(f"❌ FALHA CRÍTICA: Imagem não foi salva! Rolling back...")
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'error': 'Erro ao salvar imagem no banco de dados'
+            }), 500
         
         if imagem_size_db != file_size:
             current_app.logger.warning(f"⚠️ ATENÇÃO: Tamanho difere! Enviado={file_size}, Salvo={imagem_size_db}")
