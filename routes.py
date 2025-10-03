@@ -2491,6 +2491,14 @@ def finalize_report(report_id):
         if not current_user.is_master and relatorio.autor_id != current_user.id:
             return jsonify({'success': False, 'error': 'Acesso negado'}), 403
 
+        # Tornar idempotente: se já está aguardando aprovação, retornar sucesso
+        if relatorio.status == 'Aguardando Aprovação':
+            return jsonify({
+                'success': True,
+                'message': 'Relatório já foi finalizado e enviado para aprovação',
+                'redirect': url_for('reports')
+            })
+
         # Verificar se o relatório está em preenchimento
         if relatorio.status != 'preenchimento':
             return jsonify({'success': False, 'error': 'Relatório não está em preenchimento'}), 400
