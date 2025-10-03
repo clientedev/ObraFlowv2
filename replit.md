@@ -2,6 +2,15 @@
 This project is a comprehensive construction site visit tracking system built with Flask, designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 ## Recent Changes
+- **Date**: October 3, 2025 - Photo Upload Fix (Minimal Correction)
+- **Issue**: Mobile photo upload system was converting images to base64/JSON instead of sending actual files
+- **Solution**: Modified `prepareMobilePhotoFormData()` function in `templates/reports/form_complete.html`
+  - Changed from base64 conversion to direct file transfer via DataTransfer API
+  - Creates hidden file inputs with actual File objects for multipart/form-data submission
+  - Preserves all existing functionality: photo cards, editing, captions, categories
+  - Backend receives files correctly as `photo_0`, `photo_1`, etc. with metadata
+  - ✅ Template fully restored with only minimal correction applied
+  
 - **Date**: October 3, 2025 - Replit Environment Setup
 - **Railway PostgreSQL Database**: Successfully configured and connected
   - Database URL: Railway PostgreSQL (external connection via switchback.proxy.rlwy.net:17107)

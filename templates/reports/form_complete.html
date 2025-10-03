@@ -59,7 +59,7 @@
             pointer-events: auto !important;
             transition: all 0.15s ease;
         }
-
+        
         /* Feedback visual do touch - igual Express */
         .photo-category.touching {
             transform: scale(0.95);
@@ -69,7 +69,7 @@
 
         /* Todos os inputs e controles - interação normal */
         input[type="text"],
-        input[type="date"],
+        input[type="date"], 
         input[type="file"],
         textarea,
         select,
@@ -95,7 +95,7 @@
             border-width: 1px !important;
             background: #f8f9fa;
         }
-
+        
         #data_relatorio {
             font-size: 16px;
             font-weight: 400;
@@ -103,32 +103,32 @@
             border-radius: 0.375rem;
             box-shadow: none;
         }
-
+        
         #data_relatorio:focus {
             border-color: #86b7fe;
             box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
     }
-
+    
     @media (max-width: 768px) {
         #data_relatorio {
             font-size: 16px !important;
             min-height: 44px !important;
             padding: 12px !important;
         }
-
+        
         .form-label {
             font-size: 14px !important;
             margin-bottom: 0.5rem !important;
         }
-
+        
         .alert.border-primary {
             margin-bottom: 1rem !important;
             padding: 1rem !important;
             border-radius: 0.375rem !important;
         }
     }
-
+    
     @media (max-width: 576px) {
         #data_relatorio {
             font-size: 16px !important;
@@ -296,15 +296,15 @@
         .mobile-photo-card {
             margin-bottom: 20px;
         }
-
+        
         .photo-card-image {
             height: 160px;
         }
-
+        
         .photo-card-content {
             padding: 12px;
         }
-
+        
         .caption-input, .caption-select {
             font-size: 16px !important; /* Prevent zoom on iOS */
         }
@@ -324,6 +324,7 @@
                             <span class="badge bg-warning">
                                 <i class="fas fa-edit me-1"></i>Em preenchimento
                             </span>
+                            <div id="autosave-status"></div>
                         </div>
                     </div>
                 </div>
@@ -336,7 +337,7 @@
                         {% if selected_project %}
                         <input type="hidden" name="projeto_id" value="{{ selected_project.id }}">
                         {% endif %}
-
+                        
                         <!-- Data do Relatório -->
                         <div class="mb-3">
                             <label class="form-label" for="data_relatorio">
@@ -381,13 +382,13 @@
                                 <div class="form-group">
                                     <label class="form-label" for="titulo">Título do Relatório *</label>
                                     {% if disable_fields %}
-                                        <input type="text" name="titulo" id="titulo" class="form-control"
+                                        <input type="text" name="titulo" id="titulo" class="form-control" 
                                                value="Relatório - {{ selected_project.nome }}" readonly>
                                         <small class="form-text text-muted">
                                             <i class="fas fa-lock me-1"></i>Título gerado automaticamente a partir do projeto selecionado
                                         </small>
                                     {% else %}
-                                        <input type="text" name="titulo" id="titulo" class="form-control"
+                                        <input type="text" name="titulo" id="titulo" class="form-control" 
                                                value="{% if selected_project %}Relatório - {{ selected_project.nome }}{% else %}Relatório de visita{% endif %}" required>
                                     {% endif %}
                                 </div>
@@ -404,10 +405,10 @@
                                             <i class="fas fa-lock me-1"></i>Projeto pré-selecionado - não editável
                                         </small>
                                     {% else %}
-                                        <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(this.value)">
+                                        <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails()">
                                             <option value="">Selecione um projeto</option>
                                             {% for projeto in projetos %}
-                                            <option value="{{ projeto.id }}"
+                                            <option value="{{ projeto.id }}" 
                                                     {% if selected_project and selected_project.id == projeto.id %}selected{% endif %}>
                                                 {{ projeto.numero }} - {{ projeto.nome }}
                                             </option>
@@ -418,38 +419,32 @@
                             </div>
                         </div>
 
-                        <!-- Seleção de Funcionários e E-mails (SEMPRE RENDERIZADO) -->
-                        <div class="row mb-4" id="funcionarios-emails-section">
+                        <!-- Seleção de Funcionários e E-mails -->
+                        <div class="row mb-4">
                             <div class="col-md-6">
-                                <div class="card border-primary">
-                                    <div class="card-header bg-primary text-white">
+                                <div class="card">
+                                    <div class="card-header">
                                         <h6 class="mb-0">
                                             <i class="fas fa-users me-2"></i>Funcionários do Projeto
                                         </h6>
                                     </div>
-                                    <div class="card-body" style="min-height: 150px;">
+                                    <div class="card-body">
                                         <div id="funcionarios-projeto">
-                                            <div class="alert alert-info mb-0">
-                                                <i class="fas fa-spinner fa-spin me-2"></i>
-                                                Carregando funcionários...
-                                            </div>
+                                            <p class="text-muted">Selecione um projeto para ver os funcionários disponíveis</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="card border-success">
-                                    <div class="card-header bg-success text-white">
+                                <div class="card">
+                                    <div class="card-header">
                                         <h6 class="mb-0">
                                             <i class="fas fa-envelope me-2"></i>E-mails para Envio
                                         </h6>
                                     </div>
-                                    <div class="card-body" style="min-height: 150px;">
+                                    <div class="card-body">
                                         <div id="emails-projeto">
-                                            <div class="alert alert-info mb-0">
-                                                <i class="fas fa-spinner fa-spin me-2"></i>
-                                                Carregando e-mails...
-                                            </div>
+                                            <p class="text-muted">Selecione um projeto para ver os e-mails disponíveis</p>
                                         </div>
                                     </div>
                                 </div>
@@ -536,7 +531,7 @@
                         <!-- Observações Gerais -->
                         <div class="mb-4">
                             <label class="form-label" for="conteudo">Observações Gerais</label>
-                            <textarea class="form-control" name="conteudo" id="conteudo" rows="4"
+                            <textarea class="form-control" name="conteudo" id="conteudo" rows="4" 
                                     placeholder="Descreva detalhes gerais da visita, pontos importantes, etc."></textarea>
                         </div>
 
@@ -561,36 +556,34 @@
                         <div class="mb-4">
                             <h5><i class="fas fa-camera"></i> Fotos (Até 200 fotos) <span id="photoCount" class="badge bg-primary ms-2">0</span></h5>
 
-                            <!-- Botões Fixos de Câmera e Galeria (Mobile-First) - CORRIGIDO -->
-        <div class="fixed-photo-buttons sticky-top bg-white p-3 mb-3 border rounded" style="z-index: 10;">
-            <div class="row g-2">
-                <div class="col-6">
-                    <button type="button" class="btn btn-outline-primary w-100 mobile-photo-btn"
-                            id="mobileCameraBtn" onclick="openPhotoPicker('mobile-camera')" style="min-height: 56px;">
-                        <div class="d-flex flex-column align-items-center">
-                            <i class="fas fa-camera fa-lg mb-1"></i>
-                            <small>Câmera</small>
-                        </div>
-                    </button>
-                </div>
-                <div class="col-6">
-                    <button type="button" class="btn btn-outline-success w-100 mobile-photo-btn"
-                            id="mobileGalleryBtn" onclick="openPhotoPicker('mobile-gallery')" style="min-height: 56px;">
-                        <div class="d-flex flex-column align-items-center">
-                            <i class="fas fa-images fa-lg mb-1"></i>
-                            <small>Galeria</small>
-                        </div>
-                    </button>
-                </div>
-            </div>
-            <!-- Hidden file inputs for unified upload system -->
-            <input type="file" id="photoInput" name="imagens[]" multiple accept="image/*" style="display: none;">
-            <input type="file" id="mobilePhotoInput" name="imagens[]" class="form-control" multiple accept="image/*" style="display: none;">
-            <input type="file" id="mobileCameraInput" name="imagens[]" class="form-control" accept="image/*" capture="environment" style="display: none;">
-            <div class="text-center mt-2">
-                <small class="text-muted"><strong>Máximo 200 fotos - Limite total: 3GB</strong></small>
-            </div>
-        </div>
+                            <!-- Botões Fixos de Câmera e Galeria (Mobile-First) -->
+                            <div class="fixed-photo-buttons sticky-top bg-white p-3 mb-3 border rounded" style="z-index: 10;">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button type="button" class="btn btn-outline-primary w-100 mobile-photo-btn" 
+                                                id="mobileCameraBtn" onclick="mobileCaptureFromCamera()" style="min-height: 56px;">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-camera fa-lg mb-1"></i>
+                                                <small>Câmera</small>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button type="button" class="btn btn-outline-success w-100 mobile-photo-btn" 
+                                                id="mobileGalleryBtn" onclick="mobileSelectFromGallery()" style="min-height: 56px;">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-images fa-lg mb-1"></i>
+                                                <small>Galeria</small>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <input type="file" id="mobilePhotoInput" class="form-control" multiple accept="image/*" style="display: none;">
+                                <input type="file" id="mobileCameraInput" class="form-control" accept="image/*" capture="environment" style="display: none;">
+                                <div class="text-center mt-2">
+                                    <small class="text-muted"><strong>Máximo 200 fotos - Limite total: 3GB</strong></small>
+                                </div>
+                            </div>
 
                             <!-- Seleção de Categoria (Simplificada) -->
                             <div class="mb-3">
@@ -605,7 +598,7 @@
 
                             <!-- Preview das Fotos com Cards Mobile-First -->
                             <div id="mobilePhotoCards" class="row g-3"></div>
-
+                            
                             <!-- Quick Action Bar para adicionar mais fotos -->
                             <div id="quickPhotoActions" class="text-center mt-3 p-3 bg-light rounded" style="display: none;">
                                 <div class="d-flex justify-content-center gap-2 flex-wrap">
@@ -618,13 +611,9 @@
                                 </div>
                                 <small class="text-muted d-block mt-2">Total: <span id="quickPhotoCount">0</span> fotos (máximo 200)</small>
                             </div>
-
-                            <!-- Novo sistema unificado de preview de fotos -->
-                            <div id="photosPreview" class="row g-3 mt-3"></div>
                             
-                            <!-- Fotos antigas (desabilitado - sistema legacy) -->
+                            <!-- Fotos antigas (mantido para compatibilidade) -->
                             <div id="photoPreview" class="row" style="display: none;"></div>
-                            <div id="mobilePhotoCards" class="row g-3" style="display: none;"></div>
                         </div>
 
                         <div class="d-flex justify-content-between">
@@ -702,369 +691,48 @@
 </div>
 
 <script>
-// Global variables
+// Variáveis globais
 let selectedCategory = '';
-let selectedPhotos = []; // For old photo upload system
+let selectedPhotos = [];
 let currentEditingPhoto = null;
 let canvas, ctx;
 let isDrawing = false;
 let currentTool = 'pen';
 let startX, startY;
-let reportId = null; // Variable to store the report ID
 
-// Initialize Fabric.js editor modal
-function initFabricPhotoEditorModal() {
-    const modalElement = document.getElementById('fabricPhotoEditorModal');
-    if (!modalElement) {
-        console.error('❌ Fabric Photo Editor Modal element not found.');
-        return;
-    }
-
-    const modal = new bootstrap.Modal(modalElement);
-    const canvasElement = document.getElementById('fabricModalCanvas');
-    const colorPicker = document.getElementById('modal-color-picker');
-    const strokeWidthInput = document.getElementById('modal-stroke-width');
-    const customLegendInput = document.getElementById('modal-custom-legend');
-    const saveButton = document.getElementById('modal-save-btn');
-    const cancelButton = document.getElementById('modal-cancel-btn');
-    const clearButton = modalElement.querySelector('button[onclick*="window.fabricPhotoEditorModal?.clear()"]');
-    const undoButton = modalElement.querySelector('button[onclick*="window.fabricPhotoEditorModal?.undo()"]');
-
-    let fabricCanvas = null;
-    let currentImageSrc = '';
-    let currentPhotoId = null;
-    let onSaveCallback = null;
-    let history = []; // For undo functionality
-    let historyIndex = -1;
-
-    const updateHistory = () => {
-        const data = JSON.stringify(fabricCanvas.toJSON());
-        history = history.slice(0, historyIndex + 1); // Remove future history if undoing
-        history.push(data);
-        historyIndex++;
-        undoButton.disabled = false;
-        console.log('History updated:', historyIndex);
-    };
-
-    const undo = () => {
-        if (historyIndex > 0) {
-            historyIndex--;
-            fabricCanvas.loadFromJSON(history[historyIndex], fabricCanvas.renderAll.bind(fabricCanvas), (o, object) => {
-                console.log('Undo loaded:', object);
-            });
-            undoButton.disabled = historyIndex === 0;
-            console.log('Undo performed:', historyIndex);
-        }
-    };
-
-    const clearCanvas = () => {
-        if (confirm('Tem certeza que deseja limpar todas as anotações desta foto?')) {
-            fabricCanvas.clear();
-            // Reload original image
-            fabric.Image.fromURL(currentImageSrc, (img) => {
-                fabricCanvas.setBackgroundImage(img, fabricCanvas.renderAll.bind(fabricCanvas), {
-                    scaleX: fabricCanvas.width / img.width,
-                    scaleY: fabricCanvas.height / img.height
-                });
-                history = []; // Clear history after clear
-                historyIndex = -1;
-                undoButton.disabled = true;
-                console.log('Canvas cleared and reloaded.');
-            });
-        }
-    };
-
-    const selectTool = (toolName) => {
-        // Remove active class from all tools
-        modalElement.querySelectorAll('.fabric-tool-btn').forEach(btn => btn.classList.remove('active'));
-        // Add active class to the selected tool
-        modalElement.querySelector(`.fabric-tool-btn[data-modal-tool="${toolName}"]`)?.classList.add('active');
-        console.log('Tool selected:', toolName);
-    };
-
-    const updateModalState = () => {
-        // Enable/disable buttons based on state
-        saveButton.disabled = !fabricCanvas || fabricCanvas.backgroundImage === null;
-        clearButton.disabled = !fabricCanvas || fabricCanvas.backgroundImage === null;
-        undoButton.disabled = historyIndex <= 0;
-    };
-
-    const openEditor = (imageSrc, photoId, callback) => {
-        console.log('Opening editor for:', photoId, 'from URL:', imageSrc.substring(0, 50) + '...');
-        currentImageSrc = imageSrc;
-        currentPhotoId = photoId;
-        onSaveCallback = callback;
-        history = []; // Reset history for new image
-        historyIndex = -1;
-
-        modal.show();
-
-        // Adjust canvas size to modal
-        const container = modalElement.querySelector('.canvas-wrapper');
-        const modalBody = modalElement.querySelector('.modal-body');
-        const toolbarHeight = modalElement.querySelector('.fabric-toolbar').offsetHeight;
-
-        const maxHeight = modalBody.offsetHeight - toolbarHeight - 40; // Subtract padding/margins
-        const maxWidth = container.offsetWidth - 40; // Subtract padding
-
-        fabricCanvas = new fabric.Canvas(canvasElement, {
-            width: maxWidth,
-            height: maxHeight,
-            backgroundColor: '#ffffff'
-        });
-
-        fabric.Image.fromURL(imageSrc, (img) => {
-            // Scale image to fit container while maintaining aspect ratio
-            const imgRatio = img.width / img.height;
-            const containerRatio = maxWidth / maxHeight;
-
-            let scaleFactor;
-            if (imgRatio > containerRatio) {
-                scaleFactor = maxWidth / img.width;
-            } else {
-                scaleFactor = maxHeight / img.height;
-            }
-
-            img.scale(scaleFactor);
-            img.set({ left: (maxWidth - img.getScaledWidth()) / 2, top: (maxHeight - img.getScaledHeight()) / 2 });
-
-            fabricCanvas.setBackgroundImage(img, fabricCanvas.renderAll.bind(fabricCanvas), {
-                scaleX: fabricCanvas.width / img.width,
-                scaleY: fabricCanvas.height / img.height
-            });
-
-            fabricCanvas.renderAll();
-            updateModalState();
-            selectTool('select'); // Set default tool
-            updateHistory(); // Initial state for undo
-        }, { crossOrigin: 'anonymous' }); // Important for data URLs
-
-        // Set initial values for controls
-        colorPicker.value = '#FF0000';
-        strokeWidthInput.value = '3';
-        customLegendInput.value = '';
-
-        // Attach event listeners to controls
-        colorPicker.oninput = () => fabricCanvas.freeDrawingBrush.color = colorPicker.value;
-        strokeWidthInput.oninput = () => fabricCanvas.freeDrawingBrush.width = parseInt(strokeWidthInput.value, 10);
-
-        // Tool selection logic
-        modalElement.querySelectorAll('.fabric-tool-btn').forEach(btn => {
-            btn.onclick = () => {
-                const tool = btn.dataset.modalTool;
-                selectTool(tool);
-                switch (tool) {
-                    case 'select':
-                        fabricCanvas.isDrawingMode = false;
-                        break;
-                    case 'brush':
-                        fabricCanvas.isDrawingMode = true;
-                        fabricCanvas.freeDrawingBrush = new fabric.PencilBrush(fabricCanvas);
-                        fabricCanvas.freeDrawingBrush.color = colorPicker.value;
-                        fabricCanvas.freeDrawingBrush.width = parseInt(strokeWidthInput.value, 10);
-                        break;
-                    case 'arrow':
-                    case 'circle':
-                    case 'rectangle':
-                    case 'text':
-                        fabricCanvas.isDrawingMode = false;
-                        // Logic to draw shapes will be handled in a separate function
-                        break;
-                    default:
-                        fabricCanvas.isDrawingMode = false;
-                }
-            };
-        });
-
-        // Handle shape drawing
-        let isDown = false;
-        let startCoords = { x: 0, y: 0 };
-        let currentShape = null;
-
-        fabricCanvas.on('mouse:down', (options) => {
-            if (!options.target && fabricCanvas.isDrawingMode) return; // Ignore clicks on canvas if not drawing mode
-
-            const pointer = fabricCanvas.getPointer(options.e);
-            startCoords = { x: pointer.x, y: pointer.y };
-            isDown = true;
-
-            const tool = modalElement.querySelector('.fabric-tool-btn.active')?.dataset.modalTool;
-
-            if (tool === 'arrow' || tool === 'rectangle' || tool === 'circle') {
-                if (currentShape) {
-                    fabricCanvas.remove(currentShape);
-                }
-                const options = {
-                    stroke: colorPicker.value,
-                    strokeWidth: parseInt(strokeWidthInput.value, 10),
-                    fill: 'transparent',
-                    originX: 'left',
-                    originY: 'top'
-                };
-                switch (tool) {
-                    case 'rectangle':
-                        currentShape = new fabric.Rect(options);
-                        break;
-                    case 'circle':
-                        currentShape = new fabric.Circle(options);
-                        break;
-                    case 'arrow':
-                        currentShape = new fabric.Path(`M ${startCoords.x} ${startCoords.y}`, options);
-                        break;
-                }
-                if (currentShape) {
-                    fabricCanvas.add(currentShape);
-                }
-            } else if (tool === 'text') {
-                const textValue = customLegendInput.value.trim();
-                if (textValue) {
-                    const text = new fabric.Textbox(textValue, {
-                        left: pointer.x,
-                        top: pointer.y,
-                        width: 150,
-                        fontSize: 20,
-                        fill: colorPicker.value,
-                        fontFamily: 'Arial'
-                    });
-                    fabricCanvas.add(text);
-                    customLegendInput.value = ''; // Clear input after adding
-                }
-            }
-        });
-
-        fabricCanvas.on('mouse:move', (options) => {
-            if (!isDown) return;
-
-            const pointer = fabricCanvas.getPointer(options.e);
-            const dx = pointer.x - startCoords.x;
-            const dy = pointer.y - startCoords.y;
-
-            const tool = modalElement.querySelector('.fabric-tool-btn.active')?.dataset.modalTool;
-
-            if (currentShape) {
-                switch (tool) {
-                    case 'rectangle':
-                        currentShape.set({ left: startCoords.x, top: startCoords.y, width: dx, height: dy });
-                        break;
-                    case 'circle':
-                        currentShape.set({ left: startCoords.x, top: startCoords.y, radius: Math.sqrt(dx * dx + dy * dy) / 2, originX: 'left', originY: 'top' });
-                        break;
-                    case 'arrow':
-                        const angle = Math.atan2(dy, dx);
-                        const headlen = 15; // Arrowhead length
-                        const arrowPath = `M ${startCoords.x} ${startCoords.y} L ${pointer.x} ${pointer.y} L ${pointer.x - headlen * Math.cos(angle - Math.PI / 6)} ${pointer.y - headlen * Math.sin(angle - Math.PI / 6)} M ${pointer.x} ${pointer.y} L ${pointer.x - headlen * Math.cos(angle + Math.PI / 6)} ${pointer.y - headlen * Math.sin(angle + Math.PI / 6)}`;
-                        currentShape.set({ path: arrowPath });
-                        break;
-                }
-                fabricCanvas.renderAll();
-            }
-        });
-
-        fabricCanvas.on('mouse:up', () => {
-            if (!isDown) return;
-            isDown = false;
-            if (currentShape) {
-                updateHistory(); // Add shape to history
-                currentShape = null;
-            }
-            updateModalState();
-        });
-
-        // Mouse Wheel for zooming (optional)
-        fabricCanvas.on('mouse:wheel', (options) => {
-            const delta = options.e.deltaY > 0 ? -1 : 1;
-            const zoom = fabricCanvas.getZoom();
-            const pointer = fabricCanvas.getPointer(options.e);
-
-            fabricCanvas.zoomToPoint({ x: pointer.x, y: pointer.y }, zoom + delta * 0.1);
-            options.e.preventDefault();
-        });
-
-        // Event listener for modal close
-        modalElement.addEventListener('hidden.bs.modal', () => {
-            if (fabricCanvas) {
-                fabricCanvas.dispose(); // Clean up canvas
-                fabricCanvas = null;
-            }
-            onSaveCallback = null;
-            currentImageSrc = '';
-            currentPhotoId = null;
-            history = [];
-            historyIndex = -1;
-        });
-
-        // Save button functionality
-        saveButton.onclick = () => {
-            if (onSaveCallback && fabricCanvas) {
-                const imageData = fabricCanvas.toDataURL({ format: 'jpeg', quality: 0.9 });
-                const legend = customLegendInput.value.trim();
-                onSaveCallback({ imageData, legend });
-                modal.hide();
-            }
-        };
-
-        // Cancel button functionality
-        cancelButton.onclick = () => {
-            modal.hide();
-        };
-
-        // Clear button functionality
-        clearButton.onclick = clearCanvas;
-
-        // Undo button functionality
-        undoButton.onclick = undo;
-
-        // Update initial state
-        updateModalState();
-    };
-
-    window.fabricPhotoEditorModal = {
-        openEditor: openEditor,
-        clear: clearCanvas,
-        undo: undo
-    };
-}
-
-// Initialize the modal when the DOM is ready
-document.addEventListener('DOMContentLoaded', initFabricPhotoEditorModal);
-
-
-// Initializing reportId
-let reportId = null;
-
-// Initialization
+// Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     canvas = document.getElementById('photoCanvas');
     ctx = canvas.getContext('2d');
 
-    // Event listener for global function
+    // Event listener para função global
     document.addEventListener('selectCategory', function(e) {
         const { category, element } = e.detail;
-
-        // Remove previous selection
+        
+        // Remover seleção anterior
         document.querySelectorAll('.photo-category').forEach(cat => {
-            if (cat && cat.classList) cat.classList.remove('selected');
+            cat.classList.remove('selected');
         });
-
-        // Add current selection
-        if (element && element.classList) element.classList.add('selected');
-
-        // Update global category
+        
+        // Adicionar seleção atual
+        element.classList.add('selected');
+        
+        // Atualizar categoria global
         selectedCategory = category;
-
-        // Enable upload buttons
+        
+        // Habilitar botões de upload
         const galleryBtn = document.getElementById('galleryBtn');
         const cameraBtn = document.getElementById('cameraBtn');
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
-
-        // Update photo input
+        
+        // Atualizar input de fotos
         updatePhotoInput();
-
-        // Global category selected
+        
+        // Categoria global selecionada
     });
 
-    // Event listeners for photo upload with error handling
+    // Event listeners para upload de fotos com error handling
     const photoInput = document.getElementById('photoInput');
     const cameraInput = document.getElementById('cameraInput');
 
@@ -1080,9 +748,9 @@ document.addEventListener('DOMContentLoaded', function() {
         console.warn('Camera input element not found');
     }
 
-    // Event listeners for tools - OPTIMIZED FOR MOBILE
+    // Event listeners para ferramentas - OTIMIZADO PARA MOBILE
     document.querySelectorAll('.tool-btn').forEach(btn => {
-        // Use touchstart for faster response on mobile
+        // Usar touchstart para resposta mais rápida no mobile
         const isMobile = window.innerWidth <= 768;
         const eventType = isMobile ? 'touchstart' : 'click';
 
@@ -1090,21 +758,21 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             e.stopPropagation();
 
-            // Immediate visual feedback
+            // Feedback visual imediato
             this.style.transform = 'scale(0.95)';
             setTimeout(() => {
                 this.style.transform = '';
             }, 100);
 
-            // Update tools
-            document.querySelectorAll('.tool-btn').forEach(b => { if (b && b.classList) b.classList.remove('active'); });
-            if (this && this.classList) this.classList.add('active');
+            // Atualizar ferramentas
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
             currentTool = this.dataset.tool;
 
-            console.log('🔧 Tool selected:', currentTool);
+            console.log('🔧 Ferramenta selecionada:', currentTool);
         });
 
-        // Prevent duplicate events on mobile
+        // Prevenir eventos duplicados no mobile
         if (isMobile) {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -1147,87 +815,123 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// The carregarFuncionariosEmails function is defined in static/js/main.js
+// Função para carregar funcionários e e-mails do projeto selecionado
+function carregarFuncionariosEmails() {
+    const projetoId = document.getElementById('projeto_id').value;
+    carregarFuncionariosEmailsPorId(projetoId);
+}
 
-// UNIQUE Initialization of the staff/email system
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 DOM loaded, initializing staff/email system');
+function carregarFuncionariosEmailsPorId(projetoId) {
+    const funcionariosDiv = document.getElementById('funcionarios-projeto');
+    const emailsDiv = document.getElementById('emails-projeto');
 
-    // FIRST CHECK: Hidden input (disabled pre-selected project)
-    const projetoHidden = document.querySelector('input[name="projeto_id"][type="hidden"]');
-    if (projetoHidden && projetoHidden.value) {
-        console.log('✅ Project pre-selected via hidden input:', projetoHidden.value);
-        setTimeout(() => {
-            carregarFuncionariosEmails(parseInt(projetoHidden.value));
-        }, 300);
-        return; // No need to configure select
-    }
-
-    // SECOND CHECK: Normal project select
-    const projetoSelect = document.getElementById('projeto_id');
-
-    if (!projetoSelect) {
-        console.warn('⚠️ No project field found (neither select nor hidden)');
+    if (!projetoId) {
+        funcionariosDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os funcionários disponíveis</p>';
+        emailsDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os e-mails disponíveis</p>';
         return;
     }
 
-    console.log('✅ Project select found:', projetoSelect.id);
-
-    // Check if a project is already selected in the select
-    if (projetoSelect.value && projetoSelect.value !== '') {
-        console.log('🔄 Project already selected in select:', projetoSelect.value);
-        setTimeout(() => {
-            carregarFuncionariosEmails(parseInt(projetoSelect.value));
-        }, 300);
-    }
-
-    // Add change event to the select (ONLY ONCE)
-    projetoSelect.addEventListener('change', function(e) {
-        console.log('🔄 Project select changed to:', e.target.value);
-        if (e.target.value) {
-            carregarFuncionariosEmails(parseInt(e.target.value));
+    // Buscar funcionários e e-mails do projeto via AJAX
+    fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
         }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Renderizar funcionários
+            let funcionariosHtml = '';
+            if (data.funcionarios && data.funcionarios.length > 0) {
+                data.funcionarios.forEach(func => {
+                    const checked = func.is_responsavel_principal ? 'checked' : '';
+                    funcionariosHtml += `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="func_${func.id}" 
+                                   name="funcionarios_selecionados[]" value="${func.id}" ${checked}>
+                            <label class="form-check-label" for="func_${func.id}">
+                                <strong>${func.nome_funcionario}</strong><br>
+                                <small class="text-muted">${func.cargo || 'Sem cargo'} - ${func.empresa || 'Sem empresa'}</small>
+                                ${func.is_responsavel_principal ? '<span class="badge bg-primary">Principal</span>' : ''}
+                            </label>
+                        </div>
+                    `;
+                });
+            } else {
+                funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
+            }
+            funcionariosDiv.innerHTML = funcionariosHtml;
+
+            // Renderizar e-mails
+            let emailsHtml = '';
+            if (data.emails && data.emails.length > 0) {
+                data.emails.forEach(email => {
+                    const checked = email.is_principal ? 'checked' : '';
+                    emailsHtml += `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="email_${email.id}" 
+                                   name="emails_selecionados[]" value="${email.id}" ${checked}>
+                            <label class="form-check-label" for="email_${email.id}">
+                                <strong>${email.email}</strong><br>
+                                <small class="text-muted">${email.nome_contato} - ${email.cargo || 'Sem cargo'}</small>
+                                ${email.is_principal ? '<span class="badge bg-success">Principal</span>' : ''}
+                            </label>
+                        </div>
+                    `;
+                });
+            } else {
+                emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para este projeto</p>';
+            }
+            emailsDiv.innerHTML = emailsHtml;
+        } else {
+            funcionariosDiv.innerHTML = '<p class="text-danger">Erro ao carregar funcionários</p>';
+            emailsDiv.innerHTML = '<p class="text-danger">Erro ao carregar e-mails</p>';
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        funcionariosDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
+        emailsDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
     });
-
-    console.log('✅ Event listener added to project select');
-});
-
+}
 
 function handlePhotoUpload(event) {
-    // Photo upload initiated
+    // Upload de fotos iniciado
 
     if (!selectedCategory) {
-        alert('Please select a category before adding photos.');
+        alert('Selecione uma categoria antes de adicionar fotos.');
         event.target.value = '';
         return;
     }
 
     const files = event.target.files;
-    // Processing selected files
+    // Processando arquivos selecionados
 
     if (files.length + selectedPhotos.length > 200) {
-        alert('Maximum of 200 photos allowed.');
+        alert('Máximo de 200 fotos permitido.');
         return;
     }
 
-    // Process each file
+    // Processar cada arquivo
     for (let file of files) {
         if (selectedPhotos.length >= 200) {
-            // Photo limit reached
+            // Limite de fotos atingido
             break;
         }
-        // Processing file
+        // Processando arquivo
         addPhotoPreview(file, selectedCategory);
     }
 
     event.target.value = ''; // Reset input
-    // Photo upload completed
+    // Upload concluído
 }
 
 // Camera and gallery functions with error handling
 function selectFromGallery() {
     if (!selectedCategory) {
-        alert('Please select a category before adding photos.');
+        alert('Selecione uma categoria antes de adicionar fotos.');
         return;
     }
     const photoInput = document.getElementById('photoInput');
@@ -1240,7 +944,7 @@ function selectFromGallery() {
 
 function captureFromCamera() {
     if (!selectedCategory) {
-        alert('Please select a category before adding photos.');
+        alert('Selecione uma categoria antes de adicionar fotos.');
         return;
     }
     const cameraInput = document.getElementById('cameraInput');
@@ -1254,14 +958,14 @@ function captureFromCamera() {
 // Remove duplicate updatePhotoInput function (already exists below)
 
 function addPhotoPreview(file, category) {
-    // Adding photo preview
+    // Adicionando preview da foto
 
     const reader = new FileReader();
     reader.onload = function(e) {
         const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const src = e.target.result;
 
-        // Creating photo element
+        // Criando elemento da foto
 
         const photoDiv = document.createElement('div');
         photoDiv.className = 'col-md-4 mb-3';
@@ -1271,14 +975,14 @@ function addPhotoPreview(file, category) {
             <div class="card">
                 <img src="${src}" class="card-img-top photo-preview" alt="Preview" style="cursor: pointer;" data-category="${category}">
                 <div class="card-body p-2">
-                    <!-- Caption Selector -->
+                    <!-- Seletor de Legendas -->
                     <select class="form-control form-control-sm mb-2" id="predefined_${photoId}" name="photo_caption_${photoId}" required>
-                        <option value="">Select a caption...</option>
+                        <option value="">Selecione uma legenda...</option>
                     </select>
-                    <small class="text-muted d-block">Category: ${category}</small>
+                    <small class="text-muted d-block">Categoria: ${category}</small>
                     <div class="btn-group w-100 mt-2">
                         <button type="button" class="btn btn-sm btn-primary" onclick="openPhotoEditor('${photoId}')">
-                            <i class="fas fa-edit"></i> Edit
+                            <i class="fas fa-edit"></i> Editar
                         </button>
                         <button type="button" class="btn btn-sm btn-danger" onclick="removePhoto('${photoId}')">
                             <i class="fas fa-trash"></i>
@@ -1298,7 +1002,7 @@ function addPhotoPreview(file, category) {
             originalSrc: src
         });
 
-        // Photo added to array
+        // Foto adicionada ao array
 
         loadPredefinedCaptionsForPhoto(photoId, category);
     };
@@ -1317,9 +1021,9 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
     const select = document.getElementById(`predefined_${photoId}`);
     if (!select) return;
 
-    select.innerHTML = '<option value="">Loading captions...</option>';
+    select.innerHTML = '<option value="">Carregando legendas...</option>';
 
-    // Load directly from API (PostgreSQL)
+    // Carregar direto da API (PostgreSQL)
     const xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/legendas?categoria=all', true);
     xhr.timeout = 10000;
@@ -1329,7 +1033,7 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
             try {
                 const data = JSON.parse(xhr.responseText);
                 if (data.success && data.legendas && data.legendas.length > 0) {
-                    select.innerHTML = '<option value="">Select a caption...</option>';
+                    select.innerHTML = '<option value="">Selecione uma legenda...</option>';
 
                     const cats = {
                         'Acabamentos': [],
@@ -1347,7 +1051,7 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
                     Object.keys(cats).forEach(cat => {
                         if (cats[cat].length > 0) {
                             const optgroup = document.createElement('optgroup');
-                            optgroup.label = cat + ' (' + cats[cat].length + ' items)';
+                            optgroup.label = cat + ' (' + cats[cat].length + ' itens)';
 
                             cats[cat].forEach(legenda => {
                                 const option = document.createElement('option');
@@ -1360,32 +1064,32 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
                         }
                     });
                 } else {
-                    select.innerHTML = '<option value="">Error: no captions found</option>';
+                    select.innerHTML = '<option value="">Erro: nenhuma legenda encontrada</option>';
                 }
             } catch (e) {
-                select.innerHTML = '<option value="">Error: invalid format</option>';
+                select.innerHTML = '<option value="">Erro: formato inválido</option>';
             }
         } else {
-            select.innerHTML = '<option value="">Error: server unavailable</option>';
+            select.innerHTML = '<option value="">Erro: servidor indisponível</option>';
         }
     };
 
     xhr.onerror = function() {
-        select.innerHTML = '<option value="">Error: network failure</option>';
+        select.innerHTML = '<option value="">Erro: falha de rede</option>';
     };
 
     xhr.ontimeout = function() {
-        select.innerHTML = '<option value="">Error: timeout</option>';
+        select.innerHTML = '<option value="">Erro: tempo esgotado</option>';
     };
 
     xhr.send();
 }
 
-// Map photo category to legend category
+// Mapear categoria da foto para categoria da legenda
 function mapCategoryToLegenda(photoCategory) {
     const mapping = {
         'Geral': 'Geral',
-        'Estrutura': 'Estrutural',
+        'Estrutura': 'Estrutural', 
         'Acabamento': 'Acabamentos',
         'Instalações': 'Elétrica',
         'Problema': 'Segurança'
@@ -1395,7 +1099,7 @@ function mapCategoryToLegenda(photoCategory) {
 
 function updatePhotoInput() {
     const input = document.getElementById('photoInput');
-    // Updating photo input
+    // Atualizando input de fotos
 
     if (selectedCategory) {
         input.disabled = false;
@@ -1408,7 +1112,7 @@ function updatePhotoInput() {
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
 
-        // Photo input enabled
+        // Input de fotos habilitado
     } else {
         input.disabled = true;
 
@@ -1419,7 +1123,7 @@ function updatePhotoInput() {
         if (cameraBtn) cameraBtn.disabled = true;
         input.style.opacity = '0.5';
         input.style.pointerEvents = 'none';
-        // Photo input disabled
+        // Input de fotos desabilitado
     }
 }
 
@@ -1433,201 +1137,201 @@ function addCustomChecklistItem() {
     itemDiv.innerHTML = `
         <div class="form-check">
             <input class="form-check-input" type="checkbox" id="${itemId}">
-            <input type="text" class="form-control d-inline-block fw-bold" style="width: 70%;"
-                   name="custom_item_${itemId}" placeholder="Enter checklist item..." required>
-            <button type="button" class="btn btn-sm btn-outline-danger float-end"
+            <input type="text" class="form-control d-inline-block fw-bold" style="width: 70%;" 
+                   name="custom_item_${itemId}" placeholder="Digite o item do checklist..." required>
+            <button type="button" class="btn btn-sm btn-outline-danger float-end" 
                     onclick="this.parentElement.parentElement.remove()">
                 <i class="fas fa-trash"></i>
             </button>
         </div>
-        <textarea class="form-control mt-2" name="custom_obs_${itemId}" placeholder="Observations..." rows="2"></textarea>
+        <textarea class="form-control mt-2" name="custom_obs_${itemId}" placeholder="Observações..." rows="2"></textarea>
     `;
 
     checklistItems.appendChild(itemDiv);
 }
 
-// Mark checklist as completed
+// Marcar checklist como concluído
 document.addEventListener('change', function(e) {
-    if (e.target && e.target.classList && e.target.classList.contains('form-check-input') && e.target.type === 'checkbox') {
+    if (e.target.classList.contains('form-check-input') && e.target.type === 'checkbox') {
         const item = e.target.closest('.checklist-item');
         if (e.target.checked) {
-            if (item && item.classList) item.classList.add('completed');
+            item.classList.add('completed');
         } else {
-            if (item && item.classList) item.classList.remove('completed');
+            item.classList.remove('completed');
         }
     }
 });
 
-// Fabric.js Photo Editor system - Exactly like Express
+// Sistema Fabric.js Photo Editor - Exatamente como no Express
 function openPhotoEditor(photoId) {
     try {
-        // Opening editor for photo
+        // Abrindo editor para foto
 
         const card = document.querySelector(`[data-photo-id="${photoId}"]`);
         if (!card) {
-            console.error(`❌ Card not found for photo: ${photoId}`);
+            console.error(`❌ Card não encontrado para foto: ${photoId}`);
             return;
         }
 
         const img = card.querySelector('img');
         if (!img || !img.src) {
-            console.error(`❌ Image not found for photo: ${photoId}`);
+            console.error(`❌ Imagem não encontrada para foto: ${photoId}`);
             return;
         }
 
-        // Callback to save the edited photo (define first)
+        // Callback para salvar a foto editada (definir primeiro)
         const saveCallback = async (data) => {
-            // Saving edited photo
+            // Salvando foto editada
 
-            // Update photo preview in the card
+            // Atualizar preview da foto no card
             img.src = data.imageData;
             img.dataset.edited = 'true';
             img.dataset.legend = data.legend;
 
-            // Visually mark as edited
-            if (card && card.classList) card.classList.add('edited');
+            // Marcar visualmente como editada
+            card.classList.add('edited');
 
-            // Add edited badge if it doesn't exist
+            // Adicionar badge de editado se não existir
             if (!card.querySelector('.edited-badge')) {
                 const badge = document.createElement('div');
                 badge.className = 'edited-badge';
-                badge.innerHTML = '<i class="fas fa-edit"></i> Edited';
+                badge.innerHTML = '<i class="fas fa-edit"></i> Editado';
                 card.appendChild(badge);
             }
 
-            // Photo saved successfully
+            // Foto salva com sucesso
         };
 
-        // Check if the editor modal is available
+        // Verificar se o editor modal está disponível  
         if (!window.fabricPhotoEditorModal) {
-            console.error('❌ Editor modal not initialized');
+            console.error('❌ Editor modal não inicializado');
 
-            // Check if dependencies are loaded
+            // Verificar se as dependências estão carregadas
             if (typeof fabric === 'undefined') {
-                alert('Fabric.js is not loaded. Please reload the page.');
+                alert('Fabric.js não está carregado. Recarregue a página.');
                 return;
             }
 
             if (typeof bootstrap === 'undefined') {
-                alert('Bootstrap is not loaded. Please reload the page.');
+                alert('Bootstrap não está carregado. Recarregue a página.');
                 return;
             }
 
             if (typeof FabricPhotoEditor === 'undefined') {
-                alert('Photo editor script is not loaded. Please reload the page.');
+                alert('Editor de fotos não está carregado. Recarregue a página.');
                 return;
             }
 
-            // Attempt to initialize the editor modal
+            // Tentar inicializar o editor modal
             if (typeof initFabricPhotoEditorModal === 'function') {
-                // Attempting to initialize editor modal
+                // Tentando inicializar editor modal
                 initFabricPhotoEditorModal();
 
-                // Wait a moment for the editor to initialize
+                // Aguardar um momento para o editor ser inicializado
                 setTimeout(() => {
                     if (window.fabricPhotoEditorModal) {
-                        console.log('✅ Editor initialized successfully');
+                        console.log('✅ Editor inicializado com sucesso');
                         window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
                     } else {
-                        console.error('❌ Failed to initialize editor after attempt');
-                        alert('Photo editor could not be loaded. Please reload the page.');
+                        console.error('❌ Falha ao inicializar editor após tentativa');
+                        alert('Editor de fotos não pode ser carregado. Recarregue a página.');
                     }
                 }, 500);
                 return;
             }
         }
 
-        // Editor is available, open directly
-        console.log('✅ Opening editor');
+        // Editor disponível, abrir diretamente
+        console.log('✅ Abrindo editor');
         window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
 
     } catch (error) {
-        console.error('❌ Error opening editor:', error);
-        alert('An error occurred while opening the photo editor. Please try again.');
+        console.error('❌ Erro ao abrir editor:', error);
+        alert('Erro ao abrir editor de fotos. Tente novamente.');
     }
 }
 
-// Function for centered auto-scroll
+// Função para auto-scroll centralizado
 function scrollToEditorCenter() {
-    console.log('🎨 Executing auto-scroll to editor center');
+    console.log('🎨 Executando auto-scroll para centro do editor');
 
     const modal = document.getElementById('fabricPhotoEditorModal');
     if (!modal) {
-        console.log('⚠️ Modal not found');
+        console.log('⚠️ Modal não encontrado');
         return;
     }
 
     const canvasContainer = modal.querySelector('.canvas-container');
     if (!canvasContainer) {
-        console.log('⚠️ Canvas container not found');
+        console.log('⚠️ Canvas container não encontrado');
         return;
     }
 
     try {
-        // Smooth scroll to the center of the canvas
-        canvasContainer.scrollIntoView({
-            behavior: 'smooth',
+        // Scroll suave para o centro do canvas
+        canvasContainer.scrollIntoView({ 
+            behavior: 'smooth', 
             block: 'center',
             inline: 'center'
         });
 
-        // Also center the scroll in the window
+        // Centralizar o scroll na janela também
         window.scrollTo({
             top: window.innerHeight / 4,
             behavior: 'smooth'
         });
 
-        console.log('✅ Auto-scroll executed successfully');
+        console.log('✅ Auto-scroll executado com sucesso');
     } catch (error) {
-        console.error('❌ Error during auto-scroll:', error);
+        console.error('❌ Erro no auto-scroll:', error);
     }
 }
 
-// New function to update photo from Fabric Editor
+// Nova função para atualizar foto do Fabric Editor
 function updatePhotoFromFabricEditor(photoId, editedImageData) {
-    console.log('💾 Updating edited photo:', photoId);
+    console.log('💾 Atualizando foto editada:', photoId);
 
-    // Find photo element directly by ID
+    // Buscar elemento da foto diretamente pelo ID
     const photoElement = document.getElementById(photoId);
     if (!photoElement) {
-        console.error('❌ Photo element not found:', photoId);
+        console.error('❌ Elemento da foto não encontrado:', photoId);
         return;
     }
 
-    // Update image in preview
+    // Atualizar imagem no preview
     const img = photoElement.querySelector('.photo-preview');
     if (img && editedImageData.imageData) {
         img.src = editedImageData.imageData;
-        console.log('✅ Preview image updated');
+        console.log('✅ Imagem do preview atualizada');
 
-        // Also update onclick to maintain functionality
+        // Também atualizar onclick para manter funcionalidade
         img.setAttribute('onclick', `editPhoto('${photoId}', '${editedImageData.imageData}', '${img.getAttribute('data-category') || 'Geral'}')`);
     }
 
-    // Also update in selectedPhotos if it exists
+    // Atualizar também em selectedPhotos se existir
     const photo = selectedPhotos.find(p => p.id === photoId);
     if (photo) {
         photo.annotatedSrc = editedImageData.imageData;
-        console.log('✅ Photo data updated in selectedPhotos');
+        console.log('✅ Dados da foto atualizados em selectedPhotos');
     }
 
-    // Add visual indicator for edited photo
+    // Adicionar indicador visual de foto editada
     const card = photoElement.querySelector('.card');
-    if (card && card.classList && !card.classList.contains('border-success')) {
+    if (card && !card.classList.contains('border-success')) {
         card.classList.add('border-success', 'border-2');
 
-        // Remove previous indicator if it exists
+        // Remover indicador anterior se existir
         const oldIndicator = card.querySelector('.edit-indicator');
         if (oldIndicator) oldIndicator.remove();
 
         const indicator = document.createElement('small');
         indicator.className = 'text-success fw-bold edit-indicator d-block mt-1';
-        indicator.innerHTML = '<i class="fas fa-check-circle"></i> Edited';
+        indicator.innerHTML = '<i class="fas fa-check-circle"></i> Editada';
         photoElement.querySelector('.card-body').appendChild(indicator);
-        console.log('✅ Visual indicator added');
+        console.log('✅ Indicador visual adicionado');
     }
 
-    console.log('✅ Photo updated successfully');
+    console.log('✅ Foto atualizada com sucesso');
 }
 
 // Canvas drawing functions
@@ -1640,7 +1344,7 @@ function startDrawing(e) {
     startY = (e.clientY - rect.top) * scaleY;
 
     if (currentTool === 'text') {
-        const text = prompt('Enter text:');
+        const text = prompt('Digite o texto:');
         if (text) {
             ctx.fillStyle = document.getElementById('colorPicker').value;
             ctx.font = 'bold 24px Arial';
@@ -1651,7 +1355,7 @@ function startDrawing(e) {
         return;
     }
 
-    // For pen, start the path
+    // Para caneta, começar o path
     if (currentTool === 'pen') {
         ctx.beginPath();
         ctx.moveTo(startX, startY);
@@ -1745,55 +1449,158 @@ function saveEditedPhoto() {
 
         // Add visual indicator that photo was edited
         const editButton = currentEditingPhoto.element.querySelector('.btn-primary');
-        if (editButton) {
-            editButton.innerHTML = '<i class="fas fa-check"></i> Edited';
-            if (editButton.classList) {
-                editButton.classList.remove('btn-primary');
-                editButton.classList.add('btn-success');
-            }
-        }
+        editButton.innerHTML = '<i class="fas fa-check"></i> Editada';
+        editButton.classList.remove('btn-primary');
+        editButton.classList.add('btn-success');
     }
 
     const modal = bootstrap.Modal.getInstance(document.getElementById('photoEditorModal'));
     modal.hide();
 }
 
-// Function to create initial report in progress
+// Função para criar relatório inicial em preenchimento
 async function createInitialReport() {
     const formData = new FormData(document.getElementById('reportForm'));
-
+    
     try {
         const response = await fetch('{{ url_for("create_report") }}', {
             method: 'POST',
             body: formData
         });
-
+        
         const result = await response.json();
-
+        
         if (result.success && result.report_id) {
-            console.log('✅ Initial report created:', result.report_id);
+            console.log('✅ Relatório inicial criado:', result.report_id);
             return result.report_id;
         } else {
-            throw new Error(result.error || 'Error creating report');
+            throw new Error(result.error || 'Erro ao criar relatório');
         }
     } catch (error) {
-        console.error('❌ Error creating initial report:', error);
+        console.error('❌ Erro ao criar relatório inicial:', error);
         throw error;
     }
 }
 
-// REMOVED - Duplicate listener caused conflict. Only the main listener at lines 2768-2806 remains
+// Submissão do formulário
+document.getElementById('reportForm').addEventListener('submit', function(e) {
+    e.preventDefault(); // Prevent default form submission
 
-// Function to capture location
+    // Se há um reportId global, finalizar o relatório
+    if (window.currentReportId) {
+        fetch(`/reports/${window.currentReportId}/finalize`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Relatório finalizado com sucesso!');
+                window.location.href = data.redirect;
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao finalizar:', error);
+            alert('Erro ao finalizar relatório: ' + error.message);
+        });
+        
+        return;
+    }
+
+    // Create FormData object for proper file handling
+    const formData = new FormData(this);
+
+    // Coletar dados do checklist
+    const checklistData = [];
+    document.querySelectorAll('.checklist-item').forEach(item => {
+        const checkbox = item.querySelector('.form-check-input[type="checkbox"]');
+        const label = item.querySelector('.form-check-label');
+        const customInput = item.querySelector('input[type="text"]');
+        const textarea = item.querySelector('textarea');
+
+        if (checkbox) {
+            const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
+            if (itemText) {
+                checklistData.push({
+                    item: itemText,
+                    completed: checkbox.checked,
+                    observations: textarea ? textarea.value : ''
+                });
+            }
+        }
+    });
+
+    // Add checklist data
+    formData.append('checklist_data', JSON.stringify(checklistData));
+
+    // Add photo files and metadata
+    selectedPhotos.forEach((photo, index) => {
+        // Add the actual file
+        formData.append(`photo_${index}`, photo.file);
+
+        // Add photo metadata
+        formData.append(`photo_category_${index}`, photo.category);
+
+        const caption = document.querySelector(`select[name="photo_caption_${photo.id}"]`);
+        if (caption && caption.value) {
+            formData.append(`photo_caption_${index}`, caption.value);
+        }
+
+        // Add edited photo data if exists
+        if (photo.editedSrc) {
+            formData.append(`edited_photo_${index}`, photo.editedSrc);
+        }
+    });
+
+    // Show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    submitBtn.disabled = true;
+
+    // Submit via fetch
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            return response.json().then(err => Promise.reject(err));
+        }
+    })
+    .then(data => {
+        if (data.success) {
+            alert('Relatório salvo com sucesso!');
+            window.location.href = data.redirect || '/reports';
+        } else {
+            throw new Error(data.error || 'Erro ao salvar relatório');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao salvar relatório. Tente novamente.');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Função para capturar localização
 function capturarLocalizacao() {
     const infoDiv = document.getElementById('localizacao-info');
 
     if (!navigator.geolocation) {
-        infoDiv.innerHTML = '<div class="alert alert-danger">Geolocation is not supported by your browser.</div>';
+        infoDiv.innerHTML = '<div class="alert alert-danger">Geolocalização não é suportada pelo navegador.</div>';
         return;
     }
 
-    infoDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Capturing location...</div>';
+    infoDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Capturando localização...</div>';
 
     navigator.geolocation.getCurrentPosition(
         function(position) {
@@ -1806,12 +1613,12 @@ function capturarLocalizacao() {
 
             infoDiv.innerHTML = `
                 <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> Location captured successfully!<br>
-                    <small id="addressDisplay">Getting address... (accuracy: ${Math.round(accuracy)}m)</small>
+                    <i class="fas fa-check-circle"></i> Localização capturada com sucesso!<br>
+                    <small id="addressDisplay">Obtendo endereço... (precisão: ${Math.round(accuracy)}m)</small>
                 </div>
             `;
 
-            // Get formatted address via API
+            // Obter endereço formatado via API
             fetch('/get_location', {
                 method: 'POST',
                 headers: {
@@ -1826,27 +1633,27 @@ function capturarLocalizacao() {
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.endereco) {
-                    document.getElementById('addressDisplay').innerHTML = `<strong>📍 ${data.endereco}</strong> (accuracy: ${Math.round(accuracy)}m)`;
+                    document.getElementById('addressDisplay').innerHTML = `<strong>📍 ${data.endereco}</strong> (precisão: ${Math.round(accuracy)}m)`;
                 } else {
-                    document.getElementById('addressDisplay').innerHTML = `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)} (accuracy: ${Math.round(accuracy)}m)`;
+                    document.getElementById('addressDisplay').innerHTML = `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)} (precisão: ${Math.round(accuracy)}m)`;
                 }
             })
             .catch(error => {
-                console.error('Error getting address:', error);
-                document.getElementById('addressDisplay').innerHTML = `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)} (accuracy: ${Math.round(accuracy)}m)`;
+                console.error('Erro ao obter endereço:', error);
+                document.getElementById('addressDisplay').innerHTML = `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)} (precisão: ${Math.round(accuracy)}m)`;
             });
         },
         function(error) {
-            let errorMsg = 'Error capturing location.';
+            let errorMsg = 'Erro ao capturar localização.';
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    errorMsg = 'Permission denied to access location.';
+                    errorMsg = 'Permissão negada para acessar localização.';
                     break;
                 case error.POSITION_UNAVAILABLE:
-                    errorMsg = 'Location unavailable.';
+                    errorMsg = 'Localização indisponível.';
                     break;
                 case error.TIMEOUT:
-                    errorMsg = 'Timeout for capturing location.';
+                    errorMsg = 'Tempo limite para capturar localização.';
                     break;
             }
             infoDiv.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> ${errorMsg}</div>`;
@@ -1859,11 +1666,11 @@ function capturarLocalizacao() {
     );
 }
 
-// DUPLICATE FUNCTION REMOVED - use the optimized mobile version only
+// FUNÇÃO DUPLICADA REMOVIDA - usar apenas a versão otimizada para mobile
 
-// DUPLICATE FUNCTION REMOVED - use the version at the start of the file
+// FUNÇÃO DUPLICADA REMOVIDA - usar apenas a versão do início do arquivo
 
-// Function to toggle checkbox and show/hide observations field
+// Função para alternar checkbox e mostrar/ocultar campo de observações
 function toggleChecklistItem(checkbox) {
     const itemId = checkbox.id.replace('check_', '');
     const obsField = document.getElementById(`obs_${itemId}`);
@@ -1873,39 +1680,39 @@ function toggleChecklistItem(checkbox) {
         if (obsField) {
             obsField.style.display = 'block';
         }
-        if (parentItem && parentItem.classList) {
+        if (parentItem) {
             parentItem.classList.add('completed');
         }
     } else {
         if (obsField) {
             obsField.style.display = 'none';
         }
-        if (parentItem && parentItem.classList) {
+        if (parentItem) {
             parentItem.classList.remove('completed');
         }
     }
 }
 
-// Function to toggle checklist item state
+// Função para alternar estado do checklist item
 function toggleChecklistItem(checkbox) {
     const itemId = checkbox.id.replace('check_', '');
     const obsSection = document.getElementById(`obs_${itemId}`);
     const checklistItem = checkbox.closest('.checklist-item');
 
     if (checkbox.checked) {
-        // Mark as completed
-        if (checklistItem && checklistItem.classList) checklistItem.classList.add('completed');
-        // Show observations field
+        // Marcar como completo
+        checklistItem.classList.add('completed');
+        // Mostrar campo de observações
         if (obsSection) {
             obsSection.style.display = 'block';
         }
     } else {
-        // Unmark as completed
-        if (checklistItem && checklistItem.classList) checklistItem.classList.remove('completed');
-        // Hide observations field
+        // Desmarcar como completo
+        checklistItem.classList.remove('completed');
+        // Ocultar campo de observações
         if (obsSection) {
             obsSection.style.display = 'none';
-            // Clear observations if desired
+            // Limpar observações se desejar
             const textarea = obsSection.querySelector('textarea');
             if (textarea) {
                 textarea.value = '';
@@ -1914,14 +1721,14 @@ function toggleChecklistItem(checkbox) {
     }
 }
 
-// Load default checklist from the system
+// Carregar checklist padrão do sistema
 function carregarChecklistPadrao() {
     fetch('/api/checklist-padrao')
         .then(response => response.json())
         .then(data => {
             if (data.success && data.checklist.length > 0) {
                 const container = document.getElementById('checklistItems');
-                container.innerHTML = ''; // Clear current content
+                container.innerHTML = ''; // Limpar conteúdo atual
 
                 data.checklist.forEach(item => {
                     const itemDiv = document.createElement('div');
@@ -1936,218 +1743,96 @@ function carregarChecklistPadrao() {
                             </div>
                         </div>
                         <div class="mt-2" style="display: none;" id="obs_${item.id}">
-                            <textarea class="form-control form-control-sm" rows="2" placeholder="Optional observations..." name="obs_${item.id}"></textarea>
+                            <textarea class="form-control form-control-sm" rows="2" placeholder="Observações (opcional)..." name="obs_${item.id}"></textarea>
                         </div>
                     `;
                     container.appendChild(itemDiv);
                 });
 
-                console.log(`${data.checklist.length} default checklist items loaded`);
+                console.log(`${data.checklist.length} itens do checklist padrão carregados`);
             } else {
                 const container = document.getElementById('checklistItems');
-                container.innerHTML = '<p class="text-muted">No default checklist items. <a href="/admin/checklist-padrao">Configure checklist</a></p>';
+                container.innerHTML = '<p class="text-muted">Nenhum item no checklist padrão. <a href="/admin/checklist-padrao">Configurar checklist</a></p>';
             }
         })
         .catch(error => {
-            console.error('Error loading default checklist:', error);
+            console.error('Erro ao carregar checklist padrão:', error);
             const container = document.getElementById('checklistItems');
-            container.innerHTML = '<p class="text-danger">Error loading checklist. <a href="#" onclick="carregarChecklistPadrao()">Try again</a></p>';
+            container.innerHTML = '<p class="text-danger">Erro ao carregar checklist. <a href="#" onclick="carregarChecklistPadrao()">Tentar novamente</a></p>';
         });
 }
 
-// Helper function to load by ID directly
-function carregarFuncionariosEmails(projetoId) {
-    if (!projetoId) {
-        console.log('⚠️ Invalid project ID');
-        return;
-    }
-
-    const funcionariosDiv = document.getElementById('funcionarios-projeto');
-    const emailsDiv = document.getElementById('emails-projeto');
-
-    if (!funcionariosDiv || !emailsDiv) {
-        console.error('❌ Staff or email divs not found');
-        return;
-    }
-
-    console.log('🔄 Loading staff and emails for project ID:', projetoId);
-
-    funcionariosDiv.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading staff...</p>';
-    emailsDiv.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading emails...</p>';
-
-    // Fetch project staff and emails via AJAX
-    const apiUrl = `/api/projeto/${projetoId}/funcionarios-emails`;
-    console.log('📡 Calling API:', apiUrl);
-
-    fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => {
-        console.log('📡 API Response:', response.status, response.statusText);
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('📦 Received data:', data);
-
-        if (data.success) {
-            // Render staff
-            let funcionariosHtml = '';
-            if (data.funcionarios && data.funcionarios.length > 0) {
-                console.log(`✅ ${data.funcionarios.length} staff found`);
-                data.funcionarios.forEach(func => {
-                    const checked = func.is_responsavel_principal ? 'checked' : '';
-                    funcionariosHtml += `
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="func_${func.id}"
-                                   name="funcionarios_selecionados[]" value="${func.id}" ${checked}>
-                            <label class="form-check-label" for="func_${func.id}">
-                                <strong>${func.nome_funcionario}</strong><br>
-                                <small class="text-muted">${func.cargo || 'No position'} - ${func.empresa || 'No company'}</small>
-                                ${func.is_responsavel_principal ? '<span class="badge bg-primary">Primary</span>' : ''}
-                            </label>
-                        </div>
-                    `;
-                });
-            } else {
-                funcionariosHtml = '<p class="text-muted">No staff found for this project</p>';
-                console.log('⚠️ No staff found');
-            }
-            funcionariosDiv.innerHTML = funcionariosHtml;
-
-            // Render emails
-            let emailsHtml = '';
-            if (data.emails && data.emails.length > 0) {
-                data.emails.forEach(email => {
-                    const checked = email.is_principal ? 'checked' : '';
-                    emailsHtml += `
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="email_${email.id}"
-                                   name="emails_selecionados[]" value="${email.id}" ${checked}>
-                            <label class="form-check-label" for="email_${email.id}">
-                                <strong>${email.email}</strong><br>
-                                <small class="text-muted">${email.nome_contato} - ${email.cargo || 'No position'}</small>
-                                ${email.is_principal ? '<span class="badge bg-success">Primary</span>' : ''}
-                            </label>
-                        </div>
-                    `;
-                });
-                console.log(`✅ ${data.emails.length} emails loaded`);
-            } else {
-                emailsHtml = '<p class="text-muted">No emails found for this project</p>';
-                console.log('⚠️ No emails found');
-            }
-            emailsDiv.innerHTML = emailsHtml;
-        } else {
-            console.error('❌ API returned error:', data.error || 'Unknown error');
-            funcionariosDiv.innerHTML = `<p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error: ${data.error || 'Error loading staff'}</p>`;
-            emailsDiv.innerHTML = `<p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error: ${data.error || 'Error loading emails'}</p>`;
-        }
-    })
-    .catch(error => {
-        console.error('❌ Error loading staff and emails:', error);
-        funcionariosDiv.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>Error loading staff</strong><br>
-                <small>${error.message}</small><br>
-                <small>URL: /api/projeto/${projetoId}/funcionarios-emails</small>
-            </div>
-        `;
-        emailsDiv.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>Error loading emails</strong><br>
-                <small>${error.message}</small>
-            </div>
-        `;
-    });
-}
-
-// Initialize system on page load
+// Inicializar sistema ao carregar a página
 document.addEventListener('DOMContentLoaded', function() {
-    // Load default checklist automatically
+    // Carregar checklist padrão automaticamente
     carregarChecklistPadrao();
 
-    // Auto-load project data if pre-selected
+    // Auto-carregar dados do projeto se pre-selecionado
     {% if disable_fields and preselected_project_id %}
-    // For pre-selected project with disabled fields
-    console.log('🏗️ Pre-selected project detected (disabled fields):', {{ preselected_project_id }});
-    carregarFuncionariosEmails({{ preselected_project_id }});
-    {% elif selected_project and selected_project.id %}
-    // For pre-selected project (selected_project exists in template)
-    console.log('🏗️ selected_project detected:', {{ selected_project.id }});
-    carregarFuncionariosEmails({{ selected_project.id }});
+    // Para projeto pré-selecionado com campos desabilitados
+    console.log('🏗️ Projeto pré-selecionado detectado (campos desabilitados):', {{ preselected_project_id }});
+    carregarFuncionariosEmailsPorId({{ preselected_project_id }});
     {% else %}
-    // For project selected normally via dropdown
+    // Para projeto selecionado normalmente
     const projetoSelect = document.getElementById('projeto_id');
-    if (projetoSelect && projetoSelect.value && !isNaN(parseInt(projetoSelect.value))) {
-        console.log('🏗️ Project via select detected:', projetoSelect.value);
-        carregarFuncionariosEmails(parseInt(projetoSelect.value));
-    } else {
-        console.log('ℹ️ No pre-selected project - awaiting user selection');
+    if (projetoSelect && projetoSelect.value) {
+        console.log('🏗️ Projeto pré-selecionado detectado:', projetoSelect.value);
+        carregarFuncionariosEmails();
     }
     {% endif %}
 
-    // Initialize Fabric.js modal editor
+    // Inicializar editor modal Fabric.js - exatamente como no Express
     if (typeof initFabricPhotoEditorModal === 'function') {
         initFabricPhotoEditorModal();
-        console.log('✅ Modal editor initialized');
+        console.log('✅ Editor modal inicializado');
     } else {
-        console.error('❌ Modal editor not available');
+        console.error('❌ Editor modal não disponível');
     }
-
-    // Create initial report and activate auto save after basic data is filled
+    
+    // Criar relatório inicial e ativar auto save após preencher dados básicos
     let autoSaveInitialized = false;
-
-    // Function to initialize auto save when sufficient data is available
+    
+    // Função para inicializar auto save quando houver dados suficientes
     function tryInitializeAutoSave() {
         if (autoSaveInitialized) return;
-
+        
         const titulo = document.getElementById('titulo').value;
         const projetoId = document.getElementById('projeto_id').value;
-
+        
         if (titulo && projetoId) {
-            console.log('📝 Basic data filled, creating initial report...');
-
-            // Create initial report
+            console.log('📝 Dados básicos preenchidos, criando relatório inicial...');
+            
+            // Criar relatório inicial
             createInitialReport().then(reportId => {
                 window.currentReportId = reportId;
-
-                // Initialize auto save
+                
+                // Inicializar auto save
                 if (typeof initAutoSave === 'function') {
                     window.autoSaveInstance = initAutoSave(reportId, {
-                        interval: 10000, // 10 seconds
+                        interval: 10000, // 10 segundos
                         statusElement: document.getElementById('autosave-status'),
                         form: document.getElementById('reportForm')
                     });
-
+                    
                     autoSaveInitialized = true;
-                    console.log('✅ Auto save activated for report', reportId);
+                    console.log('✅ Auto save ativado para relatório', reportId);
                 } else {
-                    console.error('❌ initAutoSave function not found');
+                    console.error('❌ Função initAutoSave não encontrada');
                 }
             }).catch(error => {
-                console.error('❌ Error creating initial report:', error);
+                console.error('❌ Erro ao criar relatório inicial:', error);
             });
         }
     }
-
-    // Observe changes in basic fields
+    
+    // Observar mudanças nos campos básicos
     const tituloField = document.getElementById('titulo');
     const projetoField = document.getElementById('projeto_id');
-
+    
     if (tituloField) {
         tituloField.addEventListener('blur', tryInitializeAutoSave);
     }
-
+    
     if (projetoField) {
         projetoField.addEventListener('change', tryInitializeAutoSave);
     }
@@ -2155,21 +1840,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </script>
 
-<!-- Fabric.js CDN - Exactly like Express -->
+<!-- Fabric.js CDN - Exatamente como no Express -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 
-<!-- Editor Scripts - Exactly like Express -->
+<!-- Editor Scripts - Exatamente como no Express -->
 <script src="{{ url_for('static', filename='js/fabric-photo-editor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/fabric-photo-editor-modal.js') }}"></script>
 
-<!-- Professional Photo Editor Modal - Exactly like Express -->
+<!-- Modal do Editor de Fotos Professional - Exatamente como no Express -->
 <div class="modal fade" id="fabricPhotoEditorModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
         <div class="modal-content">
             <!-- Header -->
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title">
-                    <i class="fas fa-edit"></i> Professional Photo Editor
+                    <i class="fas fa-edit"></i> Editor de Fotos Professional
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -2177,55 +1862,55 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- Body -->
             <div class="modal-body p-0" style="height: calc(100vh - 160px);">
                 <div class="fabric-editor-container" style="height: 100%;">
-                    <!-- Main editor area -->
+                    <!-- Área principal do editor -->
                     <div class="fabric-editor-main" style="flex: 1; display: flex; flex-direction: column;">
-                        <!-- Canvas container -->
+                        <!-- Container do canvas -->
                         <div class="canvas-container" style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; background: #f8f9fa;">
                             <div class="canvas-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); overflow: hidden;">
                                 <canvas id="fabricModalCanvas"></canvas>
                             </div>
                         </div>
 
-                        <!-- Toolbar -->
+                        <!-- Toolbar de ferramentas -->
                         <div class="fabric-toolbar" style="background: white; border-top: 1px solid #e1e5e9; padding: 16px;">
-                            <!-- Main tools -->
+                            <!-- Ferramentas principais -->
                             <div class="tool-group mb-3">
-                                <h6 class="text-muted mb-2">Tools</h6>
+                                <h6 class="text-muted mb-2">Ferramentas</h6>
                                 <div class="d-flex gap-2 flex-wrap">
-                                    <button class="fabric-tool-btn active" data-modal-tool="select" title="Select">
+                                    <button class="fabric-tool-btn active" data-modal-tool="select" title="Seleção">
                                         <i class="fas fa-mouse-pointer"></i>
                                     </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="brush" title="Brush">
+                                    <button class="fabric-tool-btn" data-modal-tool="brush" title="Pincel">
                                         <i class="fas fa-paint-brush"></i>
                                     </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="arrow" title="Arrow">
+                                    <button class="fabric-tool-btn" data-modal-tool="arrow" title="Seta">
                                         <i class="fas fa-arrow-right"></i>
                                     </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="circle" title="Circle">
+                                    <button class="fabric-tool-btn" data-modal-tool="circle" title="Círculo">
                                         <i class="far fa-circle"></i>
                                     </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="rectangle" title="Rectangle">
+                                    <button class="fabric-tool-btn" data-modal-tool="rectangle" title="Retângulo">
                                         <i class="far fa-square"></i>
                                     </button>
-                                    <button class="fabric-tool-btn" data-modal-tool="text" title="Text">
+                                    <button class="fabric-tool-btn" data-modal-tool="text" title="Texto">
                                         <i class="fas fa-font"></i>
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Properties -->
+                            <!-- Propriedades -->
                             <div class="row">
                                 <div class="col-md-4">
-                                    <label class="form-label">Color:</label>
+                                    <label class="form-label">Cor:</label>
                                     <input type="color" id="modal-color-picker" class="form-control form-control-color" value="#FF0000">
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label">Thickness:</label>
+                                    <label class="form-label">Espessura:</label>
                                     <input type="range" id="modal-stroke-width" class="form-range" min="1" max="20" value="3">
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label">Caption:</label>
-                                    <input type="text" id="modal-custom-legend" class="form-control" placeholder="Enter a caption...">
+                                    <label class="form-label">Legenda:</label>
+                                    <input type="text" id="modal-custom-legend" class="form-control" placeholder="Digite uma legenda...">
                                 </div>
                             </div>
                         </div>
@@ -2236,16 +1921,16 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- Footer -->
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" id="modal-cancel-btn">
-                    <i class="fas fa-times"></i> Cancel
+                    <i class="fas fa-times"></i> Cancelar
                 </button>
                 <button type="button" class="btn btn-danger" onclick="window.fabricPhotoEditorModal?.clear()">
-                    <i class="fas fa-trash"></i> Clear
+                    <i class="fas fa-trash"></i> Limpar
                 </button>
                 <button type="button" class="btn btn-warning" onclick="window.fabricPhotoEditorModal?.undo()">
-                    <i class="fas fa-undo"></i> Undo
+                    <i class="fas fa-undo"></i> Desfazer
                 </button>
                 <button type="button" class="btn btn-success" id="modal-save-btn">
-                    <i class="fas fa-check"></i> Save
+                    <i class="fas fa-check"></i> Salvar
                 </button>
             </div>
         </div>
@@ -2253,7 +1938,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <style>
-/* Modal editor styles - Exactly like Express */
+/* Estilos do modal do editor - Exatamente como no Express */
 .fabric-tool-btn {
     display: flex;
     align-items: center;
@@ -2280,7 +1965,7 @@ document.addEventListener('DOMContentLoaded', function() {
     border-color: #2563eb;
 }
 
-/* Visual indicator for edited photo */
+/* Indicador visual de foto editada */
 .photo-container.edited {
     position: relative;
 }
@@ -2319,7 +2004,7 @@ document.addEventListener('DOMContentLoaded', function() {
     transform: scale(1.1);
 }
 
-/* Mobile responsive */
+/* Responsivo mobile */
 @media (max-width: 768px) {
     .fabric-toolbar {
         max-height: 40vh;
@@ -2331,8 +2016,8 @@ document.addEventListener('DOMContentLoaded', function() {
         min-height: 40px;
     }
 
-    /* MOBILE: Specific optimizations for predefined captions */
-    select[name^="photo_caption_"],
+    /* MOBILE: Otimizações específicas para legendas pré-definidas */
+    select[name^="photo_caption_"], 
     select[id^="predefined_"] {
         font-size: 16px !important;
         min-height: 48px !important;
@@ -2347,7 +2032,7 @@ document.addEventListener('DOMContentLoaded', function() {
         appearance: menulist !important;
     }
 
-    /* Visible option groups */
+    /* Grupos de opções visíveis */
     optgroup {
         font-weight: bold !important;
         color: #007bff !important;
@@ -2362,12 +2047,12 @@ document.addEventListener('DOMContentLoaded', function() {
         background: white !important;
     }
 
-    /* Optimized photo cards */
+    /* Cards de fotos otimizados */
     .card-body.p-2 {
         padding: 16px !important;
     }
 
-    /* More visible category text */
+    /* Texto de categoria mais visível */
     .text-muted {
         font-size: 14px !important;
         color: #555 !important;
@@ -2397,34 +2082,34 @@ document.addEventListener('DOMContentLoaded', function() {
     longitudeEl.value = {{ selected_project.longitude | tojson }};
 
     // Display project location info (escaped properly)
-    const endereco = {{ selected_project.endereco | tojson or "'Project coordinates'" }};
+    const endereco = {{ selected_project.endereco | tojson or "'Coordenadas do projeto'" }};
     localizacaoInfo.innerHTML = `
         <div class="alert alert-success">
-            <i class="fas fa-check-circle"></i> Project location pre-loaded!<br>
+            <i class="fas fa-check-circle"></i> Localização do projeto pré-carregada!<br>
             <strong>📍 ${endereco}</strong>
-            <br><small class="text-muted">You can capture a new location if needed</small>
+            <br><small class="text-muted">Você pode capturar nova localização se necessário</small>
         </div>
     `;
     {% else %}
     // Show message that project has no coordinates
     localizacaoInfo.innerHTML = `
         <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle"></i> This project does not have coordinates registered.<br>
-            <small>Use the "Capture Current Location" button to set the visit location.</small>
+            <i class="fas fa-exclamation-triangle"></i> Este projeto não possui coordenadas cadastradas.<br>
+            <small>Use o botão "Capturar Localização Atual" para definir a localização da visita.</small>
         </div>
     `;
     {% endif %}
 });
 {% endif %}
 
-// Smart touch system EQUAL TO EXPRESS - 100% functional
+// Sistema de touch inteligente IGUAL AO EXPRESS - funcional 100%
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Smart touch system loaded (equal to express)');
-
-    // EXACT Express Settings
+    console.log('🎯 Sistema de touch inteligente carregado (igual express)');
+    
+    // Configurações EXATAS do Express
     const TOUCH_THRESHOLD = 10; // pixels
     const TOUCH_TIME_LIMIT = 500; // ms
-
+    
     let touchData = {
         startX: 0,
         startY: 0,
@@ -2432,131 +2117,131 @@ document.addEventListener('DOMContentLoaded', function() {
         isDragging: false,
         element: null
     };
-
-    // Function for category selection IDENTICAL TO Express
+    
+    // Função para seleção de categoria IDÊNTICA ao Express
     function selectPhotoCategory(category, element) {
-        // Remove previous selection
+        // Remover seleção anterior
         document.querySelectorAll('.photo-category').forEach(cat => {
-            if (cat && cat.classList) cat.classList.remove('selected');
+            cat.classList.remove('selected');
         });
-
-        // Add current selection
-        if (element && element.classList) element.classList.add('selected');
-
-        // Haptic feedback
+        
+        // Adicionar seleção atual
+        element.classList.add('selected');
+        
+        // Feedback tátil
         if (navigator.vibrate) {
             navigator.vibrate(50);
         }
-
-        console.log('📷 Category selected:', category);
-
-        // Update global category
+        
+        console.log('📷 Categoria selecionada:', category);
+        
+        // Atualizar categoria global
         selectedCategory = category;
-
-        // Enable upload buttons
+        
+        // Habilitar botões de upload
         const galleryBtn = document.getElementById('galleryBtn');
         const cameraBtn = document.getElementById('cameraBtn');
         if (galleryBtn) galleryBtn.disabled = false;
         if (cameraBtn) cameraBtn.disabled = false;
-
-        // Update photo input
+        
+        // Atualizar input de fotos
         updatePhotoInput();
     }
-
-    // Event listeners for categories - EXACT EXPRESS CODE
+    
+    // Event listeners para categorias - CÓDIGO EXATO DO EXPRESS
     document.querySelectorAll('.photo-category').forEach(categoryElement => {
-
+        
         // Touch Start
         categoryElement.addEventListener('touchstart', function(e) {
-            console.log('👆 TouchStart category');
-
+            console.log('👆 TouchStart categoria');
+            
             const touch = e.touches[0];
             touchData.startX = touch.clientX;
             touchData.startY = touch.clientY;
             touchData.startTime = Date.now();
             touchData.isDragging = false;
             touchData.element = categoryElement;
-
-            // Immediate visual feedback
-            if (categoryElement && categoryElement.classList) categoryElement.classList.add('touching');
+            
+            // Feedback visual imediato
+            categoryElement.classList.add('touching');
         }, { passive: true });
-
+        
         // Touch Move
         categoryElement.addEventListener('touchmove', function(e) {
             if (!touchData.element) return;
-
+            
             const touch = e.touches[0];
             const deltaX = Math.abs(touch.clientX - touchData.startX);
             const deltaY = Math.abs(touch.clientY - touchData.startY);
             const totalDelta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-            // If movement exceeds threshold, mark as drag
+            
+            // Se movimento exceder threshold, marcar como drag
             if (totalDelta > TOUCH_THRESHOLD) {
                 touchData.isDragging = true;
-                if (categoryElement && categoryElement.classList) categoryElement.classList.remove('touching');
-                console.log('🔄 Movement detected - drag mode activated');
+                categoryElement.classList.remove('touching');
+                console.log('🔄 Movimento detectado - modo drag ativado');
             }
         }, { passive: true });
-
+        
         // Touch End
         categoryElement.addEventListener('touchend', function(e) {
-            console.log('👆 TouchEnd category');
-
-            // Remove visual feedback
-            if (categoryElement && categoryElement.classList) categoryElement.classList.remove('touching');
-
+            console.log('👆 TouchEnd categoria');
+            
+            // Remover feedback visual
+            categoryElement.classList.remove('touching');
+            
             if (!touchData.element) return;
-
+            
             const touchDuration = Date.now() - touchData.startTime;
-
-            // Only select if it was a quick tap without movement
+            
+            // Apenas selecionar se foi um tap rápido e sem movimento
             if (!touchData.isDragging && touchDuration < TOUCH_TIME_LIMIT) {
                 e.preventDefault();
                 e.stopPropagation();
-
+                
                 const category = categoryElement.getAttribute('data-category');
                 selectPhotoCategory(category, categoryElement);
-
-                console.log('✅ Valid tap - category selected');
+                
+                console.log('✅ Tap válido - categoria selecionada');
             } else {
-                console.log('❌ Drag detected - do not select category');
+                console.log('❌ Drag detectado - não selecionar categoria');
             }
-
+            
             // Reset
             touchData.element = null;
             touchData.isDragging = false;
         }, { passive: false });
-
-        // Mouse events for desktop (fallback)
+        
+        // Mouse events para desktop (fallback)
         categoryElement.addEventListener('click', function(e) {
-            // Only process if there was no recent touch
+            // Apenas processar se não houve toque recente
             if (touchData.startTime && (Date.now() - touchData.startTime) < 300) {
-                return; // Ignore click after touch
+                return; // Ignorar click após touch
             }
-
+            
             e.preventDefault();
             e.stopPropagation();
-
+            
             const category = categoryElement.getAttribute('data-category');
             selectPhotoCategory(category, categoryElement);
-
-            console.log('🖱️ Desktop click - category selected');
+            
+            console.log('🖱️ Click desktop - categoria selecionada');
         });
     });
-
-    console.log('✅ Smart touch system active for', document.querySelectorAll('.photo-category').length, 'categories');
+    
+    console.log('✅ Sistema de touch inteligente ativo para', document.querySelectorAll('.photo-category').length, 'categorias');
 });
 
-// Global function for compatibility - integrated with touch system
+// Função global para compatibilidade - integrada com sistema de touch
 window.selectPhotoCategory = function(category, element) {
     if (!element) {
         element = document.querySelector(`[data-category="${category}"]`);
     }
 
     if (element) {
-        // Use the internal function that already has all the logic
-        const selectEvent = new CustomEvent('selectCategory', {
-            detail: { category: category, element: element }
+        // Usar a função interna que já tem toda a lógica
+        const selectEvent = new CustomEvent('selectCategory', { 
+            detail: { category: category, element: element } 
         });
         document.dispatchEvent(selectEvent);
     }
@@ -2564,10 +2249,47 @@ window.selectPhotoCategory = function(category, element) {
 </script>
 
 <!-- Auto Save Script -->
-<!-- Auto-managed autosave system by reports_autosave.js -->
-{% if existing_report and existing_report.id %}
-<div data-report-id="{{ existing_report.id }}" style="display:none;"></div>
-{% endif %}
+<!-- Sistema de autosave antigo desabilitado para evitar conflitos -->
+<!-- <script src="{{ url_for('static', filename='js/autosave.js') }}"></script> -->
+<script>
+// Inicializar Auto Save apenas se estivermos editando um relatório existente
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar se temos um ID de relatório para auto save
+    const urlParams = new URLSearchParams(window.location.search);
+    const reportId = urlParams.get('report_id') || document.querySelector('input[name="report_id"]')?.value;
+    
+    if (reportId) {
+        // Inicializar auto save
+        const autoSave = initAutoSave(reportId, {
+            interval: 10000, // 10 segundos
+            statusElement: document.getElementById('autosave-status'),
+            form: document.getElementById('reportForm')
+        });
+        
+        console.log('Auto Save ativado para relatório', reportId);
+        
+        // Modificar o comportamento do botão de finalizar
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', function(e) {
+                // Parar auto save antes de finalizar
+                autoSave.stop();
+                
+                // Salvar uma última vez e depois prosseguir
+                autoSave.saveNow().then(() => {
+                    // Alterar status para finalizado
+                    const statusBadge = document.querySelector('.badge.bg-warning');
+                    if (statusBadge) {
+                        statusBadge.innerHTML = '<i class="fas fa-check me-1"></i>Finalizando...';
+                        statusBadge.classList.remove('bg-warning');
+                        statusBadge.classList.add('bg-success');
+                    }
+                });
+            });
+        }
+    }
+});
+</script>
 
 <!-- Mobile-First Photo System JavaScript -->
 <script>
@@ -2585,39 +2307,39 @@ document.addEventListener('DOMContentLoaded', function() {
 // Load predefined captions from API
 async function loadPredefinedLegendas() {
     try {
-        console.log('📋 Loading predefined captions...');
+        console.log('📋 Carregando legendas predefinidas...');
         const response = await fetch('/api/legendas?categoria=all');
         const data = await response.json();
-
+        
         if (data.success) {
             predefinedLegendas = data.legendas;
-            console.log(`✅ ${predefinedLegendas.length} captions loaded`);
+            console.log(`✅ ${predefinedLegendas.length} legendas carregadas`);
         }
     } catch (error) {
-        console.error('❌ Error loading captions:', error);
+        console.error('❌ Erro ao carregar legendas:', error);
     }
 }
 
 // Setup mobile photo system
 function setupMobilePhotoSystem() {
-    console.log('📱 Setting up mobile-first photo system...');
-
+    console.log('📱 Configurando sistema de fotos mobile-first...');
+    
     // Setup file input event listeners
     const mobilePhotoInput = document.getElementById('mobilePhotoInput');
     const mobileCameraInput = document.getElementById('mobileCameraInput');
-
+    
     if (mobilePhotoInput) {
         mobilePhotoInput.addEventListener('change', handleMobilePhotoSelection);
     }
-
+    
     if (mobileCameraInput) {
         mobileCameraInput.addEventListener('change', handleMobilePhotoSelection);
     }
-});
+}
 
 // Mobile gallery selection
 function mobileSelectFromGallery() {
-    console.log('📸 Selecting from gallery (mobile)...');
+    console.log('📸 Selecionando da galeria (mobile)...');
     const input = document.getElementById('mobilePhotoInput');
     if (input) {
         input.click();
@@ -2626,7 +2348,7 @@ function mobileSelectFromGallery() {
 
 // Mobile camera capture
 function mobileCaptureFromCamera() {
-    console.log('📷 Capturing from camera (mobile)...');
+    console.log('📷 Capturando da câmera (mobile)...');
     const input = document.getElementById('mobileCameraInput');
     if (input) {
         input.click();
@@ -2635,19 +2357,19 @@ function mobileCaptureFromCamera() {
 
 // Handle photo selection from mobile inputs
 function handleMobilePhotoSelection(event) {
-    console.log('📋 Processing selected photos...');
+    console.log('📋 Processando fotos selecionadas...');
     const files = event.target.files;
     const defaultCategory = document.getElementById('defaultCategory').value;
-
+    
     if (files.length === 0) return;
-
+    
     Array.from(files).forEach(file => {
         createMobilePhotoCard(file, defaultCategory);
     });
-
+    
     // Clear input for next selection
     event.target.value = '';
-
+    
     updatePhotoCounter();
 }
 
@@ -2655,17 +2377,17 @@ function handleMobilePhotoSelection(event) {
 function createMobilePhotoCard(file, category) {
     const photoId = 'mobile_photo_' + (++mobilePhotoCounter);
     const reader = new FileReader();
-
+    
     reader.onload = function(e) {
         const photoCard = createPhotoCardHTML(photoId, e.target.result, category, file.name);
-
+        
         // Add to DOM
         const container = document.getElementById('mobilePhotoCards');
         const cardCol = document.createElement('div');
         cardCol.className = 'col-12 col-md-6 col-lg-4';
         cardCol.innerHTML = photoCard;
         container.appendChild(cardCol);
-
+        
         // Store photo data
         mobilePhotoData.push({
             id: photoId,
@@ -2675,16 +2397,16 @@ function createMobilePhotoCard(file, category) {
             predefinedCaption: '',
             filename: file.name
         });
-
+        
         // Setup event listeners for this card
         setupPhotoCardEvents(photoId);
-
+        
         // Immediately scroll to the new photo and focus on caption for better UX
         setTimeout(() => {
             const newCard = cardCol.querySelector('.mobile-photo-card');
             if (newCard) {
                 newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
+                
                 // Auto-focus on caption input for immediate editing
                 const captionInput = newCard.querySelector('.caption-input');
                 if (captionInput) {
@@ -2695,65 +2417,65 @@ function createMobilePhotoCard(file, category) {
                 }
             }
         }, 300);
-
-        console.log(`📷 Photo added: ${file.name} (${category})`);
+        
+        console.log(`📷 Foto adicionada: ${file.name} (${category})`);
     };
-
+    
     reader.readAsDataURL(file);
 }
 
 // Create photo card HTML
 function createPhotoCardHTML(photoId, imageSrc, category, filename) {
     const legendaSelectHTML = createLegendaSelectHTML(photoId);
-
+    
     return `
         <div class="mobile-photo-card enhanced" data-photo-id="${photoId}" style="border: 2px solid #007bff; border-radius: 12px; padding: 12px; background: white; box-shadow: 0 4px 12px rgba(0,123,255,0.15); margin-bottom: 16px;">
-            <!-- Vertical Layout: IMAGE ON TOP -->
+            <!-- Layout Vertical: IMAGEM EM CIMA -->
             <div class="text-center mb-3">
-                <img src="${imageSrc}"
-                     alt="${filename}"
+                <img src="${imageSrc}" 
+                     alt="${filename}" 
                      data-photo-id="${photoId}"
                      style="width: 100%; max-width: 200px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef; cursor: pointer;">
             </div>
-
-            <!-- Category (WITHOUT filename) -->
+            
+            <!-- Categoria (SEM nome do arquivo) -->
             <div class="text-center mb-2">
                 <span class="badge bg-primary">${category}</span>
             </div>
-
-            <!-- CAPTION BELOW -->
+            
+            <!-- LEGENDA EM BAIXO -->
             <div class="mb-2">
-                <input type="text"
-                       class="form-control caption-input"
-                       id="manual_caption_${photoId}"
-                       placeholder="✏️ Enter a caption (required)..."
+                <input type="text" 
+                       class="form-control caption-input" 
+                       id="manual_caption_${photoId}" 
+                       placeholder="✏️ Digite uma legenda (obrigatório)..."
                        data-photo-id="${photoId}"
                        style="border: 2px solid #28a745; font-size: 14px; padding: 8px; background-color: #f8fff9;">
             </div>
-
-            <!-- Predefined Caption -->
+            
+            <!-- Legenda Pré-definida -->
             <div class="mb-2">
-                <select class="form-select form-select-sm caption-select"
-                        id="predefined_caption_${photoId}"
+                <select class="form-select form-select-sm caption-select" 
+                        id="predefined_caption_${photoId}" 
                         data-photo-id="${photoId}"
                         style="font-size: 12px;">
-                    <option value="">📋 Or choose a predefined caption...</option>
+                    <option value="">📋 Ou escolha uma legenda pré-definida...</option>
                     ${legendaSelectHTML}
                 </select>
             </div>
-
-            <!-- Caption Status -->
+            
+            <!-- Status da Legenda -->
             <div class="caption-status pending alert alert-warning py-1 px-2 mb-2" id="caption_status_${photoId}" style="font-size: 12px; margin: 0;">
-                ⚠️ Caption required - fill at least one field
+                ⚠️ Legenda obrigatória - preencha o campo acima
             </div>
-
-            <!-- Actions -->
+            
+            <!-- Ações -->
             <div class="d-flex gap-2 justify-content-center">
                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="editMobilePhoto('${photoId}')">
-                    <i class="fas fa-edit"></i> Edit
+                    <i class="fas fa-edit"></i> Editar
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMobilePhoto('${photoId}')">
-                    <i class="fas fa-trash"></i> Delete
+                    <i class="fas fa-trash"></i> Excluir
                 </button>
             </div>
         </div>
@@ -2763,7 +2485,7 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
 // Create legend select HTML
 function createLegendaSelectHTML(photoId) {
     let html = '';
-
+    
     // Group legends by category
     const legendsByCategory = {};
     predefinedLegendas.forEach(legenda => {
@@ -2772,7 +2494,7 @@ function createLegendaSelectHTML(photoId) {
         }
         legendsByCategory[legenda.categoria].push(legenda);
     });
-
+    
     // Create optgroups
     Object.keys(legendsByCategory).forEach(categoria => {
         html += `<optgroup label="${categoria}">`;
@@ -2781,7 +2503,7 @@ function createLegendaSelectHTML(photoId) {
         });
         html += `</optgroup>`;
     });
-
+    
     return html;
 }
 
@@ -2789,19 +2511,19 @@ function createLegendaSelectHTML(photoId) {
 function setupPhotoCardEvents(photoId) {
     const manualInput = document.getElementById(`manual_caption_${photoId}`);
     const predefinedSelect = document.getElementById(`predefined_caption_${photoId}`);
-
+    
     if (manualInput) {
         manualInput.addEventListener('input', () => saveCaptionData(photoId));
         manualInput.addEventListener('blur', () => saveCaptionData(photoId));
     }
-
+    
     if (predefinedSelect) {
         predefinedSelect.addEventListener('change', function() {
             if (this.value) {
                 // Copy predefined to manual field
                 manualInput.value = this.value;
                 saveCaptionData(photoId);
-
+                
                 // Reset select for next use
                 setTimeout(() => {
                     this.selectedIndex = 0;
@@ -2816,81 +2538,81 @@ async function saveCaptionData(photoId) {
     const manualInput = document.getElementById(`manual_caption_${photoId}`);
     const predefinedSelect = document.getElementById(`predefined_caption_${photoId}`);
     const statusDiv = document.getElementById(`caption_status_${photoId}`);
-
+    
     const manualCaption = manualInput.value.trim();
     const predefinedCaption = predefinedSelect.value.trim();
-
+    
     // Update local data
     const photoData = mobilePhotoData.find(p => p.id === photoId);
     if (photoData) {
         photoData.manualCaption = manualCaption;
         photoData.predefinedCaption = predefinedCaption;
     }
-
+    
     // Update status
     const hasCaption = manualCaption || predefinedCaption;
     if (hasCaption) {
         statusDiv.className = 'caption-status complete';
-        statusDiv.innerHTML = '✅ Caption set';
+        statusDiv.innerHTML = '✅ Legenda definida';
     } else {
         statusDiv.className = 'caption-status pending';
-        statusDiv.innerHTML = '⚠️ Caption required - fill at least one field';
+        statusDiv.innerHTML = '⚠️ Legenda obrigatória - preencha pelo menos um campo';
     }
-
+    
     console.log(`💾 Caption saved for ${photoId}: "${manualCaption}"`);
 }
 
-// Edit mobile photo - RESTORED as it worked before
+// Edit mobile photo - RESTAURADO como funcionava antes
 function editMobilePhoto(photoId) {
     const photoData = mobilePhotoData.find(p => p.id === photoId);
     if (!photoData) return;
-
-    // Find the photo's img element
+    
+    // Encontrar o elemento img da foto
     const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
     const imgElement = photoCard.querySelector('img');
-
+    
     if (!imgElement) {
-        console.error('Image not found for editing');
+        console.error('Imagem não encontrada para edição');
         return;
     }
-
-    // Open the modal editor as before
+    
+    // Abrir editor modal como funcionava antes
     openPhotoEditorFromElement(imgElement);
 }
 
 // Delete mobile photo
 function deleteMobilePhoto(photoId) {
-    if (!confirm('Do you want to delete this photo?')) return;
-
+    if (!confirm('Deseja excluir esta foto?')) return;
+    
     // Remove from data array
     mobilePhotoData = mobilePhotoData.filter(p => p.id !== photoId);
-
+    
     // Remove from DOM
     const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
     if (photoCard) {
         photoCard.closest('.col-12, .col-md-6, .col-lg-4').remove();
     }
-
+    
     updatePhotoCounter();
-    console.log(`🗑️ Photo ${photoId} deleted`);
+    console.log(`🗑️ Foto ${photoId} excluída`);
 }
 
 // Update photo counter and show quick actions
 function updatePhotoCounter() {
     const count = mobilePhotoData.length;
-
+    
     // Update main counter
     const counter = document.getElementById('photoCount');
     if (counter) {
         counter.textContent = count;
     }
-
+    
     // Update quick action counter
     const quickCounter = document.getElementById('quickPhotoCount');
     if (quickCounter) {
         quickCounter.textContent = count;
     }
-
+    
     // Show quick action bar after first photo
     const quickActionBar = document.getElementById('quickPhotoActions');
     if (quickActionBar) {
@@ -2905,70 +2627,65 @@ function updatePhotoCounter() {
 // Validate captions before form submission
 function validateCaptions() {
     let hasInvalidPhotos = false;
-
+    
     mobilePhotoData.forEach(photoData => {
         const hasCaption = photoData.manualCaption || photoData.predefinedCaption;
         if (!hasCaption) {
             hasInvalidPhotos = true;
-
+            
             // Highlight invalid photo
             const statusDiv = document.getElementById(`caption_status_${photoData.id}`);
             if (statusDiv) {
                 statusDiv.className = 'caption-status pending';
-                statusDiv.innerHTML = '❌ REQUIRED: Add a caption';
+                statusDiv.innerHTML = '❌ OBRIGATÓRIO: Adicione uma legenda';
                 statusDiv.style.animation = 'pulse 2s infinite';
             }
         }
     });
-
+    
     return !hasInvalidPhotos;
 }
 
 // Prepare form data for submission
 async function prepareMobilePhotoFormData() {
-    console.log('📱 Preparing mobile photo data...');
-
-    // Convert files to base64 data
-    const photosWithData = await Promise.all(
-        mobilePhotoData.map(async (photoData) => {
-            let imageBase64 = null;
-
-            try {
-                // Convert file to base64
-                imageBase64 = await fileToBase64(photoData.file);
-                console.log(`✅ Photo ${photoData.id} converted: ${imageBase64.length} chars`);
-            } catch (error) {
-                console.error(`❌ Error converting photo ${photoData.id}:`, error);
-            }
-
-            return {
-                id: photoData.id,
-                filename: photoData.filename,
-                category: photoData.category,
-                caption: photoData.manualCaption || photoData.predefinedCaption,
-                description: '',
-                data: imageBase64 // CORRECTED: Now sends base64
-            };
-        })
-    );
-
-    // Create form data for mobile photos
-    const formData = {
-        photos: photosWithData
-    };
-
-    // Add hidden input with photo data
-    const hiddenInput = document.createElement('input');
-    hiddenInput.type = 'hidden';
-    hiddenInput.name = 'mobile_photos_data';
-    hiddenInput.value = JSON.stringify(formData);
-
-    const form = document.getElementById('reportForm');
-    if (form) {
-        form.appendChild(hiddenInput);
-    }
-
-    console.log(`📤 Prepared ${mobilePhotoData.length} photos with binary data for submission`);
+    console.log('📱 Preparando dados das fotos mobile...');
+    
+    // Adicionar os arquivos reais ao FormData
+    mobilePhotoData.forEach((photoData, index) => {
+        console.log(`✅ Adicionando foto ${index}: ${photoData.filename} (${photoData.category})`);
+        
+        // Criar inputs hidden para metadados
+        const categoryInput = document.createElement('input');
+        categoryInput.type = 'hidden';
+        categoryInput.name = `photo_category_${index}`;
+        categoryInput.value = photoData.category;
+        
+        const captionInput = document.createElement('input');
+        captionInput.type = 'hidden';
+        captionInput.name = `photo_caption_${index}`;
+        captionInput.value = photoData.manualCaption || photoData.predefinedCaption;
+        
+        // Criar file input para o arquivo real
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.name = `photo_${index}`;
+        fileInput.style.display = 'none';
+        
+        // Transferir o arquivo para o input
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(photoData.file);
+        fileInput.files = dataTransfer.files;
+        
+        // Adicionar ao form
+        const form = document.getElementById('reportForm');
+        if (form) {
+            form.appendChild(categoryInput);
+            form.appendChild(captionInput);
+            form.appendChild(fileInput);
+        }
+    });
+    
+    console.log(`📤 Preparados ${mobilePhotoData.length} fotos com arquivos binários para envio`);
 }
 
 // Helper function to convert file to base64
@@ -2981,87 +2698,55 @@ function fileToBase64(file) {
     });
 }
 
-// OLD SUBMIT HANDLER - DESABILITADO (substituído pelo sistema unificado em reports-upload.js)
 // Form submission validation
-/*
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('reportForm');
     if (form) {
         form.addEventListener('submit', async function(e) {
-            e.preventDefault(); // Always prevent default
-
-            // If we already have a reportId, just finalize
-            if (window.currentReportId) {
-                this.submit();
-                return;
-            }
-
             // Validate captions
             if (!validateCaptions()) {
-                alert('⚠️ ATTENTION: All photos must have at least one caption (manual or predefined). Please check the photos marked in red.');
-
-                // Scroll to the first invalid photo
+                e.preventDefault();
+                alert('⚠️ ATENÇÃO: Todas as fotos devem ter pelo menos uma legenda (manual ou pré-definida). Verifique as fotos marcadas em vermelho.');
+                
+                // Scroll to first invalid photo
                 const firstInvalid = document.querySelector('.caption-status.pending');
                 if (firstInvalid) {
                     firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
+                
                 return false;
             }
-
-            // Prepare mobile photo data if any exist
+            
+            // If there are photos, prepare mobile photo data
             if (mobilePhotoData.length > 0) {
-                console.log('📸 Processing photos...');
+                e.preventDefault(); // Prevent default submission while processing photos
+                
+                console.log('📸 Processando fotos...');
                 try {
                     await prepareMobilePhotoFormData();
-                    console.log('✅ Photos processed with base64');
+                    console.log('✅ Formulário validado - enviando...');
+                    
+                    // Remove this listener to prevent infinite loop
+                    form.removeEventListener('submit', arguments.callee);
+                    
+                    // Dispatch a new submit event to trigger the fetch-based submission
+                    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                    form.dispatchEvent(submitEvent);
                 } catch (error) {
-                    console.error('❌ Error processing photos:', error);
-                    alert('Error processing photos. Please try again.');
-                    return;
+                    console.error('❌ Erro ao processar fotos:', error);
+                    alert('Erro ao processar as fotos. Tente novamente.');
                 }
-            }
-
-            // Submit form
-            console.log('📤 Submitting form...');
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            submitBtn.disabled = true;
-
-            const formData = new FormData(form);
-
-            try {
-                const response = await fetch(form.action, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    alert('Report saved successfully!');
-                    window.location.href = data.redirect || '/reports';
-                } else {
-                    throw new Error(data.error || 'Error saving report');
-                }
-            } catch (error) {
-                console.error('❌ Error:', error);
-                alert('Error saving report. Please try again.');
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
+            } else {
+                console.log('✅ Formulário validado sem fotos - enviando...');
             }
         });
     }
 });
-*/
 
-console.log('📱 Mobile-first photo system loaded');
+console.log('📱 Sistema de fotos mobile-first carregado');
 </script>
 
 <!-- Auto Save Script -->
 <script src="{{ url_for('static', filename='js/reports_autosave.js') }}"></script>
-
-<!-- Unified Photo Upload System (NEW - Fixes image upload to database) -->
-<script src="{{ url_for('static', filename='js/reports-upload.js') }}"></script>
 
 {% endblock %}
