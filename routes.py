@@ -1978,20 +1978,19 @@ def create_report():
 
                     current_app.logger.info(f"📱 PROCESSANDO {len(photos_list)} FOTOS MOBILE")
 
-                    # Validate that all photos have captions (Item 19 - Mandatory captions)
+                    # Validate and filter photos with captions (Item 19 - Mandatory captions)
+                    valid_photos = []
                     for photo_data in photos_list:
                         caption = photo_data.get('caption', '').strip()
                         if not caption:
-                            db.session.rollback()
-                            current_app.logger.error(f"❌ FOTO SEM LEGENDA: {photo_data.get('filename')}")
-                            flash('❌ ERRO: Todas as fotos devem ter uma legenda. Verifique se todas as fotos têm pelo menos uma legenda (manual ou pré-definida).', 'error')
-                            return render_template('reports/form_complete.html', 
-                                                 form=form, 
-                                                 projetos=projetos, 
-                                                 admin_users=admin_users,
-                                                 selected_project=selected_project,
-                                                 selected_aprovador=selected_aprovador,
-                                                 today=today)
+                            current_app.logger.warning(f"⚠️ Foto mobile sem legenda será ignorada: {photo_data.get('filename')}")
+                            continue
+                        valid_photos.append(photo_data)
+                    
+                    if len(valid_photos) < len(photos_list):
+                        flash(f'⚠️ {len(photos_list) - len(valid_photos)} fotos sem legenda foram ignoradas.', 'warning')
+                    
+                    photos_list = valid_photos
 
                     # If validation passes, save mobile photos
                     for i, photo_data in enumerate(photos_list):
@@ -2050,16 +2049,10 @@ def create_report():
 
                     photo_count += len(photos_list)
                 except Exception as e:
-                    db.session.rollback()
-                    current_app.logger.error(f"❌ Erro crítico ao processar fotos mobile: {e}")
-                    flash('Erro ao processar fotos mobile. Tente novamente.', 'error')
-                    return render_template('reports/form_complete.html', 
-                                         form=form, 
-                                         projetos=projetos, 
-                                         admin_users=admin_users,
-                                         selected_project=selected_project,
-                                         selected_aprovador=selected_aprovador,
-                                         today=today)
+                    current_app.logger.error(f"❌ Erro ao processar JSON de fotos mobile: {e}")
+                    import traceback
+                    current_app.logger.error(f"❌ Traceback completo: {traceback.format_exc()}")
+                    flash('⚠️ Algumas fotos mobile podem não ter sido processadas corretamente.', 'warning')
 
             # Process regular file uploads
             for i in range(50):  # Support up to 50 photos
