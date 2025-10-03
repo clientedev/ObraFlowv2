@@ -1032,6 +1032,75 @@ def save_location():
         
         data = request.get_json()
         
+        # Validar dados
+        if not data:
+            return jsonify({
+                'status': 'error',
+                'message': 'Dados vazios ou inválidos'
+            }), 400
+        
+        lat = data.get('lat')
+        lng = data.get('lng')
+        
+        # Validação de latitude e longitude
+        if not lat or not lng:
+            return jsonify({
+                'status': 'error',
+                'message': 'Localização inválida: latitude e longitude são obrigatórias'
+            }), 400
+        
+        try:
+            lat = float(lat)
+            lng = float(lng)
+        except (ValueError, TypeError):
+            return jsonify({
+                'status': 'error',
+                'message': 'Latitude e longitude devem ser números válidos'
+            }), 400
+        
+        # Validar ranges
+        if not (-90 <= lat <= 90):
+            return jsonify({
+                'status': 'error',
+                'message': 'Latitude deve estar entre -90 e 90'
+            }), 400
+        
+        if not (-180 <= lng <= 180):
+            return jsonify({
+                'status': 'error',
+                'message': 'Longitude deve estar entre -180 e 180'
+            }), 400
+        
+        # Dados adicionais opcionais
+        accuracy = data.get('accuracy')
+        source = data.get('source', 'gps')  # 'gps' ou 'ip'
+        address = data.get('address')
+        projeto_id = data.get('projeto_id')
+        relatorio_id = data.get('relatorio_id')
+        
+        # Log da localização
+        current_app.logger.info(
+            f"📍 Localização recebida de {current_user.username}: "
+            f"Lat={lat}, Lng={lng}, Source={source}, "
+            f"Accuracy={accuracy}m, Address={address}"
+        )
+        
+        # Retornar sucesso
+        return jsonify({
+            'status': 'success',
+            'message': 'Localização salva com sucesso',
+            'lat': lat,
+            'lng': lng,
+            'source': source,
+            'user': current_user.username
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao salvar localização: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Erro ao salvar localização: {str(e)}'
+        }), 500
 
 
 # ==================== ALTERNATIVE SIMPLE UPLOAD API ====================
