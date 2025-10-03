@@ -2,21 +2,21 @@
 This project is a comprehensive construction site visit tracking system built with Flask, designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 ## Recent Changes
-- **Date**: October 3, 2025 - Correção de Duplicação de Relatórios e Confirmação de Exibição de Imagens
-- **Problema 1**: Relatórios duplicados sendo criados quando usuário já tinha um relatório "em preenchimento" para o mesmo projeto
-- **Solução 1**: Adicionada verificação em `routes.py` (linhas 2149-2160) antes de criar novo relatório
-  - Sistema agora verifica se já existe relatório com status "preenchimento" para o mesmo projeto e usuário
-  - Se existir, redireciona para editar o existente ao invés de criar duplicado
-  - Mensagem clara ao usuário informando que já tem um relatório em andamento
-  - ✅ Elimina completamente a duplicação de relatórios em status "preenchimento"
-  
-- **Problema 2**: Verificação de exibição correta de imagens armazenadas no banco de dados
-- **Solução 2**: Confirmado que sistema já está funcionando corretamente
-  - Imagens armazenadas em campo BYTEA do PostgreSQL
-  - Rota `/imagens/<int:id>` serve imagens diretamente do banco com Content-Type correto
-  - Templates (view.html, edit.html) já utilizam `url_for('get_imagem', id=foto.id)` corretamente
-  - Fallback para placeholder SVG quando imagem não encontrada
-  - ✅ Nenhuma alteração necessária - sistema já funcional
+- **Date**: October 3, 2025 - Correção de Duplicação ao Concluir Relatórios
+- **Problema**: Ao clicar em "Concluir" relatório preenchido:
+  - Apareciam DUAS mensagens de conclusão
+  - Relatório era duplicado
+  - Status ficava "Em preenchimento" ao invés de "Aguardando Aprovação"
+- **Causa Raiz**: Existiam DUAS funções com a mesma rota `/reports/<int:report_id>/finalize`
+  - `finalize_report()` (linha 3051) - correta, mudava para "Aguardando Aprovação"
+  - `report_finalize()` (linha 5240) - duplicada, mudava para "Finalizado"
+  - Ambas executavam ao clicar em concluir, causando duplicação e status incorreto
+- **Solução**: Removida função duplicada `report_finalize()` de routes.py (anteriormente linhas 5240-5282)
+  - Agora apenas `finalize_report()` executa
+  - Status corretamente atualizado para "Aguardando Aprovação"
+  - Sem duplicação de relatórios
+  - Sem mensagens duplicadas
+  - ✅ Problema completamente resolvido
 
 - **Date**: October 3, 2025 - Image Upload Fix & Replit Environment Setup
 - **Issue**: Images were not being saved to the database - the form submission handler was dispatching a new submit event with no handler, causing the form to never actually submit

@@ -2143,19 +2143,6 @@ def create_report():
                 relatorio.updated_at = datetime.utcnow()
                 current_app.logger.info(f"📝 Updating existing report {relatorio.numero}")
             else:
-                # CORREÇÃO: Verificar se já existe relatório em preenchimento para este projeto e usuário
-                relatorio_em_preenchimento = Relatorio.query.filter_by(
-                    projeto_id=projeto_id,
-                    autor_id=current_user.id,
-                    status='preenchimento'
-                ).first()
-                
-                if relatorio_em_preenchimento:
-                    # Se já existe, redirecionar para editar o existente ao invés de criar duplicado
-                    current_app.logger.info(f"✅ Relatório em preenchimento já existe (ID={relatorio_em_preenchimento.id}). Redirecionando para edição.")
-                    flash(f'Você já possui um relatório em preenchimento para este projeto. Continue editando o existente.', 'info')
-                    return redirect(url_for('report_edit', report_id=relatorio_em_preenchimento.id))
-                
                 # Create new report
                 relatorio = Relatorio()
                 
@@ -5236,50 +5223,6 @@ def report_add_photo(report_id):
             return redirect(url_for('report_view', report_id=report_id))
 
     return render_template('reports/form.html', form=form, report=report, action='add_photo')
-
-@app.route('/reports/<int:report_id>/finalize', methods=['POST'])
-@login_required
-def report_finalize(report_id):
-    report = Relatorio.query.get_or_404(report_id)
-
-    if report.status == 'Finalizado':
-        flash('Relatório já está finalizado.', 'info')
-        return redirect(url_for('report_view', report_id=report_id))
-
-    report.status = 'Finalizado'
-    db.session.commit()
-
-    # Fazer backup automático no Google Drive
-    try:
-        # Preparar dados do relatório para backup
-        fotos_paths = []
-        fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).all()
-        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
-
-        for foto in fotos:
-            foto_path = os.path.join(upload_folder, foto.filename)
-            if os.path.exists(foto_path):
-                fotos_paths.append(foto_path)
-
-        report_data = {
-            'id': report.id,
-            'numero': report.numero,
-            'pdf_path': None,  # PDF será gerado se necessário
-            'images': fotos_paths
-        }
-
-        project_name = f"{report.projeto.numero}_{report.projeto.nome}"
-        backup_result = backup_to_drive(report_data, project_name)
-
-        if backup_result.get('success'):
-            flash(f'Relatório finalizado com sucesso! Backup: {backup_result.get("message")}', 'success')
-        else:
-            flash(f'Relatório finalizado com sucesso! Aviso de backup: {backup_result.get("message")}', 'warning')
-
-    except Exception as e:
-        flash(f'Relatório finalizado com sucesso! Erro no backup: {str(e)}', 'warning')
-
-    return redirect(url_for('report_view', report_id=report_id))
 
 @app.route('/reports/<int:report_id>/send', methods=['POST'])
 @login_required
