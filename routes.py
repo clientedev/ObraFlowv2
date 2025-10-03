@@ -2143,6 +2143,19 @@ def create_report():
                 relatorio.updated_at = datetime.utcnow()
                 current_app.logger.info(f"📝 Updating existing report {relatorio.numero}")
             else:
+                # CORREÇÃO: Verificar se já existe relatório em preenchimento para este projeto e usuário
+                relatorio_em_preenchimento = Relatorio.query.filter_by(
+                    projeto_id=projeto_id,
+                    autor_id=current_user.id,
+                    status='preenchimento'
+                ).first()
+                
+                if relatorio_em_preenchimento:
+                    # Se já existe, redirecionar para editar o existente ao invés de criar duplicado
+                    current_app.logger.info(f"✅ Relatório em preenchimento já existe (ID={relatorio_em_preenchimento.id}). Redirecionando para edição.")
+                    flash(f'Você já possui um relatório em preenchimento para este projeto. Continue editando o existente.', 'info')
+                    return redirect(url_for('report_edit', report_id=relatorio_em_preenchimento.id))
+                
                 # Create new report
                 relatorio = Relatorio()
                 
