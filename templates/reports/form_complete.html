@@ -397,7 +397,7 @@
                                 <div class="form-group">
                                     <label class="form-label" for="projeto_id">Projeto *</label>
                                     {% if disable_fields %}
-                                        <input type="hidden" name="projeto_id" value="{{ selected_project.id }}">
+                                        <input type="hidden" name="projeto_id" id="projeto_id" value="{{ selected_project.id }}">
                                         <div class="form-control-plaintext bg-light border rounded p-2">
                                             <strong>{{ selected_project.numero }} - {{ selected_project.nome }}</strong>
                                         </div>
@@ -405,7 +405,7 @@
                                             <i class="fas fa-lock me-1"></i>Projeto pré-selecionado - não editável
                                         </small>
                                     {% else %}
-                                        <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails()">
+                                        <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value);">
                                             <option value="">Selecione um projeto</option>
                                             {% for projeto in projetos %}
                                             <option value="{{ projeto.id }}" 
@@ -927,7 +927,7 @@ function carregarCategoriasProjeto(projetoId) {
                 // Renderizar categorias
                 let html = '<option value="">Selecione uma categoria</option>';
                 data.categorias.forEach(cat => {
-                    html += `<option value="${cat.nome_categoria}">${cat.nome_categoria}</option>`;
+                    html += `<option value="${cat.nome}">${cat.nome}</option>`;
                 });
                 categoriaSelect.innerHTML = html;
                 categoriaWarning.style.display = 'none';
