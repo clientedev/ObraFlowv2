@@ -938,10 +938,10 @@ function carregarCategoriasProjeto(projetoId) {
                 categoriaWarning.style.display = 'block';
                 
                 // Configurar link para adicionar categorias
-                addCategoriasLink.href = `/projects/${projetoId}/view#categorias`;
+                addCategoriasLink.href = `/projects/${projetoId}`;
                 addCategoriasLink.onclick = function(e) {
                     e.preventDefault();
-                    window.open(`/projects/${projetoId}/view#categorias`, '_blank');
+                    window.open(`/projects/${projetoId}`, '_blank');
                 };
             }
         })
