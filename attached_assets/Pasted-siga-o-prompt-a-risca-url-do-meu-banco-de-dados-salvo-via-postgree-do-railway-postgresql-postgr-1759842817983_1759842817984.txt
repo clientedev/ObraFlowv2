@@ -1,0 +1,64 @@
+siga o prompt a risca, url do meu banco de dados salvo via postgree do railway:
+postgresql://postgres:KgyYkEmMztCNMSPHVbOpWLTiKZFXYwpB@switchback.proxy.rlwy.net:17107/railway
+
+postgresql://postgres:KgyYkEmMztCNMSPHVbOpWLTiKZFXYwpB@postgres.railway.internal:5432/railway
+
+Correção de exibição de categorias no relatório
+
+Objetivo:
+Corrigir a exibição das categorias no campo “Categoria padrão para novas fotos”, garantindo que:
+
+As categorias da obra sejam corretamente carregadas e exibidas no select;
+
+A mensagem “Carregando categorias...” desapareça após o carregamento;
+
+Se a obra não possuir categorias, exiba um aviso e um link/botão para redirecionar o usuário à área de gerenciamento de categorias da obra.
+
+🔍 Diagnóstico atual
+
+O campo exibe apenas “Carregando categorias...”, mesmo após o carregamento.
+
+As categorias estão armazenadas corretamente no banco, mas não são renderizadas no select.
+
+Provável causa: falha no fetch ou no then() responsável por popular o select (não atualiza o DOM após receber os dados).
+
+✅ Solução esperada
+
+Corrigir exclusivamente o carregamento e exibição das categorias no template de relatório, mantendo todas as demais funcionalidades intactas.
+
+Ajustar o carregamento das categorias:
+Verificar o endpoint /api/obras/<id>/categorias ou equivalente.
+
+Garantir que o retorno da API seja um array JSON no formato:
+
+[{ "id": 1, "nome": "Torre 1" }, { "id": 2, "nome": "Área Comum" }]
+
+No JavaScript do template (form_complete.html ou similar):
+
+Substituir o texto “Carregando categorias...” pelo option correspondente de cada categoria recebida.
+
+Garantir que, ao receber o retorno vazio ([]), exiba:
+
+“Nenhuma categoria cadastrada para esta obra.”
+
+Logo abaixo, incluir um link/botão:
+
+<a href="/obras/{{ obra_id }}/categorias" class="text-primary">Adicionar categorias</a>
+
+Esse link deve redirecionar o usuário diretamente à tela de gerenciamento da obra em questão.
+
+UX esperada:
+Enquanto carrega → “Carregando categorias...”
+
+Quando há categorias → lista de opções exibidas corretamente
+
+Quando não há categorias → texto informativo + botão “Adicionar categorias”
+
+Restrições:
+⚠️ Não alterar:
+
+O fluxo de salvamento de relatório;
+
+O sistema de upload de imagens;
+
+Nenhum outro comportamento do template.
