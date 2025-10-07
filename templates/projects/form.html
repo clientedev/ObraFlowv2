@@ -145,6 +145,28 @@
                         </div>
                     </div>
                     
+                    <!-- Seção de Categorias da Obra - Item 16 -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-tags me-2"></i>Categorias da Obra
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small mb-3">
+                                <i class="fas fa-info-circle me-1"></i>
+                                As categorias são usadas para organizar fotos nos relatórios. 
+                                Você pode adicionar categorias agora ou depois na página de visualização da obra.
+                            </p>
+                            <div id="categorias-list">
+                                <!-- Categorias serão adicionadas aqui dinamicamente -->
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarCategoria()">
+                                <i class="fas fa-plus me-1"></i>Adicionar Categoria
+                            </button>
+                        </div>
+                    </div>
+                    
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
@@ -419,6 +441,7 @@ function confirmMapLocation() {
 // Contador para IDs únicos
 let funcionarioCounter = 0;
 let emailCounter = 0;
+let categoriaCounter = 0;
 
 // Função para adicionar funcionário
 function adicionarFuncionario() {
@@ -501,6 +524,44 @@ function removerEmail(id) {
     const emailDiv = document.getElementById(`email-${id}`);
     if (emailDiv) {
         emailDiv.remove();
+    }
+}
+
+// Função para adicionar categoria - Item 16
+function adicionarCategoria() {
+    categoriaCounter++;
+    const categoriasList = document.getElementById('categorias-list');
+    
+    const categoriaDiv = document.createElement('div');
+    categoriaDiv.className = 'border rounded p-3 mb-3';
+    categoriaDiv.id = `categoria-${categoriaCounter}`;
+    
+    categoriaDiv.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label">Nome da Categoria</label>
+                <input type="text" class="form-control" name="categorias[${categoriaCounter}][nome]" placeholder="Ex: Torre 1, Área Comum, etc." required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Ordem de Exibição</label>
+                <input type="number" class="form-control" name="categorias[${categoriaCounter}][ordem]" value="${categoriaCounter}" min="0">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removerCategoria(${categoriaCounter})">
+                    <i class="fas fa-trash"></i> Remover
+                </button>
+            </div>
+        </div>
+    `;
+    
+    categoriasList.appendChild(categoriaDiv);
+}
+
+// Função para remover categoria
+function removerCategoria(id) {
+    const categoriaDiv = document.getElementById(`categoria-${id}`);
+    if (categoriaDiv) {
+        categoriaDiv.remove();
     }
 }
 

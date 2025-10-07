@@ -1,0 +1,64 @@
+Prompt técnico – Item 16 (Categorias editáveis por obra)
+
+Objetivo:
+Corrigir a gestão de categorias por obra, removendo dependências hardcoded e permitindo criação, edição e gerenciamento dinâmico das categorias de cada obra.
+A modificação deve afetar somente e exclusivamente a funcionalidade de categorias por obra — nenhuma outra área do sistema deve ser alterada.
+
+🧩 Requisitos e Ajustes:
+
+Remover categorias hardcoded:
+
+Eliminar as categorias fixas (como “Torre 1”, “Área comum”, etc.) atualmente aplicadas no template.
+
+As obras novas devem iniciar sem categorias padrão.
+
+Criação de categorias ao cadastrar obra:
+
+Ao criar uma nova obra, o sistema deve exibir um campo ou modal para inserir as categorias daquela obra (podendo deixar vazio).
+
+As categorias devem ser armazenadas em uma tabela relacionada (categorias_obra) vinculada ao id da obra.
+
+Edição e gerenciamento posterior:
+
+Obras já existentes devem permitir:
+
+Adicionar novas categorias.
+
+Editar nomes das categorias existentes.
+
+Excluir categorias não mais utilizadas.
+
+Nenhum dado de relatório anterior deve ser perdido ou desassociado.
+
+Integração com relatórios:
+
+Na tela de criação de relatório:
+
+O campo “Categoria padrão para novas fotos” deve carregar apenas as categorias vinculadas à obra selecionada.
+
+Caso a obra não possua categorias, o campo deve exibir uma mensagem:
+“Nenhuma categoria cadastrada para esta obra.”
+
+Ao lado, deve aparecer um botão/link “Adicionar Categorias”, redirecionando para a tela de gerenciamento de categorias da obra (imagem 2).
+
+Persistência e API:
+
+Garantir que o backend possua endpoints:
+
+GET /api/obras/<id>/categorias — retorna categorias da obra.
+
+POST /api/obras/<id>/categorias — cria novas categorias.
+
+PUT /api/categorias/<id> — edita categoria.
+
+DELETE /api/categorias/<id> — exclui categoria.
+
+Validação e UX:
+
+Se o usuário tentar criar um relatório sem categorias disponíveis, exibir mensagem informativa e bloquear até que pelo menos uma categoria seja criada.
+
+Garantir interface intuitiva para gerenciar categorias (edição inline ou via modal simples).
+
+Manter 100% do layout e comportamento atual fora desta área.
+Nenhum outro componente (relatórios, visitas, comunicações, etc.) deve ser afetado.
+O ajuste é restrito à área de gerenciamento e carregamento de categorias de obras.

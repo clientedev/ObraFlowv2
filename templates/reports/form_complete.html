@@ -585,15 +585,19 @@
                                 </div>
                             </div>
 
-                            <!-- Seleção de Categoria (Simplificada) -->
+                            <!-- Seleção de Categoria (Dinâmica por Projeto) -->
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Categoria padrão para novas fotos:</label>
                                 <select id="defaultCategory" class="form-select" style="min-height: 48px;">
-                                    <option value="Torre 1">Torre 1</option>
-                                    <option value="Torre 2">Torre 2</option>
-                                    <option value="Área Comum">Área Comum</option>
-                                    <option value="Piscina">Piscina</option>
+                                    <option value="">Carregando categorias...</option>
                                 </select>
+                                <div id="categoriaWarning" class="alert alert-warning mt-2" style="display: none;">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <span id="categoriaWarningText">Nenhuma categoria cadastrada para esta obra.</span>
+                                    <a href="#" id="addCategoriasLink" class="alert-link ms-2">
+                                        <i class="fas fa-plus-circle me-1"></i>Adicionar Categorias
+                                    </a>
+                                </div>
                             </div>
 
                             <!-- Preview das Fotos com Cards Mobile-First -->
@@ -819,6 +823,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function carregarFuncionariosEmails() {
     const projetoId = document.getElementById('projeto_id').value;
     carregarFuncionariosEmailsPorId(projetoId);
+    carregarCategoriasProjeto(projetoId);
 }
 
 function carregarFuncionariosEmailsPorId(projetoId) {
@@ -896,6 +901,65 @@ function carregarFuncionariosEmailsPorId(projetoId) {
         emailsDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
     });
 }
+
+// Função para carregar categorias do projeto selecionado - Item 16
+function carregarCategoriasProjeto(projetoId) {
+    const categoriaSelect = document.getElementById('defaultCategory');
+    const categoriaWarning = document.getElementById('categoriaWarning');
+    const categoriaWarningText = document.getElementById('categoriaWarningText');
+    const addCategoriasLink = document.getElementById('addCategoriasLink');
+    
+    if (!projetoId) {
+        categoriaSelect.innerHTML = '<option value="">Selecione um projeto primeiro</option>';
+        categoriaWarning.style.display = 'none';
+        return;
+    }
+    
+    // Mostrar loading
+    categoriaSelect.innerHTML = '<option value="">Carregando categorias...</option>';
+    categoriaWarning.style.display = 'none';
+    
+    // Buscar categorias do projeto via API
+    fetch(`/api/projects/${projetoId}/categorias`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.categorias && data.categorias.length > 0) {
+                // Renderizar categorias
+                let html = '<option value="">Selecione uma categoria</option>';
+                data.categorias.forEach(cat => {
+                    html += `<option value="${cat.nome_categoria}">${cat.nome_categoria}</option>`;
+                });
+                categoriaSelect.innerHTML = html;
+                categoriaWarning.style.display = 'none';
+            } else {
+                // Nenhuma categoria encontrada
+                categoriaSelect.innerHTML = '<option value="">Nenhuma categoria disponível</option>';
+                categoriaWarningText.textContent = 'Nenhuma categoria cadastrada para esta obra.';
+                categoriaWarning.style.display = 'block';
+                
+                // Configurar link para adicionar categorias
+                addCategoriasLink.href = `/projects/${projetoId}/view#categorias`;
+                addCategoriasLink.onclick = function(e) {
+                    e.preventDefault();
+                    window.open(`/projects/${projetoId}/view#categorias`, '_blank');
+                };
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar categorias:', error);
+            categoriaSelect.innerHTML = '<option value="">Erro ao carregar categorias</option>';
+            categoriaWarningText.textContent = 'Erro ao carregar categorias. Tente novamente.';
+            categoriaWarning.style.display = 'block';
+        });
+}
+
+// Carregar categorias ao carregar a página se já houver um projeto selecionado
+document.addEventListener('DOMContentLoaded', function() {
+    const projetoId = document.getElementById('projeto_id')?.value;
+    if (projetoId) {
+        carregarCategoriasProjeto(projetoId);
+    }
+});
 
 function handlePhotoUpload(event) {
     // Upload de fotos iniciado

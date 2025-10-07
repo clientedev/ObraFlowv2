@@ -3869,8 +3869,23 @@ def project_new():
                             'cargo': cargo
                         })
 
+            # Process categorias - Item 16
+            categorias_adicionais = []
+            for key in request.form.keys():
+                if key.startswith('categorias[') and key.endswith('][nome]'):
+                    index = key.split('[')[1].split(']')[0]
+                    nome_categoria = request.form.get(f'categorias[{index}][nome]')
+                    ordem = request.form.get(f'categorias[{index}][ordem]', 0)
+
+                    if nome_categoria:
+                        categorias_adicionais.append({
+                            'nome': nome_categoria.strip(),
+                            'ordem': int(ordem) if ordem else 0
+                        })
+
             print(f"🔍 DEBUG: Found {len(funcionarios_adicionais)} additional employees")
             print(f"🔍 DEBUG: Found {len(emails_adicionais)} additional emails")
+            print(f"🔍 DEBUG: Found {len(categorias_adicionais)} categorias - Item 16")
 
             # Check if project with same name already exists
             existing_project = Projeto.query.filter_by(nome=form.nome.data).first()
@@ -3965,7 +3980,25 @@ def project_new():
                         db.session.add(novo_email)
                         emails_adicionados += 1
 
-                flash(f'Obra consolidada! Adicionados {funcionarios_adicionados} funcionário(s) e {emails_adicionados} e-mail(s) à obra existente: {projeto.nome}', 'success')
+                # Add categorias to existing project - Item 16
+                categorias_adicionadas = 0
+                for categoria_data in categorias_adicionais:
+                    # Check if category already exists (by name)
+                    existing_categoria = CategoriaObra.query.filter_by(
+                        projeto_id=projeto.id,
+                        nome_categoria=categoria_data['nome']
+                    ).first()
+
+                    if not existing_categoria:
+                        nova_categoria = CategoriaObra(
+                            projeto_id=projeto.id,
+                            nome_categoria=categoria_data['nome'],
+                            ordem=categoria_data['ordem']
+                        )
+                        db.session.add(nova_categoria)
+                        categorias_adicionadas += 1
+
+                flash(f'Obra consolidada! Adicionados {funcionarios_adicionados} funcionário(s), {emails_adicionados} e-mail(s) e {categorias_adicionadas} categoria(s) à obra existente: {projeto.nome}', 'success')
 
             else:
                 # Create new project
@@ -4051,9 +4084,19 @@ def project_new():
                     )
                     db.session.add(email_adicional)
 
+                # Add categorias - Item 16
+                for categoria_data in categorias_adicionais:
+                    categoria = CategoriaObra(
+                        projeto_id=projeto.id,
+                        nome_categoria=categoria_data['nome'],
+                        ordem=categoria_data['ordem']
+                    )
+                    db.session.add(categoria)
+
                 total_funcionarios = 1 + len(funcionarios_adicionais)
                 total_emails = 1 + len(emails_adicionais)
-                flash(f'Obra cadastrada com sucesso! {total_funcionarios} funcionário(s) e {total_emails} e-mail(s) adicionados.', 'success')
+                total_categorias = len(categorias_adicionais)
+                flash(f'Obra cadastrada com sucesso! {total_funcionarios} funcionário(s), {total_emails} e-mail(s) e {total_categorias} categoria(s) adicionados.', 'success')
 
             db.session.commit()
             print(f"🔍 DEBUG: Trying to save projeto: {projeto.nome}")
