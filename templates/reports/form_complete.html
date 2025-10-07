@@ -939,10 +939,6 @@ function carregarCategoriasProjeto(projetoId) {
                 
                 // Configurar link para adicionar categorias
                 addCategoriasLink.href = `/projects/${projetoId}`;
-                addCategoriasLink.onclick = function(e) {
-                    e.preventDefault();
-                    window.open(`/projects/${projetoId}`, '_blank');
-                };
             }
         })
         .catch(error => {
