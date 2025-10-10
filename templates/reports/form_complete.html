@@ -2358,8 +2358,6 @@ function handleMobilePhotoSelection(event) {
     
     // Clear input for next selection
     event.target.value = '';
-    
-    updatePhotoCounter();
 }
 
 // Create mobile photo card with immediate display
@@ -2386,6 +2384,9 @@ function createMobilePhotoCard(file, category) {
             predefinedCaption: '',
             filename: file.name
         });
+        
+        // Update counter after adding photo
+        updatePhotoCounter();
         
         // Setup event listeners for this card
         setupPhotoCardEvents(photoId);
