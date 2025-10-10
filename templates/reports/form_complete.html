@@ -405,7 +405,7 @@
                                             <i class="fas fa-lock me-1"></i>Projeto pré-selecionado - não editável
                                         </small>
                                     {% else %}
-                                        <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value);">
+                                        <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value); atualizarNumeroRelatorio(this.value);">
                                             <option value="">Selecione um projeto</option>
                                             {% for projeto in projetos %}
                                             <option value="{{ projeto.id }}" 
@@ -414,6 +414,38 @@
                                             </option>
                                             {% endfor %}
                                         </select>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Número do Relatório -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label" for="numero">
+                                        Número do Relatório
+                                        <i class="fas fa-info-circle text-info ms-1" data-bs-toggle="tooltip" 
+                                           title="O número é gerado automaticamente, mas você pode editá-lo se necessário"></i>
+                                    </label>
+                                    {% if existing_report %}
+                                        <input type="text" name="numero" id="numero" class="form-control" 
+                                               value="{{ existing_report.numero }}" readonly>
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-lock me-1"></i>O número não pode ser alterado após a criação
+                                        </small>
+                                    {% elif next_numero %}
+                                        <input type="text" name="numero" id="numero" class="form-control" 
+                                               value="{{ next_numero }}" placeholder="REL-0001">
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-pencil-alt me-1"></i>Número pré-preenchido automaticamente - editável antes de salvar
+                                        </small>
+                                    {% else %}
+                                        <input type="text" name="numero" id="numero" class="form-control" 
+                                               placeholder="Selecione uma obra para gerar o número" readonly>
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-exclamation-circle me-1"></i>Selecione uma obra primeiro
+                                        </small>
                                     {% endif %}
                                 </div>
                             </div>
@@ -824,6 +856,35 @@ function carregarFuncionariosEmails() {
     const projetoId = document.getElementById('projeto_id').value;
     carregarFuncionariosEmailsPorId(projetoId);
     carregarCategoriasProjeto(projetoId);
+}
+
+// Função para atualizar o número do relatório quando o projeto é selecionado
+function atualizarNumeroRelatorio(projetoId) {
+    const numeroInput = document.getElementById('numero');
+    
+    if (!projetoId || !numeroInput) {
+        return;
+    }
+    
+    // Buscar o próximo número do relatório para este projeto via AJAX
+    fetch(`/api/projeto/${projetoId}/next-report-number`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.next_numero) {
+            numeroInput.value = data.next_numero;
+            numeroInput.readOnly = false;
+            console.log(`Número do relatório atualizado para: ${data.next_numero}`);
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao buscar próximo número do relatório:', error);
+    });
 }
 
 function carregarFuncionariosEmailsPorId(projetoId) {

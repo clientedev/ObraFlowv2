@@ -773,6 +773,42 @@ def api_projeto_funcionarios_emails(projeto_id):
             'error': f'Erro interno: {str(e)}'
         }), 500
 
+@app.route('/api/projeto/<int:projeto_id>/next-report-number')
+@login_required
+def api_next_report_number(projeto_id):
+    """Retorna o próximo número de relatório disponível para um projeto"""
+    try:
+        current_app.logger.info(f"📡 API chamada: /api/projeto/{projeto_id}/next-report-number")
+        
+        # Verificar se o projeto existe
+        projeto = Projeto.query.get_or_404(projeto_id)
+        
+        # Calculate next report number for this project
+        ultimo_numero = db.session.query(
+            db.func.max(Relatorio.numero_projeto)
+        ).filter_by(projeto_id=projeto_id).scalar()
+        
+        proximo_numero_projeto = (ultimo_numero or 0) + 1
+        next_numero = f"REL-{proximo_numero_projeto:04d}"
+        
+        current_app.logger.info(f"✅ Próximo número para projeto {projeto_id}: {next_numero}")
+        
+        return jsonify({
+            'success': True,
+            'next_numero': next_numero,
+            'numero_projeto': proximo_numero_projeto
+        })
+        
+    except HTTPException as e:
+        current_app.logger.error(f"❌ HTTPException: {e}")
+        raise
+    except Exception as e:
+        current_app.logger.exception(f"❌ Erro ao buscar próximo número do projeto {projeto_id}")
+        return jsonify({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }), 500
+
 @app.route('/api/projetos/<int:projeto_id>/funcionarios')
 @login_required
 def get_funcionarios_projeto(projeto_id):
