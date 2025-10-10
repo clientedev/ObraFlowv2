@@ -4,6 +4,7 @@ This project is a comprehensive Flask-based construction site visit tracking sys
 # User Preferences
 Preferred communication style: Simple, everyday language.
 Mobile-first design: Date field should be the first input field in report forms.
+Report forms: Location section removed from report creation/editing interface (geolocation remains active for visits and notifications).
 
 # System Architecture
 

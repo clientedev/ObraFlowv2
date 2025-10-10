@@ -567,23 +567,6 @@
                                     placeholder="Descreva detalhes gerais da visita, pontos importantes, etc."></textarea>
                         </div>
 
-                        <!-- Captura de Localização -->
-                        <div class="mb-4">
-                            <h5><i class="fas fa-map-marker-alt"></i> Localização</h5>
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <button type="button" class="btn btn-outline-primary" onclick="capturarLocalizacao()">
-                                        <i class="fas fa-crosshairs"></i> Capturar Localização Atual
-                                    </button>
-                                    <div id="localizacao-info" class="mt-2"></div>
-                                </div>
-                                <div class="col-md-4">
-                                    <input type="hidden" id="latitude" name="latitude">
-                                    <input type="hidden" id="longitude" name="longitude">
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Sistema de Fotos Mobile-First -->
                         <div class="mb-4">
                             <h5><i class="fas fa-camera"></i> Fotos (Até 200 fotos) <span id="photoCount" class="badge bg-primary ms-2">0</span></h5>
@@ -1712,81 +1695,6 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
     });
 });
 
-// Função para capturar localização
-function capturarLocalizacao() {
-    const infoDiv = document.getElementById('localizacao-info');
-
-    if (!navigator.geolocation) {
-        infoDiv.innerHTML = '<div class="alert alert-danger">Geolocalização não é suportada pelo navegador.</div>';
-        return;
-    }
-
-    infoDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Capturando localização...</div>';
-
-    navigator.geolocation.getCurrentPosition(
-        function(position) {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
-
-            document.getElementById('latitude').value = lat;
-            document.getElementById('longitude').value = lng;
-
-            infoDiv.innerHTML = `
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> Localização capturada com sucesso!<br>
-                    <small id="addressDisplay">Obtendo endereço... (precisão: ${Math.round(accuracy)}m)</small>
-                </div>
-            `;
-
-            // Obter endereço formatado via API
-            fetch('/get_location', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({
-                    latitude: lat,
-                    longitude: lng
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.endereco) {
-                    document.getElementById('addressDisplay').innerHTML = `<strong>📍 ${data.endereco}</strong> (precisão: ${Math.round(accuracy)}m)`;
-                } else {
-                    document.getElementById('addressDisplay').innerHTML = `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)} (precisão: ${Math.round(accuracy)}m)`;
-                }
-            })
-            .catch(error => {
-                console.error('Erro ao obter endereço:', error);
-                document.getElementById('addressDisplay').innerHTML = `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)} (precisão: ${Math.round(accuracy)}m)`;
-            });
-        },
-        function(error) {
-            let errorMsg = 'Erro ao capturar localização.';
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    errorMsg = 'Permissão negada para acessar localização.';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    errorMsg = 'Localização indisponível.';
-                    break;
-                case error.TIMEOUT:
-                    errorMsg = 'Tempo limite para capturar localização.';
-                    break;
-            }
-            infoDiv.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> ${errorMsg}</div>`;
-        },
-        {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000
-        }
-    );
-}
-
 // FUNÇÃO DUPLICADA REMOVIDA - usar apenas a versão otimizada para mobile
 
 // FUNÇÃO DUPLICADA REMOVIDA - usar apenas a versão do início do arquivo
@@ -2182,47 +2090,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 
-<!-- Auto-populate project coordinates script -->
 <script>
-// Auto-populate project coordinates and location info when coming from project view
-{% if selected_project %}
-document.addEventListener('DOMContentLoaded', function() {
-    // Ensure required elements exist
-    const latitudeEl = document.getElementById('latitude');
-    const longitudeEl = document.getElementById('longitude');
-    const localizacaoInfo = document.getElementById('localizacao-info');
-
-    if (!latitudeEl || !longitudeEl || !localizacaoInfo) {
-        console.warn('Required form elements not found for auto-population');
-        return;
-    }
-
-    {% if selected_project.latitude and selected_project.longitude %}
-    // Auto-populate coordinates if available from project (using tojson for safety)
-    latitudeEl.value = {{ selected_project.latitude | tojson }};
-    longitudeEl.value = {{ selected_project.longitude | tojson }};
-
-    // Display project location info (escaped properly)
-    const endereco = {{ selected_project.endereco | tojson or "'Coordenadas do projeto'" }};
-    localizacaoInfo.innerHTML = `
-        <div class="alert alert-success">
-            <i class="fas fa-check-circle"></i> Localização do projeto pré-carregada!<br>
-            <strong>📍 ${endereco}</strong>
-            <br><small class="text-muted">Você pode capturar nova localização se necessário</small>
-        </div>
-    `;
-    {% else %}
-    // Show message that project has no coordinates
-    localizacaoInfo.innerHTML = `
-        <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle"></i> Este projeto não possui coordenadas cadastradas.<br>
-            <small>Use o botão "Capturar Localização Atual" para definir a localização da visita.</small>
-        </div>
-    `;
-    {% endif %}
-});
-{% endif %}
-
 // Sistema de touch inteligente IGUAL AO EXPRESS - funcional 100%
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Sistema de touch inteligente carregado (igual express)');
