@@ -2186,6 +2186,16 @@ def create_report():
                 manual_numero = request.form.get('numero', '').strip()
                 
                 if manual_numero:
+                    # Check if this numero already exists for this project
+                    existing_report = Relatorio.query.filter_by(
+                        projeto_id=projeto_id,
+                        numero=manual_numero
+                    ).first()
+                    
+                    if existing_report:
+                        flash(f'Número de relatório "{manual_numero}" já existe para esta obra. Por favor, use outro número.', 'error')
+                        return redirect(url_for('create_report', projeto_id=projeto_id))
+                    
                     # User manually edited the numero - use it
                     relatorio.numero = manual_numero
                     
@@ -2216,8 +2226,27 @@ def create_report():
                     
                     proximo_numero = (ultimo_numero or 0) + 1
                     
-                    relatorio.numero_projeto = proximo_numero
-                    relatorio.numero = f"REL-{proximo_numero:04d}"
+                    # Double-check this numero doesn't exist (race condition protection)
+                    tentativas = 0
+                    while tentativas < 10:
+                        numero_candidato = f"REL-{proximo_numero:04d}"
+                        existing = Relatorio.query.filter_by(
+                            projeto_id=projeto_id,
+                            numero=numero_candidato
+                        ).first()
+                        
+                        if not existing:
+                            relatorio.numero_projeto = proximo_numero
+                            relatorio.numero = numero_candidato
+                            break
+                        
+                        proximo_numero += 1
+                        tentativas += 1
+                    
+                    if tentativas >= 10:
+                        flash('Erro ao gerar número do relatório. Tente novamente.', 'error')
+                        return redirect(url_for('create_report', projeto_id=projeto_id))
+                    
                     current_app.logger.info(f"📝 Creating report with auto-generated numero: {relatorio.numero}")
                 
                 relatorio.titulo = titulo
