@@ -237,25 +237,70 @@
                     </div>
                     <div class="card-body">
                         {% if visitas %}
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Data Início</th>
-                                            <th>Data Realizada</th>
-                                            <th>Responsável</th>
-                                            <th>Status</th>
-                                            <th>Observações</th>
-                                            <th>Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for visita in visitas %}
-                                        <tr>
-                                            <td>{{ visita.data_inicio.strftime('%d/%m/%Y às %H:%M') }}</td>
-                                            <td>{{ visita.data_realizada.strftime('%d/%m/%Y às %H:%M') if visita.data_realizada else '-' }}</td>
-                                            <td>{{ visita.responsavel.nome_completo }}</td>
-                                            <td>
+                            <!-- Layout Desktop: Tabela -->
+                            <div class="d-none d-lg-block">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Data Início</th>
+                                                <th>Data Realizada</th>
+                                                <th>Responsável</th>
+                                                <th>Status</th>
+                                                <th>Observações</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for visita in visitas %}
+                                            <tr>
+                                                <td>{{ visita.data_inicio.strftime('%d/%m/%Y às %H:%M') }}</td>
+                                                <td>{{ visita.data_realizada.strftime('%d/%m/%Y às %H:%M') if visita.data_realizada else '-' }}</td>
+                                                <td>{{ visita.responsavel.nome_completo }}</td>
+                                                <td>
+                                                    {% if visita.status == 'Realizada' %}
+                                                        <span class="badge bg-success">{{ visita.status }}</span>
+                                                    {% elif visita.status == 'Agendada' %}
+                                                        <span class="badge bg-warning">{{ visita.status }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">{{ visita.status }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ visita.observacoes[:50] if visita.observacoes else '' }}{{ '...' if visita.observacoes and visita.observacoes|length > 50 else '' }}</td>
+                                                <td>
+                                                    {% if visita.status == 'Agendada' %}
+                                                        <a href="{{ url_for('visit_realize', visit_id=visita.id) }}" class="btn btn-sm btn-outline-success">
+                                                            <i class="fas fa-check"></i>
+                                                        </a>
+                                                    {% else %}
+                                                        <a href="{{ url_for('visit_checklist', visit_id=visita.id) }}" class="btn btn-sm btn-outline-info">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Layout Mobile: Cards Verticais -->
+                            <div class="d-lg-none">
+                                {% for visita in visitas %}
+                                <div class="card mb-3 border-left-{{ 'success' if visita.status == 'Realizada' else 'warning' if visita.status == 'Agendada' else 'secondary' }}">
+                                    <div class="card-body py-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <h6 class="card-title mb-1">
+                                                    <i class="fas fa-calendar-check me-1"></i>
+                                                    {{ visita.data_inicio.strftime('%d/%m/%Y às %H:%M') }}
+                                                </h6>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-user me-1"></i>{{ visita.responsavel.nome_completo }}
+                                                </small>
+                                            </div>
+                                            <div>
                                                 {% if visita.status == 'Realizada' %}
                                                     <span class="badge bg-success">{{ visita.status }}</span>
                                                 {% elif visita.status == 'Agendada' %}
@@ -263,23 +308,34 @@
                                                 {% else %}
                                                     <span class="badge bg-secondary">{{ visita.status }}</span>
                                                 {% endif %}
-                                            </td>
-                                            <td>{{ visita.observacoes[:50] if visita.observacoes else '' }}{{ '...' if visita.observacoes and visita.observacoes|length > 50 else '' }}</td>
-                                            <td>
-                                                {% if visita.status == 'Agendada' %}
-                                                    <a href="{{ url_for('visit_realize', visit_id=visita.id) }}" class="btn btn-sm btn-outline-success">
-                                                        <i class="fas fa-check"></i>
-                                                    </a>
-                                                {% else %}
-                                                    <a href="{{ url_for('visit_checklist', visit_id=visita.id) }}" class="btn btn-sm btn-outline-info">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                                            </div>
+                                        </div>
+                                        {% if visita.data_realizada %}
+                                        <div class="mb-2">
+                                            <small class="text-muted">
+                                                <i class="fas fa-check-circle me-1"></i>Realizada em: {{ visita.data_realizada.strftime('%d/%m/%Y às %H:%M') }}
+                                            </small>
+                                        </div>
+                                        {% endif %}
+                                        {% if visita.observacoes %}
+                                        <div class="card-text mb-2">
+                                            <small>{{ visita.observacoes[:100] }}{{ '...' if visita.observacoes|length > 100 else '' }}</small>
+                                        </div>
+                                        {% endif %}
+                                        <div class="d-grid gap-2">
+                                            {% if visita.status == 'Agendada' %}
+                                                <a href="{{ url_for('visit_realize', visit_id=visita.id) }}" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-check me-1"></i>Realizar Visita
+                                                </a>
+                                            {% else %}
+                                                <a href="{{ url_for('visit_checklist', visit_id=visita.id) }}" class="btn btn-sm btn-outline-info">
+                                                    <i class="fas fa-eye me-1"></i>Ver Detalhes
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
                         {% else %}
                             <p class="text-muted text-center">Nenhuma visita agendada para este projeto.</p>
@@ -301,26 +357,64 @@
                     </div>
                     <div class="card-body">
                         {% if relatorios %}
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Número</th>
-                                            <th>Título</th>
-                                            <th>Autor</th>
-                                            <th>Data</th>
-                                            <th>Status</th>
-                                            <th>Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for relatorio in relatorios %}
-                                        <tr>
-                                            <td><strong>{{ relatorio.numero }}</strong></td>
-                                            <td>{{ relatorio.titulo }}</td>
-                                            <td>{{ relatorio.autor.nome_completo }}</td>
-                                            <td>{{ relatorio.data_relatorio.strftime('%d/%m/%Y') }}</td>
-                                            <td>
+                            <!-- Layout Desktop: Tabela -->
+                            <div class="d-none d-lg-block">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Número</th>
+                                                <th>Título</th>
+                                                <th>Autor</th>
+                                                <th>Data</th>
+                                                <th>Status</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for relatorio in relatorios %}
+                                            <tr>
+                                                <td><strong>{{ relatorio.numero }}</strong></td>
+                                                <td>{{ relatorio.titulo }}</td>
+                                                <td>{{ relatorio.autor.nome_completo }}</td>
+                                                <td>{{ relatorio.data_relatorio.strftime('%d/%m/%Y') }}</td>
+                                                <td>
+                                                    {% if relatorio.status == 'Enviado' %}
+                                                        <span class="badge bg-success">{{ relatorio.status }}</span>
+                                                    {% elif relatorio.status == 'Finalizado' %}
+                                                        <span class="badge bg-primary">{{ relatorio.status }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">{{ relatorio.status }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('report_view', report_id=relatorio.id) }}" class="btn btn-sm btn-outline-info">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Layout Mobile: Cards Verticais -->
+                            <div class="d-lg-none">
+                                {% for relatorio in relatorios %}
+                                <div class="card mb-3 border-left-{{ 'success' if relatorio.status == 'Enviado' else 'primary' if relatorio.status == 'Finalizado' else 'secondary' }}">
+                                    <div class="card-body py-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <h6 class="card-title mb-1">
+                                                    <strong>{{ relatorio.numero }}</strong>
+                                                </h6>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-user me-1"></i>{{ relatorio.autor.nome_completo }}<br>
+                                                    <i class="fas fa-calendar me-1"></i>{{ relatorio.data_relatorio.strftime('%d/%m/%Y') }}
+                                                </small>
+                                            </div>
+                                            <div>
                                                 {% if relatorio.status == 'Enviado' %}
                                                     <span class="badge bg-success">{{ relatorio.status }}</span>
                                                 {% elif relatorio.status == 'Finalizado' %}
@@ -328,16 +422,19 @@
                                                 {% else %}
                                                     <span class="badge bg-secondary">{{ relatorio.status }}</span>
                                                 {% endif %}
-                                            </td>
-                                            <td>
-                                                <a href="{{ url_for('report_view', report_id=relatorio.id) }}" class="btn btn-sm btn-outline-info">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                                            </div>
+                                        </div>
+                                        <div class="card-text mb-2">
+                                            <strong>{{ relatorio.titulo }}</strong>
+                                        </div>
+                                        <div class="d-grid gap-2">
+                                            <a href="{{ url_for('report_view', report_id=relatorio.id) }}" class="btn btn-sm btn-outline-info">
+                                                <i class="fas fa-eye me-1"></i>Ver Relatório
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
                         {% else %}
                             <p class="text-muted text-center">Nenhum relatório criado para este projeto.</p>
