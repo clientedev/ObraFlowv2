@@ -2146,22 +2146,47 @@ def create_report():
                 # Create new report
                 relatorio = Relatorio()
                 
-                # Get next numero_projeto for this project
-                ultimo_numero = db.session.query(
-                    db.func.max(Relatorio.numero_projeto)
-                ).filter_by(projeto_id=projeto_id).scalar()
+                # Check if numero was manually provided in the form
+                manual_numero = request.form.get('numero', '').strip()
                 
-                if ultimo_numero is None:
-                    proximo_numero = 1
+                if manual_numero:
+                    # User manually edited the numero - use it
+                    relatorio.numero = manual_numero
+                    
+                    # Extract numero_projeto from the numero string (e.g., "REL-0005" -> 5)
+                    try:
+                        if '-' in manual_numero:
+                            numero_projeto_str = manual_numero.split('-')[1]
+                            relatorio.numero_projeto = int(numero_projeto_str)
+                        else:
+                            # Fallback: calculate next numero_projeto
+                            ultimo_numero = db.session.query(
+                                db.func.max(Relatorio.numero_projeto)
+                            ).filter_by(projeto_id=projeto_id).scalar()
+                            relatorio.numero_projeto = (ultimo_numero or 0) + 1
+                    except (ValueError, IndexError):
+                        # If manual numero is invalid format, calculate next numero_projeto
+                        ultimo_numero = db.session.query(
+                            db.func.max(Relatorio.numero_projeto)
+                        ).filter_by(projeto_id=projeto_id).scalar()
+                        relatorio.numero_projeto = (ultimo_numero or 0) + 1
+                    
+                    current_app.logger.info(f"📝 Creating report with manual numero: {manual_numero} (numero_projeto: {relatorio.numero_projeto})")
                 else:
-                    proximo_numero = ultimo_numero + 1
+                    # Auto-generate numero based on project sequence
+                    ultimo_numero = db.session.query(
+                        db.func.max(Relatorio.numero_projeto)
+                    ).filter_by(projeto_id=projeto_id).scalar()
+                    
+                    proximo_numero = (ultimo_numero or 0) + 1
+                    
+                    relatorio.numero_projeto = proximo_numero
+                    relatorio.numero = f"REL-{proximo_numero:04d}"
+                    current_app.logger.info(f"📝 Creating report with auto-generated numero: {relatorio.numero}")
                 
-                relatorio.numero_projeto = proximo_numero
-                relatorio.numero = f"REL-{proximo_numero:04d}"
                 relatorio.titulo = titulo
                 relatorio.projeto_id = projeto_id
                 relatorio.autor_id = current_user.id
-                current_app.logger.info(f"📝 Creating new report for project {projeto_id}")
             # Process checklist data from form
             checklist_text = ""
             checklist_items = []
@@ -2546,8 +2571,9 @@ def create_report():
                 if foto_post.coordenadas_anotacao:
                     current_app.logger.info(f"   📍 Coordenadas: {type(foto_post.coordenadas_anotacao).__name__}")
 
-            # CRÍTICO: Se flag should_finalize está presente, finalizar relatório
-            # Isso muda status de "preenchimento" para "Aguardando Aprovação" e remove duplicados
+            # Se flag should_finalize está presente, finalizar relatório
+            # Isso muda status de "preenchimento" para "Aguardando Aprovação"
+            # NOTA: Não deletamos mais outros relatórios - todos devem permanecer visíveis
             should_finalize = request.form.get('should_finalize') == 'true'
             if should_finalize and relatorio.status == 'preenchimento':
                 current_app.logger.info(f"🎯 FLAG should_finalize detectado - finalizando relatório {relatorio.id}")
@@ -2556,26 +2582,9 @@ def create_report():
                 relatorio.status = 'Aguardando Aprovação'
                 relatorio.updated_at = datetime.utcnow()
                 
-                # Deletar TODOS os outros relatórios em "preenchimento" do mesmo projeto
-                duplicados = Relatorio.query.filter(
-                    Relatorio.id != relatorio.id,
-                    Relatorio.projeto_id == relatorio.projeto_id,
-                    Relatorio.status == 'preenchimento'
-                ).all()
-                
-                for dup in duplicados:
-                    # Deletar fotos associadas ao relatório duplicado
-                    fotos_dup = FotoRelatorio.query.filter_by(relatorio_id=dup.id).all()
-                    for foto in fotos_dup:
-                        db.session.delete(foto)
-                    db.session.delete(dup)
-                    current_app.logger.info(f"🗑️ Deletado relatório duplicado ID={dup.id} (estava em preenchimento)")
-                
                 db.session.commit()
                 
-                if duplicados:
-                    current_app.logger.info(f"✅ Relatório {relatorio.numero} FINALIZADO e {len(duplicados)} duplicado(s) removido(s)")
-                else:
+                if True:
                     current_app.logger.info(f"✅ Relatório {relatorio.numero} FINALIZADO sem duplicados")
 
             flash('Relatório criado com sucesso!', 'success')
@@ -2663,6 +2672,7 @@ def create_report():
     # Auto-preenchimento: Verificar se projeto_id foi passado como parâmetro da URL
     selected_project = None
     selected_aprovador = None
+    next_numero = None
     
     # If editing, use the existing report's project
     if existing_report:
@@ -2678,6 +2688,15 @@ def create_report():
                 # Buscar aprovador padrão para este projeto
                 if selected_project:
                     selected_aprovador = get_aprovador_padrao_para_projeto(selected_project.id)
+                    
+                    # Calculate next report number for this project
+                    ultimo_numero = db.session.query(
+                        db.func.max(Relatorio.numero_projeto)
+                    ).filter_by(projeto_id=projeto_id_param).scalar()
+                    
+                    proximo_numero_projeto = (ultimo_numero or 0) + 1
+                    next_numero = f"REL-{proximo_numero_projeto:04d}"
+                    current_app.logger.info(f"📋 Next numero for project {projeto_id_param}: {next_numero}")
             except (ValueError, TypeError):
                 selected_project = None
         else:
@@ -2695,6 +2714,7 @@ def create_report():
                          existing_report=existing_report,
                          existing_fotos=existing_fotos,
                          existing_checklist=existing_checklist,
+                         next_numero=next_numero,
                          today=date.today().isoformat())
 
 # Removed duplicate function - using the more comprehensive version below at line 7415

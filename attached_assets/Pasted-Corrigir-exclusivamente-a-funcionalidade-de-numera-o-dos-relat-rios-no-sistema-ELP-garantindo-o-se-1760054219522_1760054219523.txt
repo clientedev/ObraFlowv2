@@ -1,0 +1,80 @@
+Corrigir exclusivamente a funcionalidade de numeração dos relatórios no sistema ELP, garantindo o seguinte comportamento:
+
+🔧 Requisitos funcionais
+
+Numeração automática e sequencial por obra (projeto):
+
+Cada obra deve manter sua própria sequência independente:
+
+Projeto X → REL-0001, REL-0002, REL-0003…
+
+Projeto Y → REL-0001, REL-0002, etc.
+
+A sequência deve ser calculada com base no maior número existente para aquele projeto no banco PostgreSQL, na tabela relatorios.
+
+Numeração pré-preenchida e editável:
+
+Ao criar um relatório em “preenchimento”, o campo “número” deve vir automaticamente preenchido com o próximo número disponível, mas deve ser editável manualmente.
+
+Se o usuário editar o número manualmente, o sistema deve ajustar a sequência automaticamente a partir do novo valor digitado.
+
+Persistência e visibilidade correta:
+
+Os relatórios já criados não podem desaparecer da listagem ao abrir novos relatórios para a mesma obra.
+
+A listagem /reports deve sempre carregar todos os relatórios relacionados ao projeto, independentemente do status (“preenchimento”, “aguardando aprovação”, etc.).
+
+🧱 Banco de dados
+
+Tabela: relatorios
+Colunas principais:
+
+id (PK)
+
+numero (string, ex: REL-0001)
+
+projeto_id (FK → projetos.id)
+
+status
+
+created_at
+
+updated_at
+
+🧠 Lógica esperada
+
+Na criação (new report):
+
+Buscar o último número (numero) de relatório do mesmo projeto_id.
+
+Incrementar +1 e formatar com 4 dígitos (REL-{num:04d}).
+
+Preencher automaticamente no campo, mas permitir edição antes do submit.
+
+Na edição (edit report):
+
+Se o campo “número” for alterado, atualizar o valor e ajustar o contador interno para os próximos relatórios.
+
+Na listagem:
+
+Exibir todos os relatórios existentes vinculados à obra, em ordem decrescente por created_at ou numero.
+
+Impedir que relatórios anteriores “desapareçam” ao criar novos.
+
+✅ Importante
+
+Não alterar outras funcionalidades do sistema (templates, upload de imagem, categorias, etc.).
+
+Garantir compatibilidade com o banco PostgreSQL atual.
+
+Criar migração Alembic se necessário para garantir consistência do campo numero (varchar, único por projeto).
+
+Testar a funcionalidade em produção (/reports e /reports/new) e confirmar que:
+
+O número aparece corretamente ao criar.
+
+É editável.
+
+Sequência é mantida após edição.
+
+Relatórios não desaparecem da listagem.
