@@ -1,0 +1,67 @@
+Correção Completa do Sistema de Notificações e Envio de E-mail (Item 23)
+
+Prompt:
+Corrigir e reestruturar completamente o sistema de notificações e envio automático de e-mails relacionados à aprovação de relatórios, garantindo estabilidade total e funcionamento contínuo.
+
+🔧 Correções e Melhorias Obrigatórias:
+
+Resolver o erro de transação SQL (psycopg2.errors.InFailedSqlTransaction)
+
+O erro indica que há uma falha na transação ativa antes da execução do SELECT.
+
+Implementar controle de transações adequado (commit / rollback) para evitar bloqueio de operações subsequentes.
+
+Garantir que o SELECT ou INSERT seja executado após o commit da alteração de status do relatório.
+
+Fluxo correto da notificação:
+
+Quando o relatório for enviado para aprovação ou aprovado, o sistema deve:
+
+Criar uma notificação interna para o usuário responsável pela próxima ação (ex: o aprovador).
+
+Enviar automaticamente um e-mail com o mesmo conteúdo da notificação.
+
+Estrutura da notificação:
+
+Título: “Relatório [NÚMERO] enviado para aprovação” ou “Relatório [NÚMERO] aprovado”.
+
+Mensagem:
+
+Olá [NOME DESTINATÁRIO],
+O relatório [NÚMERO] referente à obra [NOME DA OBRA] foi [enviado para aprovação/aprovado] por [NOME DO USUÁRIO].  
+Clique abaixo para acessar o relatório:  
+[LINK DIRETO PARA O RELATÓRIO]
+
+
+Registro no banco: Deve incluir id_relatorio, id_usuario_origem, id_usuario_destino, mensagem, tipo, status, timestamp.
+
+Envio de e-mail automático:
+
+Utilizar as credenciais de e-mail do usuário logado (ou do e-mail configurado no painel administrativo).
+
+Caso o e-mail do usuário não esteja configurado, o sistema deve usar o e-mail padrão do sistema como fallback.
+
+Confirmar que o e-mail contém:
+
+Assunto: mesmo título da notificação.
+
+Corpo: mesma mensagem da notificação.
+
+Anexo: PDF do relatório (gerado e anexado automaticamente).
+
+Logs e segurança:
+
+Registrar logs de sucesso/falha no envio de e-mail e criação de notificação.
+
+Exibir mensagens claras no painel administrativo, evitando expor erros SQL brutos ao usuário.
+
+Teste funcional esperado:
+
+Luciana envia o relatório → Leopoldo recebe notificação e e-mail.
+
+Leopoldo aprova → Luciana recebe notificação e e-mail de confirmação.
+
+Nenhum erro de transação ou bloqueio deve ocorrer durante o fluxo.
+
+📍Importante:
+Modificar exclusivamente o fluxo de notificações e envio de e-mails, mantendo todas as outras funcionalidades e templates do sistema exatamente como estão.
