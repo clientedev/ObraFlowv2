@@ -491,6 +491,31 @@ class LogEnvioEmail(db.Model):
     relatorio = db.relationship('Relatorio', backref='logs_envio_email')
     usuario = db.relationship('User', backref='logs_envio_email')
 
+class Notificacao(db.Model):
+    __tablename__ = 'notificacoes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=False)
+    usuario_origem_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    usuario_destino_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    titulo = db.Column(db.String(300), nullable=False)
+    mensagem = db.Column(db.Text, nullable=False)
+    tipo = db.Column(db.String(50), nullable=False)  # 'enviado_para_aprovacao', 'aprovado', 'rejeitado'
+    status = db.Column(db.String(50), default='nao_lida')  # 'lida', 'nao_lida'
+    email_enviado = db.Column(db.Boolean, default=False)
+    email_sucesso = db.Column(db.Boolean, nullable=True)
+    email_erro = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    lida_em = db.Column(db.DateTime, nullable=True)
+    
+    # Relacionamentos
+    relatorio = db.relationship('Relatorio', backref='notificacoes')
+    usuario_origem = db.relationship('User', foreign_keys=[usuario_origem_id], backref='notificacoes_enviadas')
+    usuario_destino = db.relationship('User', foreign_keys=[usuario_destino_id], backref='notificacoes_recebidas')
+    
+    def __repr__(self):
+        return f'<Notificacao {self.tipo} - Relatório {self.relatorio_id}>'
+
 class ConfiguracaoEmail(db.Model):
     __tablename__ = 'configuracao_email'
     

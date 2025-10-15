@@ -3030,14 +3030,74 @@ def approve_report(id):
     relatorio.aprovado_por = current_user.id
     relatorio.data_aprovacao = datetime.utcnow()
 
+    # COMMIT da alteração de status ANTES de criar notificação (evita InFailedSqlTransaction)
     db.session.commit()
+
+    # Criar notificação e enviar e-mail ao autor
+    try:
+        from models import Notificacao
+        autor = relatorio.autor
+        aprovador = current_user
+        projeto = relatorio.projeto
+        
+        # Gerar link direto para o relatório
+        link_relatorio = f"{request.host_url}reports/{relatorio.id}/review"
+        
+        # Criar mensagem da notificação
+        titulo = f"Relatório {relatorio.numero} aprovado"
+        mensagem = f"""Olá {autor.nome_completo},
+O relatório {relatorio.numero} referente à obra {projeto.nome} foi aprovado por {aprovador.nome_completo}.
+Clique abaixo para acessar o relatório:
+{link_relatorio}"""
+        
+        # Criar notificação interna
+        notificacao = Notificacao(
+            relatorio_id=relatorio.id,
+            usuario_origem_id=aprovador.id,
+            usuario_destino_id=autor.id,
+            titulo=titulo,
+            mensagem=mensagem,
+            tipo='aprovado',
+            status='nao_lida'
+        )
+        db.session.add(notificacao)
+        db.session.commit()
+        
+        current_app.logger.info(f"✅ Notificação de aprovação criada para autor {autor.nome_completo}")
+        
+        # Enviar e-mail ao autor
+        from email_service import email_service
+        resultado_email = email_service.enviar_notificacao_aprovacao(
+            relatorio,
+            autor,
+            aprovador,
+            current_user.id
+        )
+        
+        # Atualizar status do e-mail na notificação
+        notificacao.email_enviado = True
+        notificacao.email_sucesso = resultado_email['success']
+        if not resultado_email['success']:
+            notificacao.email_erro = resultado_email.get('error', 'Erro desconhecido')
+        db.session.commit()
+        
+        if resultado_email['success']:
+            current_app.logger.info(f"✅ E-mail de notificação de aprovação enviado para {autor.email}")
+        else:
+            current_app.logger.warning(f"⚠️ Falha ao enviar e-mail de aprovação: {resultado_email.get('error')}")
+            
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"❌ Erro ao criar notificação de aprovação: {str(e)}")
+        import traceback
+        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
 
     # Envio automático para clientes
     try:
         from email_service import EmailService
         from models import EmailCliente
 
-        email_service = EmailService()
+        email_service_clientes = EmailService()
 
         # Buscar emails dos clientes do projeto
         emails_clientes = EmailCliente.query.filter_by(
@@ -3059,7 +3119,7 @@ def approve_report(id):
             }
 
             # Enviar por email
-            resultado = email_service.enviar_relatorio_por_email(
+            resultado = email_service_clientes.enviar_relatorio_por_email(
                 relatorio, 
                 destinatarios_data, 
                 current_user.id
@@ -3214,7 +3274,81 @@ def finalize_report(report_id):
             db.session.delete(dup)
             current_app.logger.info(f"🗑️ Deletado relatório duplicado ID={dup.id} (estava em preenchimento)")
 
+        # COMMIT da alteração de status ANTES de criar notificação (evita InFailedSqlTransaction)
         db.session.commit()
+
+        # Buscar aprovador do projeto
+        from models import AprovadorPadrao, Notificacao
+        aprovador_padrao = AprovadorPadrao.query.filter_by(
+            projeto_id=relatorio.projeto_id,
+            ativo=True
+        ).first()
+        
+        # Se não houver aprovador específico do projeto, buscar aprovador global
+        if not aprovador_padrao:
+            aprovador_padrao = AprovadorPadrao.query.filter_by(
+                projeto_id=None,
+                ativo=True
+            ).first()
+        
+        # Criar notificação e enviar e-mail ao aprovador
+        if aprovador_padrao and aprovador_padrao.aprovador:
+            aprovador = aprovador_padrao.aprovador
+            autor = relatorio.autor
+            projeto = relatorio.projeto
+            
+            # Gerar link direto para o relatório
+            link_relatorio = f"{request.host_url}reports/{relatorio.id}/review"
+            
+            # Criar mensagem da notificação
+            titulo = f"Relatório {relatorio.numero} enviado para aprovação"
+            mensagem = f"""Olá {aprovador.nome_completo},
+O relatório {relatorio.numero} referente à obra {projeto.nome} foi enviado para aprovação por {autor.nome_completo}.
+Clique abaixo para acessar o relatório:
+{link_relatorio}"""
+            
+            try:
+                # Criar notificação interna
+                notificacao = Notificacao(
+                    relatorio_id=relatorio.id,
+                    usuario_origem_id=autor.id,
+                    usuario_destino_id=aprovador.id,
+                    titulo=titulo,
+                    mensagem=mensagem,
+                    tipo='enviado_para_aprovacao',
+                    status='nao_lida'
+                )
+                db.session.add(notificacao)
+                db.session.commit()
+                
+                current_app.logger.info(f"✅ Notificação criada para aprovador {aprovador.nome_completo}")
+                
+                # Enviar e-mail ao aprovador
+                from email_service import email_service
+                resultado_email = email_service.enviar_notificacao_enviado_para_aprovacao(
+                    relatorio,
+                    aprovador,
+                    autor,
+                    current_user.id
+                )
+                
+                # Atualizar status do e-mail na notificação
+                notificacao.email_enviado = True
+                notificacao.email_sucesso = resultado_email['success']
+                if not resultado_email['success']:
+                    notificacao.email_erro = resultado_email.get('error', 'Erro desconhecido')
+                db.session.commit()
+                
+                if resultado_email['success']:
+                    current_app.logger.info(f"✅ E-mail de notificação enviado para {aprovador.email}")
+                else:
+                    current_app.logger.warning(f"⚠️ Falha ao enviar e-mail: {resultado_email.get('error')}")
+                    
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f"❌ Erro ao criar notificação/enviar e-mail: {str(e)}")
+                import traceback
+                current_app.logger.error(f"Traceback: {traceback.format_exc()}")
 
         if duplicados:
             current_app.logger.info(f"✅ Relatório {relatorio.numero} finalizado e {len(duplicados)} duplicado(s) removido(s)")

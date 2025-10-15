@@ -430,5 +430,212 @@ class EmailService:
                 
             return {'success': False, 'error': str(e)}
 
+    def enviar_notificacao_enviado_para_aprovacao(self, relatorio, aprovador, autor, usuario_id):
+        """
+        Enviar notificação por e-mail ao aprovador quando relatório é enviado para aprovação
+        
+        Args:
+            relatorio: Objeto Relatorio enviado para aprovação
+            aprovador: Objeto User que deve aprovar
+            autor: Objeto User que enviou o relatório
+            usuario_id: ID do usuário que está enviando (autor)
+        """
+        try:
+            user_config = self.get_user_email_config(usuario_id)
+            
+            system_config = None
+            if not user_config:
+                system_config = self.get_configuracao_ativa()
+                if not system_config:
+                    raise Exception("Nenhuma configuração de e-mail encontrada (nem do usuário nem do sistema)")
+            
+            self.configure_smtp(system_config, user_config)
+            
+            email_remetente = user_config.email_address if user_config else system_config.email_remetente
+            
+            projeto = relatorio.projeto
+            data_envio = datetime.now().strftime('%d/%m/%Y às %H:%M')
+            
+            # Gerar link direto para o relatório
+            link_relatorio = f"{current_app.config.get('BASE_URL', '')}/reports/{relatorio.id}/review"
+            
+            assunto = f"Relatório {relatorio.numero} enviado para aprovação"
+            
+            corpo = f"""
+            <p>Olá {aprovador.nome_completo},</p>
+            
+            <p>O relatório <strong>{relatorio.numero}</strong> referente à obra <strong>{projeto.nome}</strong> foi enviado para aprovação por <strong>{autor.nome_completo}</strong> em {data_envio}.</p>
+            
+            <p>Clique abaixo para acessar o relatório:</p>
+            <p><a href="{link_relatorio}" style="display: inline-block; background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Visualizar e Aprovar Relatório</a></p>
+            
+            <p>Ou copie o link: <a href="{link_relatorio}">{link_relatorio}</a></p>
+            
+            <p>Atenciosamente,<br>
+            Sistema ELP Consultoria</p>
+            """
+            
+            from flask_mail import Message
+            msg = Message(
+                subject=assunto,
+                recipients=[aprovador.email],
+                html=corpo,
+                sender=current_app.config['MAIL_DEFAULT_SENDER']
+            )
+            
+            self.mail.send(msg)
+            
+            from models import LogEnvioEmail
+            import json
+            log = LogEnvioEmail(
+                projeto_id=relatorio.projeto_id,
+                relatorio_id=relatorio.id,
+                usuario_id=usuario_id,
+                destinatarios=json.dumps([aprovador.email]),
+                cc=json.dumps([]),
+                bcc=json.dumps([]),
+                assunto=assunto,
+                status='enviado',
+                data_envio=datetime.utcnow()
+            )
+            
+            db.session.add(log)
+            db.session.commit()
+            
+            current_app.logger.info(f"Notificação de envio para aprovação enviada para {aprovador.email} - Relatório {relatorio.numero}")
+            return {'success': True, 'message': f'Notificação enviada para {aprovador.nome_completo}'}
+            
+        except Exception as e:
+            current_app.logger.error(f"Erro ao enviar notificação de envio para aprovação: {str(e)}")
+            
+            try:
+                from models import LogEnvioEmail
+                import json
+                log = LogEnvioEmail(
+                    projeto_id=relatorio.projeto_id,
+                    relatorio_id=relatorio.id,
+                    usuario_id=usuario_id,
+                    destinatarios=json.dumps([aprovador.email]),
+                    cc=json.dumps([]),
+                    bcc=json.dumps([]),
+                    assunto=f"Relatório {relatorio.numero} enviado para aprovação",
+                    status='falhou',
+                    erro_detalhes=str(e),
+                    data_envio=datetime.utcnow()
+                )
+                
+                db.session.add(log)
+                db.session.commit()
+            except:
+                pass
+                
+            return {'success': False, 'error': str(e)}
+
+    def enviar_notificacao_aprovacao(self, relatorio, autor, aprovador, usuario_id):
+        """
+        Enviar notificação por e-mail ao autor quando relatório é aprovado
+        
+        Args:
+            relatorio: Objeto Relatorio aprovado
+            autor: Objeto User que criou o relatório
+            aprovador: Objeto User que aprovou
+            usuario_id: ID do usuário que está enviando (aprovador)
+        """
+        try:
+            user_config = self.get_user_email_config(usuario_id)
+            
+            system_config = None
+            if not user_config:
+                system_config = self.get_configuracao_ativa()
+                if not system_config:
+                    raise Exception("Nenhuma configuração de e-mail encontrada (nem do usuário nem do sistema)")
+            
+            self.configure_smtp(system_config, user_config)
+            
+            email_remetente = user_config.email_address if user_config else system_config.email_remetente
+            
+            projeto = relatorio.projeto
+            data_aprovacao = datetime.now().strftime('%d/%m/%Y às %H:%M')
+            
+            # Gerar link direto para o relatório
+            link_relatorio = f"{current_app.config.get('BASE_URL', '')}/reports/{relatorio.id}/review"
+            
+            assunto = f"Relatório {relatorio.numero} aprovado"
+            
+            corpo = f"""
+            <p>Olá {autor.nome_completo},</p>
+            
+            <p>O relatório <strong>{relatorio.numero}</strong> referente à obra <strong>{projeto.nome}</strong> foi aprovado por <strong>{aprovador.nome_completo}</strong> em {data_aprovacao}.</p>
+            
+            <div style="background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; padding: 15px; margin: 15px 0;">
+                <h4 style="color: #155724; margin-top: 0;">✓ Relatório Aprovado</h4>
+                <p style="color: #155724; margin-bottom: 0;">O relatório foi aprovado e está pronto para ser enviado aos clientes.</p>
+            </div>
+            
+            <p>Clique abaixo para acessar o relatório:</p>
+            <p><a href="{link_relatorio}" style="display: inline-block; background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Visualizar Relatório</a></p>
+            
+            <p>Ou copie o link: <a href="{link_relatorio}">{link_relatorio}</a></p>
+            
+            <p>Atenciosamente,<br>
+            Sistema ELP Consultoria</p>
+            """
+            
+            from flask_mail import Message
+            msg = Message(
+                subject=assunto,
+                recipients=[autor.email],
+                html=corpo,
+                sender=current_app.config['MAIL_DEFAULT_SENDER']
+            )
+            
+            self.mail.send(msg)
+            
+            from models import LogEnvioEmail
+            import json
+            log = LogEnvioEmail(
+                projeto_id=relatorio.projeto_id,
+                relatorio_id=relatorio.id,
+                usuario_id=usuario_id,
+                destinatarios=json.dumps([autor.email]),
+                cc=json.dumps([]),
+                bcc=json.dumps([]),
+                assunto=assunto,
+                status='enviado',
+                data_envio=datetime.utcnow()
+            )
+            
+            db.session.add(log)
+            db.session.commit()
+            
+            current_app.logger.info(f"Notificação de aprovação enviada para {autor.email} - Relatório {relatorio.numero}")
+            return {'success': True, 'message': f'Notificação enviada para {autor.nome_completo}'}
+            
+        except Exception as e:
+            current_app.logger.error(f"Erro ao enviar notificação de aprovação: {str(e)}")
+            
+            try:
+                from models import LogEnvioEmail
+                import json
+                log = LogEnvioEmail(
+                    projeto_id=relatorio.projeto_id,
+                    relatorio_id=relatorio.id,
+                    usuario_id=usuario_id,
+                    destinatarios=json.dumps([autor.email]),
+                    cc=json.dumps([]),
+                    bcc=json.dumps([]),
+                    assunto=f"Relatório {relatorio.numero} aprovado",
+                    status='falhou',
+                    erro_detalhes=str(e),
+                    data_envio=datetime.utcnow()
+                )
+                
+                db.session.add(log)
+                db.session.commit()
+            except:
+                pass
+                
+            return {'success': False, 'error': str(e)}
+
 # Instância global do serviço
 email_service = EmailService()
