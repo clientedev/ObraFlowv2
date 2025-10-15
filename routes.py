@@ -3109,12 +3109,17 @@ Clique abaixo para acessar o relatório:
         if emails_clientes:
             # Preparar dados para envio
             destinatarios_emails = [email.email for email in emails_clientes]
+            
+            # Adicionar aprovador no CC conforme solicitado
+            cc_list = []
+            if current_user.email and current_user.email not in destinatarios_emails:
+                cc_list.append(current_user.email)
 
             destinatarios_data = {
                 'destinatarios': destinatarios_emails,
-                'cc': [],
+                'cc': cc_list,
                 'bcc': [],
-                'assunto_custom': None,  # Usar template padrão
+                'assunto_custom': f'Relatório {relatorio.numero} aprovado - {relatorio.projeto.nome}',
                 'corpo_custom': None     # Usar template padrão
             }
 

@@ -1,0 +1,80 @@
+Prompt de correção – Item 23 (Notificações e envio automático de e-mails)
+
+Corrigir exclusivamente as funcionalidades de notificação e envio de e-mail após aprovação de relatório, garantindo que:
+
+o envio ocorra com sucesso,
+
+a transação SQL não seja abortada,
+
+a exclusão de relatórios volte a funcionar,
+
+e a notificação e o e-mail sejam enviados corretamente.
+
+⚙️ Contexto do erro atual
+
+O erro exibido indica:
+
+psycopg2.errors.InFailedSqlTransaction: current transaction is aborted, commands ignored until end of transaction block
+
+
+Isso significa que a operação de envio do e-mail está sendo executada dentro de uma transação aberta, e ao falhar, bloqueia o restante das queries.
+
+🛠️ Tarefas a serem executadas
+
+Isolar o envio de notificações e e-mails fora da transação principal.
+
+O envio do e-mail e da notificação deve ocorrer após o commit do relatório aprovado, usando uma função assíncrona ou chamada segura fora do session.commit() do SQLAlchemy.
+
+Utilizar after_commit event listener ou um bloco separado com nova sessão.
+
+Corrigir a lógica de envio automático:
+
+Quando um relatório é aprovado, enviar:
+
+Notificação interna para o responsável (ex.: Leopoldo).
+
+E-mail automático para todos os destinatários vinculados ao projeto, com:
+
+Assunto: Relatório [CÓDIGO] aprovado - [NOME DA OBRA]
+
+Corpo: mensagem padrão de aprovação
+
+Anexo: PDF do relatório
+
+Caso o envio falhe, registrar log, mas não quebrar a transação.
+
+Garantir que o relatório possa ser excluído normalmente.
+
+Revisar dependências de chaves estrangeiras (ondelete=CASCADE).
+
+Caso o erro ocorra por bloqueio de transação anterior, adicionar rollback seguro (session.rollback()) em exceções do envio de e-mail.
+
+Revisar a ordem de execução:
+
+Primeiro → salvar e aprovar relatório.
+
+Segundo → efetuar commit.
+
+Terceiro → enviar notificações e e-mails.
+
+Quarto → registrar status “notificação enviada” (opcional).
+
+📧 Envio de E-mail
+
+Usar o e-mail configurado do usuário logado no momento da aprovação.
+
+Se não existir configuração personalizada, usar o e-mail padrão do sistema.
+
+Adicionar cópia (CC) para o aprovador.
+
+Garantir que os e-mails de todos os funcionários vinculados à obra sejam incluídos automaticamente.
+
+✅ Critérios de sucesso
+
+O relatório pode ser criado, aprovado e excluído sem erro.
+
+As notificações são geradas para o responsável correto.
+
+O e-mail é enviado com o PDF anexo.
+
+Nenhum erro InFailedSqlTransaction aparece no log.
