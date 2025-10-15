@@ -3018,7 +3018,10 @@ def review_report(report_id):
 @app.route('/reports/<int:id>/approve', methods=['POST'])
 @login_required
 def approve_report(id):
-    """Aprovar relatório - apenas usuários aprovadores"""
+    """
+    Aprovar relatório - apenas usuários aprovadores
+    Implementado conforme Item 23: Correção das Funcionalidades de Aprovação
+    """
     relatorio = Relatorio.query.get_or_404(id)
 
     # Verificar se usuário é aprovador para este projeto
@@ -3026,31 +3029,29 @@ def approve_report(id):
         flash('Acesso negado. Apenas usuários aprovadores podem aprovar relatórios.', 'error')
         return redirect(url_for('reports'))
 
-    relatorio.status = 'Aprovado'
-    relatorio.aprovado_por = current_user.id
-    relatorio.data_aprovacao = datetime.utcnow()
-
-    # COMMIT da alteração de status ANTES de criar notificação (evita InFailedSqlTransaction)
-    db.session.commit()
-
-    # Criar notificação e enviar e-mail ao autor
+    # Guardar dados importantes antes de modificar
+    autor = relatorio.autor
+    aprovador = current_user
+    projeto = relatorio.projeto
+    
     try:
+        # ========== BLOCO 1: ATUALIZAÇÃO DO BANCO DE DADOS ==========
+        # Todas as operações de banco DEVEM ser concluídas ANTES do envio de e-mail
+        
+        # 1. Atualizar status do relatório
+        relatorio.status = 'Aprovado'
+        relatorio.aprovado_por = current_user.id
+        relatorio.data_aprovacao = datetime.utcnow()
+        
+        # 2. Criar notificação interna para o autor
         from models import Notificacao
-        autor = relatorio.autor
-        aprovador = current_user
-        projeto = relatorio.projeto
-        
-        # Gerar link direto para o relatório
         link_relatorio = f"{request.host_url}reports/{relatorio.id}/review"
-        
-        # Criar mensagem da notificação
         titulo = f"Relatório {relatorio.numero} aprovado"
         mensagem = f"""Olá {autor.nome_completo},
 O relatório {relatorio.numero} referente à obra {projeto.nome} foi aprovado por {aprovador.nome_completo}.
 Clique abaixo para acessar o relatório:
 {link_relatorio}"""
         
-        # Criar notificação interna
         notificacao = Notificacao(
             relatorio_id=relatorio.id,
             usuario_origem_id=aprovador.id,
@@ -3061,87 +3062,128 @@ Clique abaixo para acessar o relatório:
             status='nao_lida'
         )
         db.session.add(notificacao)
+        
+        # 3. COMMIT ÚNICO de todas as alterações do banco
         db.session.commit()
+        current_app.logger.info(f"✅ Relatório {relatorio.numero} aprovado com sucesso - Status atualizado no banco")
         
-        current_app.logger.info(f"✅ Notificação de aprovação criada para autor {autor.nome_completo}")
-        
-        # Enviar e-mail ao autor
-        from email_service import email_service
-        resultado_email = email_service.enviar_notificacao_aprovacao(
-            relatorio,
-            autor,
-            aprovador,
-            current_user.id
-        )
-        
-        # Atualizar status do e-mail na notificação
-        notificacao.email_enviado = True
-        notificacao.email_sucesso = resultado_email['success']
-        if not resultado_email['success']:
-            notificacao.email_erro = resultado_email.get('error', 'Erro desconhecido')
-        db.session.commit()
-        
-        if resultado_email['success']:
-            current_app.logger.info(f"✅ E-mail de notificação de aprovação enviado para {autor.email}")
-        else:
-            current_app.logger.warning(f"⚠️ Falha ao enviar e-mail de aprovação: {resultado_email.get('error')}")
-            
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"❌ Erro ao criar notificação de aprovação: {str(e)}")
-        import traceback
-        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
-
-    # Envio automático para clientes
+        current_app.logger.error(f"❌ Erro ao aprovar relatório {relatorio.numero}: {str(e)}")
+        flash(f'Erro ao aprovar relatório: {str(e)}', 'error')
+        return redirect(url_for('review_report', report_id=id))
+    
+    # ========== BLOCO 2: ENVIO DE E-MAILS (APÓS COMMIT) ==========
+    # E-mails são enviados APÓS o commit para evitar InFailedSqlTransaction
+    
+    # 2.1 Coletar todos os destinatários da obra
+    destinatarios_obra = []
+    
+    # Adicionar autor do relatório
+    if autor.email:
+        destinatarios_obra.append({
+            'email': autor.email,
+            'nome': autor.nome_completo,
+            'tipo': 'autor'
+        })
+    
+    # Adicionar responsável do projeto
+    if projeto.responsavel and projeto.responsavel.email:
+        if projeto.responsavel.email != autor.email:  # Evitar duplicata
+            destinatarios_obra.append({
+                'email': projeto.responsavel.email,
+                'nome': projeto.responsavel.nome_completo,
+                'tipo': 'responsavel'
+            })
+    
+    # Adicionar funcionários da obra (se houver campo email)
     try:
-        from email_service import EmailService
+        from models import User
+        funcionarios = User.query.filter(
+            User.projetos.any(id=projeto.id),
+            User.email.isnot(None)
+        ).all()
+        
+        for func in funcionarios:
+            if func.email and func.email not in [d['email'] for d in destinatarios_obra]:
+                destinatarios_obra.append({
+                    'email': func.email,
+                    'nome': func.nome_completo,
+                    'tipo': 'funcionario'
+                })
+    except Exception as e:
+        current_app.logger.warning(f"⚠️ Erro ao buscar funcionários: {str(e)}")
+    
+    # Adicionar clientes da obra
+    try:
         from models import EmailCliente
-
-        email_service_clientes = EmailService()
-
-        # Buscar emails dos clientes do projeto
         emails_clientes = EmailCliente.query.filter_by(
             projeto_id=relatorio.projeto_id,
             ativo=True,
             receber_relatorios=True
         ).all()
-
-        if emails_clientes:
-            # Preparar dados para envio
-            destinatarios_emails = [email.email for email in emails_clientes]
+        
+        for ec in emails_clientes:
+            if ec.email not in [d['email'] for d in destinatarios_obra]:
+                destinatarios_obra.append({
+                    'email': ec.email,
+                    'nome': ec.nome or 'Cliente',
+                    'tipo': 'cliente'
+                })
+    except Exception as e:
+        current_app.logger.warning(f"⚠️ Erro ao buscar clientes: {str(e)}")
+    
+    # 2.2 Enviar e-mail com PDF anexo para todos os destinatários
+    emails_enviados = 0
+    emails_falhos = 0
+    
+    if destinatarios_obra:
+        try:
+            from email_service import EmailService
+            email_service_relatorio = EmailService()
             
-            # Adicionar aprovador no CC conforme solicitado
-            cc_list = []
-            if current_user.email and current_user.email not in destinatarios_emails:
-                cc_list.append(current_user.email)
-
+            # Preparar lista de e-mails
+            lista_emails = [d['email'] for d in destinatarios_obra]
+            
+            # Assunto e corpo conforme especificação do documento
+            assunto_custom = f"Relatório {relatorio.numero} aprovado"
+            corpo_custom = f"""
+            <p>Olá,</p>
+            
+            <p>O relatório <strong>{relatorio.numero}</strong> referente à obra <strong>{projeto.nome}</strong> foi aprovado e está disponível no sistema.</p>
+            
+            <p>Atenciosamente,<br>
+            <strong>{aprovador.nome_completo}</strong></p>
+            """
+            
             destinatarios_data = {
-                'destinatarios': destinatarios_emails,
-                'cc': cc_list,
+                'destinatarios': lista_emails,
+                'cc': [],
                 'bcc': [],
-                'assunto_custom': f'Relatório {relatorio.numero} aprovado - {relatorio.projeto.nome}',
-                'corpo_custom': None     # Usar template padrão
+                'assunto_custom': assunto_custom,
+                'corpo_custom': corpo_custom
             }
-
-            # Enviar por email
-            resultado = email_service_clientes.enviar_relatorio_por_email(
-                relatorio, 
-                destinatarios_data, 
+            
+            # Enviar e-mail com PDF anexo
+            resultado = email_service_relatorio.enviar_relatorio_por_email(
+                relatorio,
+                destinatarios_data,
                 current_user.id
             )
-
+            
             if resultado['success']:
-                flash(f'Relatório {relatorio.numero} aprovado e enviado automaticamente para {len(destinatarios_emails)} cliente(s)!', 'success')
+                emails_enviados = len(lista_emails)
+                current_app.logger.info(f"✅ E-mail com PDF enviado para {emails_enviados} destinatário(s)")
+                flash(f'Relatório {relatorio.numero} aprovado e enviado com PDF para {emails_enviados} destinatário(s)!', 'success')
             else:
-                flash(f'Relatório {relatorio.numero} aprovado, mas houve erro no envio: {resultado.get("error", "Erro desconhecido")}', 'warning')
-        else:
-            flash(f'Relatório {relatorio.numero} aprovado! Nenhum email de cliente configurado para envio automático.', 'warning')
-
-    except Exception as e:
-        # Log da aprovação funcionou, mas email falhou
-        import logging
-        logging.error(f"Erro ao enviar email após aprovação do relatório {id}: {str(e)}")
-        flash(f'Relatório {relatorio.numero} aprovado, mas falha no envio automático: {str(e)}', 'warning')
+                current_app.logger.warning(f"⚠️ Falha no envio de e-mail: {resultado.get('error')}")
+                flash(f'Relatório aprovado, mas falha ao enviar e-mail: {resultado.get("error", "Erro desconhecido")}', 'warning')
+                
+        except Exception as e:
+            current_app.logger.error(f"❌ Erro ao enviar e-mails de aprovação: {str(e)}")
+            flash(f'Relatório aprovado, mas falha ao enviar e-mail: {str(e)}', 'warning')
+    else:
+        flash(f'Relatório {relatorio.numero} aprovado! Nenhum destinatário de e-mail configurado.', 'warning')
 
     return redirect(url_for('review_report', report_id=id))
 
@@ -3375,36 +3417,86 @@ Clique abaixo para acessar o relatório:
         current_app.logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/reports/<int:id>/delete')
+@app.route('/reports/<int:id>/delete', methods=['GET', 'POST', 'DELETE'])
 @login_required
 def delete_report(id):
-    """Excluir relatório - apenas usuários master"""
+    """
+    Excluir relatório - apenas usuários master
+    Implementado conforme Item 23: Correção das Funcionalidades de Exclusão
+    """
     if not current_user.is_master:
         flash('Acesso negado. Apenas usuários master podem excluir relatórios.', 'error')
         return redirect(url_for('reports'))
 
     relatorio = Relatorio.query.get_or_404(id)
-
-    # Delete associated photos first
-    fotos = FotoRelatorio.query.filter_by(relatorio_id=id).all()
-    for foto in fotos:
-        try:
-            # Delete physical file
-            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
-            filepath = os.path.join(upload_folder, foto.filename)
-            if os.path.exists(filepath):
-                os.remove(filepath)
-        except Exception as e:
-            print(f"Erro ao deletar arquivo {foto.filename}: {e}")
-        db.session.delete(foto)
-
-    # Delete report
     numero = relatorio.numero
-    db.session.delete(relatorio)
-    db.session.commit()
-
-    flash(f'Relatório {numero} excluído com sucesso.', 'success')
-    return redirect(url_for('reports'))
+    projeto_nome = relatorio.projeto.nome if relatorio.projeto else 'N/A'
+    
+    try:
+        # ========== BLOCO 1: DELETAR REGISTROS DO BANCO ==========
+        # Todas as operações de exclusão DEVEM ser concluídas ANTES do redirect
+        
+        # 1. Deletar fotos físicas e registros
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=id).all()
+        fotos_deletadas = 0
+        
+        for foto in fotos:
+            try:
+                # Deletar arquivo físico
+                upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                filepath = os.path.join(upload_folder, foto.filename)
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    current_app.logger.info(f"📁 Arquivo deletado: {filepath}")
+                    fotos_deletadas += 1
+            except Exception as e:
+                current_app.logger.warning(f"⚠️ Erro ao deletar arquivo {foto.filename}: {str(e)}")
+            
+            # Deletar registro da foto
+            db.session.delete(foto)
+        
+        # 2. Deletar notificações relacionadas (via cascade ou manual)
+        try:
+            from models import Notificacao
+            notificacoes = Notificacao.query.filter_by(relatorio_id=id).all()
+            for notif in notificacoes:
+                db.session.delete(notif)
+            current_app.logger.info(f"🔔 {len(notificacoes)} notificação(ões) deletada(s)")
+        except Exception as e:
+            current_app.logger.warning(f"⚠️ Erro ao deletar notificações: {str(e)}")
+        
+        # 3. Deletar logs de envio de email relacionados
+        try:
+            from models import LogEnvioEmail
+            logs_email = LogEnvioEmail.query.filter_by(relatorio_id=id).all()
+            for log in logs_email:
+                db.session.delete(log)
+            current_app.logger.info(f"📧 {len(logs_email)} log(s) de email deletado(s)")
+        except Exception as e:
+            current_app.logger.warning(f"⚠️ Erro ao deletar logs de email: {str(e)}")
+        
+        # 4. Deletar o relatório
+        db.session.delete(relatorio)
+        
+        # 5. COMMIT ÚNICO de todas as exclusões
+        db.session.commit()
+        
+        current_app.logger.info(f"✅ Relatório {numero} (Projeto: {projeto_nome}) excluído com sucesso pelo usuário {current_user.nome_completo} (ID: {current_user.id})")
+        current_app.logger.info(f"   - {fotos_deletadas} foto(s) deletada(s)")
+        
+        flash(f'Relatório {numero} excluído com sucesso.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"❌ Erro ao excluir relatório {numero}: {str(e)}")
+        import traceback
+        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
+        flash(f'Erro ao excluir relatório: {str(e)}', 'error')
+        return redirect(url_for('reports'))
+    
+    # Retornar com status 303 (See Other) conforme especificação
+    from flask import redirect as flask_redirect, Response
+    return flask_redirect(url_for('dashboard'), code=303)
 
 @app.route('/reports/<int:report_id>/pdf')
 @login_required

@@ -1,0 +1,109 @@
+Correção das Funcionalidades de Aprovação e Exclusão de Relatórios (Item 23)
+
+O objetivo deste prompt é corrigir integralmente as falhas nas funcionalidades de aprovação e exclusão de relatórios, que atualmente resultam em erro 500 no backend (vide imagens enviadas), além de garantir que o envio de notificações e e-mails funcione corretamente.
+
+🛠️ Contexto do Problema
+
+Erro atual:
+Ao aprovar ou excluir um relatório, ocorre falha SQL do tipo InFailedSqlTransaction, interrompendo o envio de notificações e impedindo a exclusão.
+Exemplo de endpoint com erro:
+
+POST /reports/{id}/approve
+
+DELETE /reports/{id}/delete
+
+Efeito colateral: Nenhum e-mail é disparado e os registros de notificação não são criados.
+
+Causa provável:
+A transação de banco de dados não está sendo finalizada antes do envio de e-mail ou de operações dependentes.
+
+✅ Objetivo do Prompt
+
+Corrigir as funcionalidades para que:
+
+A aprovação de relatórios:
+
+Atualize corretamente o status no banco de dados.
+
+Gere notificações aos usuários vinculados à obra (responsável, funcionários e aprovador).
+
+Envie e-mail automaticamente com o PDF do relatório anexo.
+
+Finalize a transação antes do envio de qualquer e-mail, evitando erro de transaction aborted.
+
+A exclusão de relatórios:
+
+Remova corretamente o relatório e todos os vínculos relacionados (imagens, notificações, registros de aprovação).
+
+Finalize a transação antes de redirecionar o usuário.
+
+Retorne uma resposta JSON ou redirecionamento limpo (sem erro 500).
+
+⚙️ Instruções Técnicas
+
+Backend: FastAPI (Python + SQLAlchemy + PostgreSQL).
+
+Tabela envolvida: reports, notifications, users, projects, fotos_relatorio.
+
+Banco: PostgreSQL.
+
+🔹 Etapas de correção:
+
+Garantir integridade da transação:
+
+Envolver as operações de banco em blocos with session.begin():
+
+Commitar antes de qualquer envio de e-mail ou notificação.
+
+Isolar o envio de e-mail:
+
+Após o commit do relatório aprovado, executar o envio em uma função assíncrona separada (asyncio.create_task ou BackgroundTasks).
+
+Isso evita erro de rollback caso o envio falhe.
+
+Configurar e-mail automático:
+
+O e-mail deve ser enviado do usuário logado (aprovador), para todos os destinatários vinculados à obra:
+
+Responsável principal
+
+Funcionários da obra (campo email)
+
+E-mails vinculados ao cliente
+
+Ao excluir o relatório:
+
+Deletar registros filhos (fotos, notificações, etc.) via cascade.
+
+Retornar RedirectResponse("/dashboard") com status 303 após sucesso.
+
+Logs e tratamento de erro:
+
+Capturar exceções e registrar logs (logger.error(e)).
+
+Retornar mensagem amigável no frontend (“Falha ao enviar e-mail, mas o relatório foi aprovado com sucesso.”).
+
+📨 Fluxo de E-mail (Padrão Automático)
+
+Assunto: Relatório {{numero}} aprovado
+Mensagem:
+
+Olá, 
+
+O relatório {{numero}} referente à obra "{{obra}}" foi aprovado e está disponível no sistema.
+
+Atenciosamente,  
+{{usuario_logado}}
+
+
+Anexo: PDF do relatório aprovado.
+
+🚀 Resultado Esperado
+
+Nenhum erro 500 ao aprovar ou excluir relatórios.
+
+Relatórios aprovados geram notificações e enviam e-mails corretamente.
+
+Exclusão limpa e funcional.
+
+Logs amigáveis e tratativa adequada de exceções.
