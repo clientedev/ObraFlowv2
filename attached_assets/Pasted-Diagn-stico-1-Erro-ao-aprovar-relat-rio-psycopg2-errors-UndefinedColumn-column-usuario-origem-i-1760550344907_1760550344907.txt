@@ -1,0 +1,84 @@
+Diagnóstico
+1️⃣ Erro ao aprovar relatório
+(psycopg2.errors.UndefinedColumn)
+column "usuario_origem_id" of relation "notificacoes" does not exist
+
+
+Causa:
+A tabela notificacoes está sendo usada com uma coluna inexistente (usuario_origem_id).
+Provavelmente a migração de banco (alembic) não foi atualizada para incluir este campo.
+
+2️⃣ Erro ao excluir relatório
+(psycopg2.errors.InFailedSqlTransaction)
+current transaction is aborted, commands ignored until end of transaction block
+
+
+Causa:
+Há uma dependência (FK) entre relatorios e log_envio_emails que impede a exclusão.
+O sistema tenta deletar o relatório antes de apagar os logs associados, gerando o erro.
+
+⚙️ Prompt de Correção Completo
+
+Objetivo: corrigir os dois erros, garantindo que aprovação e exclusão funcionem perfeitamente, mantendo integridade no banco e enviando notificações e e-mails corretamente.
+
+🧠 PROMPT:
+
+Corrigir as operações de aprovação e exclusão de relatórios garantindo funcionamento completo e seguro:
+
+1️⃣ Aprovação de Relatório
+
+Verificar e corrigir a estrutura da tabela notificacoes.
+➤ Adicionar as colunas ausentes via Alembic, caso não existam:
+
+usuario_origem_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+usuario_destino_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+relatorio_id INTEGER REFERENCES relatorios(id) ON DELETE CASCADE,
+titulo TEXT,
+mensagem TEXT,
+tipo VARCHAR(50),
+status VARCHAR(20),
+email_enviado BOOLEAN DEFAULT FALSE,
+email_sucesso BOOLEAN DEFAULT FALSE,
+email_erro TEXT,
+created_at TIMESTAMP DEFAULT NOW(),
+lida_em TIMESTAMP NULL
+
+
+Ajustar o código que insere notificações, validando se todos os campos existem antes de inserir.
+
+Implementar try/except para rollback seguro caso ocorra falha no envio de e-mail, evitando transações abortadas.
+
+Após aprovação do relatório, criar a notificação, enviar o e-mail e confirmar o commit da transação.
+
+2️⃣ Exclusão de Relatório
+
+Corrigir dependências de chave estrangeira:
+➤ Em log_envio_emails, configurar ON DELETE CASCADE para a coluna relatorio_id.
+Isso garante que ao excluir um relatório, todos os logs relacionados sejam removidos automaticamente.
+
+Caso o banco não permita alterar via FK, aplicar deleção manual antes da exclusão:
+
+db.query(LogEnvioEmails).filter(LogEnvioEmails.relatorio_id == id).delete()
+db.query(Notificacao).filter(Notificacao.relatorio_id == id).delete()
+db.delete(relatorio)
+db.commit()
+
+
+Garantir rollback e mensagem amigável se houver falha.
+
+3️⃣ Envio de E-mail
+
+Após aprovação, enviar e-mail com título e corpo padrão:
+
+Assunto: Relatório {{numero}} aprovado
+Corpo: O relatório {{numero}} referente à obra {{nome_obra}} foi aprovado por {{usuario}}.
+Acesse o relatório em: {{url}}
+
+
+Registrar log no banco (log_envio_emails) com status de sucesso ou erro.
+
+4️⃣ Testes
+
+Testar criação, aprovação, e exclusão de relatórios em sequência.
+
+Validar que notificações são criadas, e-mails enviados e que nenhuma transação falha.
