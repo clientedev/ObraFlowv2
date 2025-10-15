@@ -2,32 +2,46 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes (October 2025)
-## Sistema de Notificações e E-mail (Item 23)
-Implementação completa do sistema de notificações internas e envio automático de e-mails relacionados à aprovação de relatórios:
+## Correção de Aprovação e Exclusão de Relatórios - Item 23 (Outubro 2025)
+Correção completa das funcionalidades de aprovação e exclusão de relatórios para resolver erros 500 (InFailedSqlTransaction) e implementar envio automático de e-mails com PDF.
+
+### Problemas Corrigidos
+- **Erro InFailedSqlTransaction**: Causado por múltiplos commits intercalados com operações de envio de e-mail
+- **E-mails limitados**: Sistema anterior enviava apenas para o autor do relatório
+- **Exclusão incompleta**: Não deletava registros relacionados (notificações, logs)
+
+### Implementações - Endpoint de Aprovação (`/reports/<int:id>/approve`)
+- **Commit Único**: Todas as operações de banco (status + notificação) commitadas ANTES do envio de e-mails (linha 3067)
+- **E-mail para Todos os Envolvidos**: 
+  - Autor do relatório
+  - Responsável do projeto
+  - Funcionários da obra (com e-mail cadastrado)
+  - Clientes da obra (EmailCliente com receber_relatorios=True)
+- **PDF Anexo**: E-mail enviado com PDF do relatório usando `enviar_relatorio_por_email()`
+- **Tratamento de Erro Robusto**: Rollback automático, logs detalhados, mensagens amigáveis ao usuário
+
+### Implementações - Endpoint de Exclusão (`/reports/<int:id>/delete`)
+- **Exclusão Completa**: Remove fotos físicas, registros de FotoRelatorio, Notificacao, LogEnvioEmail
+- **Commit Único**: Todas as exclusões commitadas em uma única transação (linha 3482)
+- **Redirect 303**: Retorna redirect com status 303 (See Other) conforme especificação
+- **Logs Informativos**: Registra detalhes da exclusão incluindo número de fotos deletadas
+
+### Fluxo de E-mail de Aprovação
+**Assunto**: Relatório {numero} aprovado
+**Corpo**: O relatório {numero} referente à obra "{obra}" foi aprovado e está disponível no sistema.
+**Anexo**: PDF do relatório aprovado
+**Remetente**: {aprovador.nome_completo}
+
+## Sistema de Notificações e E-mail (Item 23 - Versão Anterior)
+Sistema de notificações internas com envio automático de e-mails:
 
 ### Modelo de Dados
-- **Tabela `notificacoes`**: Nova tabela para armazenar notificações internas com campos para usuário origem/destino, mensagem, tipo, status de leitura, e tracking de envio de e-mail.
+- **Tabela `notificacoes`**: Armazena notificações internas com tracking de envio de e-mail
 
-### Fluxo de Notificações
-- **Envio para Aprovação**: Quando um relatório é enviado para aprovação, o sistema:
-  - Cria notificação interna para o aprovador
-  - Envia e-mail automático ao aprovador com link direto para o relatório
-  - Registra log de sucesso/falha do envio
-  
-- **Aprovação**: Quando um relatório é aprovado, o sistema:
-  - Cria notificação interna para o autor
-  - Envia e-mail automático ao autor confirmando aprovação
-  - Mantém funcionalidade existente de envio aos clientes
-
-### Correções Técnicas
-- **Controle de Transações SQL**: Implementado commit explícito antes de criar notificações para evitar erro `InFailedSqlTransaction`
-- **Rollback em Caso de Erro**: Tratamento adequado de exceções com rollback para manter integridade do banco
-- **Logs Detalhados**: Sistema de logging completo para debug e auditoria de envios
-
-### Funções Adicionadas
+### Funções de E-mail
 - `enviar_notificacao_enviado_para_aprovacao()`: Envia e-mail ao aprovador
 - `enviar_notificacao_aprovacao()`: Envia e-mail ao autor após aprovação
-- Ambas as funções incluem corpo HTML formatado, links diretos e fallback para configurações do sistema
+- Corpo HTML formatado, links diretos, fallback para configurações do sistema
 
 # User Preferences
 Preferred communication style: Simple, everyday language.
