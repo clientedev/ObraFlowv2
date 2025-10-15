@@ -1,6 +1,34 @@
 # Overview
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
+# Recent Changes (October 2025)
+## Sistema de Notificações e E-mail (Item 23)
+Implementação completa do sistema de notificações internas e envio automático de e-mails relacionados à aprovação de relatórios:
+
+### Modelo de Dados
+- **Tabela `notificacoes`**: Nova tabela para armazenar notificações internas com campos para usuário origem/destino, mensagem, tipo, status de leitura, e tracking de envio de e-mail.
+
+### Fluxo de Notificações
+- **Envio para Aprovação**: Quando um relatório é enviado para aprovação, o sistema:
+  - Cria notificação interna para o aprovador
+  - Envia e-mail automático ao aprovador com link direto para o relatório
+  - Registra log de sucesso/falha do envio
+  
+- **Aprovação**: Quando um relatório é aprovado, o sistema:
+  - Cria notificação interna para o autor
+  - Envia e-mail automático ao autor confirmando aprovação
+  - Mantém funcionalidade existente de envio aos clientes
+
+### Correções Técnicas
+- **Controle de Transações SQL**: Implementado commit explícito antes de criar notificações para evitar erro `InFailedSqlTransaction`
+- **Rollback em Caso de Erro**: Tratamento adequado de exceções com rollback para manter integridade do banco
+- **Logs Detalhados**: Sistema de logging completo para debug e auditoria de envios
+
+### Funções Adicionadas
+- `enviar_notificacao_enviado_para_aprovacao()`: Envia e-mail ao aprovador
+- `enviar_notificacao_aprovacao()`: Envia e-mail ao autor após aprovação
+- Ambas as funções incluem corpo HTML formatado, links diretos e fallback para configurações do sistema
+
 # User Preferences
 Preferred communication style: Simple, everyday language.
 Mobile-first design: Date field should be the first input field in report forms.
@@ -26,8 +54,9 @@ Report forms: Location section removed from report creation/editing interface (g
 - **UI/UX**: Mobile-first design, PWA for installability and offline functionality, touch event optimization for photo editor on mobile.
 
 ## Data Model Design
-- **Core Entities**: Users, Projects (with dynamic categories), Visits, Reports, Reimbursements, Checklist Templates, Communication Records.
+- **Core Entities**: Users, Projects (with dynamic categories), Visits, Reports, Reimbursements, Checklist Templates, Communication Records, Notifications.
 - **Photo Storage (`FotoRelatorio`)**: BYTEA for binary image data, JSONB for annotation metadata (`anotacoes_dados`, `coordenadas_anotacao`), SHA-256 hash for deduplication (`imagem_hash`), MIME type storage (`content_type`), and file size tracking (`imagem_size`).
+- **Notifications (`Notificacao`)**: Internal notification system tracking report status changes with fields for origin/destination users, message content, type (enviado_para_aprovacao, aprovado, rejeitado), read status, and email delivery tracking.
 
 ## Key Features
 - **Project Management**: CRUD operations, automatic numbering, GPS location, dynamic project categories.
@@ -35,7 +64,8 @@ Report forms: Location section removed from report creation/editing interface (g
 - **Report System**: Professional PDF reports with photo annotation, ELP branding, and approval workflow.
 - **Photo Management**: Advanced editing (drawing, arrows, text, captions), up to 50 photos per report, predefined caption management, deduplication via image hashing.
 - **Client Email Management**: CRUD system for client emails per project.
-- **Approval Workflow**: Admin approval for reports.
+- **Approval Workflow**: Admin approval for reports with automated notification system.
+- **Internal Notifications System**: Complete notification system with database storage and automatic email alerts for report status changes (submitted for approval, approved, rejected).
 - **User Management**: Role-based access control.
 - **Calendar System**: Visit scheduling, Google Calendar export.
 - **Offline Functionality & PWA**: Full offline support, local storage, automatic sync.
