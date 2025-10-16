@@ -1,0 +1,214 @@
+Corrigir exclusão/redirect de relatórios e fluxo de aprovação/envio de e-mail (tratamento de transações e migrations faltantes)
+
+Resumo do problema (detalhado):
+
+Ao aprovar um relatório a aplicação tenta inserir logs/enviar e-mails dentro de uma transação que já falhou → psycopg2.errors.InFailedSqlTransaction: current transaction is aborted, commands ignored until end of transaction block. Isso faz com que a aprovação falhe parcialmente e gere erros subsequentes.
+
+Ao aprovar há UndefinedColumn: column "usuario_origem_id" of relation "notificacoes" does not exist e também erro indicando falta de coluna user_email_config.is_active (ou colunas relacionadas em user_email_config/mail_config).
+
+Ao excluir um relatório a rota retorna 500 e tenta acessar GET /reports/<id>/delete após operação — mas o redirect está incorreto (deveria redirecionar para /reports ou url_for('reports')).
+
+Mensagem de erro ao aprovar mostra que o sistema tenta ler colunas de configuração de e-mail que não existem no banco: necessidade de alinhar modelo/queries com o schema real.
+
+Recomendação geral: separar commit da persistência do relatório do processo de envio de e-mail / logging (enviar e-mail fora da mesma transação DB que cria/atualiza o relatório).
+
+Objetivo:
+Garantir que:
+
+Aprovar relatório funciona sem erro (commit do DB) e, em seguida, tente enviar email(s).
+
+Se o envio de e-mail falhar, a aprovação do relatório NÃO deve ser revertida (aprovado permanece aprovado) — logue o erro e notifique admin.
+
+Exclusão de relatório funciona e redireciona corretamente para /reports.
+
+Corrigir schema faltante (criar colunas necessárias) via Alembic quando necessário.
+
+Todas as operações possuem tratamento robusto de exception e db.session.rollback() quando aplicável.
+
+Checklist técnico (para executar):
+
+Inspeção inicial
+
+Conectar ao DB (Railway) e rodar \d+ nas tabelas:
+
+relatorios, log_envio_emails, notificacoes, user_email_config, mail_config (ou tabela equivalente), users.
+
+Verificar quais colunas realmente existem e comparar com as queries/logs que aparecem no erro (por ex. usuario_origem_id, usuario_id, is_active, use_ssl etc).
+
+Correções críticas no código (Flask / SQLAlchemy)
+
+Approval route (/reports/<id>/approve):
+
+Fluxo recomendado:
+
+Validar permissão & buscar relatório.
+
+Atualizar status do relatório (relatorio.status = 'aprovado', relatorio.data_aprovacao = now()).
+
+db.session.add(relatorio); db.session.commit() — garantir commit antes de qualquer envio de e-mail.
+
+Após commit, iniciar processo de envio de e-mail (sincrono ou assíncrono). Nunca enviar e-mail dentro de uma transação aberta que ainda não foi commitada.
+
+Registrar log_envio_emails em sua própria transação/try-except após o commit (ou na tarefa background).
+
+Tratamento de exceções:
+
+try:
+    # 1 - atualizar e commitar
+    db.session.commit()
+except Exception as e:
+    db.session.rollback()
+    current_app.logger.exception("Falha ao aprovar relatório")
+    flash("Erro ao aprovar relatório. Veja logs.", "danger")
+    return redirect(url_for('reports'))
+# 2 - depois do commit, tentar enviar email / log
+try:
+    send_report_email(...)  # ou enfileirar task
+    # inserir log_envio_emails em nova transação
+    db.session.add(LogEnvioEmails(...))
+    db.session.commit()
+except Exception as e:
+    db.session.rollback()
+    current_app.logger.exception("Falha ao enviar e-mail após aprovação")
+    # NOTA: não reverte aprovação; apenas notifica admin/usuario
+    flash("Relatório aprovado; falha no envio de e-mail (ver logs).", "warning")
+
+
+Excluir relatório (/reports/<id>/delete)
+
+Confirmar que o método de exclusão usa DELETE no DB e depois return redirect(url_for('reports')).
+
+Não fazer redirect para reports/<id>/delete novamente. Se a rota é GET para exclusão confirmar que após sucesso usa redirect(url_for('reports')).
+
+Exemplo:
+
+@app.route('/reports/<int:report_id>/delete', methods=['POST'])
+def report_delete(report_id):
+    try:
+        report = Report.query.get_or_404(report_id)
+        db.session.delete(report)
+        db.session.commit()
+        flash(f"Relatório {report.numero} excluído com sucesso.", "success")
+        return redirect(url_for('reports'))
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception("Erro ao excluir relatório")
+        flash("Erro ao excluir relatório. Veja logs.", "danger")
+        return redirect(url_for('reports'))
+
+
+Garantir db.session.rollback() em todos os excepts para evitar InFailedSqlTransaction em requests subsequentes.
+
+Separar envio de e-mail do commit do relatório
+
+Preferível colocar envio de e-mail em task background (Celery, RQ, threading simples ou job assíncrono). Se não for possível, enviar depois do commit e dentro de sua própria transação.
+
+Isto evita que falha no envio quebre a transação primária.
+
+Migrations Alembic (se necessário)
+
+Criar migrations para adicionar colunas que as queries esperam mas não existem. Exemplos (ajuste nomes conforme inspeção do schema):
+
+user_email_config.is_active boolean
+
+notificacoes.usuario_origem_id (se o código usa esse campo) ou ajustar o código para usar usuario_id existente.
+
+Colunas necessárias em log_envio_emails (projeto_id, relatorio_id, usuario_id, destinatarios, cc, bcc, assunto, status, erro_detalhes, data_envio)
+
+Exemplo de migration (Alembic skeleton):
+
+# migrations/versions/20251016_add_user_email_config_is_active.py
+from alembic import op
+import sqlalchemy as sa
+
+revision = '20251016_add_user_email_config_is_active'
+down_revision = 'xxxx_previous'
+branch_labels = None
+depends_on = None
+
+def upgrade():
+    op.add_column('user_email_config', sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.true()))
+    # adicionar outras colunas faltantes se necessárias
+
+def downgrade():
+    op.drop_column('user_email_config', 'is_active')
+
+
+Importante: antes de rodar migrations, verificar se as colunas realmente faltam. Não adicionar colunas duplicadas.
+
+Verificar/ajustar queries que usam nomes de colunas divergentes
+
+Ex.: logs mostram INSERT INTO notificacoes (relatorio_id, usuario_origem_id, usuario_destino_id, ...). Se a tabela notificacoes tem usuario_id e não usuario_origem_id, ajustar o código para usar o nome correto ou criar coluna alias.
+
+Ajuste preferível: padronizar o código para usuario_origem_id e usuario_destino_id (se essa semântica faz sentido) e então criar migration que adicione essas colunas e migre dados existentes.
+
+Verificar log_envio_emails e inserir logs após commit
+
+Estrutura da tabela (sugestão baseada no erro):
+
+log_envio_emails (
+  id serial primary key,
+  projeto_id integer,
+  relatorio_id integer,
+  usuario_id integer,
+  destinatarios jsonb,
+  cc jsonb,
+  bcc jsonb,
+  assunto text,
+  status text,
+  erro_detalhes text,
+  data_envio timestamp
+)
+
+
+Se já existe alguma dessas colunas com nomes diferentes, adaptar o código ou migrar nomes.
+
+Testes
+
+Testar localmente com DB de staging/railway:
+
+Aprovar relatório -> verificar: status do relatório muda, registro é commitado, tarefa de envio é iniciada e log_envio_emails aparece com status sucesso ou falhou.
+
+Falha no envio -> relatório continua aprovado e log mostra falhou com detalhes.
+
+Excluir relatório -> executa corretamente e redirect para /reports.
+
+Teste com usuários reais: confirmar e-mails são enviados para todos destinatários esperados.
+
+Mensagens e logs
+
+Garantir logs claros: logger.exception para stacktrace, e mensagens amigáveis em flash() para UI.
+
+Em caso de falha no envio, notificar admin via log ou painel.
+
+Pequeno checklist de comandos sugeridos (execução segura):
+
+Inspecionar tabelas:
+
+-- conectar ao DB e executar:
+\d+ relatorios
+\d+ log_envio_emails
+\d+ notificacoes
+\d+ user_email_config
+
+
+Criar migration Alembic (exemplo):
+
+alembic revision -m "add user_email_config is_active and notificacoes origin fields"
+# editar o arquivo gerado com os `op.add_column` conforme acima
+alembic upgrade head
+
+
+Correções de código (exemplos acima). Commitar no branch fix/report-approve-email-transaction e abrir PR.
+
+Notas finais / recomendações importantes:
+
+NÃO tente enviar e-mails antes do db.session.commit() da aprovação. Sempre commit + depois enviar/logar.
+
+Use try/except com db.session.rollback() para evitar InFailedSqlTransaction.
+
+Se houver múltiplos inserts/updates relacionados ao relatório e envio de e-mail, separe-os logicamente para evitar dependências numa mesma transação.
+
+Se preferirem, implementar job queue (RQ/Celery) para envio e logs; isso melhora confiabilidade (opcional, recomendado para produção).
+
+Ao aplicar migrations em produção (Railway), rodar alembic upgrade head com cuidado e testá-las em staging.
