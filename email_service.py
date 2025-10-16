@@ -237,10 +237,14 @@ class EmailService:
                     )
                     logs_envio.append(log_envio)
             
-            # Salvar todos os logs
-            for log in logs_envio:
-                db.session.add(log)
-            db.session.commit()
+            # Salvar todos os logs em nova transação
+            try:
+                for log in logs_envio:
+                    db.session.add(log)
+                db.session.commit()
+            except Exception as log_error:
+                db.session.rollback()
+                current_app.logger.error(f"⚠️ Erro ao salvar logs de envio: {str(log_error)}")
             
             # Retornar resultado
             sucessos = sum(1 for log in logs_envio if log.status == 'enviado')
@@ -255,20 +259,31 @@ class EmailService:
             }
             
         except Exception as e:
-            # Log geral de erro
-            log_envio = LogEnvioEmail(
-                projeto_id=relatorio.projeto.id,
-                relatorio_id=relatorio.id,
-                usuario_id=usuario_id,
-                destinatarios=json.dumps(destinatarios_data.get('destinatarios', [])),
-                cc=json.dumps(destinatarios_data.get('cc', [])),
-                bcc=json.dumps(destinatarios_data.get('bcc', [])),
-                assunto=destinatarios_data.get('assunto_custom', 'Erro ao gerar assunto'),
-                status='falhou',
-                erro_detalhes=str(e)
-            )
-            db.session.add(log_envio)
-            db.session.commit()
+            # Fazer rollback de qualquer transação pendente
+            try:
+                db.session.rollback()
+            except:
+                pass
+            
+            # Log geral de erro em nova transação
+            try:
+                log_envio = LogEnvioEmail(
+                    projeto_id=relatorio.projeto.id,
+                    relatorio_id=relatorio.id,
+                    usuario_id=usuario_id,
+                    destinatarios=json.dumps(destinatarios_data.get('destinatarios', [])),
+                    cc=json.dumps(destinatarios_data.get('cc', [])),
+                    bcc=json.dumps(destinatarios_data.get('bcc', [])),
+                    assunto=destinatarios_data.get('assunto_custom', 'Erro ao gerar assunto'),
+                    status='falhou',
+                    erro_detalhes=str(e)
+                )
+                db.session.add(log_envio)
+                db.session.commit()
+            except Exception as log_error:
+                db.session.rollback()
+                current_app.logger.error(f"⚠️ Erro ao salvar log de erro: {str(log_error)}")
+                log_envio = None
             
             return {
                 'success': False,
@@ -382,23 +397,27 @@ class EmailService:
             # Enviar e-mail
             self.mail.send(msg)
             
-            # Log do envio
+            # Log do envio em nova transação
             from models import LogEnvioEmail
             import json
-            log = LogEnvioEmail(
-                projeto_id=relatorio.projeto_id,
-                relatorio_id=relatorio.id,
-                usuario_id=usuario_id,
-                destinatarios=json.dumps([autor.email]),
-                cc=json.dumps([]),
-                bcc=json.dumps([]),
-                assunto=assunto,
-                status='enviado',
-                data_envio=datetime.utcnow()
-            )
-            
-            db.session.add(log)
-            db.session.commit()
+            try:
+                log = LogEnvioEmail(
+                    projeto_id=relatorio.projeto_id,
+                    relatorio_id=relatorio.id,
+                    usuario_id=usuario_id,
+                    destinatarios=json.dumps([autor.email]),
+                    cc=json.dumps([]),
+                    bcc=json.dumps([]),
+                    assunto=assunto,
+                    status='enviado',
+                    data_envio=datetime.utcnow()
+                )
+                
+                db.session.add(log)
+                db.session.commit()
+            except Exception as log_error:
+                db.session.rollback()
+                current_app.logger.error(f"⚠️ Erro ao salvar log de notificação de rejeição: {str(log_error)}")
             
             current_app.logger.info(f"Notificação de rejeição enviada para {autor.email} - Relatório {relatorio.numero}")
             return {'success': True, 'message': f'Notificação de rejeição enviada para {autor.nome_completo}'}
@@ -406,7 +425,13 @@ class EmailService:
         except Exception as e:
             current_app.logger.error(f"Erro ao enviar notificação de rejeição: {str(e)}")
             
-            # Log do erro
+            # Fazer rollback de transação pendente
+            try:
+                db.session.rollback()
+            except:
+                pass
+            
+            # Log do erro em nova transação
             try:
                 from models import LogEnvioEmail
                 import json
@@ -425,8 +450,9 @@ class EmailService:
                 
                 db.session.add(log)
                 db.session.commit()
-            except:
-                pass
+            except Exception as log_error:
+                db.session.rollback()
+                current_app.logger.error(f"⚠️ Erro ao salvar log de erro: {str(log_error)}")
                 
             return {'success': False, 'error': str(e)}
 
@@ -485,22 +511,27 @@ class EmailService:
             
             self.mail.send(msg)
             
+            # Log do envio em nova transação
             from models import LogEnvioEmail
             import json
-            log = LogEnvioEmail(
-                projeto_id=relatorio.projeto_id,
-                relatorio_id=relatorio.id,
-                usuario_id=usuario_id,
-                destinatarios=json.dumps([aprovador.email]),
-                cc=json.dumps([]),
-                bcc=json.dumps([]),
-                assunto=assunto,
-                status='enviado',
-                data_envio=datetime.utcnow()
-            )
-            
-            db.session.add(log)
-            db.session.commit()
+            try:
+                log = LogEnvioEmail(
+                    projeto_id=relatorio.projeto_id,
+                    relatorio_id=relatorio.id,
+                    usuario_id=usuario_id,
+                    destinatarios=json.dumps([aprovador.email]),
+                    cc=json.dumps([]),
+                    bcc=json.dumps([]),
+                    assunto=assunto,
+                    status='enviado',
+                    data_envio=datetime.utcnow()
+                )
+                
+                db.session.add(log)
+                db.session.commit()
+            except Exception as log_error:
+                db.session.rollback()
+                current_app.logger.error(f"⚠️ Erro ao salvar log de notificação: {str(log_error)}")
             
             current_app.logger.info(f"Notificação de envio para aprovação enviada para {aprovador.email} - Relatório {relatorio.numero}")
             return {'success': True, 'message': f'Notificação enviada para {aprovador.nome_completo}'}
@@ -508,6 +539,13 @@ class EmailService:
         except Exception as e:
             current_app.logger.error(f"Erro ao enviar notificação de envio para aprovação: {str(e)}")
             
+            # Fazer rollback de transação pendente
+            try:
+                db.session.rollback()
+            except:
+                pass
+            
+            # Log do erro em nova transação
             try:
                 from models import LogEnvioEmail
                 import json
@@ -526,8 +564,9 @@ class EmailService:
                 
                 db.session.add(log)
                 db.session.commit()
-            except:
-                pass
+            except Exception as log_error:
+                db.session.rollback()
+                current_app.logger.error(f"⚠️ Erro ao salvar log de erro: {str(log_error)}")
                 
             return {'success': False, 'error': str(e)}
 
@@ -591,22 +630,27 @@ class EmailService:
             
             self.mail.send(msg)
             
+            # Log do envio em nova transação
             from models import LogEnvioEmail
             import json
-            log = LogEnvioEmail(
-                projeto_id=relatorio.projeto_id,
-                relatorio_id=relatorio.id,
-                usuario_id=usuario_id,
-                destinatarios=json.dumps([autor.email]),
-                cc=json.dumps([]),
-                bcc=json.dumps([]),
-                assunto=assunto,
-                status='enviado',
-                data_envio=datetime.utcnow()
-            )
-            
-            db.session.add(log)
-            db.session.commit()
+            try:
+                log = LogEnvioEmail(
+                    projeto_id=relatorio.projeto_id,
+                    relatorio_id=relatorio.id,
+                    usuario_id=usuario_id,
+                    destinatarios=json.dumps([autor.email]),
+                    cc=json.dumps([]),
+                    bcc=json.dumps([]),
+                    assunto=assunto,
+                    status='enviado',
+                    data_envio=datetime.utcnow()
+                )
+                
+                db.session.add(log)
+                db.session.commit()
+            except Exception as log_error:
+                db.session.rollback()
+                current_app.logger.error(f"⚠️ Erro ao salvar log de aprovação: {str(log_error)}")
             
             current_app.logger.info(f"Notificação de aprovação enviada para {autor.email} - Relatório {relatorio.numero}")
             return {'success': True, 'message': f'Notificação enviada para {autor.nome_completo}'}
@@ -614,6 +658,13 @@ class EmailService:
         except Exception as e:
             current_app.logger.error(f"Erro ao enviar notificação de aprovação: {str(e)}")
             
+            # Fazer rollback de transação pendente
+            try:
+                db.session.rollback()
+            except:
+                pass
+            
+            # Log do erro em nova transação
             try:
                 from models import LogEnvioEmail
                 import json
@@ -632,8 +683,9 @@ class EmailService:
                 
                 db.session.add(log)
                 db.session.commit()
-            except:
-                pass
+            except Exception as log_error:
+                db.session.rollback()
+                current_app.logger.error(f"⚠️ Erro ao salvar log de erro: {str(log_error)}")
                 
             return {'success': False, 'error': str(e)}
 
