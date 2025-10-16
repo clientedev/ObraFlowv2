@@ -1,0 +1,45 @@
+Starting Container
+INFO:root:✅ Using PostgreSQL database (Railway/Replit)
+INFO:root:📁 UPLOAD_FOLDER configurado: uploads
+INFO:root:✅ Flask extensions initialized successfully
+INFO:root:🚂 Railway environment detected - initializing database
+INFO:root:✅ Database connection successful
+INFO:root:✅ Database tables created successfully
+INFO:root:Admin user already exists.
+INFO:root:✅ Checklist padrão já existe: 6 itens encontrados
+INFO:root:🧪 Testing reports functionality...
+INFO:root:✅ Reports table accessible: 16 reports found
+INFO:root:🔧 Checking and fixing migration state...
+INFO:root:🔧 Found existing user_email_config table, ensuring migration state is correct
+INFO:root:✅ Updated alembic_version to latest migration
+INFO:root:✅ RAILWAY DATABASE INITIALIZATION COMPLETE
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+20250929_2303
+Stopping Container
+Starting Container
+INFO:root:✅ Using PostgreSQL database (Railway/Replit)
+INFO:root:📁 UPLOAD_FOLDER configurado: uploads
+INFO:root:✅ Flask extensions initialized successfully
+INFO:root:🚂 Railway environment detected - initializing database
+INFO:root:✅ Database connection successful
+INFO:root:✅ Database tables created successfully
+INFO:root:Admin user already exists.
+INFO:root:✅ Checklist padrão já existe: 6 itens encontrados
+INFO:root:🧪 Testing reports functionality...
+INFO:root:✅ Reports table accessible: 16 reports found
+INFO:root:🔧 Checking and fixing migration state...
+INFO:root:🔧 Found existing user_email_config table, ensuring migration state is correct
+INFO:root:✅ RAILWAY DATABASE INITIALIZATION COMPLETE
+INFO:root:🔄 Executando migrações automáticas...
+WARNING:root:⚠️ Erro ao corrigir conflitos de migração: No module named 'fix_migration_categorias_obra'
+INFO:root:✅ Migrações aplicadas com sucesso
+ * Serving Flask app 'app'
+ * Debug mode: off
+INFO:werkzeug:WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.250.13.193:8080
+INFO:werkzeug:Press CTRL+C to quit
+INFO:werkzeug:100.64.0.2 - - [16/Oct/2025 23:52:34] "GET /health HTTP/1.1" 200 -
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
