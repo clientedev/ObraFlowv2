@@ -9,7 +9,14 @@ import logging
 if os.environ.get("RAILWAY_ENVIRONMENT"):
     logging.info("🔄 Executando migrações automáticas...")
     try:
-        # First, try to fix any migration conflicts
+        # First, fix user_email_config table if needed
+        try:
+            from fix_user_email_config_columns import fix_user_email_config_table
+            fix_user_email_config_table()
+        except Exception as fix_error:
+            logging.warning(f"⚠️ Erro ao corrigir user_email_config: {fix_error}")
+        
+        # Then, try to fix any migration conflicts
         try:
             from fix_migration_categorias_obra import fix_categorias_obra_migration
             fix_categorias_obra_migration()
