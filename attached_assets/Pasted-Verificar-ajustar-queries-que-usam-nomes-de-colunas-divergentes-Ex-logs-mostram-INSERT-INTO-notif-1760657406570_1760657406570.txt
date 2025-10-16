@@ -1,0 +1,76 @@
+Verificar/ajustar queries que usam nomes de colunas divergentes
+
+Ex.: logs mostram INSERT INTO notificacoes (relatorio_id, usuario_origem_id, usuario_destino_id, ...). Se a tabela notificacoes tem usuario_id e não usuario_origem_id, ajustar o código para usar o nome correto ou criar coluna alias.
+
+Ajuste preferível: padronizar o código para usuario_origem_id e usuario_destino_id (se essa semântica faz sentido) e então criar migration que adicione essas colunas e migre dados existentes.
+
+Verificar log_envio_emails e inserir logs após commit
+
+Estrutura da tabela (sugestão baseada no erro):
+
+log_envio_emails (
+  id serial primary key,
+  projeto_id integer,
+  relatorio_id integer,
+  usuario_id integer,
+  destinatarios jsonb,
+  cc jsonb,
+  bcc jsonb,
+  assunto text,
+  status text,
+  erro_detalhes text,
+  data_envio timestamp
+)
+
+
+Se já existe alguma dessas colunas com nomes diferentes, adaptar o código ou migrar nomes.
+
+Testes
+
+Testar localmente com DB de staging/railway:
+
+Aprovar relatório -> verificar: status do relatório muda, registro é commitado, tarefa de envio é iniciada e log_envio_emails aparece com status sucesso ou falhou.
+
+Falha no envio -> relatório continua aprovado e log mostra falhou com detalhes.
+
+Excluir relatório -> executa corretamente e redirect para /reports.
+
+Teste com usuários reais: confirmar e-mails são enviados para todos destinatários esperados.
+
+Mensagens e logs
+
+Garantir logs claros: logger.exception para stacktrace, e mensagens amigáveis em flash() para UI.
+
+Em caso de falha no envio, notificar admin via log ou painel.
+
+Pequeno checklist de comandos sugeridos (execução segura):
+
+Inspecionar tabelas:
+
+-- conectar ao DB e executar:
+\d+ relatorios
+\d+ log_envio_emails
+\d+ notificacoes
+\d+ user_email_config
+
+
+Criar migration Alembic (exemplo):
+
+alembic revision -m "add user_email_config is_active and notificacoes origin fields"
+# editar o arquivo gerado com os `op.add_column` conforme acima
+alembic upgrade head
+
+
+Correções de código (exemplos acima). Commitar no branch fix/report-approve-email-transaction e abrir PR.
+
+Notas finais / recomendações importantes:
+
+NÃO tente enviar e-mails antes do db.session.commit() da aprovação. Sempre commit + depois enviar/logar.
+
+Use try/except com db.session.rollback() para evitar InFailedSqlTransaction.
+
+Se houver múltiplos inserts/updates relacionados ao relatório e envio de e-mail, separe-os logicamente para evitar dependências numa mesma transação.
+
+Se preferirem, implementar job queue (RQ/Celery) para envio e logs; isso melhora confiabilidade (opcional, recomendado para produção).
+
+Ao aplicar migrations em produção (Railway), rodar alembic upgrade head com cuidado e testá-las em staging.

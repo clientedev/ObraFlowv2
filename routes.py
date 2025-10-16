@@ -3496,7 +3496,7 @@ def delete_report(id):
     
     # Retornar com status 303 (See Other) conforme especificação
     from flask import redirect as flask_redirect, Response
-    return flask_redirect(url_for('dashboard'), code=303)
+    return flask_redirect(url_for('reports'), code=303)
 
 @app.route('/reports/<int:report_id>/pdf')
 @login_required
