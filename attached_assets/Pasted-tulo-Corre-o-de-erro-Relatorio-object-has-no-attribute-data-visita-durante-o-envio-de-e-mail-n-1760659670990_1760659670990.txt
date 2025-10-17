@@ -1,0 +1,96 @@
+tulo:
+Correção de erro 'Relatorio' object has no attribute 'data_visita' durante o envio de e-mail na aprovação de relatórios.
+
+Descrição do problema:
+Ao aprovar um relatório, o sistema exibe a mensagem:
+
+“Relatório aprovado, mas falha ao enviar e-mail: 'Relatorio' object has no attribute 'data_visita'”
+
+O erro indica que, no momento do envio do e-mail de aprovação, o código tenta acessar o atributo data_visita do objeto Relatorio, mas esse campo não existe na tabela ou no modelo SQLAlchemy correspondente.
+
+Objetivo:
+Garantir que o campo de data da visita utilizado no e-mail de aprovação exista e seja obtido corretamente — mantendo compatibilidade com o banco de dados e preservando o fluxo de envio de e-mails.
+
+✅ Etapas de correção
+
+Verificar o modelo Relatorio (models.py)
+Localize a classe Relatorio no arquivo models.py (ou similar).
+Veja se há algum campo que representa a data da visita, como por exemplo:
+
+data_visita = db.Column(db.DateTime)
+data_inicio = db.Column(db.DateTime)
+data_relatorio = db.Column(db.DateTime)
+
+
+Caso não exista nenhum campo correspondente, siga o passo 2.
+
+Adicionar o campo data_visita (se necessário)
+Se o campo não existe e você precisa armazenar a data da visita diretamente no relatório, adicione-o ao modelo:
+
+class Relatorio(db.Model):
+    __tablename__ = 'relatorios'
+    id = db.Column(db.Integer, primary_key=True)
+    numero = db.Column(db.String(50))
+    titulo = db.Column(db.String(200))
+    status = db.Column(db.String(50))
+    data_visita = db.Column(db.DateTime, nullable=True)  # <- adicionar este campo
+    ...
+
+
+Crie e aplique uma migration Alembic para atualizar o banco:
+
+alembic revision -m "add data_visita column to relatorios"
+alembic upgrade head
+
+
+Caso o campo já exista com outro nome (ex: data_inicio ou data_agendada)
+O erro pode vir de uma referência incorreta no envio de e-mail.
+Corrija o trecho de código onde o sistema tenta acessar relatorio.data_visita, substituindo por o nome correto:
+
+# código antigo
+data = relatorio.data_visita.strftime('%d/%m/%Y')
+# código corrigido
+data = relatorio.data_inicio.strftime('%d/%m/%Y')  # ou o campo equivalente existente
+
+
+Verifique esse trecho geralmente no método de envio de e-mail após aprovação, algo como:
+
+send_report_email(
+    destinatarios=emails,
+    assunto=f"Relatório {relatorio.numero} aprovado",
+    mensagem=f"O relatório {relatorio.titulo} referente à obra {relatorio.projeto.nome} "
+             f"foi aprovado em {relatorio.data_visita.strftime('%d/%m/%Y')}"
+)
+
+
+Garantir consistência nos templates de e-mail
+
+Se os templates HTML ou texto de e-mail usam {{ relatorio.data_visita }}, atualize para o campo correto (data_inicio, data_relatorio ou novo data_visita).
+
+Teste enviando manualmente um relatório aprovado para verificar se o valor é exibido corretamente.
+
+Testar após correção
+
+Aprove um relatório existente.
+
+Verifique se:
+
+O status muda corretamente.
+
+O e-mail é enviado sem erro.
+
+A data da visita aparece corretamente no corpo do e-mail.
+
+⚙️ Resumo técnico final
+
+Causa raiz: campo data_visita referenciado no envio de e-mail não existe no modelo Relatorio.
+
+Solução:
+
+Adicionar data_visita à tabela relatorios, ou
+
+Corrigir referência para o campo equivalente (data_inicio, data_relatorio, etc.).
+
+Complemento: garantir que templates e lógica de e-mail usem o nome correto do campo.
+
+Resultado esperado: relatório aprovado e e-mail enviado corretamente, com a data correta da visita.

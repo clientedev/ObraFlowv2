@@ -89,7 +89,13 @@ class EmailService:
             
             # Preparar dados do e-mail
             projeto = relatorio.projeto
-            data_visita = relatorio.data_visita.strftime('%d/%m/%Y') if relatorio.data_visita else 'N/A'
+            # Obter data da visita: se houver visita associada, usar data_inicio da visita, senão usar data_relatorio
+            if relatorio.visita and relatorio.visita.data_inicio:
+                data_visita = relatorio.visita.data_inicio.strftime('%d/%m/%Y')
+            elif relatorio.data_relatorio:
+                data_visita = relatorio.data_relatorio.strftime('%d/%m/%Y')
+            else:
+                data_visita = 'N/A'
             data_atual = datetime.now().strftime('%d/%m/%Y')
             
             # Gerar assunto (usar templates do sistema se disponível)
