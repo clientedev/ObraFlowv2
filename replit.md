@@ -2,6 +2,38 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes (October 2025)
+## Correção Completa do Fluxo de Categorias da Obra - Item 16 (18 Outubro 2025)
+Correção do fluxo de categorias para garantir que sejam carregadas, exibidas e gerenciadas corretamente na tela de edição de obras.
+
+### Problemas Corrigidos
+- **Categorias não apareciam na edição**: Ao clicar em editar obra, as categorias cadastradas não eram carregadas nem exibidas
+- **Falta de feedback visual**: Operações de adicionar/editar/excluir categorias não mostravam mensagens de sucesso/erro claras
+- **Backend incompleto**: Rota `project_edit` não buscava categorias existentes do banco de dados
+
+### Implementações
+#### Backend (routes.py)
+- **Busca de Categorias** (linha 4464): `CategoriaObra.query.filter_by(projeto_id=project_id).order_by(CategoriaObra.ordem).all()`
+- **Passagem para Template** (linha 4540): `categorias=categorias_existentes` adicionado ao render_template
+- **Processamento no POST** (linhas 4495-4525): Extrai e salva novas categorias do formulário com verificação de duplicação
+
+#### Frontend (templates/projects/form.html)
+- **Carregamento Automático** (linhas 571-602): JavaScript DOMContentLoaded carrega categorias existentes quando em modo edição
+- **Exibição Read-Only**: Categorias existentes mostradas com badge "Cadastrada" e orientação para editar/excluir na aba Visualização
+- **Preservação do Counter**: `categoriaCounter` incrementado para evitar conflitos com novas categorias
+
+#### Frontend (templates/projects/view.html)
+- **Toasts Modernos**: Função `mostrarMensagem()` com Bootstrap alerts posicionados, ícones FontAwesome e auto-dismiss
+- **Feedback Contextual**: Mensagens específicas para cada operação (adicionar/editar/excluir) com nome da categoria
+
+### Fluxo Completo Validado
+✅ Criar categoria na tela de criação → salvamento no banco
+✅ Criar categoria na tela de edição → salvamento no banco
+✅ Criar categoria na aba Visualização → salvamento + toast de sucesso
+✅ Editar categoria na aba Visualização → atualização + toast de sucesso
+✅ Excluir categoria na aba Visualização → deleção + toast de sucesso
+✅ Categorias aparecem na criação de relatórios express
+✅ Persistência correta no banco Railway PostgreSQL
+
 ## Correção de Aprovação e Exclusão de Relatórios - Item 23 (Outubro 2025)
 Correção completa das funcionalidades de aprovação e exclusão de relatórios para resolver erros 500 (InFailedSqlTransaction) e implementar envio automático de e-mails com PDF.
 
