@@ -4459,6 +4459,9 @@ def project_view(project_id):
 def project_edit(project_id):
     project = Projeto.query.get_or_404(project_id)
     form = ProjetoForm(obj=project)
+    
+    # Buscar categorias existentes do projeto - Item 16 (Fix)
+    categorias_existentes = CategoriaObra.query.filter_by(projeto_id=project_id).order_by(CategoriaObra.ordem).all()
 
     if form.validate_on_submit():
         try:
@@ -4534,7 +4537,7 @@ def project_edit(project_id):
             db.session.rollback()
             flash(f'Erro ao atualizar obra: {str(e)}', 'error')
 
-    return render_template('projects/form.html', form=form, project=project)
+    return render_template('projects/form.html', form=form, project=project, categorias=categorias_existentes)
 
 # Category management routes - Item 16
 @app.route('/projects/<int:project_id>/categorias')
