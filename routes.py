@@ -4461,36 +4461,78 @@ def project_edit(project_id):
     form = ProjetoForm(obj=project)
 
     if form.validate_on_submit():
-        project.nome = form.nome.data
-        project.descricao = 'Projeto atualizado através do sistema ELP'  # Default value since field was removed
-        project.endereco = form.endereco.data
-        project.latitude = float(form.latitude.data) if form.latitude.data else None
-        project.longitude = float(form.longitude.data) if form.longitude.data else None
+        try:
+            project.nome = form.nome.data
+            project.descricao = 'Projeto atualizado através do sistema ELP'  # Default value since field was removed
+            project.endereco = form.endereco.data
+            project.latitude = float(form.latitude.data) if form.latitude.data else None
+            project.longitude = float(form.longitude.data) if form.longitude.data else None
 
-        # Automatic geocoding: if no GPS coordinates but address exists, convert address to coordinates
-        if not project.latitude or not project.longitude:
-            if project.endereco and project.endereco.strip():
-                print(f"🔍 GEOCODING: Tentando converter endereço '{project.endereco}' para coordenadas GPS...")
-                lat, lng = get_coordinates_from_address(project.endereco)
-                if lat and lng:
-                    project.latitude = lat
-                    project.longitude = lng
-                    print(f"✅ GEOCODING: Sucesso! Coordenadas: {lat}, {lng}")
-                else:
-                    print(f"❌ GEOCODING: Não foi possível converter o endereço")
+            # Automatic geocoding: if no GPS coordinates but address exists, convert address to coordinates
+            if not project.latitude or not project.longitude:
+                if project.endereco and project.endereco.strip():
+                    print(f"🔍 GEOCODING: Tentando converter endereço '{project.endereco}' para coordenadas GPS...")
+                    lat, lng = get_coordinates_from_address(project.endereco)
+                    if lat and lng:
+                        project.latitude = lat
+                        project.longitude = lng
+                        print(f"✅ GEOCODING: Sucesso! Coordenadas: {lat}, {lng}")
+                    else:
+                        print(f"❌ GEOCODING: Não foi possível converter o endereço")
 
-        project.tipo_obra = 'Geral'  # Default value since field was removed
-        project.construtora = form.construtora.data
-        project.nome_funcionario = form.nome_funcionario.data
-        project.responsavel_id = form.responsavel_id.data
-        project.email_principal = form.email_principal.data
-        project.data_inicio = form.data_inicio.data
-        project.data_previsao_fim = form.data_previsao_fim.data
-        project.status = form.status.data
+            project.tipo_obra = 'Geral'  # Default value since field was removed
+            project.construtora = form.construtora.data
+            project.nome_funcionario = form.nome_funcionario.data
+            project.responsavel_id = form.responsavel_id.data
+            project.email_principal = form.email_principal.data
+            project.data_inicio = form.data_inicio.data
+            project.data_previsao_fim = form.data_previsao_fim.data
+            project.status = form.status.data
 
-        db.session.commit()
-        flash('Obra atualizada com sucesso!', 'success')
-        return redirect(url_for('project_view', project_id=project.id))
+            # Process categorias from form - Item 16 (Fix)
+            categorias_adicionais = []
+            for key in request.form.keys():
+                if key.startswith('categorias[') and key.endswith('][nome]'):
+                    index = key.split('[')[1].split(']')[0]
+                    nome_categoria = request.form.get(f'categorias[{index}][nome]')
+                    ordem = request.form.get(f'categorias[{index}][ordem]', 0)
+
+                    if nome_categoria:
+                        categorias_adicionais.append({
+                            'nome': nome_categoria.strip(),
+                            'ordem': int(ordem) if ordem else 0
+                        })
+
+            # Add new categorias to the project
+            categorias_adicionadas = 0
+            for categoria_data in categorias_adicionais:
+                # Check if category already exists (by name)
+                existing_categoria = CategoriaObra.query.filter_by(
+                    projeto_id=project.id,
+                    nome_categoria=categoria_data['nome']
+                ).first()
+
+                if not existing_categoria:
+                    nova_categoria = CategoriaObra(
+                        projeto_id=project.id,
+                        nome_categoria=categoria_data['nome'],
+                        ordem=categoria_data['ordem']
+                    )
+                    db.session.add(nova_categoria)
+                    categorias_adicionadas += 1
+
+            db.session.commit()
+            
+            if categorias_adicionadas > 0:
+                flash(f'Obra atualizada com sucesso! {categorias_adicionadas} nova(s) categoria(s) adicionada(s).', 'success')
+            else:
+                flash('Obra atualizada com sucesso!', 'success')
+            
+            return redirect(url_for('project_view', project_id=project.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar obra: {str(e)}', 'error')
 
     return render_template('projects/form.html', form=form, project=project)
 
