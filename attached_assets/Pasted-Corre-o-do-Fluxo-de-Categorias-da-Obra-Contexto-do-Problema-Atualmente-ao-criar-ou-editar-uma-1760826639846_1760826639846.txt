@@ -1,0 +1,94 @@
+Correção do Fluxo de Categorias da Obra
+
+Contexto do Problema:
+Atualmente, ao criar ou editar uma obra, a funcionalidade de adicionar ou editar categorias não está funcionando corretamente.
+As categorias criadas ou modificadas nessa tela (mostrada na primeira imagem) não são persistidas no banco de dados nem aparecem na aba de “Categorias da Obra” ao visualizar a obra (como mostrado na segunda imagem).
+
+Além disso, ao criar um relatório, essas categorias não estão sendo exibidas como opções na seleção de categoria — o que indica falha de fluxo e integração entre os módulos.
+
+🎯 Objetivo
+
+Corrigir o fluxo completo de criação, edição e exibição das Categorias da Obra, garantindo consistência entre:
+
+Tela de criação/edição da obra (/projects/new e /projects/:id/edit);
+
+Tela de visualização da obra (/projects/:id);
+
+Tela de criação de relatório, onde as categorias precisam ser listadas corretamente.
+
+✅ Requisitos Técnicos / Itens a Corrigir
+
+Persistência de Categorias:
+
+As categorias adicionadas ao criar ou editar uma obra devem ser salvas no banco de dados associadas ao project_id.
+
+Caso o usuário edite a obra e modifique ou exclua categorias, essas alterações devem refletir corretamente no backend.
+
+Atualização em Tempo Real:
+
+Após salvar ou editar a obra, as categorias recém-criadas devem:
+
+Aparecer na aba “Categorias da Obra” dentro da visualização do projeto;
+
+Ser exibidas corretamente como opções ao criar um novo relatório vinculado a essa obra.
+
+Sincronização com Backend:
+
+Verificar se o endpoint responsável por salvar a obra (POST ou PUT /projects) está recebendo e processando as categorias corretamente.
+
+Caso as categorias estejam sendo tratadas em um endpoint separado (/categories ou /project_categories), garantir que:
+
+A requisição está sendo feita com o project_id correto;
+
+O retorno atualiza o front-end após o save() da obra.
+
+Feedback Visual:
+
+Após adicionar uma categoria na tela de edição/criação da obra, exibir confirmação visual de sucesso (ex: alerta verde ou ícone de check).
+
+Em caso de erro (falha de requisição ou conflito de dados), apresentar mensagem clara ao usuário.
+
+Exibição Correta na Tela de Visualização:
+
+Na aba “Categorias” da obra, as categorias salvas devem ser listadas com:
+
+Nome da categoria;
+
+Ordem configurada;
+
+Botões de editar e excluir funcionando adequadamente.
+
+Integração com Relatórios:
+
+As categorias associadas à obra devem aparecer como opções ao criar um novo relatório.
+
+Garantir que o filtro por categoria funcione corretamente, permitindo salvar e recuperar fotos associadas a cada categoria.
+
+🧠 Pontos de Atenção / Diagnóstico Possível
+
+Verificar se há problema de binding do formulário de categorias no front-end (ex.: formData.categories não sendo enviado).
+
+Confirmar se o backend possui a relação:
+
+class Category(Base):
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'))
+    ...
+
+
+e se o serializer/DTO retorna corretamente categories dentro do objeto project.
+
+Checar se o front está mapeando o retorno (response.data.categories) ao reabrir a tela de edição.
+
+Validar se o método de atualização (PUT /projects/:id) não está sobrescrevendo a lista de categorias ou ignorando campos não mapeados.
+
+🚀 Critérios de Aceite
+
+ É possível adicionar, editar e remover categorias ao criar ou editar uma obra.
+
+ As categorias aparecem imediatamente na aba de “Categorias da Obra” ao salvar.
+
+ As categorias aparecem corretamente ao criar relatórios vinculados.
+
+ Nenhum erro 404, 422 ou 500 ocorre ao salvar ou atualizar obras com categorias.
+
+ As alterações permanecem consistentes após atualização da página.
