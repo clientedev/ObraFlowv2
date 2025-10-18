@@ -694,6 +694,22 @@ function carregarCategorias() {
         });
 }
 
+// Função helper para mostrar mensagens
+function mostrarMensagem(mensagem, tipo = 'success') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${tipo} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.innerHTML = `
+        ${tipo === 'success' ? '<i class="fas fa-check-circle me-2"></i>' : '<i class="fas fa-exclamation-circle me-2"></i>'}
+        ${mensagem}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 4000);
+}
+
 // Adicionar nova categoria
 function adicionarCategoria() {
     const nome = prompt('Digite o nome da nova categoria:');
@@ -715,14 +731,15 @@ function adicionarCategoria() {
     .then(response => response.json())
     .then(data => {
         if (data.error) {
-            alert('Erro: ' + data.error);
+            mostrarMensagem('Erro: ' + data.error, 'danger');
         } else {
+            mostrarMensagem('Categoria "' + nome.trim() + '" adicionada com sucesso!', 'success');
             carregarCategorias();
         }
     })
     .catch(error => {
         console.error('Erro ao adicionar categoria:', error);
-        alert('Erro ao adicionar categoria. Tente novamente.');
+        mostrarMensagem('Erro ao adicionar categoria. Tente novamente.', 'danger');
     });
 }
 
@@ -748,14 +765,15 @@ function editarCategoria(id, nomeAtual, ordemAtual) {
     .then(response => response.json())
     .then(data => {
         if (data.error) {
-            alert('Erro: ' + data.error);
+            mostrarMensagem('Erro: ' + data.error, 'danger');
         } else {
+            mostrarMensagem('Categoria atualizada para "' + novoNome.trim() + '" com sucesso!', 'success');
             carregarCategorias();
         }
     })
     .catch(error => {
         console.error('Erro ao editar categoria:', error);
-        alert('Erro ao editar categoria. Tente novamente.');
+        mostrarMensagem('Erro ao editar categoria. Tente novamente.', 'danger');
     });
 }
 
@@ -774,14 +792,15 @@ function excluirCategoria(id, nome) {
     .then(response => response.json())
     .then(data => {
         if (data.error) {
-            alert('Erro: ' + data.error);
+            mostrarMensagem('Erro: ' + data.error, 'danger');
         } else {
+            mostrarMensagem('Categoria "' + nome + '" excluída com sucesso!', 'success');
             carregarCategorias();
         }
     })
     .catch(error => {
         console.error('Erro ao excluir categoria:', error);
-        alert('Erro ao excluir categoria. Tente novamente.');
+        mostrarMensagem('Erro ao excluir categoria. Tente novamente.', 'danger');
     });
 }
 </script></head></old_str>
