@@ -4463,8 +4463,15 @@ def project_edit(project_id):
     # Buscar categorias existentes do projeto - Item 16 (Fix)
     categorias_existentes = CategoriaObra.query.filter_by(projeto_id=project_id).order_by(CategoriaObra.ordem).all()
     
-    # Converter categorias para dicionários serializáveis (JSON-safe)
-    categorias_serializadas = [c.to_dict() for c in categorias_existentes]
+    # Serializar corretamente com fallback para evitar undefined
+    categorias_serializadas = []
+    for c in categorias_existentes:
+        categorias_serializadas.append({
+            "id": c.id,
+            "nome": getattr(c, "nome", None) or getattr(c, "nome_categoria", None) or "",  # fallback de campo
+            "ordem": getattr(c, "ordem", 0),
+            "project_id": c.projeto_id
+        })
 
     if form.validate_on_submit():
         try:
@@ -4695,8 +4702,12 @@ def update_categoria(id):
     """Atualiza uma categoria via AJAX"""
     categoria = CategoriaObra.query.get_or_404(id)
     data = request.get_json()
-    categoria.nome_categoria = data.get('nome', categoria.nome_categoria)
-    categoria.ordem = data.get('ordem', categoria.ordem)
+    # Aceita tanto 'nome' quanto 'nome_categoria' para compatibilidade
+    nome = data.get('nome') or data.get('nome_categoria')
+    if nome:
+        categoria.nome_categoria = nome
+    if 'ordem' in data:
+        categoria.ordem = data.get('ordem')
     db.session.commit()
     return jsonify({"success": True, "message": "Categoria atualizada com sucesso"}), 200
 
