@@ -1,0 +1,146 @@
+Correção Erro 500 ao Editar Obra
+🧠 Resumo do erro
+
+O traceback indica:
+
+TypeError: Object of type CategoriaObra is not JSON serializable
+
+
+no trecho:
+
+const categoriasExistentes = {{ categorias|tojson }};
+
+
+📌 Causa:
+O Flask tenta converter objetos ORM (CategoriaObra) diretamente para JSON, mas isso não é possível sem antes transformá-los em um dicionário (dict) serializável.
+
+✅ Objetivo
+
+Corrigir o carregamento das categorias na rota /projects/<id>/edit, garantindo que:
+
+As categorias sejam convertidas corretamente para JSON.
+
+A tela de edição carregue sem erro 500.
+
+O usuário consiga visualizar, editar e excluir categorias normalmente.
+
+O JavaScript receba os dados via categoriasExistentes sem quebrar o template.
+
+🛠️ Etapas de Correção
+1️⃣ Atualize a rota /projects/<id>/edit no routes.py
+
+Localize a função semelhante a esta:
+
+@app.route('/projects/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def project_edit(id):
+    project = Project.query.get_or_404(id)
+    form = ProjectForm(obj=project)
+    categorias_existentes = CategoriaObra.query.filter_by(project_id=id).all()
+    return render_template('projects/form.html', form=form, project=project, categorias=categorias_existentes)
+
+
+➡️ Substitua pela versão corrigida abaixo:
+
+@app.route('/projects/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def project_edit(id):
+    project = Project.query.get_or_404(id)
+    form = ProjectForm(obj=project)
+
+    # Buscar categorias vinculadas ao projeto
+    categorias_existentes = CategoriaObra.query.filter_by(project_id=id).order_by(CategoriaObra.ordem.asc()).all()
+
+    # Converter cada categoria para dicionário serializável
+    categorias_serializadas = [
+        {
+            "id": c.id,
+            "nome": c.nome,
+            "ordem": c.ordem,
+            "project_id": c.project_id
+        }
+        for c in categorias_existentes
+    ]
+
+    return render_template(
+        'projects/form.html',
+        form=form,
+        project=project,
+        categorias=categorias_serializadas
+    )
+
+
+🧩 Isso garante que categorias agora é uma lista de dicts JSON-serializáveis, permitindo que {{ categorias|tojson }} funcione normalmente.
+
+2️⃣ Confirme o trecho do template projects/form.html
+
+Verifique se o trecho onde é injetado o JSON está assim:
+
+<script>
+    const categoriasExistentes = {{ categorias|tojson }};
+</script>
+
+
+➡️ Este trecho agora funcionará sem gerar erro, pois categorias já vem serializado corretamente.
+
+3️⃣ Verifique o modelo CategoriaObra
+
+Garanta que possui os campos necessários e coerentes:
+
+class CategoriaObra(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(255), nullable=False)
+    ordem = db.Column(db.Integer, default=0)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+
+
+⚠️ Se faltar o campo project_id, crie uma migração Alembic:
+
+alembic revision --autogenerate -m "Add project_id to CategoriaObra"
+alembic upgrade head
+
+4️⃣ (Opcional, mas recomendado)
+
+Adicione um método helper no modelo para facilitar futuras serializações:
+
+class CategoriaObra(db.Model):
+    ...
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nome": self.nome,
+            "ordem": self.ordem,
+            "project_id": self.project_id
+        }
+
+
+E use na rota:
+
+categorias_serializadas = [c.to_dict() for c in categorias_existentes]
+
+5️⃣ Testes
+
+Após aplicar as mudanças:
+
+Reinicie o Replit (Ctrl+C e python main.py ou flask run).
+
+Acesse novamente:
+👉 https://elpconsultoria.pro/projects/1/edit
+
+Verifique:
+
+A página carrega sem erro 500.
+
+As categorias são exibidas no painel.
+
+É possível adicionar, editar e excluir.
+
+As mudanças persistem após salvar.
+
+✅ Checklist Final
+Item	Resultado Esperado
+Erro 500	❌ Corrigido
+Página de edição	✅ Carrega normalmente
+Categorias aparecem	✅ Sim
+JSON no template	✅ Renderizado corretamente
+Migração BD	⚙️ Confirmada se project_id faltar
