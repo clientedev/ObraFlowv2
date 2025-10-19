@@ -1,0 +1,164 @@
+Correção definitiva do carregamento, edição e exclusão de categorias
+🧠 Problema principal
+
+O campo nome não está sendo acessado corretamente no front-end (o JS ou o HTML esperam uma chave inexistente).
+
+O Jinja envia corretamente o JSON, mas o JavaScript lê undefined.
+
+Faltam endpoints de edição e exclusão.
+
+O template cria elementos sem tratar null/undefined.
+
+🩵 1️⃣ Ajuste no backend (routes.py)
+
+Garanta que a rota de edição serialize corretamente as categorias e envie os dados com chaves simples e legíveis.
+
+@app.route('/projects/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def project_edit(id):
+    project = Project.query.get_or_404(id)
+    form = ProjectForm(obj=project)
+
+    categorias_existentes = CategoriaObra.query.filter_by(project_id=id).order_by(CategoriaObra.ordem.asc()).all()
+
+    # Serializar corretamente
+    categorias_serializadas = []
+    for c in categorias_existentes:
+        categorias_serializadas.append({
+            "id": c.id,
+            "nome": getattr(c, "nome", None) or getattr(c, "titulo", None) or "",  # fallback de campo
+            "ordem": getattr(c, "ordem", 0),
+            "project_id": c.project_id
+        })
+
+    return render_template(
+        "projects/form.html",
+        form=form,
+        project=project,
+        categorias=categorias_serializadas
+    )
+
+
+💡 Explicação:
+Esse fallback (getattr) evita undefined se o campo tiver nome diferente (ex: titulo, categoria_nome, etc.).
+
+💾 2️⃣ Criar/ajustar endpoints AJAX de edição e exclusão
+
+Adicione (ou confirme) no mesmo routes.py:
+
+@app.route("/api/categorias/<int:id>/update", methods=["POST"])
+@login_required
+def api_update_categoria(id):
+    categoria = CategoriaObra.query.get_or_404(id)
+    data = request.get_json()
+    categoria.nome = data.get("nome", categoria.nome)
+    categoria.ordem = data.get("ordem", categoria.ordem)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Categoria atualizada com sucesso"}), 200
+
+
+@app.route("/api/categorias/<int:id>/delete", methods=["DELETE"])
+@login_required
+def api_delete_categoria(id):
+    categoria = CategoriaObra.query.get_or_404(id)
+    db.session.delete(categoria)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Categoria excluída com sucesso"}), 200
+
+🧩 3️⃣ Corrigir o template projects/form.html
+
+Logo abaixo do título “Categorias da Obra”, adicione (ou substitua) o trecho por este código completo:
+
+<div id="categorias-container" class="mt-3"></div>
+<button id="btnAddCategoria" class="btn btn-outline-primary mt-2">+ Adicionar Categoria</button>
+
+<script>
+const categoriasExistentes = {{ categorias|tojson|safe }};
+console.log("Categorias carregadas:", categoriasExistentes);
+
+const container = document.getElementById("categorias-container");
+
+// Função para renderizar as categorias
+function renderCategorias() {
+  container.innerHTML = "";
+  categoriasExistentes.forEach(cat => {
+    const card = document.createElement("div");
+    card.className = "card mb-3";
+    card.innerHTML = `
+      <div class="card-body">
+        <label>Nome da Categoria</label>
+        <input type="text" class="form-control nome-categoria" data-id="${cat.id}" value="${cat.nome || ''}">
+        <small class="text-muted d-block mt-1">Categoria vinculada ao projeto #${cat.project_id}</small>
+
+        <label class="mt-2">Ordem de Exibição</label>
+        <input type="number" class="form-control ordem-categoria" data-id="${cat.id}" value="${cat.ordem || 0}">
+
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-success btn-save" data-id="${cat.id}">💾 Salvar</button>
+          <button class="btn btn-danger btn-delete" data-id="${cat.id}">🗑️ Excluir</button>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+renderCategorias();
+
+// Salvando alterações
+container.addEventListener("click", async (e) => {
+  if (e.target.classList.contains("btn-save")) {
+    const id = e.target.dataset.id;
+    const nome = document.querySelector(`.nome-categoria[data-id='${id}']`).value;
+    const ordem = document.querySelector(`.ordem-categoria[data-id='${id}']`).value;
+
+    const res = await fetch(`/api/categorias/${id}/update`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome, ordem })
+    });
+    const data = await res.json();
+    alert(data.message || "Categoria atualizada!");
+  }
+
+  if (e.target.classList.contains("btn-delete")) {
+    const id = e.target.dataset.id;
+    if (!confirm("Deseja realmente excluir esta categoria?")) return;
+
+    const res = await fetch(`/api/categorias/${id}/delete`, { method: "DELETE" });
+    const data = await res.json();
+    alert(data.message || "Categoria excluída!");
+    categoriasExistentes.splice(categoriasExistentes.findIndex(c => c.id == id), 1);
+    renderCategorias();
+  }
+});
+
+// Adicionar nova categoria (visualmente)
+document.getElementById("btnAddCategoria").addEventListener("click", () => {
+  const nova = {
+    id: Date.now(), // temporário até salvar
+    nome: "",
+    ordem: categoriasExistentes.length + 1,
+    project_id: {{ project.id }}
+  };
+  categoriasExistentes.push(nova);
+  renderCategorias();
+});
+</script>
+
+🧾 4️⃣ Resumo do que este prompt faz
+Problema Atual	Solução Aplicada
+Categorias aparecem como undefined	Corrigido via getattr() e renderização segura de chaves
+Não é possível editar/excluir	Adicionadas rotas /api/categorias/<id>/update e /api/categorias/<id>/delete
+Dados não são exibidos corretamente no form	JSON serializado e renderizado dinamicamente no JS
+“Adicionar Categoria” não funcionava	Incluído botão funcional que adiciona dinamicamente campos novos
+✅ Teste esperado
+
+Vá para /projects/<id>/edit.
+
+As categorias agora devem aparecer com o nome correto (sem undefined).
+
+É possível editar o nome/ordem e salvar.
+
+O botão 🗑️ exclui corretamente.
+
+O botão “+ Adicionar Categoria” cria novos blocos que podem ser enviados via AJAX posteriormente.
