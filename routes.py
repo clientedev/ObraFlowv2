@@ -4687,6 +4687,29 @@ def api_project_categorias(project_id):
         'has_categories': len(categorias) > 0
     })
 
+# AJAX routes for category management - conforme orientações do prompt
+@app.route('/api/categorias/<int:id>/update', methods=['POST'])
+@login_required
+@csrf.exempt
+def update_categoria(id):
+    """Atualiza uma categoria via AJAX"""
+    categoria = CategoriaObra.query.get_or_404(id)
+    data = request.get_json()
+    categoria.nome_categoria = data.get('nome', categoria.nome_categoria)
+    categoria.ordem = data.get('ordem', categoria.ordem)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Categoria atualizada com sucesso"}), 200
+
+@app.route('/api/categorias/<int:id>/delete', methods=['DELETE'])
+@login_required
+@csrf.exempt
+def delete_categoria(id):
+    """Exclui uma categoria via AJAX"""
+    categoria = CategoriaObra.query.get_or_404(id)
+    db.session.delete(categoria)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Categoria excluída com sucesso"}), 200
+
 # Contact management routes
 @app.route('/contacts')
 @login_required

@@ -140,6 +140,7 @@ class CategoriaObra(db.Model):
             "id": self.id,
             "nome": self.nome_categoria,
             "ordem": self.ordem,
+            "status": "Cadastrada",
             "project_id": self.projeto_id
         }
     

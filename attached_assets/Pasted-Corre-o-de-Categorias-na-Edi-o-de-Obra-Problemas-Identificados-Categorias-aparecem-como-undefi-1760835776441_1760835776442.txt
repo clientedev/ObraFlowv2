@@ -1,0 +1,152 @@
+Correção de Categorias na Edição de Obra
+🧠 Problemas Identificados
+
+Categorias aparecem como undefined: o JS provavelmente espera categoria.nome mas o dicionário Python usa nome (ou vice-versa).
+
+Falta suporte de edição e exclusão inline no front-end.
+
+Backend ainda não expõe endpoints AJAX para atualizar/excluir categorias diretamente da tela de edição.
+
+✅ 1️⃣ Corrigir o carregamento no routes.py
+
+No project_edit, ajuste a serialização e confirme que o campo enviado corresponde ao nome esperado pelo JS:
+
+@app.route('/projects/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def project_edit(id):
+    project = Project.query.get_or_404(id)
+    form = ProjectForm(obj=project)
+
+    categorias_existentes = CategoriaObra.query.filter_by(project_id=id).order_by(CategoriaObra.ordem.asc()).all()
+
+    # Corrigir chaves esperadas no front-end
+    categorias_serializadas = [
+        {
+            "id": c.id,
+            "nome": c.nome,  # garantir que o campo é 'nome'
+            "ordem": c.ordem,
+            "status": "Cadastrada",
+            "project_id": c.project_id
+        }
+        for c in categorias_existentes
+    ]
+
+    return render_template(
+        'projects/form.html',
+        form=form,
+        project=project,
+        categorias=categorias_serializadas
+    )
+
+
+💡 Importante:
+Certifique-se de que o modelo tem o campo nome e não categoria_nome. Se for diferente, ajuste o dicionário.
+
+✅ 2️⃣ Adicionar rotas de atualização e exclusão (AJAX)
+
+Abaixo das rotas do projeto, adicione:
+
+@app.route('/api/categorias/<int:id>/update', methods=['POST'])
+@login_required
+def update_categoria(id):
+    categoria = CategoriaObra.query.get_or_404(id)
+    data = request.get_json()
+    categoria.nome = data.get('nome', categoria.nome)
+    categoria.ordem = data.get('ordem', categoria.ordem)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Categoria atualizada com sucesso"}), 200
+
+
+@app.route('/api/categorias/<int:id>/delete', methods=['DELETE'])
+@login_required
+def delete_categoria(id):
+    categoria = CategoriaObra.query.get_or_404(id)
+    db.session.delete(categoria)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Categoria excluída com sucesso"}), 200
+
+✅ 3️⃣ Corrigir a renderização JS em projects/form.html
+
+Encontre o trecho onde as categorias são renderizadas (provavelmente dentro de um for em JS) e substitua por algo semelhante:
+
+<script>
+const categoriasExistentes = {{ categorias|tojson }};
+
+const container = document.querySelector('#categorias-container');
+container.innerHTML = '';
+
+categoriasExistentes.forEach(cat => {
+    const card = document.createElement('div');
+    card.classList.add('card', 'mb-3');
+    card.innerHTML = `
+        <div class="card-body">
+            <label>Nome da Categoria</label>
+            <input type="text" class="form-control nome-categoria" data-id="${cat.id}" value="${cat.nome || ''}">
+            
+            <label class="mt-2">Ordem de Exibição</label>
+            <input type="number" class="form-control ordem-categoria" data-id="${cat.id}" value="${cat.ordem || 0}">
+            
+            <div class="mt-3">
+                <button class="btn btn-success btn-save" data-id="${cat.id}">💾 Salvar</button>
+                <button class="btn btn-danger btn-delete" data-id="${cat.id}">🗑️ Excluir</button>
+            </div>
+        </div>
+    `;
+    container.appendChild(card);
+});
+
+// Salvando alterações
+document.addEventListener('click', async e => {
+    if (e.target.classList.contains('btn-save')) {
+        const id = e.target.dataset.id;
+        const nome = document.querySelector(`.nome-categoria[data-id='${id}']`).value;
+        const ordem = document.querySelector(`.ordem-categoria[data-id='${id}']`).value;
+
+        const res = await fetch(`/api/categorias/${id}/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome, ordem })
+        });
+
+        const data = await res.json();
+        if (data.success) alert('Categoria atualizada!');
+    }
+
+    if (e.target.classList.contains('btn-delete')) {
+        const id = e.target.dataset.id;
+        if (!confirm('Deseja realmente excluir esta categoria?')) return;
+
+        const res = await fetch(`/api/categorias/${id}/delete`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            e.target.closest('.card').remove();
+            alert('Categoria excluída!');
+        }
+    }
+});
+</script>
+
+✅ 4️⃣ Ajuste no HTML
+
+No local onde aparecem as categorias, adicione:
+
+<div id="categorias-container"></div>
+
+✅ 5️⃣ Testes
+
+Vá em /projects/<id>/edit.
+
+As categorias devem carregar com nome e ordem corretos.
+
+Ao editar o nome ou ordem e clicar 💾 Salvar, a mudança deve refletir no BD.
+
+Ao clicar 🗑️ Excluir, a categoria deve ser removida visualmente e do BD.
+
+Recarregando a página, as categorias devem aparecer corretamente (sem undefined).
+
+🧾 Resumo do que o prompt resolve
+Problema	Solução
+Categorias aparecendo como “undefined”	Serialização corrigida no backend e ajuste de chaves no front
+Não era possível editar/excluir categorias	Rotas AJAX implementadas + botões integrados
+Erro de carregamento e exibição	Dados tratados e convertidos corretamente para JSON
+Persistência das edições	Atualização em tempo real sem recarregar a página
