@@ -134,6 +134,15 @@ class CategoriaObra(db.Model):
         db.UniqueConstraint('projeto_id', 'nome_categoria', name='uq_categoria_por_projeto'),
     )
     
+    def to_dict(self):
+        """Serializa a categoria para dicionário JSON-compatível"""
+        return {
+            "id": self.id,
+            "nome": self.nome_categoria,
+            "ordem": self.ordem,
+            "project_id": self.projeto_id
+        }
+    
     def __repr__(self):
         return f'<CategoriaObra {self.nome_categoria} - Projeto {self.projeto_id}>'
 

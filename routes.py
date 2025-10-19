@@ -4462,6 +4462,9 @@ def project_edit(project_id):
     
     # Buscar categorias existentes do projeto - Item 16 (Fix)
     categorias_existentes = CategoriaObra.query.filter_by(projeto_id=project_id).order_by(CategoriaObra.ordem).all()
+    
+    # Converter categorias para dicionários serializáveis (JSON-safe)
+    categorias_serializadas = [c.to_dict() for c in categorias_existentes]
 
     if form.validate_on_submit():
         try:
@@ -4537,7 +4540,7 @@ def project_edit(project_id):
             db.session.rollback()
             flash(f'Erro ao atualizar obra: {str(e)}', 'error')
 
-    return render_template('projects/form.html', form=form, project=project, categorias=categorias_existentes)
+    return render_template('projects/form.html', form=form, project=project, categorias=categorias_serializadas)
 
 # Category management routes - Item 16
 @app.route('/projects/<int:project_id>/categorias')
