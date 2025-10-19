@@ -504,7 +504,6 @@ elif os.environ.get("DATABASE_URL"):
             logging.info("Database tables created successfully.")
             create_admin_user_safe()
             create_default_checklists()
-            create_default_legendas()
             logging.info("✅ CLOUD DATABASE INITIALIZATION COMPLETE")
     except Exception as e:
         logging.error(f"Database initialization error: {e}")
