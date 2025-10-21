@@ -3599,55 +3599,6 @@ def generate_pdf_report_legacy(id):
         flash(f'Erro ao gerar PDF: {str(e)}', 'error')
         return redirect(url_for('report_edit', report_id=report_id))
 
-@app.route('/api/nearby-projects')
-def get_nearby_projects():
-    """Get ALL projects ordered by distance from user location"""
-    try:
-        lat = request.args.get('lat', type=float)
-        lon = request.args.get('lon', type=float)
-
-        # Get ALL projects (not just those with coordinates)
-        projects = Projeto.query.all()
-
-        all_projects = []
-        projects_with_distance = []
-        projects_without_distance = []
-
-        for project in projects:
-            project_data = {
-                'id': project.id,
-                'nome': project.nome,
-                'endereco': project.endereco or 'Endereço não informado',
-                'status': project.status,
-                'tipo_obra': project.tipo_obra,
-                'latitude': project.latitude,
-                'longitude': project.longitude
-            }
-
-            # If user provided coordinates and project has coordinates, calculate distance
-            if lat and lon and project.latitude and project.longitude:
-                distance = calculate_distance(lat, lon, project.latitude, project.longitude)
-                project_data['distance'] = round(distance, 2)
-                projects_with_distance.append(project_data)
-            else:
-                # Projects without coordinates or user location not provided
-                project_data['distance'] = 'N/A'
-                projects_without_distance.append(project_data)
-
-        # Sort projects with distance by closest first
-        projects_with_distance.sort(key=lambda x: x['distance'])
-
-        # Sort projects without distance by name
-        projects_without_distance.sort(key=lambda x: x['nome'])
-
-        # Combine: projects with distance first (closest first), then projects without distance
-        all_projects = projects_with_distance + projects_without_distance
-
-        return jsonify({'success': True, 'projects': all_projects, 'total': len(all_projects)})
-
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
 def calculate_distance(lat1, lon1, lat2, lon2):
     """Calculate distance between two points using Haversine formula"""
     import math
@@ -3685,74 +3636,6 @@ def normalizar_endereco(endereco):
     endereco = re.sub(r'^(Al\.?|Alameda)\b', 'Alameda', endereco, flags=re.IGNORECASE)
     
     return endereco
-
-@app.route('/api/projects/nearby', methods=['POST'])
-@login_required
-@csrf.exempt
-def api_nearby_projects():
-    """API para retornar obras próximas ordenadas por distância (top 10)"""
-    try:
-        data = request.get_json()
-        
-        if not data:
-            return jsonify({'error': 'Dados não fornecidos'}), 400
-        
-        # Aceitar todas as variações: lat/lng, lat/lon, latitude/longitude
-        lat = data.get('lat') or data.get('latitude')
-        lng = data.get('lng') or data.get('lon') or data.get('longitude')
-        
-        if not lat or not lng:
-            current_app.logger.error(f'❌ Coordenadas inválidas recebidas: {data}')
-            return jsonify({'error': 'Coordenadas inválidas'}), 400
-        
-        # Converter para float
-        try:
-            lat = float(lat)
-            lng = float(lng)
-        except (ValueError, TypeError):
-            current_app.logger.error(f'❌ Coordenadas não são números válidos: lat={lat}, lng={lng}')
-            return jsonify({'error': 'Coordenadas devem ser números válidos'}), 400
-        
-        # Validar ranges
-        if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
-            current_app.logger.error(f'❌ Coordenadas fora do range válido: lat={lat}, lng={lng}')
-            return jsonify({'error': 'Coordenadas fora do range válido'}), 400
-        
-        current_app.logger.info(f'📍 Buscando obras próximas a: lat={lat}, lng={lng}')
-        
-        # Buscar TODAS as obras
-        projetos = Projeto.query.all()
-        
-        # Calcular distância para todas as obras que têm coordenadas
-        nearby = []
-        for p in projetos:
-            if p.latitude and p.longitude:
-                dist = calculate_distance(lat, lng, p.latitude, p.longitude)
-                nearby.append({
-                    'id': p.id,
-                    'nome': p.nome,
-                    'numero': p.numero,
-                    'endereco': normalizar_endereco(p.endereco) if p.endereco else 'Endereço não informado',
-                    'distancia': round(dist, 2),
-                    'latitude': p.latitude,
-                    'longitude': p.longitude,
-                    'status': p.status,
-                    'tipo_obra': p.tipo_obra
-                })
-        
-        # Ordenar por distância (mais próximo primeiro)
-        nearby.sort(key=lambda x: x['distancia'])
-        
-        # Retornar apenas os 10 mais próximos
-        top_10 = nearby[:10]
-        
-        current_app.logger.info(f'✅ Encontradas {len(nearby)} obras com coordenadas, retornando top {len(top_10)}')
-        
-        return jsonify({'nearby': top_10})
-    
-    except Exception as e:
-        current_app.logger.error(f"❌ Erro na API de projetos próximos: {e}")
-        return jsonify({'error': str(e)}), 500
 
 # ==================== NOTIFICATION API ENDPOINTS ====================
 
