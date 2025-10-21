@@ -1,0 +1,165 @@
+Remover “Obras Próximas” do Dashboard e Reordenar Listagem por Proximidade
+🎯 Objetivo
+
+Corrigir o erro de conexão e simplificar o fluxo:
+
+Remover a seção Obras Próximas do Dashboard.
+
+Exibir todas as obras diretamente na rota /projects, ordenadas pela distância do usuário e depois pelo status (Ativo antes de Concluído).
+
+⚙️ Etapa 1 — Remover “Obras Próximas” do Dashboard
+
+No arquivo routes.py, localize o trecho responsável pelo carregamento da rota do dashboard (geralmente /dashboard, /, ou /home).
+
+Exemplo atual:
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    obras_proximas = get_obras_proximas(current_user)
+    return render_template('dashboard.html', obras_proximas=obras_proximas)
+
+
+Substitua inteiro por:
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    # Remove a funcionalidade de obras próximas
+    return render_template('dashboard.html')
+
+
+No arquivo templates/dashboard.html, remova o bloco que exibe a seção de obras próximas.
+Procure algo como:
+
+{% if obras_proximas %}
+<div class="card mt-3">
+  <div class="card-header">
+    <i class="fa fa-map-marker-alt"></i> Obras Próximas
+  </div>
+  <div class="card-body">
+    {% for obra in obras_proximas %}
+      ...
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+
+E exclua completamente esse trecho do HTML.
+Isso remove o componente “Obras Próximas” (inclusive os erros de conexão).
+
+⚙️ Etapa 2 — Ordenar Listagem /projects por Proximidade
+
+No mesmo routes.py, localize a função responsável por listar as obras (geralmente chamada project_list() ou similar):
+
+Exemplo original:
+
+@app.route('/projects')
+@login_required
+def project_list():
+    projects = Project.query.all()
+    return render_template('projects/list.html', projects=projects)
+
+
+Substitua por:
+
+from geopy.distance import geodesic
+
+@app.route('/projects')
+@login_required
+def project_list():
+    # Obtém a localização atual do usuário (caso exista)
+    user_location = get_user_location(current_user)
+
+    projects = Project.query.all()
+    projetos_com_distancia = []
+
+    for project in projects:
+        if project.latitude and project.longitude and user_location:
+            distancia = geodesic(
+                (user_location.lat, user_location.lon),
+                (project.latitude, project.longitude)
+            ).km
+        else:
+            distancia = float('inf')  # Se não tiver localização, joga para o final
+
+        projetos_com_distancia.append((project, distancia))
+
+    # Ordena:
+    # 1️⃣ Obras ativas primeiro
+    # 2️⃣ Dentro delas, por distância menor
+    # 3️⃣ Concluídas por último
+    projetos_com_distancia.sort(
+        key=lambda x: (
+            0 if x[0].status.lower() == "ativo" else 1,
+            x[1]
+        )
+    )
+
+    projetos_ordenados = [p[0] for p in projetos_com_distancia]
+
+    return render_template('projects/list.html', projects=projetos_ordenados)
+
+🧩 Etapa 3 — Ajustar Template /templates/projects/list.html
+
+Remova quaisquer mensagens de erro ou botões redundantes e deixe o card clicável:
+
+{% for project in projects %}
+<div class="project-card"
+     onclick="window.location.href='{{ url_for('project_view', id=project.id) }}'">
+  <div class="d-flex justify-content-between align-items-center">
+    <span class="fw-bold text-primary">{{ project.codigo }}</span>
+    <span class="badge {{ 'bg-success' if project.status == 'Ativo' else 'bg-secondary' }}">
+      {{ project.status }}
+    </span>
+  </div>
+  <div>
+    <h5 class="mb-1">{{ project.nome }}</h5>
+    <p class="text-muted small mb-0">{{ project.empresa or '' }}</p>
+  </div>
+</div>
+{% endfor %}
+
+💅 Etapa 4 — Estilizar os Cards (CSS)
+
+Adicione ao CSS do projeto:
+
+.project-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.project-card:hover {
+  background-color: #f7faff;
+  transform: translateY(-2px);
+}
+
+🔐 Etapa 5 — Controle de Permissão
+
+Dentro da tela de visualização da obra, garanta que somente o usuário master veja o botão de editar:
+
+{% if current_user.role == 'master' %}
+  <a href="{{ url_for('project_edit', id=project.id) }}" class="btn btn-primary">
+    Editar Obra
+  </a>
+{% endif %}
+
+✅ Resultado Final Esperado
+Item	Resultado
+Dashboard	Nenhuma seção de “Obras Próximas” (nem erro de conexão)
+/projects	Listagem de todas as obras
+Ordenação	1️⃣ Obras ativas por proximidade → 2️⃣ Obras concluídas
+Cards	Inteiros clicáveis (sem botão de “Ver” ou “Editar”)
+Botão “Editar”	Somente dentro da visualização, e apenas para usuário master
+Erro de conexão	Eliminado completamente
+🧾 Resumo Técnico
+✔ Remove o bloco de “Obras Próximas” e a função que o gera.
+✔ Corrige erro de conexão causado por API de localização.
+✔ Usa lógica de distância (geopy.distance) para ordenar na rota /projects.
+✔ Ordena obras ativas antes das concluídas.
+✔ Layout simplificado e interativo.
