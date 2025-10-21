@@ -1908,29 +1908,31 @@ def projects_list():
 
     projects = query.all()
 
-    # If user location is available, sort by distance
-    if user_lat and user_lon:
-        projects_with_distance = []
-        for project in projects:
-            if project.latitude and project.longitude:
-                distance = calculate_distance(
-                    user_lat, user_lon,
-                    float(project.latitude), float(project.longitude)
-                )
-                projects_with_distance.append({
-                    'project': project,
-                    'distance': round(distance, 1)
-                })
-            else:
-                # Projects without coordinates go to the end
-                projects_with_distance.append({
-                    'project': project,
-                    'distance': 999999
-                })
+    # Calculate distance for each project and prepare for sorting
+    projects_with_distance = []
+    for project in projects:
+        # Calculate distance if user location and project coordinates are available
+        if user_lat and user_lon and project.latitude and project.longitude:
+            distance = calculate_distance(
+                user_lat, user_lon,
+                float(project.latitude), float(project.longitude)
+            )
+        else:
+            # Projects without coordinates go to the end
+            distance = float('inf')
+        
+        projects_with_distance.append((project, distance))
 
-        # Sort by distance
-        projects_with_distance.sort(key=lambda x: x['distance'])
-        projects = [item['project'] for item in projects_with_distance]
+    # Sort by status (Ativo first) and then by distance
+    projects_with_distance.sort(
+        key=lambda x: (
+            0 if x[0].status == 'Ativo' else 1,
+            x[1]
+        )
+    )
+
+    # Extract only the sorted projects
+    projects = [p[0] for p in projects_with_distance]
 
     return render_template('projects/list.html', projects=projects)
 
@@ -4141,6 +4143,11 @@ def upload_report_photos(report_id):
 @app.route('/projects/new', methods=['GET', 'POST'])
 @login_required
 def project_new():
+    # Only master users can create new projects
+    if not current_user.is_master:
+        flash('Apenas o usuário master pode criar novas obras.', 'danger')
+        return redirect(url_for('projects_list'))
+    
     form = ProjetoForm()
 
     if request.method == 'POST':
@@ -4458,6 +4465,12 @@ def project_view(project_id):
 @login_required
 def project_edit(project_id):
     project = Projeto.query.get_or_404(project_id)
+    
+    # Only master users can edit projects
+    if not current_user.is_master:
+        flash('Apenas o usuário master pode editar obras.', 'danger')
+        return redirect(url_for('project_view', project_id=project_id))
+    
     form = ProjetoForm(obj=project)
     
     # Buscar categorias existentes do projeto - Item 16 (Fix)

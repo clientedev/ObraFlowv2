@@ -2,6 +2,18 @@
 
 {% block title %}Obras - Sistema de Acompanhamento de Visitas em Obras{% endblock %}
 
+{% block extra_styles %}
+<style>
+.clickable-card {
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+.project-card:hover .clickable-card {
+    background-color: #e9ecef !important;
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">
@@ -10,9 +22,11 @@
                 <i class="fas fa-building me-2"></i>
                 Obras
             </h1>
+            {% if current_user.is_master %}
             <a href="{{ url_for('project_new') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>Nova Obra
             </a>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -130,13 +144,15 @@
                              data-construtora="{{ project.construtora if project.construtora else '' }}"
                              data-funcionario="{{ project.nome_funcionario if project.nome_funcionario else '' }}"
                              data-responsavel="{{ project.responsavel.nome_completo if project.responsavel else '' }}"
-                             data-search="{{ (project.numero + ' ' + project.nome)|lower }}">
+                             data-search="{{ (project.numero + ' ' + project.nome)|lower }}"
+                             onclick="window.location.href='{{ url_for('project_view', project_id=project.id) }}'"
+                             style="cursor: pointer;">
                             
-                            <div class="card border-0 shadow-sm h-100" style="background: #f8f9fa;">
+                            <div class="card border-0 shadow-sm h-100 clickable-card" style="background: #f8f9fa; transition: all 0.2s ease;">
                                 <div class="card-body p-3">
                                     <div class="row align-items-center">
                                         <!-- Coluna principal com informações -->
-                                        <div class="col-8">
+                                        <div class="col-9">
                                             <!-- Número do projeto -->
                                             <div class="fw-bold text-primary mb-1" style="font-size: 0.9rem;">
                                                 {{ project.numero }}
@@ -155,36 +171,18 @@
                                             </div>
                                         </div>
                                         
-                                        <!-- Coluna lateral com status e ações -->
-                                        <div class="col-4 text-end">
+                                        <!-- Coluna lateral com status -->
+                                        <div class="col-3 text-end">
                                             <!-- Status -->
-                                            <div class="mb-2">
-                                                {% if project.status == 'Ativo' %}
-                                                    <span class="badge bg-success" style="font-size: 0.7rem;">Ativo</span>
-                                                {% elif project.status == 'Pausado' %}
-                                                    <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">Pausado</span>
-                                                {% elif project.status == 'Concluído' %}
-                                                    <span class="badge bg-primary" style="font-size: 0.7rem;">Concluído</span>
-                                                {% else %}
-                                                    <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ project.status }}</span>
-                                                {% endif %}
-                                            </div>
-                                            
-                                            <!-- Ações -->
-                                            <div class="d-flex flex-column gap-1">
-                                                <!-- Botão Ver Detalhes -->
-                                                <a href="{{ url_for('project_view', project_id=project.id) }}" 
-                                                   class="btn btn-sm btn-outline-info" 
-                                                   title="Ver detalhes">
-                                                    <i class="fas fa-eye me-1"></i>Ver
-                                                </a>
-                                                <!-- Botão Editar -->
-                                                <a href="{{ url_for('project_edit', project_id=project.id) }}" 
-                                                   class="btn btn-sm btn-outline-primary"
-                                                   title="Editar">
-                                                    <i class="fas fa-edit me-1"></i>Edit
-                                                </a>
-                                            </div>
+                                            {% if project.status == 'Ativo' %}
+                                                <span class="badge bg-success" style="font-size: 0.75rem;">Ativo</span>
+                                            {% elif project.status == 'Pausado' %}
+                                                <span class="badge bg-warning text-dark" style="font-size: 0.75rem;">Pausado</span>
+                                            {% elif project.status == 'Concluído' %}
+                                                <span class="badge bg-primary" style="font-size: 0.75rem;">Concluído</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ project.status }}</span>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -204,10 +202,14 @@
                         {% else %}
                             <i class="fas fa-building fa-3x text-muted mb-3"></i>
                             <h5 class="text-muted">Nenhuma obra cadastrada</h5>
-                            <p class="text-muted">Comece cadastrando a primeira obra.</p>
-                            <a href="{{ url_for('project_new') }}" class="btn btn-primary">
-                                <i class="fas fa-plus me-2"></i>Cadastrar Primeira Obra
-                            </a>
+                            {% if current_user.is_master %}
+                                <p class="text-muted">Comece cadastrando a primeira obra.</p>
+                                <a href="{{ url_for('project_new') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>Cadastrar Primeira Obra
+                                </a>
+                            {% else %}
+                                <p class="text-muted">Nenhuma obra disponível no momento.</p>
+                            {% endif %}
                         {% endif %}
                     </div>
                 {% endif %}

@@ -1,0 +1,150 @@
+Objetivo Geral
+
+Modificar a rota /projects para:
+
+Listar as obras em ordem de proximidade geográfica (como no dashboard).
+
+Priorizar obras ativas antes das concluídas.
+
+Simplificar a interface:
+
+O card inteiro da obra se torna o botão “ver”.
+
+O botão “editar” só aparece dentro da visualização da obra, e apenas para o usuário master.
+
+⚙️ 1️⃣ Backend – Rota /projects
+Alteração da lógica de listagem
+
+Reutilizar ou importar a mesma função usada no Dashboard para calcular a distância entre a localização atual do usuário e as coordenadas das obras (latitude, longitude).
+
+Exemplo genérico (ajuste conforme o nome usado em seu projeto):
+
+from geopy.distance import geodesic
+
+@app.route("/projects")
+@login_required
+def project_list():
+    user_location = get_user_location(current_user)  # Função que obtém lat/lon do usuário
+
+    projects = Project.query.all()
+
+    projetos_com_distancia = []
+    for project in projects:
+        if project.latitude and project.longitude:
+            distancia = geodesic(
+                (user_location.lat, user_location.lon),
+                (project.latitude, project.longitude)
+            ).km
+        else:
+            distancia = float('inf')  # Obras sem localização vão para o final
+        projetos_com_distancia.append((project, distancia))
+
+    # Ordena por status (ativos primeiro) e depois pela menor distância
+    projetos_com_distancia.sort(
+        key=lambda x: (
+            0 if x[0].status == 'Ativo' else 1,
+            x[1]
+        )
+    )
+
+    # Extrai apenas os objetos ordenados
+    ordered_projects = [p[0] for p in projetos_com_distancia]
+
+    return render_template(
+        "projects/list.html",
+        projects=ordered_projects
+    )
+
+
+🧩 Comportamento esperado:
+
+Obras ativas aparecem no topo, ordenadas pela menor distância ao usuário.
+
+Obras concluídas aparecem em seguida, também ordenadas pela distância.
+
+🧱 2️⃣ Frontend – Template projects/list.html
+Remover botões individuais e transformar o card em botão clicável
+{% for project in projects %}
+<div class="project-card"
+     onclick="window.location.href='{{ url_for('project_view', id=project.id) }}'">
+    <div class="project-header">
+        <span class="project-code">{{ project.codigo }}</span>
+        <span class="status {{ 'ativo' if project.status == 'Ativo' else 'concluido' }}">
+            {{ project.status }}
+        </span>
+    </div>
+    <div class="project-body">
+        <h4>{{ project.nome }}</h4>
+        <p>{{ project.empresa }}</p>
+    </div>
+</div>
+{% endfor %}
+
+CSS de apoio
+.project-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+.project-card:hover {
+    background-color: #f3f6fa;
+    transform: translateY(-2px);
+}
+.status.ativo {
+    color: #198754;
+    font-weight: 600;
+}
+.status.concluido {
+    color: #6c757d;
+}
+
+🔐 3️⃣ Controle de Acesso – Edição de Obras
+
+Na rota de visualização (/projects/<id>):
+
+{% if current_user.role == 'master' %}
+  <a href="{{ url_for('project_edit', id=project.id) }}" class="btn btn-primary">
+      Editar Obra
+  </a>
+{% endif %}
+
+
+E reforçar a proteção no backend:
+
+@app.route("/projects/<int:id>/edit")
+@login_required
+def project_edit(id):
+    project = Project.query.get_or_404(id)
+    if current_user.role != 'master':
+        flash("Apenas o usuário master pode editar obras.", "danger")
+        return redirect(url_for('project_view', id=id))
+    return render_template("projects/form.html", project=project)
+
+🔒 4️⃣ Controle do botão “+ Nova Obra”
+
+Somente o usuário master deve ver o botão:
+
+{% if current_user.role == 'master' %}
+  <a href="{{ url_for('project_new') }}" class="btn btn-primary mb-3">
+      + Nova Obra
+  </a>
+{% endif %}
+
+✅ 5️⃣ Testes esperados
+Cenário	Resultado Esperado
+Usuário acessa /projects	Obras aparecem ordenadas por proximidade e status ativo primeiro
+Card clicado	Redireciona para /projects/<id>
+Usuário comum	Não vê botão “editar”
+Usuário master	Vê botão “Editar Obra” dentro da visualização
+Obras sem localização	São listadas por último
+Dashboard e lista de obras	Mostram a mesma lógica de proximidade
+🧾 Resumo técnico
+- Rota /projects: Ordenar por status + proximidade geográfica (como no dashboard)
+- Remover botões individuais “ver” e “editar” na listagem
+- Tornar card clicável para visualizar obra
+- Exibir botão “Editar Obra” apenas dentro da visualização, e só para usuário master
+- Reutilizar função existente do dashboard para cálculo de distância
