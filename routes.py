@@ -1882,6 +1882,8 @@ def user_edit(user_id):
 @app.route('/projects')
 @login_required
 def projects_list():
+    from geopy.distance import geodesic
+    
     # Try to get user location from session or request
     user_lat = request.args.get('lat', type=float)
     user_lon = request.args.get('lon', type=float)
@@ -1913,10 +1915,10 @@ def projects_list():
     for project in projects:
         # Calculate distance if user location and project coordinates are available
         if user_lat and user_lon and project.latitude and project.longitude:
-            distance = calculate_distance(
-                user_lat, user_lon,
-                float(project.latitude), float(project.longitude)
-            )
+            distance = geodesic(
+                (user_lat, user_lon),
+                (float(project.latitude), float(project.longitude))
+            ).km
         else:
             # Projects without coordinates go to the end
             distance = float('inf')
@@ -1926,7 +1928,7 @@ def projects_list():
     # Sort by status (Ativo first) and then by distance
     projects_with_distance.sort(
         key=lambda x: (
-            0 if x[0].status == 'Ativo' else 1,
+            0 if x[0].status.lower() == 'ativo' else 1,
             x[1]
         )
     )
@@ -3600,22 +3602,13 @@ def generate_pdf_report_legacy(id):
         return redirect(url_for('report_edit', report_id=report_id))
 
 def calculate_distance(lat1, lon1, lat2, lon2):
-    """Calculate distance between two points using Haversine formula"""
-    import math
-
-    # Convert to radians
-    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
-
-    # Haversine formula
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
-    c = 2 * math.asin(math.sqrt(a))
-
-    # Radius of earth in kilometers
-    r = 6371
-
-    return r * c
+    """Calculate distance between two points using geopy"""
+    from geopy.distance import geodesic
+    
+    # Calculate distance using geodesic (more accurate than Haversine)
+    distance_km = geodesic((lat1, lon1), (lat2, lon2)).km
+    
+    return distance_km
 
 def normalizar_endereco(endereco):
     """Normaliza endereços expandindo abreviações comuns"""
