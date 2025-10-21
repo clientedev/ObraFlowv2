@@ -2,6 +2,42 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes (October 2025)
+## Reorganização da Listagem de Obras e Remoção de "Obras Próximas" (21 Outubro 2025)
+Eliminação completa da duplicidade de listagem no dashboard e centralização da visualização de obras na rota `/projects`, priorizando proximidade geográfica e status ativo.
+
+### Mudanças Implementadas
+#### Backend (routes.py)
+- **Rota `/projects` Otimizada**: Ordenação por status (Ativo primeiro) + proximidade geográfica usando função Haversine
+- **APIs Removidas**: 
+  - `/api/nearby-projects` (API antiga de obras próximas)
+  - `/api/projects/nearby` (API POST de obras próximas)
+- **Funções Mantidas**: `calculate_distance()` e `normalizar_endereco()` permanecem para uso na rota `/projects`
+- **Controle de Acesso Master**: Rotas `project_new` e `project_edit` verificam `current_user.is_master`
+
+#### Frontend (templates/index.html)
+- **Seção "Obras Próximas" Removida**: HTML completo da seção removido do dashboard
+- **JavaScript Removido**: Funções `getCurrentLocation()`, `loadNearbyProjects()`, `displayProjectsList()`, e todas relacionadas a mapas
+- **Leaflet CSS Removido**: Biblioteca de mapas não é mais necessária
+
+#### Frontend (templates/projects/list.html)
+- **Cards Clicáveis**: Card inteiro é clicável (onclick), sem botões individuais
+- **Hover Effect**: Animação visual ao passar o mouse
+- **Controle de Acesso UI**:
+  - Botão "+ Nova Obra" visível apenas para master
+  - Estado vazio mostra botão apenas para master
+  - Mensagem diferenciada para usuários não-master
+
+#### Frontend (templates/projects/view.html)
+- **Botão "Editar Obra"**: Visível apenas para usuários master (`{% if current_user.is_master %}`)
+
+### Resultado Final
+✅ Dashboard limpo sem seção duplicada de obras
+✅ `/projects` como ponto único de visualização de obras
+✅ Ordenação inteligente: Status Ativo → Proximidade → Outros status
+✅ Obras sem coordenadas aparecem por último (distância = infinito)
+✅ Controle de acesso master implementado em UI e backend
+✅ Sem referências órfãs a APIs ou funcionalidades removidas
+
 ## Correção Completa do Fluxo de Categorias da Obra - Item 16 (18 Outubro 2025)
 Correção do fluxo de categorias para garantir que sejam carregadas, exibidas e gerenciadas corretamente na tela de edição de obras.
 
