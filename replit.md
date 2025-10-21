@@ -2,24 +2,26 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes (October 2025)
-## Reorganização da Listagem de Obras e Remoção de "Obras Próximas" (21 Outubro 2025)
-Eliminação completa da duplicidade de listagem no dashboard e centralização da visualização de obras na rota `/projects`, priorizando proximidade geográfica e status ativo.
+## Atualização para Geopy e Limpeza do Dashboard - 21 Outubro 2025 (Versão Final)
+Migração completa para usar a biblioteca `geopy` para cálculo de distâncias e remoção definitiva da seção "Obras Próximas" do dashboard.
 
 ### Mudanças Implementadas
 #### Backend (routes.py)
-- **Rota `/projects` Otimizada**: Ordenação por status (Ativo primeiro) + proximidade geográfica usando função Haversine
-- **APIs Removidas**: 
-  - `/api/nearby-projects` (API antiga de obras próximas)
-  - `/api/projects/nearby` (API POST de obras próximas)
-- **Funções Mantidas**: `calculate_distance()` e `normalizar_endereco()` permanecem para uso na rota `/projects`
-- **Controle de Acesso Master**: Rotas `project_new` e `project_edit` verificam `current_user.is_master`
+- **`calculate_distance()` Modernizada**: Substituição da fórmula Haversine manual por `geopy.distance.geodesic` para maior precisão
+- **`projects_list()` Otimizada**: 
+  - Uso direto de `geopy.distance.geodesic` para calcular distâncias
+  - Ordenação por status (Ativo=0, outros=1) + proximidade geográfica
+  - Obras sem coordenadas aparecem por último (distância = infinito)
+- **Funções Mantidas**: `normalizar_endereco()` permanece para normalização de endereços
 
-#### Frontend (templates/index.html)
-- **Seção "Obras Próximas" Removida**: HTML completo da seção removido do dashboard
-- **JavaScript Removido**: Funções `getCurrentLocation()`, `loadNearbyProjects()`, `displayProjectsList()`, e todas relacionadas a mapas
-- **Leaflet CSS Removido**: Biblioteca de mapas não é mais necessária
+#### Frontend (templates/dashboard_simple.html)
+- **Seção "Obras Próximas" Completamente Removida**: 
+  - HTML da seção de obras próximas removido (linhas 24-49)
+  - Todo JavaScript relacionado removido (funções `findNearbyProjects()` e `loadNearbyProjects()`)
+  - Eliminação do erro de conexão causado pela chamada à API inexistente `/api/projects/nearby`
+- **Dashboard Simplificado**: Apenas cards de estatísticas e relatórios recentes
 
-#### Frontend (templates/projects/list.html)
+#### Frontend - Já Implementado (templates/projects/list.html)
 - **Cards Clicáveis**: Card inteiro é clicável (onclick), sem botões individuais
 - **Hover Effect**: Animação visual ao passar o mouse
 - **Controle de Acesso UI**:
@@ -27,16 +29,18 @@ Eliminação completa da duplicidade de listagem no dashboard e centralização 
   - Estado vazio mostra botão apenas para master
   - Mensagem diferenciada para usuários não-master
 
-#### Frontend (templates/projects/view.html)
+#### Frontend - Já Implementado (templates/projects/view.html)
 - **Botão "Editar Obra"**: Visível apenas para usuários master (`{% if current_user.is_master %}`)
 
 ### Resultado Final
-✅ Dashboard limpo sem seção duplicada de obras
+✅ Dashboard limpo sem seção de "Obras Próximas" (erro de conexão eliminado)
 ✅ `/projects` como ponto único de visualização de obras
-✅ Ordenação inteligente: Status Ativo → Proximidade → Outros status
+✅ Cálculo de distância com `geopy.distance.geodesic` (mais preciso que Haversine)
+✅ Ordenação inteligente: Status Ativo (0) → Outros status (1) → por Proximidade
 ✅ Obras sem coordenadas aparecem por último (distância = infinito)
 ✅ Controle de acesso master implementado em UI e backend
 ✅ Sem referências órfãs a APIs ou funcionalidades removidas
+✅ Workflow Flask rodando sem erros
 
 ## Correção Completa do Fluxo de Categorias da Obra - Item 16 (18 Outubro 2025)
 Correção do fluxo de categorias para garantir que sejam carregadas, exibidas e gerenciadas corretamente na tela de edição de obras.
