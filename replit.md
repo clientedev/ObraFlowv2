@@ -2,6 +2,36 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes (October 2025)
+## Botão "Reativar Obra" para Usuários Master - 24 Outubro 2025
+Implementação de funcionalidade para reativar obras concluídas, permitindo que usuários master mudem o status de "Concluído" para "Ativo".
+
+### Mudanças Implementadas
+#### Backend (routes.py)
+- **Nova Rota `/projects/<int:project_id>/reactivate`**: 
+  - Método POST com proteção `@login_required`
+  - Validação de permissão: apenas usuários master podem acessar
+  - Verifica status atual e só permite reativação de obras com status "Concluído"
+  - Atualiza status para "Ativo" e confirma com flash message
+  - Proteção CSRF completa
+
+#### Frontend (templates/projects/view.html)
+- **Botão "Reativar Obra"**: 
+  - Posicionado no topo da página, ao lado do botão "Editar Obra"
+  - Visível apenas para usuários master (`{% if current_user.is_master %}`)
+  - Aparece apenas quando obra está com status "Concluído"
+  - Formulário inline com token CSRF hidden (input type="hidden")
+  - Estilo warning (amarelo) com ícone de redo
+  - Alinhamento correto com outros botões usando `display: inline;`
+
+### Resultado Final
+✅ Usuários master podem reativar obras concluídas
+✅ Botão posicionado corretamente ao lado de "Editar Obra"
+✅ Token CSRF implementado corretamente (não visível)
+✅ Validação de permissão no backend
+✅ Feedback visual via flash messages
+✅ Sem erros de CSRF ou Bad Request
+✅ Código revisado e aprovado pelo architect
+
 ## Atualização para Geopy e Limpeza do Dashboard - 21 Outubro 2025 (Versão Final)
 Migração completa para usar a biblioteca `geopy` para cálculo de distâncias e remoção definitiva da seção "Obras Próximas" do dashboard.
 
