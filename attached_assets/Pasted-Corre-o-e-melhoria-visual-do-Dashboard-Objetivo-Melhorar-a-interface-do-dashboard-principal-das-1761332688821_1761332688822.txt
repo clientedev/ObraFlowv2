@@ -1,0 +1,131 @@
+Correção e melhoria visual do Dashboard
+
+Objetivo:
+Melhorar a interface do dashboard principal (/dashboard ou rota inicial após login), eliminando rolagens desnecessárias, reorganizando os cards e ajustando espaçamento e hierarquia visual.
+
+🧱 Requisitos de Estilo e Layout
+
+Remover scrolls desnecessários:
+
+Eliminar rolagem lateral e vertical interna dentro dos cards.
+
+Garantir que o container principal do dashboard use:
+
+overflow-x: hidden;
+overflow-y: auto;
+
+
+Evitar que cada card tenha overflow próprio. Apenas o container externo deve permitir rolagem geral se necessário.
+
+Padronizar tamanho e espaçamento dos cards principais:
+
+Ajustar altura automática (height: auto).
+
+Aplicar margens e paddings consistentes:
+
+.dashboard-card {
+    margin-bottom: 16px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    padding: 16px 20px;
+}
+
+
+Usar grid layout para melhor distribuição:
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+
+Remover o card de “Usuários Ativos”:
+
+Excluir completamente o bloco referente a Usuários Ativos do dashboard.
+
+Caso seja necessário manter a métrica, ela pode ser movida para uma aba de administração.
+
+Trocar a ordem dos cards:
+
+A nova sequência deve ser:
+
+Projetos Ativos
+
+Relatórios Pendentes (deve vir antes de Visitas Agendadas)
+
+Visitas Agendadas
+
+Melhorar responsividade:
+
+Garantir que em telas pequenas os cards se empilhem sem criar rolagem lateral.
+
+Incluir CSS:
+
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+Aparência dos botões e alertas:
+
+O botão “Reativar” deve ter cor de destaque (verde) e bordas arredondadas:
+
+.btn-reativar {
+    background-color: #28a745;
+    color: white;
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 8px 14px;
+}
+
+
+O alerta vermelho “Bloqueado” deve ter tom mais suave (#f8d7da) e ícone alinhado verticalmente.
+
+Ajustar título e seções:
+
+Adicionar título “Resumo do Sistema” acima dos cards.
+
+Espaço extra antes da seção “Relatórios Recentes”.
+
+Garantir que “Relatórios Recentes” ocupe 100% da largura disponível, sem rolagem interna.
+
+💡 Exemplo de Estrutura HTML Ajustada:
+<div class="dashboard-container">
+  <div class="alert alert-danger">
+    <i class="fa fa-ban"></i> Bloqueado
+    <button class="btn-reativar">Reativar</button>
+  </div>
+
+  <h3>Resumo do Sistema</h3>
+  <div class="dashboard-grid">
+    <div class="dashboard-card">🏗️ <strong>Projetos Ativos</strong><p>30</p></div>
+    <div class="dashboard-card">📋 <strong>Relatórios Pendentes</strong><p>8</p></div>
+    <div class="dashboard-card">🗓️ <strong>Visitas Agendadas</strong><p>5</p></div>
+  </div>
+
+  <section class="recent-reports">
+    <h4>Relatórios Recentes</h4>
+    <!-- tabela/lista -->
+  </section>
+</div>
+
+⚙️ Outros ajustes opcionais:
+
+Corrigir padding lateral do container principal para centralizar melhor o conteúdo.
+
+Reduzir altura máxima da seção “Relatórios Recentes” e permitir rolagem apenas ali, se necessário.
+
+Garantir espaçamento uniforme entre seções com margin-top: 20px.
+
+✅ Resultado esperado:
+
+Dashboard mais limpo e sem rolagens desnecessárias.
+
+Cards visualmente equilibrados e responsivos.
+
+Ordem lógica das informações: Projetos → Relatórios → Visitas.
+
+Melhor leitura e acessibilidade.

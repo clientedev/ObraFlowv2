@@ -68,10 +68,12 @@ function updateNotificationStatus() {
         showLocationStatus();
         
     } else if (permission === 'denied') {
-        badge.innerHTML = '<i class="fas fa-times me-1"></i>Bloqueado';
-        badge.className = 'badge bg-danger me-2';
+        badge.innerHTML = '<i class="fas fa-ban me-1"></i>Bloqueado';
+        badge.className = 'badge me-2';
+        badge.style.backgroundColor = '#f8d7da';
+        badge.style.color = '#721c24';
         toggleText.textContent = 'Reativar';
-        toggleBtn.className = 'btn btn-outline-secondary btn-sm';
+        toggleBtn.className = 'btn btn-reativar btn-sm';
         
     } else {
         badge.innerHTML = '<i class="fas fa-bell-slash me-1"></i>Inativo';
@@ -183,3 +185,37 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateNotificationStatus, 10000);
 });
 </script>
+
+<style>
+/* Botão Reativar - Verde destacado */
+.btn-reativar {
+    background-color: #28a745 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    padding: 8px 14px !important;
+    transition: all 0.2s ease;
+}
+
+.btn-reativar:hover {
+    background-color: #218838 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-reativar:active {
+    transform: translateY(0);
+}
+
+/* Alerta bloqueado com tom mais suave */
+.alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.alert-danger i {
+    vertical-align: middle;
+}
+</style>
