@@ -1,0 +1,195 @@
+Reestruturação da Tela de Cadastro/Edição de Obra + Alembic (Campo Telefone)
+
+Objetivo:
+Unificar os campos de contato no cadastro/edição de obras e adicionar o campo opcional telefone à tabela de contatos, garantindo uma interface moderna, limpa e consistente com o restante do sistema.
+
+⚙️ 1. Ajustes na Interface — Cadastro/Edição de Obra
+
+Alterações visuais e estruturais:
+
+Remover os seguintes campos do formulário:
+
+Nome do Funcionário
+
+E-mail Principal do Cliente
+
+Remover as seções:
+
+“Funcionários da Obra”
+
+“E-mails da Obra”
+
+Criar nova seção unificada chamada “Contatos da Obra”, com botão “+ Adicionar Contato”.
+
+🧠 2. Estrutura da nova seção de contatos
+<section class="obra-contatos">
+  <h5>📇 Contatos da Obra</h5>
+  <p>Adicione todos os contatos associados a esta obra, incluindo nome, cargo, empresa, e-mail e telefone (opcional).</p>
+  
+  <div id="contatos-lista"></div>
+  <button class="btn btn-primary" id="adicionar-contato">+ Adicionar Contato</button>
+</section>
+
+💬 3. Estrutura do card de contato (edição inline)
+
+Cada contato é representado como um card com campos editáveis:
+
+<div class="contato-card">
+  <input type="text" placeholder="Nome" value="Fulano da Silva">
+  <input type="text" placeholder="Cargo" value="Engenheiro Civil">
+  <input type="text" placeholder="Empresa" value="Construtora Alfa">
+  <input type="email" placeholder="E-mail" value="fulano@empresa.com">
+  <input type="text" placeholder="Telefone (opcional)" value="">
+  <button class="btn btn-danger btn-sm">Excluir Contato</button>
+</div>
+
+💻 4. Lógica JavaScript (dinâmica dos contatos)
+let contatos = [];
+
+function adicionarContato() {
+  const novo = { nome: "", cargo: "", empresa: "", email: "", telefone: "" };
+  contatos.push(novo);
+  renderContatos();
+}
+
+function removerContato(i) {
+  contatos.splice(i, 1);
+  renderContatos();
+}
+
+function atualizar(i, campo, valor) {
+  contatos[i][campo] = valor;
+}
+
+function renderContatos() {
+  const lista = document.getElementById("contatos-lista");
+  lista.innerHTML = "";
+  contatos.forEach((c, i) => {
+    lista.innerHTML += `
+      <div class="contato-card">
+        <input value="${c.nome}" placeholder="Nome" oninput="atualizar(${i}, 'nome', this.value)">
+        <input value="${c.cargo}" placeholder="Cargo" oninput="atualizar(${i}, 'cargo', this.value)">
+        <input value="${c.empresa}" placeholder="Empresa" oninput="atualizar(${i}, 'empresa', this.value)">
+        <input value="${c.email}" placeholder="E-mail" oninput="atualizar(${i}, 'email', this.value)">
+        <input value="${c.telefone}" placeholder="Telefone (opcional)" oninput="atualizar(${i}, 'telefone', this.value)">
+        <button onclick="removerContato(${i})" class="btn btn-danger btn-sm">Excluir</button>
+      </div>
+    `;
+  });
+}
+
+document.getElementById("adicionar-contato").addEventListener("click", adicionarContato);
+
+🎨 5. Estilização (CSS)
+.obra-contatos {
+  margin-top: 20px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 15px;
+  background: #fff;
+}
+
+.contato-card {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.contato-card input {
+  flex: 1 1 180px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.btn-danger.btn-sm {
+  background-color: #dc3545;
+  color: white;
+  margin-top: 5px;
+  align-self: flex-end;
+}
+
+🧾 6. Integração com Backend (JSON de contatos)
+
+No envio/salvamento da obra, os dados devem ser enviados assim:
+
+[
+  {
+    "nome": "Fulano da Silva",
+    "cargo": "Engenheiro Civil",
+    "empresa": "Construtora Alfa",
+    "email": "fulano@empresa.com",
+    "telefone": "(11) 99999-9999"
+  }
+]
+
+🧱 7. Atualização no Modelo — Adicionar campo telefone
+
+No arquivo models/contato_obra.py (ou equivalente):
+
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
+from app.db.base_class import Base
+
+class ContatoObra(Base):
+    __tablename__ = "contatos_obra"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, nullable=False)
+    cargo = Column(String, nullable=True)
+    empresa = Column(String, nullable=True)
+    email = Column(String, nullable=False)
+    telefone = Column(String, nullable=True)  # Novo campo
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
+
+    project = relationship("Project", back_populates="contatos")
+
+🧩 8. Criação do arquivo Alembic (migração mais recente)
+
+Gerar uma nova migração com o comando (no terminal do Replit):
+
+alembic revision --autogenerate -m "add telefone field to contatos_obra"
+
+
+Isso criará um arquivo no diretório /migrations/versions/.
+
+Abra o arquivo recém-criado e garanta que ele contenha:
+
+"""add telefone field to contatos_obra"""
+
+from alembic import op
+import sqlalchemy as sa
+
+# Revisão atual — substituir pelos IDs corretos
+revision = 'xxxx_add_telefone_contatoobra'
+down_revision = '<id_da_ultima_migracao>'
+branch_labels = None
+depends_on = None
+
+def upgrade():
+    op.add_column('contatos_obra', sa.Column('telefone', sa.String(), nullable=True))
+
+def downgrade():
+    op.drop_column('contatos_obra', 'telefone')
+
+
+Depois, aplicar a migração com:
+
+alembic upgrade head
+
+✅ 9. Resultado Esperado
+
+A tela de cadastro/edição de obras fica limpa e funcional, com apenas uma seção “Contatos da Obra”.
+
+Campos duplicados removidos.
+
+Edição inline e exclusão de contatos funcionando.
+
+Novo campo telefone armazenado corretamente no banco de dados.
+
+Backend e interface totalmente sincronizados.

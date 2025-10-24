@@ -44,9 +44,7 @@ class ProjetoForm(FlaskForm):
     latitude = HiddenField()
     longitude = HiddenField()
     construtora = StringField('Construtora', validators=[DataRequired(), Length(max=200)])
-    nome_funcionario = StringField('Nome do Funcionário', validators=[DataRequired(), Length(max=200)])
     responsavel_id = SelectField('Responsável', coerce=int, validators=[DataRequired()])
-    email_principal = StringField('E-mail Principal do Cliente', validators=[DataRequired(), Email(), Length(max=255)])
     data_inicio = DateField('Data de Início', validators=[Optional()])
     data_previsao_fim = DateField('Previsão de Término', validators=[Optional()])
     status = SelectField('Status', choices=[
