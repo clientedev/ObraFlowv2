@@ -4337,6 +4337,26 @@ def project_view(project_id):
                          relatorios_express=relatorios_express,
                          comunicacoes=comunicacoes[:10])  # Show last 10 communications
 
+@app.route('/projects/<int:project_id>/reactivate', methods=['POST'])
+@login_required
+def reactivate_project(project_id):
+    project = Projeto.query.get_or_404(project_id)
+    
+    # Permitir apenas usuário master
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas o usuário master pode reativar obras.', 'danger')
+        return redirect(url_for('project_view', project_id=project_id))
+    
+    # Verifica status atual
+    if project.status.lower() == 'concluído':
+        project.status = 'Ativo'
+        db.session.commit()
+        flash('Obra reativada com sucesso!', 'success')
+    else:
+        flash('A obra já está ativa.', 'info')
+    
+    return redirect(url_for('project_view', project_id=project_id))
+
 @app.route('/projects/<int:project_id>/edit', methods=['GET', 'POST'])
 @login_required
 def project_edit(project_id):

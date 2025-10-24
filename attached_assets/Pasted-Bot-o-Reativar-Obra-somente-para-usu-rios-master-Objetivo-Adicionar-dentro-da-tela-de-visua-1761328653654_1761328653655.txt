@@ -1,0 +1,105 @@
+Botão “Reativar Obra” (somente para usuários master)
+🎯 Objetivo
+
+Adicionar, dentro da tela de visualização de uma obra, um botão exclusivo para o usuário master que permita reativar uma obra concluída.
+
+Se a obra estiver “Concluída”, exibe o botão “Reativar Obra”.
+
+Ao clicar, muda o status da obra para “Ativo”.
+
+Atualiza automaticamente no banco de dados e redireciona o usuário para a página da obra.
+
+⚙️ Etapa 1 — Backend (routes.py)
+
+Procure a rota de visualização da obra (geralmente algo como /projects/<int:id>):
+
+@app.route('/projects/<int:id>')
+@login_required
+def project_view(id):
+    project = Project.query.get_or_404(id)
+    return render_template('projects/view.html', project=project)
+
+
+Logo abaixo dessa função, adicione a nova rota de reativação:
+
+@app.route('/projects/<int:id>/reactivate', methods=['POST'])
+@login_required
+def reactivate_project(id):
+    project = Project.query.get_or_404(id)
+
+    # Permitir apenas usuário master
+    if current_user.role != 'master':
+        flash('Acesso negado. Apenas o usuário master pode reativar obras.', 'danger')
+        return redirect(url_for('project_view', id=id))
+
+    # Verifica status atual
+    if project.status.lower() == 'concluído':
+        project.status = 'Ativo'
+        db.session.commit()
+        flash('Obra reativada com sucesso!', 'success')
+    else:
+        flash('A obra já está ativa.', 'info')
+
+    return redirect(url_for('project_view', id=id))
+
+🧩 Etapa 2 — Template (templates/projects/view.html)
+
+Dentro da tela de visualização da obra, adicione o botão condicional.
+Procure o local onde as informações principais da obra são exibidas e insira:
+
+{% if current_user.role == 'master' %}
+    {% if project.status.lower() == 'concluído' %}
+        <form action="{{ url_for('reactivate_project', id=project.id) }}" method="POST" class="mt-3">
+            <button type="submit" class="btn btn-warning">
+                🔄 Reativar Obra
+            </button>
+        </form>
+    {% endif %}
+{% endif %}
+
+
+💡 Dica:
+Se quiser, adicione um alerta visual com o status atual da obra:
+
+<span class="badge {{ 'bg-success' if project.status == 'Ativo' else 'bg-secondary' }}">
+  {{ project.status }}
+</span>
+
+🧱 Etapa 3 — Banco de Dados (models.py)
+
+Certifique-se de que o modelo Project possui o campo status.
+Se ainda não existir, adicione:
+
+status = db.Column(db.String(20), default='Ativo')
+
+
+E depois rode a migração no Replit (se estiver usando Alembic ou db.create_all).
+
+💅 Etapa 4 — Estilo (opcional)
+
+Para dar destaque ao botão no layout, adicione no CSS global:
+
+.btn-warning {
+  background-color: #f4b400;
+  border: none;
+  color: #fff;
+  font-weight: 600;
+}
+.btn-warning:hover {
+  background-color: #e39b00;
+}
+
+✅ Resultado Final Esperado
+Cenário	Resultado
+Usuário Master visualizando obra concluída	Botão “🔄 Reativar Obra” visível
+Ao clicar no botão	Status muda de “Concluído” → “Ativo”
+Mensagem de sucesso	“Obra reativada com sucesso!”
+Usuário comum	Não vê o botão
+Obra já ativa	Não mostra botão
+🧾 Resumo Técnico
+✔ Adiciona rota /projects/<id>/reactivate com método POST
+✔ Permissão exclusiva para current_user.role == 'master'
+✔ Atualiza o campo status para “Ativo” no banco de dados
+✔ Redireciona de volta à tela de visualização
+✔ Botão visível apenas se obra.status == “Concluído”
+✔ Feedback visual via flash messages
