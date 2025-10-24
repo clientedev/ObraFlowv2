@@ -58,6 +58,10 @@ function updateNotificationStatus() {
     
     const permission = window.notificationManager.permission;
     
+    // Limpar estilos inline antes de aplicar novo estado
+    badge.style.backgroundColor = '';
+    badge.style.color = '';
+    
     if (permission === 'granted') {
         badge.innerHTML = '<i class="fas fa-check me-1"></i>Ativo';
         badge.className = 'badge bg-success me-2';
