@@ -1,149 +1,5 @@
 # Overview
-This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight in the construction industry. It offers advanced project management, user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system aims to provide complete oversight for construction projects, with market potential in civil engineering and facade specialization.
-
-# Recent Changes (October 2025)
-## Botão "Reativar Obra" para Usuários Master - 24 Outubro 2025
-Implementação de funcionalidade para reativar obras concluídas, permitindo que usuários master mudem o status de "Concluído" para "Ativo".
-
-### Mudanças Implementadas
-#### Backend (routes.py)
-- **Nova Rota `/projects/<int:project_id>/reactivate`**: 
-  - Método POST com proteção `@login_required`
-  - Validação de permissão: apenas usuários master podem acessar
-  - Verifica status atual e só permite reativação de obras com status "Concluído"
-  - Atualiza status para "Ativo" e confirma com flash message
-  - Proteção CSRF completa
-
-#### Frontend (templates/projects/view.html)
-- **Botão "Reativar Obra"**: 
-  - Posicionado no topo da página, ao lado do botão "Editar Obra"
-  - Visível apenas para usuários master (`{% if current_user.is_master %}`)
-  - Aparece apenas quando obra está com status "Concluído"
-  - Formulário inline com token CSRF hidden (input type="hidden")
-  - Estilo warning (amarelo) com ícone de redo
-  - Alinhamento correto com outros botões usando `display: inline;`
-
-### Resultado Final
-✅ Usuários master podem reativar obras concluídas
-✅ Botão posicionado corretamente ao lado de "Editar Obra"
-✅ Token CSRF implementado corretamente (não visível)
-✅ Validação de permissão no backend
-✅ Feedback visual via flash messages
-✅ Sem erros de CSRF ou Bad Request
-✅ Código revisado e aprovado pelo architect
-
-## Atualização para Geopy e Limpeza do Dashboard - 21 Outubro 2025 (Versão Final)
-Migração completa para usar a biblioteca `geopy` para cálculo de distâncias e remoção definitiva da seção "Obras Próximas" do dashboard.
-
-### Mudanças Implementadas
-#### Backend (routes.py)
-- **`calculate_distance()` Modernizada**: Substituição da fórmula Haversine manual por `geopy.distance.geodesic` para maior precisão
-- **`projects_list()` Otimizada**: 
-  - Uso direto de `geopy.distance.geodesic` para calcular distâncias
-  - Ordenação por status (Ativo=0, outros=1) + proximidade geográfica
-  - Obras sem coordenadas aparecem por último (distância = infinito)
-- **Funções Mantidas**: `normalizar_endereco()` permanece para normalização de endereços
-
-#### Frontend (templates/dashboard_simple.html)
-- **Seção "Obras Próximas" Completamente Removida**: 
-  - HTML da seção de obras próximas removido (linhas 24-49)
-  - Todo JavaScript relacionado removido (funções `findNearbyProjects()` e `loadNearbyProjects()`)
-  - Eliminação do erro de conexão causado pela chamada à API inexistente `/api/projects/nearby`
-- **Dashboard Simplificado**: Apenas cards de estatísticas e relatórios recentes
-
-#### Frontend - Já Implementado (templates/projects/list.html)
-- **Cards Clicáveis**: Card inteiro é clicável (onclick), sem botões individuais
-- **Hover Effect**: Animação visual ao passar o mouse
-- **Controle de Acesso UI**:
-  - Botão "+ Nova Obra" visível apenas para master
-  - Estado vazio mostra botão apenas para master
-  - Mensagem diferenciada para usuários não-master
-
-#### Frontend - Já Implementado (templates/projects/view.html)
-- **Botão "Editar Obra"**: Visível apenas para usuários master (`{% if current_user.is_master %}`)
-
-### Resultado Final
-✅ Dashboard limpo sem seção de "Obras Próximas" (erro de conexão eliminado)
-✅ `/projects` como ponto único de visualização de obras
-✅ Cálculo de distância com `geopy.distance.geodesic` (mais preciso que Haversine)
-✅ Ordenação inteligente: Status Ativo (0) → Outros status (1) → por Proximidade
-✅ Obras sem coordenadas aparecem por último (distância = infinito)
-✅ Controle de acesso master implementado em UI e backend
-✅ Sem referências órfãs a APIs ou funcionalidades removidas
-✅ Workflow Flask rodando sem erros
-
-## Correção Completa do Fluxo de Categorias da Obra - Item 16 (18 Outubro 2025)
-Correção do fluxo de categorias para garantir que sejam carregadas, exibidas e gerenciadas corretamente na tela de edição de obras.
-
-### Problemas Corrigidos
-- **Categorias não apareciam na edição**: Ao clicar em editar obra, as categorias cadastradas não eram carregadas nem exibidas
-- **Falta de feedback visual**: Operações de adicionar/editar/excluir categorias não mostravam mensagens de sucesso/erro claras
-- **Backend incompleto**: Rota `project_edit` não buscava categorias existentes do banco de dados
-
-### Implementações
-#### Backend (routes.py)
-- **Busca de Categorias** (linha 4464): `CategoriaObra.query.filter_by(projeto_id=project_id).order_by(CategoriaObra.ordem).all()`
-- **Passagem para Template** (linha 4540): `categorias=categorias_existentes` adicionado ao render_template
-- **Processamento no POST** (linhas 4495-4525): Extrai e salva novas categorias do formulário com verificação de duplicação
-
-#### Frontend (templates/projects/form.html)
-- **Carregamento Automático** (linhas 571-602): JavaScript DOMContentLoaded carrega categorias existentes quando em modo edição
-- **Exibição Read-Only**: Categorias existentes mostradas com badge "Cadastrada" e orientação para editar/excluir na aba Visualização
-- **Preservação do Counter**: `categoriaCounter` incrementado para evitar conflitos com novas categorias
-
-#### Frontend (templates/projects/view.html)
-- **Toasts Modernos**: Função `mostrarMensagem()` com Bootstrap alerts posicionados, ícones FontAwesome e auto-dismiss
-- **Feedback Contextual**: Mensagens específicas para cada operação (adicionar/editar/excluir) com nome da categoria
-
-### Fluxo Completo Validado
-✅ Criar categoria na tela de criação → salvamento no banco
-✅ Criar categoria na tela de edição → salvamento no banco
-✅ Criar categoria na aba Visualização → salvamento + toast de sucesso
-✅ Editar categoria na aba Visualização → atualização + toast de sucesso
-✅ Excluir categoria na aba Visualização → deleção + toast de sucesso
-✅ Categorias aparecem na criação de relatórios express
-✅ Persistência correta no banco Railway PostgreSQL
-
-## Correção de Aprovação e Exclusão de Relatórios - Item 23 (Outubro 2025)
-Correção completa das funcionalidades de aprovação e exclusão de relatórios para resolver erros 500 (InFailedSqlTransaction) e implementar envio automático de e-mails com PDF.
-
-### Problemas Corrigidos
-- **Erro InFailedSqlTransaction**: Causado por múltiplos commits intercalados com operações de envio de e-mail
-- **E-mails limitados**: Sistema anterior enviava apenas para o autor do relatório
-- **Exclusão incompleta**: Não deletava registros relacionados (notificações, logs)
-
-### Implementações - Endpoint de Aprovação (`/reports/<int:id>/approve`)
-- **Commit Único**: Todas as operações de banco (status + notificação) commitadas ANTES do envio de e-mails (linha 3067)
-- **E-mail para Todos os Envolvidos**: 
-  - Autor do relatório
-  - Responsável do projeto
-  - Funcionários da obra (com e-mail cadastrado)
-  - Clientes da obra (EmailCliente com receber_relatorios=True)
-- **PDF Anexo**: E-mail enviado com PDF do relatório usando `enviar_relatorio_por_email()`
-- **Tratamento de Erro Robusto**: Rollback automático, logs detalhados, mensagens amigáveis ao usuário
-
-### Implementações - Endpoint de Exclusão (`/reports/<int:id>/delete`)
-- **Exclusão Completa**: Remove fotos físicas, registros de FotoRelatorio, Notificacao, LogEnvioEmail
-- **Commit Único**: Todas as exclusões commitadas em uma única transação (linha 3482)
-- **Redirect 303**: Retorna redirect com status 303 (See Other) conforme especificação
-- **Logs Informativos**: Registra detalhes da exclusão incluindo número de fotos deletadas
-
-### Fluxo de E-mail de Aprovação
-**Assunto**: Relatório {numero} aprovado
-**Corpo**: O relatório {numero} referente à obra "{obra}" foi aprovado e está disponível no sistema.
-**Anexo**: PDF do relatório aprovado
-**Remetente**: {aprovador.nome_completo}
-
-## Sistema de Notificações e E-mail (Item 23 - Versão Anterior)
-Sistema de notificações internas com envio automático de e-mails:
-
-### Modelo de Dados
-- **Tabela `notificacoes`**: Armazena notificações internas com tracking de envio de e-mail
-
-### Funções de E-mail
-- `enviar_notificacao_enviado_para_aprovacao()`: Envia e-mail ao aprovador
-- `enviar_notificacao_aprovacao()`: Envia e-mail ao autor após aprovação
-- Corpo HTML formatado, links diretos, fallback para configurações do sistema
+This project is a comprehensive Flask-based construction site visit tracking system. It aims to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. Key capabilities include advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # User Preferences
 Preferred communication style: Simple, everyday language.
@@ -153,13 +9,13 @@ Report forms: Location section removed from report creation/editing interface (g
 # System Architecture
 
 ## Backend Architecture
-- **Framework**: Flask with SQLAlchemy ORM.
-- **Database**: Railway PostgreSQL (production), configured via DATABASE_URL environment variable. SQLite for development.
+- **Framework**: Flask with SQLAlchemy ORM for database interactions.
+- **Database**: Railway PostgreSQL for production, SQLite for development.
 - **Authentication**: Flask-Login for session management and role-based access (regular/master users).
 - **Forms**: WTForms for secure form handling and CSRF protection.
-- **File Handling**: Manages file uploads (photos, documents) with a 16MB size limit, supporting binary image storage directly in the database with filesystem fallback.
-- **PDF Generation**: Dual system with WeasyPrint (primary for pixel-perfect HTML/CSS templates) and ReportLab (legacy) for Artesano template format.
-- **Geolocation**: Robust system with IP fallback, reverse geocoding, platform-specific instructions.
+- **File Handling**: Manages file uploads (photos, documents) with a 16MB limit, supporting binary image storage in the database with filesystem fallback.
+- **PDF Generation**: WeasyPrint for pixel-perfect HTML/CSS templates and ReportLab (legacy) for specific formats.
+- **Geolocation**: Robust system with IP fallback and reverse geocoding using `geopy` for precise distance calculations.
 - **CORS**: Flask-CORS configured with credentials support for API routes.
 - **HTTPS Enforcement**: Automatic HTTPS redirect for production environments.
 
@@ -167,32 +23,30 @@ Report forms: Location section removed from report creation/editing interface (g
 - **Templates**: Jinja2 templating engine, styled with Bootstrap 5.
 - **Styling**: Custom CSS aligned with construction industry themes and ELP brand identity (dark gray, cyan).
 - **JavaScript**: Vanilla JS for form validation, photo previews, and location services via Leaflet.js.
-- **UI/UX**: Mobile-first design, PWA for installability and offline functionality, touch event optimization for photo editor on mobile.
+- **UI/UX**: Mobile-first design, PWA for installability and offline functionality, touch event optimization for photo editor on mobile. Dashboard features a clean, responsive grid layout for key statistics and recent reports.
 
 ## Data Model Design
 - **Core Entities**: Users, Projects (with dynamic categories), Visits, Reports, Reimbursements, Checklist Templates, Communication Records, Notifications.
-- **Photo Storage (`FotoRelatorio`)**: BYTEA for binary image data, JSONB for annotation metadata (`anotacoes_dados`, `coordenadas_anotacao`), SHA-256 hash for deduplication (`imagem_hash`), MIME type storage (`content_type`), and file size tracking (`imagem_size`).
-- **Notifications (`Notificacao`)**: Internal notification system tracking report status changes with fields for origin/destination users, message content, type (enviado_para_aprovacao, aprovado, rejeitado), read status, and email delivery tracking.
+- **Photo Storage (`FotoRelatorio`)**: Stores binary image data, JSONB for annotation metadata, SHA-256 hash for deduplication, MIME type, and file size.
+- **Notifications (`Notificacao`)**: Internal notification system tracking report status changes with fields for origin/destination users, message content, type (e.g., enviado_para_aprovacao, aprovado), read status, and email delivery tracking.
 
 ## Key Features
-- **Project Management**: CRUD operations, automatic numbering, GPS location, dynamic project categories.
+- **Project Management**: CRUD operations, automatic numbering, GPS location, dynamic project categories with full lifecycle management (creation, editing, deletion, display) and project reactivation for master users.
 - **Visit Tracking**: GPS-enabled logging, custom checklists, team communication.
-- **Report System**: Professional PDF reports with photo annotation, ELP branding, and approval workflow.
+- **Report System**: Professional PDF reports with photo annotation, ELP branding, and an approval workflow that includes automatic email notifications with PDF attachments to all relevant stakeholders (author, project manager, site staff, clients).
 - **Photo Management**: Advanced editing (drawing, arrows, text, captions), up to 50 photos per report, predefined caption management, deduplication via image hashing.
-- **Client Email Management**: CRUD system for client emails per project.
-- **Approval Workflow**: Admin approval for reports with automated notification system.
-- **Internal Notifications System**: Complete notification system with database storage and automatic email alerts for report status changes (submitted for approval, approved, rejected).
+- **Client Email Management**: CRUD system for client emails per project, including options for report reception.
+- **Internal Notifications System**: Database-stored notifications with automatic email alerts for report status changes.
 - **User Management**: Role-based access control.
 - **Calendar System**: Visit scheduling, Google Calendar export.
 - **Offline Functionality & PWA**: Full offline support, local storage, automatic sync.
 - **Push Notifications**: Proximity alerts for sites, system updates, pending report notifications using geolocation.
-- **Google Drive Integration**: Automatic backup of PDFs and images with project-specific folder organization.
 
 ## Security Implementation
 - **CSRF Protection**: All forms include CSRF protection.
 - **Authentication**: Session-based login with password hashing.
 - **File Security**: Secure filename handling and file type validation.
-- **Access Control**: Route protection based on login status and user roles.
+- **Access Control**: Route protection based on login status and user roles, including specific permissions for master users on critical actions like project reactivation and report approval/deletion.
 
 # External Dependencies
 
@@ -224,3 +78,4 @@ Report forms: Location section removed from report creation/editing interface (g
 ## Cloud Services
 - **Google Drive API**: For automatic backups and file organization.
 - **ipapi.co**: Geolocation fallback service.
+- **geopy**: Geocoding and precise distance calculations.
