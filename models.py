@@ -174,10 +174,11 @@ class EmailCliente(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
-    email = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=True)  # Agora permite NULL para contatos sem email
     nome_contato = db.Column(db.String(200), nullable=False)
     cargo = db.Column(db.String(100))
     empresa = db.Column(db.String(200))
+    telefone = db.Column(db.String(20))  # Campo telefone adicionado
     is_principal = db.Column(db.Boolean, default=False)  # Indica se é o e-mail principal
     receber_notificacoes = db.Column(db.Boolean, default=True)
     receber_relatorios = db.Column(db.Boolean, default=True)
@@ -188,7 +189,7 @@ class EmailCliente(db.Model):
     # Relacionamento com Projeto
     projeto = db.relationship('Projeto', backref='emails_clientes')
     
-    # Validação única para email + projeto
+    # Validação única para email + projeto (apenas quando email não é nulo)
     __table_args__ = (db.UniqueConstraint('projeto_id', 'email', name='unique_email_por_projeto'),)
 
 class FuncionarioProjeto(db.Model):

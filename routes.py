@@ -4034,38 +4034,26 @@ def project_new():
 
     if form.validate_on_submit():
         try:
-            # Extract additional employees and emails from form
-            funcionarios_adicionais = []
-            emails_adicionais = []
+            # Extract contatos unificados do formulário
+            contatos = []
 
-            # Process additional employees
+            # Processar contatos
             for key in request.form.keys():
-                if key.startswith('funcionarios[') and key.endswith('][nome]'):
+                if key.startswith('contatos[') and key.endswith('][nome]'):
                     index = key.split('[')[1].split(']')[0]
-                    nome = request.form.get(f'funcionarios[{index}][nome]')
-                    cargo = request.form.get(f'funcionarios[{index}][cargo]', '')
-                    empresa = request.form.get(f'funcionarios[{index}][empresa]', '')
+                    nome = request.form.get(f'contatos[{index}][nome]')
+                    cargo = request.form.get(f'contatos[{index}][cargo]', '')
+                    empresa = request.form.get(f'contatos[{index}][empresa]', '')
+                    email = request.form.get(f'contatos[{index}][email]', '')
+                    telefone = request.form.get(f'contatos[{index}][telefone]', '')
 
-                    if nome:
-                        funcionarios_adicionais.append({
+                    if nome or email:  # Pelo menos nome ou email deve estar preenchido
+                        contatos.append({
                             'nome': nome,
                             'cargo': cargo,
-                            'empresa': empresa
-                        })
-
-            # Process additional emails
-            for key in request.form.keys():
-                if key.startswith('emails[') and key.endswith('][email]'):
-                    index = key.split('[')[1].split(']')[0]
-                    email = request.form.get(f'emails[{index}][email]')
-                    nome = request.form.get(f'emails[{index}][nome]')
-                    cargo = request.form.get(f'emails[{index}][cargo]', '')
-
-                    if email and nome:
-                        emails_adicionais.append({
+                            'empresa': empresa,
                             'email': email,
-                            'nome': nome,
-                            'cargo': cargo
+                            'telefone': telefone
                         })
 
             # Process categorias - Item 16
@@ -4082,8 +4070,7 @@ def project_new():
                             'ordem': int(ordem) if ordem else 0
                         })
 
-            print(f"🔍 DEBUG: Found {len(funcionarios_adicionais)} additional employees")
-            print(f"🔍 DEBUG: Found {len(emails_adicionais)} additional emails")
+            print(f"🔍 DEBUG: Found {len(contatos)} contatos unificados")
             print(f"🔍 DEBUG: Found {len(categorias_adicionais)} categorias - Item 16")
 
             # Check if project with same name already exists
@@ -4096,88 +4083,30 @@ def project_new():
                 funcionarios_adicionados = 0
                 emails_adicionados = 0
 
-                # Add main employee to existing project if not already associated
-                # Sanitize user_id - convert empty/invalid values to None
-                user_id_raw = form.responsavel_id.data
-                user_id = int(user_id_raw) if user_id_raw and str(user_id_raw).isdigit() and int(user_id_raw) > 0 else None
-
-                existing_funcionario = FuncionarioProjeto.query.filter_by(
-                    projeto_id=projeto.id, 
-                    user_id=user_id,
-                    ativo=True
-                ).first()
-
-                if not existing_funcionario:
-                    novo_funcionario = FuncionarioProjeto(
-                        projeto_id=projeto.id,
-                        user_id=user_id,
-                        nome_funcionario=form.nome_funcionario.data,
-                        is_responsavel_principal=False,  # Keep original responsible as main
-                        ativo=True
-                    )
-                    db.session.add(novo_funcionario)
-                    funcionarios_adicionados += 1
-                    print(f"✅ DEBUG: Added main employee to existing project")
-
-                # Add additional employees
-                for func_data in funcionarios_adicionais:
-                    # Check if employee already exists (by name, apenas funcionários ativos)
-                    existing_func = FuncionarioProjeto.query.filter_by(
-                        projeto_id=projeto.id,
-                        nome_funcionario=func_data['nome'],
-                        ativo=True
-                    ).first()
-
-                    if not existing_func:
-                        novo_funcionario = FuncionarioProjeto(
+                # Adicionar contatos ao projeto existente
+                contatos_adicionados = 0
+                for contato_data in contatos:
+                    # Verificar se contato já existe (por email se fornecido)
+                    existing_email = None
+                    if contato_data.get('email'):
+                        existing_email = EmailCliente.query.filter_by(
                             projeto_id=projeto.id,
-                            user_id=None,  # Additional employees are contacts, not system users
-                            nome_funcionario=func_data['nome'],
-                            cargo=func_data['cargo'],
-                            empresa=func_data['empresa'],
-                            is_responsavel_principal=False,
-                            ativo=True
-                        )
-                        db.session.add(novo_funcionario)
-                        funcionarios_adicionados += 1
-
-                # Add main email to existing project if not already associated
-                existing_email = EmailCliente.query.filter_by(
-                    projeto_id=projeto.id,
-                    email=form.email_principal.data
-                ).first()
-
-                if not existing_email:
-                    novo_email = EmailCliente(
-                        projeto_id=projeto.id,
-                        email=form.email_principal.data,
-                        nome_contato="Contato Consolidado",
-                        is_principal=False,  # Keep original email as main
-                        ativo=True
-                    )
-                    db.session.add(novo_email)
-                    emails_adicionados += 1
-                    print(f"✅ DEBUG: Added main email to existing project")
-
-                # Add additional emails
-                for email_data in emails_adicionais:
-                    # Check if email already exists
-                    existing_email = EmailCliente.query.filter_by(
-                        projeto_id=projeto.id,
-                        email=email_data['email']
-                    ).first()
+                            email=contato_data['email']
+                        ).first()
 
                     if not existing_email:
-                        novo_email = EmailCliente(
+                        novo_contato = EmailCliente(
                             projeto_id=projeto.id,
-                            email=email_data['email'],
-                            nome_contato=email_data['nome'],
-                            cargo=email_data['cargo'],
+                            email=contato_data.get('email') or None,  # Permitir None se não houver email
+                            nome_contato=contato_data.get('nome', 'Sem nome'),
+                            cargo=contato_data.get('cargo', ''),
+                            empresa=contato_data.get('empresa', ''),
+                            telefone=contato_data.get('telefone', ''),  # Adicionar telefone
                             is_principal=False,
                             ativo=True
                         )
-                        db.session.add(novo_email)
-                        emails_adicionados += 1
+                        db.session.add(novo_contato)
+                        contatos_adicionados += 1
 
                 # Add categorias to existing project - Item 16
                 categorias_adicionadas = 0
@@ -4197,7 +4126,7 @@ def project_new():
                         db.session.add(nova_categoria)
                         categorias_adicionadas += 1
 
-                flash(f'Obra consolidada! Adicionados {funcionarios_adicionados} funcionário(s), {emails_adicionados} e-mail(s) e {categorias_adicionadas} categoria(s) à obra existente: {projeto.nome}', 'success')
+                flash(f'Obra consolidada! Adicionados {contatos_adicionados} contato(s) e {categorias_adicionadas} categoria(s) à obra existente: {projeto.nome}', 'success')
 
             else:
                 # Create new project
@@ -4224,9 +4153,9 @@ def project_new():
 
                 projeto.tipo_obra = 'Geral'  # Default value since field was removed
                 projeto.construtora = form.construtora.data
-                projeto.nome_funcionario = form.nome_funcionario.data
+                projeto.nome_funcionario = contatos[0].get('nome', '') if contatos else ''  # Primeiro contato como funcionário padrão
                 projeto.responsavel_id = form.responsavel_id.data
-                projeto.email_principal = form.email_principal.data
+                projeto.email_principal = contatos[0].get('email', '') if contatos else ''  # Primeiro contato como email padrão
                 projeto.data_inicio = form.data_inicio.data
                 projeto.data_previsao_fim = form.data_previsao_fim.data
                 projeto.status = form.status.data
@@ -4234,54 +4163,21 @@ def project_new():
                 db.session.add(projeto)
                 db.session.flush()  # Get the project ID
 
-                # Create main employee association
-                # Sanitize user_id - convert empty/invalid values to None
-                user_id_raw = form.responsavel_id.data
-                user_id = int(user_id_raw) if user_id_raw and str(user_id_raw).isdigit() and int(user_id_raw) > 0 else None
-
-                funcionario_projeto = FuncionarioProjeto(
-                    projeto_id=projeto.id,
-                    user_id=user_id,
-                    nome_funcionario=form.nome_funcionario.data,
-                    is_responsavel_principal=True,
-                    ativo=True
-                )
-                db.session.add(funcionario_projeto)
-
-                # Add additional employees
-                for func_data in funcionarios_adicionais:
-                    funcionario_adicional = FuncionarioProjeto(
+                # Adicionar contatos unificados
+                contatos_adicionados = 0
+                for i, contato_data in enumerate(contatos):
+                    novo_contato = EmailCliente(
                         projeto_id=projeto.id,
-                        user_id=None,  # Additional employees are contacts, not system users
-                        nome_funcionario=func_data['nome'],
-                        cargo=func_data['cargo'],
-                        empresa=func_data['empresa'],
-                        is_responsavel_principal=False,
+                        email=contato_data.get('email') or None,  # Permitir None se não houver email
+                        nome_contato=contato_data.get('nome', 'Sem nome'),
+                        cargo=contato_data.get('cargo', ''),
+                        empresa=contato_data.get('empresa', ''),
+                        telefone=contato_data.get('telefone', ''),  # Adicionar telefone
+                        is_principal=(i == 0),  # Primeiro contato é principal
                         ativo=True
                     )
-                    db.session.add(funcionario_adicional)
-
-                # Create main email association
-                email_projeto = EmailCliente(
-                    projeto_id=projeto.id,
-                    email=form.email_principal.data,
-                    nome_contato="Contato Principal",
-                    is_principal=True,
-                    ativo=True
-                )
-                db.session.add(email_projeto)
-
-                # Add additional emails
-                for email_data in emails_adicionais:
-                    email_adicional = EmailCliente(
-                        projeto_id=projeto.id,
-                        email=email_data['email'],
-                        nome_contato=email_data['nome'],
-                        cargo=email_data['cargo'],
-                        is_principal=False,
-                        ativo=True
-                    )
-                    db.session.add(email_adicional)
+                    db.session.add(novo_contato)
+                    contatos_adicionados += 1
 
                 # Add categorias - Item 16
                 for categoria_data in categorias_adicionais:
@@ -4292,10 +4188,9 @@ def project_new():
                     )
                     db.session.add(categoria)
 
-                total_funcionarios = 1 + len(funcionarios_adicionais)
-                total_emails = 1 + len(emails_adicionais)
+                total_contatos = len(contatos)
                 total_categorias = len(categorias_adicionais)
-                flash(f'Obra cadastrada com sucesso! {total_funcionarios} funcionário(s), {total_emails} e-mail(s) e {total_categorias} categoria(s) adicionados.', 'success')
+                flash(f'Obra cadastrada com sucesso! {total_contatos} contato(s) e {total_categorias} categoria(s) adicionados.', 'success')
 
             db.session.commit()
             print(f"🔍 DEBUG: Trying to save projeto: {projeto.nome}")
@@ -4404,12 +4299,38 @@ def project_edit(project_id):
 
             project.tipo_obra = 'Geral'  # Default value since field was removed
             project.construtora = form.construtora.data
-            project.nome_funcionario = form.nome_funcionario.data
             project.responsavel_id = form.responsavel_id.data
-            project.email_principal = form.email_principal.data
             project.data_inicio = form.data_inicio.data
             project.data_previsao_fim = form.data_previsao_fim.data
             project.status = form.status.data
+            
+            # Processar contatos unificados para atualização
+            contatos_form = []
+            for key in request.form.keys():
+                if key.startswith('contatos[') and key.endswith('][nome]'):
+                    index = key.split('[')[1].split(']')[0]
+                    nome = request.form.get(f'contatos[{index}][nome]')
+                    cargo = request.form.get(f'contatos[{index}][cargo]', '')
+                    empresa = request.form.get(f'contatos[{index}][empresa]', '')
+                    email = request.form.get(f'contatos[{index}][email]', '')
+                    telefone = request.form.get(f'contatos[{index}][telefone]', '')
+
+                    if nome or email:
+                        contatos_form.append({
+                            'nome': nome,
+                            'cargo': cargo,
+                            'empresa': empresa,
+                            'email': email,
+                            'telefone': telefone
+                        })
+            
+            # Atualizar campos legados do projeto com primeiro contato
+            if contatos_form:
+                project.nome_funcionario = contatos_form[0].get('nome', '')
+                project.email_principal = contatos_form[0].get('email', '')
+            else:
+                project.nome_funcionario = ''
+                project.email_principal = ''
 
             # Process categorias from form - Item 16 (Fix)
             categorias_adicionais = []
