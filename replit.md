@@ -27,14 +27,14 @@ Report forms: Location section removed from report creation/editing interface (g
 
 ## Data Model Design
 - **Core Entities**: Users, Projects (with dynamic categories), Visits, Reports, Reimbursements, Checklist Templates, Communication Records, Notifications.
-- **Photo Storage (`FotoRelatorio`)**: Stores binary image data, JSONB for annotation metadata, SHA-256 hash for deduplication, MIME type, and file size.
+- **Photo Storage (`FotoRelatorio`)**: Stores binary image data, JSONB for annotation metadata, SHA-256 hash for deduplication, MIME type, and file size. Each photo now requires three mandatory fields displayed within its card: **Categoria** (project-specific category via dropdown), **Local** (location/area description, text up to 300 characters), and **Legenda** (caption - predefined or manual entry up to 500 characters).
 - **Notifications (`Notificacao`)**: Internal notification system tracking report status changes with fields for origin/destination users, message content, type (e.g., enviado_para_aprovacao, aprovado), read status, and email delivery tracking.
 
 ## Key Features
 - **Project Management**: CRUD operations, automatic numbering, GPS location, dynamic project categories with full lifecycle management (creation, editing, deletion, display) and project reactivation for master users.
 - **Visit Tracking**: GPS-enabled logging, custom checklists, team communication.
 - **Report System**: Professional PDF reports with photo annotation, ELP branding, and an approval workflow that includes automatic email notifications with PDF attachments to all relevant stakeholders (author, project manager, site staff, clients).
-- **Photo Management**: Advanced editing (drawing, arrows, text, captions), up to 50 photos per report, predefined caption management, deduplication via image hashing.
+- **Photo Management**: Advanced editing (drawing, arrows, text, captions), up to 50 photos per report, predefined caption management, deduplication via image hashing. Each image card displays three mandatory fields (**Categoria**, **Local**, **Legenda**) for inline editing without returning to the top of the page, enforced at form level, backend API, and frontend HTML validation.
 - **Client Email Management**: CRUD system for client emails per project, including options for report reception.
 - **Internal Notifications System**: Database-stored notifications with automatic email alerts for report status changes.
 - **User Management**: Role-based access control.
