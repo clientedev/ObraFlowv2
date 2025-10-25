@@ -1,0 +1,92 @@
+Resolver erro DuplicateColumn telefone no Alembic
+
+Problema:
+A migração 20251024_1944_fffdc155b607_add_telefone_field_to_emails_clientes_.py tenta executar:
+
+op.add_column('emails_clientes', sa.Column('telefone', sa.String(20), nullable=True))
+
+
+mas o banco já contém essa coluna.
+
+🧩 1️⃣ Verificar se a coluna já existe
+
+No Replit (ou terminal local conectado ao banco PostgreSQL do Railway):
+
+psql $DATABASE_URL -c "\d emails_clientes"
+
+
+Procure na listagem algo como:
+
+telefone | character varying(20)
+
+
+✅ Se aparecer → a coluna já existe e o Alembic deve pular essa criação.
+❌ Se não aparecer → o banco não recebeu a alteração, então o erro pode estar vindo de conflito de migração anterior.
+
+🧠 2️⃣ Ajustar a migração com checagem condicional
+
+Abra o arquivo:
+
+migrations/versions/20251024_1944_fffdc155b607_add_telefone_field_to_emails_clientes_.py
+
+
+Substitua o conteúdo da função upgrade() por este trecho seguro:
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy import inspect
+
+def upgrade():
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('emails_clientes')]
+
+    if 'telefone' not in columns:
+        op.add_column('emails_clientes', sa.Column('telefone', sa.String(20), nullable=True))
+    else:
+        print("⚠️ Coluna 'telefone' já existe — pulando criação.")
+
+def downgrade():
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('emails_clientes')]
+
+    if 'telefone' in columns:
+        op.drop_column('emails_clientes', 'telefone')
+
+
+👉 Isso faz com que o Alembic verifique a existência da coluna antes de tentar criar, evitando o erro.
+
+🧹 3️⃣ Corrigir o histórico de migrações
+
+Execute:
+
+alembic history
+
+
+Verifique qual é a migração anterior à 20251024_1944_fffdc155b607_add_telefone_field_to_emails_clientes_.
+
+Se houver inconsistência (por exemplo, o banco já está no estado da coluna mas a migração não foi marcada como aplicada), sincronize manualmente o cabeçalho de versionamento:
+
+alembic stamp head
+
+
+Isso atualiza o Alembic para o estado atual do banco sem executar novamente as migrações.
+
+🚀 4️⃣ Reaplicar corretamente
+
+Depois de ajustar o script:
+
+alembic upgrade head
+
+✅ Resultado esperado
+
+Após aplicar este prompt:
+
+O deploy não falha mais.
+
+O Alembic detecta automaticamente se a coluna já existe.
+
+O campo telefone fica ativo no modelo emails_clientes.
+
+O banco e as migrações ficam sincronizados.
