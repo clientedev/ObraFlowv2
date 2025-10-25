@@ -1,0 +1,195 @@
+Melhoria Visual e Funcional da Seção “Contatos da Obra”
+🎯 Objetivo
+
+Aprimorar o layout visual e usabilidade da seção “Contatos da Obra” (tela de adicionar e editar obra) e garantir que, ao editar uma obra, todos os contatos já cadastrados sejam exibidos automaticamente, com opções de edição e exclusão.
+
+1️⃣ Escopo da Modificação
+
+Aplica-se às rotas:
+
+/projects/new
+
+/projects/<id>/edit
+
+A seção afetada é somente:
+
+“Contatos da Obra”
+
+2️⃣ Melhoria de Layout e Estilização (Frontend / Template Jinja2 + CSS)
+🧱 Requisitos visuais:
+
+Cada contato deve ser exibido dentro de um card individual com bordas suaves e espaçamento interno.
+
+Espaçamento vertical entre cards deve ser mínimo de 16px.
+
+Dentro de cada card, os campos devem estar visualmente agrupados, com padding interno e bordas arredondadas.
+
+O botão Excluir deve ficar alinhado à direita e não colado aos inputs.
+
+Botão “Adicionar Contato” deve ter destaque visual, cor primária e margem superior adequada.
+
+💅 Estilo sugerido (exemplo CSS):
+.card-contato {
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.card-contato input {
+  margin-bottom: 10px;
+}
+
+.card-contato .btn-excluir {
+  float: right;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+3️⃣ Estrutura de Template HTML / Jinja2
+
+Atualizar o bloco referente a contatos no template projects/form.html:
+
+<div class="card mt-3">
+  <div class="card-header">
+    <i class="bi bi-people"></i> Contatos da Obra
+  </div>
+  <div class="card-body">
+    <p class="text-muted mb-3">
+      Adicione todos os contatos associados a esta obra, incluindo nome, cargo, empresa, e-mail e telefone (opcional).
+    </p>
+
+    <div id="lista-contatos">
+      {% for contato in contatos_existentes %}
+      <div class="card-contato" data-id="{{ contato.id }}">
+        <div class="form-group">
+          <label>Nome</label>
+          <input type="text" name="nome[]" class="form-control" value="{{ contato.nome }}" required>
+        </div>
+
+        <div class="form-group">
+          <label>Cargo</label>
+          <input type="text" name="cargo[]" class="form-control" value="{{ contato.cargo }}">
+        </div>
+
+        <div class="form-group">
+          <label>Empresa</label>
+          <input type="text" name="empresa[]" class="form-control" value="{{ contato.empresa }}">
+        </div>
+
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" name="email[]" class="form-control" value="{{ contato.email }}" required>
+        </div>
+
+        <div class="form-group">
+          <label>Telefone (opcional)</label>
+          <input type="text" name="telefone[]" class="form-control" value="{{ contato.telefone or '' }}">
+        </div>
+
+        <button type="button" class="btn btn-danger btn-sm btn-excluir" onclick="removerContato(this)">
+          <i class="bi bi-trash"></i> Excluir
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+
+    <button type="button" class="btn btn-primary mt-2" id="addContatoBtn">
+      <i class="bi bi-person-plus"></i> Adicionar Contato
+    </button>
+  </div>
+</div>
+
+4️⃣ Funcionalidade de Carregamento, Edição e Exclusão (JS + Backend)
+✅ Carregamento automático
+
+Ao abrir /projects/<id>/edit, carregar do banco todos os contatos vinculados ao projeto.
+
+Passar os contatos via variável contatos_existentes no render_template() do backend.
+
+✅ Edição
+
+Permitir alteração dos valores diretamente nos inputs.
+
+Alterações são persistidas ao salvar a obra.
+
+✅ Exclusão
+
+O botão Excluir remove o card visualmente e adiciona o contato.id a uma lista contatos_excluidos[] no form.
+
+No backend, esses IDs devem ser tratados para remoção definitiva no banco.
+
+✅ Script auxiliar JS
+document.getElementById('addContatoBtn').addEventListener('click', function() {
+  const lista = document.getElementById('lista-contatos');
+  const novo = document.createElement('div');
+  novo.classList.add('card-contato');
+  novo.innerHTML = `
+    <div class="form-group">
+      <label>Nome</label>
+      <input type="text" name="nome[]" class="form-control" required>
+    </div>
+    <div class="form-group">
+      <label>Cargo</label>
+      <input type="text" name="cargo[]" class="form-control">
+    </div>
+    <div class="form-group">
+      <label>Empresa</label>
+      <input type="text" name="empresa[]" class="form-control">
+    </div>
+    <div class="form-group">
+      <label>E-mail</label>
+      <input type="email" name="email[]" class="form-control" required>
+    </div>
+    <div class="form-group">
+      <label>Telefone (opcional)</label>
+      <input type="text" name="telefone[]" class="form-control">
+    </div>
+    <button type="button" class="btn btn-danger btn-sm btn-excluir" onclick="removerContato(this)">
+      <i class="bi bi-trash"></i> Excluir
+    </button>`;
+  lista.appendChild(novo);
+});
+
+function removerContato(btn) {
+  btn.closest('.card-contato').remove();
+}
+
+5️⃣ Backend — Ajustes no Flask
+
+No routes.py (função project_edit):
+
+@app.route("/projects/<int:id>/edit", methods=["GET", "POST"])
+@login_required
+def project_edit(id):
+    project = Project.query.get_or_404(id)
+    contatos_existentes = EmailsClientes.query.filter_by(project_id=id).all()
+
+    if request.method == "POST":
+        # salvar ou atualizar contatos
+        nomes = request.form.getlist("nome[]")
+        cargos = request.form.getlist("cargo[]")
+        empresas = request.form.getlist("empresa[]")
+        emails = request.form.getlist("email[]")
+        telefones = request.form.getlist("telefone[]")
+
+        # lógica de atualização e exclusão
+        # ...
+        db.session.commit()
+
+    return render_template(
+        "projects/form.html",
+        project=project,
+        contatos_existentes=contatos_existentes
+    )
+
+6️⃣ Critérios de Aceite
+
+✅ Cards de contato visualmente separados, com espaçamento uniforme e aparência moderna.
+✅ Campos não colados nem sobrepostos.
+✅ Botão “Excluir” bem posicionado e funcional.
+✅ “Adicionar Contato” insere novo card de forma fluida.
+✅ Ao editar uma obra, todos os contatos existentes aparecem carregados com seus dados reais.
+✅ Edição e exclusão de contatos já existentes funcionam corretamente.
