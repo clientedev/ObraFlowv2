@@ -82,18 +82,6 @@
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <!-- E-mail Principal -->
-                                    <div class="mb-3">
-                                        <div class="form-check form-switch">
-                                            {{ form.is_principal(class="form-check-input") }}
-                                            {{ form.is_principal.label(class="form-check-label fw-bold") }}
-                                        </div>
-                                        <div class="form-text">
-                                            <i class="fas fa-star me-1"></i>
-                                            Marque como e-mail principal do projeto
-                                        </div>
-                                    </div>
-
                                     <!-- Status Ativo -->
                                     <div class="mb-3">
                                         <div class="form-check form-switch">
@@ -105,9 +93,7 @@
                                             E-mail ativo no sistema
                                         </div>
                                     </div>
-                                </div>
 
-                                <div class="col-md-6">
                                     <!-- Receber Relatórios -->
                                     <div class="mb-3">
                                         <div class="form-check form-switch">
@@ -119,7 +105,9 @@
                                             Receber relatórios de visitas por e-mail
                                         </div>
                                     </div>
+                                </div>
 
+                                <div class="col-md-6">
                                     <!-- Receber Notificações -->
                                     <div class="mb-3">
                                         <div class="form-check form-switch">

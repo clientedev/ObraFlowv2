@@ -174,12 +174,11 @@ class EmailCliente(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
-    email = db.Column(db.String(255), nullable=True)  # Agora permite NULL para contatos sem email
+    email = db.Column(db.String(255), nullable=True)  # Permite NULL para contatos sem email
     nome_contato = db.Column(db.String(200), nullable=False)
     cargo = db.Column(db.String(100))
     empresa = db.Column(db.String(200))
     telefone = db.Column(db.String(20))  # Campo telefone adicionado
-    is_principal = db.Column(db.Boolean, default=False)  # Indica se é o e-mail principal
     receber_notificacoes = db.Column(db.Boolean, default=True)
     receber_relatorios = db.Column(db.Boolean, default=True)
     ativo = db.Column(db.Boolean, default=True)

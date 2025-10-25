@@ -917,15 +917,13 @@ function carregarFuncionariosEmailsPorId(projetoId) {
             let emailsHtml = '';
             if (data.emails && data.emails.length > 0) {
                 data.emails.forEach(email => {
-                    const checked = email.is_principal ? 'checked' : '';
                     emailsHtml += `
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="email_${email.id}" 
-                                   name="emails_selecionados[]" value="${email.id}" ${checked}>
+                                   name="emails_selecionados[]" value="${email.id}">
                             <label class="form-check-label" for="email_${email.id}">
                                 <strong>${email.email}</strong><br>
                                 <small class="text-muted">${email.nome_contato} - ${email.cargo || 'Sem cargo'}</small>
-                                ${email.is_principal ? '<span class="badge bg-success">Principal</span>' : ''}
                             </label>
                         </div>
                     `;

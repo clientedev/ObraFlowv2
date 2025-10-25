@@ -84,7 +84,7 @@ class EmailClienteForm(FlaskForm):
     nome_contato = StringField('Nome do Contato', validators=[DataRequired(), Length(max=200)])
     cargo = StringField('Cargo', validators=[Length(max=100)])
     empresa = StringField('Empresa', validators=[Length(max=200)])
-    is_principal = BooleanField('E-mail Principal')
+    telefone = StringField('Telefone', validators=[Length(max=20)])
     receber_notificacoes = BooleanField('Receber Notificações', default=True)
     receber_relatorios = BooleanField('Receber Relatórios', default=True)
     ativo = BooleanField('Ativo', default=True)

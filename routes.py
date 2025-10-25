@@ -745,8 +745,7 @@ def api_projeto_funcionarios_emails(projeto_id):
                 'id': email.id,
                 'email': email.email or '',
                 'nome_contato': email.nome_contato or '',
-                'cargo': email.cargo or '',
-                'is_principal': email.is_principal or False
+                'cargo': email.cargo or ''
             }
             emails_data.append(email_data)
             current_app.logger.info(f"  📧 Email: {email_data}")
@@ -4160,7 +4159,6 @@ def project_new():
                             cargo=contato_data.get('cargo', ''),
                             empresa=contato_data.get('empresa', ''),
                             telefone=contato_data.get('telefone', ''),  # Adicionar telefone
-                            is_principal=False,
                             ativo=True
                         )
                         db.session.add(novo_contato)
@@ -4231,7 +4229,6 @@ def project_new():
                         cargo=contato_data.get('cargo', ''),
                         empresa=contato_data.get('empresa', ''),
                         telefone=contato_data.get('telefone', ''),  # Adicionar telefone
-                        is_principal=(i == 0),  # Primeiro contato é principal
                         ativo=True
                     )
                     db.session.add(novo_contato)
@@ -6888,7 +6885,6 @@ def projeto_emails(projeto_id):
     """Lista todos os e-mails de clientes de um projeto"""
     projeto = Projeto.query.get_or_404(projeto_id)
     emails = EmailCliente.query.filter_by(projeto_id=projeto_id, ativo=True).order_by(
-        EmailCliente.is_principal.desc(),
         EmailCliente.nome_contato
     ).all()
 
@@ -6913,16 +6909,6 @@ def novo_email_cliente(projeto_id):
             flash('Este e-mail já está cadastrado para esta obra.', 'error')
             return render_template('emails/form.html', form=form, projeto=projeto, titulo='Novo E-mail de Cliente')
 
-        # Se marcou como principal, desmarcar outros como principal (apenas e-mails ativos)
-        if form.is_principal.data:
-            EmailCliente.query.filter_by(
-                projeto_id=projeto_id, 
-                is_principal=True,
-                ativo=True
-            ).update({
-                'is_principal': False
-            })
-
         # Criar novo e-mail
         email_cliente = EmailCliente(
             projeto_id=projeto_id,
@@ -6930,7 +6916,6 @@ def novo_email_cliente(projeto_id):
             nome_contato=form.nome_contato.data,
             cargo=form.cargo.data,
             empresa=form.empresa.data,
-            is_principal=form.is_principal.data,
             receber_notificacoes=form.receber_notificacoes.data,
             receber_relatorios=form.receber_relatorios.data,
             ativo=form.ativo.data
@@ -6968,22 +6953,11 @@ def editar_email_cliente(email_id):
                 flash('Este e-mail já está cadastrado para esta obra.', 'error')
                 return render_template('emails/form.html', form=form, projeto=projeto, titulo='Editar E-mail de Cliente')
 
-        # Se marcou como principal, desmarcar outros como principal (apenas e-mails ativos)
-        if form.is_principal.data and not email_cliente.is_principal:
-            EmailCliente.query.filter_by(
-                projeto_id=projeto.id, 
-                is_principal=True,
-                ativo=True
-            ).update({
-                'is_principal': False
-            })
-
         # Atualizar dados
         email_cliente.email = form.email.data.lower().strip()
         email_cliente.nome_contato = form.nome_contato.data
         email_cliente.cargo = form.cargo.data
         email_cliente.empresa = form.empresa.data
-        email_cliente.is_principal = form.is_principal.data
         email_cliente.receber_notificacoes = form.receber_notificacoes.data
         email_cliente.receber_relatorios = form.receber_relatorios.data
         email_cliente.ativo = form.ativo.data
@@ -7030,7 +7004,6 @@ def admin_emails():
 
     # Contar estatísticas
     total_emails = EmailCliente.query.filter_by(ativo=True).count()
-    emails_principais = EmailCliente.query.filter_by(ativo=True, is_principal=True).count()
     projetos_sem_email = Projeto.query.filter(~Projeto.id.in_(
         db.session.query(EmailCliente.projeto_id).filter_by(ativo=True).distinct()
     )).count()
@@ -7038,7 +7011,6 @@ def admin_emails():
     return render_template('emails/admin.html', 
                          projetos=projetos, 
                          total_emails=total_emails,
-                         emails_principais=emails_principais,
                          projetos_sem_email=projetos_sem_email)
 
 # Rotas para Legendas Pré-definidas (exclusivo para Administradores)

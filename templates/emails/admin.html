@@ -37,20 +37,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="card-title">E-mails Principais</h5>
-                        <h2 class="mb-0">{{ emails_principais }}</h2>
-                    </div>
-                    <i class="fas fa-star fa-2x opacity-75"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
+    <div class="col-md-4">
         <div class="card bg-info text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -101,7 +88,6 @@
                         <label for="filterStatus" class="form-label">Filtrar por Status:</label>
                         <select id="filterStatus" class="form-select">
                             <option value="">Todos</option>
-                            <option value="principal">Apenas Principais</option>
                             <option value="relatorios">Recebem Relatórios</option>
                             <option value="notificacoes">Recebem Notificações</option>
                         </select>
@@ -146,11 +132,6 @@
                                         </div>
                                         <div>
                                             <span class="badge bg-primary">{{ projeto.emails_clientes|length }} e-mail(s)</span>
-                                            {% if projeto.emails_clientes|selectattr("is_principal")|list|length > 0 %}
-                                                <span class="badge bg-warning text-dark ms-1">
-                                                    <i class="fas fa-star fa-sm"></i> Principal
-                                                </span>
-                                            {% endif %}
                                         </div>
                                     </div>
                                 </button>
@@ -183,16 +164,10 @@
                                                 {% if email.ativo %}
                                                 <tr class="email-row" 
                                                     data-email="{{ email.email.lower() }}"
-                                                    data-principal="{{ 'true' if email.is_principal else 'false' }}"
                                                     data-relatorios="{{ 'true' if email.receber_relatorios else 'false' }}"
                                                     data-notificacoes="{{ 'true' if email.receber_notificacoes else 'false' }}">
                                                     <td>
                                                         <strong>{{ email.nome_contato }}</strong>
-                                                        {% if email.is_principal %}
-                                                            <span class="badge bg-warning text-dark ms-1">
-                                                                <i class="fas fa-star fa-sm"></i> Principal
-                                                            </span>
-                                                        {% endif %}
                                                     </td>
                                                     <td>
                                                         <a href="mailto:{{ email.email }}" class="text-decoration-none">
@@ -316,16 +291,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             emailRows.forEach(function(emailRow) {
                 const email = emailRow.dataset.email;
-                const isPrincipal = emailRow.dataset.principal === 'true';
                 const receivesReports = emailRow.dataset.relatorios === 'true';
                 const receivesNotifications = emailRow.dataset.notificacoes === 'true';
                 
                 let emailMatches = !emailText || email.includes(emailText);
                 
                 let statusMatches = true;
-                if (statusFilter === 'principal') {
-                    statusMatches = isPrincipal;
-                } else if (statusFilter === 'relatorios') {
+                if (statusFilter === 'relatorios') {
                     statusMatches = receivesReports;
                 } else if (statusFilter === 'notificacoes') {
                     statusMatches = receivesNotifications;

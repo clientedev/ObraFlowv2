@@ -1,0 +1,113 @@
+Prompt para o Replit — Melhoria na Tela de Adição/Edição de Contatos da Obra
+🎯 Objetivo Geral
+
+Implementar uma melhoria completa na tela de adição e edição de obras, especificamente na seção de contatos da obra, e aplicar uma padronização global de hierarquia entre contatos em todas as obras do sistema.
+
+1️⃣ Escopo da Mudança
+
+A alteração de layout e comportamento se aplica exclusivamente à seção “Contatos da Obra” presente nas telas:
+
+/projects/new → Adicionar Obra
+
+/projects/<id>/edit → Editar Obra
+
+E a mudança hierárquica vale globalmente, ou seja, todos os contatos de todas as obras passam a ter o mesmo nível hierárquico — não existe mais o conceito de “Contato Principal”.
+
+2️⃣ Melhorias de Layout (Frontend — HTML / Template / JS)
+Atualização visual da seção “Contatos da Obra”
+
+Unificar o layout atual em um único componente visual padronizado.
+
+O novo bloco deve ser exibido com cards individuais para cada contato, organizados verticalmente.
+
+Cada card conterá os seguintes campos:
+
+Nome  
+Cargo  
+Empresa  
+E-mail  
+Telefone (opcional)
+
+
+Abaixo de cada card, incluir dois botões:
+
+✏️ Editar → permite edição inline dentro do card.
+
+🗑️ Excluir → remove o contato da lista (com confirmação via modal).
+
+Adicionar um botão global no final da lista:
+
++ Adicionar Contato → insere um novo card vazio.
+
+Exemplo visual esperado:
+👤 João Silva
+Cargo: Engenheiro de Obra
+Empresa: Construtora Alpha
+E-mail: joao@alpha.com
+Telefone: (11) 99999-9999
+
+[✏️ Editar] [🗑️ Excluir]
+---------------------------------
+[+ Adicionar Contato]
+
+3️⃣ Lógica de Negócio (Backend — Flask / SQLAlchemy)
+Hierarquia Global
+
+Remover qualquer lógica de diferenciação entre contatos.
+
+Todos os contatos devem ser tratados com o mesmo nível de prioridade/hierarquia, sem campo “principal”.
+
+Essa regra deve ser aplicada a todas as obras do sistema.
+
+Edição e exclusão
+
+Permitir edição inline diretamente na tela de adição/edição da obra.
+
+Excluir contato com confirmação modal.
+
+Atualização deve refletir imediatamente no banco após salvar a obra.
+
+4️⃣ Banco de Dados e Alembic
+Alterações na Estrutura
+
+Confirmar nome da tabela associada a contatos da obra (provavelmente emails_clientes).
+
+Caso exista campo de hierarquia como is_principal ou similar, remover via Alembic.
+
+Garantir compatibilidade com os dados existentes (sem perda de registros).
+
+Exemplo de migração Alembic:
+from alembic import op
+import sqlalchemy as sa
+
+revision = '20251026_0001'
+down_revision = '20251024_1944'
+
+def upgrade():
+    with op.batch_alter_table('emails_clientes', schema=None) as batch_op:
+        # Remover campo de hierarquia, se existir
+        batch_op.drop_column('is_principal', if_exists=True)
+
+def downgrade():
+    with op.batch_alter_table('emails_clientes', schema=None) as batch_op:
+        batch_op.add_column(sa.Column('is_principal', sa.Boolean(), nullable=True, default=False))
+
+5️⃣ Regras de Validação e Exibição
+
+✅ Campos obrigatórios: Nome, Cargo, Empresa e E-mail.
+✅ Telefone é opcional.
+✅ Todos os contatos de uma obra aparecem listados igualmente, sem destaque de hierarquia.
+✅ O layout está unificado e sem seções duplicadas.
+✅ Edição inline e exclusão funcionam corretamente.
+✅ Ao salvar a obra, todos os contatos são persistidos e exibidos na visualização da obra.
+✅ Ao visualizar qualquer obra, todos os contatos aparecem com o mesmo peso hierárquico.
+
+6️⃣ Critérios de Aceite
+
+A seção de contatos da obra na tela de adicionar/editar obra deve estar modernizada conforme o novo layout.
+
+O sistema não deve mais exibir ou processar “contato principal” em nenhum ponto.
+
+O comportamento de listagem, edição e exclusão deve ser idêntico entre obras novas e antigas.
+
+A interface deve estar limpa, sem scrolls desnecessários ou seções redundantes.
