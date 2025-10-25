@@ -4256,7 +4256,7 @@ def project_new():
             db.session.rollback()
             flash(f'Erro ao salvar obra: {str(e)}', 'error')
 
-    return render_template('projects/form.html', form=form)
+    return render_template('projects/form.html', form=form, contatos_existentes=[])
 
 @app.route('/projects/<int:project_id>')
 @login_required
@@ -4331,6 +4331,9 @@ def project_edit(project_id):
             "ordem": getattr(c, "ordem", 0),
             "project_id": c.projeto_id
         })
+    
+    # Carregar contatos existentes (para GET e POST)
+    contatos_existentes = EmailCliente.query.filter_by(projeto_id=project_id).all()
 
     if form.validate_on_submit():
         try:
@@ -4359,30 +4362,59 @@ def project_edit(project_id):
             project.data_previsao_fim = form.data_previsao_fim.data
             project.status = form.status.data
             
-            # Processar contatos unificados para atualização
-            contatos_form = []
-            for key in request.form.keys():
-                if key.startswith('contatos[') and key.endswith('][nome]'):
-                    index = key.split('[')[1].split(']')[0]
-                    nome = request.form.get(f'contatos[{index}][nome]')
-                    cargo = request.form.get(f'contatos[{index}][cargo]', '')
-                    empresa = request.form.get(f'contatos[{index}][empresa]', '')
-                    email = request.form.get(f'contatos[{index}][email]', '')
-                    telefone = request.form.get(f'contatos[{index}][telefone]', '')
-
-                    if nome or email:
-                        contatos_form.append({
-                            'nome': nome,
-                            'cargo': cargo,
-                            'empresa': empresa,
-                            'email': email,
-                            'telefone': telefone
-                        })
+            # Processar exclusões de contatos
+            contatos_excluidos = request.form.getlist('contatos_excluidos[]')
+            for contato_id in contatos_excluidos:
+                if contato_id:
+                    contato = EmailCliente.query.get(int(contato_id))
+                    if contato and contato.projeto_id == project.id:
+                        db.session.delete(contato)
+            
+            # Processar contatos - novos e existentes
+            nomes = request.form.getlist('contatos_nome[]')
+            cargos = request.form.getlist('contatos_cargo[]')
+            empresas = request.form.getlist('contatos_empresa[]')
+            emails = request.form.getlist('contatos_email[]')
+            telefones = request.form.getlist('contatos_telefone[]')
+            ids = request.form.getlist('contatos_id[]')
+            
+            # Processar cada contato
+            for i in range(len(nomes)):
+                nome = nomes[i] if i < len(nomes) else ''
+                cargo = cargos[i] if i < len(cargos) else ''
+                empresa = empresas[i] if i < len(empresas) else ''
+                email = emails[i] if i < len(emails) else ''
+                telefone = telefones[i] if i < len(telefones) else ''
+                contato_id = ids[i] if i < len(ids) else None
+                
+                if nome or email:  # Pelo menos nome ou email deve estar preenchido
+                    if contato_id:
+                        # Atualizar contato existente
+                        contato = EmailCliente.query.get(int(contato_id))
+                        if contato and contato.projeto_id == project.id:
+                            contato.nome_contato = nome
+                            contato.cargo = cargo
+                            contato.empresa = empresa
+                            contato.email = email or None
+                            contato.telefone = telefone
+                    else:
+                        # Criar novo contato
+                        novo_contato = EmailCliente(
+                            projeto_id=project.id,
+                            nome_contato=nome,
+                            cargo=cargo,
+                            empresa=empresa,
+                            email=email or None,
+                            telefone=telefone,
+                            ativo=True
+                        )
+                        db.session.add(novo_contato)
             
             # Atualizar campos legados do projeto com primeiro contato
-            if contatos_form:
-                project.nome_funcionario = contatos_form[0].get('nome', '')
-                project.email_principal = contatos_form[0].get('email', '')
+            primeiro_contato = EmailCliente.query.filter_by(projeto_id=project.id).first()
+            if primeiro_contato:
+                project.nome_funcionario = primeiro_contato.nome_contato
+                project.email_principal = primeiro_contato.email or ''
             else:
                 project.nome_funcionario = ''
                 project.email_principal = ''
@@ -4431,8 +4463,8 @@ def project_edit(project_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao atualizar obra: {str(e)}', 'error')
-
-    return render_template('projects/form.html', form=form, project=project, categorias=categorias_serializadas)
+    
+    return render_template('projects/form.html', form=form, project=project, categorias=categorias_serializadas, contatos_existentes=contatos_existentes)
 
 # Category management routes - Item 16
 @app.route('/projects/<int:project_id>/categorias')

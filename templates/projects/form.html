@@ -10,29 +10,34 @@
     background: #fff;
 }
 
-.contato-card {
-    border: 1px solid #e5e5e5;
-    border-radius: 8px;
-    padding: 10px;
+.card-contato {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.card-contato .form-group {
     margin-bottom: 10px;
-    background-color: #f9f9f9;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
 }
 
-.contato-card input {
-    flex: 1 1 180px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
+.card-contato .form-group label {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 5px;
 }
 
-.contato-card .btn-danger.btn-sm {
-    background-color: #dc3545;
-    color: white;
+.card-contato input {
+    margin-bottom: 10px;
+}
+
+.card-contato .btn-excluir {
+    float: right;
     margin-top: 5px;
-    align-self: flex-end;
+    margin-bottom: 5px;
 }
 </style>
 {% endblock %}
@@ -123,23 +128,56 @@
                     </div>
                     
                     <!-- Seção de Contatos da Obra -->
-                    <section class="obra-contatos card mb-4">
+                    <div class="card mt-3">
                         <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-address-card me-2"></i>Contatos da Obra
-                            </h6>
+                            <i class="bi bi-people"></i> Contatos da Obra
                         </div>
                         <div class="card-body">
-                            <p class="text-muted small mb-3">
-                                <i class="fas fa-info-circle me-1"></i>
+                            <p class="text-muted mb-3">
                                 Adicione todos os contatos associados a esta obra, incluindo nome, cargo, empresa, e-mail e telefone (opcional).
                             </p>
-                            <div id="contatos-lista"></div>
-                            <button type="button" class="btn btn-primary btn-sm" id="adicionar-contato">
-                                <i class="fas fa-plus me-1"></i>Adicionar Contato
+                            
+                            <div id="lista-contatos">
+                                {% for contato in contatos_existentes %}
+                                <div class="card-contato" data-id="{{ contato.id }}">
+                                    <div class="form-group">
+                                        <label>Nome</label>
+                                        <input type="text" name="contatos_nome[]" class="form-control" value="{{ contato.nome_contato }}" required>
+                                        <input type="hidden" name="contatos_id[]" value="{{ contato.id }}">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label>Cargo</label>
+                                        <input type="text" name="contatos_cargo[]" class="form-control" value="{{ contato.cargo or '' }}">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label>Empresa</label>
+                                        <input type="text" name="contatos_empresa[]" class="form-control" value="{{ contato.empresa or '' }}">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label>E-mail</label>
+                                        <input type="email" name="contatos_email[]" class="form-control" value="{{ contato.email or '' }}" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label>Telefone (opcional)</label>
+                                        <input type="text" name="contatos_telefone[]" class="form-control" value="{{ contato.telefone or '' }}">
+                                    </div>
+                                    
+                                    <button type="button" class="btn btn-danger btn-sm btn-excluir" onclick="removerContato(this, {{ contato.id }})">
+                                        <i class="bi bi-trash"></i> Excluir
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <button type="button" class="btn btn-primary mt-2" id="addContatoBtn">
+                                <i class="bi bi-person-plus"></i> Adicionar Contato
                             </button>
                         </div>
-                    </section>
+                    </div>
                     
                     <!-- Seção de Categorias da Obra - Item 16 -->
                     <div class="card mb-4">
@@ -440,69 +478,59 @@ function confirmMapLocation() {
 }
 
 // Gestão de Contatos da Obra
-let contatos = [];
 let categoriaCounter = 0;
+let contatosExcluidos = [];
 
-function adicionarContato() {
-    const novo = { nome: "", cargo: "", empresa: "", email: "", telefone: "" };
-    contatos.push(novo);
-    renderContatos();
-}
-
-function removerContato(i) {
-    contatos.splice(i, 1);
-    renderContatos();
-}
-
-function atualizarContato(i, campo, valor) {
-    contatos[i][campo] = valor;
-}
-
-function renderContatos() {
-    const lista = document.getElementById("contatos-lista");
-    lista.innerHTML = "";
-    
-    contatos.forEach((c, i) => {
-        const contatoCard = document.createElement('div');
-        contatoCard.className = 'contato-card';
-        
-        contatoCard.innerHTML = `
-            <input type="text" value="${c.nome || ''}" placeholder="Nome" 
-                   name="contatos[${i}][nome]" 
-                   oninput="atualizarContato(${i}, 'nome', this.value)" 
-                   class="form-control">
-            <input type="text" value="${c.cargo || ''}" placeholder="Cargo" 
-                   name="contatos[${i}][cargo]" 
-                   oninput="atualizarContato(${i}, 'cargo', this.value)" 
-                   class="form-control">
-            <input type="text" value="${c.empresa || ''}" placeholder="Empresa" 
-                   name="contatos[${i}][empresa]" 
-                   oninput="atualizarContato(${i}, 'empresa', this.value)" 
-                   class="form-control">
-            <input type="email" value="${c.email || ''}" placeholder="E-mail" 
-                   name="contatos[${i}][email]" 
-                   oninput="atualizarContato(${i}, 'email', this.value)" 
-                   class="form-control">
-            <input type="text" value="${c.telefone || ''}" placeholder="Telefone (opcional)" 
-                   name="contatos[${i}][telefone]" 
-                   oninput="atualizarContato(${i}, 'telefone', this.value)" 
-                   class="form-control">
-            <button type="button" onclick="removerContato(${i})" class="btn btn-danger btn-sm">
-                <i class="fas fa-trash"></i> Excluir
-            </button>
-        `;
-        
-        lista.appendChild(contatoCard);
-    });
-}
-
-// Inicializar event listener para adicionar contato
-document.addEventListener('DOMContentLoaded', function() {
-    const btnAdicionarContato = document.getElementById("adicionar-contato");
-    if (btnAdicionarContato) {
-        btnAdicionarContato.addEventListener("click", adicionarContato);
-    }
+document.getElementById('addContatoBtn').addEventListener('click', function() {
+    const lista = document.getElementById('lista-contatos');
+    const novo = document.createElement('div');
+    novo.classList.add('card-contato');
+    novo.innerHTML = `
+        <div class="form-group">
+            <label>Nome</label>
+            <input type="text" name="contatos_nome[]" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Cargo</label>
+            <input type="text" name="contatos_cargo[]" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Empresa</label>
+            <input type="text" name="contatos_empresa[]" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" name="contatos_email[]" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Telefone (opcional)</label>
+            <input type="text" name="contatos_telefone[]" class="form-control">
+        </div>
+        <button type="button" class="btn btn-danger btn-sm btn-excluir" onclick="removerContato(this)">
+            <i class="bi bi-trash"></i> Excluir
+        </button>`;
+    lista.appendChild(novo);
 });
+
+function removerContato(btn, contatoId) {
+    const card = btn.closest('.card-contato');
+    
+    // Se o contato tem ID (já existe no banco), marcar para exclusão
+    if (contatoId) {
+        contatosExcluidos.push(contatoId);
+        
+        // Adicionar campo hidden para enviar IDs dos contatos a serem excluídos
+        const form = document.getElementById('projectForm');
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'contatos_excluidos[]';
+        input.value = contatoId;
+        form.appendChild(input);
+    }
+    
+    // Remover o card da interface
+    card.remove();
+}
 
 // Função para remover e-mail
 function removerEmail(id) {
