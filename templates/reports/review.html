@@ -14,9 +14,11 @@
                 <small class="text-muted d-block d-md-inline">({{ relatorio.numero }})</small>
             </h1>
             <div class="btn-group" role="group">
+                {% if relatorio.status == 'Aprovado' %}
                 <a href="{{ url_for('generate_pdf_report', report_id=relatorio.id) }}" class="btn btn-outline-info btn-sm btn-md-normal" target="_blank">
                     <i class="fas fa-file-pdf me-1 me-md-2"></i><span class="d-none d-sm-inline">Visualizar </span>PDF
                 </a>
+                {% endif %}
 
                 <a href="{{ url_for('reports') }}" class="btn btn-secondary btn-sm btn-md-normal">
                     <i class="fas fa-arrow-left me-1 me-md-2"></i>Voltar
