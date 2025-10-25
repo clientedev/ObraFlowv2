@@ -236,8 +236,9 @@ class VisitaRealizadaForm(FlaskForm):
     checklist_items = TextAreaField('Itens Verificados')
 
 class FotoRelatorioForm(FlaskForm):
-    legenda = StringField('Legenda da Foto', validators=[Optional(), Length(max=500)])
-    categoria = SelectField('Categoria', choices=[('', 'Selecione...')], validators=[Optional()])
+    legenda = StringField('Legenda da Foto', validators=[DataRequired(message='Legenda é obrigatória'), Length(max=500)])
+    categoria = SelectField('Categoria', choices=[('', 'Selecione...')], validators=[DataRequired(message='Categoria é obrigatória')])
+    local = StringField('Local', validators=[DataRequired(message='Local é obrigatório'), Length(max=300)], render_kw={'placeholder': 'Local ou ambiente da foto'})
     
     def set_categoria_choices(self, projeto_id):
         """Define as escolhas de categoria baseado no projeto"""

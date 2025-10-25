@@ -1563,7 +1563,8 @@ def api_upload_photo():
         relatorio_id = request.form.get('relatorio_id')
         legenda = request.form.get('legenda', '').strip()
         descricao = request.form.get('descricao', '').strip()
-        categoria = request.form.get('categoria', 'Geral').strip()
+        categoria = request.form.get('categoria', '').strip()
+        local = request.form.get('local', '').strip()
         filename_original = request.form.get('filename_original', file.filename)
         
         # Validar relatorio_id
@@ -1619,9 +1620,27 @@ def api_upload_photo():
                 'url': url_for('api_get_photo', foto_id=foto_existente.id)
             }), 200
         
-        # Validar legenda (obrigatória conforme especificação)
+        # Validar campos obrigatórios
         if not legenda:
-            legenda = f'Foto {FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count() + 1}'
+            current_app.logger.error(f"❌ Legenda não fornecida")
+            return jsonify({
+                'success': False,
+                'error': 'Legenda é obrigatória'
+            }), 400
+        
+        if not local:
+            current_app.logger.error(f"❌ Local não fornecido")
+            return jsonify({
+                'success': False,
+                'error': 'Local é obrigatório'
+            }), 400
+        
+        if not categoria or categoria == '':
+            current_app.logger.error(f"❌ Categoria não fornecida")
+            return jsonify({
+                'success': False,
+                'error': 'Categoria é obrigatória'
+            }), 400
         
         # Gerar nome único para o arquivo baseado no hash
         unique_filename = f"{imagem_hash}{file_ext}"
@@ -1634,6 +1653,7 @@ def api_upload_photo():
         foto.legenda = legenda
         foto.descricao = descricao
         foto.tipo_servico = categoria
+        foto.local = local
         foto.ordem = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count() + 1
         
         # GARANTIR que os dados binários sejam bytes puros

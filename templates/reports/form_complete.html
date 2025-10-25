@@ -2378,6 +2378,7 @@ function createMobilePhotoCard(file, category) {
             id: photoId,
             file: file,
             category: category,
+            local: '',
             manualCaption: '',
             predefinedCaption: '',
             filename: file.name
@@ -2426,19 +2427,40 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
                      style="width: 100%; max-width: 200px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef; cursor: pointer;">
             </div>
             
-            <!-- Categoria (SEM nome do arquivo) -->
-            <div class="text-center mb-2">
-                <span class="badge bg-primary">${category}</span>
+            <!-- Categoria (Seleção dentro do card) -->
+            <div class="mb-2">
+                <label class="form-label fw-bold mb-1" style="font-size: 12px;">📁 Categoria *</label>
+                <select class="form-select form-select-sm categoria-select" 
+                        id="category_${photoId}" 
+                        data-photo-id="${photoId}"
+                        required
+                        style="border: 2px solid #007bff; font-size: 13px;">
+                    <option value="">${category ? category : 'Selecione...'}</option>
+                </select>
             </div>
             
-            <!-- LEGENDA EM BAIXO -->
+            <!-- Local (novo campo obrigatório) -->
             <div class="mb-2">
+                <label class="form-label fw-bold mb-1" style="font-size: 12px;">📍 Local *</label>
+                <input type="text" 
+                       class="form-control form-control-sm local-input" 
+                       id="local_${photoId}" 
+                       placeholder="Ex: Sala principal, Fachada norte..."
+                       data-photo-id="${photoId}"
+                       required
+                       style="border: 2px solid #ff9800; font-size: 13px; padding: 6px;">
+            </div>
+            
+            <!-- Legenda Manual -->
+            <div class="mb-2">
+                <label class="form-label fw-bold mb-1" style="font-size: 12px;">📝 Legenda *</label>
                 <input type="text" 
                        class="form-control caption-input" 
                        id="manual_caption_${photoId}" 
-                       placeholder="✏️ Digite uma legenda (obrigatório)..."
+                       placeholder="Digite uma legenda..."
                        data-photo-id="${photoId}"
-                       style="border: 2px solid #28a745; font-size: 14px; padding: 8px; background-color: #f8fff9;">
+                       required
+                       style="border: 2px solid #28a745; font-size: 13px; padding: 6px; background-color: #f8fff9;">
             </div>
             
             <!-- Legenda Pré-definida -->
@@ -2499,10 +2521,21 @@ function createLegendaSelectHTML(photoId) {
 function setupPhotoCardEvents(photoId) {
     const manualInput = document.getElementById(`manual_caption_${photoId}`);
     const predefinedSelect = document.getElementById(`predefined_caption_${photoId}`);
+    const localInput = document.getElementById(`local_${photoId}`);
+    const categorySelect = document.getElementById(`category_${photoId}`);
     
     if (manualInput) {
-        manualInput.addEventListener('input', () => saveCaptionData(photoId));
-        manualInput.addEventListener('blur', () => saveCaptionData(photoId));
+        manualInput.addEventListener('input', () => savePhotoData(photoId));
+        manualInput.addEventListener('blur', () => savePhotoData(photoId));
+    }
+    
+    if (localInput) {
+        localInput.addEventListener('input', () => savePhotoData(photoId));
+        localInput.addEventListener('blur', () => savePhotoData(photoId));
+    }
+    
+    if (categorySelect) {
+        categorySelect.addEventListener('change', () => savePhotoData(photoId));
     }
     
     if (predefinedSelect) {
@@ -2510,7 +2543,7 @@ function setupPhotoCardEvents(photoId) {
             if (this.value) {
                 // Copy predefined to manual field
                 manualInput.value = this.value;
-                saveCaptionData(photoId);
+                savePhotoData(photoId);
                 
                 // Reset select for next use
                 setTimeout(() => {
@@ -2519,35 +2552,73 @@ function setupPhotoCardEvents(photoId) {
             }
         });
     }
+    
+    // Populate category select with available categories
+    populateCategorySelect(photoId);
 }
 
-// Save caption data via AJAX
-async function saveCaptionData(photoId) {
+// Save photo data (category, local, caption) - Updated function
+async function savePhotoData(photoId) {
     const manualInput = document.getElementById(`manual_caption_${photoId}`);
     const predefinedSelect = document.getElementById(`predefined_caption_${photoId}`);
+    const localInput = document.getElementById(`local_${photoId}`);
+    const categorySelect = document.getElementById(`category_${photoId}`);
     const statusDiv = document.getElementById(`caption_status_${photoId}`);
     
-    const manualCaption = manualInput.value.trim();
-    const predefinedCaption = predefinedSelect.value.trim();
+    const manualCaption = manualInput ? manualInput.value.trim() : '';
+    const predefinedCaption = predefinedSelect ? predefinedSelect.value.trim() : '';
+    const local = localInput ? localInput.value.trim() : '';
+    const category = categorySelect ? categorySelect.value : '';
     
-    // Update local data
+    // Update stored data
     const photoData = mobilePhotoData.find(p => p.id === photoId);
     if (photoData) {
         photoData.manualCaption = manualCaption;
         photoData.predefinedCaption = predefinedCaption;
+        photoData.local = local;
+        photoData.category = category;
     }
     
-    // Update status
+    // Update status indicator
     const hasCaption = manualCaption || predefinedCaption;
-    if (hasCaption) {
-        statusDiv.className = 'caption-status complete';
-        statusDiv.innerHTML = '✅ Legenda definida';
+    const hasLocal = local.length > 0;
+    const hasCategory = category && category !== '';
+    
+    if (hasCaption && hasLocal && hasCategory) {
+        statusDiv.className = 'caption-status complete alert alert-success py-1 px-2 mb-2';
+        statusDiv.innerHTML = '✅ Todos os campos preenchidos';
     } else {
-        statusDiv.className = 'caption-status pending';
-        statusDiv.innerHTML = '⚠️ Legenda obrigatória - preencha pelo menos um campo';
+        statusDiv.className = 'caption-status pending alert alert-warning py-1 px-2 mb-2';
+        let missing = [];
+        if (!hasCategory) missing.push('Categoria');
+        if (!hasLocal) missing.push('Local');
+        if (!hasCaption) missing.push('Legenda');
+        statusDiv.innerHTML = `⚠️ Obrigatório: ${missing.join(', ')}`;
     }
     
-    console.log(`💾 Caption saved for ${photoId}: "${manualCaption}"`);
+    console.log(`💾 Photo data saved for ${photoId}: category="${category}", local="${local}", caption="${manualCaption}"`);
+}
+
+// Populate category select for a photo card
+function populateCategorySelect(photoId) {
+    const categorySelect = document.getElementById(`category_${photoId}`);
+    const defaultCategorySelect = document.getElementById('defaultCategory');
+    
+    if (categorySelect && defaultCategorySelect) {
+        // Copy all options from default category select
+        categorySelect.innerHTML = defaultCategorySelect.innerHTML;
+        
+        // Set the currently selected value if it exists in photoData
+        const photoData = mobilePhotoData.find(p => p.id === photoId);
+        if (photoData && photoData.category) {
+            categorySelect.value = photoData.category;
+        }
+    }
+}
+
+// Keep old function for backward compatibility
+async function saveCaptionData(photoId) {
+    return savePhotoData(photoId);
 }
 
 // Edit mobile photo - RESTAURADO como funcionava antes

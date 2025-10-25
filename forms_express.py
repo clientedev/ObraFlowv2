@@ -100,7 +100,7 @@ class FotoExpressForm(FlaskForm):
                         render_kw={'placeholder': 'Título da foto'})
     
     legenda = StringField('Legenda', 
-                         validators=[Optional(), Length(max=500)],
+                         validators=[DataRequired(message='Legenda é obrigatória'), Length(max=500)],
                          render_kw={'placeholder': 'Legenda da foto'})
     
     descricao = TextAreaField('Descrição', 
@@ -109,7 +109,11 @@ class FotoExpressForm(FlaskForm):
     
     tipo_servico = SelectField('Tipo de Serviço (Categoria)',
                               choices=[('', 'Selecione...')],
-                              validators=[Optional()])
+                              validators=[DataRequired(message='Categoria é obrigatória')])
+    
+    local = StringField('Local', 
+                       validators=[DataRequired(message='Local é obrigatório'), Length(max=300)],
+                       render_kw={'placeholder': 'Local ou ambiente da foto'})
     
     def set_categoria_choices(self, projeto_id):
         """Define as escolhas de categoria baseado no projeto"""
