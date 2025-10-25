@@ -198,7 +198,8 @@
                                                         </a>
                                                     {% endif %}
 
-                                                    <!-- Dropdown PDF -->
+                                                    <!-- Dropdown PDF - Apenas para relatórios Aprovados -->
+                                                    {% if report.status == 'Aprovado' %}
                                                     <div class="dropdown">
                                                         <button class="btn btn-sm btn-outline-success dropdown-toggle w-100" 
                                                                 type="button" 
@@ -220,6 +221,7 @@
                                                             </li>
                                                         </ul>
                                                     </div>
+                                                    {% endif %}
 
                                                     <!-- Botão de Revisão para relatórios aguardando aprovação -->
                                                     {% if report.status == 'Aguardando Aprovação' %}
