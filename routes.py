@@ -1053,6 +1053,64 @@ def reverse_geocoding():
             'error': 'Erro interno do servidor'
         }), 500
 
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """Calculate distance between two points using Haversine formula"""
+    import math
+    
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+    
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a))
+    
+    r = 6371
+    
+    return r * c
+
+@app.route('/api/nearby-projects')
+def get_nearby_projects():
+    """Get ALL projects ordered by distance from user location"""
+    try:
+        lat = request.args.get('lat', type=float)
+        lon = request.args.get('lon', type=float)
+        
+        projects = Projeto.query.all()
+        
+        all_projects = []
+        projects_with_distance = []
+        projects_without_distance = []
+        
+        for project in projects:
+            project_data = {
+                'id': project.id,
+                'nome': project.nome,
+                'endereco': project.endereco or 'Endereço não informado',
+                'status': project.status,
+                'tipo_obra': project.tipo_obra,
+                'latitude': project.latitude,
+                'longitude': project.longitude
+            }
+            
+            if lat and lon and project.latitude and project.longitude:
+                distance = calculate_distance(lat, lon, project.latitude, project.longitude)
+                project_data['distance'] = round(distance, 2)
+                projects_with_distance.append(project_data)
+            else:
+                project_data['distance'] = 'N/A'
+                projects_without_distance.append(project_data)
+        
+        projects_with_distance.sort(key=lambda x: x['distance'])
+        
+        projects_without_distance.sort(key=lambda x: x['nome'])
+        
+        all_projects = projects_with_distance + projects_without_distance
+        
+        return jsonify({'success': True, 'projects': all_projects, 'total': len(all_projects)})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 # Save location route for geolocation tracking
 @app.route('/save_location', methods=['POST'])
 @login_required

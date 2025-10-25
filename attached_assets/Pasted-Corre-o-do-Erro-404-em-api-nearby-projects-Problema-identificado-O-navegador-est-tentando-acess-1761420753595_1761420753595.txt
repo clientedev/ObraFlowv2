@@ -1,0 +1,138 @@
+Correção do Erro 404 em /api/nearby-projects
+
+Problema identificado:
+O navegador está tentando acessar a rota GET /api/nearby-projects, mas o servidor retorna 404 Not Found.
+Isso indica que o endpoint não está definido no backend Flask/FastAPI ou o caminho foi alterado,
+enquanto o frontend ainda tenta chamá-lo (ex: dashboard.js, index.html ou script de geolocalização).
+
+🎯 Objetivo do prompt
+
+Diagnosticar se a rota /api/nearby-projects existe no backend.
+
+Criar (ou corrigir) essa rota para retornar as obras ordenadas por proximidade geográfica.
+
+Eliminar chamadas desnecessárias se a funcionalidade foi desativada (ex: “Obras Próximas” no dashboard).
+
+Evitar múltiplas chamadas repetidas que sobrecarregam a API.
+
+🔍 1. Diagnóstico — Verifique se a rota existe
+
+No Replit, execute:
+
+grep -R "nearby-projects" -n app/
+
+
+Se não houver resultados, significa que o endpoint foi removido.
+Nesse caso, siga o passo 2.
+
+Se encontrar algo como:
+
+@router.get("/api/nearby-projects")
+
+
+verifique se está retornando corretamente dados em JSON.
+
+🧠 2. Solução — Recriar endpoint de obras próximas
+
+No arquivo do backend (routes.py ou api/projects.py):
+
+from flask import Blueprint, request, jsonify
+from math import radians, sin, cos, sqrt, atan2
+from app.models import Project  # substitua conforme seu modelo
+from app import db
+
+api = Blueprint("api", __name__)
+
+@api.route("/api/nearby-projects", methods=["GET"])
+def nearby_projects():
+    try:
+        lat = float(request.args.get("lat"))
+        lon = float(request.args.get("lon"))
+        radius = float(request.args.get("radius", 10))  # km padrão
+
+        projects = Project.query.filter(Project.latitude.isnot(None), Project.longitude.isnot(None)).all()
+
+        results = []
+        for p in projects:
+            # Cálculo de distância haversine
+            R = 6371.0
+            dlat = radians(p.latitude - lat)
+            dlon = radians(p.longitude - lon)
+            a = sin(dlat/2)**2 + cos(radians(lat)) * cos(radians(p.latitude)) * sin(dlon/2)**2
+            c = 2 * atan2(sqrt(a), sqrt(1-a))
+            distance = R * c
+
+            if distance <= radius:
+                results.append({
+                    "id": p.id,
+                    "nome": p.nome,
+                    "endereco": p.endereco,
+                    "status": p.status,
+                    "latitude": p.latitude,
+                    "longitude": p.longitude,
+                    "distancia": round(distance, 2)
+                })
+
+        results.sort(key=lambda x: x["distancia"])
+
+        return jsonify({"projects": results}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+⚙️ Certifique-se de registrar o blueprint no app principal:
+
+app.register_blueprint(api)
+
+🧭 3. Caso o recurso tenha sido desativado (ex: área “Obras Próximas” removida)
+
+Se a funcionalidade “Obras Próximas” foi removida do sistema (como em atualizações recentes),
+remova as chamadas da função fetch('/api/nearby-projects') no frontend.
+
+No Replit, execute:
+
+grep -R "nearby-projects" -n templates/ static/
+
+
+Depois, comente ou exclua os trechos como:
+
+fetch(`/api/nearby-projects?lat=${lat}&lon=${lon}&radius=1`)
+
+
+E, se o dashboard ainda exibe um painel “Obras Próximas”, remova o HTML correspondente:
+
+<section id="obras-proximas">
+  <!-- Conteúdo a remover -->
+</section>
+
+⚡ 4. Evitar chamadas duplicadas (bug comum)
+
+No JS (provavelmente em dashboard.js), inclua debounce na função de geolocalização:
+
+let lastFetch = 0;
+async function atualizarObrasProximas(lat, lon) {
+  const agora = Date.now();
+  if (agora - lastFetch < 5000) return; // evita chamadas em menos de 5s
+  lastFetch = agora;
+
+  const resp = await fetch(`/api/nearby-projects?lat=${lat}&lon=${lon}&radius=5`);
+  if (resp.ok) {
+    const data = await resp.json();
+    renderizarObrasProximas(data.projects);
+  } else {
+    console.warn("Erro ao carregar obras próximas");
+  }
+}
+
+✅ 5. Resultado esperado
+
+Após aplicar este prompt:
+
+✅ Nenhum erro 404 /api/nearby-projects aparece no console.
+
+✅ Se a funcionalidade for mantida, as obras aparecem corretamente ordenadas por proximidade.
+
+✅ Se for removida, o dashboard carrega sem fazer chamadas a rotas inexistentes.
+
+✅ Nenhum loop de requisições repetidas é gerado.
