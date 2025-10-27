@@ -1,0 +1,86 @@
+Remoção de Campo Global de Categoria e Manutenção da Categoria Individual em Cada Imagem
+🎯 Objetivo
+
+Remover o campo “Categoria padrão para novas fotos” da tela de relatórios e garantir que a seleção de categoria ocorra somente dentro do card individual de cada imagem. A categoria das imagens deve permitir valor nulo no banco de dados, mantendo compatibilidade com uploads antigos e sem causar erro no sistema. Quando não houver categorias criadas, deve ser exibida a mensagem “Adicione uma categoria” e impedir o upload até que pelo menos uma categoria exista.
+
+1️⃣ Escopo
+
+Alteração na tela de adição e edição de relatórios.
+
+Remover campo global de categoria padrão (frontend + backend).
+
+Manter categoria opcional por imagem (permitindo NULL no banco).
+
+Validar categoria apenas se categorias existirem no sistema.
+
+2️⃣ Ajustes no Frontend
+✅ Remover:
+
+Campo global:
+
+Categoria padrão para novas fotos:
+<select>...</select>
+
+
+Variáveis associadas:
+
+categoria_padrao_foto
+
+categoria_predefinida_global
+
+✅ Manter:
+
+Mensagem caso não existam categorias:
+
+{% if not categorias_predefinidas %}
+<div class="alert alert-warning small mt-2">
+  ⚠️ Nenhuma categoria cadastrada. Adicione categorias antes de anexar fotos.
+</div>
+{% endif %}
+
+
+Campo individual em cada imagem:
+
+<label class="form-label fw-semibold">Categoria</label>
+<select name="imagens[{{ loop.index }}][categoria]" class="form-select">
+    <option value="">Sem categoria</option>
+    {% for categoria in categorias_predefinidas %}
+    <option value="{{ categoria }}" {% if imagem.categoria == categoria %}selected{% endif %}>{{ categoria }}</option>
+    {% endfor %}
+</select>
+
+3️⃣ Ajustes no Backend (Flask)
+
+Permitir categoria = None no modelo FotoRelatorio.
+
+Remover qualquer lógica associada ao campo global:
+
+# Remover linhas semelhantes a:
+relatorio.categoria_padrao_foto = form.categoria_padrao.data
+
+
+Manter carregamento das categorias:
+
+categorias_predefinidas = db.session.query(CategoriaFoto).order_by(CategoriaFoto.nome).all()
+
+4️⃣ Banco de Dados – Ajuste 🚨
+
+Alterar a coluna categoria para permitir NULL:
+
+ALTER TABLE fotos_relatorio ALTER COLUMN categoria DROP NOT NULL;
+
+
+Criar migração Alembic correspondente.
+
+5️⃣ Regras de Validação
+Cenário	Ação
+Existem categorias no sistema	Usuário pode escolher categoria ou deixar vazio
+Não existem categorias	Impedir upload e exibir alerta
+Upload antigo sem categoria	Deve continuar funcionando
+6️⃣ Critérios de Aceite ✅
+
+✅ Campo global removido
+✅ Sistema funcional mesmo com imagens sem categoria
+✅ Nenhum erro em relatórios antigos
+✅ Categoria opcional no banco (NULL permitido)
+✅ UI limpa e funcional
