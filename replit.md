@@ -26,14 +26,15 @@ Report forms: Location section removed from report creation/editing interface (g
 - **UI/UX**: Mobile-first design, PWA for installability and offline functionality, touch event optimization for photo editor on mobile. Dashboard features a clean, responsive grid layout for key statistics and recent reports.
 
 ## Data Model Design
-- **Core Entities**: Users, Projects (with dynamic categories), Visits, Reports, Reimbursements, Checklist Templates, Communication Records, Notifications.
+- **Core Entities**: Users, Projects (with dynamic categories and configurable initial report numbering), Visits, Reports, Reimbursements, Checklist Templates, Communication Records, Notifications.
+- **Projects (`Projeto`)**: Each project includes a `numeracao_inicial` field (default: 1) that defines the starting number for reports, enabling customized sequential numbering per project (e.g., start from report 100).
 - **Photo Storage (`FotoRelatorio`)**: Stores binary image data, JSONB for annotation metadata, SHA-256 hash for deduplication, MIME type, and file size. Each photo now requires three mandatory fields displayed within its card: **Categoria** (project-specific category via dropdown), **Local** (location/area description, text up to 300 characters), and **Legenda** (caption - predefined or manual entry up to 500 characters).
 - **Notifications (`Notificacao`)**: Internal notification system tracking report status changes with fields for origin/destination users, message content, type (e.g., enviado_para_aprovacao, aprovado), read status, and email delivery tracking.
 
 ## Key Features
-- **Project Management**: CRUD operations, automatic numbering, GPS location, dynamic project categories with full lifecycle management (creation, editing, deletion, display) and project reactivation for master users.
+- **Project Management**: CRUD operations, automatic numbering, GPS location, dynamic project categories with full lifecycle management (creation, editing, deletion, display) and project reactivation for master users. Each project allows configuring initial report numbering via the `numeracao_inicial` field.
 - **Visit Tracking**: GPS-enabled logging, custom checklists, team communication.
-- **Report System**: Professional PDF reports with photo annotation, ELP branding, and an approval workflow that includes automatic email notifications with PDF attachments to all relevant stakeholders (author, project manager, site staff, clients).
+- **Report System**: Professional PDF reports with photo annotation, ELP branding, and an approval workflow that includes automatic email notifications with PDF attachments to all relevant stakeholders (author, project manager, site staff, clients). Reports are numbered sequentially per project based on the project's configured initial numbering (numeracao_inicial + count). When creating reports from a pre-selected project, the Title and Project fields are hidden, showing only an informative blue card with project details.
 - **Photo Management**: Advanced editing (drawing, arrows, text, captions), up to 50 photos per report, predefined caption management, deduplication via image hashing. Each image card displays three mandatory fields (**Categoria**, **Local**, **Legenda**) for inline editing without returning to the top of the page, enforced at form level, backend API, and frontend HTML validation.
 - **Client Email Management**: CRUD system for client emails per project, including options for report reception.
 - **Internal Notifications System**: Database-stored notifications with automatic email alerts for report status changes.
