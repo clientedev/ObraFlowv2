@@ -109,6 +109,7 @@ class Projeto(db.Model):
     data_inicio = db.Column(db.Date)
     data_previsao_fim = db.Column(db.Date)
     status = db.Column(db.String(50), default='Ativo')
+    numeracao_inicial = db.Column(db.Integer, default=1, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     @property

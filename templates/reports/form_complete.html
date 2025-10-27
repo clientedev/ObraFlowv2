@@ -376,48 +376,35 @@
                         </div>
                         {% endif %}
 
-                        <!-- Informações Básicas -->
+                        <!-- Informações Básicas - Ocultar quando vier de projeto específico -->
+                        {% if not selected_project %}
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label" for="titulo">Título do Relatório *</label>
-                                    {% if disable_fields %}
-                                        <input type="text" name="titulo" id="titulo" class="form-control" 
-                                               value="Relatório - {{ selected_project.nome }}" readonly>
-                                        <small class="form-text text-muted">
-                                            <i class="fas fa-lock me-1"></i>Título gerado automaticamente a partir do projeto selecionado
-                                        </small>
-                                    {% else %}
-                                        <input type="text" name="titulo" id="titulo" class="form-control" 
-                                               value="{% if selected_project %}Relatório - {{ selected_project.nome }}{% else %}Relatório de visita{% endif %}" required>
-                                    {% endif %}
+                                    <input type="text" name="titulo" id="titulo" class="form-control" 
+                                           value="Relatório de visita" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label" for="projeto_id">Projeto *</label>
-                                    {% if disable_fields %}
-                                        <input type="hidden" name="projeto_id" id="projeto_id" value="{{ selected_project.id }}">
-                                        <div class="form-control-plaintext bg-light border rounded p-2">
-                                            <strong>{{ selected_project.numero }} - {{ selected_project.nome }}</strong>
-                                        </div>
-                                        <small class="form-text text-muted">
-                                            <i class="fas fa-lock me-1"></i>Projeto pré-selecionado - não editável
-                                        </small>
-                                    {% else %}
-                                        <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value); atualizarNumeroRelatorio(this.value);">
-                                            <option value="">Selecione um projeto</option>
-                                            {% for projeto in projetos %}
-                                            <option value="{{ projeto.id }}" 
-                                                    {% if selected_project and selected_project.id == projeto.id %}selected{% endif %}>
-                                                {{ projeto.numero }} - {{ projeto.nome }}
-                                            </option>
-                                            {% endfor %}
-                                        </select>
-                                    {% endif %}
+                                    <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value); atualizarNumeroRelatorio(this.value);">
+                                        <option value="">Selecione um projeto</option>
+                                        {% for projeto in projetos %}
+                                        <option value="{{ projeto.id }}">
+                                            {{ projeto.numero }} - {{ projeto.nome }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
                             </div>
                         </div>
+                        {% else %}
+                        <!-- Campos ocultos quando projeto pré-selecionado -->
+                        <input type="hidden" name="titulo" value="Relatório - {{ selected_project.nome }}">
+                        <input type="hidden" name="projeto_id" value="{{ selected_project.id }}">
+                        {% endif %}
 
                         <!-- Número do Relatório -->
                         <div class="row mb-4">

@@ -2300,12 +2300,20 @@ def create_report():
                     
                     current_app.logger.info(f"📝 Creating report with manual numero: {manual_numero} (numero_projeto: {relatorio.numero_projeto})")
                 else:
-                    # Auto-generate numero based on project sequence
-                    ultimo_numero = db.session.query(
-                        db.func.max(Relatorio.numero_projeto)
-                    ).filter_by(projeto_id=projeto_id).scalar()
+                    # Auto-generate numero based on project sequence with numeracao_inicial
+                    projeto = Projeto.query.get(projeto_id)
+                    if not projeto:
+                        flash('Projeto não encontrado.', 'error')
+                        return redirect(url_for('create_report'))
                     
-                    proximo_numero = (ultimo_numero or 0) + 1
+                    # Get numeracao_inicial from project (default to 1 if not set)
+                    numeracao_inicial = getattr(projeto, 'numeracao_inicial', 1) or 1
+                    
+                    # Count existing reports for this project
+                    relatorios_count = Relatorio.query.filter_by(projeto_id=projeto_id).count()
+                    
+                    # Calculate next number based on numeracao_inicial + count
+                    proximo_numero = numeracao_inicial + relatorios_count
                     
                     # Double-check this numero doesn't exist (race condition protection)
                     tentativas = 0
@@ -2328,7 +2336,7 @@ def create_report():
                         flash('Erro ao gerar número do relatório. Tente novamente.', 'error')
                         return redirect(url_for('create_report', projeto_id=projeto_id))
                     
-                    current_app.logger.info(f"📝 Creating report with auto-generated numero: {relatorio.numero}")
+                    current_app.logger.info(f"📝 Creating report with auto-generated numero: {relatorio.numero} (based on numeracao_inicial: {numeracao_inicial})")
                 
                 relatorio.titulo = titulo
                 relatorio.projeto_id = projeto_id

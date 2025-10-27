@@ -275,13 +275,32 @@ def generate_project_number():
     except:
         return "PROJ-0001"
 
-def generate_report_number():
-    """Generate sequential report number"""
-    from models import Relatorio
+def generate_report_number(projeto_id=None):
+    """Generate sequential report number based on project's numeracao_inicial
+    
+    Args:
+        projeto_id: ID do projeto para gerar numeração específica
+        
+    Returns:
+        str: Número do relatório no formato REL-XXXX
+    """
+    from models import Relatorio, Projeto
     from app import db
     
     try:
-        # Buscar todos os relatórios com números no formato REL-XXXX
+        if projeto_id:
+            # Buscar o projeto para obter numeracao_inicial
+            projeto = Projeto.query.get(projeto_id)
+            if projeto:
+                # Contar quantos relatórios já existem para este projeto
+                relatorios_count = Relatorio.query.filter_by(projeto_id=projeto_id).count()
+                
+                # Calcular próximo número baseado na numeração inicial
+                proximo_numero = projeto.numeracao_inicial + relatorios_count
+                
+                return f"REL-{proximo_numero:04d}"
+        
+        # Fallback: numeração global antiga
         relatorios = Relatorio.query.filter(Relatorio.numero.like('REL-%')).all()
         
         max_num = 0
@@ -294,10 +313,10 @@ def generate_report_number():
                 except:
                     continue
         
-        # Retornar próximo número disponível
         return f"REL-{max_num + 1:04d}"
         
-    except:
+    except Exception as e:
+        print(f"Error generating report number: {e}")
         return "REL-0001"
 
 def generate_visit_number():
