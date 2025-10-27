@@ -600,21 +600,6 @@
                                 </div>
                             </div>
 
-                            <!-- Seleção de Categoria (Dinâmica por Projeto) -->
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Categoria padrão para novas fotos:</label>
-                                <select id="defaultCategory" class="form-select" style="min-height: 48px;">
-                                    <option value="">Carregando categorias...</option>
-                                </select>
-                                <div id="categoriaWarning" class="alert alert-warning mt-2" style="display: none;">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    <span id="categoriaWarningText">Nenhuma categoria cadastrada para esta obra.</span>
-                                    <a href="#" id="addCategoriasLink" class="alert-link ms-2">
-                                        <i class="fas fa-plus-circle me-1"></i>Adicionar Categorias
-                                    </a>
-                                </div>
-                            </div>
-
                             <!-- Preview das Fotos com Cards Mobile-First -->
                             <div id="mobilePhotoCards" class="row g-3"></div>
                             
@@ -711,7 +696,6 @@
 
 <script>
 // Variáveis globais
-let selectedCategory = '';
 let selectedPhotos = [];
 let currentEditingPhoto = null;
 let canvas, ctx;
@@ -723,33 +707,6 @@ let startX, startY;
 document.addEventListener('DOMContentLoaded', function() {
     canvas = document.getElementById('photoCanvas');
     ctx = canvas.getContext('2d');
-
-    // Event listener para função global
-    document.addEventListener('selectCategory', function(e) {
-        const { category, element } = e.detail;
-        
-        // Remover seleção anterior
-        document.querySelectorAll('.photo-category').forEach(cat => {
-            cat.classList.remove('selected');
-        });
-        
-        // Adicionar seleção atual
-        element.classList.add('selected');
-        
-        // Atualizar categoria global
-        selectedCategory = category;
-        
-        // Habilitar botões de upload
-        const galleryBtn = document.getElementById('galleryBtn');
-        const cameraBtn = document.getElementById('cameraBtn');
-        if (galleryBtn) galleryBtn.disabled = false;
-        if (cameraBtn) cameraBtn.disabled = false;
-        
-        // Atualizar input de fotos
-        updatePhotoInput();
-        
-        // Categoria global selecionada
-    });
 
     // Event listeners para upload de fotos com error handling
     const photoInput = document.getElementById('photoInput');
@@ -944,69 +901,8 @@ function carregarFuncionariosEmailsPorId(projetoId) {
     });
 }
 
-// Função para carregar categorias do projeto selecionado - Item 16
-function carregarCategoriasProjeto(projetoId) {
-    const categoriaSelect = document.getElementById('defaultCategory');
-    const categoriaWarning = document.getElementById('categoriaWarning');
-    const categoriaWarningText = document.getElementById('categoriaWarningText');
-    const addCategoriasLink = document.getElementById('addCategoriasLink');
-    
-    if (!projetoId) {
-        categoriaSelect.innerHTML = '<option value="">Selecione um projeto primeiro</option>';
-        categoriaWarning.style.display = 'none';
-        return;
-    }
-    
-    // Mostrar loading
-    categoriaSelect.innerHTML = '<option value="">Carregando categorias...</option>';
-    categoriaWarning.style.display = 'none';
-    
-    // Buscar categorias do projeto via API
-    fetch(`/api/projects/${projetoId}/categorias`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.categorias && data.categorias.length > 0) {
-                // Renderizar categorias
-                let html = '<option value="">Selecione uma categoria</option>';
-                data.categorias.forEach(cat => {
-                    html += `<option value="${cat.nome}">${cat.nome}</option>`;
-                });
-                categoriaSelect.innerHTML = html;
-                categoriaWarning.style.display = 'none';
-            } else {
-                // Nenhuma categoria encontrada
-                categoriaSelect.innerHTML = '<option value="">Nenhuma categoria disponível</option>';
-                categoriaWarningText.textContent = 'Nenhuma categoria cadastrada para esta obra.';
-                categoriaWarning.style.display = 'block';
-                
-                // Configurar link para adicionar categorias
-                addCategoriasLink.href = `/projects/${projetoId}`;
-            }
-        })
-        .catch(error => {
-            console.error('Erro ao carregar categorias:', error);
-            categoriaSelect.innerHTML = '<option value="">Erro ao carregar categorias</option>';
-            categoriaWarningText.textContent = 'Erro ao carregar categorias. Tente novamente.';
-            categoriaWarning.style.display = 'block';
-        });
-}
-
-// Carregar categorias ao carregar a página se já houver um projeto selecionado
-document.addEventListener('DOMContentLoaded', function() {
-    const projetoId = document.getElementById('projeto_id')?.value;
-    if (projetoId) {
-        carregarCategoriasProjeto(projetoId);
-    }
-});
-
 function handlePhotoUpload(event) {
     // Upload de fotos iniciado
-
-    if (!selectedCategory) {
-        alert('Selecione uma categoria antes de adicionar fotos.');
-        event.target.value = '';
-        return;
-    }
 
     const files = event.target.files;
     // Processando arquivos selecionados
@@ -1023,7 +919,7 @@ function handlePhotoUpload(event) {
             break;
         }
         // Processando arquivo
-        addPhotoPreview(file, selectedCategory);
+        addPhotoPreview(file, '');
     }
 
     event.target.value = ''; // Reset input
@@ -1032,10 +928,6 @@ function handlePhotoUpload(event) {
 
 // Camera and gallery functions with error handling
 function selectFromGallery() {
-    if (!selectedCategory) {
-        alert('Selecione uma categoria antes de adicionar fotos.');
-        return;
-    }
     const photoInput = document.getElementById('photoInput');
     if (photoInput) {
         photoInput.click();
@@ -1045,10 +937,6 @@ function selectFromGallery() {
 }
 
 function captureFromCamera() {
-    if (!selectedCategory) {
-        alert('Selecione uma categoria antes de adicionar fotos.');
-        return;
-    }
     const cameraInput = document.getElementById('cameraInput');
     if (cameraInput) {
         cameraInput.click();
@@ -1197,36 +1085,6 @@ function mapCategoryToLegenda(photoCategory) {
         'Problema': 'Segurança'
     };
     return mapping[photoCategory] || 'Geral';
-}
-
-function updatePhotoInput() {
-    const input = document.getElementById('photoInput');
-    // Atualizando input de fotos
-
-    if (selectedCategory) {
-        input.disabled = false;
-        input.style.opacity = '1';
-        input.style.pointerEvents = 'auto';
-
-        // Enable camera and gallery buttons with null checks
-        const galleryBtn = document.getElementById('galleryBtn');
-        const cameraBtn = document.getElementById('cameraBtn');
-        if (galleryBtn) galleryBtn.disabled = false;
-        if (cameraBtn) cameraBtn.disabled = false;
-
-        // Input de fotos habilitado
-    } else {
-        input.disabled = true;
-
-        // Disable camera and gallery buttons with null checks
-        const galleryBtn = document.getElementById('galleryBtn');
-        const cameraBtn = document.getElementById('cameraBtn');
-        if (galleryBtn) galleryBtn.disabled = true;
-        if (cameraBtn) cameraBtn.disabled = true;
-        input.style.opacity = '0.5';
-        input.style.pointerEvents = 'none';
-        // Input de fotos desabilitado
-    }
 }
 
 // Checklist functionality
@@ -2121,18 +1979,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         console.log('📷 Categoria selecionada:', category);
-        
-        // Atualizar categoria global
-        selectedCategory = category;
-        
-        // Habilitar botões de upload
-        const galleryBtn = document.getElementById('galleryBtn');
-        const cameraBtn = document.getElementById('cameraBtn');
-        if (galleryBtn) galleryBtn.disabled = false;
-        if (cameraBtn) cameraBtn.disabled = false;
-        
-        // Atualizar input de fotos
-        updatePhotoInput();
     }
     
     // Event listeners para categorias - CÓDIGO EXATO DO EXPRESS
@@ -2346,12 +2192,11 @@ function mobileCaptureFromCamera() {
 function handleMobilePhotoSelection(event) {
     console.log('📋 Processando fotos selecionadas...');
     const files = event.target.files;
-    const defaultCategory = document.getElementById('defaultCategory').value;
     
     if (files.length === 0) return;
     
     Array.from(files).forEach(file => {
-        createMobilePhotoCard(file, defaultCategory);
+        createMobilePhotoCard(file, '');
     });
     
     // Clear input for next selection
@@ -2602,18 +2447,36 @@ async function savePhotoData(photoId) {
 // Populate category select for a photo card
 function populateCategorySelect(photoId) {
     const categorySelect = document.getElementById(`category_${photoId}`);
-    const defaultCategorySelect = document.getElementById('defaultCategory');
+    const projetoId = document.getElementById('projeto_id')?.value;
     
-    if (categorySelect && defaultCategorySelect) {
-        // Copy all options from default category select
-        categorySelect.innerHTML = defaultCategorySelect.innerHTML;
-        
-        // Set the currently selected value if it exists in photoData
-        const photoData = mobilePhotoData.find(p => p.id === photoId);
-        if (photoData && photoData.category) {
-            categorySelect.value = photoData.category;
-        }
-    }
+    if (!categorySelect || !projetoId) return;
+    
+    // Buscar categorias do projeto via API
+    fetch(`/api/projects/${projetoId}/categorias`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.categorias && data.categorias.length > 0) {
+                // Renderizar categorias
+                let html = '<option value="">Sem categoria</option>';
+                data.categorias.forEach(cat => {
+                    html += `<option value="${cat.nome}">${cat.nome}</option>`;
+                });
+                categorySelect.innerHTML = html;
+                
+                // Set the currently selected value if it exists in photoData
+                const photoData = mobilePhotoData.find(p => p.id === photoId);
+                if (photoData && photoData.category) {
+                    categorySelect.value = photoData.category;
+                }
+            } else {
+                // Nenhuma categoria encontrada
+                categorySelect.innerHTML = '<option value="">Sem categoria</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar categorias:', error);
+            categorySelect.innerHTML = '<option value="">Erro ao carregar</option>';
+        });
 }
 
 // Keep old function for backward compatibility
