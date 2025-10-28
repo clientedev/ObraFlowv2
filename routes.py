@@ -782,15 +782,21 @@ def api_next_report_number(projeto_id):
         # Verificar se o projeto existe
         projeto = Projeto.query.get_or_404(projeto_id)
         
-        # Calculate next report number for this project
-        ultimo_numero = db.session.query(
+        # Calculate next report number: max of (numeracao_inicial-1, highest existing numero_projeto) + 1
+        numeracao_inicial = projeto.numeracao_inicial or 1
+        max_numero_existente = db.session.query(
             db.func.max(Relatorio.numero_projeto)
         ).filter_by(projeto_id=projeto_id).scalar()
         
-        proximo_numero_projeto = (ultimo_numero or 0) + 1
-        next_numero = f"REL-{proximo_numero_projeto:04d}"
+        if max_numero_existente is None:
+            # No reports yet, use numeracao_inicial
+            proximo_numero_projeto = numeracao_inicial
+        else:
+            # Ensure we never go below numeracao_inicial and always increment from max
+            proximo_numero_projeto = max(numeracao_inicial - 1, max_numero_existente) + 1
         
-        current_app.logger.info(f"✅ Próximo número para projeto {projeto_id}: {next_numero}")
+        next_numero = f"REL-{proximo_numero_projeto:04d}"
+        current_app.logger.info(f"✅ Próximo número para projeto {projeto_id}: {next_numero} (numeracao_inicial: {numeracao_inicial}, max_existente: {max_numero_existente})")
         
         return jsonify({
             'success': True,
@@ -2843,14 +2849,21 @@ def create_report():
                 if selected_project:
                     selected_aprovador = get_aprovador_padrao_para_projeto(selected_project.id)
                     
-                    # Calculate next report number for this project
-                    ultimo_numero = db.session.query(
+                    # Calculate next report number: max of (numeracao_inicial-1, highest existing numero_projeto) + 1
+                    numeracao_inicial = selected_project.numeracao_inicial or 1
+                    max_numero_existente = db.session.query(
                         db.func.max(Relatorio.numero_projeto)
                     ).filter_by(projeto_id=projeto_id_param).scalar()
                     
-                    proximo_numero_projeto = (ultimo_numero or 0) + 1
+                    if max_numero_existente is None:
+                        # No reports yet, use numeracao_inicial
+                        proximo_numero_projeto = numeracao_inicial
+                    else:
+                        # Ensure we never go below numeracao_inicial and always increment from max
+                        proximo_numero_projeto = max(numeracao_inicial - 1, max_numero_existente) + 1
+                    
                     next_numero = f"REL-{proximo_numero_projeto:04d}"
-                    current_app.logger.info(f"📋 Next numero for project {projeto_id_param}: {next_numero}")
+                    current_app.logger.info(f"📋 Next numero for project {projeto_id_param}: {next_numero} (numeracao_inicial: {numeracao_inicial}, max_existente: {max_numero_existente})")
             except (ValueError, TypeError):
                 selected_project = None
         else:
