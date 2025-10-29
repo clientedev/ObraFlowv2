@@ -165,6 +165,7 @@ class RelatorioForm(FlaskForm):
     aprovador_nome = StringField('Nome do Aprovador', validators=[DataRequired(), Length(max=200)])
     conteudo = TextAreaField('Conteúdo do Relatório', validators=[Optional()], widget=TextArea())
     observacoes = TextAreaField('Observações Gerais', validators=[Optional()])
+    lembrete_proxima_visita = TextAreaField('Lembrete para Próxima Visita', validators=[Optional()])
     status = SelectField('Status', choices=[
         ('Rascunho', 'Rascunho'),
         ('Aguardando Aprovacao', 'Aguardando Aprovação'),

@@ -2459,6 +2459,12 @@ def create_report():
             relatorio.status = 'preenchimento'  # Criar sempre em preenchimento primeiro
             relatorio.created_at = datetime.utcnow()
             relatorio.updated_at = datetime.utcnow()
+            
+            # Save lembrete_proxima_visita
+            lembrete = request.form.get('lembrete_proxima_visita', '').strip()
+            if lembrete:
+                relatorio.lembrete_proxima_visita = lembrete
+                current_app.logger.info(f"✅ Lembrete para próxima visita salvo: {lembrete[:50]}...")
 
             # Process acompanhantes (visit attendees)
             acompanhantes_data = request.form.get('acompanhantes')
@@ -2845,6 +2851,7 @@ def create_report():
     selected_project = None
     selected_aprovador = None
     next_numero = None
+    lembrete_anterior = None
     
     # If editing, use the existing report's project
     if existing_report:
@@ -2876,6 +2883,18 @@ def create_report():
                     
                     next_numero = f"REL-{proximo_numero_projeto:04d}"
                     current_app.logger.info(f"📋 Next numero for project {projeto_id_param}: {next_numero} (numeracao_inicial: {numeracao_inicial}, max_existente: {max_numero_existente})")
+                    
+                    # Buscar lembrete do último relatório deste projeto
+                    ultimo_relatorio = Relatorio.query.filter_by(
+                        projeto_id=projeto_id_param
+                    ).order_by(Relatorio.created_at.desc()).first()
+                    
+                    if ultimo_relatorio and ultimo_relatorio.lembrete_proxima_visita:
+                        lembrete_anterior = {
+                            'numero': ultimo_relatorio.numero,
+                            'texto': ultimo_relatorio.lembrete_proxima_visita
+                        }
+                        current_app.logger.info(f"📝 Lembrete encontrado do relatório {ultimo_relatorio.numero}")
             except (ValueError, TypeError):
                 selected_project = None
         else:
@@ -2894,6 +2913,7 @@ def create_report():
                          existing_fotos=existing_fotos,
                          existing_checklist=existing_checklist,
                          next_numero=next_numero,
+                         lembrete_anterior=lembrete_anterior,
                          today=date.today().isoformat())
 
 # Removed duplicate function - using the more comprehensive version below at line 7415

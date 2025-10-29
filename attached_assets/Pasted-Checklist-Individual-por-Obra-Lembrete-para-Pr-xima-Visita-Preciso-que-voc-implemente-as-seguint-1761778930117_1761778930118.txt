@@ -1,0 +1,67 @@
+Checklist Individual por Obra + Lembrete para Próxima Visita
+
+Preciso que você implemente as seguintes funcionalidades no sistema:
+
+✔️ 1. Checklist individual por obra (baseado no modelo global)
+
+Contexto: Hoje temos os checklists globais aplicados a todas as obras. A nova necessidade é permitir que cada obra tenha seu próprio checklist personalizado, sem afetar o checklist global ou o de outras obras.
+
+Regras e requisitos:
+
+Na página de cada obra (conforme área mostrada na imagem enviada), adicionar uma nova seção chamada "Checklist da Obra".
+
+Essa seção deve carregar inicialmente os checklists globais existentes como base, exibindo-os para edição.
+
+O usuário poderá:
+
+Editar campos do checklist global PARA ESSA OBRA específica.
+
+Excluir itens do checklist global PARA ESSA OBRA específica.
+
+Adicionar novos itens exclusivos do checklist da obra.
+
+Importante: As modificações feitas no checklist da obra não podem alterar o checklist global e devem ser válidas apenas para aquela obra.
+
+Se necessário, criar novas tabelas e relacionamentos no banco, como por exemplo:
+
+checklist_global
+
+checklist_obra (herda itens do global + customizados)
+
+Se a estrutura atual não suportar isso, criar automaticamente o arquivo Alembic correspondente para atualizar o banco.
+
+✔️ 2. Campo “Lembrete para Próxima Visita” no relatório
+
+Objetivo: Adicionar um campo opcional nos relatórios permitindo que o usuário deixe um lembrete para o próximo responsável pela visita.
+
+Regras:
+
+No formulário de criação de relatório, adicionar o campo:
+
+Nome: Lembrete para próxima visita
+
+Tipo: texto longo
+
+Opcional
+
+Após salvar um relatório que possui um lembrete, ao abrir a tela para criar um novo relatório daquela mesma obra, deve aparecer no topo:
+
+Um card amarelo estilizado no padrão do sistema com a mensagem do lembrete do relatório anterior.
+
+Exemplo de mensagem no card:
+
+"Lembrete da última visita (REL-0001): verificar problema de infiltração no bloco B."
+
+Esse lembrete deve vir do último relatório criado daquela obra, se houver.
+
+Campo salvo no banco com migração Alembic se necessário.
+
+✔️ Requisitos adicionais
+
+Garantir validação de acesso para que somente usuários com permissão na obra possam editar o checklist dela.
+
+Criar endpoints e serviços necessários no backend.
+
+Ajustar interface no frontend para manter design consistente com o padrão atual.
+
+Se necessário, criar migrations Alembic automaticamente para não quebrar o sistema.

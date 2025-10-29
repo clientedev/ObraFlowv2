@@ -299,6 +299,7 @@ class Relatorio(db.Model):
     status = db.Column(db.String(50), default='preenchimento')
     comentario_aprovacao = db.Column(db.Text)
     acompanhantes = db.Column(JSONB, nullable=True)  # JSONB array of visit attendees
+    lembrete_proxima_visita = db.Column(db.Text, nullable=True)  # Reminder for next visit
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

@@ -529,11 +529,32 @@
                             </div>
                         </div>
 
+                        <!-- Lembrete da Última Visita -->
+                        {% if lembrete_anterior %}
+                        <div class="alert alert-warning border-warning mb-4" role="alert">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-sticky-note me-2"></i>Lembrete da última visita ({{ lembrete_anterior.numero }})
+                            </h6>
+                            <hr>
+                            <p class="mb-0">{{ lembrete_anterior.texto }}</p>
+                        </div>
+                        {% endif %}
+
                         <!-- Observações Gerais -->
                         <div class="mb-4">
                             <label class="form-label" for="conteudo">Observações Gerais</label>
                             <textarea class="form-control" name="conteudo" id="conteudo" rows="4" 
                                     placeholder="Descreva detalhes gerais da visita, pontos importantes, etc."></textarea>
+                        </div>
+
+                        <!-- Lembrete para Próxima Visita -->
+                        <div class="mb-4">
+                            <label class="form-label" for="lembrete_proxima_visita">
+                                <i class="fas fa-bell me-2"></i>Lembrete para Próxima Visita (Opcional)
+                            </label>
+                            <textarea class="form-control" name="lembrete_proxima_visita" id="lembrete_proxima_visita" rows="3" 
+                                    placeholder="Deixe um lembrete ou ponto de atenção para a próxima visita a esta obra..."></textarea>
+                            <small class="text-muted">Este lembrete será exibido automaticamente no próximo relatório desta obra.</small>
                         </div>
 
                         <!-- Sistema de Fotos Mobile-First -->

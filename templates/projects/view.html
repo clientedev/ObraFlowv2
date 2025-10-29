@@ -179,6 +179,11 @@
                     <i class="fas fa-tags me-2"></i>Categorias
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="checklist-tab" data-bs-toggle="tab" data-bs-target="#checklist" type="button" role="tab">
+                    <i class="fas fa-tasks me-2"></i>Checklist da Obra
+                </button>
+            </li>
         </ul>
         
         <div class="tab-content" id="projectTabsContent">
@@ -565,6 +570,35 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Checklist da Obra Tab -->
+            <div class="tab-pane fade" id="checklist" role="tabpanel">
+                <div class="card border-top-0">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-tasks me-2"></i>
+                                Checklist da Obra
+                            </h6>
+                            <a href="{{ url_for('project_checklist_view', project_id=project.id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-cog me-1"></i>Configurar
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Sobre o Checklist:</strong> Cada obra pode ter seu próprio checklist personalizado. Clique em "Configurar" para editar.
+                        </div>
+                        
+                        <div id="checklist-content">
+                            <div class="text-center py-3">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Carregando checklist...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -812,6 +846,63 @@ function excluirCategoria(id, nome) {
         console.error('Erro ao excluir categoria:', error);
         mostrarMensagem('Erro ao excluir categoria. Tente novamente.', 'danger');
     });
+}
+
+// Carregar checklist ao abrir a aba
+document.getElementById('checklist-tab').addEventListener('shown.bs.tab', function () {
+    carregarChecklist();
+});
+
+// Carregar checklist da API
+function carregarChecklist() {
+    const contentContainer = document.getElementById('checklist-content');
+    contentContainer.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin me-2"></i>Carregando checklist...</div>';
+    
+    fetch(`/projects/${projetoId}/checklist`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro ao carregar checklist');
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Extrair apenas o conteúdo do checklist da resposta HTML
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const checklistItems = doc.querySelectorAll('.list-group-item, .checklist-item');
+            
+            if (checklistItems.length === 0) {
+                contentContainer.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                        <h6>Checklist não configurado</h6>
+                        <p class="text-muted mb-3">Configure o checklist desta obra clicando no botão "Configurar" acima.</p>
+                    </div>
+                `;
+            } else {
+                let htmlContent = '<div class="list-group">';
+                checklistItems.forEach(item => {
+                    const texto = item.textContent.trim();
+                    htmlContent += `
+                        <div class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            ${texto}
+                        </div>
+                    `;
+                });
+                htmlContent += '</div>';
+                contentContainer.innerHTML = htmlContent;
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar checklist:', error);
+            contentContainer.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Não foi possível carregar o checklist. Use o botão "Configurar" para gerenciar o checklist da obra.
+                </div>
+            `;
+        });
 }
 </script></head></old_str>
 {% endblock %}
