@@ -1,0 +1,59 @@
+Você é um desenvolvedor fullstack especialista em FastAPI + SQLAlchemy + Alembic + PostgreSQL + Jinja2/HTML/Frontend. Corrija o seguinte problema no sistema:
+
+🛠️ Contexto do Problema
+
+Ao cadastrar ou editar uma obra, o campo numeracao_inicial permite definir um valor inicial para os relatórios (por exemplo, 44). Porém:
+
+Ao salvar e depois editar a obra, o campo volta para 1 ao invés de mostrar o valor definido.
+
+Ao criar o primeiro relatório dessa obra, a numeração exibida no formulário não respeita a numeracao_inicial salva, também voltando para 1 ou começando errado.
+
+✅ O que deve ser corrigido
+
+Implemente uma solução completa que:
+
+Salve corretamente o campo numeracao_inicial no banco de dados.
+
+Garanta que esse valor seja carregado corretamente:
+
+Na tela de edição da obra;
+
+Na tela de criação de relatório associado à obra.
+
+Se não existir a coluna numeracao_inicial na tabela de obras, então:
+
+Criar corretamente no modelo SQLAlchemy;
+
+Gerar arquivo Alembic compatível com a última modificação do sistema.
+
+Se existir valor default forçado indevidamente no código backend, remover para não sobrescrever valores reais.
+
+No endpoint que busca obra por ID, garantir que numeracao_inicial seja retornado no JSON.
+
+No endpoint de criação de relatório, garantir que o sistema:
+
+Use a numeracao_inicial como base quando for o primeiro relatório da obra;
+
+Continue incrementando corretamente nos relatórios seguintes.
+
+No frontend:
+
+Enviar o campo numeracao_inicial corretamente ao salvar/editar obra.
+
+Preencher o campo com o valor vindo do backend na edição.
+
+Na tela de criar relatório, mostrar corretamente a numeração inicial definida.
+
+Se necessário, criar a migration Alembic automaticamente para alinhar o banco ao modelo — não precisa mostrar o código da migration, apenas criar.
+
+Antes de implementar, explique o plano de correção passo a passo, peça confirmação e depois aplique a solução.
+
+🎯 Resultado esperado
+
+Ao cadastrar uma obra com numeracao_inicial = 44, ao editá-la depois, deve aparecer 44 no campo.
+
+Ao criar o primeiro relatório dessa obra, a numeração mostrada e salva deve começar em 44.
+
+O sistema deve continuar numerando corretamente a partir daí: 45, 46, 47...
+
+Quero que você implemente essa correção com qualidade profissional, sem quebras de compatibilidade com o restante do sistema e mantendo a integridade do banco de dados.
