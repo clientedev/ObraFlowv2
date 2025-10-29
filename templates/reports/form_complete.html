@@ -463,19 +463,8 @@
                             </div>
                         </div>
 
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label" for="aprovador_id">Aprovador do Relatório</label>
-                                    <select name="aprovador_id" id="aprovador_id" class="form-control">
-                                        <option value="">Selecione o aprovador</option>
-                                        {% for admin in admin_users %}
-                                        <option value="{{ admin.id }}" {% if selected_aprovador and admin.id == selected_aprovador.id %}selected{% endif %}>{{ admin.nome_completo }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Nota: O aprovador é definido automaticamente pelo sistema -->
+                        <!-- Aprovador Temporário do projeto (se configurado) ou Aprovador Global -->
 
                         <!-- Checklist da Obra -->
                         <div class="mb-4">

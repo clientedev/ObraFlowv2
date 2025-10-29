@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Adicionar Aprovador Temporário{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <!-- Header -->
+            <div class="mb-4">
+                <h1 class="h3 mb-1">
+                    <i class="fas fa-user-plus"></i> Adicionar Aprovador Temporário
+                </h1>
+                <p class="text-muted">Definir aprovador específico para um projeto</p>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Formulário -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-project-diagram"></i> Novo Aprovador Temporário
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_aprovador_temporario_novo') }}">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Aprovadores Temporários</strong> substituem o Aprovador Global para projetos específicos.
+                            Apenas um aprovador temporário pode ser definido por projeto.
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="projeto_id" class="form-label">
+                                <i class="fas fa-building"></i> Projeto: <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select form-select-lg" id="projeto_id" name="projeto_id" required>
+                                <option value="">Selecione um projeto...</option>
+                                {% for projeto in projetos_ativos %}
+                                    <option value="{{ projeto.id }}">
+                                        {{ projeto.numero }} - {{ projeto.nome }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">
+                                Selecione o projeto para o qual deseja configurar um aprovador temporário
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="aprovador_id" class="form-label">
+                                <i class="fas fa-user-check"></i> Aprovador Temporário: <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select form-select-lg" id="aprovador_id" name="aprovador_id" required>
+                                <option value="">Selecione um usuário...</option>
+                                {% for usuario in usuarios_master %}
+                                    <option value="{{ usuario.id }}">
+                                        {{ usuario.nome_completo }} ({{ usuario.email }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">
+                                Este usuário aprovará relatórios deste projeto específico
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="observacoes" class="form-label">
+                                <i class="fas fa-comment"></i> Observações (opcional):
+                            </label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3" 
+                                      placeholder="Ex: Aprovador temporário enquanto fulano está de férias"></textarea>
+                            <div class="form-text">
+                                Informações adicionais sobre esta configuração
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('admin_aprovadores_padrao') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check"></i> Adicionar Aprovador Temporário
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Informações adicionais -->
+            <div class="card mt-4 border-info">
+                <div class="card-body">
+                    <h6 class="text-info">
+                        <i class="fas fa-lightbulb"></i> Dica:
+                    </h6>
+                    <ul class="small mb-0">
+                        <li>Aprovadores Temporários têm prioridade sobre o Aprovador Global</li>
+                        <li>Se um projeto tiver aprovador temporário, apenas ele poderá aprovar relatórios desse projeto</li>
+                        <li>Você pode remover aprovadores temporários a qualquer momento</li>
+                        <li>Um projeto só pode ter um aprovador temporário por vez</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 10px;
+}
+
+.card-header {
+    border-top-left-radius: 10px !important;
+    border-top-right-radius: 10px !important;
+}
+
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 10px;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column;
+    }
+    
+    .d-flex.justify-content-between .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
+</style>
+{% endblock %}
