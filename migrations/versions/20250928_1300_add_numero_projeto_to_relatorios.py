@@ -7,6 +7,10 @@ Create Date: 2025-09-28 13:00:00
 
 from alembic import op
 import sqlalchemy as sa
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from helpers import add_column_if_absent, drop_column_if_present
 
 
 # revision identifiers, used by Alembic.
@@ -18,7 +22,7 @@ depends_on = None
 def upgrade():
     """Add numero_projeto column to relatorios table for project-specific numbering"""
     # Add numero_projeto column to relatorios table
-    op.add_column('relatorios', 
+    add_column_if_absent(op, 'relatorios', 
                   sa.Column('numero_projeto', sa.Integer(), nullable=True))
     
     # Add comment to make the purpose clear
@@ -27,4 +31,4 @@ def upgrade():
 def downgrade():
     """Remove numero_projeto column from relatorios table"""
     # Remove numero_projeto column from relatorios table
-    op.drop_column('relatorios', 'numero_projeto')
+    drop_column_if_present(op, 'relatorios', 'numero_projeto')

@@ -8,6 +8,10 @@ Create Date: 2025-01-23 10:30:00
 
 from alembic import op
 import sqlalchemy as sa
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from helpers import add_column_if_absent, drop_column_if_present
 
 
 # revision identifiers, used by Alembic.
@@ -19,7 +23,7 @@ depends_on = None
 def upgrade():
     """Add cor_agenda column to users table"""
     # Adicionar coluna cor_agenda à tabela users
-    op.add_column('users', 
+    add_column_if_absent(op, 'users', 
                   sa.Column('cor_agenda', sa.String(7), nullable=True, default='#0EA5E9'))
     
     # Atualizar registros existentes com a cor padrão
@@ -28,4 +32,4 @@ def upgrade():
 def downgrade():
     """Remove cor_agenda column from users table"""
     # Remover coluna cor_agenda da tabela users
-    op.drop_column('users', 'cor_agenda')
+    drop_column_if_present(op, 'users', 'cor_agenda')
