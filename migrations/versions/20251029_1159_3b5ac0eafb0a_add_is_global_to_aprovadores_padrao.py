@@ -1,34 +1,34 @@
 """add_is_global_to_aprovadores_padrao
 
-Revision ID: 3b5ac0eafb0a
+Revision ID: 20251029_1159
 Revises: 20251029_1047
 Create Date: 2025-10-29 11:59:45.139246
 
 """
 from alembic import op
 import sqlalchemy as sa
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from helpers import add_column_if_absent, drop_column_if_present
 
 
 # revision identifiers, used by Alembic.
-revision = '3b5ac0eafb0a'
+revision = '20251029_1159'
 down_revision = '20251029_1047'
 branch_labels = None
 depends_on = None
 
 
-def upgrade() -> None:
-    # Verificar se coluna is_global já existe
-    from sqlalchemy import inspect
-    conn = op.get_bind()
-    inspector = inspect(conn)
-    columns = [col['name'] for col in inspector.get_columns('aprovadores_padrao')]
+def upgrade():
+    # Adicionar campo is_global com valor padrão False se não existir
+    add_column_if_absent(op, 'aprovadores_padrao', sa.Column('is_global', sa.Boolean(), nullable=False, server_default='false'))
     
-    if 'is_global' not in columns:
-        # Adicionar campo is_global com valor padrão False
-        op.add_column('aprovadores_padrao', sa.Column('is_global', sa.Boolean(), nullable=False, server_default='false'))
-        
-        # Remover server_default após a adição
+    # Remover server_default após a adição
+    try:
         op.alter_column('aprovadores_padrao', 'is_global', server_default=None)
+    except Exception:
+        pass  # Coluna pode já existir sem server_default
     
     # Atualizar registros existentes: se projeto_id é NULL, marcar como is_global=True
     op.execute("""
@@ -53,6 +53,6 @@ def upgrade() -> None:
     """)
 
 
-def downgrade() -> None:
+def downgrade():
     # Remover campo is_global
-    op.drop_column('aprovadores_padrao', 'is_global')
+    drop_column_if_present(op, 'aprovadores_padrao', 'is_global')
