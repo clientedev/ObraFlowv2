@@ -1,0 +1,88 @@
+Correção – Seção “Acompanhantes da Visita” no Relatório
+
+Precisamos ajustar o carregamento e exibição dos funcionários da obra no modal "Adicionar Acompanhante" e corrigir problemas de layout/botões quebrados.
+
+✅ Problema Atual
+
+No dropdown "Selecionar Funcionário", os nomes estão aparecendo como:
+
+undefined – Não informado
+
+
+Isso indica que os dados não estão sendo mapeados corretamente no frontend ou não estão sendo enviados corretamente pelo backend.
+
+Os botões “Adicionar” e “Cancelar” no modal estão com quebra de layout (texto cortado ou desalinhado).
+
+✅ O que deve ser feito
+🔧 Backend (se necessário)
+
+Verificar se a rota que retorna os funcionários da obra está enviando os campos corretos.
+
+Os dados devem ser retornados assim:
+
+[
+  {
+    "id": 12,
+    "nome": "Carlos Marques",
+    "cargo": "Engenheiro Civil"
+  },
+  {
+    "id": 19,
+    "nome": "Bruna Silva",
+    "cargo": "Técnica de Obras"
+  }
+]
+
+
+Caso o funcionário não tenha cargo, retornar "cargo": "Não informado" para evitar undefined.
+
+🎨 Frontend – Correções
+
+Popular corretamente o select de funcionários usando nome + cargo:
+
+Carlos Marques – Engenheiro Civil
+
+
+ou, se não tiver cargo:
+
+Carlos Marques – Não informado
+
+
+Remover qualquer valor "undefined" no select.
+
+Garantir que os dados carreguem apenas os funcionários da obra selecionada.
+
+Corrigir o layout do modal:
+
+Ajustar largura dos botões para evitar quebra de texto.
+
+Garantir responsividade no modal.
+
+Padronizar fonte e alinhamento.
+
+Se não houver funcionários vinculados à obra, exibir mensagem informativa:
+
+Nenhum funcionário cadastrado para esta obra.
+
+
+E desabilitar o botão "Adicionar".
+
+✅ Regras
+
+Não quebrar nada já implementado na parte de acompanhantes.
+
+Nenhum campo deve permitir valores undefined ou vazios.
+
+O carregamento deve ser carregado assíncrono ao selecionar a obra.
+
+✅ Extras
+
+Ao finalizar:
+✔ Testar modal com 1 funcionário
+✔ Testar modal com vários funcionários
+✔ Testar modal sem nenhum funcionário
+✔ Testar salvar/acrescentar acompanhante sem erro
+
+✅ Importante
+
+Se for necessário ajuste no banco de dados ou modelo para retornar os dados corretamente, criar a migration Alembic automaticamente conforme o padrão do projeto (não precisa mostrar código no retorno).

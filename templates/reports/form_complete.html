@@ -2698,12 +2698,12 @@ console.log('📱 Sistema de fotos mobile-first carregado');
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>Cancelar
+            <div class="modal-footer d-flex justify-content-between flex-wrap gap-2">
+                <button type="button" class="btn btn-secondary flex-fill" style="min-width: 120px;" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i><span>Cancelar</span>
                 </button>
-                <button type="button" class="btn btn-success" onclick="adicionarAcompanhante()">
-                    <i class="fas fa-check me-1"></i>Adicionar
+                <button type="button" class="btn btn-success flex-fill" style="min-width: 120px;" onclick="adicionarAcompanhante()">
+                    <i class="fas fa-check me-1"></i><span>Adicionar</span>
                 </button>
             </div>
         </div>
@@ -2720,13 +2720,22 @@ document.querySelectorAll('input[name="tipo_acompanhante"]').forEach(radio => {
     radio.addEventListener('change', function() {
         const selecaoFunc = document.getElementById('selecao-funcionario');
         const entradaManual = document.getElementById('entrada-manual');
+        const btnAdicionar = document.querySelector('#modalAcompanhantes .btn-success');
         
         if (this.value === 'funcionario') {
             selecaoFunc.classList.remove('d-none');
             entradaManual.classList.add('d-none');
+            
+            // Check if there are employees loaded
+            const select = document.getElementById('funcionario-select');
+            const hasEmployees = select.options.length > 1 && select.options[0].value !== '';
+            if (btnAdicionar) btnAdicionar.disabled = !hasEmployees;
         } else {
             selecaoFunc.classList.add('d-none');
             entradaManual.classList.remove('d-none');
+            
+            // Enable button for manual entry
+            if (btnAdicionar) btnAdicionar.disabled = false;
         }
     });
 });
@@ -2753,14 +2762,26 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
     })
     .then(response => response.json())
     .then(data => {
+        const btnAdicionar = document.querySelector('#modalAcompanhantes .btn-success');
+        
         if (data.success && data.funcionarios && data.funcionarios.length > 0) {
             let options = '<option value="">Selecione um funcionário...</option>';
             data.funcionarios.forEach(func => {
-                options += `<option value="${func.id}" data-nome="${func.nome}" data-cargo="${func.cargo || ''}">${func.nome} ${func.cargo ? '- ' + func.cargo : ''}</option>`;
+                const nome = func.nome_funcionario || 'Sem nome';
+                const cargo = func.cargo || 'Não informado';
+                options += `<option value="${func.id}" data-nome="${nome}" data-cargo="${cargo}">${nome} – ${cargo}</option>`;
             });
             select.innerHTML = options;
+            
+            // Enable the "Adicionar" button
+            if (btnAdicionar) btnAdicionar.disabled = false;
         } else {
             select.innerHTML = '<option value="">Nenhum funcionário cadastrado nesta obra</option>';
+            
+            // Disable the "Adicionar" button when no employees (only for employee mode)
+            if (btnAdicionar && document.querySelector('input[name="tipo_acompanhante"]:checked').value === 'funcionario') {
+                btnAdicionar.disabled = true;
+            }
         }
     })
     .catch(error => {
