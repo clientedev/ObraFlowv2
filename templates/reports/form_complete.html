@@ -2688,13 +2688,11 @@ console.log('📱 Sistema de fotos mobile-first carregado');
                             <label for="nome-manual" class="form-label">Nome *</label>
                             <input type="text" class="form-control" id="nome-manual" placeholder="Nome completo do acompanhante">
                         </div>
-                    </div>
-                    
-                    <!-- Função/Cargo (sempre visível) -->
-                    <div class="mb-3">
-                        <label for="funcao-acompanhante" class="form-label">Função/Cargo</label>
-                        <input type="text" class="form-control" id="funcao-acompanhante" placeholder="Ex: Engenheiro, Cliente, Gerente, etc.">
-                        <small class="text-muted">Opcional</small>
+                        <div class="mb-3">
+                            <label for="funcao-acompanhante" class="form-label">Função/Cargo</label>
+                            <input type="text" class="form-control" id="funcao-acompanhante" placeholder="Ex: Engenheiro, Cliente, Gerente, etc.">
+                            <small class="text-muted">Opcional</small>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -2720,22 +2718,13 @@ document.querySelectorAll('input[name="tipo_acompanhante"]').forEach(radio => {
     radio.addEventListener('change', function() {
         const selecaoFunc = document.getElementById('selecao-funcionario');
         const entradaManual = document.getElementById('entrada-manual');
-        const btnAdicionar = document.querySelector('#modalAcompanhantes .btn-success');
         
         if (this.value === 'funcionario') {
             selecaoFunc.classList.remove('d-none');
             entradaManual.classList.add('d-none');
-            
-            // Check if there are employees loaded
-            const select = document.getElementById('funcionario-select');
-            const hasEmployees = select.options.length > 1 && select.options[0].value !== '';
-            if (btnAdicionar) btnAdicionar.disabled = !hasEmployees;
         } else {
             selecaoFunc.classList.add('d-none');
             entradaManual.classList.remove('d-none');
-            
-            // Enable button for manual entry
-            if (btnAdicionar) btnAdicionar.disabled = false;
         }
     });
 });
@@ -2762,8 +2751,6 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
     })
     .then(response => response.json())
     .then(data => {
-        const btnAdicionar = document.querySelector('#modalAcompanhantes .btn-success');
-        
         if (data.success && data.funcionarios && data.funcionarios.length > 0) {
             let options = '<option value="">Selecione um funcionário...</option>';
             data.funcionarios.forEach(func => {
@@ -2772,16 +2759,8 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
                 options += `<option value="${func.id}" data-nome="${nome}" data-cargo="${cargo}">${nome} – ${cargo}</option>`;
             });
             select.innerHTML = options;
-            
-            // Enable the "Adicionar" button
-            if (btnAdicionar) btnAdicionar.disabled = false;
         } else {
             select.innerHTML = '<option value="">Nenhum funcionário cadastrado nesta obra</option>';
-            
-            // Disable the "Adicionar" button when no employees (only for employee mode)
-            if (btnAdicionar && document.querySelector('input[name="tipo_acompanhante"]:checked').value === 'funcionario') {
-                btnAdicionar.disabled = true;
-            }
         }
     })
     .catch(error => {
@@ -2817,7 +2796,7 @@ function abrirModalAcompanhantes() {
 function adicionarAcompanhante() {
     const tipo = document.querySelector('input[name="tipo_acompanhante"]:checked').value;
     let nome = '';
-    let funcao = document.getElementById('funcao-acompanhante').value.trim();
+    let funcao = '';
     let origem = '';
     
     if (tipo === 'funcionario') {
@@ -2830,12 +2809,11 @@ function adicionarAcompanhante() {
         }
         
         nome = selectedOption.getAttribute('data-nome');
-        if (!funcao) {
-            funcao = selectedOption.getAttribute('data-cargo') || '';
-        }
+        funcao = selectedOption.getAttribute('data-cargo') || '';
         origem = 'Funcionário da obra';
     } else {
         nome = document.getElementById('nome-manual').value.trim();
+        funcao = document.getElementById('funcao-acompanhante').value.trim();
         
         if (!nome) {
             alert('Por favor, preencha o nome do acompanhante!');
