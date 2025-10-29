@@ -8912,6 +8912,7 @@ def enviar_relatorio_express_por_email(relatorio, destinatarios, cc_emails, bcc_
 def get_aprovador_padrao_para_projeto(projeto_id=None):
     """
     Buscar aprovador padrão para um projeto específico ou global
+    Nova lógica: prioriza Aprovador Temporário do projeto, caso contrário usa Aprovador Global
 
     Args:
         projeto_id: ID do projeto (None para buscar apenas global)
@@ -8920,21 +8921,22 @@ def get_aprovador_padrao_para_projeto(projeto_id=None):
         User object do aprovador ou None se não encontrar
     """
     try:
-        # Primeiro, tentar encontrar aprovador específico do projeto
+        # Primeiro, tentar encontrar aprovador temporário específico do projeto
         if projeto_id:
-            aprovador_especifico = AprovadorPadrao.query.filter_by(
+            aprovador_temporario = AprovadorPadrao.query.filter_by(
                 projeto_id=projeto_id,
+                is_global=False,
                 ativo=True
             ).order_by(AprovadorPadrao.prioridade.asc(), AprovadorPadrao.created_at.desc()).first()
 
-            if aprovador_especifico and aprovador_especifico.aprovador:
-                return aprovador_especifico.aprovador
+            if aprovador_temporario and aprovador_temporario.aprovador:
+                return aprovador_temporario.aprovador
 
-        # Se não encontrou específico, buscar aprovador global
+        # Se não encontrou temporário, buscar aprovador global único
         aprovador_global = AprovadorPadrao.query.filter_by(
-            projeto_id=None,
+            is_global=True,
             ativo=True
-        ).order_by(AprovadorPadrao.prioridade.asc(), AprovadorPadrao.created_at.desc()).first()
+        ).first()
 
         if aprovador_global and aprovador_global.aprovador:
             return aprovador_global.aprovador
@@ -8947,87 +8949,115 @@ def get_aprovador_padrao_para_projeto(projeto_id=None):
         traceback.print_exc()
         return None
 
+def get_aprovador_global():
+    """
+    Retorna o Aprovador Global atual do sistema (único)
+    
+    Returns:
+        AprovadorPadrao object ou None
+    """
+    try:
+        return AprovadorPadrao.query.filter_by(
+            is_global=True,
+            ativo=True
+        ).first()
+    except Exception as e:
+        current_app.logger.error(f"Erro ao buscar aprovador global: {str(e)}")
+        return None
+
+def current_user_is_aprovador_global():
+    """
+    Verifica se o usuário atual é o Aprovador Global
+    
+    Returns:
+        Boolean
+    """
+    if not current_user or not current_user.is_authenticated:
+        return False
+    
+    if current_user.is_master:
+        return True
+    
+    aprovador_global = get_aprovador_global()
+    return aprovador_global and aprovador_global.aprovador_id == current_user.id
+
 # ==================== ADMIN: Aprovadores Padrão ====================
 
 @app.route('/admin/aprovadores-padrao')
 @login_required
 def admin_aprovadores_padrao():
-    """Gerenciar aprovadores padrão - apenas usuários master"""
+    """Gerenciar aprovadores - Aprovador Global (único) e Temporários por projeto"""
     if not current_user.is_master:
         flash('Acesso negado. Apenas usuários master podem acessar esta funcionalidade.', 'error')
         return redirect(url_for('index'))
 
-    # Buscar aprovadores configurados
-    aprovadores_globais = AprovadorPadrao.query.filter_by(projeto_id=None, ativo=True).all()
-    aprovadores_por_projeto = AprovadorPadrao.query.filter(
-        AprovadorPadrao.projeto_id.isnot(None),
-        AprovadorPadrao.ativo == True
-    ).all()
+    # Buscar o Aprovador Global único
+    aprovador_global = AprovadorPadrao.query.filter_by(is_global=True, ativo=True).first()
+    
+    # Buscar Aprovadores Temporários por projeto
+    aprovadores_temporarios = AprovadorPadrao.query.filter_by(
+        is_global=False,
+        ativo=True
+    ).order_by(AprovadorPadrao.created_at.desc()).all()
 
     # Buscar projetos ativos para seleção
     projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
 
     # Buscar usuários master para seleção como aprovadores
     usuarios_master = User.query.filter_by(is_master=True, ativo=True).all()
+    
+    # Verificar se o usuário atual é o aprovador global
+    is_current_user_aprovador_global = current_user_is_aprovador_global()
 
     return render_template('admin/aprovadores_padrao.html',
-                         aprovadores_globais=aprovadores_globais,
-                         aprovadores_por_projeto=aprovadores_por_projeto,
+                         aprovador_global=aprovador_global,
+                         aprovadores_temporarios=aprovadores_temporarios,
                          projetos_ativos=projetos_ativos,
-                         usuarios_master=usuarios_master)
+                         usuarios_master=usuarios_master,
+                         is_current_user_aprovador_global=is_current_user_aprovador_global)
 
-@app.route('/admin/aprovadores-padrao/novo', methods=['GET', 'POST'])
+@app.route('/admin/aprovadores-padrao/temporario/novo', methods=['GET', 'POST'])
 @login_required
-def admin_aprovador_padrao_novo():
-    """Adicionar novo aprovador padrão - apenas usuários master"""
-    if not current_user.is_master:
-        flash('Acesso negado. Apenas usuários master podem acessar esta funcionalidade.', 'error')
+def admin_aprovador_temporario_novo():
+    """Adicionar novo Aprovador Temporário para um projeto - apenas Aprovador Global ou Master"""
+    # Verificar permissões: Master ou Aprovador Global
+    if not (current_user.is_master or current_user_is_aprovador_global()):
+        flash('Acesso negado. Apenas o Aprovador Global pode adicionar aprovadores temporários.', 'error')
         return redirect(url_for('index'))
 
     if request.method == 'POST':
         try:
-            # Verificar tipo de configuração
-            config_type = request.form.get('config_type', 'global')
-            projeto_id = request.form.get('projeto_id') if config_type == 'projeto' else None
+            projeto_id = request.form.get('projeto_id')
             aprovador_id = request.form.get('aprovador_id')
             observacoes = request.form.get('observacoes', '').strip()
 
             # Validações
             if not aprovador_id:
                 flash('Aprovador é obrigatório.', 'error')
-                projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
-                usuarios_master = User.query.filter_by(is_master=True, ativo=True).all()
-                return render_template('admin/aprovador_padrao_form.html',
-                                     projetos_ativos=projetos_ativos,
-                                     usuarios_master=usuarios_master,
-                                     is_edit=False)
+                return redirect(url_for('admin_aprovador_temporario_novo'))
 
-            if config_type == 'projeto' and not projeto_id:
-                flash('Projeto é obrigatório para configuração específica.', 'error')
-                projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
-                usuarios_master = User.query.filter_by(is_master=True, ativo=True).all()
-                return render_template('admin/aprovador_padrao_form.html',
-                                     projetos_ativos=projetos_ativos,
-                                     usuarios_master=usuarios_master,
-                                     is_edit=False)
+            if not projeto_id:
+                flash('Projeto é obrigatório para Aprovador Temporário.', 'error')
+                return redirect(url_for('admin_aprovador_temporario_novo'))
 
             aprovador_id = int(aprovador_id)
-            projeto_id = int(projeto_id) if projeto_id else None
+            projeto_id = int(projeto_id)
 
-            # Verificar se já existe configuração para este projeto/aprovador
+            # Verificar se já existe aprovador temporário para este projeto
             existing = AprovadorPadrao.query.filter_by(
                 projeto_id=projeto_id,
-                aprovador_id=aprovador_id,
+                is_global=False,
                 ativo=True
             ).first()
 
             if existing:
-                projeto_nome = existing.projeto.nome if existing.projeto else "Configuração Global"
-                flash(f'Já existe um aprovador padrão configurado para {projeto_nome}.', 'warning')
+                projeto = Projeto.query.get(projeto_id)
+                flash(f'Já existe um Aprovador Temporário configurado para {projeto.nome}.', 'warning')
                 return redirect(url_for('admin_aprovadores_padrao'))
 
-            # Criar nova configuração
+            # Criar Aprovador Temporário
             novo_aprovador = AprovadorPadrao(
+                is_global=False,
                 projeto_id=projeto_id,
                 aprovador_id=aprovador_id,
                 observacoes=observacoes,
@@ -9037,24 +9067,23 @@ def admin_aprovador_padrao_novo():
             db.session.add(novo_aprovador)
             db.session.commit()
 
-            projeto_nome = novo_aprovador.projeto.nome if novo_aprovador.projeto else "Global"
-            flash(f'Aprovador padrão configurado com sucesso para {projeto_nome}!', 'success')
+            projeto = Projeto.query.get(projeto_id)
+            flash(f'Aprovador Temporário configurado com sucesso para {projeto.nome}!', 'success')
             return redirect(url_for('admin_aprovadores_padrao'))
 
         except ValueError:
             flash('Dados inválidos no formulário.', 'error')
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro ao criar aprovador padrão: {str(e)}', 'error')
+            flash(f'Erro ao criar Aprovador Temporário: {str(e)}', 'error')
 
     # GET request - mostrar formulário
     projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
     usuarios_master = User.query.filter_by(is_master=True, ativo=True).all()
 
-    return render_template('admin/aprovador_padrao_form.html',
+    return render_template('admin/aprovador_temporario_form.html',
                          projetos_ativos=projetos_ativos,
-                         usuarios_master=usuarios_master,
-                         is_edit=False)
+                         usuarios_master=usuarios_master)
 
 @app.route('/admin/aprovadores-padrao/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
@@ -9107,27 +9136,86 @@ def admin_aprovador_padrao_editar(id):
                          usuarios_master=usuarios_master,
                          is_edit=True)
 
+@app.route('/admin/aprovadores-padrao/transferir-global', methods=['POST'])
+@login_required
+def admin_transferir_aprovador_global():
+    """Transferir o título de Aprovador Global para outro usuário - apenas Aprovador Global atual ou Master"""
+    # Verificar permissões: Master ou Aprovador Global atual
+    if not (current_user.is_master or current_user_is_aprovador_global()):
+        flash('Acesso negado. Apenas o Aprovador Global pode transferir essa função.', 'error')
+        return redirect(url_for('admin_aprovadores_padrao'))
+
+    try:
+        novo_aprovador_id = request.form.get('novo_aprovador_id')
+        
+        if not novo_aprovador_id:
+            flash('Novo aprovador é obrigatório.', 'error')
+            return redirect(url_for('admin_aprovadores_padrao'))
+        
+        novo_aprovador_id = int(novo_aprovador_id)
+        
+        # Verificar se o novo aprovador existe e está ativo
+        novo_usuario = User.query.get(novo_aprovador_id)
+        if not novo_usuario or not novo_usuario.ativo:
+            flash('Usuário inválido ou inativo.', 'error')
+            return redirect(url_for('admin_aprovadores_padrao'))
+        
+        # Desativar Aprovador Global atual
+        aprovador_global_atual = get_aprovador_global()
+        if aprovador_global_atual:
+            aprovador_global_atual.ativo = False
+            aprovador_global_atual.updated_at = datetime.utcnow()
+        
+        # Criar novo Aprovador Global
+        novo_aprovador_global = AprovadorPadrao(
+            is_global=True,
+            projeto_id=None,
+            aprovador_id=novo_aprovador_id,
+            observacoes=f'Transferido de {aprovador_global_atual.aprovador.nome_completo if aprovador_global_atual else "N/A"}',
+            criado_por=current_user.id
+        )
+        
+        db.session.add(novo_aprovador_global)
+        db.session.commit()
+        
+        flash(f'Aprovador Global transferido com sucesso para {novo_usuario.nome_completo}!', 'success')
+        
+    except ValueError:
+        flash('Dados inválidos.', 'error')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao transferir Aprovador Global: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_aprovadores_padrao'))
+
 @app.route('/admin/aprovadores-padrao/<int:id>/desativar')
 @login_required
 def admin_aprovador_padrao_desativar(id):
-    """Desativar aprovador padrão - apenas usuários master"""
-    if not current_user.is_master:
-        flash('Acesso negado. Apenas usuários master podem acessar esta funcionalidade.', 'error')
-        return redirect(url_for('index'))
+    """Desativar Aprovador Temporário - apenas Aprovador Global ou Master"""
+    # Verificar permissões: Master ou Aprovador Global
+    if not (current_user.is_master or current_user_is_aprovador_global()):
+        flash('Acesso negado. Apenas o Aprovador Global pode remover aprovadores temporários.', 'error')
+        return redirect(url_for('admin_aprovadores_padrao'))
 
     try:
         aprovador_padrao = AprovadorPadrao.query.get_or_404(id)
+        
+        # Não permitir desativar o Aprovador Global por esta rota
+        if aprovador_padrao.is_global:
+            flash('Não é possível desativar o Aprovador Global por esta rota. Use a função de transferência.', 'error')
+            return redirect(url_for('admin_aprovadores_padrao'))
+        
         aprovador_padrao.ativo = False
         aprovador_padrao.updated_at = datetime.utcnow()
 
         db.session.commit()
 
-        projeto_nome = aprovador_padrao.projeto.nome if aprovador_padrao.projeto else "Global"
-        flash(f'Aprovador padrão desativado para {projeto_nome}.', 'info')
+        projeto_nome = aprovador_padrao.projeto.nome if aprovador_padrao.projeto else "Sem Projeto"
+        flash(f'Aprovador Temporário removido para {projeto_nome}.', 'info')
 
     except Exception as e:
         db.session.rollback()
-        flash(f'Erro ao desativar aprovador padrão: {str(e)}', 'error')
+        flash(f'Erro ao remover Aprovador Temporário: {str(e)}', 'error')
 
     return redirect(url_for('admin_aprovadores_padrao'))
 

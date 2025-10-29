@@ -17,18 +17,25 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Adicionar campo is_global com valor padrão False
-    op.add_column('aprovadores_padrao', sa.Column('is_global', sa.Boolean(), nullable=False, server_default='false'))
+    # Verificar se coluna is_global já existe
+    from sqlalchemy import inspect
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('aprovadores_padrao')]
+    
+    if 'is_global' not in columns:
+        # Adicionar campo is_global com valor padrão False
+        op.add_column('aprovadores_padrao', sa.Column('is_global', sa.Boolean(), nullable=False, server_default='false'))
+        
+        # Remover server_default após a adição
+        op.alter_column('aprovadores_padrao', 'is_global', server_default=None)
     
     # Atualizar registros existentes: se projeto_id é NULL, marcar como is_global=True
     op.execute("""
         UPDATE aprovadores_padrao
         SET is_global = TRUE
-        WHERE projeto_id IS NULL AND ativo = TRUE
+        WHERE projeto_id IS NULL AND ativo = TRUE AND is_global = FALSE
     """)
-    
-    # Remover server_default após a migração
-    op.alter_column('aprovadores_padrao', 'is_global', server_default=None)
     
     # Garantir que apenas um aprovador global ativo exista
     # Se houver múltiplos, manter apenas o mais recente e desativar os outros
