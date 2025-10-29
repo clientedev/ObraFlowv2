@@ -35,6 +35,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('admin_aprovador_temporario_novo') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i> 
                             <strong>Aprovadores Temporários</strong> substituem o Aprovador Global para projetos específicos.
