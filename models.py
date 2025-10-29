@@ -446,11 +446,12 @@ class LegendaPredefinida(db.Model):
     criador = db.relationship('User', backref='legendas_criadas')
 
 class AprovadorPadrao(db.Model):
-    """Configuração de aprovador padrão por projeto ou global"""
+    """Configuração de aprovador - Global (único) ou Temporário por projeto"""
     __tablename__ = 'aprovadores_padrao'
     
     id = db.Column(db.Integer, primary_key=True)
-    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=True)  # NULL = configuração global
+    is_global = db.Column(db.Boolean, default=False, nullable=False)  # True = Aprovador Global único
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=True)  # NULL se is_global=True
     aprovador_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     ativo = db.Column(db.Boolean, default=True)
     prioridade = db.Column(db.Integer, default=1)  # 1 = mais alta prioridade
@@ -464,13 +465,20 @@ class AprovadorPadrao(db.Model):
     aprovador = db.relationship('User', foreign_keys=[aprovador_id], backref='aprovacoes_padrao')
     criador = db.relationship('User', foreign_keys=[criado_por], backref='configuracoes_aprovador_criadas')
     
-    # Validação única: um aprovador por projeto (ou global se projeto_id for NULL)
+    # Validação única: um aprovador por projeto para temporários
     __table_args__ = (db.UniqueConstraint('projeto_id', 'aprovador_id', name='unique_aprovador_projeto'),)
     
+    @property
+    def tipo_aprovador(self):
+        """Retorna o tipo do aprovador: 'Global' ou 'Temporário'"""
+        return "Global" if self.is_global else "Temporário"
+    
     def __repr__(self):
-        projeto_nome = self.projeto.nome if self.projeto else "Global"
+        if self.is_global:
+            return f'<AprovadorGlobal: {self.aprovador.nome_completo if self.aprovador else "N/A"}>'
+        projeto_nome = self.projeto.nome if self.projeto else "Sem Projeto"
         aprovador_nome = self.aprovador.nome_completo if self.aprovador else "N/A"
-        return f'<AprovadorPadrao {projeto_nome} -> {aprovador_nome}>'
+        return f'<AprovadorTemporário {projeto_nome} -> {aprovador_nome}>'
 
 class ChecklistPadrao(db.Model):
     __tablename__ = 'checklist_padrao'
