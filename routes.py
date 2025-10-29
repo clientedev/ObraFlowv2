@@ -8967,14 +8967,14 @@ def current_user_is_aprovador_global():
     """
     Verifica se o usuário atual é o Aprovador Global
     
+    IMPORTANTE: Apenas o Aprovador Global tem permissão, não usuários Master.
+    Esta verificação é exclusiva para ações críticas de gerenciamento de aprovadores.
+    
     Returns:
-        Boolean
+        Boolean - True se o usuário atual for o Aprovador Global, False caso contrário
     """
     if not current_user or not current_user.is_authenticated:
         return False
-    
-    if current_user.is_master:
-        return True
     
     aprovador_global = get_aprovador_global()
     return aprovador_global and aprovador_global.aprovador_id == current_user.id
@@ -9017,10 +9017,11 @@ def admin_aprovadores_padrao():
 @app.route('/admin/aprovadores-padrao/temporario/novo', methods=['GET', 'POST'])
 @login_required
 def admin_aprovador_temporario_novo():
-    """Adicionar novo Aprovador Temporário para um projeto - apenas Aprovador Global ou Master"""
-    # Verificar permissões: Master ou Aprovador Global
-    if not (current_user.is_master or current_user_is_aprovador_global()):
-        flash('Acesso negado. Apenas o Aprovador Global pode adicionar aprovadores temporários.', 'error')
+    """Adicionar novo Aprovador Temporário para um projeto - APENAS Aprovador Global"""
+    # REGRA DE PERMISSÃO: Apenas o Aprovador Global pode adicionar aprovadores temporários
+    # Mesmo usuários Master não têm permissão para esta ação
+    if not current_user_is_aprovador_global():
+        flash('Apenas o Aprovador Global pode executar esta ação.', 'error')
         return redirect(url_for('index'))
 
     if request.method == 'POST':
@@ -9086,9 +9087,11 @@ def admin_aprovador_temporario_novo():
 @app.route('/admin/aprovadores-padrao/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 def admin_aprovador_padrao_editar(id):
-    """Editar aprovador padrão - apenas usuários master"""
-    if not current_user.is_master:
-        flash('Acesso negado. Apenas usuários master podem acessar esta funcionalidade.', 'error')
+    """Editar aprovador padrão - APENAS Aprovador Global"""
+    # REGRA DE PERMISSÃO: Apenas o Aprovador Global pode editar configurações de aprovadores
+    # Mesmo usuários Master não têm permissão para esta ação
+    if not current_user_is_aprovador_global():
+        flash('Apenas o Aprovador Global pode executar esta ação.', 'error')
         return redirect(url_for('index'))
 
     aprovador_padrao = AprovadorPadrao.query.get_or_404(id)
@@ -9137,11 +9140,21 @@ def admin_aprovador_padrao_editar(id):
 @app.route('/admin/aprovadores-padrao/transferir-global', methods=['POST'])
 @login_required
 def admin_transferir_aprovador_global():
-    """Transferir o título de Aprovador Global para outro usuário - apenas Aprovador Global atual ou Master"""
-    # Verificar permissões: Master ou Aprovador Global atual
-    if not (current_user.is_master or current_user_is_aprovador_global()):
-        flash('Acesso negado. Apenas o Aprovador Global pode transferir essa função.', 'error')
-        return redirect(url_for('admin_aprovadores_padrao'))
+    """Transferir o título de Aprovador Global para outro usuário - APENAS Aprovador Global atual"""
+    # REGRA DE PERMISSÃO: Apenas o Aprovador Global atual pode transferir sua função
+    # EXCEÇÃO: Se não há Aprovador Global, usuários Master podem definir o primeiro
+    aprovador_global_atual = get_aprovador_global()
+    
+    if aprovador_global_atual:
+        # Já existe um Aprovador Global - apenas ele pode transferir
+        if not current_user_is_aprovador_global():
+            flash('Apenas o Aprovador Global pode executar esta ação.', 'error')
+            return redirect(url_for('admin_aprovadores_padrao'))
+    else:
+        # Não existe Aprovador Global - usuários Master podem definir o primeiro
+        if not current_user.is_master:
+            flash('Apenas usuários Master podem definir o primeiro Aprovador Global.', 'error')
+            return redirect(url_for('admin_aprovadores_padrao'))
 
     try:
         novo_aprovador_id = request.form.get('novo_aprovador_id')
@@ -9189,10 +9202,11 @@ def admin_transferir_aprovador_global():
 @app.route('/admin/aprovadores-padrao/<int:id>/desativar')
 @login_required
 def admin_aprovador_padrao_desativar(id):
-    """Desativar Aprovador Temporário - apenas Aprovador Global ou Master"""
-    # Verificar permissões: Master ou Aprovador Global
-    if not (current_user.is_master or current_user_is_aprovador_global()):
-        flash('Acesso negado. Apenas o Aprovador Global pode remover aprovadores temporários.', 'error')
+    """Desativar Aprovador Temporário - APENAS Aprovador Global"""
+    # REGRA DE PERMISSÃO: Apenas o Aprovador Global pode remover aprovadores temporários
+    # Mesmo usuários Master não têm permissão para esta ação
+    if not current_user_is_aprovador_global():
+        flash('Apenas o Aprovador Global pode executar esta ação.', 'error')
         return redirect(url_for('admin_aprovadores_padrao'))
 
     try:

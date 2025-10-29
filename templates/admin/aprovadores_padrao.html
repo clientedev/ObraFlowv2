@@ -105,6 +105,12 @@
                         <a href="{{ url_for('admin_aprovador_temporario_novo') }}" class="btn btn-light btn-sm">
                             <i class="fas fa-plus"></i> Adicionar Temporário
                         </a>
+                    {% else %}
+                        <button class="btn btn-light btn-sm" disabled 
+                                title="Somente o Aprovador Global pode realizar esta ação"
+                                data-bs-toggle="tooltip">
+                            <i class="fas fa-plus"></i> Adicionar Temporário
+                        </button>
                     {% endif %}
                 </div>
                 <div class="card-body">
@@ -145,7 +151,11 @@
                                                         <i class="fas fa-trash"></i> Remover
                                                     </a>
                                                 {% else %}
-                                                    <small class="text-muted">Sem permissão</small>
+                                                    <button class="btn btn-outline-secondary btn-sm" disabled
+                                                            title="Somente o Aprovador Global pode realizar esta ação"
+                                                            data-bs-toggle="tooltip">
+                                                        <i class="fas fa-lock"></i> Sem permissão
+                                                    </button>
                                                 {% endif %}
                                             </td>
                                         </tr>
@@ -162,6 +172,10 @@
                                 <a href="{{ url_for('admin_aprovador_temporario_novo') }}" class="btn btn-success mt-3">
                                     <i class="fas fa-plus"></i> Adicionar Primeiro Aprovador Temporário
                                 </a>
+                            {% else %}
+                                <p class="text-muted mt-3">
+                                    <i class="fas fa-lock"></i> Somente o Aprovador Global pode adicionar aprovadores temporários
+                                </p>
                             {% endif %}
                         </div>
                     {% endif %}
@@ -338,4 +352,14 @@
     }
 }
 </style>
+
+<script>
+// Ativar tooltips do Bootstrap
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 {% endblock %}
