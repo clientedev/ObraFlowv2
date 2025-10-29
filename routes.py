@@ -2473,17 +2473,15 @@ def create_report():
                     current_app.logger.error(f"❌ Erro ao processar acompanhantes: {e}")
                     relatorio.acompanhantes = None
 
-            # Set approver if provided
-            aprovador_id = request.form.get('aprovador_id')
-            if aprovador_id:
-                try:
-                    relatorio.aprovador_id = int(aprovador_id)
-                    # Get approver name for compatibility
-                    aprovador = User.query.get(int(aprovador_id))
-                    if aprovador:
-                        relatorio.aprovador_nome = aprovador.nome_completo
-                except (ValueError, TypeError):
-                    pass
+            # Set approver automatically based on project
+            # Priority: Temporary Approver for project > Global Approver
+            aprovador = get_aprovador_padrao_para_projeto(projeto_id)
+            if aprovador:
+                relatorio.aprovador_id = aprovador.id
+                relatorio.aprovador_nome = aprovador.nome_completo
+                current_app.logger.info(f"✅ Aprovador automático definido: {aprovador.nome_completo} (ID={aprovador.id})")
+            else:
+                current_app.logger.warning(f"⚠️ Nenhum aprovador configurado para projeto {projeto_id}")
 
             db.session.add(relatorio)
             db.session.flush()  # Get the ID
