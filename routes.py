@@ -4256,6 +4256,7 @@ def project_new():
                 projeto.data_inicio = form.data_inicio.data
                 projeto.data_previsao_fim = form.data_previsao_fim.data
                 projeto.status = form.status.data
+                projeto.numeracao_inicial = form.numeracao_inicial.data or 1
 
                 db.session.add(projeto)
                 db.session.flush()  # Get the project ID
@@ -4402,6 +4403,7 @@ def project_edit(project_id):
             project.data_inicio = form.data_inicio.data
             project.data_previsao_fim = form.data_previsao_fim.data
             project.status = form.status.data
+            project.numeracao_inicial = form.numeracao_inicial.data or 1
             
             # Processar exclusões de contatos
             contatos_excluidos = request.form.getlist('contatos_excluidos[]')
