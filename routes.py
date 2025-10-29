@@ -1094,7 +1094,8 @@ def get_nearby_projects():
                 'status': project.status,
                 'tipo_obra': project.tipo_obra,
                 'latitude': project.latitude,
-                'longitude': project.longitude
+                'longitude': project.longitude,
+                'numeracao_inicial': project.numeracao_inicial
             }
             
             if lat and lon and project.latitude and project.longitude:
