@@ -4,6 +4,7 @@ from flask_login import UserMixin
 from app import db
 import os
 from cryptography.fernet import Fernet
+from sqlalchemy.dialects.postgresql import JSONB
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -297,7 +298,7 @@ class Relatorio(db.Model):
     checklist_data = db.Column(db.Text)  # JSON string for checklist data
     status = db.Column(db.String(50), default='preenchimento')
     comentario_aprovacao = db.Column(db.Text)
-    acompanhantes = db.Column(db.JSON, nullable=True)  # JSON array of visit attendees
+    acompanhantes = db.Column(JSONB, nullable=True)  # JSONB array of visit attendees
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

@@ -28,6 +28,7 @@ Report forms: Location section removed from report creation/editing interface (g
 ## Data Model Design
 - **Core Entities**: Users, Projects (with dynamic categories and configurable initial report numbering), Visits, Reports, Reimbursements, Checklist Templates, Communication Records, Notifications.
 - **Projects (`Projeto`)**: Each project includes a `numeracao_inicial` field (default: 1) that defines the starting number for reports, enabling customized sequential numbering per project (e.g., start from report 100).
+- **Reports (`Relatorio`)**: Includes `acompanhantes` field (JSONB) storing an array of visit attendees with structure: `[{"nome": "Name", "funcao": "Role", "origem": "Source"}]`. Supports both project employees and external attendees, fully backward compatible with existing reports.
 - **Photo Storage (`FotoRelatorio`)**: Stores binary image data, JSONB for annotation metadata, SHA-256 hash for deduplication, MIME type, and file size. Each photo now requires three mandatory fields displayed within its card: **Categoria** (project-specific category via dropdown), **Local** (location/area description, text up to 300 characters), and **Legenda** (caption - predefined or manual entry up to 500 characters).
 - **Notifications (`Notificacao`)**: Internal notification system tracking report status changes with fields for origin/destination users, message content, type (e.g., enviado_para_aprovacao, aprovado), read status, and email delivery tracking.
 

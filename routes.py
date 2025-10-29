@@ -5595,6 +5595,19 @@ def report_edit(report_id):
                     if 'observacoes' in request.form:
                         relatorio.observacoes = request.form.get('observacoes', '').strip()
 
+                    # Process acompanhantes (visit attendees) - same logic as create_report
+                    acompanhantes_data = request.form.get('acompanhantes')
+                    if acompanhantes_data:
+                        try:
+                            import json
+                            acompanhantes_list = json.loads(acompanhantes_data)
+                            if isinstance(acompanhantes_list, list):
+                                relatorio.acompanhantes = acompanhantes_list
+                                current_app.logger.info(f"✅ Acompanhantes atualizados: {len(acompanhantes_list)} registros")
+                        except Exception as e:
+                            current_app.logger.error(f"❌ Erro ao processar acompanhantes: {e}")
+                            # Keep existing acompanhantes if parsing fails
+
                     # Para relatórios em edição (que eram rejeitados), manter status
                     if relatorio.status == 'Em edição':
                         # Manter status Em edição até que seja enviado para aprovação novamente
