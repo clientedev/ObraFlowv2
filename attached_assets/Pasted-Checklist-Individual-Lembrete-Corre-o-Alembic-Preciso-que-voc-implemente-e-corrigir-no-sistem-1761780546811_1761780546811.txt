@@ -1,0 +1,91 @@
+Checklist Individual + Lembrete + Correção Alembic
+
+Preciso que você implemente e corrigir no sistema as seguintes funcionalidades sem quebrar o deploy e garantindo consistência do banco de dados:
+
+1. Checklist individual por obra (baseado no modelo global)
+
+Criar dentro da página de cada Obra uma nova aba/seção chamada "Checklist da Obra".
+
+Inicialmente, carregar o Checklist Global como base.
+
+Permitir ao usuário:
+
+Editar itens do checklist global apenas para essa obra.
+
+Excluir itens do checklist global apenas para essa obra.
+
+Adicionar novos itens exclusivos do checklist dessa obra.
+
+Essas alterações NÃO podem impactar o checklist global.
+
+Criar estrutura no banco (se necessário) como:
+
+checklist_global
+
+checklist_obra (referencia obra_id + itens personalizados)
+
+Backend deve priorizar checklist da obra se existir — senão, usar checklist global.
+
+Criar migrations Alembic corretamente sem quebrar deploy.
+
+2. Campo "Lembrete para Próxima Visita" nos relatórios
+
+Adicionar ao modelo relatorios o campo:
+
+Nome do campo: lembrete_proxima_visita
+
+Tipo: TEXT, nullable (nullable=True)
+
+No formulário de criação do relatório:
+
+Exibir campo de texto opcional "Lembrete para próxima visita".
+
+Ao criar um novo relatório da mesma obra:
+
+Se o relatório anterior tiver esse campo preenchido, exibir um card amarelo de aviso com o lembrete anterior no topo:
+
+Ex: "Lembrete anterior: verificar armários da cozinha que ficaram pendentes."
+
+Garantir que isso não envolva permissões extras.
+
+3. ✅ SOLUÇÃO DO ERRO DE MIGRAÇÃO ALEMBIC NO DEPLOY
+
+Estamos enfrentando esse erro no deploy:
+
+psycopg2.errors.UndefinedColumn: column relatorios.lembrete_proxima_visita does not exist
+UserWarning: Revision 20251029_1159 ... is not present
+KeyError: '20251029_1159'
+
+
+Esse problema ocorre porque a migration foi criada mas não existe mais no diretório migrations ou o banco está com referência quebrada para a revisão.
+
+✅ Correção necessária no prompt:
+
+Verificar se existe migration quebrada no histórico do Alembic.
+
+Se houver migration faltando (como mostra o erro), recriar a migration correta para adicionar a coluna lembrete_proxima_visita e alinhar o estado do banco.
+
+Aplique uma destas estratégias:
+
+Gerar uma nova migration com o mesmo upgrade esperado adicionando:
+
+op.add_column('relatorios', sa.Column('lembrete_proxima_visita', sa.Text(), nullable=True))
+
+
+Atualizar alembic_version apenas após ter certeza que a estrutura do banco está correta.
+
+Garantir que a nova migration tenha down_revision apontando para a migration correta vigente.
+
+O deploy só deve completar após garantir que a coluna realmente existe no banco.
+
+4. Observações finais
+
+Tudo deve ser feito sem impactar dados existentes.
+
+Design deve seguir o padrão visual atual.
+
+Checklist deve estar acessível apenas por quem tem permissão na obra.
+
+Se necessário, criar serviços/helper para clonar o checklist global para a obra na primeira edição.
+
+O código deve ser entregue funcional e migrável.
