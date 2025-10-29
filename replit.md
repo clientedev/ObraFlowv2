@@ -26,11 +26,13 @@ Report forms: Location section removed from report creation/editing interface (g
 - **UI/UX**: Mobile-first design, PWA for installability and offline functionality, touch event optimization for photo editor on mobile. Dashboard features a clean, responsive grid layout for key statistics and recent reports.
 
 ## Data Model Design
-- **Core Entities**: Users, Projects (with dynamic categories and configurable initial report numbering), Visits, Reports, Reimbursements, Checklist Templates, Communication Records, Notifications.
+- **Core Entities**: Users, Projects (with dynamic categories and configurable initial report numbering), Visits, Reports, Reimbursements, Checklist Templates, Communication Records, Notifications, Global and Temporary Approvers.
 - **Projects (`Projeto`)**: Each project includes a `numeracao_inicial` field (default: 1) that defines the starting number for reports, enabling customized sequential numbering per project (e.g., start from report 100).
 - **Reports (`Relatorio`)**: Includes `acompanhantes` field (JSONB) storing an array of visit attendees with structure: `[{"nome": "Name", "funcao": "Role", "origem": "Source"}]`. Supports both project employees and external attendees, fully backward compatible with existing reports.
 - **Photo Storage (`FotoRelatorio`)**: Stores binary image data, JSONB for annotation metadata, SHA-256 hash for deduplication, MIME type, and file size. Each photo now requires three mandatory fields displayed within its card: **Categoria** (project-specific category via dropdown), **Local** (location/area description, text up to 300 characters), and **Legenda** (caption - predefined or manual entry up to 500 characters).
 - **Notifications (`Notificacao`)**: Internal notification system tracking report status changes with fields for origin/destination users, message content, type (e.g., enviado_para_aprovacao, aprovado), read status, and email delivery tracking.
+- **Aprovador Global (`AprovadorPadrao` with `is_global=True`)**: Single system-wide approver who can transfer their role and manage temporary approvers. Only one active global approver exists at any time.
+- **Aprovadores Temporários (`AprovadorPadrao` with `is_global=False`)**: Project-specific approvers that override the global approver for particular projects. Can only be added/removed by the Aprovador Global.
 
 ## Key Features
 - **Project Management**: CRUD operations, automatic numbering, GPS location, dynamic project categories with full lifecycle management (creation, editing, deletion, display) and project reactivation for master users. Each project allows configuring initial report numbering via the `numeracao_inicial` field.
@@ -40,6 +42,11 @@ Report forms: Location section removed from report creation/editing interface (g
 - **Client Email Management**: CRUD system for client emails per project, including options for report reception.
 - **Internal Notifications System**: Database-stored notifications with automatic email alerts for report status changes.
 - **User Management**: Role-based access control.
+- **Approval Management System**: 
+  - **Aprovador Global**: Single system-wide approver with exclusive permissions to transfer their role and manage temporary approvers. Only the current Aprovador Global can perform these critical actions - even Master users cannot override this restriction.
+  - **Aprovadores Temporários**: Project-specific approvers that override the global approver for particular projects. Can only be added, edited, or removed by the Aprovador Global.
+  - **Permission Enforcement**: Backend validation ensures security at the route level, while frontend UI provides clear visual feedback (disabled buttons with tooltips) for users without appropriate permissions.
+  - **Exception Handling**: Master users can define the first Aprovador Global when none exists, after which all approver management becomes exclusive to the Aprovador Global.
 - **Calendar System**: Visit scheduling, Google Calendar export.
 - **Offline Functionality & PWA**: Full offline support, local storage, automatic sync.
 - **Push Notifications**: Proximity alerts for sites, system updates, pending report notifications using geolocation.
@@ -49,6 +56,7 @@ Report forms: Location section removed from report creation/editing interface (g
 - **Authentication**: Session-based login with password hashing.
 - **File Security**: Secure filename handling and file type validation.
 - **Access Control**: Route protection based on login status and user roles, including specific permissions for master users on critical actions like project reactivation and report approval/deletion.
+- **Aprovador Global Permission System**: Strict permission controls ensuring only the Aprovador Global can transfer their role or manage temporary approvers. Master users can only define the first Aprovador Global when none exists; after that, all approver management is exclusive to the Aprovador Global.
 
 # External Dependencies
 
