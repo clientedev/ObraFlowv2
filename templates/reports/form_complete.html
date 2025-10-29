@@ -438,33 +438,26 @@
                             </div>
                         </div>
 
-                        <!-- Seleção de Funcionários e E-mails -->
+                        <!-- Acompanhantes da Visita -->
                         <div class="row mb-4">
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <div class="card">
-                                    <div class="card-header">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
                                         <h6 class="mb-0">
-                                            <i class="fas fa-users me-2"></i>Funcionários do Projeto
+                                            <i class="fas fa-user-friends me-2"></i>👥 Acompanhantes da Visita
                                         </h6>
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="abrirModalAcompanhantes()">
+                                            <i class="fas fa-plus me-1"></i>Adicionar Acompanhante
+                                        </button>
                                     </div>
                                     <div class="card-body">
-                                        <div id="funcionarios-projeto">
-                                            <p class="text-muted">Selecione um projeto para ver os funcionários disponíveis</p>
+                                        <div id="lista-acompanhantes">
+                                            <p class="text-muted text-center py-3">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Nenhum acompanhante adicionado ainda. Clique em "Adicionar Acompanhante" para começar.
+                                            </p>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-envelope me-2"></i>E-mails para Envio
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div id="emails-projeto">
-                                            <p class="text-muted">Selecione um projeto para ver os e-mails disponíveis</p>
-                                        </div>
+                                        <input type="hidden" id="acompanhantes-data" name="acompanhantes" value="[]">
                                     </div>
                                 </div>
                             </div>
@@ -2650,6 +2643,277 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 console.log('📱 Sistema de fotos mobile-first carregado');
+</script>
+
+<!-- Modal de Acompanhantes da Visita -->
+<div class="modal fade" id="modalAcompanhantes" tabindex="-1" aria-labelledby="modalAcompanhantesLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalAcompanhantesLabel">
+                    <i class="fas fa-user-friends me-2"></i>Adicionar Acompanhante da Visita
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formAcompanhante">
+                    <!-- Opção de seleção: Funcionário ou Manual -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tipo de Acompanhante</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="tipo_acompanhante" id="tipo_funcionario" value="funcionario" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="tipo_funcionario">
+                                <i class="fas fa-user-tie me-1"></i>Funcionário da Obra
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="tipo_acompanhante" id="tipo_externo" value="externo" autocomplete="off">
+                            <label class="btn btn-outline-info" for="tipo_externo">
+                                <i class="fas fa-user me-1"></i>Externo (Cliente/Visitante)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Seleção de Funcionário -->
+                    <div id="selecao-funcionario" class="mb-3">
+                        <label for="funcionario-select" class="form-label">Selecionar Funcionário *</label>
+                        <select class="form-select" id="funcionario-select">
+                            <option value="">Selecione um projeto primeiro...</option>
+                        </select>
+                        <small class="text-muted">Funcionários cadastrados nesta obra</small>
+                    </div>
+                    
+                    <!-- Entrada Manual -->
+                    <div id="entrada-manual" class="d-none">
+                        <div class="mb-3">
+                            <label for="nome-manual" class="form-label">Nome *</label>
+                            <input type="text" class="form-control" id="nome-manual" placeholder="Nome completo do acompanhante">
+                        </div>
+                    </div>
+                    
+                    <!-- Função/Cargo (sempre visível) -->
+                    <div class="mb-3">
+                        <label for="funcao-acompanhante" class="form-label">Função/Cargo</label>
+                        <input type="text" class="form-control" id="funcao-acompanhante" placeholder="Ex: Engenheiro, Cliente, Gerente, etc.">
+                        <small class="text-muted">Opcional</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-success" onclick="adicionarAcompanhante()">
+                    <i class="fas fa-check me-1"></i>Adicionar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para Gerenciar Acompanhantes -->
+<script>
+// Array para armazenar acompanhantes
+let acompanhantes = [];
+
+// Alternar entre seleção de funcionário e entrada manual
+document.querySelectorAll('input[name="tipo_acompanhante"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const selecaoFunc = document.getElementById('selecao-funcionario');
+        const entradaManual = document.getElementById('entrada-manual');
+        
+        if (this.value === 'funcionario') {
+            selecaoFunc.classList.remove('d-none');
+            entradaManual.classList.add('d-none');
+        } else {
+            selecaoFunc.classList.add('d-none');
+            entradaManual.classList.remove('d-none');
+        }
+    });
+});
+
+// Carregar funcionários quando projeto for selecionado
+document.getElementById('projeto_id')?.addEventListener('change', function() {
+    carregarFuncionariosParaAcompanhantes(this.value);
+});
+
+// Carregar funcionários da obra
+function carregarFuncionariosParaAcompanhantes(projetoId) {
+    const select = document.getElementById('funcionario-select');
+    
+    if (!projetoId) {
+        select.innerHTML = '<option value="">Selecione um projeto primeiro...</option>';
+        return;
+    }
+    
+    select.innerHTML = '<option value="">Carregando...</option>';
+    
+    fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.funcionarios && data.funcionarios.length > 0) {
+            let options = '<option value="">Selecione um funcionário...</option>';
+            data.funcionarios.forEach(func => {
+                options += `<option value="${func.id}" data-nome="${func.nome}" data-cargo="${func.cargo || ''}">${func.nome} ${func.cargo ? '- ' + func.cargo : ''}</option>`;
+            });
+            select.innerHTML = options;
+        } else {
+            select.innerHTML = '<option value="">Nenhum funcionário cadastrado nesta obra</option>';
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao carregar funcionários:', error);
+        select.innerHTML = '<option value="">Erro ao carregar funcionários</option>';
+    });
+}
+
+// Abrir modal
+function abrirModalAcompanhantes() {
+    const projetoId = document.getElementById('projeto_id')?.value;
+    
+    if (!projetoId) {
+        alert('Por favor, selecione um projeto primeiro!');
+        return;
+    }
+    
+    // Carregar funcionários se ainda não foram carregados
+    carregarFuncionariosParaAcompanhantes(projetoId);
+    
+    // Limpar formulário
+    document.getElementById('formAcompanhante').reset();
+    document.getElementById('tipo_funcionario').checked = true;
+    document.getElementById('selecao-funcionario').classList.remove('d-none');
+    document.getElementById('entrada-manual').classList.add('d-none');
+    
+    // Abrir modal
+    const modal = new bootstrap.Modal(document.getElementById('modalAcompanhantes'));
+    modal.show();
+}
+
+// Adicionar acompanhante
+function adicionarAcompanhante() {
+    const tipo = document.querySelector('input[name="tipo_acompanhante"]:checked').value;
+    let nome = '';
+    let funcao = document.getElementById('funcao-acompanhante').value.trim();
+    let origem = '';
+    
+    if (tipo === 'funcionario') {
+        const select = document.getElementById('funcionario-select');
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (!select.value) {
+            alert('Por favor, selecione um funcionário!');
+            return;
+        }
+        
+        nome = selectedOption.getAttribute('data-nome');
+        if (!funcao) {
+            funcao = selectedOption.getAttribute('data-cargo') || '';
+        }
+        origem = 'Funcionário da obra';
+    } else {
+        nome = document.getElementById('nome-manual').value.trim();
+        
+        if (!nome) {
+            alert('Por favor, preencha o nome do acompanhante!');
+            return;
+        }
+        
+        origem = 'Inserido manualmente';
+    }
+    
+    // Adicionar ao array
+    const acompanhante = {
+        nome: nome,
+        funcao: funcao,
+        origem: origem
+    };
+    
+    acompanhantes.push(acompanhante);
+    
+    // Atualizar visualização
+    atualizarListaAcompanhantes();
+    
+    // Atualizar campo hidden
+    document.getElementById('acompanhantes-data').value = JSON.stringify(acompanhantes);
+    
+    // Fechar modal
+    bootstrap.Modal.getInstance(document.getElementById('modalAcompanhantes')).hide();
+    
+    console.log('✅ Acompanhante adicionado:', acompanhante);
+}
+
+// Atualizar lista de acompanhantes
+function atualizarListaAcompanhantes() {
+    const lista = document.getElementById('lista-acompanhantes');
+    
+    if (acompanhantes.length === 0) {
+        lista.innerHTML = `
+            <p class="text-muted text-center py-3">
+                <i class="fas fa-info-circle me-1"></i>
+                Nenhum acompanhante adicionado ainda. Clique em "Adicionar Acompanhante" para começar.
+            </p>
+        `;
+        return;
+    }
+    
+    let html = '<div class="list-group">';
+    acompanhantes.forEach((acomp, index) => {
+        html += `
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">
+                            <i class="fas fa-user me-2 text-primary"></i>
+                            <strong>${acomp.nome}</strong>
+                        </h6>
+                        ${acomp.funcao ? `<p class="mb-1 text-muted"><small><i class="fas fa-briefcase me-1"></i>${acomp.funcao}</small></p>` : ''}
+                        <p class="mb-0">
+                            <span class="badge bg-${acomp.origem.includes('Funcionário') ? 'info' : 'success'}">
+                                ${acomp.origem}
+                            </span>
+                        </p>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerAcompanhante(${index})" title="Remover">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    lista.innerHTML = html;
+}
+
+// Remover acompanhante
+function removerAcompanhante(index) {
+    if (confirm('Deseja remover este acompanhante?')) {
+        acompanhantes.splice(index, 1);
+        atualizarListaAcompanhantes();
+        document.getElementById('acompanhantes-data').value = JSON.stringify(acompanhantes);
+        console.log('🗑️ Acompanhante removido. Total:', acompanhantes.length);
+    }
+}
+
+// Carregar acompanhantes existentes ao editar relatório
+{% if existing_report and existing_report.acompanhantes %}
+try {
+    const acompanhantesExistentes = {{ existing_report.acompanhantes | tojson | safe }};
+    if (acompanhantesExistentes && Array.isArray(acompanhantesExistentes)) {
+        acompanhantes = acompanhantesExistentes;
+        atualizarListaAcompanhantes();
+        document.getElementById('acompanhantes-data').value = JSON.stringify(acompanhantes);
+        console.log('✅ Acompanhantes carregados:', acompanhantes.length);
+    }
+} catch (e) {
+    console.error('❌ Erro ao carregar acompanhantes existentes:', e);
+}
+{% endif %}
+
+console.log('✅ Sistema de acompanhantes inicializado');
 </script>
 
 <!-- Auto Save Script -->

@@ -1,0 +1,95 @@
+AJUSTES NO RELATÓRIO + ACOMPANHANTES DA VISITA
+
+Você é um desenvolvedor fullstack especialista em FastAPI + SQLAlchemy + Alembic + PostgreSQL + Jinja2 + HTML + CSS + JavaScript. Realize as seguintes atualizações no módulo de relatórios:
+
+🚫 1. Remover seções obsoletas
+
+Na tela de criação/edição de relatórios:
+
+Remover completamente as seções:
+
+✅ "Funcionários do Projeto"
+
+✅ "E-mails para Envio"
+
+Motivo: essas informações agora são gerenciadas na própria Obra e estão unificadas. Elas não devem mais aparecer no relatório.
+Nenhum campo desses deve ser salvo ou enviado no backend.
+
+❗ Importante: Não quebrar compatibilidade com dados antigos. Apenas ignorar esses campos se ainda existirem nos dados legados.
+
+➕ 2. Adicionar novo botão: "Acompanhantes da Visita"
+
+Adicionar, na tela de criação/edição de relatório, um botão com o texto:
+
+👥 Acompanhantes da Visita
+
+Comportamento do botão:
+
+Ao clicar:
+
+Abrir um modal ou seção dinâmica permitindo adicionar acompanhantes.
+
+Cada acompanhante deve ter os campos:
+
+Nome (obrigatório)
+
+Função/Cargo (opcional)
+
+Origem:
+
+✅ Selecionar algum funcionário já cadastrado na obra (dropdown)
+
+✅ Ou digitar um nome manualmente (ex: cliente presente na vistoria)
+
+Requisitos:
+
+Permitir adicionar múltiplos acompanhantes com botão "+ Adicionar".
+
+Listar os acompanhantes já adicionados com opção de Editar ou Remover.
+
+Armazenar os acompanhantes no objeto do relatório no backend.
+
+Exibir os acompanhantes na tela de resumo e PDF do relatório (mesmo que a geração do PDF seja depois).
+
+Estruturar os dados assim no backend:
+
+"acompanhantes": [
+  { "nome": "Maria Souza", "funcao": "Engenheira", "origem": "Funcionário da obra" },
+  { "nome": "João Pereira", "funcao": "Cliente", "origem": "Inserido manualmente" }
+]
+
+🗄️ 3. Backend
+
+Criar campo novo na tabela de relatórios:
+
+Nome: acompanhantes
+
+Tipo: JSON (ou ARRAY se preferir)
+
+Se ainda não existir no banco, criar migration Alembic automaticamente.
+
+Adaptar modelo SQLAlchemy e schemas Pydantic para incluir campo.
+
+Garantir salvar/editar acompanhantes via API.
+
+Dados antigos devem continuar funcionando sem acompanhantes.
+
+🎨 4. Frontend
+
+Implementar interface amigável para o botão "Acompanhantes da Visita".
+
+Manter layout consistente com o restante do sistema.
+
+Validar campos obrigatórios.
+
+Não enviar nada relacionado a funcionários ou emails antigos.
+
+✅ Entrega com padrão profissional
+
+Antes de implementar, explique seu plano de execução passo a passo.
+
+Depois implemente com boas práticas.
+
+Se precisar criar um arquivo Alembic, crie automaticamente com base no modelo atualizado (não precisa exibir o conteúdo).
+
+Testar criação, edição e visualização de relatório com acompanhantes.
