@@ -2460,6 +2460,19 @@ def create_report():
             relatorio.created_at = datetime.utcnow()
             relatorio.updated_at = datetime.utcnow()
 
+            # Process acompanhantes (visit attendees)
+            acompanhantes_data = request.form.get('acompanhantes')
+            if acompanhantes_data:
+                try:
+                    import json
+                    acompanhantes_list = json.loads(acompanhantes_data)
+                    if isinstance(acompanhantes_list, list):
+                        relatorio.acompanhantes = acompanhantes_list
+                        current_app.logger.info(f"✅ Acompanhantes salvos: {len(acompanhantes_list)} registros")
+                except Exception as e:
+                    current_app.logger.error(f"❌ Erro ao processar acompanhantes: {e}")
+                    relatorio.acompanhantes = None
+
             # Set approver if provided
             aprovador_id = request.form.get('aprovador_id')
             if aprovador_id:
