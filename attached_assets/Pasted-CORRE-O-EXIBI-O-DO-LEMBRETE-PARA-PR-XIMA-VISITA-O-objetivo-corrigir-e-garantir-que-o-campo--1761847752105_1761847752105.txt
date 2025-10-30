@@ -1,0 +1,79 @@
+CORREÇÃO — EXIBIÇÃO DO “LEMBRETE PARA PRÓXIMA VISITA”
+
+O objetivo é corrigir e garantir que o campo “Lembrete para próxima visita” funcione corretamente ao criar um novo relatório de uma obra.
+
+🧩 Comportamento Esperado
+
+Quando um relatório anterior (ex: REL-0007) possui o campo “Lembrete para próxima visita” preenchido:
+
+Ao criar um novo relatório da mesma obra (ex: REL-0008), esse lembrete deve ser automaticamente exibido no topo da seção do formulário, antes do checklist.
+
+O lembrete deve aparecer dentro de um card amarelo de aviso, no padrão visual do sistema (bg-warning / alert-warning).
+
+O lembrete exibido é somente informativo — o usuário pode fechá-lo manualmente ou ignorá-lo.
+
+Caso não exista lembrete anterior, o card não deve ser exibido.
+
+🧩 Lógica de Funcionamento
+Backend
+
+Criar (ou ajustar) endpoint:
+
+GET /relatorios/ultimo-lembrete?obra_id=<id>
+
+
+Retornar:
+
+{
+  "lembrete": "Verificar drenagem e segurança nos fundos do terreno.",
+  "relatorio_origem": "REL-0007",
+  "data_relatorio": "2025-10-25"
+}
+
+
+Esse endpoint deve buscar o relatório mais recente da obra que contenha o campo lembrete_proxima_visita preenchido.
+
+Caso nenhum lembrete exista, retornar { "lembrete": null }.
+
+Frontend
+
+Assim que o usuário selecionar a obra no campo Projeto, além de carregar número e checklist, deve também:
+
+GET /relatorios/ultimo-lembrete?obra_id=<id>
+
+
+Caso a resposta contenha um lembrete válido, renderizar um card amarelo acima da área “Checklist da Obra” com:
+
+Ícone de aviso ⚠️
+
+Título: “Lembrete do último relatório (REL-0007)”
+
+Texto com o conteúdo do lembrete.
+
+Exemplo de UI:
+
+<div class="alert alert-warning mt-3">
+  <strong>⚠️ Lembrete do último relatório (REL-0007):</strong><br>
+  Verificar drenagem e segurança nos fundos do terreno.
+</div>
+
+🧩 Banco de Dados (se necessário)
+
+Garantir que a tabela relatorios contenha o campo:
+
+lembrete_proxima_visita TEXT NULL
+
+
+Caso não exista, criar via Alembic automaticamente (não precisa exibir código).
+
+✅ Critérios de Aceitação
+
+Ao selecionar uma obra com lembrete anterior → card amarelo aparece com conteúdo correto.
+
+Ao selecionar obra sem lembrete anterior → card não aparece.
+
+Ao criar novo relatório → campo “Lembrete para próxima visita” continua opcional.
+
+Nenhum erro no console do navegador ou backend.
+
+Layout responsivo, mantendo o padrão visual atual do sistema.
