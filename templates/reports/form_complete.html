@@ -785,7 +785,30 @@ document.addEventListener('DOMContentLoaded', function() {
 function carregarFuncionariosEmails() {
     const projetoId = document.getElementById('projeto_id').value;
     carregarFuncionariosEmailsPorId(projetoId);
-    carregarCategoriasProjeto(projetoId);
+    // carregarCategoriasProjeto já é chamada no onchange, não precisa duplicar
+}
+
+// Função para carregar categorias do projeto
+function carregarCategoriasProjeto(projetoId) {
+    if (!projetoId) {
+        console.log('Nenhum projeto selecionado para carregar categorias');
+        return;
+    }
+    
+    // Buscar categorias do projeto via API
+    fetch(`/api/projects/${projetoId}/categorias`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.categorias) {
+                console.log(`✅ Categorias carregadas: ${data.categorias.length} categorias para projeto ${projetoId}`);
+                // As categorias serão usadas pelos selects de categoria nas fotos
+                // Armazena globalmente para uso posterior
+                window.currentProjectCategorias = data.categorias;
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar categorias do projeto:', error);
+        });
 }
 
 // Função para atualizar o número do relatório quando o projeto é selecionado
