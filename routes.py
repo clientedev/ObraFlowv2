@@ -1147,6 +1147,132 @@ def get_nearby_projects():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/notificacoes')
+@login_required
+def listar_notificacoes():
+    """Listar notificações do usuário autenticado (apenas não expiradas)"""
+    try:
+        from datetime import datetime
+        from notification_service import notification_service
+        
+        now = datetime.utcnow()
+        
+        notificacoes = Notificacao.query.filter(
+            Notificacao.usuario_destino_id == current_user.id,
+            (Notificacao.expires_at == None) | (Notificacao.expires_at > now)
+        ).order_by(Notificacao.created_at.desc()).all()
+        
+        notificacoes_json = []
+        nao_lidas = 0
+        
+        for notif in notificacoes:
+            if notif.status == 'nao_lida':
+                nao_lidas += 1
+            
+            notificacoes_json.append({
+                'id': notif.id,
+                'titulo': notif.titulo,
+                'mensagem': notif.mensagem,
+                'tipo': notif.tipo,
+                'icone': notification_service.get_icone_tipo(notif.tipo),
+                'status': notif.status,
+                'link_destino': notif.link_destino,
+                'created_at': notif.created_at.isoformat() if notif.created_at else None,
+                'lida_em': notif.lida_em.isoformat() if notif.lida_em else None,
+                'relatorio_id': notif.relatorio_id
+            })
+        
+        return jsonify({
+            'success': True,
+            'notificacoes': notificacoes_json,
+            'total': len(notificacoes_json),
+            'nao_lidas': nao_lidas
+        })
+    
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao listar notificações: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/notificacoes/marcar-lida', methods=['POST'])
+@login_required
+def marcar_notificacao_lida():
+    """Marcar uma notificação como lida"""
+    try:
+        from notification_service import notification_service
+        
+        data = request.get_json()
+        notificacao_id = data.get('notificacao_id')
+        
+        if not notificacao_id:
+            return jsonify({'success': False, 'error': 'ID da notificação não fornecido'}), 400
+        
+        resultado = notification_service.marcar_como_lida(notificacao_id, current_user.id)
+        
+        if resultado['success']:
+            return jsonify({'success': True})
+        else:
+            return jsonify(resultado), 404
+    
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao marcar notificação como lida: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/notificacoes/marcar-todas-lidas', methods=['POST'])
+@login_required
+def marcar_todas_notificacoes_lidas():
+    """Marcar todas as notificações do usuário como lidas"""
+    try:
+        from notification_service import notification_service
+        
+        resultado = notification_service.marcar_todas_como_lidas(current_user.id)
+        
+        return jsonify(resultado)
+    
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao marcar todas as notificações como lidas: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/notificacoes/salvar-token', methods=['POST'])
+@login_required
+def salvar_fcm_token():
+    """Salvar o FCM token do usuário para push notifications"""
+    try:
+        data = request.get_json()
+        fcm_token = data.get('fcm_token')
+        
+        if not fcm_token:
+            return jsonify({'success': False, 'error': 'FCM token não fornecido'}), 400
+        
+        current_user.fcm_token = fcm_token
+        db.session.commit()
+        
+        current_app.logger.info(f"✅ FCM token salvo para usuário {current_user.username}")
+        
+        return jsonify({'success': True})
+    
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"❌ Erro ao salvar FCM token: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/notificacoes/limpar-expiradas', methods=['DELETE'])
+@login_required
+def limpar_notificacoes_expiradas():
+    """Limpar notificações expiradas (apenas master users podem executar)"""
+    try:
+        if not current_user.is_master:
+            return jsonify({'success': False, 'error': 'Apenas administradores podem executar esta ação'}), 403
+        
+        from notification_service import notification_service
+        
+        resultado = notification_service.limpar_notificacoes_expiradas()
+        
+        return jsonify(resultado)
+    
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao limpar notificações expiradas: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # Save location route for geolocation tracking
 @app.route('/save_location', methods=['POST'])
 @login_required
