@@ -814,6 +814,36 @@ def api_next_report_number(projeto_id):
             'error': f'Erro interno: {str(e)}'
         }), 500
 
+@app.route('/relatorios/ultimo-lembrete')
+@login_required
+def ultimo_lembrete():
+    """Retorna o lembrete do último relatório de uma obra"""
+    try:
+        obra_id = request.args.get('obra_id', type=int)
+        
+        if not obra_id:
+            return jsonify({'lembrete': None}), 200
+        
+        # Buscar o relatório mais recente da obra que contenha lembrete_proxima_visita
+        ultimo_relatorio = Relatorio.query.filter(
+            Relatorio.projeto_id == obra_id,
+            Relatorio.lembrete_proxima_visita.isnot(None),
+            Relatorio.lembrete_proxima_visita != ''
+        ).order_by(Relatorio.data_relatorio.desc()).first()
+        
+        if not ultimo_relatorio:
+            return jsonify({'lembrete': None}), 200
+        
+        return jsonify({
+            'lembrete': ultimo_relatorio.lembrete_proxima_visita,
+            'relatorio_origem': ultimo_relatorio.numero,
+            'data_relatorio': ultimo_relatorio.data_relatorio.strftime('%d/%m/%Y') if ultimo_relatorio.data_relatorio else None
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao buscar último lembrete: {e}")
+        return jsonify({'lembrete': None}), 500
+
 @app.route('/api/projetos/<int:projeto_id>/funcionarios')
 @login_required
 def get_funcionarios_projeto(projeto_id):

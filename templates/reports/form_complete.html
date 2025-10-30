@@ -389,7 +389,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label" for="projeto_id">Projeto *</label>
-                                    <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value); atualizarNumeroRelatorio(this.value); carregarChecklistProjeto(this.value);">
+                                    <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value); atualizarNumeroRelatorio(this.value); carregarChecklistProjeto(this.value); carregarLembrete(this.value);">
                                         <option value="">Selecione um projeto</option>
                                         {% for projeto in projetos %}
                                         <option value="{{ projeto.id }}">
@@ -465,6 +465,17 @@
 
                         <!-- Nota: O aprovador é definido automaticamente pelo sistema -->
                         <!-- Aprovador Temporário do projeto (se configurado) ou Aprovador Global -->
+
+                        <!-- Card de Lembrete do Último Relatório -->
+                        <div id="lembrete-card" class="alert alert-warning mt-3" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong id="lembrete-titulo">⚠️ Lembrete do último relatório:</strong><br>
+                                    <span id="lembrete-texto"></span>
+                                </div>
+                                <button type="button" class="btn-close" onclick="document.getElementById('lembrete-card').style.display='none'"></button>
+                            </div>
+                        </div>
 
                         <!-- Checklist da Obra -->
                         <div class="mb-4">
@@ -808,6 +819,40 @@ function carregarCategoriasProjeto(projetoId) {
         })
         .catch(error => {
             console.error('Erro ao carregar categorias do projeto:', error);
+        });
+}
+
+// Função para carregar lembrete do último relatório
+function carregarLembrete(projetoId) {
+    const lembreteCard = document.getElementById('lembrete-card');
+    const lembreteTitulo = document.getElementById('lembrete-titulo');
+    const lembreteTexto = document.getElementById('lembrete-texto');
+    
+    // Ocultar o card se nenhum projeto estiver selecionado
+    if (!projetoId) {
+        lembreteCard.style.display = 'none';
+        return;
+    }
+    
+    // Buscar o lembrete via API
+    fetch(`/relatorios/ultimo-lembrete?obra_id=${projetoId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.lembrete) {
+                // Exibir o card com o lembrete
+                lembreteTitulo.textContent = `⚠️ Lembrete do último relatório (${data.relatorio_origem}):`;
+                lembreteTexto.textContent = data.lembrete;
+                lembreteCard.style.display = 'block';
+                console.log(`✅ Lembrete carregado: ${data.lembrete}`);
+            } else {
+                // Ocultar o card se não houver lembrete
+                lembreteCard.style.display = 'none';
+                console.log('ℹ️ Nenhum lembrete encontrado para esta obra');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Erro ao carregar lembrete:', error);
+            lembreteCard.style.display = 'none';
         });
 }
 
