@@ -1,0 +1,207 @@
+PROMPT COMPLEXO E AUTOSSUFICIENTE (para execução no projeto ELP / Railway)
+
+🧩 Objetivo:
+Corrigir o erro psycopg2.errors.UndefinedColumn: column users.fcm_token does not exist,
+adicionar notificações push internas e externas (Firebase FCM) com expiração de 24h,
+e garantir funcionamento mesmo com o app fechado — usando Alembic e banco Railway.
+
+1️⃣ Ajustar o Modelo User
+
+Localize o arquivo models.py (ou onde o modelo User é definido).
+
+Adicione o campo fcm_token:
+
+from datetime import datetime
+from app import db
+
+class User(db.Model):
+    __tablename__ = "users"
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200))
+    nome_completo = db.Column(db.String(200))
+    cargo = db.Column(db.String(100))
+    telefone = db.Column(db.String(20))
+    is_master = db.Column(db.Boolean, default=False)
+    is_developer = db.Column(db.Boolean, default=False)
+    ativo = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # 🔹 Novo campo para FCM
+    fcm_token = db.Column(db.String(255), nullable=True)
+
+2️⃣ Criar o arquivo Alembic
+
+Crie e execute a migração no ambiente Railway:
+
+flask db migrate -m "Add fcm_token to users"
+flask db upgrade
+
+
+🔸 Isso gera um novo arquivo em migrations/versions/xxxx_add_fcm_token_to_users.py.
+
+Certifique-se que o conteúdo da revisão gerada contenha:
+
+def upgrade():
+    op.add_column('users', sa.Column('fcm_token', sa.String(length=255), nullable=True))
+
+def downgrade():
+    op.drop_column('users', 'fcm_token')
+
+3️⃣ Criar Endpoint de Registro do Token
+
+Em routes.py (ou main.py, conforme o projeto):
+
+from flask import request, jsonify
+from flask_login import login_required, current_user
+from app import db
+
+@app.route("/api/update_fcm_token", methods=["POST"])
+@login_required
+def update_fcm_token():
+    try:
+        token = request.json.get("fcm_token")
+        if not token:
+            return jsonify({"error": "Token ausente"}), 400
+        current_user.fcm_token = token
+        db.session.commit()
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+4️⃣ Configurar Firebase no Servidor
+
+Instale as dependências:
+
+pip install firebase-admin
+
+
+Adicione o arquivo firebase_credentials.json (baixe do console Firebase → Configurações do projeto → Contas de serviço → Chave privada).
+
+Inicialize no início do app.py:
+
+import firebase_admin
+from firebase_admin import credentials, messaging
+
+cred = credentials.Certificate("firebase_credentials.json")
+firebase_admin.initialize_app(cred)
+
+5️⃣ Criar Função Universal para Enviar Notificações
+def send_push_notification(user, title, body):
+    if not user or not user.fcm_token:
+        return False
+    message = messaging.Message(
+        notification=messaging.Notification(title=title, body=body),
+        token=user.fcm_token
+    )
+    try:
+        messaging.send(message)
+        return True
+    except Exception as e:
+        print(f"Erro ao enviar push: {e}")
+        return False
+
+6️⃣ Frontend (PWA / JS)
+
+Crie ou edite o arquivo /static/js/notifications-manager.js:
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
+
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY",
+  authDomain: "SEU_PROJETO.firebaseapp.com",
+  projectId: "SEU_PROJETO",
+  storageBucket: "SEU_PROJETO.appspot.com",
+  messagingSenderId: "SEU_SENDER_ID",
+  appId: "SEU_APP_ID",
+};
+
+const app = initializeApp(firebaseConfig);
+const messaging = getMessaging(app);
+
+Notification.requestPermission().then((permission) => {
+  if (permission === "granted") {
+    getToken(messaging, { vapidKey: "SUA_VAPID_KEY" }).then((token) => {
+      if (token) {
+        fetch("/api/update_fcm_token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fcm_token: token }),
+        });
+      }
+    });
+  }
+});
+
+// Mostra notificação quando o app está aberto
+onMessage(messaging, (payload) => {
+  new Notification(payload.notification.title, {
+    body: payload.notification.body,
+  });
+});
+
+
+Crie /static/firebase-messaging-sw.js:
+
+importScripts("https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging-compat.js");
+
+firebase.initializeApp({
+  messagingSenderId: "SEU_SENDER_ID",
+  projectId: "SEU_PROJETO",
+  appId: "SEU_APP_ID",
+});
+
+const messaging = firebase.messaging();
+messaging.onBackgroundMessage((payload) => {
+  const { title, body } = payload.notification;
+  self.registration.showNotification(title, { body });
+});
+
+7️⃣ Teste e Verificação
+
+Faça login → verifique no banco Railway se users.fcm_token foi preenchido.
+
+Envie teste manual:
+
+curl -X POST https://fcm.googleapis.com/fcm/send \
+ -H "Authorization: key=SEU_SERVER_KEY" \
+ -H "Content-Type: application/json" \
+ -d '{
+   "to": "TOKEN_DO_USUARIO",
+   "notification": {"title": "ELP", "body": "Notificação push ativa!"}
+ }'
+
+
+Se aparecer no celular mesmo com o app fechado ✅ está corrigido.
+
+8️⃣ Extras
+
+Adicionar tabela notifications para histórico (opcional):
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    title = db.Column(db.String(100))
+    body = db.Column(db.String(300))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime)
+
+
+Migração Alembic correspondente:
+
+flask db migrate -m "create notifications table"
+flask db upgrade
+
+
+Exibir no app em aba de notificações (ícone de sino ao lado do menu hamburger).
+
+🧩 Resumo do problema resolvido
+Causa	Solução
+fcm_token ausente no banco	Migração Alembic ✅
+Token não sincronizado no frontend	Firebase JS + fetch /api/update_fcm_token ✅
+Notificações não aparecem com app fechado	firebase-messaging-sw.js configurado ✅
+Backend sem envio push	firebase_admin.messaging implementado ✅
