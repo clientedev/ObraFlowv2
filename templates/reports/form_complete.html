@@ -389,7 +389,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label" for="projeto_id">Projeto *</label>
-                                    <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value); atualizarNumeroRelatorio(this.value);">
+                                    <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value); atualizarNumeroRelatorio(this.value); carregarChecklistProjeto(this.value);">
                                         <option value="">Selecione um projeto</option>
                                         {% for projeto in projetos %}
                                         <option value="{{ projeto.id }}">
@@ -1596,14 +1596,30 @@ function toggleChecklistItem(checkbox) {
     }
 }
 
-// Carregar checklist padrão do sistema
-function carregarChecklistPadrao() {
-    fetch('/api/checklist-padrao')
+// Carregar checklist do projeto (personalizado ou padrão)
+function carregarChecklistProjeto(projetoId) {
+    const container = document.getElementById('checklistItems');
+    
+    if (!projetoId) {
+        container.innerHTML = '<p class="text-muted">Selecione um projeto para carregar o checklist</p>';
+        return;
+    }
+    
+    container.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin"></i> Carregando checklist...</p>';
+    
+    fetch(`/api/projeto/${projetoId}/checklist`)
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.checklist.length > 0) {
-                const container = document.getElementById('checklistItems');
-                container.innerHTML = ''; // Limpar conteúdo atual
+            if (data.success && data.checklist && data.checklist.length > 0) {
+                container.innerHTML = '';
+                
+                // Mostrar tipo de checklist
+                if (data.tipo === 'personalizado') {
+                    const badge = document.createElement('div');
+                    badge.className = 'alert alert-success mb-3';
+                    badge.innerHTML = '<i class="fas fa-check-circle"></i> <strong>Checklist Personalizado da Obra</strong>';
+                    container.appendChild(badge);
+                }
 
                 data.checklist.forEach(item => {
                     const itemDiv = document.createElement('div');
@@ -1624,35 +1640,51 @@ function carregarChecklistPadrao() {
                     container.appendChild(itemDiv);
                 });
 
-                console.log(`${data.checklist.length} itens do checklist padrão carregados`);
+                console.log(`✅ ${data.checklist.length} itens do checklist carregados (tipo: ${data.tipo})`);
             } else {
-                const container = document.getElementById('checklistItems');
-                container.innerHTML = '<p class="text-muted">Nenhum item no checklist padrão. <a href="/admin/checklist-padrao">Configurar checklist</a></p>';
+                container.innerHTML = '<p class="text-muted">Nenhum item no checklist. <a href="/admin/checklist-padrao">Configurar checklist</a></p>';
             }
         })
         .catch(error => {
-            console.error('Erro ao carregar checklist padrão:', error);
-            const container = document.getElementById('checklistItems');
-            container.innerHTML = '<p class="text-danger">Erro ao carregar checklist. <a href="#" onclick="carregarChecklistPadrao()">Tentar novamente</a></p>';
+            console.error('Erro ao carregar checklist:', error);
+            container.innerHTML = `<p class="text-danger">Erro ao carregar checklist. <a href="#" onclick="carregarChecklistProjeto(${projetoId})">Tentar novamente</a></p>`;
         });
+}
+
+// Manter compatibilidade com código antigo
+function carregarChecklistPadrao() {
+    const projetoSelect = document.getElementById('projeto_id');
+    if (projetoSelect && projetoSelect.value) {
+        carregarChecklistProjeto(projetoSelect.value);
+    } else {
+        const container = document.getElementById('checklistItems');
+        container.innerHTML = '<p class="text-muted">Selecione um projeto para carregar o checklist</p>';
+    }
 }
 
 // Inicializar sistema ao carregar a página
 document.addEventListener('DOMContentLoaded', function() {
-    // Carregar checklist padrão automaticamente
-    carregarChecklistPadrao();
-
     // Auto-carregar dados do projeto se pre-selecionado
     {% if disable_fields and preselected_project_id %}
     // Para projeto pré-selecionado com campos desabilitados
     console.log('🏗️ Projeto pré-selecionado detectado (campos desabilitados):', {{ preselected_project_id }});
     carregarFuncionariosEmailsPorId({{ preselected_project_id }});
+    carregarChecklistProjeto({{ preselected_project_id }});
+    atualizarNumeroRelatorio({{ preselected_project_id }});
     {% else %}
     // Para projeto selecionado normalmente
     const projetoSelect = document.getElementById('projeto_id');
     if (projetoSelect && projetoSelect.value) {
         console.log('🏗️ Projeto pré-selecionado detectado:', projetoSelect.value);
         carregarFuncionariosEmails();
+        carregarChecklistProjeto(projetoSelect.value);
+        atualizarNumeroRelatorio(projetoSelect.value);
+    } else {
+        // Se não há projeto selecionado, mostrar mensagem
+        const container = document.getElementById('checklistItems');
+        if (container) {
+            container.innerHTML = '<p class="text-muted">Selecione um projeto para carregar o checklist</p>';
+        }
     }
     {% endif %}
 

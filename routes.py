@@ -7716,6 +7716,66 @@ def api_checklist_default():
             'details': str(e)
         })
 
+@app.route('/api/projeto/<int:project_id>/checklist')
+@login_required
+def api_get_project_checklist(project_id):
+    """API para obter checklist do projeto (personalizado ou padrão)"""
+    try:
+        projeto = Projeto.query.get_or_404(project_id)
+        
+        # Verificar configuração de checklist do projeto
+        config = ProjetoChecklistConfig.query.filter_by(projeto_id=project_id).first()
+        
+        checklist_items = []
+        checklist_type = 'padrao'
+        
+        if config and config.tipo_checklist == 'personalizado':
+            # Buscar checklist personalizado da obra
+            items = ChecklistObra.query.filter_by(
+                projeto_id=project_id, 
+                ativo=True
+            ).order_by(ChecklistObra.ordem).all()
+            
+            if items:
+                checklist_type = 'personalizado'
+                for item in items:
+                    checklist_items.append({
+                        'id': item.id,
+                        'texto': item.texto,
+                        'ordem': item.ordem or 0
+                    })
+        
+        # Se não tiver personalizado ou não tiver itens, usar padrão
+        if not checklist_items:
+            items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+            checklist_type = 'padrao'
+            
+            for item in items:
+                checklist_items.append({
+                    'id': item.id,
+                    'texto': item.texto,
+                    'ordem': item.ordem or 0,
+                    'descricao': getattr(item, 'descricao', '') or '',
+                    'categoria': getattr(item, 'categoria', 'Geral') or 'Geral'
+                })
+        
+        return jsonify({
+            'success': True,
+            'checklist': checklist_items,
+            'tipo': checklist_type,
+            'project_id': project_id,
+            'project_name': projeto.nome,
+            'total': len(checklist_items)
+        })
+    
+    except Exception as e:
+        current_app.logger.error(f"Erro ao carregar checklist do projeto {project_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro ao carregar checklist',
+            'details': str(e)
+        }), 500
+
 # Google Drive Backup Routes
 @app.route('/admin/drive/test')
 @login_required
