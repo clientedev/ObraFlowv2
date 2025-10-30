@@ -21,6 +21,7 @@ class User(UserMixin, db.Model):
     primeiro_login = db.Column(db.Boolean, default=True)  # Campo para controlar primeiro login
     ativo = db.Column(db.Boolean, default=True)
     cor_agenda = db.Column(db.String(7), default="#0EA5E9")  # Cor HEX para agenda - Item 29
+    fcm_token = db.Column(db.Text, nullable=True)  # Token do Firebase Cloud Messaging para push notifications
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     @property
@@ -518,26 +519,37 @@ class Notificacao(db.Model):
     __tablename__ = 'notificacoes'
     
     id = db.Column(db.Integer, primary_key=True)
-    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=False)
+    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=True)
     usuario_origem_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     usuario_destino_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     titulo = db.Column(db.String(300), nullable=False)
     mensagem = db.Column(db.Text, nullable=False)
-    tipo = db.Column(db.String(50), nullable=False)  # 'enviado_para_aprovacao', 'aprovado', 'rejeitado'
+    tipo = db.Column(db.String(50), nullable=False)  # 'obra_criada', 'relatorio_pendente', 'aprovado', 'rejeitado', 'enviado_para_aprovacao'
     status = db.Column(db.String(50), default='nao_lida')  # 'lida', 'nao_lida'
+    link_destino = db.Column(db.String(255), nullable=True)
     email_enviado = db.Column(db.Boolean, default=False)
     email_sucesso = db.Column(db.Boolean, nullable=True)
     email_erro = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=True)
     lida_em = db.Column(db.DateTime, nullable=True)
+    push_enviado = db.Column(db.Boolean, default=False)
+    push_sucesso = db.Column(db.Boolean, nullable=True)
+    push_erro = db.Column(db.Text, nullable=True)
     
     # Relacionamentos
     relatorio = db.relationship('Relatorio', backref='notificacoes')
     usuario_origem = db.relationship('User', foreign_keys=[usuario_origem_id], backref='notificacoes_enviadas')
     usuario_destino = db.relationship('User', foreign_keys=[usuario_destino_id], backref='notificacoes_recebidas')
     
+    def __init__(self, **kwargs):
+        super(Notificacao, self).__init__(**kwargs)
+        if self.created_at and not self.expires_at:
+            from datetime import timedelta
+            self.expires_at = self.created_at + timedelta(hours=24)
+    
     def __repr__(self):
-        return f'<Notificacao {self.tipo} - Relatório {self.relatorio_id}>'
+        return f'<Notificacao {self.tipo} - ID {self.id}>'
 
 class ConfiguracaoEmail(db.Model):
     __tablename__ = 'configuracao_email'

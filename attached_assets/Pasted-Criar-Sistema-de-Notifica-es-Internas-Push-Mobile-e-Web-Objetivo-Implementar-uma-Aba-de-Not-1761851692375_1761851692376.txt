@@ -1,0 +1,167 @@
+Criar Sistema de Notificações Internas + Push (Mobile e Web)
+🎯 Objetivo
+
+Implementar uma Aba de Notificações com histórico, contador visual (ícone de sino) e notificações push reais — enviadas tanto dentro do app quanto no painel de notificações do celular, mesmo com o app fechado.
+Substituir o sistema de notificações por e-mail, tornando tudo centralizado e contextualizado dentro da aplicação.
+
+🧩 Funcionalidades Principais
+1. 🔔 Ícone de Sino com Contador
+
+Inserir o ícone de sino no menu superior, à direita do ícone de hambúrguer, tanto na versão web quanto na mobile (Flet ou PWA).
+
+Exibir um badge numérico com a quantidade de notificações não lidas.
+
+Ao clicar no sino → abrir uma aba lateral (drawer) ou modal com o histórico de notificações.
+
+2. 🗂️ Aba de Notificações / Histórico
+
+Cada notificação deve conter:
+
+Ícone do tipo (🏗️ obra, 📄 relatório, ⚠️ reprovação);
+
+Título (ex: “Relatório pendente de aprovação”);
+
+Descrição curta (ex: “O relatório REL-0008 precisa ser revisado.”);
+
+Data e hora;
+
+Status (lida / não lida).
+
+Ações:
+
+Botão “Marcar todas como lidas”;
+
+Clique em uma notificação → redireciona para a tela correspondente (ex: /reports/8);
+
+Notificações expiram automaticamente após 24h, removendo-se do contador.
+
+3. 📱 Tipos de Notificação
+Tipo	Gatilho	Destinatário
+🏗️ Obra criada	Quando uma nova obra é criada	Responsáveis designados àquela obra
+🕐 Relatório pendente	Quando um relatório é criado e ainda não foi aprovado	Usuário que deve aprovar
+⚠️ Relatório reprovado	Quando um relatório é reprovado	Autor do relatório reprovado
+4. 🔄 Notificações Internas + Push
+🧠 Lógica Interna
+
+Ao ocorrer o evento (obra criada, relatório pendente, relatório reprovado):
+
+Criar registro na tabela notificacoes;
+
+Enviar push notification via Firebase Cloud Messaging (FCM) para o usuário específico.
+
+🔋 Expiração Automática
+
+Cada notificação deve possuir:
+
+created_at TIMESTAMP DEFAULT NOW(),
+expires_at TIMESTAMP GENERATED ALWAYS AS (created_at + INTERVAL '24 HOURS') STORED
+
+
+Um processo automático (cron job) ou task do backend remove notificações expiradas.
+
+⚙️ Implementação Técnica
+🧱 Banco de Dados
+
+Criar tabela:
+
+CREATE TABLE notificacoes (
+  id SERIAL PRIMARY KEY,
+  usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
+  tipo VARCHAR(50),
+  titulo VARCHAR(255),
+  descricao TEXT,
+  link_destino VARCHAR(255),
+  lida BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP GENERATED ALWAYS AS (created_at + INTERVAL '24 HOURS') STORED
+);
+
+⚙️ Backend (FastAPI)
+
+Endpoints sugeridos:
+
+GET /notificacoes/usuario/{id}         # Lista notificações ativas
+POST /notificacoes/marcar-como-lida    # Marca como lida
+POST /notificacoes/criar               # Cria notificação (chamado por eventos do sistema)
+DELETE /notificacoes/expiradas         # Remove expiradas (cron job)
+
+
+Integração com Firebase Admin SDK:
+
+from firebase_admin import messaging
+
+def enviar_notificacao_push(token, titulo, corpo, link):
+    message = messaging.Message(
+        notification=messaging.Notification(
+            title=titulo,
+            body=corpo
+        ),
+        webpush=messaging.WebpushConfig(
+            fcm_options=messaging.WebpushFCMOptions(link=link)
+        ),
+        token=token
+    )
+    response = messaging.send(message)
+    return response
+
+💻 Frontend (React / Flet / Web)
+
+Ícone do sino visível no topo:
+
+<div className="relative cursor-pointer" onClick={abrirNotificacoes}>
+  <BellIcon className="w-6 h-6 text-gray-700" />
+  {contador > 0 && (
+    <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs px-1">
+      {contador}
+    </span>
+  )}
+</div>
+
+
+Drawer/modal de notificações:
+
+Lista estilizada com cores diferentes para notificações novas.
+
+Botão “Marcar todas como lidas”.
+
+No mobile, o sino aparece ao lado do menu hambúrguer e abre uma tela dedicada (tela modal “Notificações”).
+
+📳 Push no Celular (Mesmo com o App Fechado)
+
+Usar Firebase Cloud Messaging (FCM):
+
+Integrar FCM ao app (Android e iOS);
+
+Pedir permissão de notificação no primeiro acesso;
+
+Salvar o token FCM do usuário no backend (ex: campo fcm_token em usuarios);
+
+Ao gerar uma notificação, o backend envia o push via FCM.
+
+Mesmo com o app fechado, o usuário recebe:
+
+Ícone e texto da notificação;
+
+Ao clicar → app abre na tela correspondente (via deep link para /reports/:id ou /obras/:id).
+
+🚫 Remoção do Sistema de E-mail
+
+Desativar envio de e-mails automáticos relacionados a obras e relatórios;
+
+Substituir por chamadas ao endpoint /notificacoes/criar + push FCM.
+
+✅ Critérios de Aceitação
+
+O sino exibe contador de notificações não lidas corretamente.
+
+Aba de histórico mostra título, descrição e data.
+
+Cada notificação expira automaticamente em 24h.
+
+Push chega no celular mesmo com o app fechado.
+
+Apenas o usuário relacionado recebe a notificação.
+
+Sistema de e-mail desativado para esses eventos.
+
+Layout responsivo e consistente com o design atual.

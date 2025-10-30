@@ -78,3 +78,4 @@ SQLAlchemy
 weasyprint
 Werkzeug
 WTForms
+firebase-admin
