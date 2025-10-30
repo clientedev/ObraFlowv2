@@ -1273,6 +1273,32 @@ def limpar_notificacoes_expiradas():
         current_app.logger.error(f"❌ Erro ao limpar notificações expiradas: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/update_fcm_token', methods=['POST'])
+@login_required
+def update_fcm_token():
+    """
+    Endpoint Firebase FCM - Atualizar token de push notification
+    Compatível com Firebase Cloud Messaging SDK
+    """
+    try:
+        data = request.get_json()
+        token = data.get('fcm_token')
+        
+        if not token:
+            return jsonify({'error': 'Token ausente'}), 400
+        
+        current_user.fcm_token = token
+        db.session.commit()
+        
+        current_app.logger.info(f"✅ FCM token atualizado para usuário {current_user.username}")
+        
+        return jsonify({'success': True, 'message': 'Token FCM atualizado com sucesso'}), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"❌ Erro ao atualizar FCM token: {e}")
+        return jsonify({'error': str(e)}), 500
+
 # Save location route for geolocation tracking
 @app.route('/save_location', methods=['POST'])
 @login_required

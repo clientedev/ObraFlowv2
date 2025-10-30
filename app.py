@@ -511,3 +511,14 @@ else:
     # Local development initialization
     logging.info("💻 Local environment detected - initializing database")
     init_database()
+
+# Initialize Firebase Cloud Messaging (FCM)
+logging.info("🔥 Initializing Firebase Cloud Messaging...")
+try:
+    from firebase_utils import initialize_firebase
+    if initialize_firebase():
+        logging.info("✅ Firebase FCM inicializado com sucesso")
+    else:
+        logging.warning("⚠️ Firebase FCM não configurado - push notifications desabilitadas")
+except Exception as e:
+    logging.warning(f"⚠️ Firebase FCM initialization skipped: {e}")
