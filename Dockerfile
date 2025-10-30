@@ -1,8 +1,11 @@
 # Railway Dockerfile for construction tracking system
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-# Install system dependencies for WeasyPrint and curl for healthcheck
+# Install system dependencies for WeasyPrint and PostgreSQL
 RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
     libgobject-2.0-0 \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
@@ -33,16 +36,20 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p uploads static/reports
 
+# Make start script executable
+RUN chmod +x start.sh
+
 # Expose port
 EXPOSE 5000
 
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV FLASK_ENV=production
+ENV PYTHONUNBUFFERED=1
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
-# Start application
-CMD ["python", "main_production.py"]
+# Start application with migrations
+CMD ["./start.sh"]
