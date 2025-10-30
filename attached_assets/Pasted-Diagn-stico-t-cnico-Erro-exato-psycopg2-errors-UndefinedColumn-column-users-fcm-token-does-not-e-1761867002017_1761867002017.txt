@@ -1,0 +1,87 @@
+Diagnóstico técnico
+
+Erro exato:
+
+psycopg2.errors.UndefinedColumn: column users.fcm_token does not exist
+
+
+Motivo:
+
+O Alembic ainda não criou a coluna fcm_token;
+
+Portanto, o ORM tenta acessá-la e o PostgreSQL retorna erro de coluna inexistente;
+
+Isso derruba a transação e resulta no erro 500.
+
+🚀 PROMPT PRONTO PARA CORRIGIR O ERRO
+
+PROMPT (use diretamente no seu ambiente de desenvolvimento ou peça para o EngajaLAB executar no servidor):
+
+Corrigir o erro psycopg2.errors.UndefinedColumn: column users.fcm_token does not exist que ocorre ao fazer login.
+O sistema precisa que a tabela users tenha o campo fcm_token criado no banco de dados PostgreSQL.
+Se necessário, deve ser criada uma nova migração Alembic.
+
+Instruções detalhadas:
+
+1️⃣ Verifique se o modelo User contém o campo fcm_token:
+
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    nome_completo = db.Column(db.String(120))
+    cargo = db.Column(db.String(80))
+    telefone = db.Column(db.String(30))
+    is_master = db.Column(db.Boolean, default=False)
+    is_developer = db.Column(db.Boolean, default=False)
+    primeiro_login = db.Column(db.Boolean, default=True)
+    ativo = db.Column(db.Boolean, default=True)
+    cor_agenda = db.Column(db.String(20))
+    fcm_token = db.Column(db.String(255), nullable=True, default=None)  # <--- ADICIONE ESTA LINHA
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+2️⃣ Forçar sincronização com Alembic (se estiver fora de sincronia):
+
+flask db stamp head
+flask db migrate -m "add fcm_token column to users"
+flask db upgrade
+
+
+🔹 Caso use Alembic direto:
+
+alembic stamp head
+alembic revision --autogenerate -m "add fcm_token column to users"
+alembic upgrade head
+
+
+3️⃣ Verificar se a coluna foi criada:
+
+SELECT column_name FROM information_schema.columns WHERE table_name='users';
+
+
+→ Deve aparecer fcm_token.
+
+4️⃣ Reiniciar o serviço Flask/FastAPI após a migração.
+
+5️⃣ Testar novamente o login.
+
+O erro 500 deve desaparecer;
+
+O usuário deve logar normalmente;
+
+O token FCM deve ser salvo corretamente;
+
+As notificações push internas e mobile poderão ser associadas ao usuário.
+
+✅ Resultado esperado:
+
+O login volta a funcionar sem erros;
+
+Nenhum UndefinedColumn aparece nos logs;
+
+O sistema de notificações FCM está operacional;
+
+Banco e modelos ficam sincronizados.
