@@ -1,0 +1,84 @@
+PROMPT DEFINITIVO PARA CORRIGIR O ERRO E GARANTIR FUNCIONALIDADE
+
+PROMPT:
+
+Corrija o erro causado pela ausência da coluna fcm_token na tabela users.
+A correção deve garantir que:
+
+A tabela users tenha o campo fcm_token corretamente criado no banco PostgreSQL;
+
+Nenhum erro de transação ocorra durante o login;
+
+A estrutura Alembic fique sincronizada com o modelo ORM atual.
+
+Etapas obrigatórias:
+
+Verificar se o modelo já possui o campo:
+
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    fcm_token = db.Column(db.String(255), nullable=True, default=None)
+
+
+Se esse campo ainda não existir, adicione-o antes da migração.
+
+Forçar o Alembic a sincronizar com o estado atual:
+Execute os comandos abaixo, nesta ordem:
+
+flask db stamp head
+flask db migrate -m "add fcm_token column to users"
+flask db upgrade
+
+
+⚠️ Caso o projeto use apenas Alembic puro (sem flask db):
+
+alembic stamp head
+alembic revision --autogenerate -m "add fcm_token column to users"
+alembic upgrade head
+
+
+Verificar se a coluna foi realmente criada:
+
+\d users
+
+
+ou via SQL:
+
+SELECT column_name FROM information_schema.columns WHERE table_name='users';
+
+
+→ Deve aparecer fcm_token entre as colunas.
+
+Reinicie o servidor Flask / FastAPI após a atualização.
+
+Teste o login novamente:
+
+Login deve funcionar normalmente.
+
+Nenhum erro UndefinedColumn deve aparecer.
+
+Se o sistema de notificações estiver ativo, o token FCM será salvo corretamente no banco.
+
+(Opcional) Adicione uma proteção no carregamento do usuário para evitar falhas futuras:
+
+try:
+    user = User.query.filter_by(username=form.username.data).first()
+except Exception as e:
+    app.logger.error(f"Erro ao buscar usuário: {e}")
+    db.session.rollback()
+    return jsonify({"error": "Erro interno no servidor"}), 500
+
+
+✅ Resultado esperado:
+
+O login volta a funcionar normalmente;
+
+Nenhum erro psycopg2.errors.UndefinedColumn aparece;
+
+O sistema de notificações push (via fcm_token) está pronto para uso;
+
+Alembic e modelo SQLAlchemy permanecem sincronizados.
