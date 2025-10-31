@@ -522,3 +522,15 @@ try:
         logging.warning("⚠️ Firebase FCM não configurado - push notifications desabilitadas")
 except Exception as e:
     logging.warning(f"⚠️ Firebase FCM initialization skipped: {e}")
+
+# Initialize Scheduler for background tasks
+logging.info("📅 Initializing Scheduler for background tasks...")
+try:
+    from scheduler_tasks import init_scheduler
+    scheduler = init_scheduler(app)
+    if scheduler:
+        logging.info("✅ Scheduler inicializado - tarefas periódicas ativas")
+    else:
+        logging.warning("⚠️ Scheduler não inicializado - tarefas periódicas desabilitadas")
+except Exception as e:
+    logging.warning(f"⚠️ Scheduler initialization skipped: {e}")

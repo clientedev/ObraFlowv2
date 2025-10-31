@@ -3375,12 +3375,25 @@ Clique abaixo para acessar o relatório:
             titulo=titulo,
             mensagem=mensagem,
             tipo='aprovado',
-            status='nao_lida'
+            status='nao_lida',
+            link_destino=url_for('review_report', report_id=relatorio.id)
         )
         db.session.add(notificacao)
         
         # 3. COMMIT ÚNICO de todas as alterações do banco
         db.session.commit()
+        
+        # 4. Enviar push notification após commit
+        from notification_service import notification_service
+        if autor.fcm_token:
+            notification_service.enviar_push_notification(
+                token=autor.fcm_token,
+                titulo=titulo,
+                corpo=f"Seu relatório para {projeto.nome} foi aprovado!",
+                link=url_for('review_report', report_id=relatorio.id),
+                tipo='aprovado'
+            )
+        
         current_app.logger.info(f"✅ Relatório {relatorio.numero} aprovado com sucesso - Status atualizado no banco")
         
     except Exception as e:
@@ -3522,14 +3535,63 @@ def reject_report(id):
 
     # Guardar informações do autor antes da mudança
     autor = relatorio.autor
-    projeto_nome = relatorio.projeto.nome if relatorio.projeto else 'N/A'
+    aprovador = current_user
+    projeto = relatorio.projeto
+    projeto_nome = projeto.nome if projeto else 'N/A'
 
-    relatorio.status = 'Rejeitado'  # Status correto para relatórios rejeitados
-    relatorio.aprovado_por = current_user.id
-    relatorio.data_aprovacao = datetime.utcnow()
-    relatorio.comentario_aprovacao = comentario.strip()
+    try:
+        # Atualizar status do relatório
+        relatorio.status = 'Rejeitado'  # Status correto para relatórios rejeitados
+        relatorio.aprovado_por = current_user.id
+        relatorio.data_aprovacao = datetime.utcnow()
+        relatorio.comentario_aprovacao = comentario.strip()
 
-    db.session.commit()
+        # Criar notificação interna para o autor
+        from models import Notificacao
+        from notification_service import notification_service
+        
+        link_relatorio = f"{request.host_url}reports/{relatorio.id}/review"
+        titulo = f"Relatório {relatorio.numero} reprovado"
+        mensagem = f"""Olá {autor.nome_completo},
+O relatório {relatorio.numero} referente à obra {projeto_nome} foi reprovado por {aprovador.nome_completo}.
+
+Motivo: {comentario.strip()}
+
+Clique abaixo para editar o relatório:
+{link_relatorio}"""
+        
+        notificacao = Notificacao(
+            relatorio_id=relatorio.id,
+            usuario_origem_id=aprovador.id,
+            usuario_destino_id=autor.id,
+            titulo=titulo,
+            mensagem=mensagem,
+            tipo='rejeitado',
+            status='nao_lida',
+            link_destino=url_for('review_report', report_id=relatorio.id)
+        )
+        db.session.add(notificacao)
+        
+        # Commit único de todas as alterações
+        db.session.commit()
+        
+        # Enviar push notification
+        if autor.fcm_token:
+            notification_service.enviar_push_notification(
+                token=autor.fcm_token,
+                titulo=titulo,
+                corpo=f"Motivo: {comentario.strip()[:100]}",
+                link=url_for('review_report', report_id=relatorio.id),
+                tipo='rejeitado'
+            )
+        
+        current_app.logger.info(f"✅ Relatório {relatorio.numero} rejeitado com sucesso - Notificação criada")
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"❌ Erro ao rejeitar relatório: {str(e)}")
+        flash(f'Erro ao rejeitar relatório: {str(e)}', 'error')
+        return redirect(url_for('review_report', report_id=id))
 
     # Log da ação de reprovação
     import logging
