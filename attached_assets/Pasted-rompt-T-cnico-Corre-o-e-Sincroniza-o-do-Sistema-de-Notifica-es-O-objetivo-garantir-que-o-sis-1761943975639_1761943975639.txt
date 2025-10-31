@@ -1,0 +1,77 @@
+rompt Técnico – Correção e Sincronização do Sistema de Notificações
+
+O objetivo é garantir que o sistema de notificações funcione exatamente conforme a tabela de “Tipos de Notificação”, tanto no painel web quanto no aplicativo móvel (painel de notificações do celular).
+
+Requisitos de comportamento
+
+1. Obra criada
+
+Gatilho: Quando uma nova obra é criada.
+
+Destinatário: Todos os responsáveis designados àquela obra.
+
+Ação esperada:
+
+Gerar registro na tabela Notificacao.
+
+Enviar notificação push e/ou alerta no painel web.
+
+Notificação deve aparecer no painel de notificações do celular, exibindo o nome da obra e o responsável que a criou.
+
+2. Relatório pendente
+
+Gatilho: Quando um relatório é criado e ainda não foi aprovado.
+
+Destinatário: O usuário responsável pela aprovação.
+
+Ação esperada:
+
+Criar entrada na tabela Notificacao.
+
+Enviar notificação push para o aprovador.
+
+Exibir no painel web e também no painel do celular até que o relatório seja aprovado.
+
+Ao aprovar o relatório, a notificação deve ser marcada automaticamente como “lida” ou “resolvida”.
+
+3. Relatório reprovado
+
+Gatilho: Quando um relatório é reprovado.
+
+Destinatário: O autor do relatório reprovado.
+
+Ação esperada:
+
+Criar notificação informando que o relatório foi reprovado e o motivo (se aplicável).
+
+Enviar alerta push no app móvel e exibir também no painel web.
+
+Notificação deve desaparecer apenas após o autor abrir ou reconhecer a reprovação.
+
+Correções e ajustes esperados
+
+Garantir que todas as notificações criadas no backend sejam sincronizadas em tempo real entre:
+
+Painel web (frontend)
+
+Painel de notificações do celular (frontend mobile ou PWA)
+
+Corrigir o problema atual onde as notificações não aparecem no celular, mesmo sendo geradas no backend.
+
+Implementar broadcast em tempo real (via WebSocket ou Firebase Cloud Messaging, conforme stack atual).
+
+Verificar se o modelo Notificacao contém os campos essenciais:
+
+id, tipo, mensagem, destinatario_id, gatilho, data_criacao, lida (boolean).
+
+Garantir que o backend crie, salve e dispare o evento de push após o commit.
+
+Testar todos os fluxos de criação, pendência e reprovação para confirmar que o comportamento está idêntico à tabela apresentada.
+
+Critério de aceitação
+
+Todas as notificações previstas aparecem corretamente tanto no sistema web quanto no aplicativo móvel.
+
+O painel de notificações do celular reflete em tempo real as ações do backend.
+
+Nenhuma notificação válida deixa de ser exibida ou fica duplicada.
