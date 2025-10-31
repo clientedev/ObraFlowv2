@@ -6,6 +6,7 @@ from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
 from flask_cors import CORS
+from flask_migrate import Migrate
 import time
 import logging
 from sqlalchemy.orm import DeclarativeBase
@@ -21,6 +22,7 @@ class Base(DeclarativeBase):
 
 # SQLAlchemy database instance - Instância única compartilhada
 db = SQLAlchemy(model_class=Base)
+migrate = Migrate()
 login_manager = LoginManager()
 mail = Mail()
 csrf = CSRFProtect()
@@ -90,6 +92,7 @@ app.config['WTF_CSRF_METHODS'] = ['POST', 'PUT', 'PATCH', 'DELETE']
 # initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 try:
     db.init_app(app)
+    migrate.init_app(app, db)
     login_manager.init_app(app)
     mail.init_app(app)
     csrf.init_app(app)
