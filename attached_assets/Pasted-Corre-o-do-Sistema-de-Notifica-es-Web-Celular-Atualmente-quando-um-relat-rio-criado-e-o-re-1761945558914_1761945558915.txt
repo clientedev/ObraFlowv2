@@ -1,0 +1,91 @@
+Correção do Sistema de Notificações (Web + Celular)
+
+Atualmente, quando um relatório é criado e o responsável é o administrador (que estava logado no celular), nenhuma notificação foi recebida, nem pelo sistema web nem pelo painel de notificações do celular.
+Este comportamento não está conforme as regras definidas na tabela de Tipos de Notificação, e precisa ser corrigido.
+
+✅ Objetivo
+
+Garantir que todas as relações de notificação funcionem exatamente conforme especificado abaixo, e que as notificações sejam exibidas corretamente tanto no sistema web quanto no aplicativo móvel (ou painel de notificações do celular).
+
+🧩 Regras funcionais esperadas
+
+1. Obra criada
+
+Gatilho: Quando uma nova obra é criada.
+
+Destinatário: Todos os responsáveis designados àquela obra.
+
+Comportamento esperado:
+
+Criar registro na tabela Notificacao.
+
+Exibir alerta no painel web e enviar push notification para o celular dos responsáveis.
+
+O push deve conter o nome da obra e o usuário que a criou.
+
+2. Relatório pendente
+
+Gatilho: Quando um relatório é criado e ainda não foi aprovado.
+
+Destinatário: O usuário responsável pela aprovação (exemplo: administrador).
+
+Comportamento esperado:
+
+Criar automaticamente uma notificação na tabela Notificacao.
+
+Exibir a notificação no painel web e enviar notificação push para o celular do responsável.
+
+A notificação deve permanecer visível até que o relatório seja aprovado.
+
+Ao aprovar, a notificação deve ser marcada como “lida” ou removida.
+
+3. Relatório reprovado
+
+Gatilho: Quando um relatório é reprovado.
+
+Destinatário: O autor do relatório reprovado.
+
+Comportamento esperado:
+
+Criar registro na tabela Notificacao com mensagem informando que o relatório foi reprovado.
+
+Enviar notificação push para o autor e exibir também no painel web.
+
+A notificação deve permanecer ativa até o autor visualizá-la.
+
+⚙️ Requisitos técnicos obrigatórios
+
+Garantir que todas as notificações criadas no backend sejam disparadas em tempo real via WebSocket ou Firebase Cloud Messaging (FCM), dependendo da arquitetura atual.
+
+Caso use WebSocket: confirmar que o canal está emitindo corretamente para o destinatário.
+
+Caso use FCM: confirmar que o token do dispositivo está sendo salvo corretamente e vinculado ao usuário logado.
+
+Verificar que o modelo Notificacao contém os campos mínimos necessários:
+
+id, tipo, mensagem, destinatario_id, gatilho, data_criacao, lida (boolean)
+
+
+O backend deve criar a notificação no momento exato em que o evento ocorre (ex: obra criada, relatório pendente, relatório reprovado), e emitir o evento para o frontend e o mobile.
+
+Garantir que o painel de notificações do celular e o painel web leiam da mesma tabela de notificações, respeitando o campo destinatario_id.
+
+Corrigir o problema atual: o administrador (destinatário da notificação de relatório pendente) deve receber em tempo real a notificação tanto no sistema quanto no painel móvel.
+
+Testar com diferentes cenários:
+
+Usuário cria obra → responsáveis recebem notificação.
+
+Usuário cria relatório → aprovador recebe notificação.
+
+Relatório reprovado → autor recebe notificação.
+
+🧪 Critério de aceitação
+
+As três notificações listadas funcionam em tempo real e aparecem simultaneamente no web e no celular.
+
+Nenhum destinatário deixa de receber uma notificação válida.
+
+Notificações são removidas ou marcadas como “lidas” quando o evento correspondente é resolvido.
+
+Logs de backend confirmam a emissão correta do evento de notificação para os tokens ou sockets ativos.
