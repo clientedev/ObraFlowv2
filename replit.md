@@ -6,6 +6,12 @@ Preferred communication style: Simple, everyday language.
 Mobile-first design: Date field should be the first input field in report forms.
 Report forms: Location section removed from report creation/editing interface (geolocation remains active for visits and notifications).
 
+# Recent Changes (October 31, 2025)
+- **Sistema de Notificações Web/Mobile Completo**: Implementado sistema completo de notificações internas com suporte a push notifications via Firebase Cloud Messaging, incluindo ícone de sino na navegação, painel lateral (drawer), API REST protegida, e limpeza automática de notificações expiradas.
+- **Push Notifications**: Integrado Firebase FCM para envio de push notifications em eventos de aprovação e rejeição de relatórios. Requer configuração da variável de ambiente FIREBASE_CREDENTIALS_JSON.
+- **Scheduler de Limpeza Automática**: Adicionado APScheduler com tarefas periódicas para remover notificações expiradas (>24h) automaticamente a cada 6 horas e diariamente às 3h da manhã.
+- **Service Worker**: Configurado para receber e exibir push notifications com estratégia Network-First para garantir dados sempre atualizados do PostgreSQL.
+
 # System Architecture
 
 ## Backend Architecture
