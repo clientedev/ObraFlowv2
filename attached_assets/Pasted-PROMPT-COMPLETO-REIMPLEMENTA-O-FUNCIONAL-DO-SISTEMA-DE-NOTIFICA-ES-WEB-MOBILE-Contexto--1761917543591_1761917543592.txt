@@ -1,0 +1,157 @@
+PROMPT COMPLETO — REIMPLEMENTAÇÃO FUNCIONAL DO SISTEMA DE NOTIFICAÇÕES (WEB + MOBILE)
+
+⚙️ Contexto: Projeto ObraFlowv2 (FastAPI + PostgreSQL no Railway + Frontend em JavaScript/PWA)
+
+Objetivo principal:
+Corrigir e garantir o funcionamento completo do sistema de notificações em tempo real, tanto no navegador (PWA) quanto no aplicativo mobile, com ícone de sino posicionado corretamente ao lado do botão hambúrguer.
+
+🧩 Requisitos funcionais e técnicos:
+
+Ícone de sino (🔔):
+
+O ícone deve ficar ao lado direito do botão hambúrguer, fora do menu lateral.
+
+Quando o usuário clicar, deve abrir o painel lateral de notificações.
+
+O sino deve exibir um contador de notificações não lidas.
+
+O contador deve zerar automaticamente quando o usuário abrir a aba e marcar como lidas.
+
+Backend – API /api/notificacoes:
+
+Corrigir o erro 500: revisar o endpoint para garantir que ele:
+
+Retorne apenas notificações relacionadas ao usuário logado (user_id).
+
+Suporte filtros (lidas=false, todas=true, etc.).
+
+Trate corretamente notificações expiradas (expiração de 24h).
+
+Exemplo de retorno esperado:
+
+[
+  {
+    "id": 1,
+    "tipo": "obra_criada",
+    "mensagem": "Nova obra criada: Edifício Aurora",
+    "criada_em": "2025-10-31T20:15:00",
+    "lida": false,
+    "expira_em": "2025-11-01T20:15:00"
+  }
+]
+
+
+Criar um modelo Notification no banco (via Alembic) com os campos:
+
+id = Column(Integer, primary_key=True)
+user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+tipo = Column(String(50), nullable=False)
+mensagem = Column(Text, nullable=False)
+criada_em = Column(DateTime, default=datetime.utcnow)
+expira_em = Column(DateTime)
+lida = Column(Boolean, default=False)
+
+
+O endpoint deve excluir automaticamente notificações expiradas (usando DELETE WHERE expira_em < NOW()).
+
+Notificações push (Firebase FCM):
+
+Implementar o envio via Firebase Cloud Messaging tanto para:
+
+Web push (PWA) usando serviceWorkerRegistration.showNotification()
+
+Mobile push (via FCM token armazenado no campo fcm_token da tabela users)
+
+No backend, criar um helper send_push_notification(user_id, title, body) que:
+
+Busca o fcm_token do usuário.
+
+Envia a notificação via requests.post para o endpoint do FCM:
+
+https://fcm.googleapis.com/fcm/send
+
+
+Inclui as chaves corretas no header:
+
+headers = {
+    "Authorization": f"key={FIREBASE_SERVER_KEY}",
+    "Content-Type": "application/json"
+}
+
+
+Payload:
+
+{
+  "to": "<fcm_token>",
+  "notification": {
+    "title": "ObraFlow",
+    "body": "Você tem um novo relatório pendente"
+  },
+  "data": {
+    "click_action": "FLUTTER_NOTIFICATION_CLICK",
+    "screen": "notificacoes"
+  }
+}
+
+
+Integração completa de eventos:
+
+Quando uma obra for criada, relatório pendente for adicionado, ou relatório for reprovado, o sistema deve:
+
+Criar o registro na tabela notifications.
+
+Enviar push ao usuário relacionado.
+
+Atualizar contador do sino em tempo real no frontend via WebSocket ou polling a cada 5 segundos.
+
+Frontend (PWA):
+
+O service worker deve:
+
+Estar registrado e ativo.
+
+Interceptar notificações push mesmo com o app fechado.
+
+Exibir via self.registration.showNotification(title, options).
+
+Ao clicar na notificação, abrir o app na aba de notificações (/notificacoes).
+
+Corrigir erros atuais como:
+
+Error HTTP 500 → tratar com fallback visual “Erro ao carregar notificações”.
+
+Implementar try/catch robusto no notifications-manager.js.
+
+Segurança:
+
+Apenas o usuário dono da notificação deve recebê-la.
+
+Proteger endpoint /api/notificacoes com @login_required ou Depends(get_current_user).
+
+Expiração automática:
+
+As notificações devem expirar em 24h, sendo removidas por uma tarefa periódica (BackgroundScheduler ou Celery).
+
+As expiradas devem desaparecer do painel e do push.
+
+🧩 Extras:
+
+Adicionar log detalhado:
+
+INFO: Notificação enviada a user_id={id} tipo={tipo}
+
+ERROR: Falha ao enviar push para {token}
+
+Criar migração Alembic automaticamente se a tabela notifications ainda não existir.
+
+✅ Resultado esperado:
+
+O ícone de sino aparece ao lado do menu hambúrguer.
+
+O painel de notificações abre corretamente e exibe os eventos recentes.
+
+Push notifications funcionam no navegador e no celular (via FCM), mesmo com o app fechado.
+
+Nenhum erro 500 é exibido.
+
+Apenas o usuário correto recebe notificações.
