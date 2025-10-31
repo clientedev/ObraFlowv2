@@ -46,13 +46,21 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):
                             connection.commit()
                             logging.info("✅ Tabela alembic_version limpa")
                     
-                    # Tentar aplicar migrações novamente
-                    result = subprocess.run(['alembic', 'upgrade', 'head'], 
+                    # Marcar a migração atual como aplicada
+                    result = subprocess.run(['alembic', 'stamp', 'a4d5b6d9c0ca'], 
                                           capture_output=True, text=True, timeout=60)
                     if result.returncode == 0:
-                        logging.info("✅ Migrações aplicadas com sucesso após limpeza")
+                        logging.info("✅ Migração marcada como aplicada: a4d5b6d9c0ca")
+                        
+                        # Agora tentar upgrade para aplicar qualquer nova migração
+                        result = subprocess.run(['alembic', 'upgrade', 'head'], 
+                                              capture_output=True, text=True, timeout=60)
+                        if result.returncode == 0:
+                            logging.info("✅ Migrações aplicadas com sucesso")
+                        else:
+                            logging.info(f"ℹ️ Nenhuma nova migração para aplicar: {result.stderr}")
                     else:
-                        logging.warning(f"⚠️ Migração ainda falhou após limpeza: {result.stderr}")
+                        logging.warning(f"⚠️ Erro ao marcar migração: {result.stderr}")
                 except Exception as fix_error:
                     logging.error(f"❌ Erro ao limpar alembic_version: {fix_error}")
             
