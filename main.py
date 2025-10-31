@@ -34,35 +34,40 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):
             logging.warning(f"⚠️ Migração falhou: {result.stderr}")
             
             # Se a migração falhou porque não encontrou a revisão antiga, limpar e tentar novamente
-            if "Can't locate revision" in result.stderr:
-                logging.info("🔧 Detectada referência a migração antiga - limpando e recriando...")
+            if "Can't locate revision" in result.stderr or "20250929_2303" in result.stderr:
+                logging.info("🔧 Detectada referência a migração antiga (20250929_2303) - limpando...")
                 try:
                     from app import app, db
                     from sqlalchemy import text
-                    with app.app_context():
-                        with db.engine.connect() as connection:
-                            # Limpar tabela alembic_version
-                            connection.execute(text("DELETE FROM alembic_version"))
-                            connection.commit()
-                            logging.info("✅ Tabela alembic_version limpa")
                     
-                    # Marcar a migração atual como aplicada
-                    result = subprocess.run(['alembic', 'stamp', 'a4d5b6d9c0ca'], 
-                                          capture_output=True, text=True, timeout=60)
+                    with app.app_context():
+                        # Usar AUTOCOMMIT para evitar problemas de transação
+                        engine = db.engine.execution_options(isolation_level="AUTOCOMMIT")
+                        with engine.connect() as connection:
+                            # TRUNCATE é mais eficiente e garante limpeza completa
+                            connection.execute(text("TRUNCATE TABLE alembic_version"))
+                            logging.info("✅ Tabela alembic_version TRUNCADA")
+                            
+                            # Inserir diretamente a versão atual
+                            connection.execute(text(
+                                "INSERT INTO alembic_version (version_num) VALUES ('a4d5b6d9c0ca')"
+                            ))
+                            logging.info("✅ Migração a4d5b6d9c0ca inserida diretamente")
+                    
+                    # Verificar se funcionou
+                    logging.info("🔍 Verificando correção...")
+                    result = subprocess.run(['alembic', 'current'], 
+                                          capture_output=True, text=True, timeout=30)
                     if result.returncode == 0:
-                        logging.info("✅ Migração marcada como aplicada: a4d5b6d9c0ca")
-                        
-                        # Agora tentar upgrade para aplicar qualquer nova migração
-                        result = subprocess.run(['alembic', 'upgrade', 'head'], 
-                                              capture_output=True, text=True, timeout=60)
-                        if result.returncode == 0:
-                            logging.info("✅ Migrações aplicadas com sucesso")
-                        else:
-                            logging.info(f"ℹ️ Nenhuma nova migração para aplicar: {result.stderr}")
+                        logging.info(f"✅ Migração atual: {result.stdout.strip()}")
+                        logging.info("🎉 Sistema pronto para uso!")
                     else:
-                        logging.warning(f"⚠️ Erro ao marcar migração: {result.stderr}")
+                        logging.warning(f"⚠️ Verificação: {result.stderr}")
+                        
                 except Exception as fix_error:
-                    logging.error(f"❌ Erro ao limpar alembic_version: {fix_error}")
+                    logging.error(f"❌ Erro ao corrigir alembic_version: {fix_error}")
+                    import traceback
+                    traceback.print_exc()
             
             # If migration fails due to duplicate table, mark migration as completed
             elif "already exists" in result.stderr or "DuplicateTable" in result.stderr:
