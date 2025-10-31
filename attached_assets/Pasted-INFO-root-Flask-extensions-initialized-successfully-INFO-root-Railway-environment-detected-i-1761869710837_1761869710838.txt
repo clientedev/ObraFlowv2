@@ -1,0 +1,66 @@
+INFO:root:✅ Flask extensions initialized successfully
+INFO:root:🚂 Railway environment detected - initializing database
+ERROR:root:Attempt 1 failed to create admin user: (psycopg2.errors.UndefinedColumn) column users.fcm_token does not exist
+                                                             ^
+LINE 1: ...sers_ativo, users.cor_agenda AS users_cor_agenda, users.fcm_...
+[SQL: SELECT users.id AS users_id, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.nome_completo AS users_nome_completo, users.cargo AS users_cargo, users.telefone AS users_telefone, users.is_master AS users_is_master, users.is_developer AS users_is_developer, users.primeiro_login AS users_primeiro_login, users.ativo AS users_ativo, users.cor_agenda AS users_cor_agenda, users.fcm_token AS users_fcm_token, users.created_at AS users_created_at 
+FROM users 
+WHERE users.is_master = true 
+ LIMIT %(param_1)s]
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+INFO:root:Retrying in 5 seconds...
+WHERE users.is_master = true 
+ LIMIT %(param_1)s]
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+INFO:root:Retrying in 5 seconds...
+ERROR:root:Attempt 2 failed to create admin user: (psycopg2.errors.UndefinedColumn) column users.fcm_token does not exist
+LINE 1: ...sers_ativo, users.cor_agenda AS users_cor_agenda, users.fcm_...
+                                                             ^
+[SQL: SELECT users.id AS users_id, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.nome_completo AS users_nome_completo, users.cargo AS users_cargo, users.telefone AS users_telefone, users.is_master AS users_is_master, users.is_developer AS users_is_developer, users.primeiro_login AS users_primeiro_login, users.ativo AS users_ativo, users.cor_agenda AS users_cor_agenda, users.fcm_token AS users_fcm_token, users.created_at AS users_created_at 
+FROM users 
+[SQL: SELECT users.id AS users_id, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.nome_completo AS users_nome_completo, users.cargo AS users_cargo, users.telefone AS users_telefone, users.is_master AS users_is_master, users.is_developer AS users_is_developer, users.primeiro_login AS users_primeiro_login, users.ativo AS users_ativo, users.cor_agenda AS users_cor_agenda, users.fcm_token AS users_fcm_token, users.created_at AS users_created_at 
+ERROR:root:Attempt 3 failed to create admin user: (psycopg2.errors.UndefinedColumn) column users.fcm_token does not exist
+INFO:root:Retrying in 5 seconds...
+FROM users 
+WHERE users.is_master = true 
+[parameters: {'param_1': 1}]
+ LIMIT %(param_1)s]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+LINE 1: ...sers_ativo, users.cor_agenda AS users_cor_agenda, users.fcm_...
+                                                             ^
+ERROR:root:Attempt 4 failed to create admin user: (psycopg2.errors.UndefinedColumn) column users.fcm_token does not exist
+LINE 1: ...sers_ativo, users.cor_agenda AS users_cor_agenda, users.fcm_...
+                                                             ^
+[SQL: SELECT users.id AS users_id, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.nome_completo AS users_nome_completo, users.cargo AS users_cargo, users.telefone AS users_telefone, users.is_master AS users_is_master, users.is_developer AS users_is_developer, users.primeiro_login AS users_primeiro_login, users.ativo AS users_ativo, users.cor_agenda AS users_cor_agenda, users.fcm_token AS users_fcm_token, users.created_at AS users_created_at 
+FROM users 
+WHERE users.is_master = true 
+ LIMIT %(param_1)s]
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+INFO:root:Retrying in 5 seconds...
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+ERROR:root:Max retries reached. Could not create admin user.
+INFO:root:✅ Checklist padrão já existe: 6 itens encontrados
+INFO:root:🧪 Testing reports functionality...
+INFO:root:✅ Reports table accessible: 33 reports found
+INFO:root:🔧 Checking and fixing migration state...
+INFO:root:🔧 Found existing user_email_config table, ensuring migration state is correct
+INFO:root:✅ RAILWAY DATABASE INITIALIZATION COMPLETE
+ERROR:root:Attempt 5 failed to create admin user: (psycopg2.errors.UndefinedColumn) column users.fcm_token does not exist
+LINE 1: ...sers_ativo, users.cor_agenda AS users_cor_agenda, users.fcm_...
+                                                             ^
+[SQL: SELECT users.id AS users_id, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.nome_completo AS users_nome_completo, users.cargo AS users_cargo, users.telefone AS users_telefone, users.is_master AS users_is_master, users.is_developer AS users_is_developer, users.primeiro_login AS users_primeiro_login, users.ativo AS users_ativo, users.cor_agenda AS users_cor_agenda, users.fcm_token AS users_fcm_token, users.created_at AS users_created_at 
+FROM users 
+WHERE users.is_master = true 
+ LIMIT %(param_1)s]
+INFO:root:🔥 Initializing Firebase Cloud Messaging...
+WARNING:firebase_utils:⚠️ Firebase não configurado - credenciais não encontradas
+WARNING:firebase_utils:   Configure FIREBASE_CREDENTIALS_PATH ou FIREBASE_CONFIG
+WARNING:root:⚠️ Firebase FCM não configurado - push notifications desabilitadas
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+20250929_2303
+Stopping Container
