@@ -32,8 +32,32 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):
             logging.info("✅ Migrações aplicadas com sucesso")
         else:
             logging.warning(f"⚠️ Migração falhou: {result.stderr}")
+            
+            # Se a migração falhou porque não encontrou a revisão antiga, limpar e tentar novamente
+            if "Can't locate revision" in result.stderr:
+                logging.info("🔧 Detectada referência a migração antiga - limpando e recriando...")
+                try:
+                    from app import app, db
+                    from sqlalchemy import text
+                    with app.app_context():
+                        with db.engine.connect() as connection:
+                            # Limpar tabela alembic_version
+                            connection.execute(text("DELETE FROM alembic_version"))
+                            connection.commit()
+                            logging.info("✅ Tabela alembic_version limpa")
+                    
+                    # Tentar aplicar migrações novamente
+                    result = subprocess.run(['alembic', 'upgrade', 'head'], 
+                                          capture_output=True, text=True, timeout=60)
+                    if result.returncode == 0:
+                        logging.info("✅ Migrações aplicadas com sucesso após limpeza")
+                    else:
+                        logging.warning(f"⚠️ Migração ainda falhou após limpeza: {result.stderr}")
+                except Exception as fix_error:
+                    logging.error(f"❌ Erro ao limpar alembic_version: {fix_error}")
+            
             # If migration fails due to duplicate table, mark migration as completed
-            if "already exists" in result.stderr or "DuplicateTable" in result.stderr:
+            elif "already exists" in result.stderr or "DuplicateTable" in result.stderr:
                 logging.info("🔧 Tabela já existe - marcando migração como concluída...")
                 try:
                     from fix_migration_categorias_obra import fix_categorias_obra_migration
@@ -46,7 +70,8 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):
                         from sqlalchemy import text
                         with app.app_context():
                             with db.engine.connect() as connection:
-                                connection.execute(text("UPDATE alembic_version SET version_num = '20250929_2303'"))
+                                connection.execute(text("DELETE FROM alembic_version"))
+                                connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('a4d5b6d9c0ca')"))
                                 connection.commit()
                                 logging.info("✅ Migração marcada como concluída via fallback")
                 except Exception as fix_error:
