@@ -10,6 +10,7 @@ import time
 import logging
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
+from sqlalchemy import text
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -92,7 +93,7 @@ try:
     login_manager.init_app(app)
     mail.init_app(app)
     csrf.init_app(app)
-    
+
     # Configure CORS for geolocation and API calls
     # Restringir origins para segurança - permitir apenas domínios conhecidos
     import re
@@ -102,19 +103,19 @@ try:
         "http://localhost:5000",
         "http://127.0.0.1:5000"
     ]
-    
+
     # Se estiver no ambiente Replit, adicionar domínio Replit
     if os.environ.get("REPL_SLUG") and os.environ.get("REPL_OWNER"):
         replit_domain = f"https://{os.environ['REPL_SLUG']}.{os.environ['REPL_OWNER']}.repl.co"
         allowed_origins.append(replit_domain)
-    
+
     CORS(app, 
          supports_credentials=True, 
          resources={
              r"/api/*": {"origins": allowed_origins},
              r"/save_location": {"origins": allowed_origins}
          })
-    
+
     logging.info("✅ Flask extensions initialized successfully")
 except Exception as e:
     logging.error(f"❌ Error initializing Flask extensions: {e}")
@@ -139,7 +140,7 @@ def load_user(user_id):
 def enforce_https():
     """Redirecionar para HTTPS em produção (Railway)"""
     from flask import request, redirect
-    
+
     # Apenas em produção (Railway)
     if os.environ.get("RAILWAY_ENVIRONMENT"):
         # Verificar se a requisição não é HTTPS
@@ -147,12 +148,12 @@ def enforce_https():
             # Permitir health checks sem HTTPS
             if request.path in ['/health', '/health/']:
                 return None
-            
+
             # Redirecionar para HTTPS
             url = request.url.replace('http://', 'https://', 1)
             logging.info(f"🔒 Redirecionando para HTTPS: {url}")
             return redirect(url, code=301)
-    
+
     return None
 
 # Create upload directory
@@ -168,7 +169,7 @@ def create_admin_user_safe():
         try:
             # Force rollback any pending transactions
             db.session.rollback()
-            
+
             # Attempt to create admin user
             existing_admin = User.query.filter_by(is_master=True).first()
             if not existing_admin:
@@ -212,7 +213,7 @@ def create_default_checklists():
     try:
         # Force rollback any pending transactions
         db.session.rollback()
-        
+
         # Verificar se já existem itens
         count = ChecklistPadrao.query.filter_by(ativo=True).count()
         if count >= 6:
@@ -275,7 +276,7 @@ def create_default_legendas():
             admin_user = User.query.filter_by(is_master=True).first()
         except Exception:
             admin_user = None
-            
+
         if not admin_user:
             logging.error("❌ Admin user não encontrado - usando ID 1")
             admin_user_id = 1  # Usar ID direto
@@ -420,17 +421,17 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
         with app.app_context():
             # Models will be imported by routes.py
             # import models  # noqa: F401
-            
+
             # Test database connection first
             try:
-                from sqlalchemy import text
+                
                 with db.engine.connect() as connection:
                     connection.execute(text("SELECT 1"))
                 logging.info("✅ Database connection successful")
             except Exception as conn_error:
                 logging.error(f"❌ Database connection failed: {conn_error}")
                 raise
-            
+
             # Create tables with retries
             max_retries = 3
             for attempt in range(max_retries):
@@ -444,11 +445,11 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
                         time.sleep(2)
                     else:
                         raise
-            
+
             # Create admin user
             create_admin_user_safe()
             create_default_checklists()
-            
+
             # Test reports route functionality
             logging.info("🧪 Testing reports functionality...")
             try:
@@ -457,43 +458,34 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
                 logging.info(f"✅ Reports table accessible: {test_count} reports found")
             except Exception as test_error:
                 logging.warning(f"⚠️ Reports test failed: {test_error}")
-            
+
             # Fix migration state issues
             logging.info("🔧 Checking and fixing migration state...")
             try:
                 import sqlalchemy as sa
-                
+
                 inspector = sa.inspect(db.engine)
                 table_names = inspector.get_table_names()
-                
+
                 if 'user_email_config' in table_names:
                     logging.info("🔧 Found existing user_email_config table, ensuring migration state is correct")
-                    
+
                     # Ensure alembic_version table exists and is up to date
                     if 'alembic_version' in table_names:
-                        # Check current version
+                        # Verificar versão atual (sem forçar mudança)
                         with db.engine.connect() as connection:
                             result = connection.execute(text("SELECT version_num FROM alembic_version")).fetchone()
-                            if result and result[0] != '20250929_2303':
-                                connection.execute(text("UPDATE alembic_version SET version_num = '20250929_2303'"))
-                                connection.commit()
-                                logging.info("✅ Updated alembic_version to latest migration")
+                            if result:
+                                logging.info(f"✅ Alembic version atual: {result[0]}")
                     else:
-                        # Create alembic_version table
-                        with db.engine.connect() as connection:
-                            connection.execute(text(
-                                "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, "
-                                "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
-                            ))
-                            connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('20250929_2303')"))
-                            connection.commit()
-                            logging.info("✅ Created alembic_version table with latest migration")
-                        
+                        # Tabela alembic_version não existe - será criada pelo Alembic
+                        logging.info("ℹ️ Alembic version table will be created by migration system")
+
             except Exception as migration_fix_error:
                 logging.warning(f"⚠️ Migration fix attempt failed: {migration_fix_error}")
-            
+
             logging.info("✅ RAILWAY DATABASE INITIALIZATION COMPLETE")
-            
+
     except Exception as e:
         logging.error(f"❌ Railway database initialization error: {e}")
         logging.info("🔄 Continuing with limited functionality...")

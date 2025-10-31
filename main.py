@@ -25,10 +25,12 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):
                     
                     if check_result:
                         logging.warning("⚠️ Migração antiga detectada (20250929_2303) - corrigindo...")
-                        connection.execute(text("TRUNCATE TABLE alembic_version"))
-                        connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('a4d5b6d9c0ca')"))
+                        connection.execute(text("DELETE FROM alembic_version WHERE version_num = '20250929_2303'"))
+                        connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('a4d5b6d9c0ca') ON CONFLICT DO NOTHING"))
                         logging.info("✅ alembic_version corrigido ANTES das migrações")
                     else:
+                        # Garantir que a versão correta existe
+                        connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('a4d5b6d9c0ca') ON CONFLICT DO NOTHING"))
                         logging.info("✅ alembic_version está correto")
         except Exception as fix_error:
             logging.warning(f"⚠️ Erro ao verificar alembic_version: {fix_error}")
@@ -58,9 +60,9 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):
                     with app.app_context():
                         engine = db.engine.execution_options(isolation_level="AUTOCOMMIT")
                         with engine.connect() as connection:
-                            connection.execute(text("TRUNCATE TABLE alembic_version"))
+                            connection.execute(text("DELETE FROM alembic_version"))
                             connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('a4d5b6d9c0ca')"))
-                            logging.info("✅ Migração forçada para a4d5b6d9c0ca")
+                            logging.info("✅ Migração forçada DEFINITIVA para a4d5b6d9c0ca")
                 except Exception as final_fix:
                     logging.error(f"❌ Erro na correção final: {final_fix}")
                     
