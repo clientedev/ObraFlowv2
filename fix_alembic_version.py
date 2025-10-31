@@ -38,15 +38,15 @@ def fix_alembic_version():
             logging.info("✅ Tabela alembic_version limpa")
             
             # 3. Inserir APENAS a versão atual
-            logging.info("📝 Inserindo migração atual (a4d5b6d9c0ca)...")
+            logging.info("📝 Inserindo migração atual (265f97ab88c1)...")
             connection.execute(text(
-                "INSERT INTO alembic_version (version_num) VALUES ('a4d5b6d9c0ca')"
+                "INSERT INTO alembic_version (version_num) VALUES ('265f97ab88c1')"
             ))
-            logging.info("✅ Migração a4d5b6d9c0ca marcada como aplicada")
+            logging.info("✅ Migração 265f97ab88c1 marcada como aplicada")
             
             # 4. Verificar resultado final
             result = connection.execute(text("SELECT version_num FROM alembic_version")).fetchone()
-            if result and result[0] == 'a4d5b6d9c0ca':
+            if result and result[0] == '265f97ab88c1':
                 logging.info("✅ Verificação: alembic_version corrigida com sucesso!")
                 logging.info(f"   Versão atual: {result[0]}")
                 return True

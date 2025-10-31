@@ -20,18 +20,18 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):
                 engine = db.engine.execution_options(isolation_level="AUTOCOMMIT")
                 with engine.connect() as connection:
                     check_result = connection.execute(
-                        text("SELECT version_num FROM alembic_version WHERE version_num = '20250929_2303'")
+                        text("SELECT version_num FROM alembic_version WHERE version_num IN ('20250929_2303', 'a4d5b6d9c0ca')")
                     ).fetchone()
                     
                     if check_result:
-                        logging.warning("⚠️ Migração antiga detectada (20250929_2303) - corrigindo...")
-                        connection.execute(text("DELETE FROM alembic_version WHERE version_num = '20250929_2303'"))
-                        connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('a4d5b6d9c0ca') ON CONFLICT DO NOTHING"))
-                        logging.info("✅ alembic_version corrigido ANTES das migrações")
+                        logging.warning(f"⚠️ Migração antiga detectada ({check_result[0]}) - corrigindo...")
+                        connection.execute(text("DELETE FROM alembic_version"))
+                        connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('265f97ab88c1')"))
+                        logging.info("✅ alembic_version corrigido para 265f97ab88c1 ANTES das migrações")
                     else:
                         # Garantir que a versão correta existe
-                        connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('a4d5b6d9c0ca') ON CONFLICT DO NOTHING"))
-                        logging.info("✅ alembic_version está correto")
+                        connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('265f97ab88c1') ON CONFLICT DO NOTHING"))
+                        logging.info("✅ alembic_version está correto (265f97ab88c1)")
         except Exception as fix_error:
             logging.warning(f"⚠️ Erro ao verificar alembic_version: {fix_error}")
         
@@ -61,8 +61,8 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):
                         engine = db.engine.execution_options(isolation_level="AUTOCOMMIT")
                         with engine.connect() as connection:
                             connection.execute(text("DELETE FROM alembic_version"))
-                            connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('a4d5b6d9c0ca')"))
-                            logging.info("✅ Migração forçada DEFINITIVA para a4d5b6d9c0ca")
+                            connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('265f97ab88c1')"))
+                            logging.info("✅ Migração forçada DEFINITIVA para 265f97ab88c1")
                 except Exception as final_fix:
                     logging.error(f"❌ Erro na correção final: {final_fix}")
                     
