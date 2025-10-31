@@ -11,6 +11,11 @@ Report forms: Location section removed from report creation/editing interface (g
 - **Push Notifications**: Integrado Firebase FCM para envio de push notifications em eventos de aprovação e rejeição de relatórios. Requer configuração da variável de ambiente FIREBASE_CREDENTIALS_JSON.
 - **Scheduler de Limpeza Automática**: Adicionado APScheduler com tarefas periódicas para remover notificações expiradas (>24h) automaticamente a cada 6 horas e diariamente às 3h da manhã.
 - **Service Worker**: Configurado para receber e exibir push notifications com estratégia Network-First para garantir dados sempre atualizados do PostgreSQL.
+- **Correções no Sistema de Notificações**: 
+  - Adicionada notificação automática de "relatório pendente" quando relatórios são finalizados (status muda para "Aguardando Aprovação")
+  - Corrigidos links de destino nas notificações para usar URLs corretos (/projects/{id}, /reports/{id}/review)
+  - Implementada validação robusta de user_ids em criar_notificacao_obra_criada para prevenir IntegrityErrors quando projetos não têm responsável definido
+  - Sistema agora trata corretamente obras sem responsáveis, registrando warning ao invés de falhar silenciosamente
 
 # System Architecture
 
