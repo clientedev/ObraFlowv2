@@ -1,0 +1,70 @@
+PROMPT — FUNCIONALIDADES DO SISTEMA DE NOTIFICAÇÕES
+
+Implemente ou ajuste o sistema de notificações automáticas no backend Flask conforme as regras abaixo. O objetivo é garantir que cada tipo de evento gere a notificação correta, entregue ao destinatário certo e exibida corretamente na listagem.
+
+🔔 FUNCIONALIDADES PRINCIPAIS
+1. Obra criada
+
+Gatilho: Quando uma nova obra é criada no sistema.
+
+Ação: Criar automaticamente uma notificação do tipo obra_criada.
+
+Destinatários: Todos os usuários designados como responsáveis pela nova obra.
+
+Conteúdo da notificação:
+
+Título: Nova obra criada
+
+Mensagem: A obra "{nome_da_obra}" foi criada e você foi designado como responsável.
+
+link_destino: /obras/{id}
+
+Objetivo: Notificar todos os responsáveis assim que a obra for registrada, permitindo acesso rápido aos detalhes.
+
+2. Relatório pendente
+
+Gatilho: Quando um relatório é criado, mas ainda não foi aprovado.
+
+Ação: Gerar uma notificação do tipo relatorio_pendente.
+
+Destinatário: O usuário responsável por aprovar o relatório.
+
+Conteúdo da notificação:
+
+Título: Relatório pendente de aprovação
+
+Mensagem: O relatório "{titulo}" está aguardando sua aprovação.
+
+link_destino: /relatorios/{id}
+
+Objetivo: Garantir que o aprovador seja alertado imediatamente sobre novos relatórios pendentes.
+
+3. Relatório reprovado
+
+Gatilho: Quando um relatório é reprovado durante o fluxo de aprovação.
+
+Ação: Criar uma notificação do tipo relatorio_reprovado.
+
+Destinatário: O autor do relatório reprovado.
+
+Conteúdo da notificação:
+
+Título: Relatório reprovado
+
+Mensagem: Seu relatório "{titulo}" foi reprovado. Verifique as observações e corrija antes de reenviar.
+
+link_destino: /relatorios/{id}
+
+Objetivo: Avisar o autor para que ele possa revisar e reenviar o relatório.
+
+⚙️ REGRAS GERAIS
+
+As notificações devem ser salvas no banco de dados e listadas no endpoint /api/notificacoes.
+
+Cada notificação deve incluir: tipo, título, mensagem, data de criação, status (nova/lida) e link_destino.
+
+O endpoint /api/notificacoes deve retornar apenas as notificações do usuário autenticado.
+
+O endpoint PUT /api/notificacoes/{id}/ler deve atualizar o campo status e registrar a data em lida_em.
+
+O sistema deve garantir que nenhum erro de coluna inexistente (UndefinedColumn) ocorra durante a execução.
