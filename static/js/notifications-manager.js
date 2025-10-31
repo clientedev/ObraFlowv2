@@ -22,7 +22,7 @@ class NotificationsManager {
             this.markAllReadBtn = document.getElementById('markAllReadBtn');
             
             if (!this.bell) {
-                console.warn('⚠️ Elemento notificationBell não encontrado');
+                console.debug('ℹ️ Sistema de notificações: aguardando login do usuário');
                 return;
             }
             
