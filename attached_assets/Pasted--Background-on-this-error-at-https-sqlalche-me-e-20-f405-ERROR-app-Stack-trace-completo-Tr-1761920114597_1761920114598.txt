@@ -1,0 +1,59 @@
+
+(Background on this error at: https://sqlalche.me/e/20/f405)
+ERROR:app:❌ Stack trace completo: Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+    return meth(
+    cursor.execute(statement, parameters)
+psycopg2.errors.UndefinedColumn: column notificacoes.link_destino does not exist
+LINE 1: ...tipo, notificacoes.status AS notificacoes_status, notificaco...
+           ^^^^^
+                                                             ^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The above exception was the direct cause of the following exception:
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+Traceback (most recent call last):
+    ret = self._execute_context(
+  File "/app/routes.py", line 1165, in listar_notificacoes
+          ^^^^^^^^^^^^^^^^^^^^^^
+    ).order_by(Notificacao.created_at.desc()).all()
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+                                              ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 2704, in all
+    return self._exec_single_context(
+    return self._iter().all()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+           ^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+    self._handle_dbapi_exception(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2251, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedColumn) column notificacoes.link_destino does not exist
+LINE 1: ...tipo, notificacoes.status AS notificacoes_status, notificaco...
+                                                             ^
+[SQL: SELECT notificacoes.id AS notificacoes_id, notificacoes.relatorio_id AS notificacoes_relatorio_id, notificacoes.usuario_origem_id AS notificacoes_usuario_origem_id, notificacoes.usuario_destino_id AS notificacoes_usuario_destino_id, notificacoes.titulo AS notificacoes_titulo, notificacoes.mensagem AS notificacoes_mensagem, notificacoes.tipo AS notificacoes_tipo, notificacoes.status AS notificacoes_status, notificacoes.link_destino AS notificacoes_link_destino, notificacoes.email_enviado AS notificacoes_email_enviado, notificacoes.email_sucesso AS notificacoes_email_sucesso, notificacoes.email_erro AS notificacoes_email_erro, notificacoes.created_at AS notificacoes_created_at, notificacoes.expires_at AS notificacoes_expires_at, notificacoes.lida_em AS notificacoes_lida_em, notificacoes.push_enviado AS notificacoes_push_enviado, notificacoes.push_sucesso AS notificacoes_push_sucesso, notificacoes.push_erro AS notificacoes_push_erro 
+FROM notificacoes 
+WHERE notificacoes.usuario_destino_id = %(usuario_destino_id_1)s AND (notificacoes.expires_at IS NULL OR notificacoes.expires_at > %(expires_at_1)s) ORDER BY notificacoes.created_at DESC]
+[parameters: {'usuario_destino_id_1': 1, 'expires_at_1': datetime.datetime(2025, 10, 31, 14, 14, 48, 649783)}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+187.95.175.225 - - [31/Oct/2025:14:14:48 +0000] "GET /api/notificacoes HTTP/1.1" 500 86 "https://elpconsultoria.pro/" "Mozilla/5.0 (Windows NT 10.0; W
