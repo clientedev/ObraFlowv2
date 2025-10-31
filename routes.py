@@ -3,6 +3,7 @@ import uuid
 import io
 import hashlib
 import mimetypes
+import traceback
 from datetime import datetime, date, timedelta
 from urllib.parse import urlparse
 from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response, session, Response, abort, send_file
@@ -1157,10 +1158,23 @@ def listar_notificacoes():
         
         now = datetime.utcnow()
         
-        notificacoes = Notificacao.query.filter(
-            Notificacao.usuario_destino_id == current_user.id,
-            (Notificacao.expires_at == None) | (Notificacao.expires_at > now)
-        ).order_by(Notificacao.created_at.desc()).all()
+        try:
+            notificacoes = Notificacao.query.filter(
+                Notificacao.usuario_destino_id == current_user.id,
+                (Notificacao.expires_at == None) | (Notificacao.expires_at > now)
+            ).order_by(Notificacao.created_at.desc()).all()
+        except Exception as db_error:
+            current_app.logger.error(f"❌ Erro SQL ao buscar notificações: {db_error}")
+            current_app.logger.error(f"❌ Stack trace: {traceback.format_exc()}")
+            
+            if 'UndefinedColumn' in str(type(db_error).__name__):
+                current_app.logger.error(f"❌ Coluna indefinida detectada. Verificar schema do banco de dados.")
+                return jsonify({
+                    'success': False, 
+                    'error': 'Erro de schema no banco de dados. Por favor, contate o administrador.',
+                    'details': str(db_error)
+                }), 500
+            raise
         
         notificacoes_json = []
         nao_lidas = 0
@@ -1191,7 +1205,8 @@ def listar_notificacoes():
     
     except Exception as e:
         current_app.logger.error(f"❌ Erro ao listar notificações: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.error(f"❌ Stack trace completo: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': 'Erro ao carregar notificações. Tente novamente.'}), 500
 
 @app.route('/api/notificacoes/marcar-lida', methods=['POST'])
 @login_required
