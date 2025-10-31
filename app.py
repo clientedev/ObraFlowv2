@@ -392,8 +392,8 @@ def init_database():
     """Initialize database tables and default data"""
     try:
         with app.app_context():
-            # Make sure to import the models here or their tables won't be created
-            import models  # noqa: F401
+            # Models will be imported by routes.py
+            # import models  # noqa: F401
 
             # Quick database setup for Railway
             db.create_all()
@@ -416,7 +416,8 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
     logging.info("🚂 Railway environment detected - initializing database")
     try:
         with app.app_context():
-            import models  # noqa: F401
+            # Models will be imported by routes.py
+            # import models  # noqa: F401
             
             # Test database connection first
             try:
@@ -496,17 +497,17 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
         logging.info("🔄 Continuing with limited functionality...")
 elif os.environ.get("DATABASE_URL"):
     # Other cloud environments (Replit, etc.)
-    logging.info("☁️ Cloud environment detected - initializing database")
-    try:
-        with app.app_context():
-            import models  # noqa: F401
-            db.create_all()
-            logging.info("Database tables created successfully.")
-            create_admin_user_safe()
-            create_default_checklists()
-            logging.info("✅ CLOUD DATABASE INITIALIZATION COMPLETE")
-    except Exception as e:
-        logging.error(f"Database initialization error: {e}")
+    logging.info("☁️ Cloud environment detected - database initialization will be done after routes import")
+    # Database initialization moved to after routes import to avoid circular dependency
+    # try:
+    #     with app.app_context():
+    #         db.create_all()
+    #         logging.info("Database tables created successfully.")
+    #         create_admin_user_safe()
+    #         create_default_checklists()
+    #         logging.info("✅ CLOUD DATABASE INITIALIZATION COMPLETE")
+    # except Exception as e:
+    #     logging.error(f"Database initialization error: {e}")
 else:
     # Local development initialization
     logging.info("💻 Local environment detected - initializing database")

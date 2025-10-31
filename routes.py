@@ -20,7 +20,7 @@ from models import (
     ComunicacaoVisita, EmailCliente, ChecklistPadrao,
     ChecklistObra, FuncionarioProjeto, AprovadorPadrao, ProjetoChecklistConfig,
     LogEnvioEmail, ConfiguracaoEmail, RelatorioExpress, FotoRelatorioExpress,
-    VisitaParticipante, TipoObra, CategoriaObra
+    VisitaParticipante, TipoObra, CategoriaObra, Notificacao
 )
 
 # Health check endpoint for Railway deployment - LIGHTWEIGHT VERSION
@@ -1151,17 +1151,13 @@ def get_nearby_projects():
 @app.route('/api/notificacoes')
 @login_required
 def listar_notificacoes():
-    """Listar notificações do usuário autenticado (apenas não expiradas)"""
+    """Listar notificações do usuário autenticado"""
     try:
-        from datetime import datetime
         from notification_service import notification_service
-        
-        now = datetime.utcnow()
         
         try:
             notificacoes = Notificacao.query.filter(
-                Notificacao.usuario_destino_id == current_user.id,
-                (Notificacao.expires_at == None) | (Notificacao.expires_at > now)
+                Notificacao.user_id == current_user.id
             ).order_by(Notificacao.created_at.desc()).all()
         except Exception as db_error:
             current_app.logger.error(f"❌ Erro SQL ao buscar notificações: {db_error}")
@@ -1180,7 +1176,7 @@ def listar_notificacoes():
         nao_lidas = 0
         
         for notif in notificacoes:
-            if notif.status == 'nao_lida':
+            if notif.status == 'nova':
                 nao_lidas += 1
             
             notificacoes_json.append({
@@ -1192,8 +1188,7 @@ def listar_notificacoes():
                 'status': notif.status,
                 'link_destino': notif.link_destino,
                 'created_at': notif.created_at.isoformat() if notif.created_at else None,
-                'lida_em': notif.lida_em.isoformat() if notif.lida_em else None,
-                'relatorio_id': notif.relatorio_id
+                'lida_em': notif.lida_em.isoformat() if notif.lida_em else None
             })
         
         return jsonify({
@@ -1270,22 +1265,22 @@ def salvar_fcm_token():
         current_app.logger.error(f"❌ Erro ao salvar FCM token: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/notificacoes/limpar-expiradas', methods=['DELETE'])
+@app.route('/api/notificacoes/<int:notificacao_id>/ler', methods=['PUT'])
 @login_required
-def limpar_notificacoes_expiradas():
-    """Limpar notificações expiradas (apenas master users podem executar)"""
+def marcar_notificacao_lida_put(notificacao_id):
+    """Marcar uma notificação como lida usando PUT"""
     try:
-        if not current_user.is_master:
-            return jsonify({'success': False, 'error': 'Apenas administradores podem executar esta ação'}), 403
-        
         from notification_service import notification_service
         
-        resultado = notification_service.limpar_notificacoes_expiradas()
+        resultado = notification_service.marcar_como_lida(notificacao_id, current_user.id)
         
-        return jsonify(resultado)
+        if resultado['success']:
+            return jsonify({'success': True})
+        else:
+            return jsonify(resultado), 404
     
     except Exception as e:
-        current_app.logger.error(f"❌ Erro ao limpar notificações expiradas: {e}")
+        current_app.logger.error(f"❌ Erro ao marcar notificação como lida: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/update_fcm_token', methods=['POST'])
@@ -3374,29 +3369,21 @@ def approve_report(id):
         relatorio.aprovado_por = current_user.id
         relatorio.data_aprovacao = datetime.utcnow()
         
-        # 2. Criar notificação interna para o autor
-        from models import Notificacao
-        link_relatorio = f"{request.host_url}reports/{relatorio.id}/review"
-        titulo = f"Relatório {relatorio.numero} aprovado"
-        mensagem = f"""Olá {autor.nome_completo},
-O relatório {relatorio.numero} referente à obra {projeto.nome} foi aprovado por {aprovador.nome_completo}.
-Clique abaixo para acessar o relatório:
-{link_relatorio}"""
-        
-        notificacao = Notificacao(
-            relatorio_id=relatorio.id,
-            usuario_origem_id=aprovador.id,
-            usuario_destino_id=autor.id,
-            titulo=titulo,
-            mensagem=mensagem,
-            tipo='aprovado',
-            status='nao_lida',
-            link_destino=url_for('review_report', report_id=relatorio.id)
-        )
-        db.session.add(notificacao)
-        
-        # 3. COMMIT ÚNICO de todas as alterações do banco
+        # 2. COMMIT ÚNICO de todas as alterações do banco
         db.session.commit()
+        
+        # 3. Criar notificação para o autor usando o novo serviço
+        from notification_service import notification_service
+        try:
+            notification_service.criar_notificacao(
+                user_id=autor.id,
+                tipo='relatorio_aprovado',
+                titulo=f"Relatório {relatorio.numero} aprovado",
+                mensagem=f'O relatório "{relatorio.titulo}" referente à obra {projeto.nome} foi aprovado por {aprovador.nome_completo}.',
+                link_destino=url_for('review_report', report_id=relatorio.id)
+            )
+        except Exception as notif_error:
+            current_app.logger.error(f"⚠️ Erro ao criar notificação de aprovação: {notif_error}")
         
         # 4. Enviar push notification após commit
         from notification_service import notification_service
@@ -3561,44 +3548,15 @@ def reject_report(id):
         relatorio.data_aprovacao = datetime.utcnow()
         relatorio.comentario_aprovacao = comentario.strip()
 
-        # Criar notificação interna para o autor
-        from models import Notificacao
-        from notification_service import notification_service
-        
-        link_relatorio = f"{request.host_url}reports/{relatorio.id}/review"
-        titulo = f"Relatório {relatorio.numero} reprovado"
-        mensagem = f"""Olá {autor.nome_completo},
-O relatório {relatorio.numero} referente à obra {projeto_nome} foi reprovado por {aprovador.nome_completo}.
-
-Motivo: {comentario.strip()}
-
-Clique abaixo para editar o relatório:
-{link_relatorio}"""
-        
-        notificacao = Notificacao(
-            relatorio_id=relatorio.id,
-            usuario_origem_id=aprovador.id,
-            usuario_destino_id=autor.id,
-            titulo=titulo,
-            mensagem=mensagem,
-            tipo='rejeitado',
-            status='nao_lida',
-            link_destino=url_for('review_report', report_id=relatorio.id)
-        )
-        db.session.add(notificacao)
-        
         # Commit único de todas as alterações
         db.session.commit()
         
-        # Enviar push notification
-        if autor.fcm_token:
-            notification_service.enviar_push_notification(
-                token=autor.fcm_token,
-                titulo=titulo,
-                corpo=f"Motivo: {comentario.strip()[:100]}",
-                link=url_for('review_report', report_id=relatorio.id),
-                tipo='rejeitado'
-            )
+        # Criar notificação para o autor usando o novo serviço
+        from notification_service import notification_service
+        try:
+            notification_service.criar_notificacao_relatorio_reprovado(relatorio.id)
+        except Exception as notif_error:
+            current_app.logger.error(f"⚠️ Erro ao criar notificação de reprovação: {notif_error}")
         
         current_app.logger.info(f"✅ Relatório {relatorio.numero} rejeitado com sucesso - Notificação criada")
         
@@ -3748,19 +3706,9 @@ Clique abaixo para acessar o relatório:
 {link_relatorio}"""
             
             try:
-                # Criar notificação interna
-                notificacao = Notificacao(
-                    relatorio_id=relatorio.id,
-                    usuario_origem_id=autor.id,
-                    usuario_destino_id=aprovador.id,
-                    titulo=titulo,
-                    mensagem=mensagem,
-                    tipo='enviado_para_aprovacao',
-                    status='nao_lida'
-                )
-                db.session.add(notificacao)
-                db.session.commit()
-                
+                # Criar notificação interna usando o novo serviço
+                from notification_service import notification_service
+                notification_service.criar_notificacao_relatorio_pendente(relatorio.id)
                 current_app.logger.info(f"✅ Notificação criada para aprovador {aprovador.nome_completo}")
                 
                 # Enviar e-mail ao aprovador
@@ -3771,13 +3719,6 @@ Clique abaixo para acessar o relatório:
                     autor,
                     current_user.id
                 )
-                
-                # Atualizar status do e-mail na notificação
-                notificacao.email_enviado = True
-                notificacao.email_sucesso = resultado_email['success']
-                if not resultado_email['success']:
-                    notificacao.email_erro = resultado_email.get('error', 'Erro desconhecido')
-                db.session.commit()
                 
                 if resultado_email['success']:
                     current_app.logger.info(f"✅ E-mail de notificação enviado para {aprovador.email}")
@@ -4583,6 +4524,16 @@ def project_new():
             db.session.commit()
             print(f"🔍 DEBUG: Trying to save projeto: {projeto.nome}")
             print(f"✅ DEBUG: Projeto saved successfully!")
+            
+            # Criar notificações de obra criada apenas para novos projetos
+            if not existing_project:
+                from notification_service import notification_service
+                try:
+                    notification_service.criar_notificacao_obra_criada(projeto.id)
+                    current_app.logger.info(f"✅ Notificações de obra criada enviadas para projeto {projeto.id}")
+                except Exception as notif_error:
+                    current_app.logger.error(f"⚠️ Erro ao criar notificações de obra criada: {notif_error}")
+            
             return redirect(url_for('projects_list'))
         except Exception as e:
             print(f"❌ DEBUG: Error saving projeto: {e}")

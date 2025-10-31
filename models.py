@@ -734,6 +734,7 @@ class ProjetoChecklistConfig(db.Model):
 class Notificacao(db.Model):
     """Modelo para notificações automáticas do sistema"""
     __tablename__ = 'notificacoes'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
@@ -746,7 +747,7 @@ class Notificacao(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
     # Relacionamento
-    usuario = db.relationship('User', backref=db.backref('notificacoes', lazy='dynamic', order_by='Notificacao.created_at.desc()'))
+    usuario = db.relationship('User', foreign_keys=[user_id], backref=db.backref('notificacoes', lazy='dynamic', order_by='Notificacao.created_at.desc()'))
     
     def to_dict(self):
         """Serializa a notificação para dicionário JSON-compatível"""
