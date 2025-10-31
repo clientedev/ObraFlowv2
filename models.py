@@ -730,3 +730,41 @@ class ProjetoChecklistConfig(db.Model):
 
     def __repr__(self):
         return f"<ProjetoChecklistConfig {self.projeto.nome}: {self.tipo_checklist}>"
+
+class Notificacao(db.Model):
+    """Modelo para notificações automáticas do sistema"""
+    __tablename__ = 'notificacoes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    tipo = db.Column(db.String(50), nullable=False)  # obra_criada, relatorio_pendente, relatorio_reprovado
+    titulo = db.Column(db.String(200), nullable=False)
+    mensagem = db.Column(db.Text, nullable=False)
+    link_destino = db.Column(db.String(500), nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='nova')  # nova, lida
+    lida_em = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relacionamento
+    usuario = db.relationship('User', backref=db.backref('notificacoes', lazy='dynamic', order_by='Notificacao.created_at.desc()'))
+    
+    def to_dict(self):
+        """Serializa a notificação para dicionário JSON-compatível"""
+        return {
+            'id': self.id,
+            'tipo': self.tipo,
+            'titulo': self.titulo,
+            'mensagem': self.mensagem,
+            'link_destino': self.link_destino,
+            'status': self.status,
+            'lida_em': self.lida_em.isoformat() if self.lida_em else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+    
+    def marcar_como_lida(self):
+        """Marca a notificação como lida"""
+        self.status = 'lida'
+        self.lida_em = datetime.utcnow()
+    
+    def __repr__(self):
+        return f'<Notificacao {self.tipo} para user {self.user_id}>'
