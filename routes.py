@@ -2954,6 +2954,17 @@ def create_report():
                 
                 db.session.commit()
                 
+                # Criar notificação de relatório pendente para o aprovador
+                if relatorio.aprovador_id:
+                    from notification_service import notification_service
+                    try:
+                        notification_service.criar_notificacao_relatorio_pendente(relatorio.id)
+                        current_app.logger.info(f"✅ Notificação de relatório pendente criada para aprovador {relatorio.aprovador_id}")
+                    except Exception as notif_error:
+                        current_app.logger.error(f"⚠️ Erro ao criar notificação de relatório pendente: {notif_error}")
+                else:
+                    current_app.logger.warning(f"⚠️ Relatório {relatorio.id} finalizado sem aprovador designado - notificação não criada")
+                
                 if True:
                     current_app.logger.info(f"✅ Relatório {relatorio.numero} FINALIZADO sem duplicados")
 

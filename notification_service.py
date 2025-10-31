@@ -133,7 +133,7 @@ class NotificationService:
                     tipo='obra_criada',
                     titulo='Nova obra criada',
                     mensagem=f'A obra "{projeto.nome}" foi criada e você foi designado como responsável.',
-                    link_destino=f'/obras/{projeto_id}'
+                    link_destino=f'/projects/{projeto_id}'
                 )
                 
                 if resultado['success']:
@@ -170,7 +170,7 @@ class NotificationService:
                 tipo='relatorio_pendente',
                 titulo='Relatório pendente de aprovação',
                 mensagem=f'O relatório "{relatorio.titulo}" está aguardando sua aprovação.',
-                link_destino=f'/relatorios/{relatorio_id}'
+                link_destino=f'/reports/{relatorio_id}/review'
             )
             
             return resultado
@@ -199,7 +199,7 @@ class NotificationService:
                 tipo='relatorio_reprovado',
                 titulo='Relatório reprovado',
                 mensagem=f'Seu relatório "{relatorio.titulo}" foi reprovado. Verifique as observações e corrija antes de reenviar.',
-                link_destino=f'/relatorios/{relatorio_id}'
+                link_destino=f'/reports/{relatorio_id}/review'
             )
             
             return resultado
