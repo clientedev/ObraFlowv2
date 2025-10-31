@@ -515,41 +515,7 @@ class LogEnvioEmail(db.Model):
     relatorio = db.relationship('Relatorio', backref='logs_envio_email')
     usuario = db.relationship('User', backref='logs_envio_email')
 
-class Notificacao(db.Model):
-    __tablename__ = 'notificacoes'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=True)
-    usuario_origem_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    usuario_destino_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    titulo = db.Column(db.String(300), nullable=False)
-    mensagem = db.Column(db.Text, nullable=False)
-    tipo = db.Column(db.String(50), nullable=False)  # 'obra_criada', 'relatorio_pendente', 'aprovado', 'rejeitado', 'enviado_para_aprovacao'
-    status = db.Column(db.String(50), default='nao_lida')  # 'lida', 'nao_lida'
-    link_destino = db.Column(db.String(255), nullable=True)
-    email_enviado = db.Column(db.Boolean, default=False)
-    email_sucesso = db.Column(db.Boolean, nullable=True)
-    email_erro = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    expires_at = db.Column(db.DateTime, nullable=True)
-    lida_em = db.Column(db.DateTime, nullable=True)
-    push_enviado = db.Column(db.Boolean, default=False)
-    push_sucesso = db.Column(db.Boolean, nullable=True)
-    push_erro = db.Column(db.Text, nullable=True)
-    
-    # Relacionamentos
-    relatorio = db.relationship('Relatorio', backref='notificacoes')
-    usuario_origem = db.relationship('User', foreign_keys=[usuario_origem_id], backref='notificacoes_enviadas')
-    usuario_destino = db.relationship('User', foreign_keys=[usuario_destino_id], backref='notificacoes_recebidas')
-    
-    def __init__(self, **kwargs):
-        super(Notificacao, self).__init__(**kwargs)
-        if self.created_at and not self.expires_at:
-            from datetime import timedelta
-            self.expires_at = self.created_at + timedelta(hours=24)
-    
-    def __repr__(self):
-        return f'<Notificacao {self.tipo} - ID {self.id}>'
+
 
 class ConfiguracaoEmail(db.Model):
     __tablename__ = 'configuracao_email'
@@ -737,17 +703,36 @@ class Notificacao(db.Model):
     __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
+    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    tipo = db.Column(db.String(50), nullable=False)  # obra_criada, relatorio_pendente, relatorio_reprovado
-    titulo = db.Column(db.String(200), nullable=False)
+    usuario_origem_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    usuario_destino_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    tipo = db.Column(db.String(50), nullable=False)  # obra_criada, relatorio_pendente, relatorio_reprovado, aprovado, rejeitado
+    titulo = db.Column(db.String(300), nullable=False)
     mensagem = db.Column(db.Text, nullable=False)
     link_destino = db.Column(db.String(500), nullable=True)
-    status = db.Column(db.String(20), nullable=False, default='nova')  # nova, lida
+    status = db.Column(db.String(50), default='nao_lida')  # nova, lida, nao_lida
     lida_em = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    email_enviado = db.Column(db.Boolean, default=False)
+    email_sucesso = db.Column(db.Boolean, nullable=True)
+    email_erro = db.Column(db.Text, nullable=True)
+    push_enviado = db.Column(db.Boolean, default=False)
+    push_sucesso = db.Column(db.Boolean, nullable=True)
+    push_erro = db.Column(db.Text, nullable=True)
     
-    # Relacionamento
+    # Relacionamentos
+    relatorio = db.relationship('Relatorio', backref='notificacoes', foreign_keys=[relatorio_id])
     usuario = db.relationship('User', foreign_keys=[user_id], backref=db.backref('notificacoes', lazy='dynamic', order_by='Notificacao.created_at.desc()'))
+    usuario_origem = db.relationship('User', foreign_keys=[usuario_origem_id], backref='notificacoes_enviadas')
+    usuario_destino = db.relationship('User', foreign_keys=[usuario_destino_id], backref='notificacoes_recebidas')
+    
+    def __init__(self, **kwargs):
+        super(Notificacao, self).__init__(**kwargs)
+        if self.created_at and not self.expires_at:
+            from datetime import timedelta
+            self.expires_at = self.created_at + timedelta(hours=24)
     
     def to_dict(self):
         """Serializa a notificação para dicionário JSON-compatível"""
@@ -768,4 +753,4 @@ class Notificacao(db.Model):
         self.lida_em = datetime.utcnow()
     
     def __repr__(self):
-        return f'<Notificacao {self.tipo} para user {self.user_id}>'
+        return f'<Notificacao {self.tipo} - ID {self.id}>'

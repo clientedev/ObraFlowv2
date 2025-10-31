@@ -14,9 +14,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
+# Declarative Base - Instância única para todo o projeto
 class Base(DeclarativeBase):
     pass
 
+# SQLAlchemy database instance - Instância única compartilhada
 db = SQLAlchemy(model_class=Base)
 login_manager = LoginManager()
 mail = Mail()
