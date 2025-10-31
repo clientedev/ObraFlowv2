@@ -45,12 +45,6 @@ def fix_user_email_config_table():
             final_columns = {col['name'] for col in inspector.get_columns('user_email_config')}
             logging.info(f"✅ Colunas finais: {final_columns}")
             
-            # Atualizar alembic_version para a migração correta
-            with db.engine.connect() as connection:
-                connection.execute(text("UPDATE alembic_version SET version_num = '20250929_2303'"))
-                connection.commit()
-                logging.info("✅ alembic_version atualizada para 20250929_2303")
-            
             return True
             
         except Exception as e:

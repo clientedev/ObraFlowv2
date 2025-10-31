@@ -1,8 +1,8 @@
 
 #!/usr/bin/env python3
 """
-Script DEFINITIVO para corrigir a tabela alembic_version no Railway
-Remove referências a migrações antigas e marca a migração atual como aplicada
+DEPRECATED: Este script não deve mais ser usado.
+As migrações são agora gerenciadas automaticamente pelo Alembic.
 """
 
 import os
@@ -61,17 +61,9 @@ def fix_alembic_version():
         return False
 
 if __name__ == "__main__":
-    logging.info("=" * 60)
-    logging.info("🚀 Iniciando correção DEFINITIVA do alembic_version...")
-    logging.info("=" * 60)
-    
-    if fix_alembic_version():
-        logging.info("=" * 60)
-        logging.info("🎉 Correção concluída com sucesso!")
-        logging.info("💡 A migração está corrigida permanentemente")
-        logging.info("🚀 Você pode fazer deploy/restart agora")
-        logging.info("=" * 60)
-    else:
-        logging.error("=" * 60)
-        logging.error("❌ Correção falhou - verifique os logs acima")
-        logging.error("=" * 60)
+    logging.warning("=" * 60)
+    logging.warning("⚠️ ESTE SCRIPT ESTÁ DEPRECATED")
+    logging.warning("⚠️ As migrações são gerenciadas automaticamente pelo Alembic")
+    logging.warning("⚠️ Use: alembic upgrade head")
+    logging.warning("=" * 60)
+    exit(1)
