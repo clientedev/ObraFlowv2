@@ -112,8 +112,9 @@ class NotificationService:
             # Obter todos os responsáveis pela obra
             responsaveis_ids = set()
             
-            # Adicionar responsável principal
-            responsaveis_ids.add(projeto.responsavel_id)
+            # Adicionar responsável principal apenas se existir e for válido
+            if projeto.responsavel_id is not None:
+                responsaveis_ids.add(projeto.responsavel_id)
             
             # Adicionar funcionários responsáveis do projeto
             funcionarios = FuncionarioProjeto.query.filter_by(
@@ -122,8 +123,16 @@ class NotificationService:
             ).all()
             
             for func in funcionarios:
-                if func.user_id:
+                if func.user_id is not None:
                     responsaveis_ids.add(func.user_id)
+            
+            # Filtrar IDs inválidos (None, 0, negativos)
+            responsaveis_ids = {uid for uid in responsaveis_ids if uid and uid > 0}
+            
+            # Verificar se há responsáveis válidos
+            if not responsaveis_ids:
+                logger.warning(f"⚠️ Nenhum responsável válido encontrado para projeto {projeto_id}")
+                return {'success': True, 'count': 0, 'message': 'Nenhum responsável para notificar'}
             
             # Criar notificação para cada responsável
             notificacoes_criadas = 0
