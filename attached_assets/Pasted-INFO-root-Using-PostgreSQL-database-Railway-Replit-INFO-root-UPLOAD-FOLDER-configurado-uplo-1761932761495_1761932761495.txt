@@ -1,0 +1,121 @@
+INFO:root:✅ Using PostgreSQL database (Railway/Replit)
+INFO:root:📁 UPLOAD_FOLDER configurado: uploads
+INFO:root:✅ Flask extensions initialized successfully
+INFO:root:🚂 Railway environment detected - initializing database
+INFO:root:✅ Database connection successful
+INFO:root:✅ Database tables created successfully
+INFO:root:Admin user already exists.
+INFO:root:✅ Checklist padrão já existe: 6 itens encontrados
+INFO:root:🧪 Testing reports functionality...
+INFO:root:✅ Reports table accessible: 34 reports found
+INFO:root:🔧 Checking and fixing migration state...
+INFO:root:🔧 Found existing user_email_config table, ensuring migration state is correct
+INFO:root:✅ RAILWAY DATABASE INITIALIZATION COMPLETE
+INFO:root:🔥 Initializing Firebase Cloud Messaging...
+WARNING:firebase_utils:⚠️ Firebase não configurado - credenciais não encontradas
+WARNING:firebase_utils:   Configure FIREBASE_CREDENTIALS_PATH ou FIREBASE_CONFIG
+ERROR [alembic.util.messaging] Can't locate revision identified by '20250929_2303'
+INFO:scheduler_tasks:✅ Scheduler iniciado com sucesso
+INFO:scheduler_tasks:📅 Tarefas agendadas:
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:scheduler_tasks:   - Limpeza de notificações a cada 6 horas
+INFO:apscheduler.scheduler:Added job "Limpar notificações expiradas (>24h)" to job store "default"
+INFO:scheduler_tasks:   - Limpeza diária às 3h da manhã
+INFO:apscheduler.scheduler:Added job "Limpeza diária às 3h" to job store "default"
+INFO:root:✅ Scheduler inicializado - tarefas periódicas ativas
+INFO:apscheduler.scheduler:Scheduler started
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+FAILED: Can't locate revision identified by '20250929_2303'
+🚂 RAILWAY DEPLOYMENT - Starting...
+✅ Database URL configured
+🔄 Running Alembic migrations...
+INFO:root:✅ Database connection successful
+INFO:root:✅ Database tables created successfully
+INFO:root:✅ Using PostgreSQL database (Railway/Replit)
+INFO:root:📁 UPLOAD_FOLDER configurado: uploads
+INFO:root:✅ Flask extensions initialized successfully
+INFO:root:🚂 Railway environment detected - initializing database
+INFO:root:Admin user already exists.
+INFO:root:✅ Checklist padrão já existe: 6 itens encontrados
+INFO:root:🧪 Testing reports functionality...
+INFO:root:✅ Reports table accessible: 34 reports found
+INFO:root:🔧 Checking and fixing migration state...
+INFO:root:🔧 Found existing user_email_config table, ensuring migration state is correct
+INFO:root:✅ RAILWAY DATABASE INITIALIZATION COMPLETE
+INFO:root:🔥 Initializing Firebase Cloud Messaging...
+WARNING:firebase_utils:   Configure FIREBASE_CREDENTIALS_PATH ou FIREBASE_CONFIG
+INFO:scheduler_tasks:   - Limpeza diária às 3h da manhã
+WARNING:root:⚠️ Firebase FCM não configurado - push notifications desabilitadas
+INFO:root:✅ Scheduler inicializado - tarefas periódicas ativas
+INFO:root:📅 Initializing Scheduler for background tasks...
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+WARNING:firebase_utils:⚠️ Firebase não configurado - credenciais não encontradas
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Added job "Limpar notificações expiradas (>24h)" to job store "default"
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+ERROR [alembic.util.messaging] Can't locate revision identified by '20250929_2303'
+FAILED: Can't locate revision identified by '20250929_2303'
+INFO:apscheduler.scheduler:Added job "Limpeza diária às 3h" to job store "default"
+INFO:apscheduler.scheduler:Scheduler started
+INFO:scheduler_tasks:✅ Scheduler iniciado com sucesso
+INFO:scheduler_tasks:📅 Tarefas agendadas:
+INFO:scheduler_tasks:   - Limpeza de notificações a cada 6 horas
+🚂 RAILWAY DEPLOYMENT - Starting...
+✅ Database URL configured
+🔄 Running Alembic migrations...
+INFO:root:📁 UPLOAD_FOLDER configurado: uploads
+INFO:root:✅ Flask extensions initialized successfully
+INFO:root:🚂 Railway environment detected - initializing database
+INFO:root:✅ Database connection successful
+INFO:root:✅ Database tables created successfully
+INFO:root:✅ Using PostgreSQL database (Railway/Replit)
+INFO:root:Admin user already exists.
+INFO:root:✅ Checklist padrão já existe: 6 itens encontrados
+INFO:root:🧪 Testing reports functionality...
+INFO:root:✅ Reports table accessible: 34 reports found
+INFO:root:🔧 Checking and fixing migration state...
+INFO:root:🔧 Found existing user_email_config table, ensuring migration state is correct
+INFO:root:✅ RAILWAY DATABASE INITIALIZATION COMPLETE
+INFO:root:🔥 Initializing Firebase Cloud Messaging...
+WARNING:firebase_utils:⚠️ Firebase não configurado - credenciais não encontradas
+WARNING:firebase_utils:   Configure FIREBASE_CREDENTIALS_PATH ou FIREBASE_CONFIG
+WARNING:root:⚠️ Firebase FCM não configurado - push notifications desabilitadas
+INFO:root:📅 Initializing Scheduler for background tasks...
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+ERROR [alembic.util.messaging] Can't locate revision identified by '20250929_2303'
+FAILED: Can't locate revision identified by '20250929_2303'
+INFO:apscheduler.scheduler:Added job "Limpar notificações expiradas (>24h)" to job store "default"
+INFO:apscheduler.scheduler:Added job "Limpeza diária às 3h" to job store "default"
+INFO:apscheduler.scheduler:Scheduler started
+INFO:scheduler_tasks:✅ Scheduler iniciado com sucesso
+INFO:scheduler_tasks:📅 Tarefas agendadas:
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:scheduler_tasks:   - Limpeza de notificações a cada 6 horas
+INFO:scheduler_tasks:   - Limpeza diária às 3h da manhã
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:root:✅ Scheduler inicializado - tarefas periódicas ativas
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+🚂 RAILWAY DEPLOYMENT - Starting...
+✅ Database URL configured
+🔄 Running Alembic migrations...
+INFO:root:🔥 Initializing Firebase Cloud Messaging...
+WARNING:firebase_utils:⚠️ Firebase não configurado - credenciais não encontradas
+WARNING:firebase_utils:   Configure FIREBASE_CREDENTIALS_PATH ou FIREBASE_CONFIG
+WARNING:root:⚠️ Firebase FCM não configurado - push notifications desabilitadas
+INFO:root:📅 Initializing Scheduler for background tasks...
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:root:✅ Using PostgreSQL database (Railway/Replit)
+INFO:root:📁 UPLOAD_FOLDER configurado: uploads
+INFO:root:✅ Flask extensions initialized successfully
+INFO:root:🚂 Railway environment detected - initializing database
+INFO:root:✅ Database connection successful
+INFO:root:✅ Database tables created successfully
+INFO:root:Admin user already exists.
+INFO:root:✅ Checklist padrão já existe: 6 itens encontrados
+INFO:root:🧪 Testing reports functionality...
+INFO:root:✅ Reports table accessible: 34 reports found
+INFO:root:🔧 Checking and fixing migration state...
+INFO:root:🔧 Found existing user_email_config table, ensuring migration state is correct
+INFO:root:✅ RAILWAY DATABASE INITIALIZATION COMPLETE
