@@ -44,16 +44,9 @@ def clear_alembic_version():
         return False
 
 if __name__ == "__main__":
-    logging.info("=" * 60)
-    logging.info("🚀 Limpando alembic_version para gerenciamento automático")
-    logging.info("=" * 60)
-    
-    if clear_alembic_version():
-        logging.info("=" * 60)
-        logging.info("🎉 Limpeza concluída com sucesso!")
-        logging.info("💡 O Alembic agora irá gerenciar as migrações automaticamente")
-        logging.info("=" * 60)
-    else:
-        logging.error("=" * 60)
-        logging.error("❌ Limpeza falhou - verifique os logs acima")
-        logging.error("=" * 60)
+    logging.warning("=" * 60)
+    logging.warning("⚠️ ESTE SCRIPT ESTÁ DEPRECATED")
+    logging.warning("⚠️ O Alembic gerencia as migrações automaticamente")
+    logging.warning("⚠️ Não é necessário limpar manualmente alembic_version")
+    logging.warning("=" * 60)
+    exit(1)

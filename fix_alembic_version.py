@@ -62,8 +62,9 @@ def fix_alembic_version():
 
 if __name__ == "__main__":
     logging.warning("=" * 60)
-    logging.warning("⚠️ ESTE SCRIPT ESTÁ DEPRECATED")
+    logging.warning("⚠️ ESTE SCRIPT ESTÁ DEPRECATED E NÃO DEVE SER USADO")
     logging.warning("⚠️ As migrações são gerenciadas automaticamente pelo Alembic")
     logging.warning("⚠️ Use: alembic upgrade head")
+    logging.warning("⚠️ Para Railway: o main.py executa migrações automaticamente")
     logging.warning("=" * 60)
     exit(1)
