@@ -57,8 +57,8 @@ def initialize_firebase():
             logger.info("✅ Firebase inicializado com sucesso (variável de ambiente)")
             return True
         
-        logger.warning("⚠️ Firebase não configurado - credenciais não encontradas")
-        logger.warning("   Configure FIREBASE_CREDENTIALS_PATH ou FIREBASE_CONFIG")
+        # Firebase opcional - logar apenas em debug
+        logger.debug("ℹ️ Firebase não configurado (modo opcional)")
         return False
     
     except ImportError:
@@ -95,11 +95,11 @@ def send_push_notification(
     
     if not firebase_initialized:
         if not initialize_firebase():
-            logger.warning("⚠️ Push notification não enviada - Firebase não inicializado")
+            # Firebase opcional - retornar silenciosamente
             return False
     
     if not user or not user.fcm_token:
-        logger.warning(f"⚠️ Push notification não enviada - usuário sem FCM token")
+        # Usuário sem token - retornar silenciosamente
         return False
     
     try:
@@ -180,7 +180,7 @@ def send_push_notification_multiple(
     tokens = [user.fcm_token for user in users if user and user.fcm_token]
     
     if not tokens:
-        logger.warning("⚠️ Nenhum usuário com FCM token válido")
+        # Nenhum token disponível - retornar silenciosamente
         return {
             'success': False,
             'error': 'Nenhum token válido',

@@ -28,12 +28,14 @@ class NotificationService:
                     self.firebase_initialized = True
                     logger.info("✅ Firebase Admin SDK inicializado com sucesso")
                 else:
-                    logger.warning("⚠️ Firebase não configurado (FIREBASE_CREDENTIALS_JSON não encontrado)")
+                    # Firebase opcional - não logar warning
+                    logger.debug("ℹ️ Firebase não configurado (modo opcional)")
+                    self.firebase_initialized = False
             else:
                 self.firebase_initialized = True
                 logger.info("✅ Firebase Admin SDK já estava inicializado")
         except Exception as e:
-            logger.error(f"❌ Erro ao inicializar Firebase: {e}")
+            logger.debug(f"ℹ️ Firebase não disponível: {e}")
             self.firebase_initialized = False
     
     def criar_notificacao(self, user_id, tipo, titulo, mensagem, link_destino=None, enviar_push=True):
@@ -208,7 +210,7 @@ class NotificationService:
     
     def enviar_push_notification(self, token, titulo, corpo, link=None, tipo=None):
         if not self.firebase_initialized:
-            logger.warning("⚠️ Firebase não inicializado - push notification não enviada")
+            # Firebase opcional - retornar silenciosamente
             return False
         
         try:
