@@ -1,0 +1,40 @@
+O sistema está apresentando o erro:
+
+(psycopg2.errors.UndefinedColumn) column users.fcm_token does not exist
+e também o aviso:
+FAILED: Multiple head revisions are present for given argument 'head'
+
+O banco de dados está hospedado no Railway (PostgreSQL remoto), e todas as mudanças precisam ser aplicadas via Alembic, garantindo compatibilidade com o modelo SQLAlchemy atual e evitando recriação de tabelas.
+
+Crie uma sequência de comandos e código para corrigir **definitivamente** o problema, com as seguintes exigências:
+
+1. Detectar e resolver o conflito de múltiplas heads do Alembic, consolidando as migrações em uma única linha temporal.
+2. Gerar uma **nova migração limpa e unificada**, que:
+   - Inclua o campo `fcm_token` (tipo `String`, `nullable=True`) na tabela `users`;
+   - Confirme que todas as colunas presentes nos modelos SQLAlchemy (especialmente `users`, `reports`, `user_email_config`, etc.) existam no banco;
+   - Não apague dados existentes.
+3. Executar o processo corretamente mesmo com o banco remoto (Railway) e sem recriar o schema.
+4. Garantir que após aplicar a migração, o Alembic esteja sincronizado com o banco (tabela `alembic_version` atualizada).
+5. Exibir logs de confirmação no console, como:
+✅ Migration heads unified
+✅ Column fcm_token added to users
+✅ Alembic version updated successfully
+✅ Database synchronized with SQLAlchemy models
+
+sql
+Copiar código
+6. Caso as múltiplas heads impeçam o upgrade automático, criar um merge com:
+```bash
+alembic merge heads -m "merge heads before adding fcm_token"
+e aplicar a migração resultante normalmente.
+7. Após a correção, rodar o teste:
+
+bash
+Copiar código
+alembic current
+alembic upgrade head
+e confirmar que não há divergência entre modelos e tabelas.
+
+Inclua os comandos exatos a serem executados e, se necessário, um exemplo completo de arquivo de migração Alembic (upgrade/downgrade) que adiciona o campo fcm_token à tabela users com segurança e compatibilidade total com PostgreSQL.
+
+Lembre-se: o banco é remoto (Railway), e nada deve ser recriado — apenas atualizado de forma incremental e segura.
