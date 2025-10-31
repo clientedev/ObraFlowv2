@@ -1,0 +1,78 @@
+O prompt abaixo:
+
+Cria um arquivo de migração Alembic seguro e idempotente (que só cria a coluna se ela não existir).
+
+Garante que o banco remoto no Railway seja atualizado corretamente.
+
+Evita conflitos de versão no alembic_version.
+
+Força a atualização automática para o último estado, corrigindo o erro de inicialização.
+
+🧠 Prompt para corrigir no ambiente (use localmente)
+# 🚨 Execute no terminal local, na raiz do projeto Flask/FastAPI com Alembic configurado
+
+# 1️⃣ Gere um novo arquivo de migração
+alembic revision -m "add fcm_token column to users table"
+
+# 2️⃣ Edite o arquivo recém-criado em migrations/versions/<hash>_add_fcm_token_column_to_users_table.py
+# E COLE o seguinte código dentro dele:
+
+from alembic import op
+import sqlalchemy as sa
+
+# Revisões automáticas (substitua pelos valores corretos do seu alembic.ini)
+revision = '20251030_add_fcm_token'
+down_revision = '20250929_2303'
+branch_labels = None
+depends_on = None
+
+def upgrade():
+    # Verifica se a coluna já existe antes de criar
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [c['name'] for c in inspector.get_columns('users')]
+    if 'fcm_token' not in columns:
+        op.add_column('users', sa.Column('fcm_token', sa.String(length=255), nullable=True))
+        print("✅ Coluna 'fcm_token' adicionada com sucesso à tabela 'users'.")
+    else:
+        print("ℹ️ Coluna 'fcm_token' já existe — nenhuma alteração feita.")
+
+def downgrade():
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [c['name'] for c in inspector.get_columns('users')]
+    if 'fcm_token' in columns:
+        op.drop_column('users', 'fcm_token')
+        print("🗑️ Coluna 'fcm_token' removida da tabela 'users'.")
+
+# 3️⃣ Após salvar, aplique as migrações ao Railway:
+alembic upgrade head
+
+⚠️ IMPORTANTE
+
+Execute somente via Alembic, nunca altere a tabela manualmente no PostgreSQL do Railway.
+
+Se o erro de “UndefinedColumn” persistir após isso, execute:
+
+alembic stamp head
+alembic upgrade head
+
+
+Isso força a sincronização do estado local com o remoto.
+
+🧩 Por que o erro ocorreu
+
+O campo fcm_token foi adicionado no modelo User (possivelmente para notificações Firebase), mas:
+
+Nenhuma migração foi gerada; ou
+
+A migração foi criada localmente mas não aplicada no Railway; ou
+
+A tabela alembic_version do banco remoto está em estado inconsistente.
+
+O log mostra isso claramente:
+
+⚠️ Erro ao corrigir conflitos de migração: No module named 'fix_migration_categorias_obra'
+
+
+Isso significa que uma migração esperada pelo Alembic não existe mais localmente — daí a necessidade de “corrigir o histórico” com stamp head.
