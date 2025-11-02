@@ -1,0 +1,186 @@
+Prompt Profissional — Correção Definitiva do AutoSave para salvar corretamente as imagens no relatório
+
+Corrigir completamente o fluxo de AutoSave dos relatórios, garantindo que:
+
+As imagens mapeadas no frontend sejam efetivamente salvas no banco via API /api/relatorios/autosave.
+
+Todas as imagens associadas ao relatório sejam persistidas na tabela foto_relatorio (ou equivalente).
+
+A resposta da API retorne corretamente as imagens associadas ao relatório salvo.
+
+O processo funcione tanto em edição quanto criação de relatórios, sem duplicar registros.
+
+A tabela legendas_predefinidas já existe e não está relacionada com o problema.
+
+🧩 1️⃣ FRONTEND — reports_autosave.js
+🔧 Ajustar coleta de imagens e envio no corpo da requisição
+async performSave() {
+  try {
+    console.log("📋 AutoSave - Checklist:", this.checklist);
+    console.log("📸 AutoSave - Total de fotos:", this.photos.length);
+
+    // 🔍 Garante que todas as imagens tenham dados consistentes
+    const preparedPhotos = this.photos
+      .filter(photo => photo && photo.name)
+      .map(photo => ({
+        id: photo.id || null,
+        filename: photo.name,
+        caption: photo.caption || "",
+        category: photo.category || "",
+        local: photo.local || "",
+        path: photo.path || photo.previewUrl || "",
+        temp_id: photo.temp_id || null,
+      }));
+
+    console.log("📦 AutoSave - Dados coletados (com imagens):", {
+      ...this.currentReportData,
+      fotos: preparedPhotos,
+    });
+
+    const payload = {
+      ...this.currentReportData,
+      fotos: preparedPhotos, // 🔥 Envia as imagens diretamente
+      checklist_data: this.checklist || [],
+      acompanhantes: this.acompanhantes || [],
+    };
+
+    const response = await fetch("/api/relatorios/autosave", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      credentials: "include",
+    });
+
+    if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
+    const result = await response.json();
+
+    console.log("✅ AutoSave concluído com sucesso:", result);
+
+    // 🔁 Atualiza o estado local com as imagens retornadas
+    if (result.imagens && result.imagens.length > 0) {
+      console.log(`📸 AutoSave: ${result.imagens.length} imagens persistidas.`);
+      this.photos = result.imagens;
+    } else {
+      console.warn("⚠️ AutoSave: Nenhuma imagem retornada pela API.");
+    }
+
+    console.log("✅ AutoSave FINAL:", this.photos.length, "imagens processadas");
+  } catch (err) {
+    console.error("❌ AutoSave falhou:", err);
+  }
+}
+
+🧠 2️⃣ BACKEND — FastAPI
+🔧 Atualizar endpoint /api/relatorios/autosave
+@router.post("/relatorios/autosave")
+async def autosave_relatorio(request: Request, db: Session = Depends(get_db)):
+    """
+    Salva automaticamente os dados do relatório, incluindo imagens, checklist e acompanhantes.
+    """
+    data = await request.json()
+    relatorio_id = data.get("id")
+    fotos = data.get("fotos", [])
+    
+    # 🔍 Busca ou cria o relatório
+    relatorio = db.query(Relatorio).filter_by(id=relatorio_id).first()
+    if not relatorio:
+        relatorio = Relatorio()
+        db.add(relatorio)
+    
+    # 🔄 Atualiza campos principais
+    for field in [
+        "titulo", "numero", "data_relatorio", "observacoes_finais",
+        "lembrete_proxima_visita", "projeto_id", "conteudo", "status"
+    ]:
+        if field in data:
+            setattr(relatorio, field, data[field])
+
+    db.commit()
+    db.refresh(relatorio)
+
+    # 🔁 Atualiza ou cria imagens associadas
+    for foto in fotos:
+        if not foto.get("filename"):
+            continue
+        existente = (
+            db.query(FotoRelatorio)
+            .filter_by(relatorio_id=relatorio.id, filename=foto["filename"])
+            .first()
+        )
+        if not existente:
+            nova_foto = FotoRelatorio(
+                relatorio_id=relatorio.id,
+                filename=foto["filename"],
+                caption=foto.get("caption", ""),
+                category=foto.get("category", ""),
+                local=foto.get("local", ""),
+                path=foto.get("path", ""),
+            )
+            db.add(nova_foto)
+        else:
+            existente.caption = foto.get("caption", existente.caption)
+            existente.local = foto.get("local", existente.local)
+            existente.category = foto.get("category", existente.category)
+            existente.path = foto.get("path", existente.path)
+    
+    db.commit()
+
+    imagens_salvas = (
+        db.query(FotoRelatorio)
+        .filter_by(relatorio_id=relatorio.id)
+        .order_by(FotoRelatorio.id.asc())
+        .all()
+    )
+
+    return {
+        "success": True,
+        "message": "AutoSave executado com sucesso",
+        "relatorio_id": relatorio.id,
+        "relatorio": relatorio.to_dict(),
+        "imagens": [img.to_dict() for img in imagens_salvas],
+    }
+
+🧩 3️⃣ MODEL — Estrutura das tabelas
+relatorios
+CREATE TABLE IF NOT EXISTS relatorios (
+    id SERIAL PRIMARY KEY,
+    numero VARCHAR(50),
+    titulo VARCHAR(255),
+    projeto_id INTEGER REFERENCES projetos(id),
+    data_relatorio DATE,
+    observacoes_finais TEXT,
+    lembrete_proxima_visita TIMESTAMP NULL,
+    conteudo TEXT,
+    status VARCHAR(50),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+foto_relatorio
+CREATE TABLE IF NOT EXISTS foto_relatorio (
+    id SERIAL PRIMARY KEY,
+    relatorio_id INTEGER REFERENCES relatorios(id) ON DELETE CASCADE,
+    filename VARCHAR(255) NOT NULL,
+    caption TEXT,
+    category VARCHAR(100),
+    local VARCHAR(100),
+    path TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+✅ Resultado Esperado
+
+Após o ajuste:
+
+Logs do AutoSave devem indicar:
+
+📸 AutoSave - Total de fotos: 2
+📤 AutoSave: Enviando dados...
+✅ AutoSave concluído com sucesso: { imagens: [ {...}, {...} ] }
+📸 AutoSave: 2 imagens persistidas.
+✅ AutoSave FINAL: 2 imagens processadas
+
+
+A tabela foto_relatorio deve exibir corretamente as imagens vinculadas a relatorio_id.
