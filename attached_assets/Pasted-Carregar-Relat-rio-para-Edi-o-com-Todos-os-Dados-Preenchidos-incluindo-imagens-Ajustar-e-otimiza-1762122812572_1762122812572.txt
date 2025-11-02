@@ -1,0 +1,198 @@
+Carregar Relatório para Edição com Todos os Dados Preenchidos (incluindo imagens)
+
+Ajustar e otimizar completamente a tela de edição de relatório para garantir que, ao clicar em “Editar relatório”, todos os dados relacionados ao relatório sejam carregados e exibidos corretamente:
+
+Todos os campos de texto (título, número, data, observações, etc.) devem vir pré-preenchidos.
+
+O projeto associado deve ser carregado e selecionado corretamente no campo do projeto.
+
+O checklist, acompanhantes e lembrete de próxima visita devem ser exibidos no mesmo estado em que foram salvos.
+
+As imagens associadas ao relatório devem ser carregadas corretamente, com suas respectivas legendas, categoria e local.
+
+A exibição deve ser fluida e sem delay perceptível, exibindo placeholders enquanto os dados são carregados.
+
+O sistema está hospedado no Railway, com o banco PostgreSQL já sincronizado.
+
+🧩 1️⃣ BACKEND — Endpoint /api/relatorios/{id}
+✅ Ajustar endpoint para retornar todos os dados do relatório (com relacionamentos)
+@router.get("/relatorios/{relatorio_id}")
+async def get_relatorio(relatorio_id: int, db: Session = Depends(get_db)):
+    """
+    Retorna todos os dados de um relatório para edição:
+    informações principais, projeto vinculado, imagens, checklist e acompanhantes.
+    """
+    relatorio = (
+        db.query(Relatorio)
+        .filter(Relatorio.id == relatorio_id)
+        .first()
+    )
+    if not relatorio:
+        raise HTTPException(status_code=404, detail="Relatório não encontrado")
+
+    fotos = (
+        db.query(FotoRelatorio)
+        .filter(FotoRelatorio.relatorio_id == relatorio_id)
+        .order_by(FotoRelatorio.id.asc())
+        .all()
+    )
+
+    checklist = (
+        db.query(ChecklistItem)
+        .filter(ChecklistItem.relatorio_id == relatorio_id)
+        .order_by(ChecklistItem.id.asc())
+        .all()
+    )
+
+    acompanhantes = (
+        db.query(Acompanhante)
+        .filter(Acompanhante.relatorio_id == relatorio_id)
+        .order_by(Acompanhante.id.asc())
+        .all()
+    )
+
+    projeto = db.query(Projeto).filter(Projeto.id == relatorio.projeto_id).first()
+
+    return {
+        "success": True,
+        "relatorio": relatorio.to_dict(),
+        "projeto": projeto.to_dict() if projeto else None,
+        "imagens": [foto.to_dict() for foto in fotos],
+        "checklist": [item.to_dict() for item in checklist],
+        "acompanhantes": [p.to_dict() for p in acompanhantes],
+    }
+
+✅ Exemplo de to_dict() em models.py
+class FotoRelatorio(Base):
+    __tablename__ = "foto_relatorio"
+
+    id = Column(Integer, primary_key=True)
+    relatorio_id = Column(Integer, ForeignKey("relatorios.id"))
+    filename = Column(String)
+    caption = Column(Text)
+    category = Column(String)
+    local = Column(String)
+    path = Column(Text)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "filename": self.filename,
+            "caption": self.caption,
+            "category": self.category,
+            "local": self.local,
+            "path": self.path,
+        }
+
+💻 2️⃣ FRONTEND — reports_edit.js
+✅ Lógica para carregar automaticamente o relatório e preencher o formulário
+document.addEventListener("DOMContentLoaded", async () => {
+  const relatorioId = getRelatorioIdFromURL(); // 🔍 obtém o ID via query string
+  if (!relatorioId) {
+    console.error("❌ Nenhum ID de relatório informado.");
+    return;
+  }
+
+  console.log("🔄 Carregando relatório ID:", relatorioId);
+  try {
+    const response = await fetch(`/api/relatorios/${relatorioId}`);
+    if (!response.ok) throw new Error("Erro ao carregar relatório");
+
+    const data = await response.json();
+    const { relatorio, projeto, imagens, checklist, acompanhantes } = data;
+
+    // 🔹 Preenche os campos principais
+    document.querySelector("#titulo").value = relatorio.titulo || "";
+    document.querySelector("#numero").value = relatorio.numero || "";
+    document.querySelector("#data_relatorio").value = relatorio.data_relatorio || "";
+    document.querySelector("#observacoes_finais").value = relatorio.observacoes_finais || "";
+
+    // 🔹 Seleciona o projeto
+    if (projeto) {
+      const select = document.querySelector("#projeto_id");
+      const option = new Option(projeto.nome, projeto.id, true, true);
+      select.appendChild(option);
+    }
+
+    // 🔹 Preenche checklist
+    preencherChecklist(checklist);
+
+    // 🔹 Preenche acompanhantes
+    preencherAcompanhantes(acompanhantes);
+
+    // 🔹 Exibe imagens
+    exibirImagens(imagens);
+
+    console.log("✅ Relatório carregado e pré-preenchido com sucesso.");
+  } catch (err) {
+    console.error("❌ Erro ao carregar relatório:", err);
+  }
+});
+
+function exibirImagens(imagens) {
+  const container = document.querySelector("#imagens-container");
+  container.innerHTML = "";
+
+  imagens.forEach((img) => {
+    const imgElement = document.createElement("div");
+    imgElement.classList.add("foto-relatorio");
+
+    imgElement.innerHTML = `
+      <img src="${img.path}" alt="${img.caption || "Foto"}" class="preview-imagem" />
+      <div class="foto-info">
+        <input type="text" value="${img.caption || ""}" placeholder="Legenda" class="foto-legenda" data-id="${img.id}" />
+        <input type="text" value="${img.category || ""}" placeholder="Categoria" class="foto-categoria" />
+        <input type="text" value="${img.local || ""}" placeholder="Local" class="foto-local" />
+      </div>
+    `;
+
+    container.appendChild(imgElement);
+  });
+
+  console.log(`📸 ${imagens.length} imagens carregadas na tela.`);
+}
+
+function preencherChecklist(itens) {
+  const checklistContainer = document.querySelector("#checklist");
+  checklistContainer.innerHTML = "";
+  itens.forEach(item => {
+    const row = document.createElement("div");
+    row.classList.add("checklist-item");
+    row.innerHTML = `
+      <label>${item.pergunta}</label>
+      <input type="checkbox" ${item.resposta ? "checked" : ""}>
+    `;
+    checklistContainer.appendChild(row);
+  });
+}
+
+function preencherAcompanhantes(acompanhantes) {
+  const container = document.querySelector("#acompanhantes");
+  container.innerHTML = "";
+  acompanhantes.forEach(a => {
+    const div = document.createElement("div");
+    div.classList.add("acompanhante-item");
+    div.textContent = `${a.nome} - ${a.funcao}`;
+    container.appendChild(div);
+  });
+}
+
+🧠 3️⃣ EXPERIÊNCIA DO USUÁRIO
+
+Exibir loader / skeletons leves enquanto os dados são buscados.
+
+Atualizar o estado do botão "Salvar" → “✔️ Tudo carregado” ao finalizar.
+
+Garantir compatibilidade com o AutoSave existente, sem interferir nele.
+
+✅ Comportamento Esperado
+
+Ao clicar em Editar Relatório, a página é carregada e faz GET /api/relatorios/{id}.
+
+Todos os dados do relatório aparecem automaticamente preenchidos.
+
+As imagens são exibidas com legendas, categorias e local corretos.
+
+O usuário pode alterar qualquer campo e o AutoSave existente continua ativo.
+
+Nenhum campo é perdido ou sobrescrito indevidamente.
