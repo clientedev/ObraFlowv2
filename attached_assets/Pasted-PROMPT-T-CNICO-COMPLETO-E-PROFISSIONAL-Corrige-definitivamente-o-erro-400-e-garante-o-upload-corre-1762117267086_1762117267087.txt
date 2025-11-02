@@ -1,0 +1,137 @@
+PROMPT TÉCNICO COMPLETO E PROFISSIONAL
+
+(Corrige definitivamente o erro 400 e garante o upload correto das imagens temporárias no AutoSave)
+
+🧾 Prompt para ajuste de código
+
+⚙️ Instruções para corrigir o upload de imagens no AutoSave (reports_autosave.js)
+
+🔹 1. Atualizar função de upload temporário
+
+Substitua completamente o método uploadImageTemp por esta versão robusta e compatível com FastAPI + Railway:
+
+/**
+ * Faz upload da imagem temporária com multipart/form-data
+ * Retorna o ID temporário salvo no backend
+ */
+async uploadImageTemp(image) {
+  try {
+    if (!image || !image.blob) {
+      console.warn("⚠️ Imagem inválida ou blob ausente:", image);
+      return null;
+    }
+
+    console.log("📤 AutoSave - Preparando upload da imagem:", image.filename);
+
+    const formData = new FormData();
+    formData.append("file", image.blob, image.filename || "imagem.jpg");
+    formData.append("category", image.category || "");
+    formData.append("local", image.local || "");
+    formData.append("caption", image.caption || "");
+
+    const response = await fetch("https://elpconsultoria.pro/api/uploads/temp", {
+      method: "POST",
+      body: formData,
+      // ⚠️ NÃO adicionar 'Content-Type' manualmente — o browser define o boundary
+    });
+
+    if (!response.ok) {
+      const msg = await response.text();
+      console.error("❌ Erro HTTP no upload:", response.status, msg);
+      throw new Error(`Upload falhou: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("✅ Upload temporário bem-sucedido:", data);
+
+    return data.temp_id || data.id || null;
+  } catch (err) {
+    console.error("❌ Erro no upload temporário:", err);
+    throw err;
+  }
+}
+
+🔹 2. Ajustar coleta de imagens para chamar o upload corretamente
+
+Substitua o trecho em getImageData() por:
+
+async getImageData() {
+  const imgs = window.mobilePhotoData || [];
+  const uploaded = [];
+
+  for (let i = 0; i < imgs.length; i++) {
+    const img = imgs[i];
+    console.log(`📸 Imagem ${i}:`, img);
+
+    try {
+      const tempId = await this.uploadImageTemp(img);
+      uploaded.push({
+        temp_id: tempId,
+        filename: img.filename,
+        category: img.category,
+        local: img.local,
+        caption: img.caption,
+      });
+    } catch (err) {
+      console.error(`❌ AutoSave - Erro no upload da imagem ${i}:`, err);
+    }
+  }
+
+  console.log(`📸 AutoSave - Total de ${uploaded.length} imagens enviadas`);
+  return uploaded;
+}
+
+🔹 3. Garantir coleta completa antes do envio do relatório
+
+Substitua no performSave():
+
+const fotos = await this.getImageData();
+payload.fotos = fotos;
+
+🔹 4. Backend (FastAPI / Railway) — Endpoint /api/uploads/temp
+
+Garanta que o endpoint aceite multipart/form-data corretamente:
+
+@router.post("/uploads/temp")
+async def upload_temp_image(file: UploadFile = File(...), category: str = Form(""), local: str = Form(""), caption: str = Form("")):
+    try:
+        # Validação básica
+        if not file:
+            raise HTTPException(status_code=400, detail="Arquivo não recebido")
+
+        file_path = f"temp/{uuid.uuid4()}_{file.filename}"
+        with open(file_path, "wb") as buffer:
+            buffer.write(await file.read())
+
+        return {
+            "success": True,
+            "temp_id": str(uuid.uuid4()),
+            "filename": file.filename,
+            "path": file_path,
+            "category": category,
+            "local": local,
+            "caption": caption,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao salvar arquivo: {e}")
+
+🔹 5. Teste completo
+
+Capture 2 fotos ou envie pela galeria.
+
+Confira no console:
+
+📤 AutoSave - Preparando upload da imagem: Captura_1.png
+✅ Upload temporário bem-sucedido: { temp_id: "...", filename: "Captura_1.png" }
+📸 AutoSave - Total de 2 imagens enviadas
+
+
+No backend, os arquivos devem ser salvos em /temp e o relatório deve conter fotos: [{ temp_id, filename, ... }].
+
+🚀 Resultado Esperado
+
+✅ Nenhum erro 400.
+✅ Upload de imagens com multipart/form-data.
+✅ Logs de sucesso visíveis apenas no console.
+✅ AutoSave funcional com imagens, checklist, acompanhantes e observações.
+✅ Compatível com PostgreSQL e Railway.

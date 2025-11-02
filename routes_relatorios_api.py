@@ -93,7 +93,7 @@ def api_upload_temp():
     Conforme especificação técnica do AutoSave.
 
     Returns:
-        JSON: {temp_id, path, filename, size, mime_type}
+        JSON: {temp_id, path, filename, size, mime_type, category, local, caption}
     """
     try:
         # Verificar se arquivo foi enviado
@@ -117,6 +117,11 @@ def api_upload_temp():
                 'success': False,
                 'error': f'Tipo de arquivo não permitido. Tipos aceitos: {", ".join(ALLOWED_EXTENSIONS)}'
             }), 400
+
+        # Obter metadados adicionais do form
+        category = request.form.get('category', '')
+        local = request.form.get('local', '')
+        caption = request.form.get('caption', '')
 
         # Salvar temporariamente para verificar tamanho
         from tempfile import NamedTemporaryFile
@@ -158,7 +163,10 @@ def api_upload_temp():
                 'filename': temp_filename,
                 'original_filename': file.filename,
                 'size': file_size,
-                'mime_type': file.content_type or 'image/jpeg'
+                'mime_type': file.content_type or 'image/jpeg',
+                'category': category,
+                'local': local,
+                'caption': caption
             }), 200
 
     except Exception as e:
@@ -1019,11 +1027,11 @@ def api_autosave_relatorio():
                             imagem_hash=imagem_hash,
                             imagem_size=len(image_bytes),
                             content_type=f"image/{extension}",
-                            legenda=foto_info.get('legenda') or '',
+                            legenda=foto_info.get('caption') or foto_info.get('legenda') or '',
                             titulo=foto_info.get('titulo') or '',
-                            tipo_servico=foto_info.get('tipo_servico') or 'Geral',
+                            tipo_servico=foto_info.get('tipo_servico') or foto_info.get('category') or 'Geral',
                             local=foto_info.get('local') or '',
-                            ordem=foto_info.get('ordem', 0)
+                            ordem=foto_info.get('ordem', idx)
                         )
                         db.session.add(nova_foto)
                         db.session.flush()  # Para obter o ID

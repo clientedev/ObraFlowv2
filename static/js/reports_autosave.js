@@ -188,114 +188,69 @@ class ReportsAutoSave {
      * Garante que todas as imagens sejam processadas com metadados completos
      */
     async getImageData() {
-        try {
-            // Coletar imagens do mobilePhotoData (sistema mobile-first)
-            const imgs = window.mobilePhotoData || [];
-            
-            if (!Array.isArray(imgs) || imgs.length === 0) {
-                console.warn("⚠️ Nenhuma imagem encontrada em mobilePhotoData.");
-                return [];
-            }
-            
-            console.log(`📸 AutoSave - Processando ${imgs.length} imagens do sistema mobile-first...`);
-            console.log(`📸 AutoSave - mobilePhotoData completo:`, JSON.stringify(imgs, null, 2));
-            
-            const processed = [];
-            
-            for (let i = 0; i < imgs.length; i++) {
-                const img = imgs[i];
-                
-                console.log(`📸 Imagem ${i}:`, {
-                    savedId: img.savedId,
-                    temp_id: img.temp_id,
-                    hasFile: !!img.file,
-                    filename: img.filename || img.name,
+        const imgs = window.mobilePhotoData || [];
+        const uploaded = [];
+
+        for (let i = 0; i < imgs.length; i++) {
+            const img = imgs[i];
+            console.log(`📸 Imagem ${i}:`, img);
+
+            try {
+                const tempId = await this.uploadImageTemp(img);
+                uploaded.push({
+                    temp_id: tempId,
+                    filename: img.filename,
                     category: img.category,
-                    manualCaption: img.manualCaption,
-                    predefinedCaption: img.predefinedCaption,
+                    local: img.local,
                     caption: img.caption,
-                    local: img.local
                 });
-                
-                // Se já tem ID E já foi salva no banco, apenas enviar metadados
-                if (img.savedId && img.savedId > 0) {
-                    processed.push({
-                        id: img.savedId,
-                        nome: img.name || img.filename || null,
-                        categoria: img.category || null,
-                        local: img.local || null,
-                        legenda: img.manualCaption || img.predefinedCaption || img.caption || null,
-                        arquivo: img.path || null,
-                        ordem: i
-                    });
-                    console.log(`📌 AutoSave - Imagem já salva no banco: ID ${img.savedId}`);
-                    continue;
-                }
-                
-                // Se tem arquivo, fazer upload temporário
-                if (img.file) {
-                    try {
-                        console.log(`📤 AutoSave - Iniciando upload da imagem ${i}...`);
-                        const tempUploadResult = await this.uploadImageTemp(img.file);
-                        
-                        if (tempUploadResult && tempUploadResult.temp_id) {
-                            // Armazenar temp_id para posterior associação
-                            img.temp_id = tempUploadResult.temp_id;
-                            
-                            processed.push({
-                                temp_id: tempUploadResult.temp_id,
-                                nome: img.name || img.filename || null,
-                                categoria: img.category || null,
-                                local: img.local || null,
-                                legenda: img.manualCaption || img.predefinedCaption || img.caption || null,
-                                arquivo: img.path || null,
-                                extension: tempUploadResult.filename.split('.').pop(),
-                                ordem: i
-                            });
-                            
-                            console.log(`✅ AutoSave - Upload temporário: ${tempUploadResult.temp_id}`);
-                        }
-                    } catch (error) {
-                        console.error(`❌ AutoSave - Erro no upload da imagem ${i}:`, error);
-                    }
-                } else {
-                    console.warn(`⚠️ AutoSave - Imagem ${i} sem arquivo e sem savedId`);
-                }
+            } catch (err) {
+                console.error(`❌ AutoSave - Erro no upload da imagem ${i}:`, err);
             }
-            
-            console.log(`📸 AutoSave - Processadas ${processed.length} imagens`, processed);
-            return processed;
-            
-        } catch (err) {
-            console.error("❌ Erro ao processar imagens no AutoSave:", err);
-            return [];
         }
+
+        console.log(`📸 AutoSave - Total de ${uploaded.length} imagens enviadas`);
+        return uploaded;
     }
     
-    async uploadImageTemp(file) {
-        const formData = new FormData();
-        formData.append('file', file);
-        
+    /**
+     * Faz upload da imagem temporária com multipart/form-data
+     * Retorna o ID temporário salvo no backend
+     */
+    async uploadImageTemp(image) {
         try {
-            const response = await fetch('/api/uploads/temp', {
-                method: 'POST',
-                body: formData
+            if (!image || !image.blob) {
+                console.warn("⚠️ Imagem inválida ou blob ausente:", image);
+                return null;
+            }
+
+            console.log("📤 AutoSave - Preparando upload da imagem:", image.filename);
+
+            const formData = new FormData();
+            formData.append("file", image.blob, image.filename || "imagem.jpg");
+            formData.append("category", image.category || "");
+            formData.append("local", image.local || "");
+            formData.append("caption", image.caption || "");
+
+            const response = await fetch("/api/uploads/temp", {
+                method: "POST",
+                body: formData,
+                // ⚠️ NÃO adicionar 'Content-Type' manualmente — o browser define o boundary
             });
-            
+
             if (!response.ok) {
+                const msg = await response.text();
+                console.error("❌ Erro HTTP no upload:", response.status, msg);
                 throw new Error(`Upload falhou: ${response.status}`);
             }
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                return result;
-            } else {
-                throw new Error(result.error || 'Erro no upload');
-            }
-        } catch (error) {
-            console.error('❌ Erro no upload temporário:', error);
-            throw error;
+
+            const data = await response.json();
+            console.log("✅ Upload temporário bem-sucedido:", data);
+
+            return data.temp_id || data.id || null;
+        } catch (err) {
+            console.error("❌ Erro no upload temporário:", err);
+            throw err;
         }
     }
 
