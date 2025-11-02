@@ -72,10 +72,18 @@ class ReportsAutoSave {
                 fotos: [] // Será preenchido na versão async
             };
 
-            // Adicionar projeto_id como número inteiro
-            const projetoIdStr = document.querySelector('#projeto_id')?.value?.trim();
+            // Adicionar projeto_id como número inteiro - buscar em múltiplos locais
+            const projetoIdStr = 
+                document.querySelector('[name="projeto_id"]')?.value?.trim() ||
+                document.querySelector('#projeto_id')?.value?.trim() ||
+                document.querySelector('[data-project-id]')?.getAttribute('data-project-id') ||
+                (window.currentProjetoId ? String(window.currentProjetoId) : null);
+            
             if (projetoIdStr) {
                 data.projeto_id = parseInt(projetoIdStr, 10);
+                console.log('✅ AutoSave - projeto_id encontrado:', data.projeto_id);
+            } else {
+                console.warn('⚠️ AutoSave - projeto_id NÃO encontrado! AutoSave pode falhar.');
             }
 
             // Adicionar ID apenas se existir
@@ -114,10 +122,19 @@ class ReportsAutoSave {
                 local: document.querySelector('#local')?.value?.trim() || null
             };
 
-            // Adicionar projeto_id como número inteiro
-            const projetoIdStr = document.querySelector('#projeto_id')?.value?.trim();
+            // Adicionar projeto_id como número inteiro - buscar em múltiplos locais
+            const projetoIdStr = 
+                document.querySelector('[name="projeto_id"]')?.value?.trim() ||
+                document.querySelector('#projeto_id')?.value?.trim() ||
+                document.querySelector('[data-project-id]')?.getAttribute('data-project-id') ||
+                (window.currentProjetoId ? String(window.currentProjetoId) : null);
+            
             if (projetoIdStr) {
                 data.projeto_id = parseInt(projetoIdStr, 10);
+                console.log('✅ AutoSave - projeto_id encontrado:', data.projeto_id);
+            } else {
+                console.warn('⚠️ AutoSave - projeto_id NÃO encontrado! AutoSave pode falhar.');
+                console.warn('   Tentou buscar em: [name="projeto_id"], #projeto_id, [data-project-id], window.currentProjetoId');
             }
 
             // Adicionar ID apenas se existir
@@ -317,8 +334,10 @@ class ReportsAutoSave {
 
             if (!response.ok) {
                 const err = await response.json().catch(() => ({}));
-                console.error('❌ AutoSave erro HTTP:', response.status, err);
-                throw new Error(err.detail || err.error || 'Falha no autosave');
+                console.error('❌ AutoSave erro HTTP:', response.status);
+                console.error('   Mensagem do servidor:', err.error || err.detail || 'Sem mensagem');
+                console.error('   Detalhes completos:', err);
+                throw new Error(err.error || err.detail || `Falha no autosave (HTTP ${response.status})`);
             }
 
             const result = await response.json();
