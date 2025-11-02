@@ -1,0 +1,150 @@
+AutoSave: salvar TUDO (campos + imagens + checklist + metadados)
+
+Resumo / Objetivo:
+O AutoSave atual está inoperante (não salva título, checklist, imagens ou qualquer campo). Precisamos implementar um AutoSave completo, confiável, idempotente e transacional que salve todos os dados do relatório automaticamente (campos, checklist, acompanhantes, lembretes, imagens e metadados das imagens) e permita restauração ao reabrir o relatório. Se necessário, gerar arquivo Alembic seguindo o último cabeçalho de migrations do projeto.
+
+Requisitos funcionais (essenciais)
+
+AutoSave deve persistir todos os campos do formulário de relatório (ex.: título, número, checklist_data, lembrete_proxima_visita, observacoes_finais, status, acompanhantes, etc.).
+
+AutoSave deve persistir todas as imagens adicionadas — com seus metadados (categoria, local, legenda) — e permitir exclusão e edição dessas imagens.
+
+AutoSave deve criar automaticamente um novo relatorio se ainda não houver id (primeiro salvamento). Deve retornar sempre { relatorio_id, fotos: [...] }.
+
+Operação transacional: alteração do relatorio + alterações das fotos (inserções/atualizações/deleções) devem ocorrer numa única transação DB para evitar inconsistências.
+
+AutoSave deve suportar falhas de rede: usar fila local temporária + retry exponencial; não perder uploads de imagens mesmo que usuário fique offline.
+
+Frontend deve indicar estado (salvando / salvo / erro) e atualizar id do relatório após primeiro auto-save.
+
+Se for necessário alterar schema, criar arquivo Alembic compatível com as migrations existentes; não alterar migrar manualmente no prod sem Alembic.
+
+API / Contrato (backend) — endpoints mínimos exigidos
+
+1) Upload rápido de imagem (obrigatório)
+
+POST /api/uploads/temp — aceita arquivo multipart/form-data; retorna { temp_id, path, filename, size }.
+
+Uso: ao selecionar/arrastar imagem, enviar imediatamente para este endpoint; frontend mostra preview usando path e armazena temp_id no objeto da imagem.
+
+Racional: evita perder imagens antes do autosave; evita enviar imagem como base64 no body do autosave.
+
+2) AutoSave do relatório
+
+POST /api/relatorios/autosave — corpo JSON contendo todos os campos do relatório e fotos (cada foto pode ter id [opcional], temp_id (para imagens recém-enviadas), caminho(se já persistida), categoria, local, legenda, deletar boolean).
+
+Resposta esperada: 200 { relatorio_id: int, fotos: [{ id, caminho, categoria, local, legenda, created_at }], saved_at: timestamp }
+
+Comportamento:
+
+Se id não informado → criar novo relatorio com status temporário (ex: Em preenchimento) e persistir fotos referenciando o novo id.
+
+Em ambos casos (create/update) executar num única transação:
+
+validar/normalizar campos,
+
+persistir relatorio (insert/update),
+
+processar fotos:
+
+para temp_id → mover do storage temporário para path final (ou apenas referenciar se uploads já vão direto ao folder final) e criar foto_relatorio com relatorio_id,
+
+para id existente → atualizar metadados,
+
+para deletar: true → remover registro e (opcional) arquivo físico,
+
+commit.
+
+Em caso de erro → rollback e retornar 500 com mensagem detalhada para logs.
+
+Lógica detalhada (backend / DB)
+
+Transação única: usar db.session.begin() ou dependência equivalente para que relatorio + fotos sejam commitadas juntas.
+
+Verificação de integridade: antes do commit, checar tamanho de imagens, quantidade máxima (200), total size cap, campos obrigatórios mínimos (mas permitir salvar mesmo sem categoria/local se definido que são opcionais).
+
+Retorno claro: incluir relatorio_id no body para frontend persistir localmente.
+
+Tratamento de tempo: atualizar updated_at do relatório com NOW() sempre que AutoSave for realizado.
+
+Nota DB: se foto_relatorio ou colunas necessárias estiverem ausentes, criar migração Alembic que adicione as colunas/tabelas. Exemplos de colunas obrigatórias:
+
+relatorios deve ter: id, titulo, numero, projeto_id, checklist_data (jsonb), observacoes_finais, lembrete_proxima_visita, status, created_at, updated_at, criado_por, atualizado_por.
+
+fotos_relatorio deve ter: id, relatorio_id FK, caminho TEXT, mime_type, size, categoria TEXT, local TEXT, legenda TEXT, sha256, created_at.
+
+Se o schema atual conflitar, gere arquivo Alembic e aplique seguindo o fluxo padrão de migrations.
+
+Frontend — comportamento e estratégias
+
+Upload imediato: ao selecionar imagem, enviar POST /api/uploads/temp. Exibir preview usando o path retornado. Guardar temp_id localmente no objeto da imagem.
+
+Estado de alteração: controlar alteracoesPendentes = true sempre que qualquer campo mudar (incluindo metadados de imagem).
+
+Debounce + Intervalo:
+
+Debounce curto (ex: 800ms) para ações rápidas (typing); e
+
+Intervalo periódico seguro (ex: 5s) que envia POST /api/relatorios/autosave se alteracoesPendentes === true.
+
+Fila de salvamentos: evitar concorrência — usar flag salvando = true enquanto request ativa; se nova alteração ocorrer enquanto salvando, marcar pendentePosSave = true e rodar imediatamente ao terminar.
+
+Retry: em falha de rede, manter mudança em memória/localStorage e tentar nova tentativa com backoff (ex: 2s, 5s, 10s). Se falhas persistentes, exibir aviso não intrusivo ao usuário.
+
+Sincronização de imagens:
+
+AutoSave envia lista de imagens com temp_id (para as enviadas) e id (para as já persistidas).
+
+Backend processa temp_id → cria foto_relatorio e devolve id definitivo na resposta; frontend atualiza seu state substituindo temp_id pelo id.
+
+Indicação para o usuário: badges/labels (Salvando..., Salvo às HH:MM, Erro ao salvar). Indicador específico para imagens (ex: ícone “upload pendente”).
+
+Regras de segurança e validações
+
+Validar tamanho máximo e tipo MIME no endpoint de upload.
+
+Sanitizar nomes e metadados recebidos.
+
+Autorização: apenas usuários com permissão podem editar/auto-salvar relatório.
+
+Rate-limiting/Throttling: evitar overwhelms se o usuário estiver com muitas imagens simultâneas.
+
+Logging & Telemetria (essencial para debug)
+
+Logs detalhados no backend para AutoSave (request payload hash, relatorio_id, quant fotos tratadas, tempo de execução).
+
+Em caso de erro, retornar error_code e error_message claros; adicionar logs com stacktrace em Sentry/Log provider.
+
+Testes / Critérios de aceite
+
+ Ao criar um novo relatório e adicionar texto + checklist + 3 imagens → após 5s o endpoint autosave deve criar o relatório e retornar relatorio_id e fotos com id.
+
+ Recarregar página e abrir edição → todas as imagens e campos carregam corretamente.
+
+ Editar legenda de uma foto → AutoSave atualiza legenda; backend persiste.
+
+ Excluir uma foto → AutoSave remove do DB e arquivo (se policy mandar remover).
+
+ Simular falha de rede no upload das imagens → imagens ficam em temp + AutoSave tenta novo upload ao reconectar e persiste corretamente.
+
+ Testar com relatório concluído → abrir em modo edição e garantir que AutoSave também funcione para alterações (se essa função for permitida).
+
+Entregáveis esperados
+
+Endpoint POST /api/relatorios/autosave implementado e documentado; POST /api/uploads/temp implementado.
+
+Frontend atualizando relatorio_id, gerenciando temp_id → id das fotos automaticamente.
+
+Transação DB para relatorio + fotos com rollback em erro.
+
+Logs claros e indicadores na UI.
+
+(Se necessário) Arquivo Alembic criado e para aplicar no Railway — nomear com timestamp e dependência correta.
+
+Observações finais (importantes)
+
+Priorizar upload imediato das imagens (temp storage) — evita perda de arquivos caso AutoSave falhe.
+
+Evitar enviar imagens como base64 inline no JSON de autosave (pode quebrar tamanho de payload e performance).
+
+Se a equipe preferir outra estratégia de upload (chunked / resumable), adaptar o fluxo, mas manter o contrato temp_id → id definitivo para o AutoSave.

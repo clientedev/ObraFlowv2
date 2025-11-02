@@ -4,6 +4,8 @@ Implementação conforme especificação técnica profissional
 """
 import os
 import logging
+import uuid
+import shutil
 from datetime import datetime
 from flask import jsonify, request
 from flask_login import login_required, current_user
@@ -19,6 +21,7 @@ logger = logging.getLogger(__name__)
 # Configurações de upload
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+TEMP_UPLOAD_FOLDER = os.path.join(app.config['UPLOAD_FOLDER'], 'temp')
 
 def allowed_file(filename):
     """Verifica se o arquivo tem extensão permitida"""
@@ -72,6 +75,97 @@ def save_uploaded_image(file, relatorio_id):
             'content_type': file.content_type,
             'size': file_size
         }
+
+# Criar pasta de uploads temporários se não existir
+os.makedirs(TEMP_UPLOAD_FOLDER, exist_ok=True)
+
+@app.route('/api/uploads/temp', methods=['POST'])
+@login_required
+def api_upload_temp():
+    """
+    POST /api/uploads/temp
+    
+    Upload rápido de imagem para storage temporário.
+    Retorna temp_id para posterior associação ao relatório via autosave.
+    
+    Conforme especificação técnica do AutoSave.
+    
+    Returns:
+        JSON: {temp_id, path, filename, size, mime_type}
+    """
+    try:
+        # Verificar se arquivo foi enviado
+        if 'file' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': 'Nenhum arquivo enviado'
+            }), 400
+        
+        file = request.files['file']
+        
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'error': 'Nome de arquivo vazio'
+            }), 400
+        
+        # Validar extensão do arquivo
+        if not allowed_file(file.filename):
+            return jsonify({
+                'success': False,
+                'error': f'Tipo de arquivo não permitido. Tipos aceitos: {", ".join(ALLOWED_EXTENSIONS)}'
+            }), 400
+        
+        # Salvar temporariamente para verificar tamanho
+        from tempfile import NamedTemporaryFile
+        with NamedTemporaryFile(delete=False) as temp_file:
+            file.save(temp_file.name)
+            file_size = os.path.getsize(temp_file.name)
+            
+            # Validar tamanho do arquivo
+            if file_size > MAX_FILE_SIZE:
+                os.unlink(temp_file.name)
+                return jsonify({
+                    'success': False,
+                    'error': f'Arquivo muito grande: {file_size / (1024*1024):.2f}MB. Máximo: {MAX_FILE_SIZE / (1024*1024):.0f}MB'
+                }), 413
+            
+            # Gerar temp_id único
+            temp_id = str(uuid.uuid4())
+            
+            # Nome de arquivo seguro e único
+            original_filename = secure_filename(file.filename)
+            extension = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else 'jpg'
+            temp_filename = f"{temp_id}.{extension}"
+            
+            # Caminho completo para salvar na pasta temporária
+            temp_filepath = os.path.join(TEMP_UPLOAD_FOLDER, temp_filename)
+            
+            # Mover arquivo temporário para pasta de uploads temporários
+            shutil.move(temp_file.name, temp_filepath)
+            
+            # Path relativo para retornar ao frontend
+            relative_path = f"/uploads/temp/{temp_filename}"
+            
+            logger.info(f"✅ Upload temporário: {temp_filename} ({file_size / 1024:.2f}KB) - temp_id: {temp_id}")
+            
+            return jsonify({
+                'success': True,
+                'temp_id': temp_id,
+                'path': relative_path,
+                'filename': temp_filename,
+                'original_filename': file.filename,
+                'size': file_size,
+                'mime_type': file.content_type or 'image/jpeg'
+            }), 200
+            
+    except Exception as e:
+        logger.error(f"Erro no upload temporário: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Erro ao processar upload',
+            'details': str(e)
+        }), 500
 
 @app.route('/api/relatorios', methods=['POST'])
 @login_required
@@ -794,8 +888,57 @@ def api_autosave_relatorio():
                 
                 # Adicionar nova imagem (sem id ou id=null)
                 if not foto_info.get('id'):
+                    # Processar temp_id (imagem do upload temporário)
+                    if foto_info.get('temp_id'):
+                        temp_id = foto_info['temp_id']
+                        temp_filename = f"{temp_id}.{foto_info.get('extension', 'jpg')}"
+                        temp_filepath = os.path.join(TEMP_UPLOAD_FOLDER, temp_filename)
+                        
+                        # Verificar se arquivo temporário existe
+                        if not os.path.exists(temp_filepath):
+                            logger.error(f"AutoSave: Arquivo temporário não encontrado: {temp_filepath}")
+                            continue
+                        
+                        # Gerar nome definitivo
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S%f')
+                        extension = foto_info.get('extension', 'jpg')
+                        final_filename = f"relatorio_{relatorio_id}_{timestamp}_{temp_id}.{extension}"
+                        final_filepath = os.path.join(app.config['UPLOAD_FOLDER'], final_filename)
+                        
+                        # Mover arquivo de temp para pasta definitiva
+                        try:
+                            shutil.move(temp_filepath, final_filepath)
+                            logger.info(f"AutoSave: Arquivo movido de temp para definitivo: {final_filename}")
+                        except Exception as move_error:
+                            logger.error(f"Erro ao mover arquivo temporário: {move_error}")
+                            continue
+                        
+                        # Criar registro no banco
+                        nova_foto = FotoRelatorio(
+                            relatorio_id=relatorio_id,
+                            url=f"/uploads/{final_filename}",
+                            filename=final_filename,
+                            legenda=foto_info.get('legenda'),
+                            titulo=foto_info.get('titulo'),
+                            tipo_servico=foto_info.get('tipo_servico'),
+                            local=foto_info.get('local'),
+                            ordem=foto_info.get('ordem', 0)
+                        )
+                        db.session.add(nova_foto)
+                        db.session.flush()  # Para obter o ID
+                        
+                        imagens_resultado.append({
+                            'id': nova_foto.id,
+                            'url': nova_foto.url,
+                            'filename': nova_foto.filename,
+                            'legenda': nova_foto.legenda,
+                            'ordem': nova_foto.ordem,
+                            'temp_id': temp_id  # Retornar para frontend mapear
+                        })
+                        logger.info(f"AutoSave: Imagem temp_id={temp_id} persistida com id={nova_foto.id}")
+                    
                     # Imagens já salvas no filesystem - apenas criar registro
-                    if foto_info.get('url') or foto_info.get('filename'):
+                    elif foto_info.get('url') or foto_info.get('filename'):
                         nova_foto = FotoRelatorio(
                             relatorio_id=relatorio_id,
                             url=foto_info.get('url'),
