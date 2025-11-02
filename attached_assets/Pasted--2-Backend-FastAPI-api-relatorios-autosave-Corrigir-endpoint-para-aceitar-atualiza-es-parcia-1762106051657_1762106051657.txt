@@ -1,0 +1,67 @@
+🔹 2. Backend — FastAPI /api/relatorios/autosave
+
+Corrigir endpoint para aceitar atualizações parciais e validar campos dinamicamente:
+
+@router.post("/api/relatorios/autosave")
+async def autosave_relatorio(payload: dict, db: Session = Depends(get_db)):
+    try:
+        relatorio_id = payload.get("id")
+        if relatorio_id:
+            relatorio = db.query(Relatorio).filter_by(id=relatorio_id).first()
+            if not relatorio:
+                raise HTTPException(status_code=404, detail="Relatório não encontrado")
+        else:
+            relatorio = Relatorio()
+            db.add(relatorio)
+
+        # Atualiza apenas campos válidos
+        for key, value in payload.items():
+            if hasattr(relatorio, key):
+                setattr(relatorio, key, value)
+
+        db.commit()
+        db.refresh(relatorio)
+        print(f"✅ AutoSave atualizado: relatório {relatorio.id}")
+        return {"status": "ok", "id": relatorio.id}
+
+    except Exception as e:
+        db.rollback()
+        print("❌ Erro no autosave:", str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+
+🔹 3. Banco de Dados (se necessário)
+
+Garantir que a tabela relatorios tenha os campos esperados:
+
+ALTER TABLE relatorios
+ADD COLUMN IF NOT EXISTS descricao TEXT,
+ADD COLUMN IF NOT EXISTS categoria VARCHAR(255),
+ADD COLUMN IF NOT EXISTS local VARCHAR(255),
+ADD COLUMN IF NOT EXISTS lembrete_proxima_visita TEXT,
+ADD COLUMN IF NOT EXISTS observacoes_finais TEXT;
+
+🔍 Logs Esperados no Console
+
+Sucesso:
+
+🟦 AutoSave - Dados coletados: { titulo: "Relatório de visita", projeto_id: "29", ... }
+✅ AutoSave concluído: { id: 177, status: "ok" }
+
+
+Falha:
+
+❌ AutoSave erro HTTP 400: { detail: "Campo obrigatório ausente" }
+⚠️ AutoSave falhou: Falha no autosave
+💾 Salvando temporariamente no localStorage...
+
+✅ Resultado Esperado
+
+Nenhum erro 400.
+
+Todos os dados (texto, checklist, imagens) salvos corretamente.
+
+AutoSave completamente silencioso na UI.
+
+Logs detalhados apenas no console para depuração.
+
+Continuidade garantida: o usuário pode sair e retornar sem perder progresso.
