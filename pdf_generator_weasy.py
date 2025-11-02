@@ -171,7 +171,7 @@ class WeasyPrintReportGenerator:
         return data
     
     def _create_html_template(self):
-        """Template HTML com layout exato do PDF de referência: 2 na primeira página, 4 nas demais"""
+        """Template HTML replicando EXATAMENTE o modelo: 2 fotos na 1ª página, 4 nas demais"""
         return """
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -230,25 +230,25 @@ class WeasyPrintReportGenerator:
         </div>
     </div>
 
-    <!-- PRIMEIRA PÁGINA DE IMAGENS: Exatamente 2 imagens -->
+    <!-- PRIMEIRA PÁGINA: 2 IMAGENS LOGO ABAIXO DE "ITENS OBSERVADOS" -->
     {% if data.fotos %}
     {% set first_page_photos = data.fotos[:2] %}
     {% if first_page_photos %}
-    <div class="page-break-before first-photos-page">
+    <div class="first-page-photos">
         {% for foto in first_page_photos %}
-        <div class="single-photo-container">
+        <div class="first-photo-container">
             {% if foto.base64 and not foto.not_found %}
-                <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="single-photo-img">
+                <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="first-photo-img">
             {% else %}
-                <div class="photo-placeholder">Foto não disponível</div>
+                <div class="photo-placeholder-first">Foto não disponível</div>
             {% endif %}
-            <div class="single-photo-caption">Foto {{ foto.ordem }} - {{ foto.legenda }}</div>
+            <div class="first-photo-caption">Foto {{ foto.ordem }} - {{ foto.legenda }}</div>
         </div>
         {% endfor %}
     </div>
     {% endif %}
     
-    <!-- DEMAIS PÁGINAS: 4 imagens por página em grid 2x2 -->
+    <!-- DEMAIS PÁGINAS: 4 IMAGENS POR PÁGINA EM GRID 2x2 -->
     {% set remaining_photos = data.fotos[2:] %}
     {% for batch_start in range(0, remaining_photos|length, 4) %}
     <div class="page-break-before grid-photos-page">
@@ -483,44 +483,44 @@ figure {
     padding: 0;
 }
 
-/* PRIMEIRA PÁGINA DE FOTOS - 2 imagens grandes verticalmente */
-.first-photos-page {
-    page-break-after: always;
-    padding: 10mm 0;
-}
-
-.single-photo-container {
-    width: 100%;
-    margin-bottom: 15mm;
+/* PRIMEIRA PÁGINA: 2 FOTOS LOGO ABAIXO DE "ITENS OBSERVADOS" - SEM QUEBRA DE PÁGINA */
+.first-page-photos {
+    margin-top: 8mm;
     page-break-inside: avoid;
 }
 
-.single-photo-img {
+.first-photo-container {
+    width: 100%;
+    margin-bottom: 8mm;
+    page-break-inside: avoid;
+}
+
+.first-photo-img {
     width: 100%;
     height: auto;
-    max-height: 110mm;
+    max-height: 90mm;
     object-fit: contain;
     display: block;
     border: 1px solid #e0e0e0;
 }
 
-.photo-placeholder {
+.photo-placeholder-first {
     width: 100%;
-    height: 110mm;
+    height: 90mm;
     background-color: #f5f5f5;
     border: 2px dashed #ccc;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #999;
-    font-size: 11pt;
+    font-size: 10pt;
     font-style: italic;
 }
 
-.single-photo-caption {
-    font-size: 10pt;
+.first-photo-caption {
+    font-size: 9pt;
     color: #333;
-    margin-top: 5mm;
+    margin-top: 3mm;
     text-align: left;
     font-family: Arial, Helvetica, sans-serif;
 }
