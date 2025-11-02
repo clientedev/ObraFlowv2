@@ -15,6 +15,14 @@ class ReportsAutoSave {
 
         console.log('🕒 AutoSave: Iniciando sistema de autosave silencioso');
         
+        // Verificar se há parâmetro edit na URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const editParam = urlParams.get('edit');
+        if (editParam && !this.reportId) {
+            this.reportId = parseInt(editParam, 10);
+            console.log(`📥 AutoSave: ID do relatório capturado da URL: ${this.reportId}`);
+        }
+        
         if (!this.reportId) {
             console.log('📝 AutoSave: Sem reportId - será criado no primeiro salvamento');
         }
@@ -26,8 +34,250 @@ class ReportsAutoSave {
         console.log(`✅ AutoSave: Ativado para relatório ID ${this.reportId}`);
         console.log(`🔑 AutoSave: CSRF Token presente: ${!!this.csrfToken}`);
         console.log(`⏱️ AutoSave: Debounce configurado para ${this.debounceTime}ms`);
+        
+        // Se há reportId, carregar os dados do relatório primeiro
+        if (this.reportId) {
+            this.loadReportData();
+        }
+        
         this.startAutoSave();
         this.setupNetworkListeners();
+    }
+    
+    /**
+     * Carrega os dados do relatório existente
+     */
+    async loadReportData() {
+        try {
+            console.log(`📥 Carregando relatório ID: ${this.reportId}`);
+            
+            const response = await fetch(`/api/relatorios/${this.reportId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Erro ao carregar relatório: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('✅ Dados do relatório carregados:', data);
+                
+                // Preencher formulário com dados carregados
+                this.populateForm(data.relatorio);
+                
+                // Selecionar projeto se disponível
+                if (data.projeto) {
+                    this.selectProjeto(data.projeto);
+                }
+                
+                // Carregar imagens com categoria e local
+                if (data.imagens && data.imagens.length > 0) {
+                    this.loadImages(data.imagens);
+                }
+                
+                // Preencher checklist
+                if (data.checklist && data.checklist.length > 0) {
+                    this.preencherChecklist(data.checklist);
+                }
+                
+                // Preencher acompanhantes
+                if (data.acompanhantes && data.acompanhantes.length > 0) {
+                    this.preencherAcompanhantes(data.acompanhantes);
+                }
+                
+                console.log('✅ Relatório carregado e pré-preenchido com sucesso');
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar relatório:', error);
+        }
+    }
+    
+    /**
+     * Preenche o formulário com dados do relatório
+     */
+    populateForm(relatorio) {
+        console.log('📝 Preenchendo formulário com dados do relatório');
+        
+        // Preencher campos básicos
+        if (relatorio.titulo) {
+            const titulo = document.getElementById('titulo') || document.getElementById('titulo_relatorio');
+            if (titulo) titulo.value = relatorio.titulo;
+        }
+        
+        if (relatorio.numero) {
+            const numero = document.getElementById('numero') || document.getElementById('numero_relatorio');
+            if (numero) numero.value = relatorio.numero;
+        }
+        
+        if (relatorio.data_relatorio) {
+            const data = document.getElementById('data_relatorio');
+            if (data) data.value = relatorio.data_relatorio.split('T')[0];
+        }
+        
+        if (relatorio.observacoes_finais) {
+            const obs = document.getElementById('observacoes') || document.querySelector('[name="observacoes_finais"]');
+            if (obs) obs.value = relatorio.observacoes_finais;
+        }
+        
+        if (relatorio.conteudo) {
+            const conteudo = document.getElementById('conteudo');
+            if (conteudo) conteudo.value = relatorio.conteudo;
+        }
+        
+        if (relatorio.lembrete_proxima_visita) {
+            const lembrete = document.getElementById('lembrete_proxima_visita') || document.getElementById('lembrete');
+            if (lembrete) {
+                const date = new Date(relatorio.lembrete_proxima_visita);
+                lembrete.value = date.toISOString().slice(0, 16);
+            }
+        }
+        
+        if (relatorio.categoria) {
+            const categoria = document.getElementById('categoria');
+            if (categoria) categoria.value = relatorio.categoria;
+        }
+        
+        if (relatorio.local) {
+            const local = document.getElementById('local');
+            if (local) local.value = relatorio.local;
+        }
+        
+        console.log('✅ Formulário preenchido');
+    }
+    
+    /**
+     * Seleciona o projeto no campo de seleção
+     */
+    selectProjeto(projeto) {
+        if (!projeto) return;
+        
+        console.log('🏢 Selecionando projeto:', projeto.nome);
+        const projetoSelect = document.getElementById('projeto_id') || document.querySelector('select[name="projeto_id"]');
+        if (projetoSelect) {
+            let optionExists = false;
+            for (let i = 0; i < projetoSelect.options.length; i++) {
+                if (projetoSelect.options[i].value == projeto.id) {
+                    projetoSelect.selectedIndex = i;
+                    optionExists = true;
+                    break;
+                }
+            }
+            
+            if (!optionExists) {
+                const option = new Option(projeto.nome, projeto.id, true, true);
+                projetoSelect.appendChild(option);
+            }
+            
+            // Disparar evento change para carregar dados do projeto
+            projetoSelect.dispatchEvent(new Event('change'));
+            console.log(`✅ Projeto selecionado: ${projeto.nome}`);
+        }
+    }
+    
+    /**
+     * Carrega e exibe imagens do relatório
+     */
+    loadImages(imagens) {
+        console.log(`📸 Carregando ${imagens.length} imagens`);
+        
+        // Tentar encontrar o container de imagens
+        const container = document.getElementById('imagens-container') || 
+                         document.getElementById('photos-container') ||
+                         document.querySelector('.photos-container');
+        
+        if (!container) {
+            console.warn('⚠️ Container de imagens não encontrado');
+            return;
+        }
+        
+        container.innerHTML = '';
+        
+        imagens.forEach((img, index) => {
+            const card = document.createElement('div');
+            card.className = 'mobile-photo-card';
+            card.innerHTML = `
+                <img src="${img.path || img.url}" alt="${img.caption || img.legenda || 'Foto'}" 
+                     class="photo-card-image">
+                <div class="photo-card-content">
+                    <input type="text" class="caption-input" placeholder="Legenda" 
+                           value="${img.caption || img.legenda || ''}" 
+                           data-image-id="${img.id}">
+                    <input type="text" class="caption-input" placeholder="Categoria" 
+                           value="${img.category || img.tipo_servico || ''}"
+                           data-image-id="${img.id}">
+                    <input type="text" class="caption-input" placeholder="Local" 
+                           value="${img.local || ''}"
+                           data-image-id="${img.id}">
+                </div>
+            `;
+            container.appendChild(card);
+        });
+        
+        console.log(`✅ ${imagens.length} imagens carregadas e exibidas`);
+    }
+    
+    /**
+     * Preenche o checklist com os dados carregados
+     */
+    preencherChecklist(checklist) {
+        console.log(`📋 Preenchendo checklist com ${checklist.length} itens`);
+        
+        if (!Array.isArray(checklist)) {
+            console.warn('⚠️ Checklist não é um array:', checklist);
+            return;
+        }
+        
+        checklist.forEach(item => {
+            const pergunta = item.item || item.pergunta || item.texto;
+            const concluido = item.completed || item.concluido || item.resposta;
+            
+            // Tentar encontrar o checkbox correspondente
+            const checkboxes = document.querySelectorAll('.checklist-item .form-check-input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                const label = checkbox.closest('.checklist-item')?.querySelector('.form-check-label');
+                if (label && label.textContent.trim().includes(pergunta)) {
+                    checkbox.checked = concluido;
+                }
+            });
+        });
+        
+        console.log(`✅ ${checklist.length} itens de checklist preenchidos`);
+    }
+    
+    /**
+     * Preenche os acompanhantes com os dados carregados
+     */
+    preencherAcompanhantes(acompanhantesData) {
+        console.log(`👥 Preenchendo ${acompanhantesData.length} acompanhantes`);
+        
+        if (!Array.isArray(acompanhantesData)) {
+            console.warn('⚠️ Acompanhantes não é um array:', acompanhantesData);
+            return;
+        }
+        
+        // Usar a variável global acompanhantes se existir
+        if (typeof window.acompanhantes !== 'undefined') {
+            window.acompanhantes = acompanhantesData;
+            
+            // Atualizar visualização se a função existir
+            if (typeof window.atualizarListaAcompanhantes === 'function') {
+                window.atualizarListaAcompanhantes();
+            }
+            
+            // Atualizar campo hidden
+            const hiddenField = document.getElementById('acompanhantes-data');
+            if (hiddenField) {
+                hiddenField.value = JSON.stringify(acompanhantesData);
+            }
+            
+            console.log(`✅ ${acompanhantesData.length} acompanhantes carregados`);
+        }
     }
 
     startAutoSave() {
