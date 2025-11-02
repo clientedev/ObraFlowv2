@@ -128,45 +128,53 @@ class WeasyPrintReportGenerator:
             'fotos': []
         }
         
-        # Processar fotos
+        # Processar fotos - PRIORIDADE: PostgreSQL (campo imagem)
         if fotos:
-            try:
-                upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
-            except RuntimeError:
-                # Se não estiver no contexto da aplicação, usar pasta padrão
-                upload_folder = 'uploads'
-                
+            import base64
+            
             for foto in fotos:
-                foto_path = os.path.join(upload_folder, foto.filename)
-                if os.path.exists(foto_path):
-                    # Converter para base64 para embedding no HTML
-                    import base64
-                    with open(foto_path, 'rb') as f:
-                        foto_base64 = base64.b64encode(f.read()).decode('utf-8')
+                foto_base64 = None
+                
+                # PRIORIDADE 1: Buscar imagem do campo BYTEA do PostgreSQL
+                if hasattr(foto, 'imagem') and foto.imagem:
+                    try:
+                        # Verificar se é memoryview (PostgreSQL retorna assim)
+                        if isinstance(foto.imagem, memoryview):
+                            foto_base64 = base64.b64encode(bytes(foto.imagem)).decode('utf-8')
+                        elif isinstance(foto.imagem, bytes):
+                            foto_base64 = base64.b64encode(foto.imagem).decode('utf-8')
+                        print(f"✅ Foto {foto.ordem} carregada do PostgreSQL: {len(foto.imagem)} bytes")
+                    except Exception as e:
+                        print(f"⚠️ Erro ao processar imagem do PostgreSQL para foto {foto.ordem}: {e}")
+                
+                # FALLBACK: Tentar carregar do filesystem
+                if not foto_base64:
+                    try:
+                        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+                    except RuntimeError:
+                        upload_folder = 'uploads'
                     
-                    # Criar legenda completa incluindo a legenda pré-definida
-                    legenda_completa = foto.descricao or f"Foto {foto.ordem}"
-                    if hasattr(foto, 'legenda') and foto.legenda:
-                        legenda_completa += f" - {foto.legenda}"
-                    
-                    data['fotos'].append({
-                        'base64': foto_base64,
-                        'legenda': legenda_completa,
-                        'ordem': foto.ordem
-                    })
-                else:
-                    # Criar legenda completa incluindo a legenda pré-definida
-                    legenda_completa = foto.descricao or f"Foto {foto.ordem}"
-                    if hasattr(foto, 'legenda') and foto.legenda:
-                        legenda_completa += f" - {foto.legenda}"
-                    
-                    # Adicionar placeholder para fotos não encontradas
-                    data['fotos'].append({
-                        'base64': None,
-                        'legenda': legenda_completa,
-                        'ordem': foto.ordem,
-                        'not_found': True
-                    })
+                    foto_path = os.path.join(upload_folder, foto.filename)
+                    if os.path.exists(foto_path):
+                        try:
+                            with open(foto_path, 'rb') as f:
+                                foto_base64 = base64.b64encode(f.read()).decode('utf-8')
+                            print(f"✅ Foto {foto.ordem} carregada do filesystem: {foto_path}")
+                        except Exception as e:
+                            print(f"⚠️ Erro ao ler arquivo {foto_path}: {e}")
+                
+                # Criar legenda completa
+                legenda_completa = foto.legenda or f"Foto {foto.ordem}"
+                if hasattr(foto, 'descricao') and foto.descricao:
+                    legenda_completa = foto.descricao
+                
+                # Adicionar foto aos dados
+                data['fotos'].append({
+                    'base64': foto_base64,
+                    'legenda': legenda_completa,
+                    'ordem': foto.ordem,
+                    'not_found': not foto_base64
+                })
         
         return data
     
@@ -250,8 +258,12 @@ class WeasyPrintReportGenerator:
     
     <!-- DEMAIS PÁGINAS: 4 IMAGENS POR PÁGINA EM GRID 2x2 -->
     {% set remaining_photos = data.fotos[2:] %}
-    {% for batch_start in range(0, remaining_photos|length, 4) %}
-    <div class="page-break-before grid-photos-page">
+    {% set total_batches = ((remaining_photos|length - 1) // 4) + 1 if remaining_photos|length > 0 else 0 %}
+    {% for batch_index in range(total_batches) %}
+    {% set batch_start = batch_index * 4 %}
+    {% set is_last_batch = batch_index == total_batches - 1 %}
+    
+    <div class="page-break-before grid-photos-page {% if is_last_batch %}last-batch{% endif %}">
         <div class="photos-grid-2x2">
             {% for foto in remaining_photos[batch_start:batch_start+4] %}
             {% if foto %}
@@ -266,28 +278,30 @@ class WeasyPrintReportGenerator:
             {% endif %}
             {% endfor %}
         </div>
-    </div>
-    {% endfor %}
-    {% endif %}
-
-    <!-- ASSINATURAS - Na mesma página das últimas imagens -->
-    <div class="assinaturas-page">
-        <div class="assinaturas-section">
-            <div class="section-header">Assinaturas</div>
-            <div class="assinaturas-table">
-                <div class="assin-row header-row">
-                    <div class="assin-cell">Preenchido por:</div>
-                    <div class="assin-cell">Liberado por:</div>
-                    <div class="assin-cell">Responsável pelo acompanhamento</div>
-                </div>
-                <div class="assin-row value-row">
-                    <div class="assin-cell">{{ data.preenchido_por }}</div>
-                    <div class="assin-cell">{{ data.liberado_por }}</div>
-                    <div class="assin-cell">{{ data.responsavel }}</div>
+        
+        <!-- ASSINATURAS: Aparecem APÓS as últimas 4 fotos, na mesma página -->
+        {% if is_last_batch %}
+        <div class="assinaturas-inline">
+            <div class="assinaturas-section">
+                <div class="section-header">Assinaturas</div>
+                <div class="assinaturas-table">
+                    <div class="assin-row header-row">
+                        <div class="assin-cell">Preenchido por:</div>
+                        <div class="assin-cell">Liberado por:</div>
+                        <div class="assin-cell">Responsável pelo acompanhamento</div>
+                    </div>
+                    <div class="assin-row value-row">
+                        <div class="assin-cell">{{ data.preenchido_por }}</div>
+                        <div class="assin-cell">{{ data.liberado_por }}</div>
+                        <div class="assin-cell">{{ data.responsavel }}</div>
+                    </div>
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
+    {% endfor %}
+    {% endif %}
 
     <!-- Rodapé ELP -->
     <div class="footer-section">
@@ -534,9 +548,14 @@ figure {
     padding: 5mm 0;
 }
 
-/* Forçar quebra apenas se NÃO for a última página de fotos */
-.grid-photos-page:not(:last-of-type) {
+/* Forçar quebra APENAS se não for a última página de fotos */
+.grid-photos-page:not(.last-batch) {
     page-break-after: always;
+}
+
+/* Última página NÃO deve quebrar - assinaturas ficam embaixo */
+.grid-photos-page.last-batch {
+    page-break-after: avoid;
 }
 
 .photos-grid-2x2 {
@@ -546,6 +565,7 @@ figure {
     gap: 8mm;
     width: 100%;
     height: auto;
+    margin-bottom: 10mm;
 }
 
 .grid-photo-item {
@@ -678,9 +698,9 @@ figure {
     font-weight: bold;
 }
 
-/* ASSINATURAS - Na mesma página das últimas imagens */
-.assinaturas-page {
-    margin-top: 15mm;
+/* ASSINATURAS INLINE - Aparecem após o último grid de fotos, na mesma página */
+.assinaturas-inline {
+    margin-top: 10mm;
     page-break-inside: avoid;
     page-break-before: avoid;
 }
