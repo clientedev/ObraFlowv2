@@ -69,7 +69,7 @@ class ReportsAutoSave {
                 conteudo: this.collectRichTextContent() || "",
                 checklist_data: this.getChecklistData(),
                 acompanhantes: this.getAcompanhantesData(),
-                fotos: this.getImageData()
+                fotos: [] // Será preenchido na versão async
             };
 
             // Adicionar projeto_id como número inteiro
@@ -90,6 +90,43 @@ class ReportsAutoSave {
             return {};
         }
     }
+    
+    async collectFormDataAsync() {
+        try {
+            const data = {
+                titulo: document.querySelector('#titulo_relatorio')?.value?.trim() || 
+                        document.querySelector('#titulo')?.value?.trim() || "",
+                numero: document.querySelector('#numero_relatorio')?.value?.trim() || 
+                        document.querySelector('#numero')?.value?.trim() || "",
+                data_relatorio: document.querySelector('#data_relatorio')?.value || null,
+                observacoes_finais: document.querySelector('#observacoes')?.value?.trim() || "",
+                lembrete_proxima_visita: document.querySelector('#lembrete')?.value?.trim() || null,
+                conteudo: this.collectRichTextContent() || "",
+                checklist_data: this.getChecklistData(),
+                acompanhantes: this.getAcompanhantesData(),
+                fotos: await this.getImageData(), // Aguardar upload das imagens
+                categoria: document.querySelector('#categoria')?.value?.trim() || null,
+                local: document.querySelector('#local')?.value?.trim() || null
+            };
+
+            // Adicionar projeto_id como número inteiro
+            const projetoIdStr = document.querySelector('#projeto_id')?.value?.trim();
+            if (projetoIdStr) {
+                data.projeto_id = parseInt(projetoIdStr, 10);
+            }
+
+            // Adicionar ID apenas se existir
+            if (this.reportId) {
+                data.id = parseInt(this.reportId, 10);
+            }
+
+            console.log('📦 AutoSave - Dados coletados (com imagens):', data);
+            return data;
+        } catch (err) {
+            console.error('❌ AutoSave: erro ao coletar dados do formulário:', err);
+            return {};
+        }
+    }
 
     getChecklistData() {
         const items = Array.from(document.querySelectorAll('.checklist-item')).map(item => ({
@@ -102,22 +139,88 @@ class ReportsAutoSave {
         return items;
     }
 
-    getImageData() {
-        const images = window.attachedImages || [];
-        const imageData = images.map((img, index) => ({
-            nome: img.name || null,
-            categoria: img.category || null,
-            local: img.location || null,
-            legenda: img.caption || null,
-            titulo: img.title || null,
-            tipo_servico: img.category || null,
-            url: img.url || null,
-            filename: img.filename || null,
-            ordem: img.ordem !== undefined ? img.ordem : index
-        }));
-
-        console.log(`📸 AutoSave - Imagens: ${imageData.length} imagens coletadas`);
+    async getImageData() {
+        // Coletar imagens do mobilePhotoData (sistema mobile-first)
+        const mobilePhotos = window.mobilePhotoData || [];
+        const imageData = [];
+        
+        console.log(`📸 AutoSave - Processando ${mobilePhotos.length} imagens...`);
+        
+        for (let i = 0; i < mobilePhotos.length; i++) {
+            const photo = mobilePhotos[i];
+            
+            // Se já tem ID, é uma imagem já salva - apenas metadados
+            if (photo.savedId) {
+                imageData.push({
+                    id: photo.savedId,
+                    legenda: photo.manualCaption || photo.predefinedCaption || '',
+                    categoria: photo.category || null,
+                    local: photo.local || null,
+                    titulo: photo.manualCaption || null,
+                    tipo_servico: photo.category || null,
+                    ordem: i
+                });
+                console.log(`📌 AutoSave - Imagem já salva: ID ${photo.savedId}`);
+                continue;
+            }
+            
+            // Se tem arquivo, fazer upload temporário
+            if (photo.file) {
+                try {
+                    const tempUploadResult = await this.uploadImageTemp(photo.file);
+                    
+                    if (tempUploadResult && tempUploadResult.temp_id) {
+                        // Armazenar temp_id para posterior associação
+                        photo.temp_id = tempUploadResult.temp_id;
+                        
+                        imageData.push({
+                            temp_id: tempUploadResult.temp_id,
+                            extension: tempUploadResult.filename.split('.').pop(),
+                            legenda: photo.manualCaption || photo.predefinedCaption || '',
+                            categoria: photo.category || null,
+                            local: photo.local || null,
+                            titulo: photo.manualCaption || null,
+                            tipo_servico: photo.category || null,
+                            ordem: i
+                        });
+                        
+                        console.log(`✅ AutoSave - Upload temporário: ${tempUploadResult.temp_id}`);
+                    }
+                } catch (error) {
+                    console.error(`❌ AutoSave - Erro no upload da imagem ${i}:`, error);
+                }
+            }
+        }
+        
+        console.log(`📸 AutoSave - ${imageData.length} imagens preparadas para salvamento`);
         return imageData;
+    }
+    
+    async uploadImageTemp(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        try {
+            const response = await fetch('/api/uploads/temp', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Upload falhou: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                return result;
+            } else {
+                throw new Error(result.error || 'Erro no upload');
+            }
+        } catch (error) {
+            console.error('❌ Erro no upload temporário:', error);
+            throw error;
+        }
     }
 
     collectRichTextContent() {
@@ -153,7 +256,9 @@ class ReportsAutoSave {
         }
 
         this.isSaving = true;
-        const payload = this.collectFormData();
+        
+        // Coletar dados do formulário de forma assíncrona (aguardar upload de imagens)
+        const payload = await this.collectFormDataAsync();
 
         try {
             const response = await fetch('/api/relatorios/autosave', {
@@ -179,6 +284,20 @@ class ReportsAutoSave {
                 this.reportId = result.relatorio_id;
                 window.currentReportId = result.relatorio_id;
                 console.log(`📌 AutoSave: Novo relatório criado com ID ${this.reportId}`);
+            }
+            
+            // Mapear temp_ids para IDs reais das imagens salvas
+            if (result.imagens && window.mobilePhotoData) {
+                result.imagens.forEach(img => {
+                    if (img.temp_id) {
+                        // Encontrar foto correspondente no mobilePhotoData
+                        const photo = window.mobilePhotoData.find(p => p.temp_id === img.temp_id);
+                        if (photo) {
+                            photo.savedId = img.id;
+                            console.log(`📸 AutoSave: Imagem ${img.temp_id} → ID ${img.id}`);
+                        }
+                    }
+                });
             }
             
             // Limpar localStorage após sucesso
