@@ -20,11 +20,13 @@ class ReportsAutoSave {
         this.lastSavedData = {};
 
         // Whitelist de campos para auto-save (deve coincidir com o backend)
+        // IMPORTANTE: Todos os campos do formulário devem estar aqui para disparar autosave
         this.allowedFields = [
             'titulo', 'observacoes', 'latitude', 'longitude',
             'endereco', 'checklist_data', 'last_edited_at',
             'descricao', 'categoria', 'local', 'observacoes_finais',
-            'conteudo', 'lembrete_proxima_visita'
+            'conteudo', 'lembrete_proxima_visita', 'numero', 'data_relatorio',
+            'projeto_id', 'status'
         ];
 
         this.init();
@@ -57,7 +59,7 @@ class ReportsAutoSave {
 
         formElements.forEach(element => {
             // Filtrar apenas campos permitidos
-            if (this.allowedFields.includes(element.name)) {
+            if (this.allowedFields.includes(element.name) || element.id && this.allowedFields.includes(element.id)) {
                 element.addEventListener('input', (e) => this.handleInputChange(e));
                 element.addEventListener('change', (e) => this.handleInputChange(e));
             }
@@ -68,6 +70,50 @@ class ReportsAutoSave {
         if (checklistContainer) {
             checklistContainer.addEventListener('change', () => this.handleChecklistChange());
         }
+
+        // Listener para mudanças em acompanhantes (múltiplos formatos)
+        const acompanhantesFields = document.querySelectorAll('[name^="acompanhante_"]');
+        acompanhantesFields.forEach(field => {
+            field.addEventListener('input', (e) => this.handleInputChange(e));
+            field.addEventListener('change', (e) => this.handleInputChange(e));
+        });
+
+        // Listener para container de acompanhantes
+        const acompanhantesContainer = document.querySelector('[data-acompanhantes-list]');
+        if (acompanhantesContainer) {
+            acompanhantesContainer.addEventListener('input', () => this.debouncedSave());
+            acompanhantesContainer.addEventListener('change', () => this.debouncedSave());
+        }
+
+        // Listener para upload de imagens
+        const imageInputs = document.querySelectorAll('input[type="file"][accept*="image"]');
+        imageInputs.forEach(input => {
+            input.addEventListener('change', (e) => this.handleImageUpload(e));
+        });
+
+        // Listeners específicos para campos que podem não ter name attribute
+        const specificFields = ['numero', 'data_relatorio', 'projeto_id', 'status'];
+        specificFields.forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                element.addEventListener('input', (e) => this.handleInputChange(e));
+                element.addEventListener('change', (e) => this.handleInputChange(e));
+            }
+        });
+
+        // Listener para mudanças em metadados de imagens
+        const imagemMetadataFields = document.querySelectorAll('[data-imagem-id] [data-field]');
+        imagemMetadataFields.forEach(field => {
+            field.addEventListener('input', () => this.debouncedSave());
+            field.addEventListener('change', () => this.debouncedSave());
+        });
+    }
+
+    handleImageUpload(event) {
+        console.log('📸 AutoSave: Upload de imagem detectado');
+        // As imagens serão enviadas separadamente após upload
+        // O sistema deve apenas registrar que houve mudança
+        this.debouncedSave();
     }
 
     setupNetworkListeners() {
@@ -124,18 +170,19 @@ class ReportsAutoSave {
             this.performSave();
         }, this.debounceTime);
 
-        // Mostrar indicador discreto apenas quando necessário
+        // Mostrar indicador de que está aguardando para salvar
+        this.showStatus('Salvando...', 'info');
         console.log('🔄 AutoSave: Alterações detectadas, salvando em', this.debounceTime/1000, 's');
     }
 
     collectFormData() {
         const data = {};
 
-        // Lista COMPLETA de campos do formulário
+        // Lista COMPLETA de campos do formulário conforme especificação
         const fields = [
             'titulo', 'descricao', 'categoria', 'local',
             'observacoes_finais', 'conteudo', 'status',
-            'endereco', 'observacoes'
+            'endereco', 'observacoes', 'numero', 'data_relatorio'
         ];
 
         fields.forEach(field => {
@@ -147,10 +194,22 @@ class ReportsAutoSave {
             }
         });
 
+        // Projeto vinculado
+        const projetoElement = document.getElementById('projeto_id') || document.querySelector('[name="projeto_id"]');
+        if (projetoElement && projetoElement.value) {
+            data.projeto_id = parseInt(projetoElement.value);
+        }
+
         // Lembrete próxima visita
         const lembreteElement = document.getElementById('lembrete_proxima_visita');
         if (lembreteElement) {
             data.lembrete_proxima_visita = lembreteElement.value || null;
+        }
+
+        // Acompanhantes (enviar como array, não como string JSON)
+        const acompanhantesData = this.getAcompanhantesData();
+        if (acompanhantesData) {
+            data.acompanhantes = acompanhantesData;
         }
 
         // Coordenadas GPS
@@ -164,10 +223,22 @@ class ReportsAutoSave {
             data.longitude = parseFloat(lonElement.value);
         }
 
-        // Checklist data (se existir)
-        const checklistData = this.getChecklistData();
+        // Checklist data (se existir) - CORRIGIDO: usar collectChecklistData()
+        // Enviar como array/objeto, não como string JSON (backend faz a conversão)
+        const checklistData = this.collectChecklistData();
         if (checklistData) {
-            data.checklist_data = JSON.stringify(checklistData);
+            // collectChecklistData() retorna JSON string, precisamos parsear de volta
+            try {
+                data.checklist_data = JSON.parse(checklistData);
+            } catch (e) {
+                data.checklist_data = checklistData;
+            }
+        }
+
+        // Imagens (metadados e exclusões)
+        const imagensData = this.getImagenesData();
+        if (imagensData) {
+            data.fotos = imagensData;
         }
 
         // Timestamp de última edição
@@ -202,6 +273,96 @@ class ReportsAutoSave {
         return checklistItems.length > 0 ? JSON.stringify(checklistItems) : null;
     }
 
+    getAcompanhantesData() {
+        const acompanhantes = [];
+        
+        // Buscar campos de acompanhantes (múltiplas abordagens)
+        // 1. Campos individuais com pattern acompanhante_nome_X, acompanhante_funcao_X
+        let index = 0;
+        while (true) {
+            const nomeElement = document.getElementById(`acompanhante_nome_${index}`) || 
+                               document.querySelector(`[name="acompanhante_nome_${index}"]`);
+            const funcaoElement = document.getElementById(`acompanhante_funcao_${index}`) || 
+                                 document.querySelector(`[name="acompanhante_funcao_${index}"]`);
+            
+            if (!nomeElement && index > 0) break; // Parar quando não houver mais campos
+            
+            if (nomeElement || funcaoElement) {
+                const nome = nomeElement ? nomeElement.value : '';
+                const funcao = funcaoElement ? funcaoElement.value : '';
+                
+                // Só adicionar se pelo menos um campo estiver preenchido
+                if (nome || funcao) {
+                    acompanhantes.push({
+                        nome: nome,
+                        funcao: funcao
+                    });
+                }
+            }
+            index++;
+        }
+
+        // 2. Lista de acompanhantes em container específico
+        const acompanhantesContainer = document.querySelector('[data-acompanhantes-list]');
+        if (acompanhantesContainer && acompanhantes.length === 0) {
+            const items = acompanhantesContainer.querySelectorAll('[data-acompanhante-item]');
+            items.forEach(item => {
+                const nome = item.querySelector('[data-field="nome"]')?.value || 
+                            item.querySelector('.acompanhante-nome')?.value || '';
+                const funcao = item.querySelector('[data-field="funcao"]')?.value || 
+                              item.querySelector('.acompanhante-funcao')?.value || '';
+                
+                if (nome || funcao) {
+                    acompanhantes.push({ nome, funcao });
+                }
+            });
+        }
+
+        return acompanhantes.length > 0 ? acompanhantes : null;
+    }
+
+    getImagenesData() {
+        const imagens = [];
+        
+        // Buscar imagens já carregadas no relatório
+        const imagemElements = document.querySelectorAll('[data-imagem-id]');
+        imagemElements.forEach(imgElement => {
+            const id = imgElement.dataset.imagemId;
+            const legenda = imgElement.querySelector('[data-field="legenda"]')?.value || 
+                           imgElement.dataset.legenda || '';
+            const categoria = imgElement.querySelector('[data-field="categoria"]')?.value || 
+                             imgElement.dataset.categoria || '';
+            const local = imgElement.querySelector('[data-field="local"]')?.value || 
+                         imgElement.dataset.local || '';
+            const titulo = imgElement.querySelector('[data-field="titulo"]')?.value || 
+                          imgElement.dataset.titulo || '';
+            const ordem = imgElement.dataset.ordem || imagens.length;
+            
+            imagens.push({
+                id: parseInt(id),
+                legenda: legenda,
+                categoria: categoria,
+                local: local,
+                titulo: titulo,
+                ordem: parseInt(ordem)
+            });
+        });
+
+        // Buscar imagens marcadas para exclusão
+        const imagensParaExcluir = document.querySelectorAll('[data-imagem-deletar="true"]');
+        imagensParaExcluir.forEach(imgElement => {
+            const id = imgElement.dataset.imagemId;
+            if (id) {
+                imagens.push({
+                    id: parseInt(id),
+                    deletar: true
+                });
+            }
+        });
+
+        return imagens.length > 0 ? imagens : null;
+    }
+
     async performSave() {
         if (this.isSaving) {
             console.log('⏸️ AutoSave: Já em progresso, aguardando...');
@@ -233,7 +394,7 @@ class ReportsAutoSave {
     }
 
     async saveToServer(data) {
-        const url = `/reports/autosave/${this.reportId}`;
+        const url = `/api/relatorios/autosave`;
 
         const headers = {
             'Content-Type': 'application/json',
@@ -244,10 +405,16 @@ class ReportsAutoSave {
             headers['X-CSRFToken'] = this.csrfToken;
         }
 
+        // Adicionar ID do relatório ao payload
+        const payload = {
+            ...data,
+            id: this.reportId
+        };
+
         const response = await fetch(url, {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify(data)
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
@@ -269,8 +436,8 @@ class ReportsAutoSave {
 
             console.log('✅ AutoSave: Dados salvos com sucesso');
 
-            // NÃO MOSTRAR STATUS VISUAL - apenas log
-            this.hideStatus();
+            // Mostrar feedback de sucesso
+            this.showStatus('✓ Alterações salvas automaticamente', 'success');
         } else {
             console.error('❌ AutoSave: Falha', result.error);
             throw new Error(result.error || 'Falha no auto-save');
@@ -333,7 +500,6 @@ class ReportsAutoSave {
     handleSaveError(data, error) {
         this.retryCount++;
 
-        // APENAS LOG - SEM MENSAGENS NA TELA
         console.error(`❌ AutoSave: Erro (tentativa ${this.retryCount}/${this.maxRetries})`, error);
 
         // Salvar localmente como backup
@@ -344,12 +510,14 @@ class ReportsAutoSave {
             const backoffDelay = this.retryDelay * Math.pow(2, this.retryCount - 1);
 
             console.log(`🔄 AutoSave: Nova tentativa em ${Math.ceil(backoffDelay/1000)}s`);
+            this.showStatus(`Tentando salvar novamente (${this.retryCount}/${this.maxRetries})...`, 'warning');
 
             setTimeout(() => {
                 this.performSave();
             }, backoffDelay);
         } else {
             console.error('❌ AutoSave: Máximo de tentativas atingido - dados salvos localmente');
+            this.showStatus('Erro ao salvar. Dados salvos localmente.', 'error');
         }
     }
 
@@ -359,10 +527,32 @@ class ReportsAutoSave {
     }
 
     showStatus(message, type = 'info') {
-        // MENSAGENS DE STATUS DESABILITADAS - APENAS LOGS
-        // Não mostrar nada na tela, apenas logar no console
+        // Exibir feedback visual conforme especificação
+        const statusElement = document.getElementById('autosave-status');
+        if (!statusElement) return;
+
+        // Cores conforme tipo
+        const colors = {
+            info: '#2196F3',
+            success: '#4CAF50',
+            error: '#f44336',
+            warning: '#ff9800'
+        };
+
+        statusElement.style.backgroundColor = colors[type] || colors.info;
+        statusElement.style.color = 'white';
+        statusElement.textContent = message;
+        statusElement.style.display = 'block';
+
+        // Log também no console
         console.log(`AutoSave [${type}]: ${message}`);
-        return;
+
+        // Auto-ocultar após 3 segundos (exceto erros)
+        if (type !== 'error') {
+            setTimeout(() => {
+                this.hideStatus();
+            }, 3000);
+        }
     }
 
     hideStatus() {

@@ -820,12 +820,31 @@ def api_autosave_relatorio():
             # Atualizar campos texto/data
             campos_atualizaveis = [
                 'titulo', 'descricao', 'categoria', 'local', 
-                'observacoes_finais', 'conteudo', 'status'
+                'observacoes_finais', 'conteudo', 'status',
+                'observacoes', 'endereco'
             ]
 
             for campo in campos_atualizaveis:
                 if campo in data:
                     setattr(relatorio, campo, data[campo])
+            
+            # Atualizar coordenadas GPS se fornecidas
+            if 'latitude' in data:
+                relatorio.latitude = data['latitude']
+            if 'longitude' in data:
+                relatorio.longitude = data['longitude']
+            
+            # Atualizar data do relatório se fornecida
+            if 'data_relatorio' in data and data['data_relatorio']:
+                try:
+                    if isinstance(data['data_relatorio'], str):
+                        relatorio.data_relatorio = datetime.fromisoformat(
+                            data['data_relatorio'].replace('Z', '+00:00')
+                        )
+                    else:
+                        relatorio.data_relatorio = data['data_relatorio']
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Erro ao processar data_relatorio: {e}")
 
             # Atualizar lembrete_proxima_visita
             if 'lembrete_proxima_visita' in data:
