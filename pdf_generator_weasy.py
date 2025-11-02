@@ -171,7 +171,7 @@ class WeasyPrintReportGenerator:
         return data
     
     def _create_html_template(self):
-        """Template HTML seguindo exatamente o modelo das screenshots"""
+        """Template HTML com layout otimizado de imagens: 2 na primeira página, 4 nas demais"""
         return """
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -228,24 +228,6 @@ class WeasyPrintReportGenerator:
                 <div class="obs-text">Vide fotos.</div>
             {% endif %}
         </div>
-        
-        <!-- Fotos em grade -->
-        {% if data.fotos %}
-        <div class="photos-grid">
-            {% for foto in data.fotos %}
-            <div class="photo-item">
-                {% if foto.base64 and not foto.not_found %}
-                    <div class="photo-wrapper">
-                        <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo-img">
-                    </div>
-                {% else %}
-                    <div class="photo-placeholder">Foto não disponível</div>
-                {% endif %}
-                <div class="photo-caption">{{ foto.legenda }}</div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
     </div>
 
     <!-- Assinaturas com fundo cinza -->
@@ -264,6 +246,48 @@ class WeasyPrintReportGenerator:
             </div>
         </div>
     </div>
+
+    <!-- Primeira página de fotos: 2 imagens (superior e inferior) -->
+    {% if data.fotos %}
+    {% set first_page_photos = data.fotos[:2] %}
+    {% if first_page_photos %}
+    <div class="page-break-before photos-page-first">
+        {% for foto in first_page_photos %}
+        <div class="photo-item-first">
+            {% if foto.base64 and not foto.not_found %}
+                <div class="photo-wrapper-first">
+                    <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo-img-first">
+                </div>
+            {% else %}
+                <div class="photo-placeholder-first">Foto não disponível</div>
+            {% endif %}
+            <div class="photo-caption-first">{{ foto.legenda }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Demais páginas: 4 imagens por página (2x2) -->
+    {% set remaining_photos = data.fotos[2:] %}
+    {% for i in range(0, remaining_photos|length, 4) %}
+    <div class="page-break-before photos-page-grid">
+        <div class="photos-grid-4">
+            {% for foto in remaining_photos[i:i+4] %}
+            <div class="photo-item-grid">
+                {% if foto.base64 and not foto.not_found %}
+                    <div class="photo-wrapper-grid">
+                        <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo-img-grid">
+                    </div>
+                {% else %}
+                    <div class="photo-placeholder-grid">Foto não disponível</div>
+                {% endif %}
+                <div class="photo-caption-grid">{{ foto.legenda }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
 
     <!-- Rodapé ELP -->
     <div class="footer-section">
@@ -286,11 +310,20 @@ class WeasyPrintReportGenerator:
         """
     
     def _create_css_styles(self):
-        """CSS seguindo exatamente a imagem fornecida com proporções precisas"""
+        """CSS com layout otimizado: 2 imagens na primeira página, 4 nas demais + numeração"""
         return """
 @page {
     size: A4;
-    margin: 1cm 1.5cm 2.5cm 1.5cm;
+    margin: 20px;
+    
+    @bottom-right {
+        content: "Página " counter(page) " / " counter(pages);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 9pt;
+        color: #666666;
+        margin-right: 20px;
+        margin-bottom: 10px;
+    }
 }
 
 * {
@@ -432,75 +465,121 @@ body {
     margin: 0 0 4px 0;
 }
 
-/* Grid de Fotos - exatamente como na imagem */
-.photos-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 12px;
-    margin-top: 8px;
+/* Quebra de página antes das fotos */
+.page-break-before {
+    page-break-before: always;
+    break-before: page;
 }
 
-.photo-item {
-    text-align: left;
+/* Primeira página de fotos: 2 imagens (superior e inferior) */
+.photos-page-first {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: calc(100vh - 80px);
 }
 
-.photo-wrapper {
+.photo-item-first {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.photo-wrapper-first {
+    flex: 1;
     border: 1px solid #ccc;
     overflow: hidden;
     background: white;
-    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
 }
 
-.photo-img {
+.photo-img-first {
     width: 100%;
-    height: auto;
-    max-height: 160px;
-    object-fit: cover;
+    height: 100%;
+    object-fit: contain;
     display: block;
 }
 
-.photo-placeholder {
-    width: 100%;
-    height: 100px;
+.photo-placeholder-first {
+    flex: 1;
     background-color: #f0f0f0;
     border: 1px dashed #ccc;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #666;
-    font-size: 8pt;
-    margin-bottom: 6px;
+    font-size: 10pt;
+    min-height: 200px;
 }
 
-.photo-caption {
-    font-size: 8pt;
+.photo-caption-first {
+    font-size: 9pt;
     color: #333333;
-    line-height: 1.1;
-    margin: 0;
+    line-height: 1.2;
+    margin-top: 6px;
+    padding: 4px 0;
     text-align: left;
     font-weight: normal;
 }
 
-/* Mais de 2 fotos - manter proporções */
-.photos-grid:has(.photo-item:nth-child(3)) .photo-img {
-    max-height: 140px;
+/* Demais páginas: 4 imagens em grade 2x2 */
+.photos-page-grid {
+    padding: 20px;
 }
 
-.photos-grid:has(.photo-item:nth-child(4)) .photo-img {
-    max-height: 120px;
+.photos-grid-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    height: 100%;
 }
 
-.photos-grid:has(.photo-item:nth-child(5)) {
-    grid-template-columns: 1fr 1fr 1fr;
+.photo-item-grid {
+    display: flex;
+    flex-direction: column;
 }
 
-.photos-grid:has(.photo-item:nth-child(5)) .photo-img {
-    max-height: 100px;
+.photo-wrapper-grid {
+    border: 1px solid #ccc;
+    overflow: hidden;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 350px;
 }
 
-.photos-grid:has(.photo-item:nth-child(5)) .photo-caption {
-    font-size: 7pt;
+.photo-img-grid {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.photo-placeholder-grid {
+    width: 100%;
+    height: 350px;
+    background-color: #f0f0f0;
+    border: 1px dashed #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 9pt;
+}
+
+.photo-caption-grid {
+    font-size: 8pt;
+    color: #333333;
+    line-height: 1.1;
+    margin-top: 4px;
+    text-align: left;
+    font-weight: normal;
 }
 
 /* Assinaturas - Tabela */
@@ -597,26 +676,19 @@ body {
     font-weight: bold;
 }
 
-/* Ajustes para caber em uma página */
-@media print {
-    .photos-grid:has(.photo-item:nth-child(3)) .photo-img {
-        max-height: 160px;
-    }
-    
-    .photos-grid:has(.photo-item:nth-child(4)) .photo-img {
-        max-height: 140px;
-    }
-    
-    .photos-grid:has(.photo-item:nth-child(5)) .photo-img {
-        max-height: 120px;
-    }
-}
-
-/* Quebras de página */
+/* Quebras de página - evitar quebra dentro de seções */
 .report-section,
 .dados-section,
 .observacoes-section,
 .assinaturas-section {
     break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+/* Garantir que páginas de fotos sejam independentes */
+.photos-page-first,
+.photos-page-grid {
+    break-after: page;
+    page-break-after: always;
 }
         """
