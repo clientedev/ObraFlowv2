@@ -230,13 +230,13 @@ class WeasyPrintReportGenerator:
         </div>
     </div>
 
-    <!-- PRIMEIRA PÁGINA: 2 IMAGENS LOGO ABAIXO DE "ITENS OBSERVADOS" -->
+    <!-- PRIMEIRA PÁGINA: 2 IMAGENS LADO A LADO ABAIXO DE "ITENS OBSERVADOS" -->
     {% if data.fotos %}
     {% set first_page_photos = data.fotos[:2] %}
     {% if first_page_photos %}
-    <div class="first-page-photos">
+    <div class="first-page-photos-grid">
         {% for foto in first_page_photos %}
-        <div class="first-photo-container">
+        <div class="first-photo-item">
             {% if foto.base64 and not foto.not_found %}
                 <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="first-photo-img">
             {% else %}
@@ -483,22 +483,26 @@ figure {
     padding: 0;
 }
 
-/* PRIMEIRA PÁGINA: 2 FOTOS LOGO ABAIXO DE "ITENS OBSERVADOS" - SEM QUEBRA DE PÁGINA */
-.first-page-photos {
+/* PRIMEIRA PÁGINA: 2 FOTOS LADO A LADO (GRID 1x2) ABAIXO DE "ITENS OBSERVADOS" */
+.first-page-photos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8mm;
     margin-top: 8mm;
     page-break-inside: avoid;
+    width: 100%;
 }
 
-.first-photo-container {
-    width: 100%;
-    margin-bottom: 8mm;
+.first-photo-item {
     page-break-inside: avoid;
+    display: flex;
+    flex-direction: column;
 }
 
 .first-photo-img {
     width: 100%;
     height: auto;
-    max-height: 90mm;
+    max-height: 85mm;
     object-fit: contain;
     display: block;
     border: 1px solid #e0e0e0;
@@ -506,7 +510,7 @@ figure {
 
 .photo-placeholder-first {
     width: 100%;
-    height: 90mm;
+    height: 85mm;
     background-color: #f5f5f5;
     border: 2px dashed #ccc;
     display: flex;
@@ -527,8 +531,12 @@ figure {
 
 /* DEMAIS PÁGINAS - GRID 2x2 (4 imagens por página) */
 .grid-photos-page {
-    page-break-after: always;
     padding: 5mm 0;
+}
+
+/* Forçar quebra apenas se NÃO for a última página de fotos */
+.grid-photos-page:not(:last-of-type) {
+    page-break-after: always;
 }
 
 .photos-grid-2x2 {
@@ -672,8 +680,9 @@ figure {
 
 /* ASSINATURAS - Na mesma página das últimas imagens */
 .assinaturas-page {
-    margin-top: 10mm;
+    margin-top: 15mm;
     page-break-inside: avoid;
+    page-break-before: avoid;
 }
 
 /* Quebras de página - evitar quebra dentro de seções */
