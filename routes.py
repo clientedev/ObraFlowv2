@@ -2320,7 +2320,9 @@ def autosave_report(report_id):
         # Whitelist de campos permitidos conforme especificação
         allowed_fields = [
             'titulo', 'observacoes', 'latitude', 'longitude', 
-            'endereco', 'checklist_data', 'last_edited_at'
+            'endereco', 'checklist_data', 'last_edited_at',
+            'descricao', 'categoria', 'local', 'observacoes_finais', 
+            'conteudo', 'lembrete_proxima_visita'
         ]
 
         # Aplicar updates apenas nos campos permitidos
@@ -2344,6 +2346,21 @@ def autosave_report(report_id):
                         except json.JSONDecodeError:
                             current_app.logger.warning(f"⚠️ AUTOSAVE: checklist_data JSON inválido")
                             continue
+                
+                elif field == 'lembrete_proxima_visita':
+                    # Converter string ISO para datetime
+                    if value is not None and value != '':
+                        try:
+                            if isinstance(value, str):
+                                value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                            elif not isinstance(value, datetime):
+                                current_app.logger.warning(f"⚠️ AUTOSAVE: lembrete_proxima_visita tipo inválido: {type(value)}")
+                                continue
+                        except (ValueError, AttributeError) as e:
+                            current_app.logger.warning(f"⚠️ AUTOSAVE: Erro ao converter lembrete_proxima_visita: {e}")
+                            continue
+                    else:
+                        value = None
 
                 # Aplicar a mudança se o valor for diferente
                 current_value = getattr(relatorio, field, None)

@@ -22,7 +22,9 @@ class ReportsAutoSave {
         // Whitelist de campos para auto-save (deve coincidir com o backend)
         this.allowedFields = [
             'titulo', 'observacoes', 'latitude', 'longitude', 
-            'endereco', 'checklist_data', 'last_edited_at'
+            'endereco', 'checklist_data', 'last_edited_at',
+            'descricao', 'categoria', 'local', 'observacoes_finais',
+            'conteudo', 'lembrete_proxima_visita'
         ];
         
         this.init();
