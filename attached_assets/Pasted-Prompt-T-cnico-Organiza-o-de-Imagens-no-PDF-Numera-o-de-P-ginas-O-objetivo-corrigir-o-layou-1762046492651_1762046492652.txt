@@ -1,0 +1,103 @@
+Prompt Técnico — Organização de Imagens no PDF + Numeração de Páginas
+
+O objetivo é corrigir o layout e a renderização das imagens no relatório em PDF, garantindo que todas sejam exibidas corretamente, mesmo quando há muitas fotos, e que o documento mantenha um padrão visual profissional.
+
+🎯 Objetivo Geral
+
+Garantir que as imagens sejam exibidas corretamente no PDF, com layout automático, proporcional e paginado, seguindo as seguintes regras:
+
+✅ Regras de Layout e Renderização
+
+Distribuição das Imagens
+
+As duas primeiras imagens (página 1) devem ocupar metade superior e inferior da página (duas por página).
+
+A partir da terceira imagem, organizar o layout com até quatro imagens por página, em duas colunas e duas linhas.
+
+Caso a quantidade de imagens não seja múltiplo de 4, as imagens restantes devem ser centralizadas na última página.
+
+Proporção das Imagens
+
+As imagens devem manter sua proporção original (aspect ratio), ajustando apenas a largura e altura dentro da área disponível.
+
+Nenhuma imagem deve ser cortada, distorcida ou sobreposta.
+
+Margens e Espaçamento
+
+Inserir uma margem de 20px em todas as bordas da página.
+
+Espaçamento de 10px entre imagens, garantindo separação visual limpa.
+
+Numeração das Páginas
+
+Adicionar no canto inferior direito de todas as páginas o texto no formato:
+
+Página X / Y
+
+
+onde:
+
+X = número da página atual
+
+Y = total de páginas do documento
+
+O texto deve ter tamanho de fonte pequeno (≈ 9pt) e cor cinza escura (#666), alinhado à margem inferior direita.
+
+Compatibilidade
+
+O layout deve funcionar corretamente para qualquer quantidade de imagens (de 1 até 200).
+
+A renderização deve ser estável tanto em dispositivos móveis quanto desktop.
+
+O código deve suportar reportlab (Python) ou pdfkit/wkhtmltopdf (HTML → PDF), conforme o sistema atual.
+
+⚙️ Implementação Sugerida (ReportLab - Python)
+from reportlab.platypus import SimpleDocTemplate, Image, PageBreak, Spacer
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.pdfgen import canvas
+import math
+
+def add_page_number(canvas, doc):
+    page_num = canvas.getPageNumber()
+    total_pages = doc.page_count
+    text = f"{page_num}/{total_pages}"
+    canvas.setFont("Helvetica", 9)
+    canvas.setFillColorRGB(0.4, 0.4, 0.4)
+    canvas.drawRightString(20.0 * cm, 1.0 * cm, text)
+
+def gerar_pdf_imagens(caminhos_imagens, nome_arquivo="relatorio.pdf"):
+    pdf = SimpleDocTemplate(nome_arquivo, pagesize=A4)
+    largura, altura = A4
+    elementos = []
+
+    # Primeiras duas imagens — 2 por página
+    for i, img_path in enumerate(caminhos_imagens[:2]):
+        elementos.append(Image(img_path, width=largura - 40, height=(altura/2) - 60, preserveAspectRatio=True))
+        elementos.append(Spacer(1, 10))
+    elementos.append(PageBreak())
+
+    # Restantes — 4 por página
+    imagens_restantes = caminhos_imagens[2:]
+    for i, img_path in enumerate(imagens_restantes):
+        elementos.append(Image(img_path, width=(largura/2) - 40, height=(altura/2) - 60, preserveAspectRatio=True))
+        if (i + 1) % 4 == 0:
+            elementos.append(PageBreak())
+
+    # Contagem total de páginas
+    total_paginas = math.ceil(len(caminhos_imagens[:2]) / 2) + math.ceil(len(imagens_restantes) / 4)
+    pdf.page_count = total_paginas
+
+    pdf.build(elementos, onLaterPages=add_page_number, onFirstPage=add_page_number)
+
+gerar_pdf_imagens(["img1.jpg", "img2.jpg", "img3.jpg", "img4.jpg", "img5.jpg"])
+
+🧪 Critérios de Aceitação
+
+✅ Todas as imagens são exibidas corretamente (sem corte nem distorção).
+
+✅ Layout segue a estrutura: 2 imagens na 1ª página, 4 imagens nas demais.
+
+✅ Paginação correta (“1/5”, “2/5”, etc.) no canto inferior direito.
+
+✅ Arquivo PDF visualmente limpo, organizado e compatível com visualização mobile e desktop.
