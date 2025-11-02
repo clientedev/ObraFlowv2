@@ -1781,13 +1781,10 @@ document.addEventListener('DOMContentLoaded', function() {
             createInitialReport().then(reportId => {
                 window.currentReportId = reportId;
                 
-                // Inicializar auto save
+                // Inicializar auto save com CSRF token correto
                 if (typeof initAutoSave === 'function') {
-                    window.autoSaveInstance = initAutoSave(reportId, {
-                        interval: 10000, // 10 segundos
-                        statusElement: document.getElementById('autosave-status'),
-                        form: document.getElementById('reportForm')
-                    });
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    window.autoSaveInstance = initAutoSave(reportId, csrfToken);
                     
                     autoSaveInitialized = true;
                     console.log('✅ Auto save ativado para relatório', reportId);
@@ -2182,34 +2179,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const reportId = urlParams.get('report_id') || document.querySelector('input[name="report_id"]')?.value;
     
     if (reportId) {
-        // Inicializar auto save
-        const autoSave = initAutoSave(reportId, {
-            interval: 10000, // 10 segundos
-            statusElement: document.getElementById('autosave-status'),
-            form: document.getElementById('reportForm')
-        });
+        // Inicializar auto save com CSRF token correto
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const autoSave = initAutoSave(reportId, csrfToken);
         
-        console.log('Auto Save ativado para relatório', reportId);
-        
-        // Modificar o comportamento do botão de finalizar
-        const submitBtn = document.querySelector('button[type="submit"]');
-        if (submitBtn) {
-            submitBtn.addEventListener('click', function(e) {
-                // Parar auto save antes de finalizar
-                autoSave.stop();
-                
-                // Salvar uma última vez e depois prosseguir
-                autoSave.saveNow().then(() => {
-                    // Alterar status para finalizado
-                    const statusBadge = document.querySelector('.badge.bg-warning');
-                    if (statusBadge) {
-                        statusBadge.innerHTML = '<i class="fas fa-check me-1"></i>Finalizando...';
-                        statusBadge.classList.remove('bg-warning');
-                        statusBadge.classList.add('bg-success');
-                    }
-                });
-            });
-        }
+        console.log('✅ Auto Save ativado para relatório', reportId);
     }
 });
 </script>
