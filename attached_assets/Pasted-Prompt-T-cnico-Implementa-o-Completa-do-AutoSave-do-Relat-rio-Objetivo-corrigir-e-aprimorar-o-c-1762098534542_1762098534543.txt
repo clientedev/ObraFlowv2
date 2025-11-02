@@ -1,0 +1,174 @@
+Prompt Técnico — Implementação Completa do AutoSave do Relatório
+
+Objetivo: corrigir e aprimorar o comportamento do salvamento automático (AutoSave) do módulo de relatórios, garantindo que todos os campos — incluindo textos, seleções, lembretes, observações, anexos e imagens — sejam salvos automaticamente e restaurados corretamente ao retomar a edição, sem perda de dados ou inconsistências no banco.
+
+🧠 Escopo e Requisitos Funcionais
+
+AutoSave deve funcionar em tempo real e de forma incremental, salvando periodicamente (ex: a cada 5 segundos) qualquer modificação feita pelo usuário, sem a necessidade de clicar em “Concluir”.
+
+Todos os campos do relatório devem ser incluídos no processo automático de salvamento:
+
+título, número, categoria, local, lembrete, observações, status, conteúdo, checklist, acompanhantes, etc.;
+
+imagens anexadas (novas, removidas ou editadas);
+
+metadados das imagens: categoria, local, legenda.
+
+O AutoSave deve ser resiliente: se o relatório ainda não existir no banco, criar automaticamente um novo registro e retornar o id para continuidade do salvamento.
+
+Caso a conexão ou backend falhem, o sistema deve tentar novamente ao detectar reconexão, sem perda de progresso.
+
+Toda atualização deve refletir também no campo updated_at da tabela relatorios.
+
+🧩 Backend – Implementação Recomendada (FastAPI + SQLAlchemy)
+
+Crie (ou atualize) o endpoint de AutoSave no backend:
+
+# routes/relatorios.py
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from datetime import datetime
+from models import Relatorio, FotoRelatorio
+from database import get_db
+
+router = APIRouter()
+
+@router.post("/api/relatorios/autosave")
+def autosave_relatorio(data: dict, db: Session = Depends(get_db)):
+    try:
+        relatorio_id = data.get("id")
+
+        # 1️⃣ Se o relatório não existe, cria um novo automaticamente
+        if not relatorio_id:
+            novo = Relatorio(
+                titulo=data.get("titulo"),
+                numero=data.get("numero"),
+                categoria=data.get("categoria"),
+                local=data.get("local"),
+                observacoes_finais=data.get("observacoes_finais"),
+                lembrete_proxima_visita=data.get("lembrete_proxima_visita"),
+                conteudo=data.get("conteudo"),
+                status=data.get("status", "Em preenchimento"),
+                criado_por=data.get("criado_por"),
+                criado_em=datetime.utcnow()
+            )
+            db.add(novo)
+            db.commit()
+            db.refresh(novo)
+            relatorio_id = novo.id
+
+        # 2️⃣ Atualiza os campos existentes do relatório
+        relatorio = db.query(Relatorio).filter(Relatorio.id == relatorio_id).first()
+        if not relatorio:
+            raise HTTPException(status_code=404, detail="Relatório não encontrado")
+
+        for campo, valor in data.items():
+            if campo not in ["id", "fotos"] and hasattr(relatorio, campo):
+                setattr(relatorio, campo, valor)
+
+        relatorio.updated_at = datetime.utcnow()
+
+        # 3️⃣ Atualiza as imagens associadas
+        if "fotos" in data:
+            imagens = data["fotos"]
+            for img in imagens:
+                # Deletar imagem marcada para remoção
+                if img.get("deletar"):
+                    db.query(FotoRelatorio).filter(FotoRelatorio.id == img["id"]).delete()
+                    continue
+
+                # Adicionar nova imagem
+                if not img.get("id"):
+                    nova_foto = FotoRelatorio(
+                        relatorio_id=relatorio_id,
+                        caminho=img["caminho"],
+                        categoria=img.get("categoria"),
+                        local=img.get("local"),
+                        legenda=img.get("legenda")
+                    )
+                    db.add(nova_foto)
+
+                # Atualizar imagem existente
+                else:
+                    existente = db.query(FotoRelatorio).filter(FotoRelatorio.id == img["id"]).first()
+                    if existente:
+                        existente.categoria = img.get("categoria")
+                        existente.local = img.get("local")
+                        existente.legenda = img.get("legenda")
+
+        db.commit()
+        return {"message": "AutoSave executado com sucesso", "relatorio_id": relatorio_id}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro no AutoSave: {str(e)}")
+
+🧭 Frontend – Comportamento do AutoSave
+
+O frontend deve monitorar alterações em qualquer campo do relatório, incluindo uploads e exclusões de imagens.
+
+Sempre que uma alteração ocorrer, deve atualizar o estado alteracoesPendentes = true.
+
+A cada 5 segundos, o sistema verifica se há alterações pendentes e envia uma requisição POST /api/relatorios/autosave com todos os dados atuais do formulário.
+
+Exemplo (React ou Flet com useEffect equivalente):
+
+useEffect(() => {
+  const intervalo = setInterval(() => {
+    if (alteracoesPendentes && !salvando) {
+      setSalvando(true);
+      fetch("/api/relatorios/autosave", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...campos, fotos: imagens }),
+      })
+      .then(res => res.json())
+      .then(dados => {
+        if (dados.relatorio_id) setRelatorioId(dados.relatorio_id);
+        setAlteracoesPendentes(false);
+      })
+      .finally(() => setSalvando(false));
+    }
+  }, 5000);
+
+  return () => clearInterval(intervalo);
+}, [campos, imagens, alteracoesPendentes]);
+
+🗄️ Banco de Dados – Garantias
+
+Certifique-se de que a tabela relatorios contém todos os campos necessários para persistir o AutoSave:
+
+ALTER TABLE relatorios
+ADD COLUMN IF NOT EXISTS lembrete_proxima_visita TEXT,
+ADD COLUMN IF NOT EXISTS observacoes_finais TEXT,
+ADD COLUMN IF NOT EXISTS conteudo TEXT,
+ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'Em preenchimento',
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW(),
+ADD COLUMN IF NOT EXISTS criado_por INTEGER;
+
+
+E a tabela de imagens associadas:
+
+CREATE TABLE IF NOT EXISTS fotos_relatorio (
+    id SERIAL PRIMARY KEY,
+    relatorio_id INTEGER REFERENCES relatorios(id) ON DELETE CASCADE,
+    caminho TEXT NOT NULL,
+    categoria TEXT,
+    local TEXT,
+    legenda TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+✅ Critérios de Aceite Técnicos
+
+✅ AutoSave salva todos os campos do relatório automaticamente a cada alteração.
+
+✅ Relatórios novos são criados automaticamente no primeiro salvamento.
+
+✅ Imagens são incluídas, atualizadas e removidas de forma automática e síncrona.
+
+✅ Dados persistem corretamente após recarregar a página ou retornar à edição.
+
+✅ Nenhum dado (texto ou imagem) é perdido, mesmo em quedas de conexão.
+
+✅ Campos de auditoria (updated_at, criado_por) são atualizados corretamente.
