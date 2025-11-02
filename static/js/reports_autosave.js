@@ -59,17 +59,15 @@ class ReportsAutoSave {
 
     collectFormData() {
         const data = {
-            titulo: document.querySelector('#titulo_relatorio')?.value || null,
-            numero: document.querySelector('#numero_relatorio')?.value || null,
+            titulo: document.querySelector('#titulo')?.value?.trim() || null,
+            numero: document.querySelector('#numero')?.value?.trim() || null,
             data_relatorio: document.querySelector('#data_relatorio')?.value || null,
             projeto_id: document.querySelector('#projeto_id')?.value || null,
-            observacoes_finais: document.querySelector('#observacoes')?.value || null,
-            lembrete_proxima_visita: document.querySelector('#lembrete')?.value || null,
-            categoria: document.querySelector('#categoria')?.value || null,
-            local: document.querySelector('#local')?.value || null,
-            descricao: document.querySelector('#descricao')?.value || null,
+            conteudo: document.querySelector('#conteudo')?.value?.trim() || null,
+            lembrete_proxima_visita: document.querySelector('#lembrete_proxima_visita')?.value?.trim() || null,
             checklist_data: this.getChecklistData(),
             fotos: this.getImageData(),
+            acompanhantes: this.getAcompanhantes(),
         };
 
         // Adicionar ID apenas se existir
@@ -97,12 +95,30 @@ class ReportsAutoSave {
         const imageData = images.map(img => ({
             nome: img.name || null,
             legenda: img.caption || null,
-            categoria: img.category || null,
-            local: img.location || null
+            titulo: img.title || null,
+            tipo_servico: img.category || null,
+            local: img.location || null,
+            url: img.url || null,
+            filename: img.filename || null,
+            ordem: img.ordem || 0
         }));
 
         console.log(`📸 AutoSave - Imagens: ${imageData.length} imagens coletadas`);
         return imageData.length > 0 ? imageData : null;
+    }
+
+    getAcompanhantes() {
+        try {
+            const acompanhantesInput = document.querySelector('#acompanhantes-data');
+            if (acompanhantesInput && acompanhantesInput.value) {
+                const acompanhantes = JSON.parse(acompanhantesInput.value);
+                console.log(`👥 AutoSave - Acompanhantes: ${acompanhantes.length} pessoas`);
+                return acompanhantes.length > 0 ? acompanhantes : null;
+            }
+        } catch (e) {
+            console.error('❌ Erro ao coletar acompanhantes:', e);
+        }
+        return null;
     }
 
     async performSave() {
