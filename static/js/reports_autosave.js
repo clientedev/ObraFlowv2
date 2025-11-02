@@ -93,6 +93,10 @@ class ReportsAutoSave {
     
     async collectFormDataAsync() {
         try {
+            // Coletar checklist e acompanhantes ANTES de serializar
+            const checklistData = this.getChecklistData();
+            const acompanhantesData = this.getAcompanhantesData();
+            
             const data = {
                 titulo: document.querySelector('#titulo_relatorio')?.value?.trim() || 
                         document.querySelector('#titulo')?.value?.trim() || "",
@@ -102,8 +106,9 @@ class ReportsAutoSave {
                 observacoes_finais: document.querySelector('#observacoes')?.value?.trim() || "",
                 lembrete_proxima_visita: document.querySelector('#lembrete_proxima_visita')?.value?.trim() || null,
                 conteudo: this.collectRichTextContent() || "",
-                checklist_data: JSON.stringify(this.getChecklistData()),
-                acompanhantes: JSON.stringify(this.getAcompanhantesData()),
+                // ENVIAR COMO ARRAY - backend irá converter para JSON
+                checklist_data: checklistData,
+                acompanhantes: acompanhantesData,
                 fotos: await this.getImageData(), // Aguardar upload das imagens
                 categoria: document.querySelector('#categoria')?.value?.trim() || null,
                 local: document.querySelector('#local')?.value?.trim() || null
@@ -122,8 +127,8 @@ class ReportsAutoSave {
 
             console.log('📦 AutoSave - Dados coletados (com imagens):', data);
             console.log('📸 AutoSave - Total de fotos:', data.fotos?.length || 0);
-            console.log('👥 AutoSave - Acompanhantes:', data.acompanhantes);
-            console.log('✅ AutoSave - Checklist:', data.checklist_data);
+            console.log('👥 AutoSave - Acompanhantes:', acompanhantesData.length, 'pessoas');
+            console.log('✅ AutoSave - Checklist:', checklistData.length, 'itens');
             return data;
         } catch (err) {
             console.error('❌ AutoSave: erro ao coletar dados do formulário:', err);

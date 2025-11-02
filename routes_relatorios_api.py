@@ -243,7 +243,8 @@ def api_criar_relatorio():
 
             # Outros campos
             conteudo=data.get('conteudo'),
-            checklist_data=data.get('checklist_data')
+            checklist_data=data.get('checklist_data'),
+            acompanhantes=data.get('acompanhantes')
         )
 
         # Processar lembrete_proxima_visita se fornecido
@@ -734,31 +735,50 @@ def api_autosave_relatorio():
                 except (ValueError, TypeError) as e:
                     logger.warning(f"Erro ao processar lembrete_proxima_visita: {e}")
 
-            # Processar checklist_data - IGUAL AO BOTÃO CONCLUIR
+            # Processar checklist_data - COMPATÍVEL COM ARRAY OU STRING
             checklist_data = data.get('checklist_data')
-            if checklist_data:
+            if checklist_data is not None:
                 if isinstance(checklist_data, str):
-                    # Já é string JSON
-                    pass
+                    # Já é string JSON - validar
+                    try:
+                        import json
+                        json.loads(checklist_data)  # Validar
+                        print(f"✅ AutoSave: checklist_data (string) salvo")
+                    except:
+                        checklist_data = None
+                        print(f"⚠️ AutoSave: checklist_data inválido, definido como None")
                 elif isinstance(checklist_data, (dict, list)):
-                    # Converter para JSON
+                    # Converter para JSON string
                     import json
                     checklist_data = json.dumps(checklist_data)
-                    print(f"✅ AutoSave: checklist_data convertido para JSON: {checklist_data}")
-            
-            # Processar acompanhantes - IGUAL AO BOTÃO CONCLUIR
+                    print(f"✅ AutoSave: checklist_data (array) convertido e salvo")
+                else:
+                    checklist_data = None
+            else:
+                checklist_data = None
+
+
+            # Processar acompanhantes - COMPATÍVEL COM ARRAY OU STRING
             acompanhantes = data.get('acompanhantes')
-            if acompanhantes:
+            if acompanhantes is not None:
                 if isinstance(acompanhantes, str):
-                    # Se já é string, tentar parsear para validar
+                    # Parsear string JSON para array
                     try:
                         import json
                         acompanhantes = json.loads(acompanhantes)
+                        if not isinstance(acompanhantes, list):
+                            acompanhantes = []
                     except:
                         acompanhantes = []
-                elif not isinstance(acompanhantes, list):
+                elif isinstance(acompanhantes, list):
+                    # Já é array
+                    pass
+                else:
                     acompanhantes = []
-                print(f"✅ AutoSave: {len(acompanhantes)} acompanhantes processados")
+
+                print(f"✅ AutoSave: {len(acompanhantes)} acompanhantes salvos")
+            else:
+                acompanhantes = []
 
             # Criar novo relatório
             novo_relatorio = Relatorio(
@@ -853,36 +873,51 @@ def api_autosave_relatorio():
                 else:
                     relatorio.lembrete_proxima_visita = None
 
-            # Atualizar checklist_data - IGUAL AO BOTÃO CONCLUIR
+            # Atualizar checklist_data - COMPATÍVEL COM ARRAY OU STRING
             if 'checklist_data' in data:
                 checklist_data = data['checklist_data']
-                if checklist_data:
+                if checklist_data is not None:
                     if isinstance(checklist_data, str):
-                        # Já é string JSON
-                        relatorio.checklist_data = checklist_data
+                        # Já é string JSON - validar
+                        try:
+                            import json
+                            json.loads(checklist_data)  # Validar
+                            relatorio.checklist_data = checklist_data
+                            print(f"✅ AutoSave: checklist_data (string) salvo")
+                        except:
+                            relatorio.checklist_data = None
+                            print(f"⚠️ AutoSave: checklist_data inválido, definido como None")
                     elif isinstance(checklist_data, (dict, list)):
-                        # Converter para JSON
+                        # Converter para JSON string
                         import json
                         relatorio.checklist_data = json.dumps(checklist_data)
-                        print(f"✅ AutoSave: checklist_data atualizado")
+                        print(f"✅ AutoSave: checklist_data (array) convertido e salvo")
+                    else:
+                        relatorio.checklist_data = None
                 else:
                     relatorio.checklist_data = None
 
-            # Atualizar acompanhantes - IGUAL AO BOTÃO CONCLUIR
+            # Atualizar acompanhantes - COMPATÍVEL COM ARRAY OU STRING
             if 'acompanhantes' in data:
                 acompanhantes = data['acompanhantes']
-                if acompanhantes:
+                if acompanhantes is not None:
                     if isinstance(acompanhantes, str):
-                        # Se já é string, tentar parsear para validar
+                        # Parsear string JSON para array
                         try:
                             import json
                             acompanhantes = json.loads(acompanhantes)
+                            if not isinstance(acompanhantes, list):
+                                acompanhantes = []
                         except:
                             acompanhantes = []
-                    elif not isinstance(acompanhantes, list):
+                    elif isinstance(acompanhantes, list):
+                        # Já é array
+                        pass
+                    else:
                         acompanhantes = []
+
                     relatorio.acompanhantes = acompanhantes
-                    print(f"✅ AutoSave: {len(acompanhantes)} acompanhantes atualizados")
+                    print(f"✅ AutoSave: {len(acompanhantes)} acompanhantes salvos")
                 else:
                     relatorio.acompanhantes = []
 
