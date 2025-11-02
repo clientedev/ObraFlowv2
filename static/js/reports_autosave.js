@@ -183,77 +183,93 @@ class ReportsAutoSave {
         return checklistData;
     }
 
+    /**
+     * Função de coleta de imagens conforme especificação técnica
+     * Garante que todas as imagens sejam processadas com metadados completos
+     */
     async getImageData() {
-        // Coletar imagens do mobilePhotoData (sistema mobile-first)
-        const mobilePhotos = window.mobilePhotoData || [];
-        const imageData = [];
-        
-        console.log(`📸 AutoSave - Processando ${mobilePhotos.length} imagens do sistema mobile-first...`);
-        console.log(`📸 AutoSave - mobilePhotoData completo:`, JSON.stringify(mobilePhotos, null, 2));
-        
-        for (let i = 0; i < mobilePhotos.length; i++) {
-            const photo = mobilePhotos[i];
+        try {
+            // Coletar imagens do mobilePhotoData (sistema mobile-first)
+            const imgs = window.mobilePhotoData || [];
             
-            console.log(`📸 Imagem ${i}:`, {
-                savedId: photo.savedId,
-                temp_id: photo.temp_id,
-                hasFile: !!photo.file,
-                filename: photo.filename,
-                category: photo.category,
-                manualCaption: photo.manualCaption,
-                predefinedCaption: photo.predefinedCaption
-            });
+            if (!Array.isArray(imgs) || imgs.length === 0) {
+                console.warn("⚠️ Nenhuma imagem encontrada em mobilePhotoData.");
+                return [];
+            }
             
-            // Se já tem ID E já foi salva no banco, apenas enviar metadados
-            if (photo.savedId && photo.savedId > 0) {
-                imageData.push({
-                    id: photo.savedId,
-                    legenda: photo.manualCaption || photo.predefinedCaption || '',
-                    categoria: photo.category || null,
-                    local: photo.local || null,
-                    titulo: photo.manualCaption || photo.predefinedCaption || null,
-                    tipo_servico: photo.category || null,
-                    ordem: i
+            console.log(`📸 AutoSave - Processando ${imgs.length} imagens do sistema mobile-first...`);
+            console.log(`📸 AutoSave - mobilePhotoData completo:`, JSON.stringify(imgs, null, 2));
+            
+            const processed = [];
+            
+            for (let i = 0; i < imgs.length; i++) {
+                const img = imgs[i];
+                
+                console.log(`📸 Imagem ${i}:`, {
+                    savedId: img.savedId,
+                    temp_id: img.temp_id,
+                    hasFile: !!img.file,
+                    filename: img.filename || img.name,
+                    category: img.category,
+                    manualCaption: img.manualCaption,
+                    predefinedCaption: img.predefinedCaption,
+                    caption: img.caption,
+                    local: img.local
                 });
-                console.log(`📌 AutoSave - Imagem já salva no banco: ID ${photo.savedId}, legenda: "${photo.manualCaption || photo.predefinedCaption}"`);
-                continue;
+                
+                // Se já tem ID E já foi salva no banco, apenas enviar metadados
+                if (img.savedId && img.savedId > 0) {
+                    processed.push({
+                        id: img.savedId,
+                        nome: img.name || img.filename || null,
+                        categoria: img.category || null,
+                        local: img.local || null,
+                        legenda: img.manualCaption || img.predefinedCaption || img.caption || null,
+                        arquivo: img.path || null,
+                        ordem: i
+                    });
+                    console.log(`📌 AutoSave - Imagem já salva no banco: ID ${img.savedId}`);
+                    continue;
+                }
+                
+                // Se tem arquivo, fazer upload temporário
+                if (img.file) {
+                    try {
+                        console.log(`📤 AutoSave - Iniciando upload da imagem ${i}...`);
+                        const tempUploadResult = await this.uploadImageTemp(img.file);
+                        
+                        if (tempUploadResult && tempUploadResult.temp_id) {
+                            // Armazenar temp_id para posterior associação
+                            img.temp_id = tempUploadResult.temp_id;
+                            
+                            processed.push({
+                                temp_id: tempUploadResult.temp_id,
+                                nome: img.name || img.filename || null,
+                                categoria: img.category || null,
+                                local: img.local || null,
+                                legenda: img.manualCaption || img.predefinedCaption || img.caption || null,
+                                arquivo: img.path || null,
+                                extension: tempUploadResult.filename.split('.').pop(),
+                                ordem: i
+                            });
+                            
+                            console.log(`✅ AutoSave - Upload temporário: ${tempUploadResult.temp_id}`);
+                        }
+                    } catch (error) {
+                        console.error(`❌ AutoSave - Erro no upload da imagem ${i}:`, error);
+                    }
+                } else {
+                    console.warn(`⚠️ AutoSave - Imagem ${i} sem arquivo e sem savedId`);
+                }
             }
             
-            // Se tem arquivo, fazer upload temporário
-            if (photo.file) {
-                try {
-                    console.log(`📤 AutoSave - Iniciando upload da imagem ${i}...`);
-                    const tempUploadResult = await this.uploadImageTemp(photo.file);
-                    
-                    if (tempUploadResult && tempUploadResult.temp_id) {
-                        // Armazenar temp_id para posterior associação
-                        photo.temp_id = tempUploadResult.temp_id;
-                        
-                        const imgData = {
-                            temp_id: tempUploadResult.temp_id,
-                            extension: tempUploadResult.filename.split('.').pop(),
-                            legenda: photo.manualCaption || photo.predefinedCaption || '',
-                            categoria: photo.category || null,
-                            local: photo.local || null,
-                            titulo: photo.manualCaption || photo.predefinedCaption || null,
-                            tipo_servico: photo.category || null,
-                            ordem: i
-                        };
-                        
-                        imageData.push(imgData);
-                        console.log(`✅ AutoSave - Upload temporário: ${tempUploadResult.temp_id}`, imgData);
-                    }
-                } catch (error) {
-                    console.error(`❌ AutoSave - Erro no upload da imagem ${i}:`, error);
-                }
-            } else {
-                console.warn(`⚠️ AutoSave - Imagem ${i} sem arquivo e sem savedId`);
-            }
+            console.log(`📸 AutoSave - Processadas ${processed.length} imagens`, processed);
+            return processed;
+            
+        } catch (err) {
+            console.error("❌ Erro ao processar imagens no AutoSave:", err);
+            return [];
         }
-        
-        console.log(`📸 AutoSave - TOTAL: ${imageData.length} imagens preparadas para salvamento`);
-        console.log(`📸 AutoSave - Detalhes:`, imageData);
-        return imageData;
     }
     
     async uploadImageTemp(file) {

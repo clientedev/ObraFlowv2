@@ -2200,7 +2200,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // Global variables for mobile photo system
 let mobilePhotoCounter = 0;
 let predefinedLegendas = [];
-let mobilePhotoData = [];
+
+// Garantir que window.mobilePhotoData sempre exista (conforme especificação técnica)
+if (!window.mobilePhotoData) window.mobilePhotoData = [];
 
 // Load predefined captions on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -2259,6 +2261,59 @@ function mobileCaptureFromCamera() {
     }
 }
 
+/**
+ * Função para registrar corretamente as fotos com todos os metadados
+ * Conforme especificação técnica do prompt
+ * PRESERVA todos os metadados existentes (savedId, temp_id, etc.)
+ * SUPORTA tanto novas fotos (com File) quanto fotos existentes (apenas metadados)
+ */
+function handlePhotoAdded(file, metadata = {}) {
+    // Garantir que o array global existe
+    if (!window.mobilePhotoData) window.mobilePhotoData = [];
+    
+    // Determinar previewUrl: usar metadata primeiro, senão criar de File se disponível
+    let previewUrl = metadata.previewUrl || metadata.url;
+    if (!previewUrl && file) {
+        try {
+            previewUrl = URL.createObjectURL(file);
+        } catch (e) {
+            console.warn("⚠️ Erro ao criar preview URL:", e);
+            previewUrl = null;
+        }
+    }
+    
+    // Determinar filename e name
+    const filename = metadata.filename || (file ? file.name : null) || "foto_" + Date.now();
+    const name = metadata.name || (file ? file.name : null) || "foto_" + Date.now();
+    
+    const photoEntry = {
+        id: metadata.id || (crypto.randomUUID ? crypto.randomUUID() : 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)),
+        name: name,
+        path: metadata.path || (file ? file.path : null) || null,
+        previewUrl: previewUrl,
+        category: metadata.category || null,
+        local: metadata.local || null,
+        caption: metadata.caption || "",
+        manualCaption: metadata.manualCaption || "",
+        predefinedCaption: metadata.predefinedCaption || "",
+        filename: filename,
+        file: file || null,  // Pode ser null para fotos existentes
+        // PRESERVAR savedId e temp_id se já existirem em metadata
+        savedId: metadata.savedId || null,
+        temp_id: metadata.temp_id || null,
+        // Preservar URL se existir (para fotos já salvas)
+        url: metadata.url || null,
+        ordem: metadata.ordem !== undefined ? metadata.ordem : null
+    };
+    
+    // Atualiza o array global
+    window.mobilePhotoData.push(photoEntry);
+    
+    console.log("📷 Foto adicionada ao mobilePhotoData:", window.mobilePhotoData);
+    
+    return photoEntry;
+}
+
 // Handle photo selection from mobile inputs
 function handleMobilePhotoSelection(event) {
     console.log('📋 Processando fotos selecionadas...');
@@ -2277,6 +2332,19 @@ function handleMobilePhotoSelection(event) {
 // Create mobile photo card with immediate display
 function createMobilePhotoCard(file, category) {
     const photoId = 'mobile_photo_' + (++mobilePhotoCounter);
+    
+    // Registrar foto globalmente usando handlePhotoAdded (conforme especificação técnica)
+    const photoEntry = handlePhotoAdded(file, {
+        category: category || null,
+        local: '',
+        caption: '',
+        manualCaption: '',
+        predefinedCaption: ''
+    });
+    
+    // Atualizar o ID da foto no photoEntry
+    photoEntry.id = photoId;
+    
     const reader = new FileReader();
     
     reader.onload = function(e) {
@@ -2288,17 +2356,6 @@ function createMobilePhotoCard(file, category) {
         cardCol.className = 'col-12 col-md-6 col-lg-4';
         cardCol.innerHTML = photoCard;
         container.appendChild(cardCol);
-        
-        // Store photo data
-        mobilePhotoData.push({
-            id: photoId,
-            file: file,
-            category: category,
-            local: '',
-            manualCaption: '',
-            predefinedCaption: '',
-            filename: file.name
-        });
         
         // Update counter after adding photo
         updatePhotoCounter();
@@ -2324,6 +2381,7 @@ function createMobilePhotoCard(file, category) {
         }, 300);
         
         console.log(`📷 Foto adicionada: ${file.name} (${category})`);
+        console.log(`📸 Total de fotos em mobilePhotoData: ${window.mobilePhotoData.length}`);
     };
     
     reader.readAsDataURL(file);
