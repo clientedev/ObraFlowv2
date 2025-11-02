@@ -60,12 +60,11 @@ class ReportsAutoSave {
         try {
             const data = {
                 titulo: document.querySelector('#titulo_relatorio')?.value?.trim() || 
-                        document.querySelector('#titulo')?.value?.trim() || null,
+                        document.querySelector('#titulo')?.value?.trim() || "",
                 numero: document.querySelector('#numero_relatorio')?.value?.trim() || 
-                        document.querySelector('#numero')?.value?.trim() || null,
+                        document.querySelector('#numero')?.value?.trim() || "",
                 data_relatorio: document.querySelector('#data_relatorio')?.value || null,
-                projeto_id: document.querySelector('#projeto_id')?.value || null,
-                observacoes_finais: document.querySelector('#observacoes')?.value?.trim() || null,
+                observacoes_finais: document.querySelector('#observacoes')?.value?.trim() || "",
                 lembrete_proxima_visita: document.querySelector('#lembrete')?.value?.trim() || null,
                 conteudo: this.collectRichTextContent() || "",
                 checklist_data: this.getChecklistData(),
@@ -73,17 +72,16 @@ class ReportsAutoSave {
                 fotos: this.getImageData()
             };
 
-            // Adicionar ID apenas se existir
-            if (this.reportId) {
-                data.id = this.reportId;
+            // Adicionar projeto_id como número inteiro
+            const projetoIdStr = document.querySelector('#projeto_id')?.value?.trim();
+            if (projetoIdStr) {
+                data.projeto_id = parseInt(projetoIdStr, 10);
             }
 
-            // Converter campos null para strings vazias para evitar erro no PostgreSQL
-            Object.keys(data).forEach(key => {
-                if (data[key] === null) {
-                    data[key] = "";
-                }
-            });
+            // Adicionar ID apenas se existir
+            if (this.reportId) {
+                data.id = parseInt(this.reportId, 10);
+            }
 
             console.log('📦 AutoSave - Dados coletados:', data);
             return data;
