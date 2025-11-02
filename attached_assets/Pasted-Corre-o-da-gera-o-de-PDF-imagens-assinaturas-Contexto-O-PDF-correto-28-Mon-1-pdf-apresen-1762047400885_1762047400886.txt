@@ -1,0 +1,180 @@
+Correção da geração de PDF (imagens + assinaturas)
+
+Contexto:
+O PDF correto (28_Mon_(1).pdf) apresenta o layout desejado, porém atualmente o sistema:
+
+Oculta as duas primeiras imagens;
+
+Quebra o layout ao exibir mais de 3 imagens;
+
+Exibe as imagens fora de ordem e distorcidas;
+
+Mistura a área de assinaturas com as imagens ou corta a seção final;
+
+Exibe inconsistência de paginação e alinhamento.
+
+🎯 Objetivo
+
+Corrigir completamente o comportamento da geração de PDF garantindo que:
+
+As duas primeiras imagens apareçam corretamente na primeira página.
+
+A partir da 3ª imagem, as imagens sejam organizadas em grupos de até 4 por página (2x2 grid).
+
+As imagens mantenham proporção (object-fit: contain) e não distorçam.
+
+As legendas (“Foto X - descrição”) apareçam logo abaixo de cada imagem.
+
+Nenhum campo do relatório seja alterado, apenas a renderização das imagens e a posição das assinaturas.
+
+A área de assinaturas deve ser sempre a última seção do PDF, após todas as imagens, exatamente como no primeiro PDF enviado.
+
+Paginação “Página X / Y” apareça no canto inferior direito em todas as páginas.
+
+Layout e design geral do relatório devem permanecer inalterados.
+
+💡 Solução recomendada (HTML + CSS do template PDF)
+HTML (Jinja2 ou similar):
+<section class="pdf-images">
+  {# As duas primeiras imagens aparecem na primeira página #}
+  {% for img in imagens[:2] %}
+  <figure class="img-single">
+    <img src="{{ img.url }}" alt="Foto {{ loop.index }}">
+    <figcaption>Foto {{ loop.index }} - {{ img.legenda }}</figcaption>
+  </figure>
+  {% endfor %}
+
+  {# As demais imagens são organizadas 4 por página (2x2) #}
+  {% set restantes = imagens[2:] %}
+  {% for chunk in restantes|batch(4, fill_with=None) %}
+  <div class="grid-page">
+    {% for img in chunk %}
+      {% if img %}
+      <figure class="img-grid">
+        <img src="{{ img.url }}" alt="Foto {{ loop.index0 + 3 }}">
+        <figcaption>Foto {{ loop.index0 + 3 }} - {{ img.legenda }}</figcaption>
+      </figure>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endfor %}
+</section>
+
+{# Assinaturas devem aparecer sempre após todas as imagens #}
+<section class="assinaturas">
+  <div class="assinatura-bloco">
+    <p><strong>Responsável Técnico:</strong> {{ responsavel }}</p>
+    <p><strong>Data:</strong> {{ data_relatorio }}</p>
+  </div>
+  <div class="assinatura-bloco">
+    <p><strong>Administrador:</strong> {{ administrador }}</p>
+    <p><strong>Assinatura:</strong> ___________________________</p>
+  </div>
+</section>
+
+CSS (para impressão / PDF):
+/* Layout geral */
+img { display: block; max-width: 100%; height: auto; }
+figure { page-break-inside: avoid; margin: 0; padding: 0; }
+
+/* PRIMEIRAS 2 IMAGENS */
+.img-single {
+  width: 100%;
+  margin-bottom: 12px;
+}
+.img-single img {
+  width: 100%;
+  max-height: calc(50vh - 60px);
+  object-fit: contain;
+}
+.img-single figcaption {
+  font-size: 10px;
+  text-align: left;
+  margin-top: 6px;
+  color: #333;
+}
+
+/* IMAGENS RESTANTES — GRID 2x2 POR PÁGINA */
+.grid-page {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: auto;
+  gap: 8px;
+  margin-top: 10px;
+  page-break-after: always;
+}
+.img-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px;
+  background: #fff;
+}
+.img-grid img {
+  width: 100%;
+  max-height: calc((297mm - 150px) / 2);
+  object-fit: contain;
+}
+.img-grid figcaption {
+  font-size: 10px;
+  margin-top: 6px;
+  color: #333;
+}
+
+/* SEÇÃO DE ASSINATURAS — sempre no final */
+.assinaturas {
+  page-break-before: always;
+  padding-top: 30px;
+}
+.assinatura-bloco {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+  font-size: 12px;
+}
+.assinatura-bloco p {
+  margin: 3px 0;
+}
+
+/* Paginação no rodapé */
+@page {
+  @bottom-right {
+    content: "Página " counter(page) " / " counter(pages);
+  }
+}
+
+🧩 Configuração no Backend (WeasyPrint / wkhtmltopdf)
+
+Gerar HTML completo com todas as imagens antes da conversão.
+
+Verifique se todas as src das imagens estão acessíveis (sem loading="lazy").
+
+Preferir URLs absolutas ou base64 inline se houver autenticação.
+
+Executar conversão:
+
+HTML(string=rendered_html, base_url=base_url).write_pdf(
+    pdf_output_path,
+    presentational_hints=True
+)
+
+
+Garantir que a seção de assinaturas esteja fora de loops ou condicionais.
+
+O template deve renderizar as imagens primeiro, depois a área de assinatura, sem exceções.
+
+✅ Checklist de Aceitação
+
+ As 2 primeiras imagens aparecem corretamente (sem ocultação).
+
+ A partir da 3ª imagem, são exibidas até 4 por página (2x2).
+
+ Nenhuma imagem distorce ou quebra o layout.
+
+ Legendas associadas a cada imagem.
+
+ A área de assinaturas é sempre a última parte do relatório.
+
+ Nenhum outro campo ou estilo do relatório foi modificado.
+
+ Paginação “Página X / Y” visível em todas as páginas.

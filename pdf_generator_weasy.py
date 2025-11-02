@@ -230,64 +230,62 @@ class WeasyPrintReportGenerator:
         </div>
     </div>
 
-    <!-- Assinaturas com fundo cinza -->
-    <div class="assinaturas-section">
-        <div class="section-header">Assinaturas</div>
-        <div class="assinaturas-table">
-            <div class="assin-row header-row">
-                <div class="assin-cell">Preenchido por:</div>
-                <div class="assin-cell">Liberado por:</div>
-                <div class="assin-cell">Responsável pelo acompanhamento</div>
-            </div>
-            <div class="assin-row value-row">
-                <div class="assin-cell">{{ data.preenchido_por }}</div>
-                <div class="assin-cell">{{ data.liberado_por }}</div>
-                <div class="assin-cell">{{ data.responsavel }}</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Primeira página de fotos: 2 imagens (superior e inferior) -->
+    <!-- SEÇÃO DE IMAGENS: Primeira página com 2 imagens, demais com 4 -->
     {% if data.fotos %}
     {% set first_page_photos = data.fotos[:2] %}
     {% if first_page_photos %}
-    <div class="page-break-before photos-page-first">
+    <section class="pdf-images page-break-before">
         {% for foto in first_page_photos %}
-        <div class="photo-item-first">
+        <figure class="img-single">
             {% if foto.base64 and not foto.not_found %}
-                <div class="photo-wrapper-first">
-                    <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo-img-first">
-                </div>
+                <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo-img-single">
             {% else %}
-                <div class="photo-placeholder-first">Foto não disponível</div>
+                <div class="photo-placeholder-single">Foto não disponível</div>
             {% endif %}
-            <div class="photo-caption-first">{{ foto.legenda }}</div>
-        </div>
+            <figcaption class="photo-caption-single">Foto {{ foto.ordem }} - {{ foto.legenda }}</figcaption>
+        </figure>
         {% endfor %}
-    </div>
+    </section>
     {% endif %}
     
     <!-- Demais páginas: 4 imagens por página (2x2) -->
     {% set remaining_photos = data.fotos[2:] %}
     {% for i in range(0, remaining_photos|length, 4) %}
-    <div class="page-break-before photos-page-grid">
-        <div class="photos-grid-4">
-            {% for foto in remaining_photos[i:i+4] %}
-            <div class="photo-item-grid">
-                {% if foto.base64 and not foto.not_found %}
-                    <div class="photo-wrapper-grid">
-                        <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo-img-grid">
-                    </div>
-                {% else %}
-                    <div class="photo-placeholder-grid">Foto não disponível</div>
-                {% endif %}
-                <div class="photo-caption-grid">{{ foto.legenda }}</div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
+    <section class="grid-page page-break-before">
+        {% for foto in remaining_photos[i:i+4] %}
+        {% if foto %}
+        <figure class="img-grid">
+            {% if foto.base64 and not foto.not_found %}
+                <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo-img-grid">
+            {% else %}
+                <div class="photo-placeholder-grid">Foto não disponível</div>
+            {% endif %}
+            <figcaption class="photo-caption-grid">Foto {{ foto.ordem }} - {{ foto.legenda }}</figcaption>
+        </figure>
+        {% endif %}
+        {% endfor %}
+    </section>
     {% endfor %}
     {% endif %}
+
+    <!-- Assinaturas SEMPRE NO FINAL - após todas as imagens -->
+    <section class="assinaturas page-break-before">
+        <div class="assinaturas-section">
+            <div class="section-header">Assinaturas</div>
+            <div class="assinaturas-table">
+                <div class="assin-row header-row">
+                    <div class="assin-cell">Preenchido por:</div>
+                    <div class="assin-cell">Liberado por:</div>
+                    <div class="assin-cell">Responsável pelo acompanhamento</div>
+                </div>
+                <div class="assin-row value-row">
+                    <div class="assin-cell">{{ data.preenchido_por }}</div>
+                    <div class="assin-cell">{{ data.liberado_por }}</div>
+                    <div class="assin-cell">{{ data.responsavel }}</div>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- Rodapé ELP -->
     <div class="footer-section">
@@ -465,48 +463,47 @@ body {
     margin: 0 0 4px 0;
 }
 
-/* Quebra de página antes das fotos */
+/* Quebra de página */
 .page-break-before {
     page-break-before: always;
     break-before: page;
 }
 
-/* Primeira página de fotos: 2 imagens (superior e inferior) */
-.photos-page-first {
+/* Layout geral de imagens */
+img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+figure {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin: 0;
+    padding: 0;
+}
+
+/* PRIMEIRAS 2 IMAGENS - uma página dedicada */
+.pdf-images {
     padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    height: calc(100vh - 80px);
 }
 
-.photo-item-first {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-}
-
-.photo-wrapper-first {
-    flex: 1;
-    border: 1px solid #ccc;
-    overflow: hidden;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 0;
-}
-
-.photo-img-first {
+.img-single {
     width: 100%;
-    height: 100%;
+    margin-bottom: 12px;
+    page-break-inside: avoid;
+}
+
+.photo-img-single {
+    width: 100%;
+    max-height: calc(50vh - 60px);
     object-fit: contain;
     display: block;
 }
 
-.photo-placeholder-first {
-    flex: 1;
+.photo-placeholder-single {
+    width: 100%;
+    min-height: 200px;
     background-color: #f0f0f0;
     border: 1px dashed #ccc;
     display: flex;
@@ -514,56 +511,45 @@ body {
     justify-content: center;
     color: #666;
     font-size: 10pt;
-    min-height: 200px;
 }
 
-.photo-caption-first {
-    font-size: 9pt;
-    color: #333333;
-    line-height: 1.2;
-    margin-top: 6px;
-    padding: 4px 0;
+.photo-caption-single {
+    font-size: 10px;
     text-align: left;
+    margin-top: 6px;
+    color: #333;
     font-weight: normal;
 }
 
-/* Demais páginas: 4 imagens em grade 2x2 */
-.photos-page-grid {
-    padding: 20px;
-}
-
-.photos-grid-4 {
+/* IMAGENS RESTANTES - GRID 2x2 POR PÁGINA */
+.grid-page {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    height: 100%;
+    grid-auto-rows: auto;
+    gap: 8px;
+    padding: 20px;
+    page-break-after: always;
 }
 
-.photo-item-grid {
+.img-grid {
     display: flex;
     flex-direction: column;
-}
-
-.photo-wrapper-grid {
-    border: 1px solid #ccc;
-    overflow: hidden;
-    background: white;
-    display: flex;
     align-items: center;
-    justify-content: center;
-    height: 350px;
+    padding: 6px;
+    background: #fff;
+    page-break-inside: avoid;
 }
 
 .photo-img-grid {
     width: 100%;
-    height: 100%;
+    max-height: calc((297mm - 150px) / 2);
     object-fit: contain;
     display: block;
 }
 
 .photo-placeholder-grid {
     width: 100%;
-    height: 350px;
+    min-height: 200px;
     background-color: #f0f0f0;
     border: 1px dashed #ccc;
     display: flex;
@@ -574,10 +560,9 @@ body {
 }
 
 .photo-caption-grid {
-    font-size: 8pt;
-    color: #333333;
-    line-height: 1.1;
-    margin-top: 4px;
+    font-size: 10px;
+    margin-top: 6px;
+    color: #333;
     text-align: left;
     font-weight: normal;
 }
@@ -676,6 +661,23 @@ body {
     font-weight: bold;
 }
 
+/* SEÇÃO DE ASSINATURAS - sempre no final após todas as imagens */
+.assinaturas {
+    page-break-before: always;
+    padding-top: 30px;
+}
+
+.assinatura-bloco {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+    font-size: 12px;
+}
+
+.assinatura-bloco p {
+    margin: 3px 0;
+}
+
 /* Quebras de página - evitar quebra dentro de seções */
 .report-section,
 .dados-section,
@@ -685,10 +687,13 @@ body {
     page-break-inside: avoid;
 }
 
-/* Garantir que páginas de fotos sejam independentes */
-.photos-page-first,
-.photos-page-grid {
-    break-after: page;
+/* Garantir que cada grade de fotos force quebra de página */
+.grid-page {
     page-break-after: always;
+}
+
+/* Garantir que a primeira página de fotos quebre antes */
+.pdf-images {
+    page-break-before: always;
 }
         """
