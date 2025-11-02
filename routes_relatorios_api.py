@@ -14,6 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from app import app, db
 from models import Relatorio, FotoRelatorio, Projeto, User
+import traceback # Import traceback for detailed error logging
 
 # Configuração de logging
 logger = logging.getLogger(__name__)
@@ -31,44 +32,44 @@ def allowed_file(filename):
 def save_uploaded_image(file, relatorio_id):
     """
     Salva imagem enviada e retorna informações do arquivo
-    
+
     Args:
         file: FileStorage object do werkzeug
         relatorio_id: ID do relatório
-        
+
     Returns:
         dict: Informações do arquivo salvo (filename, url, content_type, size)
     """
     if not file or not allowed_file(file.filename):
         raise ValueError("Arquivo inválido ou tipo não permitido")
-    
+
     # Salvar temporariamente para verificar tamanho
     from tempfile import NamedTemporaryFile
     with NamedTemporaryFile(delete=False) as temp_file:
         file.save(temp_file.name)
         file_size = os.path.getsize(temp_file.name)
-        
+
         # Validar tamanho do arquivo
         if file_size > MAX_FILE_SIZE:
             os.unlink(temp_file.name)  # Remover arquivo temporário
             raise ValueError(f"Arquivo muito grande: {file_size / (1024*1024):.2f}MB. Máximo permitido: {MAX_FILE_SIZE / (1024*1024):.0f}MB")
-        
+
         # Gerar nome de arquivo seguro e único
         original_filename = secure_filename(file.filename)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S%f')
         filename = f"relatorio_{relatorio_id}_{timestamp}_{original_filename}"
-        
+
         # Caminho completo para salvar
         upload_folder = app.config['UPLOAD_FOLDER']
         filepath = os.path.join(upload_folder, filename)
-        
+
         # Mover arquivo temporário para destino final
         import shutil
         shutil.move(temp_file.name, filepath)
-        
+
         # URL relativa
         url = f"/uploads/{filename}"
-        
+
         return {
             'filename': filename,
             'url': url,
@@ -84,12 +85,12 @@ os.makedirs(TEMP_UPLOAD_FOLDER, exist_ok=True)
 def api_upload_temp():
     """
     POST /api/uploads/temp
-    
+
     Upload rápido de imagem para storage temporário.
     Retorna temp_id para posterior associação ao relatório via autosave.
-    
+
     Conforme especificação técnica do AutoSave.
-    
+
     Returns:
         JSON: {temp_id, path, filename, size, mime_type}
     """
@@ -100,28 +101,28 @@ def api_upload_temp():
                 'success': False,
                 'error': 'Nenhum arquivo enviado'
             }), 400
-        
+
         file = request.files['file']
-        
+
         if file.filename == '':
             return jsonify({
                 'success': False,
                 'error': 'Nome de arquivo vazio'
             }), 400
-        
+
         # Validar extensão do arquivo
         if not allowed_file(file.filename):
             return jsonify({
                 'success': False,
                 'error': f'Tipo de arquivo não permitido. Tipos aceitos: {", ".join(ALLOWED_EXTENSIONS)}'
             }), 400
-        
+
         # Salvar temporariamente para verificar tamanho
         from tempfile import NamedTemporaryFile
         with NamedTemporaryFile(delete=False) as temp_file:
             file.save(temp_file.name)
             file_size = os.path.getsize(temp_file.name)
-            
+
             # Validar tamanho do arquivo
             if file_size > MAX_FILE_SIZE:
                 os.unlink(temp_file.name)
@@ -129,26 +130,26 @@ def api_upload_temp():
                     'success': False,
                     'error': f'Arquivo muito grande: {file_size / (1024*1024):.2f}MB. Máximo: {MAX_FILE_SIZE / (1024*1024):.0f}MB'
                 }), 413
-            
+
             # Gerar temp_id único
             temp_id = str(uuid.uuid4())
-            
+
             # Nome de arquivo seguro e único
             original_filename = secure_filename(file.filename)
             extension = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else 'jpg'
             temp_filename = f"{temp_id}.{extension}"
-            
+
             # Caminho completo para salvar na pasta temporária
             temp_filepath = os.path.join(TEMP_UPLOAD_FOLDER, temp_filename)
-            
+
             # Mover arquivo temporário para pasta de uploads temporários
             shutil.move(temp_file.name, temp_filepath)
-            
+
             # Path relativo para retornar ao frontend
             relative_path = f"/uploads/temp/{temp_filename}"
-            
+
             logger.info(f"✅ Upload temporário: {temp_filename} ({file_size / 1024:.2f}KB) - temp_id: {temp_id}")
-            
+
             return jsonify({
                 'success': True,
                 'temp_id': temp_id,
@@ -158,7 +159,7 @@ def api_upload_temp():
                 'size': file_size,
                 'mime_type': file.content_type or 'image/jpeg'
             }), 200
-            
+
     except Exception as e:
         logger.error(f"Erro no upload temporário: {e}", exc_info=True)
         return jsonify({
@@ -172,7 +173,7 @@ def api_upload_temp():
 def api_criar_relatorio():
     """
     POST /api/relatorios
-    
+
     Cria um novo relatório e retorna o id.
     Suporte a upload inicial de imagens (multipart/form-data).
     Persiste metadados e estrutura completa conforme o novo modelo.
@@ -187,14 +188,14 @@ def api_criar_relatorio():
             # Dados JSON
             data = request.get_json()
             files = []
-        
+
         # Validar campos obrigatórios
         if not data.get('projeto_id'):
             return jsonify({
                 'success': False,
                 'error': 'Campo projeto_id é obrigatório'
             }), 400
-        
+
         # Verificar se projeto existe
         projeto = Projeto.query.get(data['projeto_id'])
         if not projeto:
@@ -202,20 +203,20 @@ def api_criar_relatorio():
                 'success': False,
                 'error': f"Projeto {data['projeto_id']} não encontrado"
             }), 404
-        
+
         # Gerar número do relatório
         # Buscar último número do projeto
         ultimo_relatorio = Relatorio.query.filter_by(
             projeto_id=data['projeto_id']
         ).order_by(Relatorio.numero_projeto.desc()).first()
-        
+
         if ultimo_relatorio and ultimo_relatorio.numero_projeto:
             proximo_numero = ultimo_relatorio.numero_projeto + 1
         else:
             proximo_numero = projeto.numeracao_inicial or 1
-        
+
         numero_formatado = f"{projeto.numero}-R{proximo_numero:03d}"
-        
+
         # Criar novo relatório
         novo_relatorio = Relatorio(
             numero=numero_formatado,
@@ -227,23 +228,23 @@ def api_criar_relatorio():
             autor_id=current_user.id,
             criado_por=current_user.id,
             atualizado_por=current_user.id,
-            
+
             # Novos campos conforme especificação
             categoria=data.get('categoria'),
             local=data.get('local'),
             observacoes_finais=data.get('observacoes_finais'),
-            
+
             # Data/hora
             data_relatorio=datetime.utcnow(),
-            
+
             # Status
             status=data.get('status', 'em_andamento'),
-            
+
             # Outros campos
             conteudo=data.get('conteudo'),
             checklist_data=data.get('checklist_data')
         )
-        
+
         # Processar lembrete_proxima_visita se fornecido
         if data.get('lembrete_proxima_visita'):
             try:
@@ -255,11 +256,11 @@ def api_criar_relatorio():
                     novo_relatorio.lembrete_proxima_visita = data['lembrete_proxima_visita']
             except (ValueError, TypeError) as e:
                 logger.warning(f"Erro ao processar lembrete_proxima_visita: {e}")
-        
+
         # Salvar relatório no banco
         db.session.add(novo_relatorio)
         db.session.flush()  # Obter ID sem fazer commit
-        
+
         # Processar imagens se houver
         imagens_salvas = []
         if files:
@@ -268,7 +269,7 @@ def api_criar_relatorio():
                     try:
                         # Salvar arquivo (pode lançar ValueError se tamanho exceder limite)
                         file_info = save_uploaded_image(file, novo_relatorio.id)
-                        
+
                         # Criar registro no banco
                         foto = FotoRelatorio(
                             relatorio_id=novo_relatorio.id,
@@ -280,7 +281,7 @@ def api_criar_relatorio():
                             imagem_size=file_info['size']
                         )
                         db.session.add(foto)
-                        
+
                         imagens_salvas.append({
                             'id': None,  # Será preenchido após commit
                             'url': file_info['url'],
@@ -305,15 +306,15 @@ def api_criar_relatorio():
                             'error': 'Erro ao processar imagem',
                             'details': str(img_error)
                         }), 400
-        
+
         # Commit da transação
         db.session.commit()
-        
+
         # Atualizar IDs das imagens
         for i, foto in enumerate(novo_relatorio.imagens.order_by(FotoRelatorio.ordem).all()):
             if i < len(imagens_salvas):
                 imagens_salvas[i]['id'] = foto.id
-        
+
         return jsonify({
             'success': True,
             'id': novo_relatorio.id,
@@ -321,7 +322,7 @@ def api_criar_relatorio():
             'imagens': imagens_salvas,
             'message': 'Relatório criado com sucesso'
         }), 201
-        
+
     except IntegrityError as e:
         db.session.rollback()
         logger.error(f"Erro de integridade ao criar relatório: {e}")
@@ -330,7 +331,7 @@ def api_criar_relatorio():
             'error': 'Erro de integridade no banco de dados',
             'details': str(e)
         }), 400
-        
+
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao criar relatório: {e}")
@@ -345,23 +346,23 @@ def api_criar_relatorio():
 def api_buscar_relatorio(relatorio_id):
     """
     GET /api/relatorios/<id>
-    
+
     Retorna todos os campos do relatório e as imagens associadas em formato estruturado.
     """
     try:
         relatorio = Relatorio.query.get(relatorio_id)
-        
+
         if not relatorio:
             return jsonify({
                 'success': False,
                 'error': 'Relatório não encontrado'
             }), 404
-        
+
         # Buscar imagens associadas
         imagens = FotoRelatorio.query.filter_by(
             relatorio_id=relatorio_id
         ).order_by(FotoRelatorio.ordem).all()
-        
+
         imagens_data = [{
             'id': img.id,
             'url': img.url or f"/uploads/{img.filename}" if img.filename else None,
@@ -372,7 +373,7 @@ def api_buscar_relatorio(relatorio_id):
             'local': img.local,
             'created_at': img.created_at.isoformat() if img.created_at else None
         } for img in imagens]
-        
+
         return jsonify({
             'success': True,
             'relatorio': {
@@ -385,31 +386,31 @@ def api_buscar_relatorio(relatorio_id):
                 'visita_id': relatorio.visita_id,
                 'autor_id': relatorio.autor_id,
                 'aprovador_id': relatorio.aprovador_id,
-                
+
                 # Novos campos
                 'categoria': relatorio.categoria,
                 'local': relatorio.local,
                 'lembrete_proxima_visita': relatorio.lembrete_proxima_visita.isoformat() if relatorio.lembrete_proxima_visita else None,
                 'observacoes_finais': relatorio.observacoes_finais,
-                
+
                 # Status e datas
                 'status': relatorio.status,
                 'data_relatorio': relatorio.data_relatorio.isoformat() if relatorio.data_relatorio else None,
                 'data_aprovacao': relatorio.data_aprovacao.isoformat() if relatorio.data_aprovacao else None,
                 'created_at': relatorio.created_at.isoformat() if relatorio.created_at else None,
                 'updated_at': relatorio.updated_at.isoformat() if relatorio.updated_at else None,
-                
+
                 # Outros campos
                 'conteudo': relatorio.conteudo,
                 'checklist_data': relatorio.checklist_data,
                 'comentario_aprovacao': relatorio.comentario_aprovacao,
                 'acompanhantes': relatorio.acompanhantes,
-                
+
                 # Imagens
                 'imagens': imagens_data
             }
         })
-        
+
     except Exception as e:
         logger.error(f"Erro ao buscar relatório {relatorio_id}: {e}")
         return jsonify({
@@ -423,7 +424,7 @@ def api_buscar_relatorio(relatorio_id):
 def api_atualizar_relatorio(relatorio_id):
     """
     PUT /api/relatorios/<id>
-    
+
     Atualiza todos os campos do relatório existente.
     Sincroniza imagens: adiciona novas, atualiza legendas/ordem e remove as excluídas.
     Suporta salvamento automático incremental (via timestamps).
@@ -431,13 +432,13 @@ def api_atualizar_relatorio(relatorio_id):
     """
     try:
         relatorio = Relatorio.query.get(relatorio_id)
-        
+
         if not relatorio:
             return jsonify({
                 'success': False,
                 'error': 'Relatório não encontrado'
             }), 404
-        
+
         # Verificar se é multipart (com imagens) ou JSON
         if request.content_type and 'multipart/form-data' in request.content_type:
             data = request.form.to_dict()
@@ -445,7 +446,7 @@ def api_atualizar_relatorio(relatorio_id):
         else:
             data = request.get_json()
             files = []
-        
+
         # Atualizar campos do relatório
         if 'titulo' in data:
             relatorio.titulo = data['titulo']
@@ -463,7 +464,7 @@ def api_atualizar_relatorio(relatorio_id):
             relatorio.checklist_data = data['checklist_data']
         if 'status' in data:
             relatorio.status = data['status']
-        
+
         # Processar lembrete_proxima_visita
         if 'lembrete_proxima_visita' in data:
             if data['lembrete_proxima_visita']:
@@ -478,14 +479,14 @@ def api_atualizar_relatorio(relatorio_id):
                     logger.warning(f"Erro ao processar lembrete_proxima_visita: {e}")
             else:
                 relatorio.lembrete_proxima_visita = None
-        
+
         # Atualizar metadados
         relatorio.atualizado_por = current_user.id
         relatorio.updated_at = datetime.utcnow()
-        
+
         # Processar sincronização de imagens
         imagens_atualizadas = []
-        
+
         # 1. Processar remoção de imagens (se especificado)
         if 'imagens_excluidas' in data:
             try:
@@ -493,7 +494,7 @@ def api_atualizar_relatorio(relatorio_id):
                 if isinstance(imagens_excluidas, str):
                     import json
                     imagens_excluidas = json.loads(imagens_excluidas)
-                
+
                 for img_id in imagens_excluidas:
                     foto = FotoRelatorio.query.get(img_id)
                     if foto and foto.relatorio_id == relatorio_id:
@@ -505,7 +506,7 @@ def api_atualizar_relatorio(relatorio_id):
                         db.session.delete(foto)
             except Exception as e:
                 logger.error(f"Erro ao processar exclusão de imagens: {e}")
-        
+
         # 2. Atualizar legendas e ordem de imagens existentes
         if 'imagens' in data:
             try:
@@ -513,7 +514,7 @@ def api_atualizar_relatorio(relatorio_id):
                 if isinstance(imagens_info, str):
                     import json
                     imagens_info = json.loads(imagens_info)
-                
+
                 for img_info in imagens_info:
                     if 'id' in img_info:
                         foto = FotoRelatorio.query.get(img_info['id'])
@@ -524,20 +525,20 @@ def api_atualizar_relatorio(relatorio_id):
                                 foto.ordem = img_info['ordem']
             except Exception as e:
                 logger.error(f"Erro ao atualizar imagens: {e}")
-        
+
         # 3. Adicionar novas imagens
         if files:
             # Obter ordem máxima atual
             max_ordem = db.session.query(db.func.max(FotoRelatorio.ordem)).filter_by(
                 relatorio_id=relatorio_id
             ).scalar() or -1
-            
+
             for idx, file in enumerate(files):
                 if file and file.filename:
                     try:
                         # Salvar arquivo (pode lançar ValueError se tamanho exceder limite)
                         file_info = save_uploaded_image(file, relatorio_id)
-                        
+
                         nova_foto = FotoRelatorio(
                             relatorio_id=relatorio_id,
                             filename=file_info['filename'],
@@ -548,7 +549,7 @@ def api_atualizar_relatorio(relatorio_id):
                             imagem_size=file_info['size']
                         )
                         db.session.add(nova_foto)
-                        
+
                         imagens_atualizadas.append({
                             'url': file_info['url'],
                             'legenda': nova_foto.legenda,
@@ -572,10 +573,10 @@ def api_atualizar_relatorio(relatorio_id):
                             'error': 'Erro ao processar imagem',
                             'details': str(img_error)
                         }), 400
-        
+
         # Commit das alterações
         db.session.commit()
-        
+
         # Buscar estado atualizado das imagens
         imagens_finais = [{
             'id': img.id,
@@ -583,7 +584,7 @@ def api_atualizar_relatorio(relatorio_id):
             'legenda': img.legenda,
             'ordem': img.ordem
         } for img in relatorio.imagens.order_by(FotoRelatorio.ordem).all()]
-        
+
         return jsonify({
             'success': True,
             'relatorio': {
@@ -595,7 +596,7 @@ def api_atualizar_relatorio(relatorio_id):
             'imagens': imagens_finais,
             'message': 'Relatório atualizado com sucesso'
         })
-        
+
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao atualizar relatório {relatorio_id}: {e}")
@@ -610,26 +611,26 @@ def api_atualizar_relatorio(relatorio_id):
 def api_remover_imagem(relatorio_id, imagem_id):
     """
     DELETE /api/relatorios/<id>/imagens/<imagem_id>
-    
+
     Remove uma imagem do relatório, tanto no banco quanto no armazenamento físico.
     """
     try:
         # Buscar imagem
         foto = FotoRelatorio.query.get(imagem_id)
-        
+
         if not foto:
             return jsonify({
                 'success': False,
                 'error': 'Imagem não encontrada'
             }), 404
-        
+
         # Verificar se a imagem pertence ao relatório especificado
         if foto.relatorio_id != relatorio_id:
             return jsonify({
                 'success': False,
                 'error': 'Imagem não pertence a este relatório'
             }), 403
-        
+
         # Remover arquivo físico se existir
         if foto.filename:
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], foto.filename)
@@ -640,23 +641,23 @@ def api_remover_imagem(relatorio_id, imagem_id):
             except Exception as file_error:
                 logger.error(f"Erro ao remover arquivo físico: {file_error}")
                 # Continuar mesmo se falhar a remoção do arquivo
-        
+
         # Remover registro do banco
         db.session.delete(foto)
-        
+
         # Atualizar timestamp do relatório
         relatorio = Relatorio.query.get(relatorio_id)
         if relatorio:
             relatorio.updated_at = datetime.utcnow()
             relatorio.atualizado_por = current_user.id
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Imagem removida com sucesso'
         })
-        
+
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao remover imagem {imagem_id}: {e}")
@@ -671,16 +672,16 @@ def api_remover_imagem(relatorio_id, imagem_id):
 def api_autosave_relatorio():
     """
     POST /api/relatorios/autosave
-    
+
     AutoSave completo do relatório - Implementação conforme especificação técnica.
-    
+
     Funcionalidades:
     - Cria relatório automaticamente se não existir (sem projeto_id obrigatório no primeiro save)
     - Atualiza todos os campos do relatório existente
     - Sincroniza imagens: adiciona, atualiza metadados e remove
     - Atualiza campo updated_at automaticamente
     - Resiliente a falhas de conexão
-    
+
     Payload esperado (JSON):
     {
         "id": null ou int,  # null para criar novo, int para atualizar
@@ -713,15 +714,15 @@ def api_autosave_relatorio():
     """
     try:
         data = request.get_json()
-        
+
         if not data:
             return jsonify({
                 'success': False,
                 'error': 'Nenhum dado fornecido'
             }), 400
-        
+
         relatorio_id = data.get('id')
-        
+
         # 1️⃣ CRIAR NOVO RELATÓRIO SE NÃO EXISTIR
         if not relatorio_id:
             # Validar campos obrigatórios para criação
@@ -730,7 +731,7 @@ def api_autosave_relatorio():
                     'success': False,
                     'error': 'Campo projeto_id é obrigatório para criar novo relatório'
                 }), 400
-            
+
             # Verificar se projeto existe
             projeto = Projeto.query.get(data['projeto_id'])
             if not projeto:
@@ -738,19 +739,19 @@ def api_autosave_relatorio():
                     'success': False,
                     'error': f"Projeto {data['projeto_id']} não encontrado"
                 }), 404
-            
+
             # Gerar número do relatório
             ultimo_relatorio = Relatorio.query.filter_by(
                 projeto_id=data['projeto_id']
             ).order_by(Relatorio.numero_projeto.desc()).first()
-            
+
             if ultimo_relatorio and ultimo_relatorio.numero_projeto:
                 proximo_numero = ultimo_relatorio.numero_projeto + 1
             else:
                 proximo_numero = projeto.numeracao_inicial or 1
-            
+
             numero_formatado = data.get('numero') or f"{projeto.numero}-R{proximo_numero:03d}"
-            
+
             # Processar lembrete_proxima_visita
             lembrete_proxima_visita = None
             if data.get('lembrete_proxima_visita'):
@@ -763,13 +764,13 @@ def api_autosave_relatorio():
                         lembrete_proxima_visita = data['lembrete_proxima_visita']
                 except (ValueError, TypeError) as e:
                     logger.warning(f"Erro ao processar lembrete_proxima_visita: {e}")
-            
+
             # Processar checklist_data
             checklist_data = data.get('checklist_data')
             if checklist_data and not isinstance(checklist_data, str):
                 import json
                 checklist_data = json.dumps(checklist_data)
-            
+
             # Criar novo relatório
             novo_relatorio = Relatorio(
                 numero=numero_formatado,
@@ -781,51 +782,51 @@ def api_autosave_relatorio():
                 autor_id=current_user.id,
                 criado_por=current_user.id,
                 atualizado_por=current_user.id,
-                
+
                 # Campos de AutoSave
                 categoria=data.get('categoria'),
                 local=data.get('local'),
                 observacoes_finais=data.get('observacoes_finais'),
                 lembrete_proxima_visita=lembrete_proxima_visita,
-                
+
                 # Data/hora
                 data_relatorio=datetime.utcnow(),
-                
+
                 # Status
                 status=data.get('status', 'em_andamento'),
-                
+
                 # Outros campos
                 conteudo=data.get('conteudo'),
                 checklist_data=checklist_data,
                 acompanhantes=data.get('acompanhantes')
             )
-            
+
             db.session.add(novo_relatorio)
             db.session.flush()  # Obter ID sem commit completo
             relatorio_id = novo_relatorio.id
-            
+
             logger.info(f"✅ AutoSave: Novo relatório criado com ID {relatorio_id}")
-        
+
         # 2️⃣ ATUALIZAR RELATÓRIO EXISTENTE
         else:
             relatorio = Relatorio.query.get(relatorio_id)
-            
+
             if not relatorio:
                 return jsonify({
                     'success': False,
                     'error': 'Relatório não encontrado'
                 }), 404
-            
+
             # Atualizar campos texto/data
             campos_atualizaveis = [
                 'titulo', 'descricao', 'categoria', 'local', 
                 'observacoes_finais', 'conteudo', 'status'
             ]
-            
+
             for campo in campos_atualizaveis:
                 if campo in data:
                     setattr(relatorio, campo, data[campo])
-            
+
             # Atualizar lembrete_proxima_visita
             if 'lembrete_proxima_visita' in data:
                 if data['lembrete_proxima_visita']:
@@ -840,7 +841,7 @@ def api_autosave_relatorio():
                         logger.warning(f"Erro ao processar lembrete_proxima_visita: {e}")
                 else:
                     relatorio.lembrete_proxima_visita = None
-            
+
             # Atualizar checklist_data
             if 'checklist_data' in data:
                 checklist_data = data['checklist_data']
@@ -848,23 +849,23 @@ def api_autosave_relatorio():
                     import json
                     checklist_data = json.dumps(checklist_data)
                 relatorio.checklist_data = checklist_data
-            
+
             # Atualizar acompanhantes
             if 'acompanhantes' in data:
                 relatorio.acompanhantes = data['acompanhantes']
-            
+
             # Atualizar metadados de auditoria
             relatorio.atualizado_por = current_user.id
             relatorio.updated_at = datetime.utcnow()
-            
+
             logger.info(f"✅ AutoSave: Relatório {relatorio_id} atualizado")
-        
+
         # 3️⃣ SINCRONIZAR IMAGENS
         imagens_resultado = []
-        
+
         if 'fotos' in data and data['fotos']:
             fotos_data = data['fotos']
-            
+
             for foto_info in fotos_data:
                 # Deletar imagem marcada para remoção
                 if foto_info.get('deletar'):
@@ -881,11 +882,11 @@ def api_autosave_relatorio():
                                         logger.info(f"AutoSave: Arquivo removido: {filepath}")
                                 except Exception as file_error:
                                     logger.error(f"Erro ao remover arquivo: {file_error}")
-                            
+
                             db.session.delete(foto)
                             logger.info(f"AutoSave: Imagem {foto_id} marcada para exclusão")
                     continue
-                
+
                 # Adicionar nova imagem (sem id ou id=null)
                 if not foto_info.get('id'):
                     # Processar temp_id (imagem do upload temporário)
@@ -893,18 +894,18 @@ def api_autosave_relatorio():
                         temp_id = foto_info['temp_id']
                         temp_filename = f"{temp_id}.{foto_info.get('extension', 'jpg')}"
                         temp_filepath = os.path.join(TEMP_UPLOAD_FOLDER, temp_filename)
-                        
+
                         # Verificar se arquivo temporário existe
                         if not os.path.exists(temp_filepath):
                             logger.error(f"AutoSave: Arquivo temporário não encontrado: {temp_filepath}")
                             continue
-                        
+
                         # Gerar nome definitivo
                         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S%f')
                         extension = foto_info.get('extension', 'jpg')
                         final_filename = f"relatorio_{relatorio_id}_{timestamp}_{temp_id}.{extension}"
                         final_filepath = os.path.join(app.config['UPLOAD_FOLDER'], final_filename)
-                        
+
                         # Mover arquivo de temp para pasta definitiva
                         try:
                             shutil.move(temp_filepath, final_filepath)
@@ -912,7 +913,7 @@ def api_autosave_relatorio():
                         except Exception as move_error:
                             logger.error(f"Erro ao mover arquivo temporário: {move_error}")
                             continue
-                        
+
                         # Criar registro no banco
                         nova_foto = FotoRelatorio(
                             relatorio_id=relatorio_id,
@@ -926,7 +927,7 @@ def api_autosave_relatorio():
                         )
                         db.session.add(nova_foto)
                         db.session.flush()  # Para obter o ID
-                        
+
                         imagens_resultado.append({
                             'id': nova_foto.id,
                             'url': nova_foto.url,
@@ -936,7 +937,7 @@ def api_autosave_relatorio():
                             'temp_id': temp_id  # Retornar para frontend mapear
                         })
                         logger.info(f"AutoSave: Imagem temp_id={temp_id} persistida com id={nova_foto.id}")
-                    
+
                     # Imagens já salvas no filesystem - apenas criar registro
                     elif foto_info.get('url') or foto_info.get('filename'):
                         nova_foto = FotoRelatorio(
@@ -951,7 +952,7 @@ def api_autosave_relatorio():
                         )
                         db.session.add(nova_foto)
                         db.session.flush()  # Para obter o ID
-                        
+
                         imagens_resultado.append({
                             'id': nova_foto.id,
                             'url': nova_foto.url,
@@ -959,7 +960,7 @@ def api_autosave_relatorio():
                             'ordem': nova_foto.ordem
                         })
                         logger.info(f"AutoSave: Nova imagem adicionada ao relatório {relatorio_id}")
-                
+
                 # Atualizar imagem existente
                 else:
                     foto = FotoRelatorio.query.get(foto_info['id'])
@@ -975,7 +976,7 @@ def api_autosave_relatorio():
                             foto.local = foto_info['local']
                         if 'ordem' in foto_info:
                             foto.ordem = foto_info['ordem']
-                        
+
                         imagens_resultado.append({
                             'id': foto.id,
                             'url': foto.url,
@@ -983,13 +984,13 @@ def api_autosave_relatorio():
                             'ordem': foto.ordem
                         })
                         logger.info(f"AutoSave: Metadados da imagem {foto.id} atualizados")
-        
+
         # 4️⃣ COMMIT DA TRANSAÇÃO
         db.session.commit()
-        
+
         # Buscar estado final do relatório
         relatorio_final = Relatorio.query.get(relatorio_id)
-        
+
         return jsonify({
             'success': True,
             'message': 'AutoSave executado com sucesso',
@@ -1003,7 +1004,7 @@ def api_autosave_relatorio():
             },
             'imagens': imagens_resultado
         }), 200
-        
+
     except IntegrityError as e:
         db.session.rollback()
         logger.error(f"Erro de integridade no AutoSave: {e}")
@@ -1012,7 +1013,7 @@ def api_autosave_relatorio():
             'error': 'Erro de integridade no banco de dados',
             'details': str(e)
         }), 400
-        
+
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro no AutoSave: {e}", exc_info=True)
@@ -1020,6 +1021,134 @@ def api_autosave_relatorio():
             'success': False,
             'error': 'Erro ao executar AutoSave',
             'details': str(e)
+        }), 500
+
+@app.route('/reports/autosave/<int:report_id>', methods=['POST'])
+@login_required
+def autosave_report(report_id):
+    """
+    Rota de auto-save para relatórios - CORRIGIDA PARA POSTGRESQL
+    Salva dados parciais sem validação estrita
+    """
+    try:
+        current_app.logger.info(f"💾 AUTOSAVE: Usuário {current_user.id} salvando relatório {report_id}")
+
+        # Buscar relatório
+        relatorio = Relatorio.query.get(report_id)
+
+        if not relatorio:
+            current_app.logger.error(f"❌ AUTOSAVE: Relatório {report_id} não encontrado")
+            return jsonify({
+                'success': False,
+                'error': 'Relatório não encontrado'
+            }), 404
+
+        # Verificar permissões
+        if relatorio.autor_id != current_user.id and not current_user.is_master:
+            current_app.logger.warning(f"🚫 AUTOSAVE: Sem permissão para relatório {report_id}")
+            return jsonify({
+                'success': False,
+                'error': 'Sem permissão para editar este relatório'
+            }), 403
+
+        # Validar JSON
+        if not request.is_json:
+            current_app.logger.error("❌ AUTOSAVE: Request não é JSON")
+            return jsonify({
+                'success': False,
+                'error': 'Content-Type deve ser application/json'
+            }), 400
+
+        try:
+            data = request.get_json(force=True)
+        except Exception as json_error:
+            current_app.logger.error(f"❌ AUTOSAVE: Erro ao parsear JSON: {json_error}")
+            return jsonify({
+                'success': False,
+                'error': 'JSON inválido'
+            }), 400
+
+        if not data:
+            current_app.logger.error("❌ AUTOSAVE: Dados vazios")
+            return jsonify({
+                'success': False,
+                'error': 'Dados vazios'
+            }), 400
+
+        # Whitelist de campos permitidos - EXPANDIDA
+        allowed_fields = [
+            'titulo', 'observacoes', 'latitude', 'longitude', 
+            'endereco', 'checklist_data', 'last_edited_at',
+            'descricao', 'categoria', 'local', 'observacoes_finais',
+            'conteudo', 'lembrete_proxima_visita', 'status'
+        ]
+
+        # Atualizar campos permitidos
+        updated_fields = []
+        for field in allowed_fields:
+            if field in data:
+                value = data[field]
+
+                # Tratamento especial para cada tipo de campo
+                if field == 'lembrete_proxima_visita' and value:
+                    try:
+                        from datetime import datetime
+                        # Aceitar tanto ISO string quanto datetime
+                        if isinstance(value, str):
+                            # Remover 'Z' e adicionar timezone UTC se necessário
+                            value = value.replace('Z', '+00:00')
+                            value = datetime.fromisoformat(value)
+                    except Exception as date_error:
+                        current_app.logger.warning(f"⚠️ AUTOSAVE: Erro ao converter data '{field}': {date_error}")
+                        value = None
+
+                elif field == 'checklist_data' and value:
+                    # Aceitar string JSON ou dict
+                    if isinstance(value, dict):
+                        import json
+                        value = json.dumps(value)
+
+                elif field in ['latitude', 'longitude'] and value:
+                    try:
+                        value = float(value)
+                    except:
+                        value = None
+
+                # Permitir valores vazios para outros campos (string vazia vira None)
+                elif value == '':
+                    value = None
+
+                # Atualizar campo no objeto
+                setattr(relatorio, field, value)
+                updated_fields.append(field)
+                current_app.logger.info(f"📝 AUTOSAVE: Campo '{field}' atualizado com valor: {str(value)[:50]}")
+
+        # Atualizar timestamp de edição
+        relatorio.updated_at = datetime.utcnow()
+        relatorio.atualizado_por = current_user.id
+
+        # Commit no banco PostgreSQL
+        db.session.commit()
+
+        current_app.logger.info(f"✅ AUTOSAVE: Relatório {report_id} salvo com sucesso ({len(updated_fields)} campos atualizados)")
+
+        return jsonify({
+            'success': True,
+            'message': 'Dados salvos automaticamente',
+            'updated_fields': updated_fields,
+            'report_id': report_id,
+            'timestamp': datetime.utcnow().isoformat()
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        current_app.logger.error(f"❌ AUTOSAVE: Erro crítico ao salvar relatório {report_id}: {error_msg}")
+        current_app.logger.error(f"❌ Stack trace completo:\n{traceback.format_exc()}")
+
+        return jsonify({
+            'success': False,
+            'error': f'Erro ao salvar dados: {error_msg}'
         }), 500
 
 logger.info("✅ API de relatórios carregada com sucesso")
