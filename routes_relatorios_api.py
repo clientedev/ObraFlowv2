@@ -971,6 +971,14 @@ def api_autosave_relatorio():
                             logger.error(f"AutoSave: Arquivo temporário não encontrado: {temp_filepath}")
                             continue
 
+                        # Ler arquivo temporário como bytes para salvar no banco
+                        try:
+                            with open(temp_filepath, 'rb') as f:
+                                image_bytes = f.read()
+                        except Exception as read_error:
+                            logger.error(f"Erro ao ler arquivo temporário: {read_error}")
+                            continue
+
                         # Gerar nome definitivo
                         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S%f')
                         extension = foto_info.get('extension', 'jpg')
@@ -985,11 +993,14 @@ def api_autosave_relatorio():
                             logger.error(f"Erro ao mover arquivo temporário: {move_error}")
                             continue
 
-                        # Criar registro no banco
+                        # Criar registro no banco COM DADOS BINÁRIOS
                         nova_foto = FotoRelatorio(
                             relatorio_id=relatorio_id,
                             url=f"/uploads/{final_filename}",
                             filename=final_filename,
+                            imagem=image_bytes,  # SALVAR BYTES NO BANCO
+                            imagem_size=len(image_bytes),
+                            content_type=f"image/{extension}",
                             legenda=foto_info.get('legenda'),
                             titulo=foto_info.get('titulo'),
                             tipo_servico=foto_info.get('tipo_servico'),
@@ -1007,14 +1018,31 @@ def api_autosave_relatorio():
                             'ordem': nova_foto.ordem,
                             'temp_id': temp_id  # Retornar para frontend mapear
                         })
-                        logger.info(f"AutoSave: Imagem temp_id={temp_id} persistida com id={nova_foto.id}")
+                        logger.info(f"AutoSave: Imagem temp_id={temp_id} persistida com id={nova_foto.id} ({len(image_bytes)} bytes)")
 
-                    # Imagens já salvas no filesystem - apenas criar registro
+                    # Imagens já salvas no filesystem - ler arquivo e salvar bytes no banco
                     elif foto_info.get('url') or foto_info.get('filename'):
+                        filename = foto_info.get('filename')
+                        image_bytes = None
+                        
+                        # Tentar ler arquivo do filesystem
+                        if filename:
+                            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                            if os.path.exists(filepath):
+                                try:
+                                    with open(filepath, 'rb') as f:
+                                        image_bytes = f.read()
+                                    logger.info(f"AutoSave: Arquivo lido do filesystem: {filename} ({len(image_bytes)} bytes)")
+                                except Exception as read_error:
+                                    logger.error(f"Erro ao ler arquivo {filename}: {read_error}")
+                        
                         nova_foto = FotoRelatorio(
                             relatorio_id=relatorio_id,
                             url=foto_info.get('url'),
-                            filename=foto_info.get('filename'),
+                            filename=filename,
+                            imagem=image_bytes,  # SALVAR BYTES NO BANCO
+                            imagem_size=len(image_bytes) if image_bytes else None,
+                            content_type=foto_info.get('content_type') or 'image/jpeg',
                             legenda=foto_info.get('legenda'),
                             titulo=foto_info.get('titulo'),
                             tipo_servico=foto_info.get('tipo_servico'),
@@ -1030,7 +1058,7 @@ def api_autosave_relatorio():
                             'legenda': nova_foto.legenda,
                             'ordem': nova_foto.ordem
                         })
-                        logger.info(f"AutoSave: Nova imagem adicionada ao relatório {relatorio_id}")
+                        logger.info(f"AutoSave: Nova imagem adicionada ao relatório {relatorio_id} (bytes: {len(image_bytes) if image_bytes else 0})")
 
                 # Atualizar imagem existente
                 else:
