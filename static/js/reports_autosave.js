@@ -195,17 +195,38 @@ class ReportsAutoSave {
             const img = imgs[i];
             console.log(`📸 Imagem ${i}:`, img);
 
+            // Se a imagem já foi salva no banco, apenas incluir seus metadados
+            if (img.savedId && img.savedId > 0) {
+                uploaded.push({
+                    id: img.savedId,
+                    filename: img.name || img.filename,
+                    category: img.category,
+                    local: img.local,
+                    caption: img.manualCaption || img.predefinedCaption || img.caption,
+                    ordem: i
+                });
+                console.log(`📌 AutoSave - Imagem já salva no banco: ID ${img.savedId}`);
+                continue;
+            }
+
+            // Validar se tem blob/file antes de tentar upload
+            if (!img || !img.blob) {
+                console.warn("⚠️ Imagem inválida ou blob ausente:", img);
+                continue; // ignora sem travar
+            }
+
             try {
                 const tempId = await this.uploadImageTemp(img);
                 uploaded.push({
                     temp_id: tempId,
-                    filename: img.filename,
+                    filename: img.name || img.filename,
                     category: img.category,
                     local: img.local,
-                    caption: img.caption,
+                    caption: img.manualCaption || img.predefinedCaption || img.caption,
+                    ordem: i
                 });
             } catch (err) {
-                console.error(`❌ AutoSave - Erro no upload da imagem ${i}:`, err);
+                console.error(`❌ Falha ao enviar imagem ${i}:`, err);
             }
         }
 
@@ -224,13 +245,13 @@ class ReportsAutoSave {
                 return null;
             }
 
-            console.log("📤 AutoSave - Preparando upload da imagem:", image.filename);
+            console.log("📤 AutoSave - Preparando upload da imagem:", image.name || image.filename);
 
             const formData = new FormData();
-            formData.append("file", image.blob, image.filename || "imagem.jpg");
+            formData.append("file", image.blob, image.name || image.filename || "imagem.jpg");
             formData.append("category", image.category || "");
             formData.append("local", image.local || "");
-            formData.append("caption", image.caption || "");
+            formData.append("caption", image.manualCaption || image.predefinedCaption || image.caption || "");
 
             const response = await fetch("/api/uploads/temp", {
                 method: "POST",

@@ -2298,6 +2298,8 @@ function handlePhotoAdded(file, metadata = {}) {
         predefinedCaption: metadata.predefinedCaption || "",
         filename: filename,
         file: file || null,  // Pode ser null para fotos existentes
+        blob: file || null,  // 🔥 Campo blob para compatibilidade com AutoSave
+        hasFile: !!file,
         // PRESERVAR savedId e temp_id se já existirem em metadata
         savedId: metadata.savedId || null,
         temp_id: metadata.temp_id || null,
