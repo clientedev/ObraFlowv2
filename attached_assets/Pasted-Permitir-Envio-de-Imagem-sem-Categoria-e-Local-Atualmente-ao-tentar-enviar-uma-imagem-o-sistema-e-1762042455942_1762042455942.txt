@@ -1,0 +1,64 @@
+Permitir Envio de Imagem sem Categoria e Local
+
+Atualmente, ao tentar enviar uma imagem, o sistema exige o preenchimento dos campos Categoria e Local, impedindo o upload caso não sejam preenchidos.
+Essa obrigatoriedade precisa ser removida, pois o usuário deve poder enviar imagens livremente, mesmo sem especificar esses campos.
+
+✅ Objetivo
+
+Permitir o envio e salvamento de imagens sem a necessidade de preencher os campos “Categoria” e “Local”, mantendo apenas os campos realmente relevantes (ex.: legenda, se desejado).
+
+⚙️ Requisitos Técnicos
+
+Campos afetados:
+
+Categoria
+
+Local
+
+(Opcional) Legenda
+
+Nova regra de validação:
+
+Os campos Categoria e Local não devem ser obrigatórios para o envio de imagens.
+
+O sistema deve permitir que o usuário envie imagens diretamente via câmera ou galeria, mesmo com esses campos vazios.
+
+A validação só deve ocorrer se o campo estiver visivelmente preenchido, nunca bloqueando o envio por estarem vazios.
+
+Frontend:
+
+Ajustar a lógica de validação do formulário, removendo a obrigatoriedade desses campos:
+
+if (imagemSelecionada) {
+    // Não exigir categoria nem local
+    // Apenas validar legenda se for campo realmente obrigatório
+}
+
+
+O alerta “⚠️ Legenda obrigatória - preencha o campo acima” deve continuar visível apenas se a legenda for marcada como obrigatória (se for opcional, remover também).
+
+Backend:
+
+Garantir que a API de upload aceite requisições sem valores nos campos categoria e local.
+
+Caso esses campos cheguem nulos ou vazios, o sistema deve apenas armazenar a imagem normalmente, sem retornar erro.
+
+Interface (UX):
+
+O usuário deve conseguir:
+
+Clicar em “Câmera” ou “Galeria” → escolher a imagem → enviar imediatamente.
+
+Enviar várias imagens seguidas sem precisar preencher Categoria e Local.
+
+O botão de envio não deve ser desabilitado pela ausência desses campos.
+
+🧪 Critérios de Aceitação
+
+✅ O usuário pode enviar imagens sem preencher “Categoria” e “Local”.
+
+✅ O sistema salva corretamente as imagens e não exibe mensagens de erro de validação.
+
+✅ O backend não gera exceções quando os campos chegam nulos.
+
+✅ A experiência no app e no painel web é consistente (comportamento idêntico).

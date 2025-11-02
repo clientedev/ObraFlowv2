@@ -109,10 +109,10 @@ class FotoExpressForm(FlaskForm):
     
     tipo_servico = SelectField('Tipo de Serviço (Categoria)',
                               choices=[('', 'Selecione...')],
-                              validators=[DataRequired(message='Categoria é obrigatória')])
+                              validators=[Optional()])
     
     local = StringField('Local', 
-                       validators=[DataRequired(message='Local é obrigatório'), Length(max=300)],
+                       validators=[Optional(), Length(max=300)],
                        render_kw={'placeholder': 'Local ou ambiente da foto'})
     
     def set_categoria_choices(self, projeto_id):
