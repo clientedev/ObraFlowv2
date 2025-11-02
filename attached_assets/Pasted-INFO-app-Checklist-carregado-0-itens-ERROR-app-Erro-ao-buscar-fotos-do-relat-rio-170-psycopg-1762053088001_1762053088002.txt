@@ -1,0 +1,100 @@
+INFO:app:✅ Checklist carregado: 0 itens
+ERROR:app:❌ Erro ao buscar fotos do relatório 170: (psycopg2.errors.UndefinedColumn) column fotos_relatorio.url does not exist
+LINE 1: ...rio.relatorio_id AS fotos_relatorio_relatorio_id, fotos_rela...
+                                                             ^
+[SQL: SELECT fotos_relatorio.id AS fotos_relatorio_id, fotos_relatorio.relatorio_id AS fotos_relatorio_relatorio_id, fotos_relatorio.url AS fotos_relatorio_url, fotos_relatorio.filename AS fotos_relatorio_filename, fotos_relatorio.filename_original AS fotos_relatorio_filename_original, fotos_relatorio.filename_anotada AS fotos_relatorio_filename_anotada, fotos_relatorio.titulo AS fotos_relatorio_titulo, fotos_relatorio.legenda AS fotos_relatorio_legenda, fotos_relatorio.descricao AS fotos_relatorio_descricao, fotos_relatorio.tipo_servico AS fotos_relatorio_tipo_servico, fotos_relatorio.local AS fotos_relatorio_local, fotos_relatorio.anotacoes_dados AS fotos_relatorio_anotacoes_dados, fotos_relatorio.ordem AS fotos_relatorio_ordem, fotos_relatorio.coordenadas_anotacao AS fotos_relatorio_coordenadas_anotacao, fotos_relatorio.imagem AS fotos_relatorio_imagem, fotos_relatorio.imagem_hash AS fotos_relatorio_imagem_hash, fotos_relatorio.content_type AS fotos_relatorio_content_type, fotos_relatorio.imagem_size AS fotos_relatorio_imagem_size, fotos_relatorio.created_at AS fotos_relatorio_created_at 
+FROM fotos_relatorio 
+WHERE fotos_relatorio.relatorio_id = %(relatorio_id_1)s ORDER BY fotos_relatorio.ordem]
+[parameters: {'relatorio_id_1': 170}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+ERROR:app:ERRO GERAL em /reports/170: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT projetos.id AS projetos_id, projetos.numero AS projetos_numero, projetos.nome AS projetos_nome, projetos.descricao AS projetos_descricao, projetos.endereco AS projetos_endereco, projetos.latitude AS projetos_latitude, projetos.longitude AS projetos_longitude, projetos.tipo_obra AS projetos_tipo_obra, projetos.construtora AS projetos_construtora, projetos.nome_funcionario AS projetos_nome_funcionario, projetos.responsavel_id AS projetos_responsavel_id, projetos.email_principal AS projetos_email_principal, projetos.data_inicio AS projetos_data_inicio, projetos.data_previsao_fim AS projetos_data_previsao_fim, projetos.status AS projetos_status, projetos.numeracao_inicial AS projetos_numeracao_inicial, projetos.created_at AS projetos_created_at 
+FROM projetos 
+WHERE projetos.id = %(pk_1)s]
+[parameters: {'pk_1': 26}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.InFailedSqlTransaction: current transaction is aborted, commands ignored until end of transaction block
+    {% extends "base.html" %}
+    return _render(app, template, context)
+  File "/app/templates/base.html", line 313, in top-level template code
+    {% block content %}{% endblock %}
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/templating.py", line 131, in _render
+The above exception was the direct cause of the following exception:
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+  File "/app/routes.py", line 5726, in view_report
+    self.environment.handle_exception()
+    return render_template('reports/view.html',
+  File "/usr/local/lib/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    raise rewrite_traceback_stack(source=source)
+  File "/app/templates/reports/view.html", line 1, in top-level template code
+  File "/usr/local/lib/python3.11/site-packages/flask/templating.py", line 150, in render_template
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/templates/reports/view.html", line 127, in block 'content'
+    <p><strong>Projeto:</strong> {{ report.projeto.nome }} ({{ report.projeto.numero }})</p>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/attributes.py", line 569, in __get__
+    return self.impl.get(state, dict_)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/attributes.py", line 1096, in get
+    value = self._fire_loader_callables(state, key, passive)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/attributes.py", line 1131, in _fire_loader_callables
+    return self.callable_(state, passive)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/strategies.py", line 978, in _load_for_state
+    return self._emit_lazyload(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/strategies.py", line 1079, in _emit_lazyload
+    return loading.load_on_pk_identity(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/loading.py", line 695, in load_on_pk_identity
+    session.execute(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2251, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+    ret = self._execute_context(
+    cursor.execute(statement, parameters)
+          ^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.InternalError: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+[SQL: SELECT projetos.id AS projetos_id, projetos.numero AS projetos_numero, projetos.nome AS projetos_nome, projetos.descricao AS projetos_descricao, projetos.endereco AS projetos_endereco, projetos.latitude AS projetos_latitude, projetos.longitude AS projetos_longitude, projetos.tipo_obra AS projetos_tipo_obra, projetos.construtora AS projetos_construtora, projetos.nome_funcionario AS projetos_nome_funcionario, projetos.responsavel_id AS projetos_responsavel_id, projetos.email_principal AS projetos_email_principal, projetos.data_inicio AS projetos_data_inicio, projetos.data_previsao_fim AS projetos_data_previsao_fim, projetos.status AS projetos_status, projetos.numeracao_inicial AS projetos_numeracao_inicial, projetos.created_at AS projetos_created_at 
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+(Background on this error at: https://sqlalche.me/e/20/2j85)
+187.95.173.111 - - [02/Nov/2025:03:10:59 +0000] "GET /reports/170 HTTP/1.1" 500 25265 "https://elpconsultoria.pro/reports" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+FROM projetos 
+WHERE projetos.id = %(pk_1)s]
+[parameters: {'pk_1': 26}]
