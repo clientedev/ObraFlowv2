@@ -7,7 +7,7 @@ import logging
 import uuid
 import shutil
 from datetime import datetime
-from flask import jsonify, request
+from flask import jsonify, request, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from sqlalchemy import text
@@ -92,7 +92,7 @@ def api_upload_temp():
     Retorna temp_id para posterior associação ao relatório via autosave.
 
     Conforme especificação técnica do AutoSave.
-    
+
     Nota: CSRF é verificado apenas se o token estiver presente.
     A autenticação via session/cookie é suficiente para segurança.
 
@@ -357,109 +357,108 @@ def api_criar_relatorio():
 
 @app.route('/api/relatorios/<int:relatorio_id>', methods=['GET'])
 @login_required
-def api_buscar_relatorio(relatorio_id):
-    """
-    GET /api/relatorios/<id>
-
-    Retorna todos os campos do relatório e as imagens associadas em formato estruturado.
-    Inclui também os dados do projeto associado, checklist e acompanhantes.
-    Otimizado para carregamento completo na edição de relatório.
-    """
+def get_relatorio(relatorio_id):
+    """Buscar dados completos de um relatório específico para edição"""
     try:
-        relatorio = Relatorio.query.get(relatorio_id)
+        relatorio = Relatorio.query.get_or_404(relatorio_id)
 
-        if not relatorio:
-            return jsonify({
-                'success': False,
-                'error': 'Relatório não encontrado'
-            }), 404
+        # Verificar permissão
+        if not current_user.is_master and relatorio.autor_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
 
-        # Buscar projeto associado
+        # Buscar dados do projeto
         projeto = None
         if relatorio.projeto_id:
             projeto_obj = Projeto.query.get(relatorio.projeto_id)
             if projeto_obj:
                 projeto = {
                     'id': projeto_obj.id,
-                    'numero': projeto_obj.numero,
                     'nome': projeto_obj.nome,
-                    'descricao': projeto_obj.descricao,
-                    'endereco': projeto_obj.endereco,
-                    'tipo_obra': projeto_obj.tipo_obra,
-                    'construtora': projeto_obj.construtora,
-                    'status': projeto_obj.status
+                    'numero': projeto_obj.numero,
+                    'endereco': projeto_obj.endereco
                 }
 
-        # Buscar imagens associadas
-        imagens = FotoRelatorio.query.filter_by(
-            relatorio_id=relatorio_id
-        ).order_by(FotoRelatorio.ordem).all()
+        # Buscar imagens do relatório
+        imagens = []
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
+        for foto in fotos:
+            # Determinar o path da imagem
+            image_path = None
+            if foto.url:
+                image_path = foto.url
+            elif foto.filename:
+                image_path = f"/uploads/{foto.filename}"
+            else:
+                # Fallback para gerar URL a partir do ID
+                image_path = f"/get_imagem/{foto.id}"
 
-        imagens_data = [{
-            'id': img.id,
-            'url': img.url or f"/uploads/{img.filename}" if img.filename else None,
-            'path': img.url or f"/uploads/{img.filename}" if img.filename else None,
-            'filename': img.filename,
-            'legenda': img.legenda,
-            'caption': img.legenda,
-            'ordem': img.ordem,
-            'titulo': img.titulo,
-            'tipo_servico': img.tipo_servico,
-            'category': img.tipo_servico,
-            'local': img.local,
-            'created_at': img.created_at.isoformat() if img.created_at else None
-        } for img in imagens]
+            imagens.append({
+                'id': foto.id,
+                'path': image_path,
+                'url': image_path,
+                'filename': foto.filename,
+                'legenda': foto.legenda or '',
+                'caption': foto.legenda or '',
+                'tipo_servico': foto.tipo_servico or '',
+                'category': foto.tipo_servico or '',
+                'local': foto.local or '',
+                'ordem': foto.ordem or 0
+            })
 
-        # Preparar dados do checklist (já está em JSON)
-        checklist = relatorio.checklist_data or []
-        
-        # Preparar dados dos acompanhantes (já está em JSON)
-        acompanhantes = relatorio.acompanhantes or []
+        # Processar checklist_data
+        checklist = []
+        if relatorio.checklist_data:
+            try:
+                if isinstance(relatorio.checklist_data, str):
+                    checklist = json.loads(relatorio.checklist_data)
+                elif isinstance(relatorio.checklist_data, list):
+                    checklist = relatorio.checklist_data
+            except:
+                checklist = []
+
+        # Processar acompanhantes
+        acompanhantes = []
+        if relatorio.acompanhantes:
+            try:
+                if isinstance(relatorio.acompanhantes, str):
+                    acompanhantes = json.loads(relatorio.acompanhantes)
+                elif isinstance(relatorio.acompanhantes, list):
+                    acompanhantes = relatorio.acompanhantes
+            except:
+                acompanhantes = []
+
+        # Serializar relatório completo
+        relatorio_data = {
+            'id': relatorio.id,
+            'numero': relatorio.numero,
+            'titulo': relatorio.titulo or 'Relatório de visita',
+            'projeto_id': relatorio.projeto_id,
+            'data_relatorio': relatorio.data_relatorio.isoformat() if relatorio.data_relatorio else None,
+            'categoria': relatorio.categoria or '',
+            'local': relatorio.local or '',
+            'observacoes_finais': relatorio.observacoes_finais or '',
+            'lembrete_proxima_visita': relatorio.lembrete_proxima_visita.isoformat() if relatorio.lembrete_proxima_visita else None,
+            'conteudo': relatorio.conteudo or '',
+            'status': relatorio.status or 'em_andamento',
+            'created_at': relatorio.created_at.isoformat() if relatorio.created_at else None,
+            'updated_at': relatorio.updated_at.isoformat() if relatorio.updated_at else None
+        }
 
         return jsonify({
             'success': True,
-            'relatorio': {
-                'id': relatorio.id,
-                'numero': relatorio.numero,
-                'numero_projeto': relatorio.numero_projeto,
-                'titulo': relatorio.titulo,
-                'descricao': relatorio.descricao,
-                'projeto_id': relatorio.projeto_id,
-                'visita_id': relatorio.visita_id,
-                'autor_id': relatorio.autor_id,
-                'aprovador_id': relatorio.aprovador_id,
-
-                # Novos campos
-                'categoria': relatorio.categoria,
-                'local': relatorio.local,
-                'lembrete_proxima_visita': relatorio.lembrete_proxima_visita.isoformat() if relatorio.lembrete_proxima_visita else None,
-                'observacoes_finais': relatorio.observacoes_finais,
-
-                # Status e datas
-                'status': relatorio.status,
-                'data_relatorio': relatorio.data_relatorio.isoformat() if relatorio.data_relatorio else None,
-                'data_aprovacao': relatorio.data_aprovacao.isoformat() if relatorio.data_aprovacao else None,
-                'created_at': relatorio.created_at.isoformat() if relatorio.created_at else None,
-                'updated_at': relatorio.updated_at.isoformat() if relatorio.updated_at else None,
-
-                # Outros campos
-                'conteudo': relatorio.conteudo,
-                'comentario_aprovacao': relatorio.comentario_aprovacao,
-            },
-            # Dados relacionados estruturados
+            'relatorio': relatorio_data,
             'projeto': projeto,
-            'imagens': imagens_data,
+            'imagens': imagens,
             'checklist': checklist,
             'acompanhantes': acompanhantes
         })
 
     except Exception as e:
-        logger.error(f"Erro ao buscar relatório {relatorio_id}: {e}")
-        return jsonify({
-            'success': False,
-            'error': 'Erro ao buscar relatório',
-            'details': str(e)
-        }), 500
+        current_app.logger.error(f'Erro ao buscar relatório {relatorio_id}: {str(e)}')
+        import traceback
+        current_app.logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @app.route('/api/relatorios/<int:relatorio_id>', methods=['PUT'])
 @login_required
@@ -1005,16 +1004,16 @@ def api_autosave_relatorio():
                     # Processar temp_id (imagem do upload temporário)
                     if foto_info.get('temp_id'):
                         temp_id = foto_info['temp_id']
-                        
+
                         # 🔧 CORREÇÃO: Buscar arquivo temporário dinamicamente (qualquer extensão)
                         temp_filepath = None
                         extension = 'jpg'  # padrão
-                        
+
                         # Buscar arquivo que começa com temp_id na pasta temporária
                         import glob
                         temp_pattern = os.path.join(TEMP_UPLOAD_FOLDER, f"{temp_id}.*")
                         matching_files = glob.glob(temp_pattern)
-                        
+
                         if matching_files:
                             temp_filepath = matching_files[0]
                             # Extrair extensão do arquivo encontrado
@@ -1034,11 +1033,11 @@ def api_autosave_relatorio():
                         try:
                             with open(temp_filepath, 'rb') as f:
                                 image_bytes = f.read()
-                            
+
                             if not image_bytes:
                                 logger.error(f"AutoSave: Arquivo temporário vazio: {temp_filepath}")
                                 continue
-                                
+
                             logger.info(f"AutoSave: Arquivo temporário lido: {len(image_bytes)} bytes")
                         except Exception as read_error:
                             logger.error(f"Erro ao ler arquivo temporário: {read_error}")
@@ -1105,7 +1104,7 @@ def api_autosave_relatorio():
                     elif foto_info.get('url') or foto_info.get('filename'):
                         filename = foto_info.get('filename')
                         image_bytes = None
-                        
+
                         # Tentar ler arquivo do filesystem
                         if filename:
                             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -1113,11 +1112,11 @@ def api_autosave_relatorio():
                                 try:
                                     with open(filepath, 'rb') as f:
                                         image_bytes = f.read()
-                                    
+
                                     if not image_bytes:
                                         logger.error(f"AutoSave: Arquivo vazio no filesystem: {filename}")
                                         continue
-                                    
+
                                     logger.info(f"AutoSave: Arquivo lido do filesystem: {filename} ({len(image_bytes)} bytes)")
                                 except Exception as read_error:
                                     logger.error(f"Erro ao ler arquivo {filename}: {read_error}")
@@ -1125,16 +1124,16 @@ def api_autosave_relatorio():
                             else:
                                 logger.warning(f"AutoSave: Arquivo não encontrado no filesystem: {filepath}")
                                 continue
-                        
+
                         # GARANTIR que a imagem tenha bytes válidos
                         if not image_bytes:
                             logger.error(f"AutoSave: Impossível salvar imagem sem bytes! filename={filename}")
                             continue
-                        
+
                         # Calcular hash da imagem
                         import hashlib
                         imagem_hash = hashlib.sha256(image_bytes).hexdigest()
-                        
+
                         nova_foto = FotoRelatorio(
                             relatorio_id=relatorio_id,
                             url=foto_info.get('url'),
@@ -1188,22 +1187,22 @@ def api_autosave_relatorio():
         db.session.commit()
         print(f"✅ AutoSave registrado: {relatorio_id}")
         logger.info(f"✅ AutoSave: Commit realizado para relatório {relatorio_id}")
-        
+
         # VALIDAÇÃO DETALHADA: Verificar quantas imagens foram realmente salvas no banco
         total_imagens_db = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count()
         imagens_com_bytes = FotoRelatorio.query.filter(
             FotoRelatorio.relatorio_id == relatorio_id,
             FotoRelatorio.imagem.isnot(None)
         ).count()
-        
+
         logger.info(f"📊 AutoSave VALIDAÇÃO FINAL:")
         logger.info(f"   - Total de imagens no banco: {total_imagens_db}")
         logger.info(f"   - Imagens COM bytes salvos: {imagens_com_bytes}")
         logger.info(f"   - Imagens SEM bytes: {total_imagens_db - imagens_com_bytes}")
-        
+
         print(f"📊 Total de imagens no banco: {total_imagens_db}")
         print(f"📊 Imagens com bytes: {imagens_com_bytes}")
-        
+
         if total_imagens_db != imagens_com_bytes:
             logger.error(f"⚠️ ATENÇÃO: {total_imagens_db - imagens_com_bytes} imagens foram salvas SEM bytes!")
 
@@ -1212,7 +1211,7 @@ def api_autosave_relatorio():
 
         # Buscar todas as imagens salvas do relatório para retornar estado completo
         fotos_salvas = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).order_by(FotoRelatorio.ordem).all()
-        
+
         imagens_response = []
         for foto in fotos_salvas:
             imagens_response.append({
@@ -1226,9 +1225,9 @@ def api_autosave_relatorio():
                 'local': foto.local or '',
                 'ordem': foto.ordem or 0
             })
-        
+
         logger.info(f"✅ AutoSave RESPOSTA: {len(imagens_response)} imagens retornadas")
-        
+
         return jsonify({
             'success': True,
             'message': 'AutoSave executado com sucesso',
