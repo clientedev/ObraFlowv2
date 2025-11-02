@@ -171,7 +171,7 @@ class WeasyPrintReportGenerator:
         return data
     
     def _create_html_template(self):
-        """Template HTML com layout otimizado de imagens: 2 na primeira página, 4 nas demais"""
+        """Template HTML com layout exato do PDF de referência: 2 na primeira página, 4 nas demais"""
         return """
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -230,46 +230,48 @@ class WeasyPrintReportGenerator:
         </div>
     </div>
 
-    <!-- SEÇÃO DE IMAGENS: Primeira página com 2 imagens, demais com 4 -->
+    <!-- PRIMEIRA PÁGINA DE IMAGENS: Exatamente 2 imagens -->
     {% if data.fotos %}
     {% set first_page_photos = data.fotos[:2] %}
     {% if first_page_photos %}
-    <section class="pdf-images page-break-before">
+    <div class="page-break-before first-photos-page">
         {% for foto in first_page_photos %}
-        <figure class="img-single">
+        <div class="single-photo-container">
             {% if foto.base64 and not foto.not_found %}
-                <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo-img-single">
+                <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="single-photo-img">
             {% else %}
-                <div class="photo-placeholder-single">Foto não disponível</div>
+                <div class="photo-placeholder">Foto não disponível</div>
             {% endif %}
-            <figcaption class="photo-caption-single">Foto {{ foto.ordem }} - {{ foto.legenda }}</figcaption>
-        </figure>
+            <div class="single-photo-caption">Foto {{ foto.ordem }} - {{ foto.legenda }}</div>
+        </div>
         {% endfor %}
-    </section>
+    </div>
     {% endif %}
     
-    <!-- Demais páginas: 4 imagens por página (2x2) -->
+    <!-- DEMAIS PÁGINAS: 4 imagens por página em grid 2x2 -->
     {% set remaining_photos = data.fotos[2:] %}
-    {% for i in range(0, remaining_photos|length, 4) %}
-    <section class="grid-page page-break-before">
-        {% for foto in remaining_photos[i:i+4] %}
-        {% if foto %}
-        <figure class="img-grid">
-            {% if foto.base64 and not foto.not_found %}
-                <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="photo-img-grid">
-            {% else %}
-                <div class="photo-placeholder-grid">Foto não disponível</div>
+    {% for batch_start in range(0, remaining_photos|length, 4) %}
+    <div class="page-break-before grid-photos-page">
+        <div class="photos-grid-2x2">
+            {% for foto in remaining_photos[batch_start:batch_start+4] %}
+            {% if foto %}
+            <div class="grid-photo-item">
+                {% if foto.base64 and not foto.not_found %}
+                    <img src="data:image/jpeg;base64,{{ foto.base64 }}" alt="Foto {{ foto.ordem }}" class="grid-photo-img">
+                {% else %}
+                    <div class="photo-placeholder-grid">Foto não disponível</div>
+                {% endif %}
+                <div class="grid-photo-caption">Foto {{ foto.ordem }} - {{ foto.legenda }}</div>
+            </div>
             {% endif %}
-            <figcaption class="photo-caption-grid">Foto {{ foto.ordem }} - {{ foto.legenda }}</figcaption>
-        </figure>
-        {% endif %}
-        {% endfor %}
-    </section>
+            {% endfor %}
+        </div>
+    </div>
     {% endfor %}
     {% endif %}
 
-    <!-- Assinaturas SEMPRE NO FINAL - após todas as imagens -->
-    <section class="assinaturas page-break-before">
+    <!-- ASSINATURAS - SEMPRE NO FINAL após todas as imagens -->
+    <div class="page-break-before assinaturas-page">
         <div class="assinaturas-section">
             <div class="section-header">Assinaturas</div>
             <div class="assinaturas-table">
@@ -285,7 +287,7 @@ class WeasyPrintReportGenerator:
                 </div>
             </div>
         </div>
-    </section>
+    </div>
 
     <!-- Rodapé ELP -->
     <div class="footer-section">
@@ -308,19 +310,17 @@ class WeasyPrintReportGenerator:
         """
     
     def _create_css_styles(self):
-        """CSS com layout otimizado: 2 imagens na primeira página, 4 nas demais + numeração"""
+        """CSS replicando exatamente o layout do PDF de referência"""
         return """
 @page {
     size: A4;
-    margin: 20px;
+    margin: 20mm 15mm 25mm 15mm;
     
     @bottom-right {
-        content: "Página " counter(page) " / " counter(pages);
+        content: "Página " counter(page);
         font-family: Arial, Helvetica, sans-serif;
         font-size: 9pt;
         color: #666666;
-        margin-right: 20px;
-        margin-bottom: 10px;
     }
 }
 
@@ -483,88 +483,97 @@ figure {
     padding: 0;
 }
 
-/* PRIMEIRAS 2 IMAGENS - uma página dedicada */
-.pdf-images {
-    padding: 20px;
+/* PRIMEIRA PÁGINA DE FOTOS - 2 imagens grandes verticalmente */
+.first-photos-page {
+    page-break-after: always;
+    padding: 10mm 0;
 }
 
-.img-single {
+.single-photo-container {
     width: 100%;
-    margin-bottom: 12px;
+    margin-bottom: 15mm;
     page-break-inside: avoid;
 }
 
-.photo-img-single {
+.single-photo-img {
     width: 100%;
-    max-height: calc(50vh - 60px);
+    height: auto;
+    max-height: 110mm;
     object-fit: contain;
     display: block;
+    border: 1px solid #e0e0e0;
 }
 
-.photo-placeholder-single {
+.photo-placeholder {
     width: 100%;
-    min-height: 200px;
-    background-color: #f0f0f0;
-    border: 1px dashed #ccc;
+    height: 110mm;
+    background-color: #f5f5f5;
+    border: 2px dashed #ccc;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #666;
+    color: #999;
+    font-size: 11pt;
+    font-style: italic;
+}
+
+.single-photo-caption {
     font-size: 10pt;
-}
-
-.photo-caption-single {
-    font-size: 10px;
-    text-align: left;
-    margin-top: 6px;
     color: #333;
-    font-weight: normal;
+    margin-top: 5mm;
+    text-align: left;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
-/* IMAGENS RESTANTES - GRID 2x2 POR PÁGINA */
-.grid-page {
+/* DEMAIS PÁGINAS - GRID 2x2 (4 imagens por página) */
+.grid-photos-page {
+    page-break-after: always;
+    padding: 5mm 0;
+}
+
+.photos-grid-2x2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-auto-rows: auto;
-    gap: 8px;
-    padding: 20px;
-    page-break-after: always;
+    grid-template-rows: 1fr 1fr;
+    gap: 8mm;
+    width: 100%;
+    height: auto;
 }
 
-.img-grid {
+.grid-photo-item {
+    page-break-inside: avoid;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 6px;
-    background: #fff;
-    page-break-inside: avoid;
 }
 
-.photo-img-grid {
+.grid-photo-img {
     width: 100%;
-    max-height: calc((297mm - 150px) / 2);
+    height: auto;
+    max-height: 85mm;
     object-fit: contain;
     display: block;
+    border: 1px solid #e0e0e0;
 }
 
 .photo-placeholder-grid {
     width: 100%;
-    min-height: 200px;
-    background-color: #f0f0f0;
-    border: 1px dashed #ccc;
+    height: 85mm;
+    background-color: #f5f5f5;
+    border: 2px dashed #ccc;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #666;
+    color: #999;
     font-size: 9pt;
+    font-style: italic;
 }
 
-.photo-caption-grid {
-    font-size: 10px;
-    margin-top: 6px;
+.grid-photo-caption {
+    font-size: 9pt;
     color: #333;
+    margin-top: 3mm;
     text-align: left;
-    font-weight: normal;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 /* Assinaturas - Tabela */
@@ -661,21 +670,10 @@ figure {
     font-weight: bold;
 }
 
-/* SEÇÃO DE ASSINATURAS - sempre no final após todas as imagens */
-.assinaturas {
+/* PÁGINA DE ASSINATURAS - sempre no final após todas as imagens */
+.assinaturas-page {
     page-break-before: always;
-    padding-top: 30px;
-}
-
-.assinatura-bloco {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 20px;
-    font-size: 12px;
-}
-
-.assinatura-bloco p {
-    margin: 3px 0;
+    padding-top: 20mm;
 }
 
 /* Quebras de página - evitar quebra dentro de seções */
