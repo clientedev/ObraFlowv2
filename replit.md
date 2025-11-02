@@ -1,5 +1,5 @@
 # Overview
-This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, and expense tracking. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
+This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, and **autosave functionality with real-time synchronization**. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # User Preferences
 Preferred communication style: Simple, everyday language.
@@ -13,7 +13,7 @@ Report forms: Location section removed from report creation/editing interface (g
 - **Database**: Railway PostgreSQL for production, SQLite for development.
 - **Authentication**: Flask-Login for session management and role-based access (regular/master users).
 - **Forms**: WTForms for secure form handling and CSRF protection.
-- **File Handling**: Manages file uploads (photos, documents) with a 16MB limit, supporting binary image storage in the database with filesystem fallback.
+- **File Handling**: Manages file uploads (photos, documents) with a **50MB limit per file**, supporting binary image storage in the database with filesystem fallback. Enforced validation with HTTP 413 response for oversized uploads.
 - **PDF Generation**: WeasyPrint for pixel-perfect HTML/CSS templates.
 - **Geolocation**: Robust system with IP fallback and reverse geocoding using `geopy`.
 - **CORS**: Flask-CORS configured with credentials support.
@@ -29,8 +29,8 @@ Report forms: Location section removed from report creation/editing interface (g
 ## Data Model Design
 - **Core Entities**: Users, Projects, Visits, Reports, Reimbursements, Checklist Templates, Communications, Notifications, Global and Temporary Approvers.
 - **Projects**: Includes `numeracao_inicial` for custom sequential report numbering.
-- **Reports**: Includes `acompanhantes` (JSONB) for visit attendees and `lembrete_proxima_visita` for reminders.
-- **Photo Storage**: Stores binary image data, JSONB for annotation metadata, SHA-256 hash for deduplication, MIME type, and file size. Each photo card displays optional **Categoria**, optional **Local**, and mandatory **Legenda**.
+- **Reports**: Includes `acompanhantes` (JSONB) for visit attendees, `lembrete_proxima_visita` (TIMESTAMP) for reminders, `categoria`, `local`, `observacoes_finais` (TEXT), `criado_por`, and `atualizado_por` for audit trail.
+- **Photo Storage**: Stores binary image data, JSONB for annotation metadata, SHA-256 hash for deduplication, MIME type, and file size. Each photo card displays optional **Categoria**, optional **Local**, and mandatory **Legenda**. **NEW: FotoRelatorio includes `url`, `legenda` (TEXT), `ordem` (INTEGER) for drag-drop reordering, and cascade delete on parent report removal**.
 - **Notifications**: Tracks report status changes, origin/destination users, message content, type, read status, and email delivery.
 - **Aprovador Global**: Single system-wide approver with exclusive permissions to transfer role and manage temporary approvers.
 - **Aprovadores Temporários**: Project-specific approvers, managed by the Aprovador Global.
@@ -39,8 +39,9 @@ Report forms: Location section removed from report creation/editing interface (g
 ## Key Features
 - **Project Management**: CRUD operations, automatic numbering, GPS location, dynamic categories, project reactivation, and project-specific checklists.
 - **Visit Tracking**: GPS-enabled logging, custom checklists, team communication.
-- **Report System**: Professional PDF reports with photo annotation, ELP branding, and an approval workflow with email notifications. Reports are numbered sequentially per project. Reminders for next visits are displayed.
-- **Photo Management**: Advanced editing (drawing, arrows, text, captions), up to 50 photos per report, predefined caption management, deduplication.
+- **Report System**: Professional PDF reports with photo annotation, ELP branding, and an approval workflow with email notifications. Reports are numbered sequentially per project. Reminders for next visits are displayed. **NEW: Autosave with 3-second debounce for seamless editing experience**.
+- **Photo Management**: Advanced editing (drawing, arrows, text, captions), up to 50 photos per report, predefined caption management, deduplication. **NEW: Drag-and-drop reordering, real-time synchronization, 50MB file size limit per image**.
+- **REST API**: Complete RESTful API for reports with POST/GET/PUT/DELETE endpoints, atomic transactions with rollback, and comprehensive validation.
 - **Client Email Management**: CRUD system for client emails per project with report reception options.
 - **Internal Notifications System**: Database-stored notifications with automatic email alerts and push notifications for report status changes.
 - **User Management**: Role-based access control.
