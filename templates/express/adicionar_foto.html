@@ -97,10 +97,10 @@
             <form method="POST" enctype="multipart/form-data" id="uploadForm">
                 {{ form.hidden_tag() }}
                 
-                <!-- Seleção de Categoria OBRIGATÓRIA -->
+                <!-- Seleção de Categoria (Opcional) -->
                 <div class="category-selection">
-                    <h5><i class="fas fa-tag me-2"></i>Categoria da Foto *</h5>
-                    <p class="text-muted mb-3">Selecione a categoria antes de adicionar a foto:</p>
+                    <h5><i class="fas fa-tag me-2"></i>Categoria da Foto (Opcional)</h5>
+                    <p class="text-muted mb-3">Você pode selecionar uma categoria se desejar:</p>
                     
                     {{ form.tipo_servico.label(class="form-label") }}
                     {{ form.tipo_servico(class="form-select form-select-lg", id="categoria") }}
@@ -198,7 +198,7 @@
             <div class="alert alert-info">
                 <h6><i class="fas fa-lightbulb me-2"></i>Dicas para Express Reports:</h6>
                 <ul class="mb-0">
-                    <li><strong>Categoria obrigatória:</strong> Selecione sempre uma categoria antes de adicionar</li>
+                    <li><strong>Categoria e local são opcionais:</strong> Você pode adicionar fotos sem categoria ou local</li>
                     <li>Use boa iluminação natural quando possível</li>
                     <li>Mantenha a câmera estável para evitar borramento</li>
                     <li>Capture detalhes importantes e visões gerais</li>
@@ -215,7 +215,6 @@
 <script>
 // Variáveis para controlar estado
 let hasImage = false;
-let hasCategory = false;
 
 // Função de preview da imagem
 function previewImage(input) {
@@ -232,10 +231,10 @@ function previewImage(input) {
     }
 }
 
-// Verificar seleção de categoria
+// Verificar seleção de categoria (opcional, apenas para visual)
 function checkCategory() {
     const categoria = document.getElementById('categoria');
-    hasCategory = categoria.value !== '';
+    const hasCategory = categoria.value !== '';
     
     const categoryBox = document.querySelector('.category-selection');
     if (hasCategory) {
@@ -243,43 +242,23 @@ function checkCategory() {
     } else {
         categoryBox.classList.remove('selected');
     }
-    
-    updateSubmitButton();
 }
 
 // Atualizar estado do botão de submit
 function updateSubmitButton() {
     const submitBtn = document.getElementById('submitBtn');
-    const dropZone = document.getElementById('dropZone');
     
-    // Habilitar zona de upload apenas se categoria for selecionada
-    if (hasCategory) {
-        dropZone.style.opacity = '1';
-        dropZone.style.pointerEvents = 'all';
-    } else {
-        dropZone.style.opacity = '0.5';
-        dropZone.style.pointerEvents = 'none';
-    }
-    
-    // Habilitar submit apenas se tiver categoria E imagem
-    submitBtn.disabled = !(hasImage && hasCategory);
+    // Habilitar submit apenas se tiver imagem (categoria é opcional)
+    submitBtn.disabled = !hasImage;
 }
 
 // Funções de drag and drop
 function dragOverHandler(ev) {
-    if (!hasCategory) {
-        ev.preventDefault();
-        return false;
-    }
     ev.preventDefault();
     ev.currentTarget.classList.add('dragover');
 }
 
 function dragEnterHandler(ev) {
-    if (!hasCategory) {
-        ev.preventDefault();
-        return false;
-    }
     ev.preventDefault();
 }
 
@@ -288,12 +267,6 @@ function dragLeaveHandler(ev) {
 }
 
 function dropHandler(ev) {
-    if (!hasCategory) {
-        ev.preventDefault();
-        alert('Por favor, selecione uma categoria antes de adicionar fotos.');
-        return false;
-    }
-    
     ev.preventDefault();
     ev.currentTarget.classList.remove('dragover');
     
@@ -316,44 +289,18 @@ function dropHandler(ev) {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Listener para mudanças na categoria
+    // Listener para mudanças na categoria (apenas para visual)
     const categoriaEl = document.getElementById('categoria');
     if (categoriaEl) {
         categoriaEl.addEventListener('change', checkCategory);
     }
     
-    // Listener para mudanças na legenda
-    const legendaEl = document.getElementById('legenda');
-    if (legendaEl) {
-        legendaEl.addEventListener('input', updateSubmitButton);
-    }
-    
     // Verificar estado inicial
-    checkCategory();
     updateSubmitButton();
-    
-    // Interceptar clique na zona de upload
-    const dropZoneEl = document.getElementById('dropZone');
-    if (dropZoneEl) {
-        dropZoneEl.addEventListener('click', function(e) {
-            if (!hasCategory) {
-                e.preventDefault();
-                alert('Selecione uma categoria antes de adicionar fotos.');
-                return false;
-            }
-        });
-    }
 });
 
 // Validação do formulário
 document.getElementById('uploadForm').addEventListener('submit', function(e) {
-    if (!hasCategory) {
-        e.preventDefault();
-        alert('Por favor, selecione uma categoria antes de continuar.');
-        document.getElementById('categoria').focus();
-        return false;
-    }
-    
     if (!hasImage) {
         e.preventDefault();
         alert('Por favor, selecione uma foto antes de continuar.');
