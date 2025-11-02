@@ -300,6 +300,150 @@
 <script>
 const RELATORIO_ID = {{ relatorio.id }};
 
+// Carregar dados do relatório ao abrir a página
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('📄 Carregando dados do relatório ID:', RELATORIO_ID);
+    
+    try {
+        const response = await fetch(`/api/relatorios/${RELATORIO_ID}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('✅ Dados do relatório carregados:', data);
+            
+            // Atualizar informações do projeto se existir
+            if (data.projeto) {
+                const projetoInfo = document.querySelector('.card-body p:nth-child(3)');
+                if (projetoInfo) {
+                    projetoInfo.innerHTML = `<strong>Projeto:</strong> ${data.projeto.numero} - ${data.projeto.nome}`;
+                }
+            }
+            
+            // Atualizar contador de fotos
+            if (data.imagens) {
+                updatePhotoCountDisplay(data.imagens.length);
+            }
+            
+            // Renderizar imagens
+            if (data.imagens && data.imagens.length > 0) {
+                renderImages(data.imagens);
+            }
+            
+            // Renderizar checklist se existir
+            if (data.checklist && data.checklist.length > 0) {
+                console.log('📋 Checklist encontrado:', data.checklist);
+            }
+            
+            // Renderizar acompanhantes se existir
+            if (data.acompanhantes && data.acompanhantes.length > 0) {
+                console.log('👥 Acompanhantes encontrados:', data.acompanhantes);
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados do relatório:', error);
+        showErrorMessage('Erro ao carregar dados do relatório. Recarregue a página.');
+    }
+});
+
+function renderImages(imagens) {
+    const container = document.getElementById('photos-container');
+    if (!container) return;
+    
+    // Limpar container
+    container.innerHTML = '';
+    
+    if (imagens.length === 0) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-5" id="no-photos-message">
+                <i class="fas fa-images fa-3x text-muted mb-3"></i>
+                <h5>Nenhuma imagem anexada</h5>
+                <p class="text-muted">Este relatório não possui nenhuma imagem anexada.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Renderizar cada imagem
+    imagens.forEach(foto => {
+        const photoElement = createPhotoElement(foto);
+        container.appendChild(photoElement);
+    });
+    
+    console.log(`✅ ${imagens.length} imagens renderizadas`);
+}
+
+function createPhotoElement(foto) {
+    const div = document.createElement('div');
+    div.className = 'col-md-3 mb-3';
+    div.id = `photo-${foto.id}`;
+    div.dataset.photoId = foto.id;
+    
+    const userCanEdit = {{ 'true' if user_can_edit else 'false' }};
+    const isApproved = '{{ relatorio.status }}' === 'Aprovado';
+    
+    div.innerHTML = `
+        <div class="card">
+            <img src="${foto.url || foto.path || '/get_imagem/' + foto.id}" 
+                 class="card-img-top" 
+                 style="height: 200px; object-fit: cover;" 
+                 alt="${foto.legenda || 'Foto do relatório'}"
+                 onerror="this.onerror=null; this.src='/static/img/no-image.png'; console.error('Erro ao carregar imagem ID ${foto.id}');">
+            <div class="card-body p-2">
+                <div class="mb-2">
+                    <input type="text" 
+                           class="form-control form-control-sm photo-legend" 
+                           data-photo-id="${foto.id}"
+                           value="${foto.legenda || foto.caption || ''}" 
+                           placeholder="Adicionar legenda..."
+                           ${isApproved || !userCanEdit ? 'disabled' : ''}
+                           onchange="updatePhotoLegend(${foto.id}, this.value)">
+                </div>
+                ${userCanEdit && !isApproved ? `
+                <div class="btn-group w-100" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deletePhoto(${foto.id}, ${RELATORIO_ID})">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    return div;
+}
+
+function updatePhotoCountDisplay(count) {
+    const photoCountElement = document.getElementById('photo-count');
+    if (photoCountElement) {
+        photoCountElement.textContent = `(${count})`;
+    }
+}
+
+function showErrorMessage(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const mainContainer = document.querySelector('.container-fluid');
+    if (mainContainer) {
+        mainContainer.insertBefore(alertDiv, mainContainer.firstChild);
+    }
+}
+
 // Delete Photo using REST API
 async function deletePhoto(photoId, relatorioId) {
     if (!confirm('Tem certeza que deseja excluir esta foto?')) {
