@@ -1,0 +1,177 @@
+Prompt Técnico Profissional — Reestruturação Completa de Salvamento Automático, Edição e Sincronização de Relatórios com Imagens
+
+Reestruture completamente o fluxo de criação, edição e salvamento de relatórios para corrigir falhas no salvamento automático, carregamento, edição e exclusão de imagens, garantindo que todos os novos campos da estrutura de relatórios sejam corretamente persistidos no banco de dados e sincronizados entre backend e frontend.
+Caso sejam necessárias alterações no banco, gerar automaticamente um novo arquivo Alembic compatível com a versão mais recente do sistema, contendo todas as migrações necessárias para manter a consistência da base de dados.
+
+🎯 Objetivo
+
+Implementar um sistema sólido e inteligente de salvamento automático e gerenciamento de relatórios, que:
+
+Salve automaticamente todos os campos e imagens do relatório em tempo real, sem necessidade de ação manual do usuário.
+
+Carregue corretamente as imagens associadas a cada relatório ao abrir para edição.
+
+Permita editar, reordenar e excluir imagens sem afetar o restante dos dados.
+
+Inclua as imagens no processo de salvamento automático.
+
+Garanta a persistência de todos os novos campos da estrutura de relatório (incluindo data, local, categoria, lembrete, observações e metadados).
+
+Mantenha sincronização completa entre frontend, backend e banco de dados.
+
+Caso necessário, gere automaticamente o arquivo de migração Alembic, atualizando o banco sem quebra de compatibilidade.
+
+⚙️ Requisitos Técnicos — Backend
+Endpoints a serem revisados ou criados
+
+POST /api/relatorios
+
+Cria um novo relatório e retorna o id.
+
+Suporte a upload inicial de imagens (multipart/form-data).
+
+Persiste metadados e estrutura completa conforme o novo modelo.
+
+PUT /api/relatorios/<id>
+
+Atualiza todos os campos do relatório existente.
+
+Sincroniza imagens: adiciona novas, atualiza legendas/ordem e remove as excluídas.
+
+Suporta salvamento automático incremental (via timestamps).
+
+Deve tratar corretamente tanto payload JSON quanto multipart.
+
+GET /api/relatorios/<id>
+
+Retorna todos os campos do relatório e as imagens associadas em formato estruturado.
+
+DELETE /api/relatorios/<id>/imagens/<imagem_id>
+
+Remove uma imagem do relatório, tanto no banco quanto no armazenamento físico.
+
+🗂️ Modelo de Dados — Banco de Dados
+relatorios
+
+Deve conter os campos da nova estrutura:
+
+CREATE TABLE relatorios (
+    id SERIAL PRIMARY KEY,
+    titulo VARCHAR(255),
+    descricao TEXT,
+    categoria VARCHAR(100),
+    local VARCHAR(255),
+    lembrete_proxima_visita TIMESTAMP NULL,
+    observacoes_finais TEXT,
+    criado_por INTEGER REFERENCES usuarios(id),
+    atualizado_por INTEGER REFERENCES usuarios(id),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    status VARCHAR(50) DEFAULT 'em_andamento'
+);
+
+relatorio_imagens
+
+Tabela de vínculo das imagens:
+
+CREATE TABLE relatorio_imagens (
+    id SERIAL PRIMARY KEY,
+    relatorio_id INTEGER REFERENCES relatorios(id) ON DELETE CASCADE,
+    url TEXT NOT NULL,
+    legenda TEXT NULL,
+    ordem INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+⚙️ Migração com Alembic
+
+Se a estrutura do banco de dados não estiver alinhada com os modelos acima,
+gerar automaticamente um novo arquivo de migração Alembic, garantindo compatibilidade com a versão mais recente.
+
+Instruções técnicas para o desenvolvedor:
+
+Verificar se todas as colunas (categoria, local, lembrete_proxima_visita, observacoes_finais, status, etc.) estão presentes.
+
+Caso alguma esteja ausente, rodar:
+
+alembic revision --autogenerate -m "Atualização estrutura de relatórios e imagens"
+alembic upgrade head
+
+
+Garantir que o arquivo Alembic gerado seja armazenado corretamente em /migrations/versions e versionado junto ao código.
+
+🖥️ Fluxo no Frontend
+Criação e Edição
+
+Salvamento automático (autosave) com debounce de 3 segundos.
+
+Toda alteração em campos textuais ou imagens dispara o autosave.
+
+O autosave deve enviar apenas campos e imagens alterados.
+
+Carregamento de imagens
+
+Ao abrir um relatório, carregar as imagens via /api/relatorios/<id>.
+
+Exibir previews com opção de:
+
+Alterar legenda.
+
+Excluir imagem.
+
+Reordenar visualmente (drag and drop).
+
+Sincronização
+
+O estado local do relatório deve conter:
+
+{
+  id,
+  titulo,
+  descricao,
+  categoria,
+  local,
+  lembrete_proxima_visita,
+  observacoes_finais,
+  imagens: [
+    { id, url, legenda, ordem, novo: bool, excluir: bool }
+  ],
+  atualizado_em
+}
+
+
+E o backend deve garantir:
+
+Upload e remoção de imagens corretamente sincronizados.
+
+Atualização automática dos campos updated_at e created_at.
+
+Persistência completa das relações.
+
+🧩 Boas Práticas e Garantias
+
+Transações atômicas para sincronizar relatorios e relatorio_imagens.
+
+Rollback automático em caso de erro parcial.
+
+Validação de tipo e tamanho de imagem no upload.
+
+Logs detalhados para falhas de sincronização.
+
+Feedback visual no frontend (“Salvando...”, “Salvo com sucesso”, “Erro ao salvar”).
+
+Controle de versionamento Alembic ativo e sincronizado com o código backend.
+
+✅ Critérios de Aceitação
+
+ Salvamento automático inclui campos e imagens.
+
+ Edição carrega corretamente todas as imagens.
+
+ Exclusão e atualização refletem em tempo real.
+
+ Banco atualizado com todas as novas colunas.
+
+ Alembic gera e aplica migração automaticamente se necessário.
+
+ Nenhum dado perdido ou sobrescrito durante autosave.
