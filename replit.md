@@ -1,5 +1,5 @@
 # Overview
-This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, and **autosave functionality with real-time synchronization**. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
+This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, and **autosave functionality with real-time synchronization** (fully implemented and operational as of Nov 2, 2025). The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # User Preferences
 Preferred communication style: Simple, everyday language.
@@ -39,9 +39,9 @@ Report forms: Location section removed from report creation/editing interface (g
 ## Key Features
 - **Project Management**: CRUD operations, automatic numbering, GPS location, dynamic categories, project reactivation, and project-specific checklists.
 - **Visit Tracking**: GPS-enabled logging, custom checklists, team communication.
-- **Report System**: Professional PDF reports with photo annotation, ELP branding, and an approval workflow with email notifications. Reports are numbered sequentially per project. Reminders for next visits are displayed. **NEW: Autosave with 3-second debounce for seamless editing experience**.
+- **Report System**: Professional PDF reports with photo annotation, ELP branding, and an approval workflow with email notifications. Reports are numbered sequentially per project. Reminders for next visits are displayed. **AutoSave System (Nov 2, 2025)**: Fully functional with 2.5s debounce, automatic persistence of all fields including text, dates, coordinates, checklists, acompanhantes, image metadata; retry logic with exponential backoff, visual feedback, and localStorage fallback.
 - **Photo Management**: Advanced editing (drawing, arrows, text, captions), up to 50 photos per report, predefined caption management, deduplication. **NEW: Drag-and-drop reordering, real-time synchronization, 50MB file size limit per image**.
-- **REST API**: Complete RESTful API for reports with POST/GET/PUT/DELETE endpoints, atomic transactions with rollback, and comprehensive validation.
+- **REST API**: Complete RESTful API for reports with POST/GET/PUT/DELETE endpoints, atomic transactions with rollback, and comprehensive validation. **AutoSave endpoint**: `/api/relatorios/autosave` accepts partial updates and creates drafts automatically.
 - **Client Email Management**: CRUD system for client emails per project with report reception options.
 - **Internal Notifications System**: Database-stored notifications with automatic email alerts and push notifications for report status changes.
 - **User Management**: Role-based access control.
