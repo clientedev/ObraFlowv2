@@ -1827,20 +1827,6 @@ def api_upload_photo():
                 'error': 'Legenda é obrigatória'
             }), 400
         
-        if not local:
-            current_app.logger.error(f"❌ Local não fornecido")
-            return jsonify({
-                'success': False,
-                'error': 'Local é obrigatório'
-            }), 400
-        
-        if not categoria or categoria == '':
-            current_app.logger.error(f"❌ Categoria não fornecida")
-            return jsonify({
-                'success': False,
-                'error': 'Categoria é obrigatória'
-            }), 400
-        
         # Gerar nome único para o arquivo baseado no hash
         unique_filename = f"{imagem_hash}{file_ext}"
         
