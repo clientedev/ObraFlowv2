@@ -296,11 +296,20 @@ class Relatorio(db.Model):
     data_relatorio = db.Column(db.DateTime, default=datetime.utcnow)
     data_aprovacao = db.Column(db.DateTime, nullable=True)
     conteudo = db.Column(db.Text)
+    descricao = db.Column(db.Text, nullable=True)  # Descrição detalhada do relatório
     checklist_data = db.Column(db.Text)  # JSON string for checklist data
-    status = db.Column(db.String(50), default='preenchimento')
+    
+    # Novos campos conforme especificação técnica
+    categoria = db.Column(db.String(100), nullable=True)  # Categoria do relatório
+    local = db.Column(db.String(255), nullable=True)  # Local do relatório
+    lembrete_proxima_visita = db.Column(db.DateTime, nullable=True)  # Lembrete para próxima visita (TIMESTAMP)
+    observacoes_finais = db.Column(db.Text, nullable=True)  # Observações finais do relatório
+    
+    status = db.Column(db.String(50), default='em_andamento')  # em_andamento, finalizado, aprovado
     comentario_aprovacao = db.Column(db.Text)
     acompanhantes = db.Column(JSONB, nullable=True)  # JSONB array of visit attendees
-    lembrete_proxima_visita = db.Column(db.Text, nullable=True)  # Reminder for next visit
+    criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Usuário que criou
+    atualizado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Último usuário que atualizou
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -382,23 +391,34 @@ class FotoRelatorio(db.Model):
     __tablename__ = 'fotos_relatorio'
     
     id = db.Column(db.Integer, primary_key=True)
-    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=False)
-    filename = db.Column(db.String(255), nullable=False)
+    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id', ondelete='CASCADE'), nullable=False)
+    
+    # Campos de URL e filesystem (nova estrutura)
+    url = db.Column(db.Text, nullable=True)  # URL da imagem (path relativo ou absoluto)
+    filename = db.Column(db.String(255), nullable=True)  # Nome do arquivo
     filename_original = db.Column(db.String(255))
     filename_anotada = db.Column(db.String(255))
+    
+    # Metadados da foto
     titulo = db.Column(db.String(500))
-    legenda = db.Column(db.String(500))
+    legenda = db.Column(db.Text, nullable=True)  # Legenda da imagem
     descricao = db.Column(db.Text)
     tipo_servico = db.Column(db.String(100))
     local = db.Column(db.String(300))
     anotacoes_dados = db.Column(db.JSON)
-    ordem = db.Column(db.Integer, default=1)
+    ordem = db.Column(db.Integer, default=0)  # Ordem de exibição (começando em 0)
     coordenadas_anotacao = db.Column(db.JSON)
+    
+    # Armazenamento binário (legacy - manter compatibilidade)
     imagem = db.Column(db.LargeBinary, nullable=True)
     imagem_hash = db.Column(db.String(64), nullable=True)
     content_type = db.Column(db.String(100), nullable=True)
     imagem_size = db.Column(db.Integer, nullable=True)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relacionamento
+    relatorio = db.relationship('Relatorio', backref=db.backref('imagens', lazy='dynamic', order_by='FotoRelatorio.ordem', cascade='all, delete-orphan'))
 
 class EnvioRelatorio(db.Model):
     __tablename__ = 'envios_relatorios'

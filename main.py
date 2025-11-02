@@ -3,6 +3,7 @@ from app import app  # noqa: F401
 import routes_pwa  # noqa: F401
 import routes  # noqa: F401
 import railway_routes_fix  # noqa: F401
+import routes_relatorios_api  # noqa: F401  # API REST para relatórios com autosave
 
 # Auto-run migrations on Railway deploy
 import os
