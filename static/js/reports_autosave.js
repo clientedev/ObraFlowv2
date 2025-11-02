@@ -100,10 +100,10 @@ class ReportsAutoSave {
                         document.querySelector('#numero')?.value?.trim() || "",
                 data_relatorio: document.querySelector('#data_relatorio')?.value || null,
                 observacoes_finais: document.querySelector('#observacoes')?.value?.trim() || "",
-                lembrete_proxima_visita: document.querySelector('#lembrete')?.value?.trim() || null,
+                lembrete_proxima_visita: document.querySelector('#lembrete_proxima_visita')?.value?.trim() || null,
                 conteudo: this.collectRichTextContent() || "",
-                checklist_data: this.getChecklistData(),
-                acompanhantes: this.getAcompanhantesData(),
+                checklist_data: JSON.stringify(this.getChecklistData()),
+                acompanhantes: JSON.stringify(this.getAcompanhantesData()),
                 fotos: await this.getImageData(), // Aguardar upload das imagens
                 categoria: document.querySelector('#categoria')?.value?.trim() || null,
                 local: document.querySelector('#local')?.value?.trim() || null
@@ -121,6 +121,9 @@ class ReportsAutoSave {
             }
 
             console.log('📦 AutoSave - Dados coletados (com imagens):', data);
+            console.log('📸 AutoSave - Total de fotos:', data.fotos?.length || 0);
+            console.log('👥 AutoSave - Acompanhantes:', data.acompanhantes);
+            console.log('✅ AutoSave - Checklist:', data.checklist_data);
             return data;
         } catch (err) {
             console.error('❌ AutoSave: erro ao coletar dados do formulário:', err);
@@ -129,14 +132,26 @@ class ReportsAutoSave {
     }
 
     getChecklistData() {
-        const items = Array.from(document.querySelectorAll('.checklist-item')).map(item => ({
-            nome: item.querySelector('label')?.textContent?.trim() || '',
-            status: item.querySelector('input[type="checkbox"]')?.checked || false,
-            observacao: item.querySelector('textarea')?.value?.trim() || ''
-        }));
+        const checklistData = {};
+        
+        // Coletar checkboxes
+        const checkboxes = document.querySelectorAll('.checklist-item input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            if (checkbox.id) {
+                checklistData[checkbox.id] = checkbox.checked;
+            }
+        });
+        
+        // Coletar observações de textareas
+        const textareas = document.querySelectorAll('.checklist-item textarea');
+        textareas.forEach(textarea => {
+            if (textarea.name) {
+                checklistData[textarea.name] = textarea.value?.trim() || '';
+            }
+        });
 
-        console.log(`📋 AutoSave - Checklist: ${items.length} itens coletados`);
-        return items;
+        console.log(`📋 AutoSave - Checklist: ${Object.keys(checklistData).length} itens coletados`, checklistData);
+        return checklistData;
     }
 
     async getImageData() {
@@ -144,10 +159,18 @@ class ReportsAutoSave {
         const mobilePhotos = window.mobilePhotoData || [];
         const imageData = [];
         
-        console.log(`📸 AutoSave - Processando ${mobilePhotos.length} imagens...`);
+        console.log(`📸 AutoSave - Processando ${mobilePhotos.length} imagens do sistema mobile-first...`);
         
         for (let i = 0; i < mobilePhotos.length; i++) {
             const photo = mobilePhotos[i];
+            
+            console.log(`📸 Imagem ${i}:`, {
+                savedId: photo.savedId,
+                hasFile: !!photo.file,
+                category: photo.category,
+                manualCaption: photo.manualCaption,
+                predefinedCaption: photo.predefinedCaption
+            });
             
             // Se já tem ID, é uma imagem já salva - apenas metadados
             if (photo.savedId) {
@@ -156,43 +179,48 @@ class ReportsAutoSave {
                     legenda: photo.manualCaption || photo.predefinedCaption || '',
                     categoria: photo.category || null,
                     local: photo.local || null,
-                    titulo: photo.manualCaption || null,
+                    titulo: photo.manualCaption || photo.predefinedCaption || null,
                     tipo_servico: photo.category || null,
                     ordem: i
                 });
-                console.log(`📌 AutoSave - Imagem já salva: ID ${photo.savedId}`);
+                console.log(`📌 AutoSave - Imagem já salva: ID ${photo.savedId}, legenda: "${photo.manualCaption || photo.predefinedCaption}"`);
                 continue;
             }
             
             // Se tem arquivo, fazer upload temporário
             if (photo.file) {
                 try {
+                    console.log(`📤 AutoSave - Iniciando upload da imagem ${i}...`);
                     const tempUploadResult = await this.uploadImageTemp(photo.file);
                     
                     if (tempUploadResult && tempUploadResult.temp_id) {
                         // Armazenar temp_id para posterior associação
                         photo.temp_id = tempUploadResult.temp_id;
                         
-                        imageData.push({
+                        const imgData = {
                             temp_id: tempUploadResult.temp_id,
                             extension: tempUploadResult.filename.split('.').pop(),
                             legenda: photo.manualCaption || photo.predefinedCaption || '',
                             categoria: photo.category || null,
                             local: photo.local || null,
-                            titulo: photo.manualCaption || null,
+                            titulo: photo.manualCaption || photo.predefinedCaption || null,
                             tipo_servico: photo.category || null,
                             ordem: i
-                        });
+                        };
                         
-                        console.log(`✅ AutoSave - Upload temporário: ${tempUploadResult.temp_id}`);
+                        imageData.push(imgData);
+                        console.log(`✅ AutoSave - Upload temporário: ${tempUploadResult.temp_id}`, imgData);
                     }
                 } catch (error) {
                     console.error(`❌ AutoSave - Erro no upload da imagem ${i}:`, error);
                 }
+            } else {
+                console.warn(`⚠️ AutoSave - Imagem ${i} sem arquivo e sem savedId`);
             }
         }
         
-        console.log(`📸 AutoSave - ${imageData.length} imagens preparadas para salvamento`);
+        console.log(`📸 AutoSave - TOTAL: ${imageData.length} imagens preparadas para salvamento`);
+        console.log(`📸 AutoSave - Detalhes:`, imageData);
         return imageData;
     }
     
@@ -232,7 +260,7 @@ class ReportsAutoSave {
         try {
             // Verificar se existe variável global window.acompanhantes
             if (window.acompanhantes && Array.isArray(window.acompanhantes)) {
-                console.log(`👥 AutoSave - Acompanhantes: ${window.acompanhantes.length} pessoas`);
+                console.log(`👥 AutoSave - Acompanhantes (global): ${window.acompanhantes.length} pessoas`, window.acompanhantes);
                 return window.acompanhantes;
             }
             
@@ -240,9 +268,11 @@ class ReportsAutoSave {
             const acompanhantesInput = document.querySelector('#acompanhantes-data');
             if (acompanhantesInput && acompanhantesInput.value) {
                 const acompanhantes = JSON.parse(acompanhantesInput.value);
-                console.log(`👥 AutoSave - Acompanhantes: ${acompanhantes.length} pessoas`);
+                console.log(`👥 AutoSave - Acompanhantes (input): ${acompanhantes.length} pessoas`, acompanhantes);
                 return acompanhantes;
             }
+            
+            console.log('👥 AutoSave - Nenhum acompanhante encontrado');
         } catch (e) {
             console.error('❌ Erro ao coletar acompanhantes:', e);
         }
@@ -261,6 +291,8 @@ class ReportsAutoSave {
         const payload = await this.collectFormDataAsync();
 
         try {
+            console.log('📤 AutoSave: Enviando dados...', payload);
+            
             const response = await fetch('/api/relatorios/autosave', {
                 method: 'POST',
                 headers: { 
@@ -284,17 +316,24 @@ class ReportsAutoSave {
                 this.reportId = result.relatorio_id;
                 window.currentReportId = result.relatorio_id;
                 console.log(`📌 AutoSave: Novo relatório criado com ID ${this.reportId}`);
+                
+                // Atualizar campo hidden se existir
+                const reportIdInput = document.querySelector('input[name="report_id"]');
+                if (reportIdInput) {
+                    reportIdInput.value = this.reportId;
+                }
             }
             
             // Mapear temp_ids para IDs reais das imagens salvas
-            if (result.imagens && window.mobilePhotoData) {
+            if (result.imagens && Array.isArray(result.imagens) && window.mobilePhotoData) {
+                console.log(`📸 AutoSave: Mapeando ${result.imagens.length} imagens salvas`);
                 result.imagens.forEach(img => {
                     if (img.temp_id) {
                         // Encontrar foto correspondente no mobilePhotoData
                         const photo = window.mobilePhotoData.find(p => p.temp_id === img.temp_id);
                         if (photo) {
                             photo.savedId = img.id;
-                            console.log(`📸 AutoSave: Imagem ${img.temp_id} → ID ${img.id}`);
+                            console.log(`📸 AutoSave: Imagem ${img.temp_id} → ID ${img.id} (legenda: "${img.legenda}")`);
                         }
                     }
                 });

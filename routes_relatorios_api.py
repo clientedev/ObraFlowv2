@@ -826,7 +826,7 @@ def api_autosave_relatorio():
 
             # Atualizar campos texto/data
             campos_atualizaveis = [
-                'titulo', 'descricao', 'categoria', 'local', 
+                'titulo', 'descricao', 'categoria', 'local',
                 'observacoes_finais', 'conteudo', 'status',
                 'observacoes', 'endereco'
             ]
@@ -893,7 +893,10 @@ def api_autosave_relatorio():
         if 'fotos' in data and data['fotos']:
             fotos_data = data['fotos']
 
-            for foto_info in fotos_data:
+            print(f"📸 AutoSave: Processando {len(fotos_data)} imagens")
+
+            for idx, foto_info in enumerate(fotos_data):
+                print(f"📸 Imagem {idx}: {foto_info}")
                 # Deletar imagem marcada para remoção
                 if foto_info.get('deletar'):
                     foto_id = foto_info.get('id')
