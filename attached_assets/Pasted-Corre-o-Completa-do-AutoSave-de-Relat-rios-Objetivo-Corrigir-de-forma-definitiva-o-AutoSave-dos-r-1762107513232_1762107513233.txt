@@ -1,0 +1,226 @@
+Correção Completa do AutoSave de Relatórios
+
+Objetivo:
+Corrigir de forma definitiva o AutoSave dos relatórios no sistema, garantindo que todos os dados (campos, checklist, acompanhantes, lembrete e imagens) sejam coletados, validados e salvos corretamente no backend FastAPI integrado ao banco PostgreSQL (Railway).
+O sistema deve funcionar sem falhas de comunicação, sem dependência de tabelas externas como legendas_predefinidas e sem qualquer impacto visual no frontend (apenas logs técnicos no console).
+
+⚙️ Diagnóstico do Problema Atual
+
+O log mostra:
+
+📋 AutoSave - Checklist: 6 itens coletados
+📸 AutoSave - Imagens: 0 imagens coletadas
+👥 AutoSave - Acompanhantes: 1 pessoas
+📦 AutoSave - Dados coletados: { titulo: 'Relatório de visita TESTE', numero: 'REL-0002', projeto_id: '34', conteudo: null, fotos: null, ... }
+❌ AutoSave erro HTTP 400 {}
+⚠️ AutoSave falhou: Falha no autosave
+
+
+👉 O AutoSave coleta corretamente os dados do frontend,
+mas falha ao enviar para o backend porque:
+
+Campos como fotos e conteudo estão com null (PostgreSQL não aceita o tipo esperado).
+
+O backend exige tipos específicos (arrays, JSON ou texto), e o envio incorreto causa o erro 400.
+
+O endpoint /api/relatorios/autosave não trata updates parciais corretamente.
+
+🎯 Meta Técnica
+
+Tornar o AutoSave totalmente resiliente — salvar tudo (inclusive imagens e checklist).
+
+Permitir atualização incremental (salvar campos parciais sem sobrescrever os outros).
+
+Garantir compatibilidade total com o banco Railway PostgreSQL.
+
+Fazer logs técnicos apenas no console (sem avisos visuais).
+
+Ignorar completamente qualquer relação com a tabela legendas_predefinidas — ela é independente.
+
+🔧 IMPLEMENTAÇÃO COMPLETA
+🔹 1. FRONTEND — reports_autosave.js
+✅ Coleta de dados completa
+collectFormData() {
+  try {
+    const data = {
+      id: window.currentReportId || null,
+      titulo: document.querySelector("#titulo_relatorio")?.value?.trim() || null,
+      numero: document.querySelector("#numero_relatorio")?.value?.trim() || null,
+      data_relatorio: document.querySelector("#data_relatorio")?.value || null,
+      projeto_id: document.querySelector("#projeto_id")?.value || null,
+      observacoes_finais: document.querySelector("#observacoes")?.value?.trim() || null,
+      lembrete_proxima_visita: document.querySelector("#lembrete")?.value?.trim() || null,
+      conteudo: this.collectRichTextContent() || "",
+      checklist_data: this.getChecklistData(),
+      acompanhantes: this.getAcompanhantesData(),
+      fotos: this.getImageData(),
+    };
+
+    console.log("📦 AutoSave - Dados coletados:", data);
+    return data;
+  } catch (err) {
+    console.error("❌ AutoSave: erro ao coletar dados do formulário:", err);
+    return {};
+  }
+}
+
+✅ Funções auxiliares
+getChecklistData() {
+  return Array.from(document.querySelectorAll(".checklist-item")).map(item => ({
+    nome: item.querySelector("label")?.textContent?.trim() || "",
+    status: item.querySelector("input[type='checkbox']")?.checked || false,
+    observacao: item.querySelector("textarea")?.value?.trim() || ""
+  }));
+}
+
+getAcompanhantesData() {
+  return window.acompanhantes || [];
+}
+
+getImageData() {
+  const imgs = window.attachedImages || [];
+  return imgs.map(img => ({
+    nome: img.name || null,
+    categoria: img.category || null,
+    local: img.location || null,
+    legenda: img.caption || null
+  }));
+}
+
+collectRichTextContent() {
+  const editor = document.querySelector(".ql-editor");
+  return editor ? editor.innerHTML.trim() : "";
+}
+
+✅ Envio seguro com tratamento de erro e conversão de null
+async performSave() {
+  const payload = this.collectFormData();
+
+  // Converte campos null para valores aceitos
+  Object.keys(payload).forEach(key => {
+    if (payload[key] === null) payload[key] = "";
+  });
+
+  try {
+    const response = await fetch("/api/relatorios/autosave", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error(`❌ AutoSave erro HTTP: ${response.status}`, err);
+      throw new Error(err.detail || "Falha no autosave");
+    }
+
+    const result = await response.json();
+    console.log("✅ AutoSave concluído:", result);
+  } catch (error) {
+    console.warn("⚠️ AutoSave falhou:", error.message);
+    console.info("💾 Salvando localmente no localStorage...");
+    localStorage.setItem("autosave_draft", JSON.stringify(payload));
+  }
+}
+
+✅ Ativação automática (sem interface)
+startAutoSave() {
+  let timer;
+  const handler = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => this.performSave(), 3000);
+  };
+
+  document.querySelectorAll("input, textarea, select").forEach(el => {
+    el.addEventListener("input", handler);
+    el.addEventListener("change", handler);
+  });
+
+  console.log("🕒 AutoSave ativado (Railway DB sync habilitado)");
+}
+
+🔹 2. BACKEND — /api/relatorios/autosave
+✅ Corrigir endpoint para aceitar atualizações parciais e JSON flexível
+@router.post("/api/relatorios/autosave")
+async def autosave_relatorio(payload: dict, db: Session = Depends(get_db)):
+    """
+    Atualiza ou cria um relatório parcialmente,
+    garantindo compatibilidade com o PostgreSQL (Railway).
+    """
+    try:
+        relatorio_id = payload.get("id")
+        if relatorio_id:
+            relatorio = db.query(Relatorio).filter_by(id=relatorio_id).first()
+            if not relatorio:
+                raise HTTPException(status_code=404, detail="Relatório não encontrado")
+        else:
+            relatorio = Relatorio()
+            db.add(relatorio)
+
+        # Atualiza somente os campos existentes no modelo
+        for key, value in payload.items():
+            if hasattr(relatorio, key):
+                # Evita erro de tipo JSON/nulo no PostgreSQL
+                if value in [None, "null", ""]:
+                    setattr(relatorio, key, None)
+                elif key in ["checklist_data", "fotos", "acompanhantes"]:
+                    setattr(relatorio, key, json.dumps(value))
+                else:
+                    setattr(relatorio, key, value)
+
+        db.commit()
+        db.refresh(relatorio)
+
+        print(f"✅ AutoSave atualizado no Railway para relatório ID={relatorio.id}")
+        return {"status": "ok", "id": relatorio.id}
+
+    except Exception as e:
+        db.rollback()
+        print("❌ AutoSave error:", str(e))
+        raise HTTPException(status_code=400, detail=f"Erro ao salvar: {e}")
+
+🔹 3. BANCO DE DADOS (RAILWAY POSTGRES)
+
+Confirmar a estrutura mínima:
+
+ALTER TABLE relatorios
+ADD COLUMN IF NOT EXISTS conteudo TEXT,
+ADD COLUMN IF NOT EXISTS checklist_data JSONB,
+ADD COLUMN IF NOT EXISTS fotos JSONB,
+ADD COLUMN IF NOT EXISTS acompanhantes JSONB,
+ADD COLUMN IF NOT EXISTS lembrete_proxima_visita TEXT,
+ADD COLUMN IF NOT EXISTS observacoes_finais TEXT;
+
+
+✅ Atenção:
+
+A tabela legendas_predefinidas já existe no PostgreSQL do Railway e não tem relação com o AutoSave.
+
+Nenhuma alteração será feita nela.
+
+🧾 Logs esperados no console (sem interface visual)
+
+Sucesso:
+
+📦 AutoSave - Dados coletados: {titulo: "Relatório de visita TESTE", ...}
+✅ AutoSave concluído: {status: "ok", id: 182}
+
+
+Falha (modo offline):
+
+❌ AutoSave erro HTTP: 400 {detail: "..."}
+💾 Salvando localmente no localStorage...
+
+✅ RESULTADO FINAL
+
+AutoSave 100% funcional e compatível com o PostgreSQL no Railway.
+
+Nenhum erro 400.
+
+Todos os campos (texto, checklist, lembrete, imagens, acompanhantes) salvos automaticamente.
+
+Atualização incremental (sem sobrescrever dados existentes).
+
+Logs exclusivamente no console (sem exibição visual).
+
+Independente da tabela legendas_predefinidas.
