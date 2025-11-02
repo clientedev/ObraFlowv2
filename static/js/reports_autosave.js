@@ -245,18 +245,32 @@ class ReportsAutoSave {
                 return null;
             }
 
+            // 🔒 Verifica se a legenda foi preenchida antes de enviar
+            const caption = image.manualCaption || image.predefinedCaption || image.caption || "";
+            if (!caption || caption.trim() === "") {
+                console.warn(`⏸️ Upload adiado: legenda ainda não preenchida para ${image.name || image.filename}`);
+                // Reagenda o upload para daqui 2 segundos
+                setTimeout(() => this.uploadImageTemp(image), 2000);
+                return null;
+            }
+
             console.log("📤 AutoSave - Preparando upload da imagem:", image.name || image.filename);
 
             const formData = new FormData();
             formData.append("file", image.blob, image.name || image.filename || "imagem.jpg");
             formData.append("category", image.category || "");
             formData.append("local", image.local || "");
-            formData.append("caption", image.manualCaption || image.predefinedCaption || image.caption || "");
+            formData.append("caption", caption);
+
+            // 🔐 Inclui CSRF token se necessário
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+            const headers = csrfToken ? { "X-CSRFToken": csrfToken } : {};
 
             const response = await fetch("/api/uploads/temp", {
                 method: "POST",
+                headers,
                 body: formData,
-                // ⚠️ NÃO adicionar 'Content-Type' manualmente — o browser define o boundary
+                credentials: "include", // 🔐 importante para cookies de sessão
             });
 
             if (!response.ok) {
@@ -311,6 +325,18 @@ class ReportsAutoSave {
     async performSave() {
         if (this.isSaving) {
             console.log('⏸️ AutoSave: Salvamento já em progresso, aguardando...');
+            return;
+        }
+
+        // Evita salvar se existir imagem sem legenda
+        const pendingImages = (window.mobilePhotoData || []).filter(
+            img => img.blob && (!img.caption || img.caption.trim() === "") && 
+                   (!img.manualCaption || img.manualCaption.trim() === "") &&
+                   (!img.predefinedCaption || img.predefinedCaption.trim() === "")
+        );
+
+        if (pendingImages.length > 0) {
+            console.warn("⏸️ AutoSave adiado: há imagens sem legenda.");
             return;
         }
 

@@ -1,0 +1,149 @@
+Prompt técnico profissional para correção completa do upload automático de imagens (AutoSave)
+
+Corrigir completamente o comportamento do AutoSave em relação ao envio de imagens durante a criação e edição de relatórios.
+
+Problema identificado:
+
+O AutoSave tenta enviar a imagem imediatamente após o upload, antes de o campo de legenda (ou outros metadados) serem preenchidos.
+
+Isso faz com que a API /api/uploads/temp retorne erro 400 - CSRF token missing.
+
+O erro ocorre porque a requisição é enviada fora do contexto autenticado do formulário e sem os metadados esperados.
+
+Objetivo da correção:
+
+Impedir o envio automático da imagem enquanto o campo de legenda (ou categoria/local) estiver vazio.
+
+Garantir que o CSRF token (ou cabeçalho de autenticação equivalente) seja incluído em toda requisição ao endpoint /api/uploads/temp.
+
+Aguardar o preenchimento completo da legenda antes de efetuar o upload, e apenas então permitir que o AutoSave processe a imagem.
+
+Evitar erro 400 (Bad Request) e upload redundante, garantindo o comportamento suave e consistente entre desktop e mobile.
+
+O sistema está deployado no Railway com FastAPI e PostgreSQL, e já possui suporte a upload multipart/form-data.
+
+🧩 Frontend (JS – reports_autosave.js)
+✅ 1️⃣ Adicionar controle de bloqueio de upload até legenda ser preenchida
+async uploadImageTemp(image) {
+  try {
+    // 🔒 Verifica se a legenda foi preenchida antes de enviar
+    if (!image.caption || image.caption.trim() === "") {
+      console.warn(`⏸️ Upload adiado: legenda ainda não preenchida para ${image.name}`);
+      // Reagenda o upload para daqui 2 segundos
+      setTimeout(() => this.uploadImageTemp(image), 2000);
+      return null;
+    }
+
+    console.log(`📤 AutoSave - Preparando upload da imagem: ${image.name}`);
+
+    const formData = new FormData();
+    formData.append("file", image.blob, image.name);
+    formData.append("caption", image.caption);
+    formData.append("category", image.category || "");
+    formData.append("local", image.local || "");
+
+    // 🔐 Inclui CSRF token se necessário
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+    const headers = csrfToken ? { "X-CSRFToken": csrfToken } : {};
+
+    const response = await fetch("/api/uploads/temp", {
+      method: "POST",
+      headers,
+      body: formData,
+      credentials: "include", // 🔐 importante para cookies de sessão
+    });
+
+    if (!response.ok) throw new Error(`Upload falhou: ${response.status}`);
+
+    const data = await response.json();
+    console.log("✅ Upload temporário bem-sucedido:", data);
+    return data.temp_id || data.id || null;
+  } catch (err) {
+    console.error("❌ Erro no upload temporário:", err);
+    throw err;
+  }
+}
+
+✅ 2️⃣ Garantir que a imagem seja armazenada com a legenda antes do upload
+// Quando o usuário digitar a legenda, atualizar o objeto da imagem no mobilePhotoData
+function handleCaptionChange(imageId, newCaption) {
+  const img = window.mobilePhotoData?.find(i => i.id === imageId);
+  if (img) {
+    img.caption = newCaption;
+    console.log(`✏️ Legenda atualizada para ${img.name}: "${newCaption}"`);
+  }
+}
+
+
+Esse handler deve ser chamado pelo campo de input da legenda:
+
+<input type="text" oninput="handleCaptionChange('mobile_photo_1', this.value)">
+
+✅ 3️⃣ Prevenir AutoSave de disparar imediatamente após upload
+
+Adicione uma condição no início do performSave():
+
+async performSave() {
+  // Evita salvar se existir imagem sem legenda
+  const pendingImages = (window.mobilePhotoData || []).filter(
+    img => img.blob && (!img.caption || img.caption.trim() === "")
+  );
+
+  if (pendingImages.length > 0) {
+    console.warn("⏸️ AutoSave adiado: há imagens sem legenda.");
+    return;
+  }
+
+  // ... restante do AutoSave
+}
+
+🧠 Backend (FastAPI)
+
+Verifique se o endpoint /api/uploads/temp aceita autenticação via cookie/session:
+
+@router.post("/uploads/temp")
+async def upload_temp_image(
+    file: UploadFile = File(...),
+    caption: str = Form(""),
+    category: str = Form(""),
+    local: str = Form(""),
+    request: Request = None
+):
+    # Verificação opcional de CSRF se o frontend enviar token
+    csrf_token = request.headers.get("x-csrftoken")
+    if not csrf_token and "session" in request.cookies:
+        # Permite caso a sessão esteja válida
+        pass
+
+    # Salva a imagem localmente
+    filename = f"{uuid.uuid4()}_{file.filename}"
+    with open(f"temp/{filename}", "wb") as buffer:
+        buffer.write(await file.read())
+
+    return {
+        "success": True,
+        "filename": file.filename,
+        "path": f"temp/{filename}",
+        "caption": caption,
+        "category": category,
+        "local": local,
+        "temp_id": str(uuid.uuid4()),
+    }
+
+✅ Resultado Esperado
+
+Após aplicar o prompt:
+
+O AutoSave não tentará salvar imagens sem legenda.
+
+O upload será feito somente após o preenchimento completo dos campos obrigatórios.
+
+Nenhum erro 400 Bad Request ou CSRF token missing.
+
+Logs esperados:
+
+📸 Imagem 0: Captura de tela 2025-11-02 172409.png
+⏸️ Upload adiado: legenda ainda não preenchida
+✏️ Legenda atualizada para Captura de tela 2025-11-02 172409.png: "Inspeção final da parede norte"
+📤 AutoSave - Preparando upload da imagem: Captura de tela 2025-11-02 172409.png
+✅ Upload temporário bem-sucedido: { temp_id: "...", caption: "Inspeção final da parede norte" }

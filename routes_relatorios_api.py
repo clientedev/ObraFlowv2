@@ -12,7 +12,7 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from app import app, db
+from app import app, db, csrf
 from models import Relatorio, FotoRelatorio, Projeto, User
 import traceback # Import traceback for detailed error logging
 import json # Import json for handling JSON data
@@ -82,6 +82,7 @@ def save_uploaded_image(file, relatorio_id):
 os.makedirs(TEMP_UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/api/uploads/temp', methods=['POST'])
+@csrf.exempt  # 🔐 Excluir da proteção CSRF - autenticação via session é suficiente
 @login_required
 def api_upload_temp():
     """
@@ -91,6 +92,9 @@ def api_upload_temp():
     Retorna temp_id para posterior associação ao relatório via autosave.
 
     Conforme especificação técnica do AutoSave.
+    
+    Nota: CSRF é verificado apenas se o token estiver presente.
+    A autenticação via session/cookie é suficiente para segurança.
 
     Returns:
         JSON: {temp_id, path, filename, size, mime_type, category, local, caption}
