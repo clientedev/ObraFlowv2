@@ -993,12 +993,17 @@ def api_autosave_relatorio():
                         final_filename = f"relatorio_{relatorio_id}_{timestamp}_{temp_id}.{extension}"
                         final_filepath = os.path.join(app.config['UPLOAD_FOLDER'], final_filename)
 
+                        logger.info(f"📸 PROCESSANDO temp_id={temp_id}:")
+                        logger.info(f"   - temp_filepath: {temp_filepath}")
+                        logger.info(f"   - final_filepath: {final_filepath}")
+                        logger.info(f"   - temp existe: {os.path.exists(temp_filepath)}")
+
                         # Copiar arquivo de temp para pasta definitiva (manter temp para retry se necessário)
                         try:
                             shutil.copy2(temp_filepath, final_filepath)
-                            logger.info(f"AutoSave: Arquivo copiado de temp para definitivo: {final_filename}")
+                            logger.info(f"✅ Arquivo copiado: {final_filename}")
                         except Exception as copy_error:
-                            logger.error(f"Erro ao copiar arquivo temporário: {copy_error}")
+                            logger.error(f"❌ Erro ao copiar arquivo: {copy_error}")
                             continue
 
                         # Calcular hash da imagem para prevenir duplicatas
@@ -1149,6 +1154,25 @@ def api_autosave_relatorio():
         # Buscar estado final do relatório
         relatorio_final = Relatorio.query.get(relatorio_id)
 
+        # Buscar todas as imagens salvas do relatório para retornar estado completo
+        fotos_salvas = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).order_by(FotoRelatorio.ordem).all()
+        
+        imagens_response = []
+        for foto in fotos_salvas:
+            imagens_response.append({
+                'id': foto.id,
+                'temp_id': None,  # temp_id já foi convertido em id definitivo
+                'url': foto.url or f"/uploads/{foto.filename}" if foto.filename else None,
+                'filename': foto.filename,
+                'legenda': foto.legenda or '',
+                'titulo': foto.titulo or '',
+                'tipo_servico': foto.tipo_servico or 'Geral',
+                'local': foto.local or '',
+                'ordem': foto.ordem or 0
+            })
+        
+        logger.info(f"✅ AutoSave RESPOSTA: {len(imagens_response)} imagens retornadas")
+        
         return jsonify({
             'success': True,
             'message': 'AutoSave executado com sucesso',
@@ -1160,7 +1184,7 @@ def api_autosave_relatorio():
                 'status': relatorio_final.status,
                 'updated_at': relatorio_final.updated_at.isoformat() if relatorio_final.updated_at else None
             },
-            'imagens': imagens_resultado
+            'imagens': imagens_response  # Array sempre válido e completo
         }), 200
 
     except IntegrityError as e:
