@@ -502,8 +502,8 @@ figure {
 .first-page-photos-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8mm;
-    margin-top: 8mm;
+    gap: 6mm;
+    margin-top: 6mm;
     page-break-inside: avoid;
     width: 100%;
 }
@@ -517,7 +517,7 @@ figure {
 .first-photo-img {
     width: 100%;
     height: auto;
-    max-height: 85mm;
+    max-height: 60mm;
     object-fit: contain;
     display: block;
     border: 1px solid #e0e0e0;
@@ -525,7 +525,7 @@ figure {
 
 .photo-placeholder-first {
     width: 100%;
-    height: 85mm;
+    height: 60mm;
     background-color: #f5f5f5;
     border: 2px dashed #ccc;
     display: flex;
@@ -537,16 +537,16 @@ figure {
 }
 
 .first-photo-caption {
-    font-size: 9pt;
+    font-size: 8pt;
     color: #333;
-    margin-top: 3mm;
+    margin-top: 2mm;
     text-align: left;
     font-family: Arial, Helvetica, sans-serif;
 }
 
 /* DEMAIS PÁGINAS - GRID 2x2 (4 imagens por página) */
 .grid-photos-page {
-    padding: 5mm 0;
+    padding: 3mm 0;
 }
 
 /* Forçar quebra APENAS se não for a última página de fotos */
@@ -563,10 +563,10 @@ figure {
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
-    gap: 8mm;
+    gap: 6mm;
     width: 100%;
     height: auto;
-    margin-bottom: 10mm;
+    margin-bottom: 8mm;
 }
 
 .grid-photo-item {
@@ -578,7 +578,7 @@ figure {
 .grid-photo-img {
     width: 100%;
     height: auto;
-    max-height: 85mm;
+    max-height: 60mm;
     object-fit: contain;
     display: block;
     border: 1px solid #e0e0e0;
@@ -586,7 +586,7 @@ figure {
 
 .photo-placeholder-grid {
     width: 100%;
-    height: 85mm;
+    height: 60mm;
     background-color: #f5f5f5;
     border: 2px dashed #ccc;
     display: flex;
@@ -598,11 +598,12 @@ figure {
 }
 
 .grid-photo-caption {
-    font-size: 9pt;
+    font-size: 8pt;
     color: #333;
-    margin-top: 3mm;
+    margin-top: 2mm;
     text-align: left;
     font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.2;
 }
 
 /* Assinaturas - Tabela */
@@ -702,10 +703,15 @@ figure {
 
 /* ASSINATURAS INLINE - Aparecem após o último grid de fotos, na mesma página */
 .assinaturas-inline {
-    margin-top: 10mm;
-    margin-bottom: 35mm;
+    margin-top: 8mm;
+    margin-bottom: 30mm;
     page-break-inside: avoid;
     page-break-before: avoid;
+}
+
+/* Ajuste de altura da seção de assinaturas para garantir visibilidade */
+.assinaturas-section {
+    min-height: 35mm;
 }
 
 /* Quebras de página - evitar quebra dentro de seções */
