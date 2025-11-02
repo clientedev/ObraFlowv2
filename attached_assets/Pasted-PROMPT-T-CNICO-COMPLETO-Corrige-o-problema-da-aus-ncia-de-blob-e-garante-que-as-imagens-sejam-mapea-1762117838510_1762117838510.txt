@@ -1,0 +1,148 @@
+PROMPT TÉCNICO COMPLETO
+
+Corrige o problema da ausência de blob e garante que as imagens sejam mapeadas e enviadas corretamente no AutoSave, mantendo compatibilidade com o Railway e FastAPI.
+
+⚙️ Prompt
+
+Corrigir completamente a lógica de captura, mapeamento e upload de imagens no AutoSave.
+O problema atual é que as imagens aparecem no mobilePhotoData, mas não possuem o blob associado, gerando o erro:
+⚠️ Imagem inválida ou blob ausente.
+
+A correção deve garantir que cada imagem capturada pela câmera ou carregada da galeria tenha seu File/Blob armazenado corretamente e seja enviada ao backend via multipart/form-data no AutoSave.
+
+O sistema está hospedado no Railway, com backend em FastAPI e banco PostgreSQL.
+A tabela legendas_predefinidas já existe e não está relacionada ao erro atual.
+
+🧩 Implementações obrigatórias no frontend (reports_autosave.js)
+1️⃣ Armazenar o blob ao capturar imagens
+
+Substituir o código que processa as fotos (no trecho de câmera/galeria) por:
+
+// Executado quando o usuário captura ou seleciona uma imagem
+function handleImageCapture(file) {
+  const imageObj = {
+    id: `mobile_photo_${Date.now()}`,
+    name: file.name,
+    blob: file, // 🔥 salva o blob real
+    previewUrl: URL.createObjectURL(file),
+    category: "",
+    local: "",
+    caption: "",
+    savedId: null,
+    temp_id: null,
+    hasFile: true,
+  };
+
+  if (!window.mobilePhotoData) window.mobilePhotoData = [];
+  window.mobilePhotoData.push(imageObj);
+
+  console.log("📸 Imagem capturada e registrada com blob:", imageObj);
+}
+
+
+Explicação:
+Antes, o sistema armazenava apenas previewUrl. Agora o objeto contém o blob necessário para upload real.
+
+2️⃣ Corrigir getImageData() para validar e enviar apenas imagens com blob
+async getImageData() {
+  const imgs = window.mobilePhotoData || [];
+  const uploaded = [];
+
+  for (let i = 0; i < imgs.length; i++) {
+    const img = imgs[i];
+    console.log(`📸 Imagem ${i}:`, img);
+
+    if (!img || !img.blob) {
+      console.warn("⚠️ Imagem inválida ou blob ausente:", img);
+      continue; // ignora sem travar
+    }
+
+    try {
+      const tempId = await this.uploadImageTemp(img);
+      uploaded.push({
+        temp_id: tempId,
+        filename: img.name,
+        category: img.category,
+        local: img.local,
+        caption: img.caption,
+      });
+    } catch (err) {
+      console.error(`❌ Falha ao enviar imagem ${i}:`, err);
+    }
+  }
+
+  console.log(`📸 AutoSave - Total de ${uploaded.length} imagens enviadas`);
+  return uploaded;
+}
+
+3️⃣ Reimplementar uploadImageTemp() para envio correto via multipart/form-data
+async uploadImageTemp(image) {
+  try {
+    const formData = new FormData();
+    formData.append("file", image.blob, image.name);
+    formData.append("category", image.category || "");
+    formData.append("local", image.local || "");
+    formData.append("caption", image.caption || "");
+
+    const response = await fetch("https://elpconsultoria.pro/api/uploads/temp", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error(`Upload falhou: ${response.status}`);
+
+    const data = await response.json();
+    console.log("✅ Upload temporário bem-sucedido:", data);
+    return data.temp_id || data.id || null;
+  } catch (err) {
+    console.error("❌ Erro no upload temporário:", err);
+    throw err;
+  }
+}
+
+🧱 Backend (FastAPI / Railway)
+
+O endpoint /api/uploads/temp deve aceitar arquivos corretamente:
+
+@router.post("/uploads/temp")
+async def upload_temp_image(
+    file: UploadFile = File(...),
+    category: str = Form(""),
+    local: str = Form(""),
+    caption: str = Form("")
+):
+    try:
+        file_path = f"temp/{uuid.uuid4()}_{file.filename}"
+        with open(file_path, "wb") as buffer:
+            buffer.write(await file.read())
+
+        return {
+            "success": True,
+            "temp_id": str(uuid.uuid4()),
+            "filename": file.filename,
+            "path": file_path,
+            "category": category,
+            "local": local,
+            "caption": caption,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao salvar arquivo: {e}")
+
+🧠 Resultado Esperado
+
+Após a correção:
+
+✅ mobilePhotoData conterá o campo blob corretamente.
+
+✅ getImageData() enviará o arquivo real ao backend.
+
+✅ Logs no console:
+
+📸 Imagem 0: Captura de tela 2025-11-02 172409.png
+📤 Upload temporário bem-sucedido: { temp_id: '...', filename: 'Captura de tela 2025-11-02 172409.png' }
+📸 AutoSave - Total de 2 imagens enviadas
+
+
+✅ Nenhum erro “Imagem inválida ou blob ausente”.
+
+✅ AutoSave incluirá corretamente imagens + checklist + acompanhantes.
