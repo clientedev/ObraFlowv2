@@ -714,14 +714,19 @@ def api_autosave_relatorio():
     """
     try:
         data = request.get_json()
+        
+        # LOG: Dados recebidos
+        print("📦 AutoSave - Dados recebidos:", data)
 
         if not data:
+            print("❌ AutoSave: Nenhum dado fornecido")
             return jsonify({
                 'success': False,
                 'error': 'Nenhum dado fornecido'
             }), 400
 
         relatorio_id = data.get('id')
+        print(f"🔍 AutoSave: relatório_id = {relatorio_id}")
 
         # 1️⃣ CRIAR NOVO RELATÓRIO SE NÃO EXISTIR
         if not relatorio_id:
@@ -805,6 +810,7 @@ def api_autosave_relatorio():
             db.session.flush()  # Obter ID sem commit completo
             relatorio_id = novo_relatorio.id
 
+            print(f"✅ AutoSave: Novo relatório criado com ID {relatorio_id}")
             logger.info(f"✅ AutoSave: Novo relatório criado com ID {relatorio_id}")
 
         # 2️⃣ ATUALIZAR RELATÓRIO EXISTENTE
@@ -877,6 +883,7 @@ def api_autosave_relatorio():
             relatorio.atualizado_por = current_user.id
             relatorio.updated_at = datetime.utcnow()
 
+            print(f"✅ AutoSave: Relatório {relatorio_id} atualizado")
             logger.info(f"✅ AutoSave: Relatório {relatorio_id} atualizado")
 
         # 3️⃣ SINCRONIZAR IMAGENS
@@ -1006,6 +1013,7 @@ def api_autosave_relatorio():
 
         # 4️⃣ COMMIT DA TRANSAÇÃO
         db.session.commit()
+        print(f"✅ AutoSave registrado: {relatorio_id}")
 
         # Buscar estado final do relatório
         relatorio_final = Relatorio.query.get(relatorio_id)
@@ -1026,6 +1034,7 @@ def api_autosave_relatorio():
 
     except IntegrityError as e:
         db.session.rollback()
+        print(f"❌ Erro no autosave (integridade): {str(e)}")
         logger.error(f"Erro de integridade no AutoSave: {e}")
         return jsonify({
             'success': False,
@@ -1035,6 +1044,7 @@ def api_autosave_relatorio():
 
     except Exception as e:
         db.session.rollback()
+        print(f"❌ Erro no autosave: {str(e)}")
         logger.error(f"Erro no AutoSave: {e}", exc_info=True)
         return jsonify({
             'success': False,
