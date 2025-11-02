@@ -2519,16 +2519,12 @@ async function savePhotoData(photoId) {
     const hasLocal = local.length > 0;
     const hasCategory = category && category !== '';
     
-    if (hasCaption && hasLocal && hasCategory) {
+    if (hasCaption) {
         statusDiv.className = 'caption-status complete alert alert-success py-1 px-2 mb-2';
-        statusDiv.innerHTML = '✅ Todos os campos preenchidos';
+        statusDiv.innerHTML = '✅ Legenda preenchida';
     } else {
         statusDiv.className = 'caption-status pending alert alert-warning py-1 px-2 mb-2';
-        let missing = [];
-        if (!hasCategory) missing.push('Categoria');
-        if (!hasLocal) missing.push('Local');
-        if (!hasCaption) missing.push('Legenda');
-        statusDiv.innerHTML = `⚠️ Obrigatório: ${missing.join(', ')}`;
+        statusDiv.innerHTML = `⚠️ Obrigatório: Legenda`;
     }
     
     console.log(`💾 Photo data saved for ${photoId}: category="${category}", local="${local}", caption="${manualCaption}"`);

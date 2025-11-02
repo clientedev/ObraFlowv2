@@ -12,8 +12,9 @@ Report forms: Location section removed from report creation/editing interface (g
 - **Photo Upload Flexibility**: Removed mandatory validation for Categoria (category) and Local (location) fields in photo uploads. Users can now upload images directly from camera or gallery without being forced to fill in these fields, improving mobile UX and speed.
   - Modified `forms_express.py`: Changed validators from `DataRequired()` to `Optional()` for tipo_servico and local fields
   - Modified `routes.py`: Removed backend validation checks that rejected uploads with empty categoria or local
+  - Modified `templates/reports/form_complete.html`: Removed JavaScript validation that displayed "⚠️ Obrigatório: Categoria, Local" warning message
   - Legenda (caption) field remains mandatory as required
-  - Changes apply to both frontend form validation and backend API validation
+  - Changes apply to frontend form validation, backend API validation, and JavaScript validation in photo editing modals
 
 ## October 31, 2025
 - **Sistema de Notificações Web/Mobile Completo**: Implementado sistema completo de notificações internas com suporte a push notifications via Firebase Cloud Messaging, incluindo ícone de sino na navegação, painel lateral (drawer), API REST protegida, e limpeza automática de notificações expiradas.
