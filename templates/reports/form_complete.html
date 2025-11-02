@@ -2364,25 +2364,23 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
             
             <!-- Categoria (Seleção dentro do card) -->
             <div class="mb-2">
-                <label class="form-label fw-bold mb-1" style="font-size: 12px;">📁 Categoria *</label>
+                <label class="form-label fw-bold mb-1" style="font-size: 12px;">📁 Categoria</label>
                 <select class="form-select form-select-sm categoria-select" 
                         id="category_${photoId}" 
                         data-photo-id="${photoId}"
-                        required
                         style="border: 2px solid #007bff; font-size: 13px;">
                     <option value="">${category ? category : 'Selecione...'}</option>
                 </select>
             </div>
             
-            <!-- Local (novo campo obrigatório) -->
+            <!-- Local -->
             <div class="mb-2">
-                <label class="form-label fw-bold mb-1" style="font-size: 12px;">📍 Local *</label>
+                <label class="form-label fw-bold mb-1" style="font-size: 12px;">📍 Local</label>
                 <input type="text" 
                        class="form-control form-control-sm local-input" 
                        id="local_${photoId}" 
                        placeholder="Ex: Sala principal, Fachada norte..."
                        data-photo-id="${photoId}"
-                       required
                        style="border: 2px solid #ff9800; font-size: 13px; padding: 6px;">
             </div>
             
