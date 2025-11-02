@@ -270,8 +270,8 @@ class WeasyPrintReportGenerator:
     {% endfor %}
     {% endif %}
 
-    <!-- ASSINATURAS - SEMPRE NO FINAL após todas as imagens -->
-    <div class="page-break-before assinaturas-page">
+    <!-- ASSINATURAS - Na mesma página das últimas imagens -->
+    <div class="assinaturas-page">
         <div class="assinaturas-section">
             <div class="section-header">Assinaturas</div>
             <div class="assinaturas-table">
@@ -670,10 +670,10 @@ figure {
     font-weight: bold;
 }
 
-/* PÁGINA DE ASSINATURAS - sempre no final após todas as imagens */
+/* ASSINATURAS - Na mesma página das últimas imagens */
 .assinaturas-page {
-    page-break-before: always;
-    padding-top: 20mm;
+    margin-top: 10mm;
+    page-break-inside: avoid;
 }
 
 /* Quebras de página - evitar quebra dentro de seções */
