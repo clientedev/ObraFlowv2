@@ -572,4 +572,311 @@ def api_remover_imagem(relatorio_id, imagem_id):
             'details': str(e)
         }), 500
 
+@app.route('/api/relatorios/autosave', methods=['POST'])
+@login_required
+def api_autosave_relatorio():
+    """
+    POST /api/relatorios/autosave
+    
+    AutoSave completo do relatório - Implementação conforme especificação técnica.
+    
+    Funcionalidades:
+    - Cria relatório automaticamente se não existir (sem projeto_id obrigatório no primeiro save)
+    - Atualiza todos os campos do relatório existente
+    - Sincroniza imagens: adiciona, atualiza metadados e remove
+    - Atualiza campo updated_at automaticamente
+    - Resiliente a falhas de conexão
+    
+    Payload esperado (JSON):
+    {
+        "id": null ou int,  # null para criar novo, int para atualizar
+        "projeto_id": int,  # Obrigatório para criação
+        "titulo": str,
+        "numero": str,
+        "categoria": str,
+        "local": str,
+        "observacoes_finais": str,
+        "lembrete_proxima_visita": str (ISO datetime),
+        "conteudo": str,
+        "status": str,
+        "checklist_data": dict/list,
+        "acompanhantes": list,
+        "fotos": [
+            {
+                "id": null ou int,  # null=nova, int=existente
+                "deletar": bool,    # true para marcar para exclusão
+                "url": str,
+                "filename": str,
+                "legenda": str,
+                "categoria": str,
+                "local": str,
+                "titulo": str,
+                "tipo_servico": str,
+                "ordem": int
+            }
+        ]
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Nenhum dado fornecido'
+            }), 400
+        
+        relatorio_id = data.get('id')
+        
+        # 1️⃣ CRIAR NOVO RELATÓRIO SE NÃO EXISTIR
+        if not relatorio_id:
+            # Validar campos obrigatórios para criação
+            if not data.get('projeto_id'):
+                return jsonify({
+                    'success': False,
+                    'error': 'Campo projeto_id é obrigatório para criar novo relatório'
+                }), 400
+            
+            # Verificar se projeto existe
+            projeto = Projeto.query.get(data['projeto_id'])
+            if not projeto:
+                return jsonify({
+                    'success': False,
+                    'error': f"Projeto {data['projeto_id']} não encontrado"
+                }), 404
+            
+            # Gerar número do relatório
+            ultimo_relatorio = Relatorio.query.filter_by(
+                projeto_id=data['projeto_id']
+            ).order_by(Relatorio.numero_projeto.desc()).first()
+            
+            if ultimo_relatorio and ultimo_relatorio.numero_projeto:
+                proximo_numero = ultimo_relatorio.numero_projeto + 1
+            else:
+                proximo_numero = projeto.numeracao_inicial or 1
+            
+            numero_formatado = data.get('numero') or f"{projeto.numero}-R{proximo_numero:03d}"
+            
+            # Processar lembrete_proxima_visita
+            lembrete_proxima_visita = None
+            if data.get('lembrete_proxima_visita'):
+                try:
+                    if isinstance(data['lembrete_proxima_visita'], str):
+                        lembrete_proxima_visita = datetime.fromisoformat(
+                            data['lembrete_proxima_visita'].replace('Z', '+00:00')
+                        )
+                    else:
+                        lembrete_proxima_visita = data['lembrete_proxima_visita']
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Erro ao processar lembrete_proxima_visita: {e}")
+            
+            # Processar checklist_data
+            checklist_data = data.get('checklist_data')
+            if checklist_data and not isinstance(checklist_data, str):
+                import json
+                checklist_data = json.dumps(checklist_data)
+            
+            # Criar novo relatório
+            novo_relatorio = Relatorio(
+                numero=numero_formatado,
+                numero_projeto=proximo_numero,
+                titulo=data.get('titulo', 'Relatório de visita'),
+                descricao=data.get('descricao'),
+                projeto_id=data['projeto_id'],
+                visita_id=data.get('visita_id'),
+                autor_id=current_user.id,
+                criado_por=current_user.id,
+                atualizado_por=current_user.id,
+                
+                # Campos de AutoSave
+                categoria=data.get('categoria'),
+                local=data.get('local'),
+                observacoes_finais=data.get('observacoes_finais'),
+                lembrete_proxima_visita=lembrete_proxima_visita,
+                
+                # Data/hora
+                data_relatorio=datetime.utcnow(),
+                
+                # Status
+                status=data.get('status', 'em_andamento'),
+                
+                # Outros campos
+                conteudo=data.get('conteudo'),
+                checklist_data=checklist_data,
+                acompanhantes=data.get('acompanhantes')
+            )
+            
+            db.session.add(novo_relatorio)
+            db.session.flush()  # Obter ID sem commit completo
+            relatorio_id = novo_relatorio.id
+            
+            logger.info(f"✅ AutoSave: Novo relatório criado com ID {relatorio_id}")
+        
+        # 2️⃣ ATUALIZAR RELATÓRIO EXISTENTE
+        else:
+            relatorio = Relatorio.query.get(relatorio_id)
+            
+            if not relatorio:
+                return jsonify({
+                    'success': False,
+                    'error': 'Relatório não encontrado'
+                }), 404
+            
+            # Atualizar campos texto/data
+            campos_atualizaveis = [
+                'titulo', 'descricao', 'categoria', 'local', 
+                'observacoes_finais', 'conteudo', 'status'
+            ]
+            
+            for campo in campos_atualizaveis:
+                if campo in data:
+                    setattr(relatorio, campo, data[campo])
+            
+            # Atualizar lembrete_proxima_visita
+            if 'lembrete_proxima_visita' in data:
+                if data['lembrete_proxima_visita']:
+                    try:
+                        if isinstance(data['lembrete_proxima_visita'], str):
+                            relatorio.lembrete_proxima_visita = datetime.fromisoformat(
+                                data['lembrete_proxima_visita'].replace('Z', '+00:00')
+                            )
+                        else:
+                            relatorio.lembrete_proxima_visita = data['lembrete_proxima_visita']
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Erro ao processar lembrete_proxima_visita: {e}")
+                else:
+                    relatorio.lembrete_proxima_visita = None
+            
+            # Atualizar checklist_data
+            if 'checklist_data' in data:
+                checklist_data = data['checklist_data']
+                if checklist_data and not isinstance(checklist_data, str):
+                    import json
+                    checklist_data = json.dumps(checklist_data)
+                relatorio.checklist_data = checklist_data
+            
+            # Atualizar acompanhantes
+            if 'acompanhantes' in data:
+                relatorio.acompanhantes = data['acompanhantes']
+            
+            # Atualizar metadados de auditoria
+            relatorio.atualizado_por = current_user.id
+            relatorio.updated_at = datetime.utcnow()
+            
+            logger.info(f"✅ AutoSave: Relatório {relatorio_id} atualizado")
+        
+        # 3️⃣ SINCRONIZAR IMAGENS
+        imagens_resultado = []
+        
+        if 'fotos' in data and data['fotos']:
+            fotos_data = data['fotos']
+            
+            for foto_info in fotos_data:
+                # Deletar imagem marcada para remoção
+                if foto_info.get('deletar'):
+                    foto_id = foto_info.get('id')
+                    if foto_id:
+                        foto = FotoRelatorio.query.get(foto_id)
+                        if foto and foto.relatorio_id == relatorio_id:
+                            # Remover arquivo físico se existir
+                            if foto.filename:
+                                filepath = os.path.join(app.config['UPLOAD_FOLDER'], foto.filename)
+                                try:
+                                    if os.path.exists(filepath):
+                                        os.remove(filepath)
+                                        logger.info(f"AutoSave: Arquivo removido: {filepath}")
+                                except Exception as file_error:
+                                    logger.error(f"Erro ao remover arquivo: {file_error}")
+                            
+                            db.session.delete(foto)
+                            logger.info(f"AutoSave: Imagem {foto_id} marcada para exclusão")
+                    continue
+                
+                # Adicionar nova imagem (sem id ou id=null)
+                if not foto_info.get('id'):
+                    # Imagens já salvas no filesystem - apenas criar registro
+                    if foto_info.get('url') or foto_info.get('filename'):
+                        nova_foto = FotoRelatorio(
+                            relatorio_id=relatorio_id,
+                            url=foto_info.get('url'),
+                            filename=foto_info.get('filename'),
+                            legenda=foto_info.get('legenda'),
+                            titulo=foto_info.get('titulo'),
+                            tipo_servico=foto_info.get('tipo_servico'),
+                            local=foto_info.get('local'),
+                            ordem=foto_info.get('ordem', 0)
+                        )
+                        db.session.add(nova_foto)
+                        db.session.flush()  # Para obter o ID
+                        
+                        imagens_resultado.append({
+                            'id': nova_foto.id,
+                            'url': nova_foto.url,
+                            'legenda': nova_foto.legenda,
+                            'ordem': nova_foto.ordem
+                        })
+                        logger.info(f"AutoSave: Nova imagem adicionada ao relatório {relatorio_id}")
+                
+                # Atualizar imagem existente
+                else:
+                    foto = FotoRelatorio.query.get(foto_info['id'])
+                    if foto and foto.relatorio_id == relatorio_id:
+                        # Atualizar metadados
+                        if 'legenda' in foto_info:
+                            foto.legenda = foto_info['legenda']
+                        if 'titulo' in foto_info:
+                            foto.titulo = foto_info['titulo']
+                        if 'tipo_servico' in foto_info:
+                            foto.tipo_servico = foto_info['tipo_servico']
+                        if 'local' in foto_info:
+                            foto.local = foto_info['local']
+                        if 'ordem' in foto_info:
+                            foto.ordem = foto_info['ordem']
+                        
+                        imagens_resultado.append({
+                            'id': foto.id,
+                            'url': foto.url,
+                            'legenda': foto.legenda,
+                            'ordem': foto.ordem
+                        })
+                        logger.info(f"AutoSave: Metadados da imagem {foto.id} atualizados")
+        
+        # 4️⃣ COMMIT DA TRANSAÇÃO
+        db.session.commit()
+        
+        # Buscar estado final do relatório
+        relatorio_final = Relatorio.query.get(relatorio_id)
+        
+        return jsonify({
+            'success': True,
+            'message': 'AutoSave executado com sucesso',
+            'relatorio_id': relatorio_id,
+            'relatorio': {
+                'id': relatorio_final.id,
+                'numero': relatorio_final.numero,
+                'titulo': relatorio_final.titulo,
+                'status': relatorio_final.status,
+                'updated_at': relatorio_final.updated_at.isoformat() if relatorio_final.updated_at else None
+            },
+            'imagens': imagens_resultado
+        }), 200
+        
+    except IntegrityError as e:
+        db.session.rollback()
+        logger.error(f"Erro de integridade no AutoSave: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro de integridade no banco de dados',
+            'details': str(e)
+        }), 400
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro no AutoSave: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Erro ao executar AutoSave',
+            'details': str(e)
+        }), 500
+
 logger.info("✅ API de relatórios carregada com sucesso")
