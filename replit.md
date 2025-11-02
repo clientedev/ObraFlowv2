@@ -2,6 +2,13 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, and **autosave functionality with real-time synchronization** (fully debugged, corrected and operational as of Nov 2, 2025 19:45 UTC). The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 ## Recent Changes (Nov 2, 2025)
+✅ **AutoSave Image Upload - DEFINITIVELY FIXED (V3 - 22:22 UTC)**: Resolved critical bug preventing images from being saved to database during autosave:
+- **Root Cause**: Backend was searching for temporary files with wrong extension (`.jpg` default instead of actual `.png`, `.jpeg`, etc.)
+- **Solution**: Implemented dynamic file extension detection using `glob.glob()` to find temp files regardless of extension
+- **Impact**: Images now save correctly to PostgreSQL during autosave with full metadata (legenda, categoria, local)
+- **Validation**: Server logs show "📸 AutoSave: Arquivo temporário encontrado" and "✅ AutoSave: Imagem SALVA NO BANCO"
+Full documentation: `CORRECAO_AUTOSAVE_IMAGENS_DEFINITIVA.md`
+
 ✅ **AutoSave System - Completely Fixed (V2)**: Resolved 4 critical bugs preventing autosave from functioning:
 1. Corrected projeto_id collection (now searches 4 different locations)
 2. Fixed initAutoSave parameters (now passes csrfToken correctly)

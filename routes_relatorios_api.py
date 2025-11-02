@@ -977,8 +977,25 @@ def api_autosave_relatorio():
                     # Processar temp_id (imagem do upload temporário)
                     if foto_info.get('temp_id'):
                         temp_id = foto_info['temp_id']
-                        temp_filename = f"{temp_id}.{foto_info.get('extension', 'jpg')}"
-                        temp_filepath = os.path.join(TEMP_UPLOAD_FOLDER, temp_filename)
+                        
+                        # 🔧 CORREÇÃO: Buscar arquivo temporário dinamicamente (qualquer extensão)
+                        temp_filepath = None
+                        extension = 'jpg'  # padrão
+                        
+                        # Buscar arquivo que começa com temp_id na pasta temporária
+                        import glob
+                        temp_pattern = os.path.join(TEMP_UPLOAD_FOLDER, f"{temp_id}.*")
+                        matching_files = glob.glob(temp_pattern)
+                        
+                        if matching_files:
+                            temp_filepath = matching_files[0]
+                            # Extrair extensão do arquivo encontrado
+                            extension = temp_filepath.rsplit('.', 1)[1].lower() if '.' in temp_filepath else 'jpg'
+                            logger.info(f"📸 AutoSave: Arquivo temporário encontrado: {temp_filepath}")
+                        else:
+                            logger.error(f"❌ AutoSave: Nenhum arquivo temporário encontrado com padrão: {temp_pattern}")
+                            logger.error(f"   Arquivos na pasta temp: {os.listdir(TEMP_UPLOAD_FOLDER)[:10]}")
+                            continue
 
                         # Verificar se arquivo temporário existe
                         if not os.path.exists(temp_filepath):
@@ -999,9 +1016,8 @@ def api_autosave_relatorio():
                             logger.error(f"Erro ao ler arquivo temporário: {read_error}")
                             continue
 
-                        # Gerar nome definitivo
+                        # Gerar nome definitivo (extension já foi extraída do arquivo temp)
                         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S%f')
-                        extension = foto_info.get('extension', 'jpg')
                         final_filename = f"relatorio_{relatorio_id}_{timestamp}_{temp_id}.{extension}"
                         final_filepath = os.path.join(app.config['UPLOAD_FOLDER'], final_filename)
 
