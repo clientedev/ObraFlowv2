@@ -674,44 +674,7 @@ def api_autosave_relatorio():
     """
     POST /api/relatorios/autosave
 
-    AutoSave completo do relatório - Implementação conforme especificação técnica.
-
-    Funcionalidades:
-    - Cria relatório automaticamente se não existir (sem projeto_id obrigatório no primeiro save)
-    - Atualiza todos os campos do relatório existente
-    - Sincroniza imagens: adiciona, atualiza metadados e remove
-    - Atualiza campo updated_at automaticamente
-    - Resiliente a falhas de conexão
-
-    Payload esperado (JSON):
-    {
-        "id": null ou int,  # null para criar novo, int para atualizar
-        "projeto_id": int,  # Obrigatório para criação
-        "titulo": str,
-        "numero": str,
-        "categoria": str,
-        "local": str,
-        "observacoes_finais": str,
-        "lembrete_proxima_visita": str (ISO datetime),
-        "conteudo": str,
-        "status": str,
-        "checklist_data": dict/list,
-        "acompanhantes": list,
-        "fotos": [
-            {
-                "id": null ou int,  # null=nova, int=existente
-                "deletar": bool,    # true para marcar para exclusão
-                "url": str,
-                "filename": str,
-                "legenda": str,
-                "categoria": str,
-                "local": str,
-                "titulo": str,
-                "tipo_servico": str,
-                "ordem": int
-            }
-        ]
-    }
+    AutoSave completo do relatório - REPLICA EXATAMENTE o comportamento do botão "Concluir relatório"
     """
     try:
         data = request.get_json()
@@ -771,11 +734,31 @@ def api_autosave_relatorio():
                 except (ValueError, TypeError) as e:
                     logger.warning(f"Erro ao processar lembrete_proxima_visita: {e}")
 
-            # Processar checklist_data
+            # Processar checklist_data - IGUAL AO BOTÃO CONCLUIR
             checklist_data = data.get('checklist_data')
-            if checklist_data and not isinstance(checklist_data, str):
-                import json
-                checklist_data = json.dumps(checklist_data)
+            if checklist_data:
+                if isinstance(checklist_data, str):
+                    # Já é string JSON
+                    pass
+                elif isinstance(checklist_data, (dict, list)):
+                    # Converter para JSON
+                    import json
+                    checklist_data = json.dumps(checklist_data)
+                    print(f"✅ AutoSave: checklist_data convertido para JSON: {checklist_data}")
+            
+            # Processar acompanhantes - IGUAL AO BOTÃO CONCLUIR
+            acompanhantes = data.get('acompanhantes')
+            if acompanhantes:
+                if isinstance(acompanhantes, str):
+                    # Se já é string, tentar parsear para validar
+                    try:
+                        import json
+                        acompanhantes = json.loads(acompanhantes)
+                    except:
+                        acompanhantes = []
+                elif not isinstance(acompanhantes, list):
+                    acompanhantes = []
+                print(f"✅ AutoSave: {len(acompanhantes)} acompanhantes processados")
 
             # Criar novo relatório
             novo_relatorio = Relatorio(
@@ -801,10 +784,10 @@ def api_autosave_relatorio():
                 # Status
                 status=data.get('status', 'em_andamento'),
 
-                # Outros campos
+                # Outros campos - SALVAR CORRETAMENTE
                 conteudo=data.get('conteudo'),
                 checklist_data=checklist_data,
-                acompanhantes=data.get('acompanhantes')
+                acompanhantes=acompanhantes
             )
 
             db.session.add(novo_relatorio)
@@ -812,6 +795,8 @@ def api_autosave_relatorio():
             relatorio_id = novo_relatorio.id
 
             print(f"✅ AutoSave: Novo relatório criado com ID {relatorio_id}")
+            print(f"   - Checklist: {checklist_data[:100] if checklist_data else 'None'}...")
+            print(f"   - Acompanhantes: {acompanhantes}")
             logger.info(f"✅ AutoSave: Novo relatório criado com ID {relatorio_id}")
 
         # 2️⃣ ATUALIZAR RELATÓRIO EXISTENTE
@@ -868,17 +853,38 @@ def api_autosave_relatorio():
                 else:
                     relatorio.lembrete_proxima_visita = None
 
-            # Atualizar checklist_data
+            # Atualizar checklist_data - IGUAL AO BOTÃO CONCLUIR
             if 'checklist_data' in data:
                 checklist_data = data['checklist_data']
-                if checklist_data and not isinstance(checklist_data, str):
-                    import json
-                    checklist_data = json.dumps(checklist_data)
-                relatorio.checklist_data = checklist_data
+                if checklist_data:
+                    if isinstance(checklist_data, str):
+                        # Já é string JSON
+                        relatorio.checklist_data = checklist_data
+                    elif isinstance(checklist_data, (dict, list)):
+                        # Converter para JSON
+                        import json
+                        relatorio.checklist_data = json.dumps(checklist_data)
+                        print(f"✅ AutoSave: checklist_data atualizado")
+                else:
+                    relatorio.checklist_data = None
 
-            # Atualizar acompanhantes
+            # Atualizar acompanhantes - IGUAL AO BOTÃO CONCLUIR
             if 'acompanhantes' in data:
-                relatorio.acompanhantes = data['acompanhantes']
+                acompanhantes = data['acompanhantes']
+                if acompanhantes:
+                    if isinstance(acompanhantes, str):
+                        # Se já é string, tentar parsear para validar
+                        try:
+                            import json
+                            acompanhantes = json.loads(acompanhantes)
+                        except:
+                            acompanhantes = []
+                    elif not isinstance(acompanhantes, list):
+                        acompanhantes = []
+                    relatorio.acompanhantes = acompanhantes
+                    print(f"✅ AutoSave: {len(acompanhantes)} acompanhantes atualizados")
+                else:
+                    relatorio.acompanhantes = []
 
             # Atualizar metadados de auditoria
             relatorio.atualizado_por = current_user.id

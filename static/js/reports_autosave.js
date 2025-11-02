@@ -132,25 +132,28 @@ class ReportsAutoSave {
     }
 
     getChecklistData() {
-        const checklistData = {};
+        const checklistData = [];
         
-        // Coletar checkboxes
-        const checkboxes = document.querySelectorAll('.checklist-item input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            if (checkbox.id) {
-                checklistData[checkbox.id] = checkbox.checked;
-            }
-        });
-        
-        // Coletar observações de textareas
-        const textareas = document.querySelectorAll('.checklist-item textarea');
-        textareas.forEach(textarea => {
-            if (textarea.name) {
-                checklistData[textarea.name] = textarea.value?.trim() || '';
+        // Coletar itens do checklist EXATAMENTE como o botão concluir faz
+        document.querySelectorAll('.checklist-item').forEach(item => {
+            const checkbox = item.querySelector('.form-check-input[type="checkbox"]');
+            const label = item.querySelector('.form-check-label');
+            const customInput = item.querySelector('input[type="text"]');
+            const textarea = item.querySelector('textarea');
+            
+            if (checkbox) {
+                const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
+                if (itemText) {
+                    checklistData.push({
+                        item: itemText,
+                        completed: checkbox.checked,
+                        observations: textarea ? textarea.value : ''
+                    });
+                }
             }
         });
 
-        console.log(`📋 AutoSave - Checklist: ${Object.keys(checklistData).length} itens coletados`, checklistData);
+        console.log(`📋 AutoSave - Checklist: ${checklistData.length} itens coletados`, checklistData);
         return checklistData;
     }
 
@@ -267,9 +270,14 @@ class ReportsAutoSave {
             // Tentar coletar do input hidden
             const acompanhantesInput = document.querySelector('#acompanhantes-data');
             if (acompanhantesInput && acompanhantesInput.value) {
-                const acompanhantes = JSON.parse(acompanhantesInput.value);
-                console.log(`👥 AutoSave - Acompanhantes (input): ${acompanhantes.length} pessoas`, acompanhantes);
-                return acompanhantes;
+                try {
+                    const acompanhantes = JSON.parse(acompanhantesInput.value);
+                    console.log(`👥 AutoSave - Acompanhantes (input): ${acompanhantes.length} pessoas`, acompanhantes);
+                    return acompanhantes;
+                } catch (parseError) {
+                    console.warn('⚠️ Erro ao parsear acompanhantes do input:', parseError);
+                    console.log('   Valor do input:', acompanhantesInput.value);
+                }
             }
             
             console.log('👥 AutoSave - Nenhum acompanhante encontrado');
