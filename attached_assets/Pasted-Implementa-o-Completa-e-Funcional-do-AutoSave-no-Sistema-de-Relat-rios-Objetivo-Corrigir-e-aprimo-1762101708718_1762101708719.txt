@@ -1,0 +1,113 @@
+Implementação Completa e Funcional do AutoSave no Sistema de Relatórios
+
+Objetivo:
+Corrigir e aprimorar a funcionalidade de salvamento automático (AutoSave) do módulo de relatórios, garantindo que todas as informações preenchidas pelo usuário — incluindo textos, campos, checklist, observações, lembrete, acompanhantes e imagens — sejam salvas em tempo real enquanto o usuário preenche o relatório.
+O salvamento deve ocorrer de forma incremental e segura, permitindo que o usuário retome exatamente de onde parou em caso de saída inesperada, fechamento do navegador ou perda de conexão.
+
+🧩 Requisitos Funcionais
+
+AutoSave Completo
+
+Implementar um sistema de AutoSave baseado em eventos (input, change, blur, upload, etc.).
+
+Toda alteração nos campos deve acionar uma rotina assíncrona que salva o estado atual do relatório no backend via API REST.
+
+Utilizar debounce (ex: 2 segundos) para evitar requisições excessivas.
+
+Campos que Devem ser Salvos Automaticamente
+
+Data do relatório
+
+Título do relatório
+
+Projeto vinculado
+
+Número do relatório
+
+Acompanhantes (inclusão, exclusão e função)
+
+Checklist da obra (itens padrão e personalizados, com status e observações)
+
+Observações gerais
+
+Lembrete para próxima visita
+
+Imagens (upload, exclusão, legenda, local, categoria)
+
+Campos adicionais adicionados por Alembic (ex: descricao, observacoes_finais, lembrete_proxima_visita, categoria, local, checklist_data)
+
+Imagens
+
+As imagens devem ser salvas imediatamente após upload, vinculadas ao ID do relatório.
+
+Ao editar um relatório existente, as imagens já associadas devem ser carregadas automaticamente e exibidas na galeria com opções de editar legenda/local/categoria ou excluir.
+
+O AutoSave deve incluir também novas imagens enviadas, garantindo sincronização completa.
+
+Persistência de Dados
+
+Se o usuário fechar o navegador ou perder a conexão, o relatório deve ser recuperado com todos os dados ao reabrir a tela.
+
+Ao iniciar um novo relatório, o sistema deve criar automaticamente um rascunho (status: “em preenchimento”) e continuar salvando alterações nesse mesmo registro.
+
+Se o relatório for concluído, o AutoSave deve ser desativado e o status atualizado para “concluído”.
+
+Feedback Visual
+
+Exibir status de salvamento na interface (ex: “Alterações salvas automaticamente” ou “Salvando...”).
+
+Em caso de erro, exibir uma notificação amigável, mas registrar o erro completo no console para depuração.
+
+⚙️ Requisitos Técnicos de Implementação
+
+Frontend (JavaScript / ReportsAutoSave.js)
+
+Refatorar o método collectFormData() para coletar todos os campos listados acima, incluindo checklist e imagens.
+
+Corrigir o erro TypeError: this.getChecklistData is not a function — criar e vincular corretamente o método getChecklistData() para retornar todos os itens do checklist com seus respectivos estados e observações.
+
+Implementar performSave() para enviar os dados para o endpoint /api/reports/autosave com POST ou PATCH conforme o relatório já existir ou não.
+
+Incluir tratamento para upload de imagens (multipart/form-data), salvando o vínculo com o relatório ativo.
+
+Garantir que, ao editar um relatório existente, as imagens e campos sejam preenchidos automaticamente com os dados do backend.
+
+Backend (FastAPI / Python)
+
+Criar ou ajustar endpoint /api/reports/autosave:
+
+Receber dados parciais (JSON ou multipart) e atualizar o relatório existente.
+
+Se o relatório não existir, criar um novo em estado “em preenchimento”.
+
+Atualizar todos os campos de forma incremental.
+
+Processar imagens recebidas e vincular à tabela foto_relatorio.
+
+Retornar o estado atualizado do relatório após cada salvamento.
+
+Se necessário, criar/ajustar modelo SQLAlchemy Relatorio e FotoRelatorio para incluir campos adicionais.
+
+Banco de Dados (Alembic)
+
+Se houver campos faltando (ex: descricao, lembrete_proxima_visita, categoria, local, checklist_data, etc.), gerar novo arquivo Alembic com revision --autogenerate para manter compatibilidade com a versão atual.
+
+Garantir integridade relacional entre relatorios e foto_relatorio.
+
+Performance
+
+Utilizar atualização incremental: apenas campos alterados devem ser enviados e atualizados.
+
+Evitar sobrescrever campos não modificados.
+
+✅ Resultado Esperado
+
+O relatório começa a ser salvo automaticamente assim que o usuário inicia o preenchimento.
+
+Todas as informações digitadas, imagens enviadas, checklists e lembretes são gravados no banco de dados sem necessidade de clique em “Concluir Relatório”.
+
+Ao retornar para a tela de edição, todas as informações e imagens são carregadas corretamente.
+
+Nenhum erro como getChecklistData is not a function ou falha de sincronização ocorre.
+
+O sistema exibe feedback visual indicando o status de salvamento.
