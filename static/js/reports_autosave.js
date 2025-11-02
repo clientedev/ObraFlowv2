@@ -58,67 +58,95 @@ class ReportsAutoSave {
     }
 
     collectFormData() {
-        const data = {
-            titulo: document.querySelector('#titulo')?.value?.trim() || null,
-            numero: document.querySelector('#numero')?.value?.trim() || null,
-            data_relatorio: document.querySelector('#data_relatorio')?.value || null,
-            projeto_id: document.querySelector('#projeto_id')?.value || null,
-            conteudo: document.querySelector('#conteudo')?.value?.trim() || null,
-            lembrete_proxima_visita: document.querySelector('#lembrete_proxima_visita')?.value?.trim() || null,
-            checklist_data: this.getChecklistData(),
-            fotos: this.getImageData(),
-            acompanhantes: this.getAcompanhantes(),
-        };
+        try {
+            const data = {
+                titulo: document.querySelector('#titulo_relatorio')?.value?.trim() || 
+                        document.querySelector('#titulo')?.value?.trim() || null,
+                numero: document.querySelector('#numero_relatorio')?.value?.trim() || 
+                        document.querySelector('#numero')?.value?.trim() || null,
+                data_relatorio: document.querySelector('#data_relatorio')?.value || null,
+                projeto_id: document.querySelector('#projeto_id')?.value || null,
+                observacoes_finais: document.querySelector('#observacoes')?.value?.trim() || null,
+                lembrete_proxima_visita: document.querySelector('#lembrete')?.value?.trim() || null,
+                conteudo: this.collectRichTextContent() || "",
+                checklist_data: this.getChecklistData(),
+                acompanhantes: this.getAcompanhantesData(),
+                fotos: this.getImageData()
+            };
 
-        // Adicionar ID apenas se existir
-        if (this.reportId) {
-            data.id = this.reportId;
+            // Adicionar ID apenas se existir
+            if (this.reportId) {
+                data.id = this.reportId;
+            }
+
+            // Converter campos null para strings vazias para evitar erro no PostgreSQL
+            Object.keys(data).forEach(key => {
+                if (data[key] === null) {
+                    data[key] = "";
+                }
+            });
+
+            console.log('📦 AutoSave - Dados coletados:', data);
+            return data;
+        } catch (err) {
+            console.error('❌ AutoSave: erro ao coletar dados do formulário:', err);
+            return {};
         }
-
-        console.log('📦 AutoSave - Dados coletados:', data);
-        return data;
     }
 
     getChecklistData() {
         const items = Array.from(document.querySelectorAll('.checklist-item')).map(item => ({
             nome: item.querySelector('label')?.textContent?.trim() || '',
             status: item.querySelector('input[type="checkbox"]')?.checked || false,
-            observacao: item.querySelector('textarea')?.value || ''
+            observacao: item.querySelector('textarea')?.value?.trim() || ''
         }));
 
         console.log(`📋 AutoSave - Checklist: ${items.length} itens coletados`);
-        return items.length > 0 ? items : null;
+        return items;
     }
 
     getImageData() {
         const images = window.attachedImages || [];
-        const imageData = images.map(img => ({
+        const imageData = images.map((img, index) => ({
             nome: img.name || null,
+            categoria: img.category || null,
+            local: img.location || null,
             legenda: img.caption || null,
             titulo: img.title || null,
             tipo_servico: img.category || null,
-            local: img.location || null,
             url: img.url || null,
             filename: img.filename || null,
-            ordem: img.ordem || 0
+            ordem: img.ordem !== undefined ? img.ordem : index
         }));
 
         console.log(`📸 AutoSave - Imagens: ${imageData.length} imagens coletadas`);
-        return imageData.length > 0 ? imageData : null;
+        return imageData;
     }
 
-    getAcompanhantes() {
+    collectRichTextContent() {
+        const editor = document.querySelector('.ql-editor');
+        return editor ? editor.innerHTML.trim() : '';
+    }
+
+    getAcompanhantesData() {
         try {
+            // Verificar se existe variável global window.acompanhantes
+            if (window.acompanhantes && Array.isArray(window.acompanhantes)) {
+                console.log(`👥 AutoSave - Acompanhantes: ${window.acompanhantes.length} pessoas`);
+                return window.acompanhantes;
+            }
+            
+            // Tentar coletar do input hidden
             const acompanhantesInput = document.querySelector('#acompanhantes-data');
             if (acompanhantesInput && acompanhantesInput.value) {
                 const acompanhantes = JSON.parse(acompanhantesInput.value);
                 console.log(`👥 AutoSave - Acompanhantes: ${acompanhantes.length} pessoas`);
-                return acompanhantes.length > 0 ? acompanhantes : null;
+                return acompanhantes;
             }
         } catch (e) {
             console.error('❌ Erro ao coletar acompanhantes:', e);
         }
-        return null;
+        return [];
     }
 
     async performSave() {
