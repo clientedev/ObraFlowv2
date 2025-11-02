@@ -2322,7 +2322,7 @@ def autosave_report(report_id):
             'titulo', 'observacoes', 'latitude', 'longitude', 
             'endereco', 'checklist_data', 'last_edited_at',
             'descricao', 'categoria', 'local', 'observacoes_finais', 
-            'conteudo', 'lembrete_proxima_visita'
+            'conteudo', 'lembrete_proxima_visita', 'acompanhantes'
         ]
 
         # Aplicar updates apenas nos campos permitidos
@@ -2358,6 +2358,27 @@ def autosave_report(report_id):
                                 continue
                         except (ValueError, AttributeError) as e:
                             current_app.logger.warning(f"⚠️ AUTOSAVE: Erro ao converter lembrete_proxima_visita: {e}")
+                            continue
+                    else:
+                        value = None
+                
+                elif field == 'acompanhantes':
+                    # Validar que seja uma lista válida (JSONB)
+                    if value is not None:
+                        if isinstance(value, list):
+                            # Já é uma lista, pode usar diretamente
+                            pass
+                        elif isinstance(value, str):
+                            try:
+                                value = json.loads(value)
+                                if not isinstance(value, list):
+                                    current_app.logger.warning(f"⚠️ AUTOSAVE: acompanhantes não é uma lista após parsing")
+                                    continue
+                            except json.JSONDecodeError as e:
+                                current_app.logger.warning(f"⚠️ AUTOSAVE: Erro ao parsear acompanhantes JSON: {e}")
+                                continue
+                        else:
+                            current_app.logger.warning(f"⚠️ AUTOSAVE: acompanhantes tipo inválido: {type(value)}")
                             continue
                     else:
                         value = None

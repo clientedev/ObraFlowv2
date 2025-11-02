@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from app import app, db
 from models import Relatorio, FotoRelatorio, Projeto, User
 import traceback # Import traceback for detailed error logging
+import json # Import json for handling JSON data
 
 # Configuração de logging
 logger = logging.getLogger(__name__)
@@ -714,7 +715,7 @@ def api_autosave_relatorio():
     """
     try:
         data = request.get_json()
-        
+
         # LOG: Dados recebidos
         print("📦 AutoSave - Dados recebidos:", data)
 
@@ -833,13 +834,13 @@ def api_autosave_relatorio():
             for campo in campos_atualizaveis:
                 if campo in data:
                     setattr(relatorio, campo, data[campo])
-            
+
             # Atualizar coordenadas GPS se fornecidas
             if 'latitude' in data:
                 relatorio.latitude = data['latitude']
             if 'longitude' in data:
                 relatorio.longitude = data['longitude']
-            
+
             # Atualizar data do relatório se fornecida
             if 'data_relatorio' in data and data['data_relatorio']:
                 try:
