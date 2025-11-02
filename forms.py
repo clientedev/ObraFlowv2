@@ -239,7 +239,7 @@ class VisitaRealizadaForm(FlaskForm):
 
 class FotoRelatorioForm(FlaskForm):
     legenda = StringField('Legenda da Foto', validators=[DataRequired(message='Legenda é obrigatória'), Length(max=500)])
-    categoria = SelectField('Categoria', choices=[('', 'Selecione...')], validators=[DataRequired(message='Categoria é obrigatória')])
+    categoria = SelectField('Categoria', choices=[('', 'Sem categoria')], validators=[Optional()])
     local = StringField('Local', validators=[DataRequired(message='Local é obrigatório'), Length(max=300)], render_kw={'placeholder': 'Local ou ambiente da foto'})
     
     def set_categoria_choices(self, projeto_id):
@@ -249,11 +249,11 @@ class FotoRelatorioForm(FlaskForm):
         categorias = CategoriaObra.query.filter_by(projeto_id=projeto_id).order_by(CategoriaObra.ordem).all()
         
         if categorias:
-            self.categoria.choices = [('', 'Selecione...')] + [
+            self.categoria.choices = [('', 'Sem categoria')] + [
                 (c.nome_categoria, c.nome_categoria) for c in categorias
             ]
         else:
-            self.categoria.choices = [('', 'Nenhuma categoria cadastrada para este projeto')]
+            self.categoria.choices = [('', 'Sem categoria')]
 
 class LegendaPredefinidaForm(FlaskForm):
     texto = StringField('Texto da Legenda', validators=[DataRequired(), Length(max=500)])
