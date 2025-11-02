@@ -1,0 +1,195 @@
+AutoSave Completo e Silencioso (Logs Apenas no Console)
+
+Objetivo:
+Implementar (ou corrigir) o sistema de salvamento automático do relatório de obras, garantindo que todas as informações (inclusive imagens e checklist) sejam armazenadas corretamente no backend e recuperadas depois, sem qualquer feedback visual, apenas com logs no console.
+
+⚙️ Problema Atual
+
+O AutoSave dispara requisições POST /api/relatorios/autosave que retornam HTTP 400 (Bad Request) com { "error": "Erro desconhecido" }.
+
+O payload enviado contém campos ausentes, nulos ou com tipo incorreto.
+
+Funções como getChecklistData() não estão implementadas corretamente, quebrando o fluxo de salvamento.
+
+Nenhum dado é realmente persistido (nem imagens, nem texto, nem campos básicos).
+
+🎯 Meta Técnica
+
+O AutoSave deve:
+
+Salvar todos os campos e todas as imagens de forma incremental e automática.
+
+Enviar dados formatados corretamente ao backend.
+
+Funcionar silenciosamente (sem notificações gráficas).
+
+Registrar no console todas as etapas: coleta, envio, sucesso e falha.
+
+Garantir persistência — se o usuário sair da página, poderá continuar o relatório depois exatamente de onde parou.
+
+🧩 Implementação Detalhada
+1. Frontend — reports_autosave.js
+➤ Coleta completa dos dados
+
+Corrigir a função collectFormData() para incluir todos os campos e imagens, normalizando os dados antes de enviar:
+
+collectFormData() {
+  const data = {
+    id: window.currentReportId || null,
+    titulo: document.querySelector("#titulo_relatorio")?.value || null,
+    numero: document.querySelector("#numero_relatorio")?.value || null,
+    data_relatorio: document.querySelector("#data_relatorio")?.value || null,
+    projeto_id: document.querySelector("#projeto_id")?.value || null,
+    observacoes_finais: document.querySelector("#observacoes")?.value || null,
+    lembrete_proxima_visita: document.querySelector("#lembrete")?.value || null,
+    categoria: document.querySelector("#categoria")?.value || null,
+    local: document.querySelector("#local")?.value || null,
+    descricao: document.querySelector("#descricao")?.value || null,
+    checklist_data: this.getChecklistData(),
+    fotos: this.getImageData(),
+  };
+  
+  console.log("📦 AutoSave - Dados coletados:", data);
+  return data;
+}
+
+➤ Função getChecklistData()
+
+Implementar corretamente para retornar os itens com status e observações:
+
+getChecklistData() {
+  return Array.from(document.querySelectorAll(".checklist-item")).map(item => ({
+    nome: item.querySelector("label")?.textContent?.trim() || "",
+    status: item.querySelector("input[type='checkbox']")?.checked || false,
+    observacao: item.querySelector("textarea")?.value || ""
+  }));
+}
+
+➤ Função getImageData()
+
+Coletar informações das imagens anexadas:
+
+getImageData() {
+  const images = window.attachedImages || [];
+  return images.map(img => ({
+    nome: img.name || null,
+    legenda: img.caption || null,
+    categoria: img.category || null,
+    local: img.location || null
+  }));
+}
+
+➤ Envio ao backend (performSave)
+
+Corrigir o método principal do autosave para enviar o payload completo, tratar erros e registrar logs apenas no console:
+
+async performSave() {
+  const payload = this.collectFormData();
+
+  try {
+    const response = await fetch("/api/relatorios/autosave", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error("❌ AutoSave erro HTTP:", response.status, err);
+      throw new Error(err.detail || "Falha no autosave");
+    }
+
+    const result = await response.json();
+    console.log("✅ AutoSave concluído com sucesso:", result);
+  } catch (error) {
+    console.warn("⚠️ AutoSave falhou:", error.message);
+    console.info("💾 Salvando temporariamente no localStorage...");
+    localStorage.setItem("autosave_draft", JSON.stringify(payload));
+  }
+}
+
+➤ Agendamento automático de salvamento
+
+Adicionar debounce controlado:
+
+startAutoSave() {
+  let timer;
+  const saveHandler = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => this.performSave(), 2000);
+  };
+  
+  document.querySelectorAll("input, textarea, select").forEach(el => {
+    el.addEventListener("input", saveHandler);
+    el.addEventListener("change", saveHandler);
+  });
+
+  console.log("🕒 AutoSave ativado para relatório atual.");
+}
+
+2. Backend — FastAPI (/api/relatorios/autosave)
+
+Corrigir o endpoint para aceitar payloads parciais e validar campos dinamicamente:
+
+@router.post("/api/relatorios/autosave")
+async def autosave_relatorio(payload: dict, db: Session = Depends(get_db)):
+    try:
+        relatorio_id = payload.get("id")
+        if relatorio_id:
+            relatorio = db.query(Relatorio).filter_by(id=relatorio_id).first()
+            if not relatorio:
+                raise HTTPException(status_code=404, detail="Relatório não encontrado")
+        else:
+            relatorio = Relatorio()
+            db.add(relatorio)
+
+        # Atualiza apenas os campos enviados
+        for key, value in payload.items():
+            if hasattr(relatorio, key):
+                setattr(relatorio, key, value)
+
+        db.commit()
+        db.refresh(relatorio)
+        print("✅ AutoSave registrado:", relatorio.id)
+        return {"status": "ok", "id": relatorio.id}
+
+    except Exception as e:
+        db.rollback()
+        print("❌ Erro no autosave:", str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+
+3. Banco de Dados / Alembic
+
+Se faltarem campos referenciados no payload (descricao, lembrete_proxima_visita, categoria, local, etc.), gerar uma migração automática:
+
+alembic revision -m "Ajuste de campos para autosave completo" --autogenerate
+alembic upgrade head
+
+🔍 Logs Esperados no Console
+
+Ao detectar mudanças:
+
+📦 AutoSave - Dados coletados: { titulo: "Relatório...", data_relatorio: "2025-11-02", ... }
+
+
+Ao salvar:
+
+✅ AutoSave concluído com sucesso: { id: 177, status: "ok" }
+
+
+Em falha:
+
+⚠️ AutoSave falhou: Falha no autosave
+💾 Salvando temporariamente no localStorage...
+
+🧱 Resultado Esperado
+
+Todos os campos (inclusive imagens e checklist) serão salvos automaticamente no backend.
+
+Nenhum erro 400 será exibido.
+
+AutoSave rodará de forma contínua, silenciosa e confiável.
+
+Em caso de falha de rede, os dados ficam salvos no localStorage até reconexão.
+
+Logs de diagnóstico completos disponíveis apenas no console (sem impacto na UI).
