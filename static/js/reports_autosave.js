@@ -29,10 +29,9 @@ class ReportsAutoSave {
     }
 
     startAutoSave() {
-        let timer;
         const saveHandler = () => {
-            clearTimeout(timer);
-            timer = setTimeout(() => this.performSave(), this.debounceTime);
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(() => this.performSave(), this.debounceTime);
         };
 
         // Monitorar TODOS os campos do formulário
