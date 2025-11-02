@@ -362,6 +362,8 @@ def api_buscar_relatorio(relatorio_id):
     GET /api/relatorios/<id>
 
     Retorna todos os campos do relatório e as imagens associadas em formato estruturado.
+    Inclui também os dados do projeto associado, checklist e acompanhantes.
+    Otimizado para carregamento completo na edição de relatório.
     """
     try:
         relatorio = Relatorio.query.get(relatorio_id)
@@ -372,6 +374,22 @@ def api_buscar_relatorio(relatorio_id):
                 'error': 'Relatório não encontrado'
             }), 404
 
+        # Buscar projeto associado
+        projeto = None
+        if relatorio.projeto_id:
+            projeto_obj = Projeto.query.get(relatorio.projeto_id)
+            if projeto_obj:
+                projeto = {
+                    'id': projeto_obj.id,
+                    'numero': projeto_obj.numero,
+                    'nome': projeto_obj.nome,
+                    'descricao': projeto_obj.descricao,
+                    'endereco': projeto_obj.endereco,
+                    'tipo_obra': projeto_obj.tipo_obra,
+                    'construtora': projeto_obj.construtora,
+                    'status': projeto_obj.status
+                }
+
         # Buscar imagens associadas
         imagens = FotoRelatorio.query.filter_by(
             relatorio_id=relatorio_id
@@ -380,13 +398,23 @@ def api_buscar_relatorio(relatorio_id):
         imagens_data = [{
             'id': img.id,
             'url': img.url or f"/uploads/{img.filename}" if img.filename else None,
+            'path': img.url or f"/uploads/{img.filename}" if img.filename else None,
+            'filename': img.filename,
             'legenda': img.legenda,
+            'caption': img.legenda,
             'ordem': img.ordem,
             'titulo': img.titulo,
             'tipo_servico': img.tipo_servico,
+            'category': img.tipo_servico,
             'local': img.local,
             'created_at': img.created_at.isoformat() if img.created_at else None
         } for img in imagens]
+
+        # Preparar dados do checklist (já está em JSON)
+        checklist = relatorio.checklist_data or []
+        
+        # Preparar dados dos acompanhantes (já está em JSON)
+        acompanhantes = relatorio.acompanhantes or []
 
         return jsonify({
             'success': True,
@@ -416,13 +444,13 @@ def api_buscar_relatorio(relatorio_id):
 
                 # Outros campos
                 'conteudo': relatorio.conteudo,
-                'checklist_data': relatorio.checklist_data,
                 'comentario_aprovacao': relatorio.comentario_aprovacao,
-                'acompanhantes': relatorio.acompanhantes,
-
-                # Imagens
-                'imagens': imagens_data
-            }
+            },
+            # Dados relacionados estruturados
+            'projeto': projeto,
+            'imagens': imagens_data,
+            'checklist': checklist,
+            'acompanhantes': acompanhantes
         })
 
     except Exception as e:

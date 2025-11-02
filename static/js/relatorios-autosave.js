@@ -57,6 +57,9 @@ class ReportAutoSave {
         try {
             console.log(`📥 Carregando relatório ID: ${this.reportId}`);
             
+            // Exibir loader enquanto carrega
+            this.showLoadingState();
+            
             const response = await fetch(`/api/relatorios/${this.reportId}`, {
                 method: 'GET',
                 headers: {
@@ -79,18 +82,35 @@ class ReportAutoSave {
                 // Preencher formulário com dados carregados
                 this.populateForm(data.relatorio);
                 
-                // Carregar imagens
-                if (data.relatorio.imagens && data.relatorio.imagens.length > 0) {
-                    this.loadImages(data.relatorio.imagens);
+                // Selecionar projeto se disponível
+                if (data.projeto) {
+                    this.selectProjeto(data.projeto);
+                }
+                
+                // Carregar imagens com categoria e local
+                if (data.imagens && data.imagens.length > 0) {
+                    this.loadImages(data.imagens);
+                }
+                
+                // Preencher checklist
+                if (data.checklist && data.checklist.length > 0) {
+                    this.preencherChecklist(data.checklist);
+                }
+                
+                // Preencher acompanhantes
+                if (data.acompanhantes && data.acompanhantes.length > 0) {
+                    this.preencherAcompanhantes(data.acompanhantes);
                 }
                 
                 console.log('✅ Relatório carregado com sucesso');
-                this.showStatus('Relatório carregado', 'success');
+                this.showStatus('✔️ Tudo carregado', 'success');
+                this.hideLoadingState();
             }
             
         } catch (error) {
             console.error('❌ Erro ao carregar relatório:', error);
             this.showStatus('Erro ao carregar relatório', 'error');
+            this.hideLoadingState();
         }
     }
     
@@ -160,21 +180,32 @@ class ReportAutoSave {
         if (!container) return;
         
         const imageCard = document.createElement('div');
-        imageCard.className = 'image-card';
+        imageCard.className = 'image-card foto-relatorio';
         imageCard.dataset.imageId = img.id;
         imageCard.dataset.ordem = img.ordem || index;
         imageCard.draggable = true;
         
         imageCard.innerHTML = `
             <div class="image-preview">
-                <img src="${img.url}" alt="${img.legenda || 'Imagem'}" 
+                <img src="${img.path || img.url}" alt="${img.caption || img.legenda || 'Foto'}" 
+                     class="preview-imagem"
                      onerror="this.src='/static/placeholder-image.png'" />
             </div>
-            <div class="image-info">
+            <div class="image-info foto-info">
                 <input type="text" 
-                       class="image-legenda" 
-                       placeholder="Legenda da imagem" 
-                       value="${img.legenda || ''}"
+                       class="image-legenda foto-legenda" 
+                       placeholder="Legenda" 
+                       value="${img.caption || img.legenda || ''}"
+                       data-image-id="${img.id}" />
+                <input type="text" 
+                       class="image-categoria foto-categoria" 
+                       placeholder="Categoria" 
+                       value="${img.category || img.tipo_servico || ''}"
+                       data-image-id="${img.id}" />
+                <input type="text" 
+                       class="image-local foto-local" 
+                       placeholder="Local" 
+                       value="${img.local || ''}"
                        data-image-id="${img.id}" />
                 <div class="image-actions">
                     <button type="button" class="btn-move-up" title="Mover para cima">▲</button>
@@ -188,6 +219,118 @@ class ReportAutoSave {
         
         // Adicionar listeners
         this.setupImageCardListeners(imageCard);
+    }
+    
+    /**
+     * Seleciona o projeto no campo de seleção
+     */
+    selectProjeto(projeto) {
+        if (!projeto) return;
+        
+        const projetoSelect = document.getElementById('projeto_id') || document.querySelector('select[name="projeto_id"]');
+        if (projetoSelect) {
+            // Verificar se a opção já existe
+            let optionExists = false;
+            for (let i = 0; i < projetoSelect.options.length; i++) {
+                if (projetoSelect.options[i].value == projeto.id) {
+                    projetoSelect.selectedIndex = i;
+                    optionExists = true;
+                    break;
+                }
+            }
+            
+            // Se não existe, adicionar a opção
+            if (!optionExists) {
+                const option = new Option(projeto.nome, projeto.id, true, true);
+                projetoSelect.appendChild(option);
+            }
+            
+            console.log(`✅ Projeto selecionado: ${projeto.nome}`);
+        }
+    }
+    
+    /**
+     * Preenche o checklist com os dados carregados
+     */
+    preencherChecklist(checklist) {
+        const checklistContainer = document.getElementById('checklist') || document.querySelector('.checklist-container');
+        if (!checklistContainer) {
+            console.warn('Container de checklist não encontrado');
+            return;
+        }
+        
+        checklistContainer.innerHTML = '';
+        
+        if (!Array.isArray(checklist)) {
+            console.warn('Checklist não é um array:', checklist);
+            return;
+        }
+        
+        checklist.forEach(item => {
+            const row = document.createElement('div');
+            row.classList.add('checklist-item');
+            row.innerHTML = `
+                <label>
+                    <input type="checkbox" ${item.concluido || item.resposta ? 'checked' : ''}>
+                    ${item.pergunta || item.texto || ''}
+                </label>
+            `;
+            checklistContainer.appendChild(row);
+        });
+        
+        console.log(`✅ ${checklist.length} itens de checklist carregados`);
+    }
+    
+    /**
+     * Preenche os acompanhantes com os dados carregados
+     */
+    preencherAcompanhantes(acompanhantes) {
+        const container = document.getElementById('acompanhantes') || document.querySelector('.acompanhantes-container');
+        if (!container) {
+            console.warn('Container de acompanhantes não encontrado');
+            return;
+        }
+        
+        container.innerHTML = '';
+        
+        if (!Array.isArray(acompanhantes)) {
+            console.warn('Acompanhantes não é um array:', acompanhantes);
+            return;
+        }
+        
+        acompanhantes.forEach(acompanhante => {
+            const div = document.createElement('div');
+            div.classList.add('acompanhante-item');
+            div.textContent = `${acompanhante.nome || acompanhante.name || ''} - ${acompanhante.funcao || acompanhante.role || ''}`;
+            container.appendChild(div);
+        });
+        
+        console.log(`✅ ${acompanhantes.length} acompanhantes carregados`);
+    }
+    
+    /**
+     * Exibe estado de carregamento
+     */
+    showLoadingState() {
+        const statusElement = document.getElementById('autosave-status') || document.querySelector('.status-message');
+        if (statusElement) {
+            statusElement.textContent = '🔄 Carregando dados...';
+            statusElement.className = 'status-message loading';
+        }
+    }
+    
+    /**
+     * Oculta estado de carregamento
+     */
+    hideLoadingState() {
+        const statusElement = document.getElementById('autosave-status') || document.querySelector('.status-message');
+        if (statusElement) {
+            // Manter a mensagem de sucesso visível por alguns segundos
+            setTimeout(() => {
+                statusElement.textContent = '';
+                statusElement.className = 'status-message';
+            }, 2000);
+        }
     }
     
     /**
