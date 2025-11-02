@@ -24,23 +24,27 @@ class ReportsAutoSave {
 
     init() {
         console.log(`✅ AutoSave: Ativado para relatório ID ${this.reportId}`);
+        console.log(`🔑 AutoSave: CSRF Token presente: ${!!this.csrfToken}`);
+        console.log(`⏱️ AutoSave: Debounce configurado para ${this.debounceTime}ms`);
         this.startAutoSave();
         this.setupNetworkListeners();
     }
 
     startAutoSave() {
         const saveHandler = () => {
+            console.log('📝 AutoSave: Campo modificado - iniciando debounce de 2s');
             clearTimeout(this.debounceTimer);
             this.debounceTimer = setTimeout(() => this.performSave(), this.debounceTime);
         };
 
         // Monitorar TODOS os campos do formulário
-        document.querySelectorAll('input, textarea, select').forEach(el => {
+        const formElements = document.querySelectorAll('input, textarea, select');
+        formElements.forEach(el => {
             el.addEventListener('input', saveHandler);
             el.addEventListener('change', saveHandler);
         });
 
-        console.log('🕒 AutoSave ativado para relatório atual.');
+        console.log(`🕒 AutoSave: Monitorando ${formElements.length} campos do formulário`);
     }
 
     setupNetworkListeners() {
