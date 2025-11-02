@@ -189,20 +189,23 @@ class ReportsAutoSave {
         const imageData = [];
         
         console.log(`📸 AutoSave - Processando ${mobilePhotos.length} imagens do sistema mobile-first...`);
+        console.log(`📸 AutoSave - mobilePhotoData completo:`, JSON.stringify(mobilePhotos, null, 2));
         
         for (let i = 0; i < mobilePhotos.length; i++) {
             const photo = mobilePhotos[i];
             
             console.log(`📸 Imagem ${i}:`, {
                 savedId: photo.savedId,
+                temp_id: photo.temp_id,
                 hasFile: !!photo.file,
+                filename: photo.filename,
                 category: photo.category,
                 manualCaption: photo.manualCaption,
                 predefinedCaption: photo.predefinedCaption
             });
             
-            // Se já tem ID, é uma imagem já salva - apenas metadados
-            if (photo.savedId) {
+            // Se já tem ID E já foi salva no banco, apenas enviar metadados
+            if (photo.savedId && photo.savedId > 0) {
                 imageData.push({
                     id: photo.savedId,
                     legenda: photo.manualCaption || photo.predefinedCaption || '',
@@ -212,7 +215,7 @@ class ReportsAutoSave {
                     tipo_servico: photo.category || null,
                     ordem: i
                 });
-                console.log(`📌 AutoSave - Imagem já salva: ID ${photo.savedId}, legenda: "${photo.manualCaption || photo.predefinedCaption}"`);
+                console.log(`📌 AutoSave - Imagem já salva no banco: ID ${photo.savedId}, legenda: "${photo.manualCaption || photo.predefinedCaption}"`);
                 continue;
             }
             
@@ -370,10 +373,22 @@ class ReportsAutoSave {
                         if (photo) {
                             photo.savedId = img.id;
                             console.log(`📸 AutoSave: Imagem ${img.temp_id} → ID ${img.id} (legenda: "${img.legenda}")`);
+                        } else {
+                            console.warn(`⚠️ AutoSave: Não foi possível encontrar foto com temp_id ${img.temp_id} no mobilePhotoData`);
                         }
                     }
                 });
+            } else {
+                console.warn(`⚠️ AutoSave: Nenhuma imagem retornada no resultado ou mobilePhotoData vazio`);
             }
+            
+            // VALIDAÇÃO FINAL: Confirmar total de imagens
+            console.log(`✅ AutoSave FINAL: ${result.imagens?.length || 0} imagens processadas`);
+            console.log(`📊 mobilePhotoData após salvamento:`, window.mobilePhotoData?.map(p => ({
+                savedId: p.savedId,
+                temp_id: p.temp_id,
+                legenda: p.manualCaption || p.predefinedCaption
+            })));
             
             // Limpar localStorage após sucesso
             this.clearLocalStorage();

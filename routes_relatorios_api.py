@@ -935,9 +935,11 @@ def api_autosave_relatorio():
             fotos_data = data['fotos']
 
             print(f"📸 AutoSave: Processando {len(fotos_data)} imagens")
+            logger.info(f"📸 AutoSave: Processando {len(fotos_data)} imagens")
 
             for idx, foto_info in enumerate(fotos_data):
                 print(f"📸 Imagem {idx}: {foto_info}")
+                logger.info(f"📸 Imagem {idx}: {foto_info}")
                 # Deletar imagem marcada para remoção
                 if foto_info.get('deletar'):
                     foto_id = foto_info.get('id')
@@ -1035,13 +1037,20 @@ def api_autosave_relatorio():
                                     logger.info(f"AutoSave: Arquivo lido do filesystem: {filename} ({len(image_bytes)} bytes)")
                                 except Exception as read_error:
                                     logger.error(f"Erro ao ler arquivo {filename}: {read_error}")
+                            else:
+                                logger.warning(f"AutoSave: Arquivo não encontrado no filesystem: {filepath}")
+                        
+                        # GARANTIR que a imagem tenha bytes válidos
+                        if not image_bytes:
+                            logger.error(f"AutoSave: Impossível salvar imagem sem bytes! filename={filename}")
+                            continue
                         
                         nova_foto = FotoRelatorio(
                             relatorio_id=relatorio_id,
                             url=foto_info.get('url'),
                             filename=filename,
                             imagem=image_bytes,  # SALVAR BYTES NO BANCO
-                            imagem_size=len(image_bytes) if image_bytes else None,
+                            imagem_size=len(image_bytes),
                             content_type=foto_info.get('content_type') or 'image/jpeg',
                             legenda=foto_info.get('legenda'),
                             titulo=foto_info.get('titulo'),
@@ -1058,7 +1067,7 @@ def api_autosave_relatorio():
                             'legenda': nova_foto.legenda,
                             'ordem': nova_foto.ordem
                         })
-                        logger.info(f"AutoSave: Nova imagem adicionada ao relatório {relatorio_id} (bytes: {len(image_bytes) if image_bytes else 0})")
+                        logger.info(f"AutoSave: Nova imagem adicionada ao relatório {relatorio_id} (bytes: {len(image_bytes)})")
 
                 # Atualizar imagem existente
                 else:
@@ -1087,6 +1096,12 @@ def api_autosave_relatorio():
         # 4️⃣ COMMIT DA TRANSAÇÃO
         db.session.commit()
         print(f"✅ AutoSave registrado: {relatorio_id}")
+        logger.info(f"✅ AutoSave: Commit realizado para relatório {relatorio_id}")
+        
+        # VALIDAÇÃO: Verificar quantas imagens foram realmente salvas no banco
+        total_imagens_db = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count()
+        logger.info(f"📊 AutoSave: Total de imagens no banco após commit: {total_imagens_db}")
+        print(f"📊 Total de imagens no banco: {total_imagens_db}")
 
         # Buscar estado final do relatório
         relatorio_final = Relatorio.query.get(relatorio_id)
