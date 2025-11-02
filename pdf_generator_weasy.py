@@ -328,13 +328,14 @@ class WeasyPrintReportGenerator:
         return """
 @page {
     size: A4;
-    margin: 20mm 15mm 25mm 15mm;
+    margin: 20mm 15mm 30mm 15mm;
     
-    @bottom-right {
-        content: "Página " counter(page);
+    @bottom-center {
+        content: "Página " counter(page) " / " counter(pages);
         font-family: Arial, Helvetica, sans-serif;
         font-size: 9pt;
         color: #666666;
+        margin-bottom: 5mm;
     }
 }
 
@@ -637,13 +638,14 @@ figure {
     font-size: 9pt;
     background-color: #f8f8f8;
     color: #333333;
-    min-height: 32px;
+    min-height: 40px;
+    padding: 8px 10px;
 }
 
 /* Rodapé - proporções exatas da imagem */
 .footer-section {
     position: fixed;
-    bottom: 0;
+    bottom: 10mm;
     left: 0;
     right: 0;
     padding: 0.8cm 1.5cm 0.5cm 1.5cm;
@@ -701,6 +703,7 @@ figure {
 /* ASSINATURAS INLINE - Aparecem após o último grid de fotos, na mesma página */
 .assinaturas-inline {
     margin-top: 10mm;
+    margin-bottom: 35mm;
     page-break-inside: avoid;
     page-break-before: avoid;
 }
