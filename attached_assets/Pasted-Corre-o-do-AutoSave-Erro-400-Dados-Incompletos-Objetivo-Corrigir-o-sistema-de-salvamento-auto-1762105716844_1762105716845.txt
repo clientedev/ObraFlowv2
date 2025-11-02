@@ -1,0 +1,197 @@
+Correção do AutoSave (Erro 400 / Dados Incompletos)
+
+Objetivo:
+Corrigir o sistema de salvamento automático de relatórios (/api/relatorios/autosave), garantindo que todos os campos necessários sejam coletados, validados e enviados corretamente ao backend, incluindo checklist, observações, lembretes e imagens — sem exibir nada na interface, apenas logs técnicos no console.
+
+⚙️ Problema Atual
+
+O AutoSave coleta parcialmente os dados:
+
+{ titulo: null, numero: null, data_relatorio: '2025-11-02', projeto_id: '29', observacoes_finais: null, ... }
+
+
+O backend recebe campos obrigatórios nulos e retorna HTTP 400 Bad Request.
+
+Campos opcionais (como imagens, lembrete, checklist) também não são serializados corretamente.
+
+Falta padronização no corpo JSON enviado.
+
+🎯 Meta Técnica
+
+Garantir que todos os campos obrigatórios sejam coletados e enviados corretamente.
+
+Permitir o envio parcial e incremental (AutoSave não deve exigir todos os campos preenchidos de uma vez).
+
+Adicionar tratamento de erros detalhado no console para diagnóstico.
+
+Garantir salvamento temporário no localStorage se o servidor não responder.
+
+Manter o sistema totalmente silencioso na interface (sem alertas ou popups).
+
+🧩 IMPLEMENTAÇÃO DETALHADA
+🔹 1. Frontend — reports_autosave.js
+✅ Coleta completa e segura de dados:
+
+Substituir o método collectFormData() atual por:
+
+collectFormData() {
+  try {
+    const data = {
+      id: window.currentReportId || null,
+      titulo: document.querySelector("#titulo_relatorio")?.value?.trim() || null,
+      numero: document.querySelector("#numero_relatorio")?.value?.trim() || null,
+      data_relatorio: document.querySelector("#data_relatorio")?.value || null,
+      projeto_id: document.querySelector("#projeto_id")?.value || null,
+      observacoes_finais: document.querySelector("#observacoes")?.value?.trim() || null,
+      lembrete_proxima_visita: document.querySelector("#lembrete")?.value?.trim() || null,
+      categoria: document.querySelector("#categoria")?.value || null,
+      local: document.querySelector("#local")?.value?.trim() || null,
+      descricao: document.querySelector("#descricao")?.value?.trim() || null,
+      checklist_data: this.getChecklistData(),
+      fotos: this.getImageData(),
+    };
+
+    console.log("🟦 AutoSave - Dados coletados:", data);
+    return data;
+
+  } catch (err) {
+    console.error("❌ Erro ao coletar dados do formulário:", err);
+    return {};
+  }
+}
+
+✅ Coleta de checklist corrigida:
+getChecklistData() {
+  return Array.from(document.querySelectorAll(".checklist-item")).map(item => ({
+    nome: item.querySelector("label")?.textContent?.trim() || "",
+    status: item.querySelector("input[type='checkbox']")?.checked || false,
+    observacao: item.querySelector("textarea")?.value?.trim() || ""
+  }));
+}
+
+✅ Coleta de imagens corrigida:
+getImageData() {
+  const imgs = window.attachedImages || [];
+  return imgs.map(img => ({
+    nome: img.name || null,
+    categoria: img.category || null,
+    local: img.location || null,
+    legenda: img.caption || null
+  }));
+}
+
+✅ Envio de dados seguro (tratando erro 400):
+async performSave() {
+  const payload = this.collectFormData();
+
+  if (!payload.projeto_id) {
+    console.warn("⚠️ AutoSave ignorado: projeto não selecionado.");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/relatorios/autosave", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error(`❌ AutoSave erro HTTP ${response.status}:`, err);
+      throw new Error(err.detail || "Falha no autosave");
+    }
+
+    const result = await response.json();
+    console.log("✅ AutoSave concluído:", result);
+
+  } catch (error) {
+    console.warn("⚠️ AutoSave falhou:", error.message);
+    console.info("💾 Salvando temporariamente no localStorage...");
+    localStorage.setItem("autosave_draft", JSON.stringify(payload));
+  }
+}
+
+✅ Agendamento automático e discreto:
+startAutoSave() {
+  let timer;
+  const handler = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => this.performSave(), 2500);
+  };
+
+  document.querySelectorAll("input, textarea, select").forEach(el => {
+    el.addEventListener("input", handler);
+    el.addEventListener("change", handler);
+  });
+
+  console.log("🕒 AutoSave ativado (sem notificações visuais).");
+}
+
+🔹 2. Backend — FastAPI /api/relatorios/autosave
+
+Corrigir endpoint para aceitar atualizações parciais e validar campos dinamicamente:
+
+@router.post("/api/relatorios/autosave")
+async def autosave_relatorio(payload: dict, db: Session = Depends(get_db)):
+    try:
+        relatorio_id = payload.get("id")
+        if relatorio_id:
+            relatorio = db.query(Relatorio).filter_by(id=relatorio_id).first()
+            if not relatorio:
+                raise HTTPException(status_code=404, detail="Relatório não encontrado")
+        else:
+            relatorio = Relatorio()
+            db.add(relatorio)
+
+        # Atualiza apenas campos válidos
+        for key, value in payload.items():
+            if hasattr(relatorio, key):
+                setattr(relatorio, key, value)
+
+        db.commit()
+        db.refresh(relatorio)
+        print(f"✅ AutoSave atualizado: relatório {relatorio.id}")
+        return {"status": "ok", "id": relatorio.id}
+
+    except Exception as e:
+        db.rollback()
+        print("❌ Erro no autosave:", str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+
+🔹 3. Banco de Dados (se necessário)
+
+Garantir que a tabela relatorios tenha os campos esperados:
+
+ALTER TABLE relatorios
+ADD COLUMN IF NOT EXISTS descricao TEXT,
+ADD COLUMN IF NOT EXISTS categoria VARCHAR(255),
+ADD COLUMN IF NOT EXISTS local VARCHAR(255),
+ADD COLUMN IF NOT EXISTS lembrete_proxima_visita TEXT,
+ADD COLUMN IF NOT EXISTS observacoes_finais TEXT;
+
+🔍 Logs Esperados no Console
+
+Sucesso:
+
+🟦 AutoSave - Dados coletados: { titulo: "Relatório de visita", projeto_id: "29", ... }
+✅ AutoSave concluído: { id: 177, status: "ok" }
+
+
+Falha:
+
+❌ AutoSave erro HTTP 400: { detail: "Campo obrigatório ausente" }
+⚠️ AutoSave falhou: Falha no autosave
+💾 Salvando temporariamente no localStorage...
+
+✅ Resultado Esperado
+
+Nenhum erro 400.
+
+Todos os dados (texto, checklist, imagens) salvos corretamente.
+
+AutoSave completamente silencioso na UI.
+
+Logs detalhados apenas no console para depuração.
+
+Continuidade garantida: o usuário pode sair e retornar sem perder progresso.
