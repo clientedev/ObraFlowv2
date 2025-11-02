@@ -244,79 +244,223 @@
             </div>
 
             <!-- Fotos do Relatório -->
-            {% if fotos %}
             <div class="row mt-4">
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header">
-                            <h5><i class="fas fa-images"></i> Fotos do Relatório ({{ fotos|length }})</h5>
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5><i class="fas fa-images"></i> Fotos do Relatório <span id="photo-count">({{ fotos|length if fotos else 0 }})</span></h5>
+                            {% if user_can_edit and relatorio.status != 'Aprovado' %}
+                            <button type="button" class="btn btn-sm btn-primary" onclick="document.getElementById('imageUploadInput').click()">
+                                <i class="fas fa-upload"></i> Adicionar Imagens
+                            </button>
+                            <input type="file" id="imageUploadInput" accept="image/*" multiple style="display: none;" onchange="handleImageUpload(event)">
+                            {% endif %}
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                {% for foto in fotos %}
-                                <div class="col-md-3 mb-3">
-                                    <div class="card">
-                                        <img src="{{ url_for('get_imagem', id=foto.id) }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Foto do relatório">
-                                        <div class="card-body p-2">
-                                            {% if foto.legenda %}
-                                            <p class="card-text small">{{ foto.legenda }}</p>
-                                            {% endif %}
-                                            <div class="btn-group w-100" role="group">
-                                                <a href="{{ url_for('photo_editor', photoId=foto.id) }}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deletePhoto({{ foto.id }})">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                            <div class="row" id="photos-container">
+                                {% if fotos %}
+                                    {% for foto in fotos %}
+                                    <div class="col-md-3 mb-3" id="photo-{{ foto.id }}" data-photo-id="{{ foto.id }}">
+                                        <div class="card">
+                                            <img src="{{ url_for('get_imagem', id=foto.id) }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Foto do relatório" onerror="this.src='/static/placeholder-image.png'">
+                                            <div class="card-body p-2">
+                                                <div class="mb-2">
+                                                    <input type="text" 
+                                                           class="form-control form-control-sm photo-legend" 
+                                                           data-photo-id="{{ foto.id }}"
+                                                           value="{{ foto.legenda or '' }}" 
+                                                           placeholder="Adicionar legenda..."
+                                                           {% if relatorio.status == 'Aprovado' or not user_can_edit %}disabled{% endif %}
+                                                           onchange="updatePhotoLegend({{ foto.id }}, this.value)">
+                                                </div>
+                                                {% if user_can_edit and relatorio.status != 'Aprovado' %}
+                                                <div class="btn-group w-100" role="group">
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deletePhoto({{ foto.id }}, {{ relatorio.id }})">
+                                                        <i class="fas fa-trash"></i> Excluir
+                                                    </button>
+                                                </div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="col-12 text-center py-5" id="no-photos-message">
+                                        <i class="fas fa-images fa-3x text-muted mb-3"></i>
+                                        <h5>Nenhuma imagem anexada</h5>
+                                        <p class="text-muted">Este relatório não possui nenhuma imagem anexada.</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div id="upload-progress" class="mt-3" style="display: none;">
+                                <div class="progress">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="upload-progress-bar"></div>
                                 </div>
-                                {% endfor %}
+                                <p class="text-center mt-2"><small id="upload-status">Enviando imagens...</small></p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            {% else %}
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body text-center py-5">
-                            <i class="fas fa-images fa-3x text-muted mb-3"></i>
-                            <h5>Nenhuma imagem anexada</h5>
-                            <p class="text-muted">Este relatório não possui nenhuma imagem anexada.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
         </div>
     </div>
 </div>
 
 <script>
-function deletePhoto(photoId) {
-    if (confirm('Tem certeza que deseja excluir esta foto?')) {
-        fetch(`/reports/${photoId}/delete`, {
-            method: 'POST',
+const RELATORIO_ID = {{ relatorio.id }};
+
+// Image Upload Handler
+async function handleImageUpload(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const formData = new FormData();
+    
+    // Add all selected files
+    for (let i = 0; i < files.length; i++) {
+        formData.append('novas_imagens', files[i]);
+    }
+
+    // Show progress
+    document.getElementById('upload-progress').style.display = 'block';
+    document.getElementById('upload-progress-bar').style.width = '30%';
+    document.getElementById('upload-status').textContent = `Enviando ${files.length} imagem(ns)...`;
+
+    try {
+        const response = await fetch(`/api/relatorios/${RELATORIO_ID}`, {
+            method: 'PUT',
+            headers: {
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        
+        document.getElementById('upload-progress-bar').style.width = '100%';
+        
+        if (data.success) {
+            document.getElementById('upload-status').textContent = 'Imagens enviadas com sucesso!';
+            
+            // Reload page to show new images
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            throw new Error(data.error || 'Erro ao enviar imagens');
+        }
+    } catch (error) {
+        console.error('Erro ao enviar imagens:', error);
+        document.getElementById('upload-status').textContent = 'Erro ao enviar imagens: ' + error.message;
+        document.getElementById('upload-progress-bar').classList.add('bg-danger');
+        
+        setTimeout(() => {
+            document.getElementById('upload-progress').style.display = 'none';
+            document.getElementById('upload-progress-bar').classList.remove('bg-danger');
+            document.getElementById('upload-progress-bar').style.width = '0%';
+        }, 3000);
+    }
+    
+    // Clear input
+    event.target.value = '';
+}
+
+// Delete Photo using REST API
+async function deletePhoto(photoId, relatorioId) {
+    if (!confirm('Tem certeza que deseja excluir esta foto?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/relatorios/${relatorioId}/imagens/${photoId}`, {
+            method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Erro ao excluir foto: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Erro ao excluir foto');
         });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            // Remove photo from DOM
+            const photoElement = document.getElementById(`photo-${photoId}`);
+            if (photoElement) {
+                photoElement.remove();
+            }
+            
+            // Update counter
+            updatePhotoCount();
+            
+            // Show message if no photos left
+            const photosContainer = document.getElementById('photos-container');
+            if (photosContainer.children.length === 0 || 
+                (photosContainer.children.length === 1 && photosContainer.querySelector('#no-photos-message'))) {
+                photosContainer.innerHTML = `
+                    <div class="col-12 text-center py-5" id="no-photos-message">
+                        <i class="fas fa-images fa-3x text-muted mb-3"></i>
+                        <h5>Nenhuma imagem anexada</h5>
+                        <p class="text-muted">Este relatório não possui nenhuma imagem anexada.</p>
+                    </div>
+                `;
+            }
+            
+            console.log('✅ Imagem excluída com sucesso');
+        } else {
+            alert('Erro ao excluir foto: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Erro ao excluir foto:', error);
+        alert('Erro ao excluir foto. Tente novamente.');
+    }
+}
+
+// Update Photo Legend using REST API
+let legendUpdateTimers = {};
+
+function updatePhotoLegend(photoId, newLegend) {
+    // Clear existing timer for this photo
+    if (legendUpdateTimers[photoId]) {
+        clearTimeout(legendUpdateTimers[photoId]);
+    }
+    
+    // Debounce the update (wait 1 second after user stops typing)
+    legendUpdateTimers[photoId] = setTimeout(async () => {
+        try {
+            const response = await fetch(`/api/relatorios/${RELATORIO_ID}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    imagens: [{
+                        id: photoId,
+                        legenda: newLegend
+                    }]
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log(`✅ Legenda da foto ${photoId} atualizada`);
+            } else {
+                console.error('Erro ao atualizar legenda:', data.error);
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar legenda:', error);
+        }
+    }, 1000);
+}
+
+// Update photo count
+function updatePhotoCount() {
+    const photoElements = document.querySelectorAll('[data-photo-id]');
+    const count = photoElements.length;
+    const counterElement = document.getElementById('photo-count');
+    if (counterElement) {
+        counterElement.textContent = `(${count})`;
     }
 }
 

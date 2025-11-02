@@ -131,11 +131,12 @@ class ReportsAutoSave {
     collectFormData() {
         const data = {};
         
-        // Coletar dados dos campos permitidos - APENAS SE NÃO VAZIOS
+        // Coletar dados dos campos permitidos - INCLUIR VALORES VAZIOS para permitir limpeza
         this.allowedFields.forEach(fieldName => {
             const element = document.querySelector(`[name="${fieldName}"]`);
-            if (element && element.value && element.value.trim() !== '') {
-                data[fieldName] = element.value.trim();
+            if (element) {
+                // Enviar todos os valores, incluindo strings vazias, para permitir limpeza de campos
+                data[fieldName] = element.value ? element.value.trim() : '';
             }
         });
         
