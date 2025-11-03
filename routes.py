@@ -6269,7 +6269,9 @@ def update_report(report_id):
                     acompanhantes_data = json.loads(acompanhantes_data)
                 
                 app.logger.info(f"👥 Acompanhantes parseados: {acompanhantes_data}")
-                relatorio.acompanhantes = json.dumps(acompanhantes_data)
+                
+                # CORREÇÃO: Salvar diretamente a lista (SQLAlchemy já serializa JSONB automaticamente)
+                relatorio.acompanhantes = acompanhantes_data
                 app.logger.info(f"✅ Acompanhantes atualizados: {len(acompanhantes_data) if isinstance(acompanhantes_data, list) else 0}")
             except Exception as e:
                 app.logger.error(f"❌ Erro ao atualizar acompanhantes: {e}")
@@ -6307,6 +6309,42 @@ def update_report(report_id):
                     ~FotoRelatorio.id.in_(ids_existentes)
                 ).delete(synchronize_session=False)
                 app.logger.info(f"✅ Mantidas {len(ids_existentes)} imagens existentes")
+        
+        # CORREÇÃO: Atualizar legendas, categorias e locais das imagens existentes
+        import json
+        legendas_imagens = request.form.get("legendas_imagens")
+        if legendas_imagens:
+            try:
+                legendas_data = json.loads(legendas_imagens)
+                app.logger.info(f"📝 Atualizando legendas de {len(legendas_data)} imagens")
+                
+                for img_data in legendas_data:
+                    foto_id = img_data.get("id")
+                    if foto_id:
+                        foto = FotoRelatorio.query.filter_by(
+                            id=foto_id, 
+                            relatorio_id=report_id
+                        ).first()
+                        
+                        if foto:
+                            # Atualizar legenda
+                            if "legenda" in img_data:
+                                foto.legenda = img_data["legenda"]
+                                app.logger.info(f"✅ Legenda atualizada para foto {foto_id}: {img_data['legenda'][:50]}...")
+                            
+                            # Atualizar categoria
+                            if "categoria" in img_data:
+                                foto.categoria = img_data["categoria"]
+                            
+                            # Atualizar local
+                            if "local" in img_data:
+                                foto.local = img_data["local"]
+                                
+                app.logger.info(f"✅ Legendas atualizadas com sucesso")
+            except Exception as e:
+                app.logger.error(f"❌ Erro ao atualizar legendas: {e}")
+                import traceback
+                traceback.print_exc()
 
         # Adicionar novas imagens
         novas_imagens = request.files.getlist("imagens")

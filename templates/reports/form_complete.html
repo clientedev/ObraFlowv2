@@ -1593,16 +1593,40 @@ document.getElementById('reportForm').addEventListener('submit', async function(
 
         // Coletar IDs das imagens existentes (que já estavam salvas)
         const imagensExistentes = [];
+        const legendasImagens = []; // NOVO: Array para armazenar legendas de imagens existentes
+        
         photoData.forEach(photo => {
             if (photo.savedId || photo.isExisting) {
-                imagensExistentes.push(photo.savedId || photo.id);
-                console.log(`✅ Imagem existente mantida: ${photo.savedId || photo.id}`);
+                const fotoId = photo.savedId || photo.id;
+                imagensExistentes.push(fotoId);
+                console.log(`✅ Imagem existente mantida: ${fotoId}`);
+                
+                // CORREÇÃO: Coletar legenda, categoria e local da imagem existente
+                const legenda = photo.manualCaption || photo.predefinedCaption || photo.caption || photo.metadata?.legenda || '';
+                const categoria = photo.category || photo.metadata?.categoria || photo.metadata?.tipo_servico || '';
+                const local = photo.local || photo.metadata?.local || '';
+                
+                legendasImagens.push({
+                    id: fotoId,
+                    legenda: legenda,
+                    categoria: categoria,
+                    local: local
+                });
+                
+                console.log(`📝 Legenda coletada para imagem ${fotoId}: "${legenda.substring(0, 50)}..."`);
             }
         });
         
         imagensExistentes.forEach(id => {
             formData.append('imagens_existentes[]', id);
         });
+        
+        // CORREÇÃO: Enviar legendas das imagens existentes
+        if (legendasImagens.length > 0) {
+            formData.append('legendas_imagens', JSON.stringify(legendasImagens));
+            console.log(`📝 Total de legendas enviadas: ${legendasImagens.length}`);
+        }
+        
         console.log(`💾 Total de imagens existentes a manter: ${imagensExistentes.length}`);
 
         // Adicionar novas imagens (que têm file mas não têm savedId)
