@@ -1,0 +1,167 @@
+Correção de checklist de edição de relatório
+
+O objetivo é corrigir completamente o carregamento do checklist na tela de edição de relatórios, garantindo que:
+
+A API /api/checklist-padrao não entre em conflito com outra rota.
+
+O backend envie corretamente os itens de checklist associados ao projeto e os marcados no relatório.
+
+O frontend exiba todos os itens com descrição e marca os selecionados.
+
+O problema de “Sem descrição” e da necessidade de reselecionar o projeto desapareça.
+
+🧩 1️⃣ — Corrigir rota duplicada no backend
+
+Problema:
+O log mostra que o Flask levantou:
+
+AssertionError: View function mapping is overwriting an existing endpoint function: api_checklist_padrao
+
+
+Isso significa que há duas rotas com o mesmo endpoint (@app.route('/api/checklist-padrao') ou com endpoint='api_checklist_padrao').
+
+Correção imediata:
+Procure no routes.py e mantenha apenas uma das duas funções com esse decorator.
+
+Exemplo de ajuste:
+
+# ERRO: rotas duplicadas
+@app.route('/api/checklist-padrao')
+def api_checklist_padrao():
+    ...
+
+@app.route('/api/checklist-padrao')  # duplicada!
+def checklist_padrao_duplicada():
+    ...
+
+
+✅ Solução:
+
+Remova ou renomeie uma delas (por exemplo, api_checklist_padrao_v2),
+ou adicione parâmetro endpoint='api_checklist_padrao_v2'.
+
+@app.route('/api/checklist-padrao', endpoint='api_checklist_padrao_v2')
+def checklist_padrao_v2():
+    ...
+
+
+Depois reinicie o servidor Gunicorn.
+Se o erro sumir, o backend voltará a responder corretamente.
+
+⚙️ 2️⃣ — Corrigir retorno de checklist no backend da edição
+
+Atualmente, o checklist do relatório não vem com o campo descricao nem o status concluido, resultando em “Sem descrição”.
+
+Garanta que a rota /reports/<id>/editarrel (ou a função report_edit_complete) envie o checklist no formato correto:
+
+def report_to_dict(relatorio):
+    ...
+    # Ajuste para checklist
+    checklist_itens = []
+    for item in getattr(relatorio, "checklist_itens", []):  # nome pode ser checklist_relatorio
+        checklist_itens.append({
+            "id": item.id,
+            "texto": getattr(item, "texto", None) or getattr(item, "descricao", "Sem descrição"),
+            "observacao": getattr(item, "observacao", ""),
+            "checked": bool(getattr(item, "concluido", False)),
+        })
+
+    return {
+        ...
+        "checklist": checklist_itens,
+    }
+
+
+Se o checklist estiver em outra tabela (checklist_obra, checklist_items etc.), ajuste o relacionamento para carregar os itens correspondentes ao projeto_id.
+
+🖥️ 3️⃣ — Corrigir carregamento do checklist no frontend
+
+Atualmente, o front apenas insere placeholders.
+Precisamos garantir que ele renderize os textos e estados marcados corretamente no carregamento inicial, sem depender de re-selecionar o projeto.
+
+Substitua a lógica atual de renderização do checklist por este trecho:
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  if (!window.REPORT_DATA) return console.warn("Sem dados de relatório");
+
+  const checklistContainer = document.querySelector('#checklist-container');
+  if (!checklistContainer) return;
+
+  checklistContainer.innerHTML = "";
+
+  if (Array.isArray(REPORT_DATA.checklist) && REPORT_DATA.checklist.length > 0) {
+    REPORT_DATA.checklist.forEach(item => {
+      const div = document.createElement("div");
+      div.classList.add("check-item");
+      div.innerHTML = `
+        <label class="d-block mb-2">
+          <input type="checkbox" data-id="${item.id}" ${item.checked ? "checked" : ""}>
+          <span class="ms-2">${item.texto || "Sem descrição"}</span>
+        </label>
+        <textarea class="form-control form-control-sm" placeholder="Observações sobre este item..." data-id="${item.id}">${item.observacao || ""}</textarea>
+      `;
+      checklistContainer.appendChild(div);
+    });
+  } else {
+    checklistContainer.innerHTML = `<div class="text-muted">Nenhum item de checklist disponível.</div>`;
+  }
+
+  console.info(`Checklist carregado com ${REPORT_DATA.checklist?.length || 0} itens.`);
+});
+</script>
+
+
+✅ Com isso, o checklist:
+
+é renderizado imediatamente ao abrir o modo de edição;
+
+exibe os textos originais;
+
+marca os já concluídos (checked);
+
+mantém o textarea com observações já salvas.
+
+🔄 4️⃣ — Sincronizar checklist com o projeto selecionado (sem perder os marcados)
+
+Quando o usuário troca o projeto manualmente, o front deve recarregar o checklist, mas preservando os já marcados.
+
+Inclua o seguinte dentro do listener select[name="projeto_id"].addEventListener('change', ...):
+
+// Armazenar checkboxes marcados antes de trocar o projeto
+const currentCheckedIds = Array.from(document.querySelectorAll('#checklist-container input[type=checkbox]:checked'))
+  .map(cb => cb.dataset.id);
+
+// Depois que a nova lista for carregada do backend via /api/checklist-padrao?projeto=ID
+fetch(`/api/checklist-padrao?projeto=${projetoId}`)
+  .then(r => r.json())
+  .then(novoChecklist => {
+    checklistContainer.innerHTML = "";
+    novoChecklist.forEach(item => {
+      const div = document.createElement("div");
+      const checked = currentCheckedIds.includes(String(item.id)) ? "checked" : "";
+      div.innerHTML = `
+        <label><input type="checkbox" data-id="${item.id}" ${checked}> ${item.texto}</label>
+      `;
+      checklistContainer.appendChild(div);
+    });
+  });
+
+🧾 5️⃣ — Testes que devem passar após correção
+Caso de teste	Resultado esperado
+Abrir /reports/<id>/editarrel	Checklist carrega com texto e checkboxes marcados corretamente
+Trocar o projeto manualmente	Checklist atualiza com os itens do novo projeto
+Reselecionar o mesmo projeto	Mantém os marcados
+Backend loga ✅ Dados enviados ao template	Contagem correta de checklist, fotos e acompanhantes
+Nenhum erro JS classList ou tojson	✅ sem erro no console
+✅ Resumo do que o prompt deve executar
+
+Corrigir rota duplicada /api/checklist-padrao.
+
+Garantir que report_edit_complete serialize corretamente o checklist com texto, observacao e checked.
+
+Corrigir JS de renderização para preencher corretamente sem depender de re-selecionar o projeto.
+
+Implementar persistência de seleção de checklist ao trocar o projeto.
+
+Confirmar no console/logs que REPORT_DATA.checklist vem preenchido e renderizado.
