@@ -1,0 +1,206 @@
+Corrigir editarrel e carregar todas as informações no template
+
+Objetivo:
+Corrigir a rota /reports/<id>/editarrel para que o template form_complete.html carregue corretamente todos os dados (projeto, acompanhantes, checklist, fotos, etc.) e eliminar os erros updatePhotoGallery is not defined e 'list' object has no attribute 'keys'.
+
+🚀 PROMPT TÉCNICO COMPLETO
+
+PROMPT:
+
+Corrija completamente a rota e o template do sistema de relatórios para garantir que o carregamento de relatórios na rota
+/reports/<id>/editarrel funcione perfeitamente.
+
+Atualmente:
+
+O backend está retornando corretamente todos os dados (projeto, checklist, acompanhantes, fotos, etc.);
+
+O template form_complete.html está sendo renderizado, mas:
+
+A função updatePhotoGallery() não está definida nem chamada corretamente;
+
+As imagens não aparecem no campo de fotos;
+
+O checklist não é exibido;
+
+O erro 'list' object has no attribute 'keys' ocorre ao tentar ler o checklist.
+
+O objetivo deste prompt é refazer o carregamento de edição garantindo que:
+
+Todas as informações do relatório sejam injetadas no template via JSON.
+
+As funções JS (updatePhotoGallery, carregarChecklist, carregarAcompanhantes) sejam definidas e executadas após o carregamento da página.
+
+Nenhum erro apareça no console.
+
+Todos os campos sejam preenchidos automaticamente e editáveis.
+
+⚙️ 1. Ajuste da rota /reports/<id>/editarrel
+
+No backend Flask:
+
+@app.route("/reports/<int:report_id>/editarrel", methods=["GET"])
+@login_required
+def edit_report(report_id):
+    try:
+        rel = (
+            db.session.query(Relatorio)
+            .options(
+                joinedload(Relatorio.projeto),
+                joinedload(Relatorio.fotos_relatorio),
+                joinedload(Relatorio.checklist_relatorio),
+                joinedload(Relatorio.acompanhantes_relatorio),
+            )
+            .filter_by(id=report_id)
+            .first()
+        )
+
+        if not rel:
+            current_app.logger.error(f"❌ Relatório {report_id} não encontrado")
+            abort(404)
+
+        def to_dict(model):
+            return {c.name: getattr(model, c.name) for c in model.__table__.columns}
+
+        report_data = {
+            "relatorio": to_dict(rel),
+            "projeto": to_dict(rel.projeto) if rel.projeto else None,
+            "checklist": [
+                {"id": c.id, "descricao": c.descricao, "concluido": c.concluido}
+                for c in rel.checklist_relatorio
+            ],
+            "acompanhantes": [
+                {"id": a.id, "nome": a.nome, "funcao": a.funcao or ""}
+                for a in rel.acompanhantes_relatorio
+            ],
+            "fotos": [
+                {
+                    "id": f.id,
+                    "url": getattr(f, "public_url", None) or getattr(f, "path", None),
+                    "caption": getattr(f, "caption", ""),
+                    "category": getattr(f, "category", ""),
+                }
+                for f in rel.fotos_relatorio
+            ],
+        }
+
+        return render_template(
+            "reports/form_complete.html",
+            report_data=report_data,
+            edit_mode=True
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao carregar relatório {report_id}: {e}", exc_info=True)
+        return render_template("error.html", message=str(e)), 500
+
+🧩 2. Template form_complete.html – Injeção de dados
+
+Logo após o {% block content %}:
+
+<script>
+  const REPORT_DATA = {{ report_data | tojson | safe }};
+  const EDIT_MODE = {{ edit_mode | tojson | safe }};
+  console.log("📝 Dados carregados para edição:", REPORT_DATA);
+</script>
+
+🧩 3. Script JS de carregamento (editarrel ou dentro do template)
+
+No final da página ou num arquivo JS importado, adicione:
+
+<script>
+function updatePhotoGallery(photos) {
+  const container = document.querySelector("#photo-gallery");
+  if (!container) return;
+  container.innerHTML = "";
+  photos.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "photo-item";
+    div.innerHTML = `
+      <img src="${p.url}" alt="${p.caption}" class="photo-preview">
+      <p class="caption">${p.caption || "Sem legenda"}</p>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function carregarChecklist(items) {
+  const list = document.querySelector("#checklist-container");
+  if (!list) return;
+  list.innerHTML = "";
+  items.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "check-item";
+    div.innerHTML = `
+      <label>
+        <input type="checkbox" ${item.concluido ? "checked" : ""}>
+        ${item.descricao}
+      </label>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function carregarAcompanhantes(acompanhantes) {
+  const list = document.querySelector("#acompanhantes-container");
+  if (!list) return;
+  list.innerHTML = "";
+  acompanhantes.forEach(a => {
+    const div = document.createElement("div");
+    div.className = "acompanhante-item";
+    div.innerHTML = `
+      <div><strong>${a.nome}</strong> — ${a.funcao || "Função não informada"}</div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (!REPORT_DATA || !REPORT_DATA.relatorio) return;
+
+  const r = REPORT_DATA.relatorio;
+
+  document.querySelector('[name="data_relatorio"]').value = r.data_relatorio || "";
+  document.querySelector('[name="titulo_relatorio"]').value = r.titulo || "";
+  document.querySelector('[name="numero_relatorio"]').value = r.numero || "";
+  document.querySelector('[name="observacoes_finais"]').value = r.observacoes_finais || "";
+  document.querySelector('[name="lembrete_proxima_visita"]').value = r.lembrete_proxima_visita || "";
+
+  if (REPORT_DATA.projeto) {
+    const el = document.querySelector('[name="projeto"]');
+    el.innerHTML = `<option selected value="${REPORT_DATA.projeto.id}">${REPORT_DATA.projeto.nome}</option>`;
+  }
+
+  if (REPORT_DATA.checklist) carregarChecklist(REPORT_DATA.checklist);
+  if (REPORT_DATA.acompanhantes) carregarAcompanhantes(REPORT_DATA.acompanhantes);
+  if (REPORT_DATA.fotos) updatePhotoGallery(REPORT_DATA.fotos);
+});
+</script>
+
+✅ Resultado esperado
+
+Ao acessar
+
+https://elpconsultoria.pro/reports/206/editarrel
+
+
+você verá:
+
+Todos os campos preenchidos (data, título, projeto, observações, lembrete etc.);
+
+Fotos carregadas corretamente com preview e legenda;
+
+Checklist exibido com itens e status marcados;
+
+Acompanhantes listados;
+
+Nenhum erro no console (updatePhotoGallery reconhecida);
+
+Nenhum erro 'list' object has no attribute 'keys';
+
+Logs do backend confirmando:
+
+✅ Relatório 206 carregado
+✅ Fotos: 4
+✅ Checklist: 6 itens
+✅ Acompanhantes: 1
+✅ Renderizado form_complete.html
