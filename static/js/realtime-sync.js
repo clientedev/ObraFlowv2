@@ -260,6 +260,9 @@ class RealTimeSync {
                     localImg.id = serverImg.id;
                     localImg.url = serverImg.url;
                     localImg.filename = serverImg.filename;
+                    localImg.legenda = serverImg.legenda || localImg.legenda;
+                    localImg.local = serverImg.local || localImg.local;
+                    localImg.categoria = serverImg.categoria || localImg.categoria;
                     // Remover a imagem da lista de pendentes após atualização bem-sucedida
                     const index = this.imagens.indexOf(localImg);
                     if (index > -1) {
@@ -271,9 +274,12 @@ class RealTimeSync {
                     // Para este caso, vamos adicionar para garantir que não haja perda de dados.
                     this.imagens.push({
                         id: serverImg.id,
-                        temp_id: serverImg.temp_id, // Manter temp_id para referência futura se necessário
+                        temp_id: serverImg.temp_id,
                         url: serverImg.url,
                         filename: serverImg.filename,
+                        legenda: serverImg.legenda || '',
+                        local: serverImg.local || '',
+                        categoria: serverImg.categoria || '',
                         categoria: serverImg.categoria || null // Assumindo que pode vir do servidor
                     });
                     console.log(`➕ IMAGEM ADICIONADA (via sync): ${serverImg.filename} (ID: ${serverImg.id})`);
