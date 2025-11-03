@@ -2942,6 +2942,9 @@ async function prepareMobilePhotoFormData() {
     console.log(`📤 Preparados ${mobilePhotoData.length} fotos com arquivos binários para envio`);
 }
 
+// COMENTADO - Este event listener foi substituído por uma nova implementação
+// que suporta edição de relatórios via API
+/*
 // Form submission validation
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('reportForm');
@@ -2983,6 +2986,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+*/
 
 console.log('📱 Sistema de fotos mobile-first carregado');
 </script>
@@ -3433,6 +3437,30 @@ function carregarAcompanhantes(acompanhantesData) {
     console.warn('⚠️ Container #lista-acompanhantes não encontrado');
     return;
   }
+
+  // IMPORTANTE: Sincronizar com o array global
+  if (typeof acompanhantes !== 'undefined') {
+    acompanhantes = [];
+    if (acompanhantesData && acompanhantesData.length > 0) {
+      acompanhantesData.forEach(a => {
+        acompanhantes.push({
+          id: a.id,
+          nome: a.nome || 'Nome não informado',
+          funcao: a.funcao || '',
+          origem: 'Carregado do relatório'
+        });
+      });
+    }
+    
+    // Atualizar campo hidden
+    const hiddenField = document.getElementById('acompanhantes-data');
+    if (hiddenField) {
+      hiddenField.value = JSON.stringify(acompanhantes);
+      console.log('✅ Campo hidden de acompanhantes atualizado:', acompanhantes.length);
+    }
+  }
+
+  // Renderizar visualização
   list.innerHTML = "";
 
   if (!acompanhantesData || acompanhantesData.length === 0) {
@@ -3452,6 +3480,7 @@ function carregarAcompanhantes(acompanhantesData) {
     const div = document.createElement("div");
     div.className = "list-group-item d-flex justify-content-between align-items-center";
     div.setAttribute('data-acompanhante-id', a.id);
+    div.setAttribute('data-acompanhante-index', index);
 
     div.innerHTML = `
       <div class="d-flex align-items-center flex-grow-1">
@@ -3463,7 +3492,7 @@ function carregarAcompanhantes(acompanhantesData) {
       </div>
       <button type="button" 
               class="btn btn-sm btn-outline-danger" 
-              onclick="removerAcompanhante(${a.id})"
+              onclick="removerAcompanhanteDoRelatorio(${index})"
               title="Remover acompanhante">
         <i class="fas fa-trash"></i>
       </button>
@@ -3472,32 +3501,28 @@ function carregarAcompanhantes(acompanhantesData) {
   });
 
   list.appendChild(listGroup);
-  console.log(`✅ ${acompanhantesData.length} acompanhantes selecionados carregados (pode excluir)`);
+  console.log(`✅ ${acompanhantesData.length} acompanhantes carregados e sincronizados`);
 }
 
-// Função para remover acompanhante
-function removerAcompanhante(acompanhanteId) {
+// Função para remover acompanhante do relatório em edição
+function removerAcompanhanteDoRelatorio(index) {
   if (!confirm('Deseja remover este acompanhante do relatório?')) {
     return;
   }
 
-  // Remover do DOM
-  const elemento = document.querySelector(`[data-acompanhante-id="${acompanhanteId}"]`);
-  if (elemento) {
-    elemento.remove();
-    console.log(`🗑️ Acompanhante ${acompanhanteId} removido`);
-  }
-
-  // Verificar se lista ficou vazia
-  const list = document.querySelector("#lista-acompanhantes");
-  const listGroup = list.querySelector('.list-group');
-  if (listGroup && listGroup.children.length === 0) {
-    list.innerHTML = `
-      <p class="text-muted text-center py-3">
-        <i class="fas fa-info-circle me-1"></i>
-        Nenhum acompanhante selecionado. Clique em "Adicionar Acompanhante" para selecionar.
-      </p>
-    `;
+  // Remover do array global
+  if (typeof acompanhantes !== 'undefined' && acompanhantes[index]) {
+    acompanhantes.splice(index, 1);
+    
+    // Atualizar campo hidden
+    const hiddenField = document.getElementById('acompanhantes-data');
+    if (hiddenField) {
+      hiddenField.value = JSON.stringify(acompanhantes);
+    }
+    
+    // Atualizar visualização
+    atualizarListaAcompanhantes();
+    console.log(`🗑️ Acompanhante removido. Total: ${acompanhantes.length}`);
   }
 }
 
