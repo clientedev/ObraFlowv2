@@ -2431,11 +2431,11 @@ def autosave_report(report_id):
 @app.route('/reports/new', methods=['GET', 'POST'])
 @login_required
 def create_report():
-    # CORREÇÃO: Se edit=X na URL, redirecionar para a rota correta de edição
+    # CORREÇÃO: Se edit=X na URL, redirecionar para a rota de edição completa
     edit_id = request.args.get('edit', type=int)
     if edit_id:
-        current_app.logger.info(f"🔀 Redirecionando /reports/new?edit={edit_id} → /reports/{edit_id}/edit")
-        return redirect(url_for('report_edit', report_id=edit_id))
+        current_app.logger.info(f"🔀 Redirecionando /reports/new?edit={edit_id} → /reports/{edit_id}/editarrel")
+        return redirect(url_for('report_edit_complete', report_id=edit_id))
     
     # Verificar se há projeto pré-selecionado via URL
     preselected_project_id = request.args.get('projeto_id', type=int)
@@ -5960,6 +5960,80 @@ def report_edit(report_id):
         current_app.logger.exception(f"❌ ERRO CRÍTICO na edição do relatório {report_id}: {str(e)}")
         current_app.logger.error(f"❌ TRACEBACK: {error_trace}")
         flash('Erro interno ao carregar relatório para edição.', 'error')
+        return redirect(url_for('reports'))
+
+@app.route('/reports/<int:report_id>/editarrel', methods=['GET', 'POST'])
+@login_required
+def report_edit_complete(report_id):
+    """Editar relatório COMPLETO - carrega form_complete.html com todos os dados populados"""
+    try:
+        current_app.logger.info(f"📝 report_edit_complete chamado para report_id={report_id}")
+        
+        # Buscar relatório existente
+        existing_report = Relatorio.query.get_or_404(report_id)
+        
+        # Verificar permissões
+        if existing_report.autor_id != current_user.id and not current_user.is_master:
+            flash('Você não tem permissão para editar este relatório.', 'error')
+            return redirect(url_for('reports'))
+        
+        # Buscar projetos ativos
+        projetos = Projeto.query.filter_by(status='Ativo').all()
+        
+        # Buscar admin users para aprovador
+        admin_users = User.query.filter_by(is_master=True).all()
+        
+        # Carregar fotos existentes
+        existing_fotos = []
+        try:
+            existing_fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
+            current_app.logger.info(f"📸 Carregadas {len(existing_fotos)} fotos para relatório {report_id}")
+        except Exception as e:
+            current_app.logger.error(f"❌ Erro ao carregar fotos: {str(e)}")
+        
+        # Carregar checklist existente
+        existing_checklist = {}
+        try:
+            if existing_report.checklist_data:
+                import json
+                if isinstance(existing_report.checklist_data, str):
+                    existing_checklist = json.loads(existing_report.checklist_data)
+                elif isinstance(existing_report.checklist_data, (dict, list)):
+                    existing_checklist = existing_report.checklist_data
+                current_app.logger.info(f"✅ Checklist carregado: {len(existing_checklist) if isinstance(existing_checklist, list) else 'dict'}")
+        except Exception as e:
+            current_app.logger.error(f"❌ Erro ao carregar checklist: {str(e)}")
+        
+        # Buscar projeto selecionado
+        selected_project = existing_report.projeto if existing_report else None
+        
+        # Buscar aprovador padrão
+        selected_aprovador = None
+        if selected_project:
+            selected_aprovador = get_aprovador_padrao_para_projeto(selected_project.id)
+        
+        current_app.logger.info(f"📋 Renderizando form_complete.html com dados do relatório {existing_report.numero}")
+        
+        # Renderizar form_complete.html com TODOS os dados populados
+        return render_template('reports/form_complete.html',
+                             projetos=projetos,
+                             admin_users=admin_users,
+                             selected_project=selected_project,
+                             selected_aprovador=selected_aprovador,
+                             disable_fields=False,
+                             preselected_project_id=None,
+                             existing_report=existing_report,
+                             existing_fotos=existing_fotos,
+                             existing_checklist=existing_checklist,
+                             next_numero=existing_report.numero,
+                             lembrete_anterior=None,
+                             today=date.today().isoformat())
+    
+    except Exception as e:
+        import traceback
+        current_app.logger.exception(f"❌ ERRO ao carregar relatório {report_id} para edição completa: {str(e)}")
+        current_app.logger.error(traceback.format_exc())
+        flash('Erro ao carregar relatório para edição.', 'error')
         return redirect(url_for('reports'))
 
 @app.route('/reports/<int:report_id>/photos/add', methods=['GET', 'POST'])
