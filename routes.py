@@ -3297,6 +3297,9 @@ def create_report():
     # Log de sucesso
     current_app.logger.info(f"✅ Dados prontos para template: {len(existing_fotos_data)} fotos, {len(existing_checklist)} checklist items, {len(report_data.get('acompanhantes', []))} acompanhantes")
     
+    # Determinar se está em modo de edição
+    edit_mode = existing_report is not None
+    
     # Render the form for GET requests - TODOS OS OBJETOS AGORA SÃO DICIONÁRIOS
     return render_template('reports/form_complete.html', 
                          projetos=projetos_data, 
@@ -3311,6 +3314,7 @@ def create_report():
                          next_numero=next_numero,
                          lembrete_anterior=lembrete_anterior,
                          report_data=report_data,
+                         edit_mode=edit_mode,
                          today=date.today().isoformat())
 
 # Removed duplicate function - using the more comprehensive version below at line 7415
