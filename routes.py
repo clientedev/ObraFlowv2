@@ -5968,9 +5968,10 @@ def report_edit(report_id):
 def report_edit_complete(report_id):
     """
     Rota corrigida - Carrega relatório completo com todos os dados para edição
+    Garante serialização JSON 100% sem objetos ORM
     """
     try:
-        app.logger.info(f"📝 Carregando relatório completo ID={report_id}")
+        app.logger.info(f"📝 Iniciando carregamento do relatório completo ID={report_id}")
 
         relatorio = (
             db.session.query(Relatorio)
@@ -5982,62 +5983,98 @@ def report_edit_complete(report_id):
         if not relatorio:
             return render_template("reports/error_report.html", message="Relatório não encontrado"), 404
 
+        # --- FUNÇÃO DE SERIALIZAÇÃO SEGURA ---
+        def safe_attr(obj, attr, default=""):
+            """Extrai atributo de forma segura, retornando string vazia se não existir"""
+            value = getattr(obj, attr, default) if obj else default
+            # Se o valor for um objeto complexo (User, etc), converte para string
+            if hasattr(value, '__tablename__'):  # É um objeto ORM
+                return str(value) if value else default
+            return value if value is not None else default
+
         projeto = Projeto.query.get(relatorio.projeto_id)
         fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).all()
-        
-        # Checklist vem do campo JSON checklist_data do relatório
+        acompanhantes = FuncionarioProjeto.query.filter_by(projeto_id=relatorio.projeto_id).all() if relatorio.projeto_id else []
+
+        # --- CHECKLIST: Lidar com lista OU dicionário ---
         checklist = []
         if relatorio.checklist_data:
             import json
             try:
-                if isinstance(relatorio.checklist_data, str):
-                    checklist_dict = json.loads(relatorio.checklist_data)
-                elif isinstance(relatorio.checklist_data, dict):
-                    checklist_dict = relatorio.checklist_data
-                else:
-                    checklist_dict = {}
+                checklist_raw = relatorio.checklist_data
                 
-                for descricao, concluido in checklist_dict.items():
-                    checklist.append({
-                        "id": None,
-                        "descricao": descricao,
-                        "concluido": concluido
-                    })
+                # Se for string JSON, parsear
+                if isinstance(checklist_raw, str):
+                    checklist_raw = json.loads(checklist_raw)
+                
+                # Se for lista (array de objetos)
+                if isinstance(checklist_raw, list):
+                    for item in checklist_raw:
+                        if isinstance(item, dict):
+                            checklist.append({
+                                "id": item.get("id"),
+                                "descricao": item.get("descricao", ""),
+                                "concluido": bool(item.get("concluido", False))
+                            })
+                        else:
+                            # Item é string simples
+                            checklist.append({
+                                "id": None,
+                                "descricao": str(item),
+                                "concluido": False
+                            })
+                
+                # Se for dicionário (chave: valor)
+                elif isinstance(checklist_raw, dict):
+                    for descricao, concluido in checklist_raw.items():
+                        checklist.append({
+                            "id": None,
+                            "descricao": str(descricao),
+                            "concluido": bool(concluido)
+                        })
+                
+                app.logger.info(f"✅ Checklist parseado: {len(checklist)} itens")
+                
             except Exception as e:
                 app.logger.warning(f"⚠️ Erro ao parsear checklist: {e}")
-        
-        # Acompanhantes do projeto
-        acompanhantes = FuncionarioProjeto.query.filter_by(projeto_id=relatorio.projeto_id).all() if relatorio.projeto_id else []
+                checklist = []
 
+        # --- CONVERTER OBJETOS ORM EM DICIONÁRIOS PLANOS ---
         report_data = {
             "id": relatorio.id,
             "data_relatorio": relatorio.data_relatorio.strftime("%Y-%m-%d") if relatorio.data_relatorio else "",
-            "titulo": relatorio.titulo or "",
-            "numero": relatorio.numero or "",
-            "observacoes": relatorio.observacoes_finais or relatorio.conteudo or "",
-            "lembrete": str(relatorio.lembrete_proxima_visita) if relatorio.lembrete_proxima_visita else "",
+            "titulo": safe_attr(relatorio, "titulo"),
+            "numero": safe_attr(relatorio, "numero") or safe_attr(relatorio, "numero_relatorio"),
+            "observacoes": safe_attr(relatorio, "observacoes_finais") or safe_attr(relatorio, "observacoes") or safe_attr(relatorio, "conteudo"),
+            "lembrete": safe_attr(relatorio, "lembrete_proxima_visita") or safe_attr(relatorio, "lembrete"),
+            "autor": safe_attr(safe_attr(relatorio, "autor"), "nome") if hasattr(relatorio, "autor") and relatorio.autor else "",
             "projeto": {
-                "id": projeto.id if projeto else "",
-                "codigo": projeto.numero if projeto else "",
-                "nome": projeto.nome if projeto else "",
-                "endereco": projeto.endereco if projeto else "",
-                "responsavel": getattr(projeto, "responsavel", "") or getattr(projeto, "nome_funcionario", ""),
+                "id": safe_attr(projeto, "id"),
+                "codigo": safe_attr(projeto, "codigo") or safe_attr(projeto, "numero"),
+                "nome": safe_attr(projeto, "nome"),
+                "endereco": safe_attr(projeto, "endereco"),
+                "responsavel": safe_attr(safe_attr(projeto, "responsavel"), "nome") if hasattr(projeto, "responsavel") and projeto.responsavel else ""
             } if projeto else None,
             "fotos": [
                 {
                     "id": f.id,
-                    "url": getattr(f, "url", "") or getattr(f, "public_url", "") or (f"/uploads/{f.filename}" if f.filename else ""),
-                    "legenda": getattr(f, "legenda", "") or getattr(f, "titulo", "")
+                    "url": safe_attr(f, "url") or safe_attr(f, "public_url") or (f"/uploads/{safe_attr(f, 'filename')}" if safe_attr(f, "filename") else ""),
+                    "legenda": safe_attr(f, "legenda") or safe_attr(f, "titulo"),
+                    "categoria": safe_attr(f, "categoria")
                 } for f in fotos
             ],
             "checklist": checklist,
             "acompanhantes": [
-                {"id": a.id, "nome": a.nome_funcionario, "funcao": getattr(a, "funcao", "") or getattr(a, "cargo", "Não informado")}
+                {
+                    "id": a.id,
+                    "nome": safe_attr(a, "nome_funcionario") or safe_attr(a, "nome"),
+                    "funcao": safe_attr(a, "funcao") or safe_attr(a, "cargo") or "Não informado"
+                }
                 for a in acompanhantes
-            ],
+            ]
         }
 
-        app.logger.info(f"✅ Dados enviados ao template ({len(fotos)} fotos, {len(checklist)} checklist, {len(acompanhantes)} acompanhantes)")
+        app.logger.info(f"✅ Dados prontos para template: {len(fotos)} fotos, {len(checklist)} checklist, {len(acompanhantes)} acompanhantes")
 
         return render_template(
             "reports/form_complete.html",
@@ -6046,7 +6083,7 @@ def report_edit_complete(report_id):
         )
 
     except Exception as e:
-        app.logger.error(f"❌ Erro ao carregar relatório: {e}", exc_info=True)
+        app.logger.error(f"❌ Erro ao carregar relatório {report_id}: {e}", exc_info=True)
         return render_template("reports/error_report.html", message=str(e)), 500
 
 @app.route('/reports/<int:report_id>/photos/add', methods=['GET', 'POST'])
