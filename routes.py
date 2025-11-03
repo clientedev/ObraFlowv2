@@ -3174,6 +3174,26 @@ def create_report():
 
     # Preparar report_data para autosave
     if existing_report:
+        # Serialize acompanhantes to ensure it's JSON-safe (no User objects)
+        acompanhantes_safe = []
+        if existing_report.acompanhantes:
+            try:
+                # If it's already a list of simple types, use it
+                if isinstance(existing_report.acompanhantes, list):
+                    for item in existing_report.acompanhantes:
+                        # Convert User objects to strings (names)
+                        if hasattr(item, 'nome'):
+                            acompanhantes_safe.append(item.nome)
+                        elif isinstance(item, (str, dict)):
+                            acompanhantes_safe.append(item)
+                        else:
+                            acompanhantes_safe.append(str(item))
+                else:
+                    acompanhantes_safe = []
+            except Exception as e:
+                current_app.logger.warning(f"Error serializing acompanhantes: {e}")
+                acompanhantes_safe = []
+        
         # Modo de edição: usar dados existentes
         report_data = {
             'id': existing_report.id,
@@ -3187,7 +3207,7 @@ def create_report():
             'latitude': existing_report.latitude,
             'longitude': existing_report.longitude,
             'checklist_data': existing_checklist if existing_checklist else {},
-            'acompanhantes': existing_report.acompanhantes or [],
+            'acompanhantes': acompanhantes_safe,
             'fotos': [{
                 'id': f.id,
                 'url': url_for('api_get_photo', foto_id=f.id),
