@@ -1,0 +1,160 @@
+Este prompt corrige de forma definitiva a rota /reports/<id>/editarrel e todos os erros associados, garantindo que os dados do relatório sejam carregados corretamente e que o sistema não quebre em caso de exceções.
+
+🚀 PROMPT
+
+Corrigir completamente a rota /reports/<id>/editarrel e o backend responsável por renderizar a edição de relatórios.
+O erro atual é NameError: name 'joinedload' is not defined dentro da função report_edit_complete, e o fallback de erro tenta carregar um template error.html inexistente, causando falha em cascata.
+
+Implemente as seguintes correções e garantias:
+
+🧩 1. Importação correta do joinedload
+
+No topo do arquivo routes.py, logo após os imports do SQLAlchemy:
+
+from sqlalchemy.orm import joinedload
+
+🧩 2. Correção da rota /reports/<id>/editarrel
+
+Substitua a função report_edit_complete atual por:
+
+@app.route("/reports/<int:report_id>/editarrel", methods=["GET"])
+@login_required
+def report_edit_complete(report_id):
+    """
+    Carrega o relatório completo para edição, incluindo fotos, checklist e acompanhantes.
+    """
+
+    try:
+        current_app.logger.info(f"📝 report_edit_complete chamado para report_id={report_id}")
+
+        rel = (
+            db.session.query(Relatorio)
+            .options(
+                joinedload(Relatorio.projeto),
+                joinedload(Relatorio.fotos_relatorio),
+                joinedload(Relatorio.checklist_relatorio),
+                joinedload(Relatorio.acompanhantes_relatorio),
+            )
+            .filter(Relatorio.id == report_id)
+            .first()
+        )
+
+        if not rel:
+            current_app.logger.error(f"❌ Relatório {report_id} não encontrado")
+            return render_template("reports/error_report.html", message="Relatório não encontrado."), 404
+
+        def serialize_model(model):
+            return {c.name: getattr(model, c.name) for c in model.__table__.columns}
+
+        report_data = {
+            "relatorio": serialize_model(rel),
+            "projeto": serialize_model(rel.projeto) if rel.projeto else None,
+            "checklist": [
+                {"id": c.id, "descricao": c.descricao, "concluido": c.concluido}
+                for c in rel.checklist_relatorio
+            ],
+            "acompanhantes": [
+                {"id": a.id, "nome": a.nome, "funcao": a.funcao or "Não informado"}
+                for a in rel.acompanhantes_relatorio
+            ],
+            "fotos": [
+                {
+                    "id": f.id,
+                    "url": getattr(f, "public_url", None) or getattr(f, "path", None),
+                    "caption": getattr(f, "caption", ""),
+                    "category": getattr(f, "category", ""),
+                }
+                for f in rel.fotos_relatorio
+            ],
+        }
+
+        current_app.logger.info(f"✅ Fotos carregadas: {len(report_data['fotos'])}")
+        current_app.logger.info(f"✅ Acompanhantes carregados: {len(report_data['acompanhantes'])}")
+        current_app.logger.info(f"✅ Checklist carregado: {len(report_data['checklist'])}")
+
+        return render_template(
+            "reports/form_complete.html",
+            report_data=report_data,
+            edit_mode=True,
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"❌ ERRO ao carregar relatório {report_id} para edição completa: {e}", exc_info=True)
+        return render_template("reports/error_report.html", message=str(e)), 500
+
+🧩 3. Criar o template reports/error_report.html
+
+Crie um arquivo simples de fallback dentro de templates/reports/error_report.html:
+
+{% extends "base.html" %}
+{% block content %}
+<div class="error-container">
+    <h2>⚠️ Erro ao carregar relatório</h2>
+    <p>{{ message }}</p>
+    <a href="/reports" class="btn btn-primary">Voltar à lista de relatórios</a>
+</div>
+{% endblock %}
+
+🧩 4. Corrigir o carregamento JS no template form_complete.html
+
+No início do bloco <script> dentro de form_complete.html, adicione:
+
+<script>
+  const REPORT_DATA = {{ report_data | tojson | safe }};
+  const EDIT_MODE = {{ edit_mode | tojson | safe }};
+  console.log("📝 Dados carregados para edição:", REPORT_DATA);
+
+  // Evita erro de função indefinida
+  function updatePhotoGallery(photos) {
+      const gallery = document.querySelector("#photo-gallery");
+      if (!gallery) return;
+      gallery.innerHTML = "";
+      photos.forEach(p => {
+          const div = document.createElement("div");
+          div.classList.add("photo-item");
+          div.innerHTML = `<img src="${p.url}" alt="${p.caption}" class="photo-preview"><p>${p.caption}</p>`;
+          gallery.appendChild(div);
+      });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+      try {
+          if (!REPORT_DATA || !REPORT_DATA.relatorio) return;
+
+          const r = REPORT_DATA.relatorio;
+          document.querySelector('[name="data_relatorio"]').value = r.data_relatorio || "";
+          document.querySelector('[name="titulo_relatorio"]').value = r.titulo || "";
+          document.querySelector('[name="numero_relatorio"]').value = r.numero || "";
+          document.querySelector('[name="observacoes_finais"]').value = r.observacoes_finais || "";
+          document.querySelector('[name="lembrete_proxima_visita"]').value = r.lembrete_proxima_visita || "";
+
+          if (REPORT_DATA.projeto) {
+              const el = document.querySelector('[name="projeto"]');
+              el.innerHTML = `<option value="${REPORT_DATA.projeto.id}" selected>${REPORT_DATA.projeto.nome}</option>`;
+          }
+
+          if (REPORT_DATA.fotos) updatePhotoGallery(REPORT_DATA.fotos);
+      } catch (err) {
+          console.error("Erro ao carregar dados no template:", err);
+      }
+  });
+</script>
+
+✅ RESULTADO FINAL
+
+Após aplicar o prompt:
+
+✅ O erro NameError: joinedload is not defined desaparece
+
+✅ O template error.html inexistente é substituído por um template funcional de fallback
+
+✅ A rota /reports/<id>/editarrel carrega corretamente todos os dados (projeto, fotos, acompanhantes, checklist etc.)
+
+✅ Nenhum erro JS no console (updatePhotoGallery reconhecida)
+
+✅ Logs exibem:
+
+INFO:app:✅ Fotos carregadas: 4
+INFO:app:✅ Acompanhantes carregados: 1
+INFO:app:✅ Checklist carregado: 6 itens
+INFO:app:📋 Renderizando form_complete.html

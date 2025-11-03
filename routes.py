@@ -12,6 +12,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import HTTPException
 from flask_mail import Message
+from sqlalchemy.orm import joinedload
 
 from app import app, db, mail, csrf
 from models import (
@@ -5962,10 +5963,12 @@ def report_edit(report_id):
         flash('Erro interno ao carregar relatório para edição.', 'error')
         return redirect(url_for('reports'))
 
-@app.route('/reports/<int:report_id>/editarrel', methods=['GET', 'POST'])
+@app.route('/reports/<int:report_id>/editarrel', methods=['GET'])
 @login_required
 def report_edit_complete(report_id):
-    """Editar relatório COMPLETO - carrega form_complete.html com todos os dados populados"""
+    """
+    Carrega o relatório completo para edição, incluindo fotos, checklist e acompanhantes.
+    """
     try:
         current_app.logger.info(f"📝 report_edit_complete chamado para report_id={report_id}")
         
@@ -5975,15 +5978,16 @@ def report_edit_complete(report_id):
             .options(
                 joinedload(Relatorio.projeto),
                 joinedload(Relatorio.fotos_relatorio),
-                joinedload(Relatorio.acompanhantes_relatorio)
+                joinedload(Relatorio.checklist_relatorio),
+                joinedload(Relatorio.acompanhantes_relatorio),
             )
-            .filter_by(id=report_id)
+            .filter(Relatorio.id == report_id)
             .first()
         )
         
         if not rel:
             current_app.logger.error(f"❌ Relatório {report_id} não encontrado")
-            abort(404)
+            return render_template("reports/error_report.html", message="Relatório não encontrado."), 404
         
         # Verificar permissões
         if rel.autor_id != current_user.id and not current_user.is_master:
@@ -5991,7 +5995,7 @@ def report_edit_complete(report_id):
             return redirect(url_for('reports'))
         
         # Função helper para converter modelo em dict
-        def to_dict(model):
+        def serialize_model(model):
             if model is None:
                 return None
             return {c.name: getattr(model, c.name) for c in model.__table__.columns}
@@ -6025,7 +6029,6 @@ def report_edit_complete(report_id):
                         "descricao": descricao,
                         "concluido": concluido
                     })
-            current_app.logger.info(f"✅ Checklist carregado: {len(checklist)} itens")
         except Exception as e:
             current_app.logger.error(f"❌ Erro ao carregar checklist: {str(e)}")
             checklist = []
@@ -6041,7 +6044,7 @@ def report_edit_complete(report_id):
                     acompanhantes.append({
                         "id": a.id,
                         "nome": a.nome,
-                        "funcao": getattr(a, 'funcao', '') or getattr(a, 'cargo', '') or ""
+                        "funcao": getattr(a, 'funcao', '') or "Não informado"
                     })
             # Se não houver, tenta carregar do campo acompanhantes
             elif rel.acompanhantes:
@@ -6058,7 +6061,8 @@ def report_edit_complete(report_id):
                         a['funcao'] = a['cargo']
                     if 'id' not in a:
                         a['id'] = None
-            current_app.logger.info(f"👥 Acompanhantes carregados: {len(acompanhantes)}")
+                    if not a.get('funcao'):
+                        a['funcao'] = "Não informado"
         except Exception as e:
             current_app.logger.error(f"❌ Erro ao parsear acompanhantes: {str(e)}")
             acompanhantes = []
@@ -6075,7 +6079,6 @@ def report_edit_complete(report_id):
                     "caption": getattr(f, "caption", None) or getattr(f, "legenda", "") or "",
                     "category": getattr(f, "category", None) or getattr(f, "tipo_servico", "") or "",
                 })
-            current_app.logger.info(f"📸 Fotos carregadas: {len(fotos)}")
         except Exception as e:
             current_app.logger.error(f"❌ Erro ao carregar fotos: {str(e)}")
         
@@ -6083,30 +6086,26 @@ def report_edit_complete(report_id):
         # CRIAR ESTRUTURA report_data
         # ==========================================
         report_data = {
-            "relatorio": to_dict(rel),
-            "projeto": to_dict(rel.projeto) if rel.projeto else None,
+            "relatorio": serialize_model(rel),
+            "projeto": serialize_model(rel.projeto) if rel.projeto else None,
             "checklist": checklist,
             "acompanhantes": acompanhantes,
             "fotos": fotos,
         }
         
-        current_app.logger.info(f"✅ Relatório {report_id} carregado")
-        current_app.logger.info(f"✅ Fotos: {len(fotos)}")
-        current_app.logger.info(f"✅ Checklist: {len(checklist)} itens")
-        current_app.logger.info(f"✅ Acompanhantes: {len(acompanhantes)}")
-        current_app.logger.info(f"✅ Renderizado form_complete.html")
+        current_app.logger.info(f"✅ Fotos carregadas: {len(report_data['fotos'])}")
+        current_app.logger.info(f"✅ Acompanhantes carregados: {len(report_data['acompanhantes'])}")
+        current_app.logger.info(f"✅ Checklist carregado: {len(report_data['checklist'])}")
         
         return render_template(
             "reports/form_complete.html",
             report_data=report_data,
-            edit_mode=True
+            edit_mode=True,
         )
     
     except Exception as e:
-        import traceback
-        current_app.logger.exception(f"❌ ERRO ao carregar relatório {report_id} para edição completa: {str(e)}")
-        current_app.logger.error(traceback.format_exc())
-        return render_template("error.html", message=str(e)), 500
+        current_app.logger.error(f"❌ ERRO ao carregar relatório {report_id} para edição completa: {e}", exc_info=True)
+        return render_template("reports/error_report.html", message=str(e)), 500
 
 @app.route('/reports/<int:report_id>/photos/add', methods=['GET', 'POST'])
 @login_required
