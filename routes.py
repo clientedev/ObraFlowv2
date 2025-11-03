@@ -6528,7 +6528,7 @@ def update_report(report_id):
                 import traceback
                 traceback.print_exc()
 
-        # Adicionar novas imagens
+        # Adicionar novas imagens (COM VERIFICAÇÃO DE DUPLICAÇÃO)
         novas_imagens = request.files.getlist("imagens")
         app.logger.info(f"📥 Novas imagens recebidas: {len(novas_imagens)}")
         
@@ -6541,32 +6541,74 @@ def update_report(report_id):
                     try:
                         app.logger.info(f"📤 Processando imagem {index + 1}/{len(novas_imagens)}: {arquivo.filename}")
                         
-                        # Salvar arquivo
-                        nome_arquivo = secure_filename(arquivo.filename)
-                        unique_filename = f"{uuid.uuid4()}_{nome_arquivo}"
-                        caminho = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                        # Preparar nome do arquivo
+                        nome_arquivo_original = secure_filename(arquivo.filename)
                         
-                        # Ler dados do arquivo
-                        file_data = arquivo.read()
-                        file_size = len(file_data)
-                        app.logger.info(f"📦 Tamanho do arquivo: {file_size} bytes")
+                        # CORREÇÃO DE DUPLICAÇÃO: Verificar se a imagem já existe
+                        foto_existente = FotoRelatorio.query.filter_by(
+                            relatorio_id=report_id,
+                            filename_original=nome_arquivo_original
+                        ).first()
                         
-                        arquivo.seek(0)
-                        arquivo.save(caminho)
-                        app.logger.info(f"💾 Arquivo salvo em: {caminho}")
-                        
-                        # Criar registro da foto
-                        nova_foto = FotoRelatorio()
-                        nova_foto.relatorio_id = report_id
-                        nova_foto.filename = unique_filename
-                        nova_foto.imagem = file_data
-                        nova_foto.ordem = ordem_atual + 1
-                        ordem_atual += 1
-                        
-                        db.session.add(nova_foto)
-                        app.logger.info(f"✅ Nova imagem adicionada: {unique_filename} (ordem: {nova_foto.ordem})")
+                        if foto_existente:
+                            # Imagem já existe - apenas atualizar metadados se necessário
+                            app.logger.info(f"🔄 Imagem já existe: {nome_arquivo_original} (ID: {foto_existente.id})")
+                            
+                            # Buscar metadados do form se disponíveis
+                            legenda = request.form.get(f"legenda_{index}")
+                            categoria = request.form.get(f"categoria_{index}")
+                            local = request.form.get(f"local_{index}")
+                            
+                            # Atualizar apenas metadados (sem duplicar arquivo)
+                            if legenda is not None:
+                                foto_existente.legenda = legenda
+                                app.logger.info(f"✏️ Legenda atualizada: {legenda[:50]}...")
+                            if categoria is not None:
+                                foto_existente.categoria = categoria
+                                foto_existente.tipo_servico = categoria
+                                app.logger.info(f"✏️ Categoria atualizada: {categoria}")
+                            if local is not None:
+                                foto_existente.local = local
+                                app.logger.info(f"✏️ Local atualizado: {local}")
+                            
+                            db.session.add(foto_existente)
+                            app.logger.info(f"🖼️ Imagem existente atualizada (sem duplicação): {nome_arquivo_original}")
+                        else:
+                            # Nova imagem - processar normalmente
+                            unique_filename = f"{uuid.uuid4()}_{nome_arquivo_original}"
+                            caminho = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                            
+                            # Ler dados do arquivo
+                            file_data = arquivo.read()
+                            file_size = len(file_data)
+                            app.logger.info(f"📦 Tamanho do arquivo: {file_size} bytes")
+                            
+                            arquivo.seek(0)
+                            arquivo.save(caminho)
+                            app.logger.info(f"💾 Arquivo salvo em: {caminho}")
+                            
+                            # Buscar metadados do form se disponíveis
+                            legenda = request.form.get(f"legenda_{index}", "")
+                            categoria = request.form.get(f"categoria_{index}", "")
+                            local = request.form.get(f"local_{index}", "")
+                            
+                            # Criar registro da foto
+                            nova_foto = FotoRelatorio()
+                            nova_foto.relatorio_id = report_id
+                            nova_foto.filename = unique_filename
+                            nova_foto.filename_original = nome_arquivo_original
+                            nova_foto.imagem = file_data
+                            nova_foto.legenda = legenda
+                            nova_foto.categoria = categoria
+                            nova_foto.tipo_servico = categoria
+                            nova_foto.local = local
+                            nova_foto.ordem = ordem_atual + 1
+                            ordem_atual += 1
+                            
+                            db.session.add(nova_foto)
+                            app.logger.info(f"🆕 Nova imagem adicionada: {unique_filename} (ordem: {nova_foto.ordem})")
                     except Exception as e:
-                        app.logger.error(f"❌ Erro ao salvar imagem {arquivo.filename}: {e}")
+                        app.logger.error(f"❌ Erro ao processar imagem {arquivo.filename}: {e}")
                         import traceback
                         traceback.print_exc()
                 else:

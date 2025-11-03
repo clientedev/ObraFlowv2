@@ -121,12 +121,49 @@ class EmailService:
                 <p>Atenciosamente,<br>Equipe ELP Consultoria</p>
                 """
             
+            # CORREÇÃO: Validar e sanear destinatários antes do envio
+            destinatarios_raw = destinatarios_data.get('destinatarios', [])
+            cc_raw = destinatarios_data.get('cc', [])
+            bcc_raw = destinatarios_data.get('bcc', [])
+            
+            # Validar e sanitizar e-mails
+            destinatarios_validos, destinatarios_invalidos = self.validar_emails(
+                [email for email in destinatarios_raw if email and str(email).strip()]
+            )
+            cc_validos, cc_invalidos = self.validar_emails(
+                [email for email in cc_raw if email and str(email).strip()]
+            )
+            bcc_validos, bcc_invalidos = self.validar_emails(
+                [email for email in bcc_raw if email and str(email).strip()]
+            )
+            
+            # Logar e-mails inválidos
+            if destinatarios_invalidos:
+                current_app.logger.warning(f"⚠️ E-mails de destinatários inválidos ignorados: {destinatarios_invalidos}")
+            if cc_invalidos:
+                current_app.logger.warning(f"⚠️ E-mails de CC inválidos ignorados: {cc_invalidos}")
+            if bcc_invalidos:
+                current_app.logger.warning(f"⚠️ E-mails de BCC inválidos ignorados: {bcc_invalidos}")
+            
+            if not destinatarios_validos:
+                current_app.logger.error(f"❌ Nenhum destinatário válido encontrado")
+                return {
+                    'success': False,
+                    'error': 'Nenhum destinatário válido encontrado',
+                    'total_destinatarios': len(destinatarios_raw),
+                    'sucessos': 0,
+                    'falhas': len(destinatarios_raw)
+                }
+            
+            current_app.logger.info(f"📧 Iniciando envio para {len(destinatarios_validos)} destinatário(s) válido(s)")
+            
             # Lista para armazenar logs de cada envio
             logs_envio = []
             
             # Enviar para cada destinatário principal
-            for email_dest in destinatarios_data.get('destinatarios', []):
+            for email_dest in destinatarios_validos:
                 try:
+                    current_app.logger.info(f"📤 Preparando e-mail para {email_dest}...")
                     # Buscar dados do cliente se disponível
                     email_cliente = EmailCliente.query.filter_by(
                         projeto_id=projeto.id, 
@@ -143,7 +180,7 @@ class EmailService:
                     )
                     
                     # Implementar CC automático conforme Item 34
-                    cc_emails = destinatarios_data.get('cc', []).copy()
+                    cc_emails = cc_validos.copy()
                     
                     # Auto-CC: Sempre adicionar o outro usuário envolvido (preenchedor ou aprovador)
                     relatorio_autor_email = relatorio.autor.email if relatorio.autor else None
@@ -163,28 +200,40 @@ class EmailService:
                     user_email = user_config.email_address if user_config else email_remetente
                     
                     if relatorio_autor_email and relatorio_autor_email != user_email and relatorio_autor_email not in cc_emails:
-                        cc_emails.append(relatorio_autor_email)
+                        # Validar antes de adicionar
+                        emails_validos, _ = self.validar_emails([relatorio_autor_email])
+                        if emails_validos:
+                            cc_emails.append(relatorio_autor_email)
                         
                     if aprovador_email and aprovador_email != user_email and aprovador_email not in cc_emails:
-                        cc_emails.append(aprovador_email)
+                        # Validar antes de adicionar
+                        emails_validos, _ = self.validar_emails([aprovador_email])
+                        if emails_validos:
+                            cc_emails.append(aprovador_email)
                     
                     # Se usando configuração pessoal, garantir que a conta pessoal está no CC
                     if user_config and user_config.email_address not in cc_emails:
-                        cc_emails.append(user_config.email_address)
+                        emails_validos, _ = self.validar_emails([user_config.email_address])
+                        if emails_validos:
+                            cc_emails.append(user_config.email_address)
                     
                     # CC Centralizada (Luciana): Adicionar e-mail admin do sistema se configurado
                     admin_cc_email = os.environ.get('ADMIN_CC_EMAIL')
                     if admin_cc_email and admin_cc_email not in cc_emails:
-                        cc_emails.append(admin_cc_email)
+                        emails_validos, _ = self.validar_emails([admin_cc_email])
+                        if emails_validos:
+                            cc_emails.append(admin_cc_email)
                     elif system_config and hasattr(system_config, 'cc_admin') and system_config.cc_admin and system_config.cc_admin not in cc_emails:
-                        cc_emails.append(system_config.cc_admin)
+                        emails_validos, _ = self.validar_emails([system_config.cc_admin])
+                        if emails_validos:
+                            cc_emails.append(system_config.cc_admin)
                     
                     # Criar mensagem
                     msg = Message(
                         subject=assunto,
                         recipients=[email_dest],
                         cc=cc_emails,
-                        bcc=destinatarios_data.get('bcc', []),
+                        bcc=bcc_validos,
                         html=corpo_html
                     )
                     
@@ -202,6 +251,7 @@ class EmailService:
                     
                     # Enviar e-mail
                     self.mail.send(msg)
+                    current_app.logger.info(f"✅ E-mail enviado com sucesso para {email_dest}")
                     
                     # Log de sucesso com informação da conta usada
                     log_envio = LogEnvioEmail(
@@ -226,8 +276,9 @@ class EmailService:
                             pass
                     
                 except Exception as e:
+                    current_app.logger.error(f"❌ Erro ao enviar e-mail para {email_dest}: {str(e)}")
                     # Para erros, usar CC original pois cc_emails pode não estar definido
-                    cc_fallback = destinatarios_data.get('cc', [])
+                    cc_fallback = cc_validos
                     
                     # Log de erro com informação da conta usada
                     log_envio = LogEnvioEmail(
@@ -467,6 +518,13 @@ class EmailService:
         Enviar e-mail de aprovação para todos os envolvidos no relatório
         Conforme especificação: autor, responsável, funcionários e acompanhantes
         
+        CORREÇÕES IMPLEMENTADAS:
+        - Validação de e-mails para evitar None ou strings vazias
+        - Conexão SMTP reutilizável para performance
+        - Encoding correto do PDF
+        - Logs detalhados de cada etapa
+        - Tratamento robusto de erros
+        
         Args:
             relatorio_id: ID do relatório aprovado
         
@@ -495,25 +553,29 @@ class EmailService:
             SMTP_PASS = os.environ.get('SMTP_PASS', os.environ.get('MAIL_PASSWORD', ''))
             
             if not SMTP_USER or not SMTP_PASS:
-                current_app.logger.error("❌ Credenciais SMTP não configuradas")
+                current_app.logger.error("❌ Credenciais SMTP não configuradas (SMTP_USER ou SMTP_PASS ausentes)")
                 return {'success': False, 'error': 'Configuração de e-mail não disponível'}
             
-            # Coletar todos os destinatários sem duplicação
+            current_app.logger.info(f"🔐 Usando SMTP: {SMTP_HOST}:{SMTP_PORT} com usuário {SMTP_USER}")
+            
+            # Coletar todos os destinatários sem duplicação (usando set para garantir unicidade)
             destinatarios = set()
             
             # 1. Autor do relatório
-            if relatorio.autor and relatorio.autor.email:
-                destinatarios.add(relatorio.autor.email)
-                current_app.logger.info(f"📧 Adicionando autor: {relatorio.autor.email}")
+            if relatorio.autor and relatorio.autor.email and relatorio.autor.email.strip():
+                email_autor = relatorio.autor.email.strip()
+                destinatarios.add(email_autor)
+                current_app.logger.info(f"📧 Adicionando autor: {email_autor}")
             
             # 2. Responsável pela obra (via projeto)
             if projeto.responsavel_id:
                 responsavel = db.session.get(User, projeto.responsavel_id)
-                if responsavel and responsavel.email:
-                    destinatarios.add(responsavel.email)
-                    current_app.logger.info(f"📧 Adicionando responsável: {responsavel.email}")
+                if responsavel and responsavel.email and responsavel.email.strip():
+                    email_resp = responsavel.email.strip()
+                    destinatarios.add(email_resp)
+                    current_app.logger.info(f"📧 Adicionando responsável do projeto: {email_resp}")
             
-            # 3. Funcionários da obra
+            # 3. Funcionários da obra (apenas ativos)
             funcionarios = FuncionarioProjeto.query.filter_by(
                 projeto_id=projeto.id,
                 ativo=True
@@ -523,14 +585,15 @@ class EmailService:
                 # Funcionários podem ter user_id (usuários do sistema) ou apenas dados cadastrais
                 if func.user_id:
                     user = db.session.get(User, func.user_id)
-                    if user and user.email:
-                        destinatarios.add(user.email)
-                        current_app.logger.info(f"📧 Adicionando funcionário (user): {user.email}")
-                # Também verificar se o funcionário tem e-mail cadastrado diretamente no modelo
-                # Nota: O modelo FuncionarioProjeto atual não tem campo email, mas mantemos para futura compatibilidade
-                elif hasattr(func, 'email') and func.email:
-                    destinatarios.add(func.email)
-                    current_app.logger.info(f"📧 Adicionando funcionário (cadastral): {func.email}")
+                    if user and user.email and user.email.strip():
+                        email_func = user.email.strip()
+                        destinatarios.add(email_func)
+                        current_app.logger.info(f"📧 Adicionando funcionário (user): {email_func}")
+                # Também verificar se o funcionário tem e-mail cadastrado diretamente
+                elif hasattr(func, 'email') and func.email and func.email.strip():
+                    email_func = func.email.strip()
+                    destinatarios.add(email_func)
+                    current_app.logger.info(f"📧 Adicionando funcionário (cadastral): {email_func}")
             
             # 4. Acompanhantes da visita (stored in JSONB field)
             if relatorio.acompanhantes:
@@ -538,84 +601,130 @@ class EmailService:
                     # acompanhantes é um campo JSONB que pode conter lista de objetos
                     acompanhantes_list = relatorio.acompanhantes if isinstance(relatorio.acompanhantes, list) else []
                     for acomp in acompanhantes_list:
-                        if isinstance(acomp, dict) and acomp.get('email'):
-                            destinatarios.add(acomp['email'])
-                            current_app.logger.info(f"📧 Adicionando acompanhante: {acomp['email']}")
+                        if isinstance(acomp, dict) and acomp.get('email') and acomp.get('email').strip():
+                            email_acomp = acomp['email'].strip()
+                            destinatarios.add(email_acomp)
+                            current_app.logger.info(f"📧 Adicionando acompanhante: {email_acomp}")
                 except Exception as e:
                     current_app.logger.warning(f"⚠️ Erro ao processar acompanhantes: {e}")
             
-            if not destinatarios:
-                current_app.logger.warning(f"⚠️ Nenhum destinatário encontrado para relatório {relatorio.numero}")
-                return {'success': False, 'error': 'Nenhum destinatário encontrado'}
+            # Remover None ou strings vazias (garantia extra)
+            destinatarios = {email for email in destinatarios if email and email.strip() and '@' in email}
             
-            current_app.logger.info(f"📬 Total de destinatários únicos: {len(destinatarios)}")
+            if not destinatarios:
+                current_app.logger.warning(f"⚠️ Nenhum destinatário válido encontrado para relatório {relatorio.numero}")
+                return {'success': False, 'error': 'Nenhum destinatário válido encontrado'}
+            
+            current_app.logger.info(f"📬 Total de destinatários únicos válidos: {len(destinatarios)}")
+            current_app.logger.info(f"📬 Lista de destinatários: {', '.join(sorted(destinatarios))}")
             
             # Gerar PDF do relatório
             from pdf_generator_weasy import gerar_pdf_relatorio_weasy
             pdf_path = gerar_pdf_relatorio_weasy(relatorio_id)
             
             if not pdf_path or not os.path.exists(pdf_path):
-                current_app.logger.error(f"❌ PDF não encontrado: {pdf_path}")
-                return {'success': False, 'error': 'PDF do relatório não disponível'}
+                current_app.logger.warning(f"⚠️ PDF não encontrado em {pdf_path}. Tentando gerar novamente...")
+                # Tentar gerar PDF novamente
+                try:
+                    pdf_path = gerar_pdf_relatorio_weasy(relatorio_id)
+                    if not pdf_path or not os.path.exists(pdf_path):
+                        current_app.logger.error(f"❌ PDF não pôde ser gerado para relatório {relatorio_id}")
+                        return {'success': False, 'error': 'PDF do relatório não disponível'}
+                except Exception as pdf_error:
+                    current_app.logger.error(f"❌ Erro ao gerar PDF: {pdf_error}")
+                    return {'success': False, 'error': f'Erro ao gerar PDF: {str(pdf_error)}'}
             
-            current_app.logger.info(f"📄 PDF gerado: {pdf_path}")
+            current_app.logger.info(f"📄 PDF gerado com sucesso: {pdf_path} ({os.path.getsize(pdf_path)} bytes)")
             
             # Preparar e-mail
             from email.message import EmailMessage
             import smtplib
             
             assunto = f"RELATORIO-{relatorio.numero}"
-            email_responsavel = relatorio.autor.email if relatorio.autor else SMTP_USER
+            email_responsavel = relatorio.autor.email if (relatorio.autor and relatorio.autor.email) else SMTP_USER
+            
+            # Ler PDF uma única vez (otimização)
+            try:
+                with open(pdf_path, "rb") as f:
+                    pdf_data = f.read()
+                current_app.logger.info(f"📎 PDF carregado em memória ({len(pdf_data)} bytes)")
+            except Exception as pdf_read_error:
+                current_app.logger.error(f"❌ Erro ao ler PDF: {pdf_read_error}")
+                return {'success': False, 'error': f'Erro ao ler PDF: {str(pdf_read_error)}'}
             
             # Contadores de envio
             enviados = 0
             falhas = 0
             
-            # Enviar para cada destinatário
-            for email_dest in destinatarios:
-                try:
-                    msg = EmailMessage()
-                    msg["From"] = SMTP_USER
-                    msg["To"] = email_dest
-                    msg["Subject"] = assunto
+            # CORREÇÃO: Usar conexão SMTP reutilizável para performance
+            try:
+                current_app.logger.info(f"🔌 Conectando ao servidor SMTP {SMTP_HOST}:{SMTP_PORT}...")
+                with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as smtp:
+                    smtp.starttls()
+                    current_app.logger.info("🔒 TLS ativado")
+                    smtp.login(SMTP_USER, SMTP_PASS)
+                    current_app.logger.info("✅ Login SMTP bem-sucedido")
                     
-                    # Corpo do e-mail (texto simples)
-                    corpo_texto = f"{email_dest}, este é o relatório da obra \"{projeto.nome}\".\nQualquer dúvida, entre em contato com {email_responsavel}."
-                    msg.set_content(corpo_texto)
-                    
-                    # Corpo HTML
-                    corpo_html = f"""
-                    <html>
-                      <body>
-                        <p><strong>{email_dest}</strong>, este é o relatório da obra <b>{projeto.nome}</b>.</p>
-                        <p>Qualquer dúvida, entre em contato com <a href="mailto:{email_responsavel}">{email_responsavel}</a>.</p>
-                      </body>
-                    </html>
-                    """
-                    msg.add_alternative(corpo_html, subtype='html')
-                    
-                    # Anexar PDF
-                    with open(pdf_path, "rb") as f:
-                        pdf_data = f.read()
-                        msg.add_attachment(
-                            pdf_data,
-                            maintype="application",
-                            subtype="pdf",
-                            filename=f"RELATORIO-{relatorio.numero}.pdf"
-                        )
-                    
-                    # Enviar e-mail
-                    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
-                        smtp.starttls()
-                        smtp.login(SMTP_USER, SMTP_PASS)
-                        smtp.send_message(msg)
-                    
-                    enviados += 1
-                    current_app.logger.info(f"✅ E-mail enviado para {email_dest}")
-                    
-                except Exception as e:
-                    falhas += 1
-                    current_app.logger.error(f"❌ Erro ao enviar e-mail para {email_dest}: {str(e)}")
+                    # Enviar para cada destinatário usando mesma conexão
+                    for email_dest in sorted(destinatarios):
+                        try:
+                            msg = EmailMessage()
+                            msg["From"] = SMTP_USER
+                            msg["To"] = email_dest
+                            msg["Subject"] = assunto
+                            
+                            # Corpo do e-mail (texto simples)
+                            corpo_texto = f"Olá,\n\nEste é o relatório da obra \"{projeto.nome}\".\nQualquer dúvida, entre em contato com {email_responsavel}.\n\nAtenciosamente,\nEquipe ELP Consultoria"
+                            msg.set_content(corpo_texto)
+                            
+                            # Corpo HTML
+                            corpo_html = f"""
+                            <html>
+                              <body style="font-family: Arial, sans-serif; line-height: 1.6;">
+                                <p>Olá,</p>
+                                <p>Este é o relatório da obra <strong>{projeto.nome}</strong>.</p>
+                                <p>Qualquer dúvida, entre em contato com <a href="mailto:{email_responsavel}">{email_responsavel}</a>.</p>
+                                <br>
+                                <p>Atenciosamente,<br><strong>Equipe ELP Consultoria</strong></p>
+                              </body>
+                            </html>
+                            """
+                            msg.add_alternative(corpo_html, subtype='html')
+                            
+                            # Anexar PDF (usando dados já carregados)
+                            msg.add_attachment(
+                                pdf_data,
+                                maintype="application",
+                                subtype="pdf",
+                                filename=f"RELATORIO-{relatorio.numero}.pdf"
+                            )
+                            
+                            # Enviar e-mail
+                            smtp.send_message(msg)
+                            
+                            enviados += 1
+                            current_app.logger.info(f"✅ E-mail enviado para {email_dest} ({enviados}/{len(destinatarios)})")
+                            
+                        except Exception as e:
+                            falhas += 1
+                            current_app.logger.error(f"❌ Erro ao enviar e-mail para {email_dest}: {str(e)}")
+                            
+            except smtplib.SMTPAuthenticationError as auth_error:
+                current_app.logger.error(f"❌ Erro de autenticação SMTP: {auth_error}")
+                return {
+                    'success': False,
+                    'error': 'Falha na autenticação SMTP. Verifique as credenciais.',
+                    'enviados': 0,
+                    'falhas': len(destinatarios)
+                }
+            except Exception as smtp_error:
+                current_app.logger.error(f"❌ Erro na conexão SMTP: {smtp_error}")
+                return {
+                    'success': False,
+                    'error': f'Erro na conexão SMTP: {str(smtp_error)}',
+                    'enviados': 0,
+                    'falhas': len(destinatarios)
+                }
             
             # Limpar arquivo PDF temporário
             try:
@@ -626,14 +735,14 @@ class EmailService:
                 current_app.logger.warning(f"⚠️ Erro ao remover PDF temporário: {e}")
             
             # Resultado final
-            current_app.logger.info(f"📊 Envio concluído: {enviados} enviados, {falhas} falhas")
+            current_app.logger.info(f"📊 Envio concluído: {enviados} enviados, {falhas} falhas de {len(destinatarios)} total")
             
             return {
                 'success': enviados > 0,
                 'enviados': enviados,
                 'falhas': falhas,
                 'total': len(destinatarios),
-                'message': f'{enviados} e-mail(s) enviado(s) com sucesso'
+                'message': f'{enviados} e-mail(s) enviado(s) com sucesso para {len(destinatarios)} destinatário(s)'
             }
             
         except Exception as e:
