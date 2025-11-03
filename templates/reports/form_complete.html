@@ -2183,7 +2183,13 @@ window.selectPhotoCategory = function(category, element) {
 document.addEventListener('DOMContentLoaded', function() {
     // Verificar se temos um ID de relatório para auto save
     const urlParams = new URLSearchParams(window.location.search);
-    const reportId = urlParams.get('report_id') || document.querySelector('input[name="report_id"]')?.value;
+    
+    // Tentar obter o reportId de múltiplas fontes
+    const reportId = urlParams.get('edit') || 
+                     urlParams.get('report_id') || 
+                     document.querySelector('#reportForm')?.getAttribute('data-report-id') ||
+                     document.querySelector('input[name="edit_report_id"]')?.value ||
+                     document.querySelector('input[name="report_id"]')?.value;
     
     if (reportId) {
         // Inicializar auto save com CSRF token correto
@@ -2191,6 +2197,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const autoSave = initAutoSave(reportId, csrfToken);
         
         console.log('✅ Auto Save ativado para relatório', reportId);
+        console.log('📥 Carregando dados do relatório via AutoSave...');
+    } else {
+        console.log('📝 Novo relatório - Auto Save será ativado após criação inicial');
     }
 });
 </script>
