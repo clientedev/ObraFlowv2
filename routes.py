@@ -3191,7 +3191,7 @@ def create_report():
     for user in admin_users:
         admin_users_data.append({
             'id': user.id,
-            'nome': user.nome,
+            'nome': user.nome_completo,
             'email': user.email,
             'is_master': user.is_master
         })
@@ -3241,8 +3241,8 @@ def create_report():
                 if isinstance(existing_report.acompanhantes, list):
                     for item in existing_report.acompanhantes:
                         # Convert User objects to strings (names)
-                        if hasattr(item, 'nome'):
-                            acompanhantes_safe.append(item.nome)
+                        if hasattr(item, 'nome_completo'):
+                            acompanhantes_safe.append(item.nome_completo)
                         elif isinstance(item, (str, dict)):
                             acompanhantes_safe.append(item)
                         else:
