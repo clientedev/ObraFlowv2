@@ -3,6 +3,20 @@ This project is a comprehensive Flask-based construction site visit tracking sys
 
 ## Recent Changes
 
+### Nov 3, 2025 (17:50 UTC)
+✅ **CORREÇÃO CRÍTICA: Sistema de Carregamento de Acompanhantes - COMPLETAMENTE RESOLVIDO**:
+- **Problema Identificado**: Função `carregarAcompanhantes()` estava causando perda de dados devido a referências compartilhadas entre array global e parâmetros da função
+- **Root Cause**: Ao limpar o array global com `acompanhantes.length = 0`, também limpava o parâmetro recebido (mesma referência), impedindo repopulação
+- **Solução Implementada**: Clonagem profunda dos dados usando `JSON.parse(JSON.stringify())` antes de qualquer manipulação
+- **Impacto**: Ciclo completo adicionar/remover/re-renderizar agora mantém sincronização perfeita entre:
+  - Array global `acompanhantes`
+  - Campo hidden `#acompanhantes-data`
+  - Lista visual na interface
+- **Validação Architect**: Aprovado sem problemas de performance ou segurança
+- **Arquivos Modificados**: `templates/reports/form_complete.html` (função `carregarAcompanhantes` linha ~3603 e função `removerAcompanhanteDoRelatorio` linha ~3692)
+- **Logs de Debug**: Adicionados logs detalhados para monitoramento e troubleshooting futuro
+- **Status**: ✅ Pronto para produção
+
 ### Nov 3, 2025 (16:03 UTC)
 ✅ **Correção de Bugs de Edição de Relatórios - COMPLETA**: Resolvidos dois problemas críticos de edição:
 - **Acompanhantes**: Eliminada dupla serialização JSON no backend que impedia carregamento correto dos acompanhantes ao editar relatórios (routes.py linha 6277 - agora salva diretamente a lista, pois SQLAlchemy serializa JSONB automaticamente)
