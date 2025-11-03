@@ -5983,27 +5983,6 @@ def report_edit_complete(report_id):
         # Buscar admin users para aprovador
         admin_users = User.query.filter_by(is_master=True).all()
         
-        # Carregar fotos existentes
-        existing_fotos = []
-        try:
-            existing_fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
-            current_app.logger.info(f"📸 Carregadas {len(existing_fotos)} fotos para relatório {report_id}")
-        except Exception as e:
-            current_app.logger.error(f"❌ Erro ao carregar fotos: {str(e)}")
-        
-        # Carregar checklist existente
-        existing_checklist = {}
-        try:
-            if existing_report.checklist_data:
-                import json
-                if isinstance(existing_report.checklist_data, str):
-                    existing_checklist = json.loads(existing_report.checklist_data)
-                elif isinstance(existing_report.checklist_data, (dict, list)):
-                    existing_checklist = existing_report.checklist_data
-                current_app.logger.info(f"✅ Checklist carregado: {len(existing_checklist) if isinstance(existing_checklist, list) else 'dict'}")
-        except Exception as e:
-            current_app.logger.error(f"❌ Erro ao carregar checklist: {str(e)}")
-        
         # Buscar projeto selecionado
         selected_project = existing_report.projeto if existing_report else None
         
@@ -6012,9 +5991,90 @@ def report_edit_complete(report_id):
         if selected_project:
             selected_aprovador = get_aprovador_padrao_para_projeto(selected_project.id)
         
-        current_app.logger.info(f"📋 Renderizando form_complete.html com dados do relatório {existing_report.numero}")
+        # ==========================================
+        # CARREGAR E SERIALIZAR FOTOS EXISTENTES
+        # ==========================================
+        existing_fotos_serialized = []
+        try:
+            fotos_db = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
+            current_app.logger.info(f"📸 Carregadas {len(fotos_db)} fotos para relatório {report_id}")
+            
+            for foto in fotos_db:
+                foto_dict = {
+                    'id': foto.id,
+                    'filename': foto.filename,
+                    'url': f'/uploads/{foto.filename}' if foto.filename else None,
+                    'titulo': foto.titulo or '',
+                    'legenda': foto.legenda or '',
+                    'descricao': foto.descricao or '',
+                    'tipo_servico': foto.tipo_servico or 'Geral',
+                    'local': foto.local or '',
+                    'ordem': foto.ordem or 0
+                }
+                existing_fotos_serialized.append(foto_dict)
+                current_app.logger.info(f"  📷 Foto {foto.id}: {foto.filename}, legenda='{foto.legenda}'")
+        except Exception as e:
+            current_app.logger.error(f"❌ Erro ao carregar fotos: {str(e)}")
         
-        # Renderizar form_complete.html com TODOS os dados populados
+        # ==========================================
+        # PARSEAR E SERIALIZAR ACOMPANHANTES
+        # ==========================================
+        acompanhantes_list = []
+        try:
+            if existing_report.acompanhantes:
+                import json
+                if isinstance(existing_report.acompanhantes, str):
+                    acompanhantes_list = json.loads(existing_report.acompanhantes)
+                elif isinstance(existing_report.acompanhantes, list):
+                    acompanhantes_list = existing_report.acompanhantes
+                else:
+                    acompanhantes_list = []
+                current_app.logger.info(f"👥 Acompanhantes carregados: {len(acompanhantes_list)}")
+                for acomp in acompanhantes_list:
+                    current_app.logger.info(f"  👤 {acomp.get('nome', 'N/A')} - {acomp.get('cargo', 'N/A')}")
+        except Exception as e:
+            current_app.logger.error(f"❌ Erro ao parsear acompanhantes: {str(e)}")
+            acompanhantes_list = []
+        
+        # ==========================================
+        # PARSEAR E CONVERTER CHECKLIST
+        # ==========================================
+        existing_checklist_dict = {}
+        try:
+            if existing_report.checklist_data:
+                import json
+                if isinstance(existing_report.checklist_data, str):
+                    existing_checklist_dict = json.loads(existing_report.checklist_data)
+                elif isinstance(existing_report.checklist_data, dict):
+                    existing_checklist_dict = existing_report.checklist_data
+                current_app.logger.info(f"✅ Checklist carregado: {len(existing_checklist_dict)} itens")
+                current_app.logger.info(f"  📋 Checklist keys: {list(existing_checklist_dict.keys())}")
+        except Exception as e:
+            current_app.logger.error(f"❌ Erro ao carregar checklist: {str(e)}")
+            existing_checklist_dict = {}
+        
+        # ==========================================
+        # CARREGAR CATEGORIAS DO PROJETO
+        # ==========================================
+        categorias_projeto = []
+        if selected_project:
+            try:
+                from models import CategoriaObra
+                categorias_db = CategoriaObra.query.filter_by(
+                    projeto_id=selected_project.id
+                ).order_by(CategoriaObra.ordem).all()
+                categorias_projeto = [cat.to_dict() for cat in categorias_db]
+                current_app.logger.info(f"📂 Categorias do projeto carregadas: {len(categorias_projeto)}")
+            except Exception as e:
+                current_app.logger.error(f"❌ Erro ao carregar categorias: {str(e)}")
+        
+        current_app.logger.info(f"📋 Renderizando form_complete.html com dados do relatório {existing_report.numero}")
+        current_app.logger.info(f"  ✅ Fotos: {len(existing_fotos_serialized)}")
+        current_app.logger.info(f"  ✅ Acompanhantes: {len(acompanhantes_list)}")
+        current_app.logger.info(f"  ✅ Checklist: {len(existing_checklist_dict)}")
+        current_app.logger.info(f"  ✅ Categorias: {len(categorias_projeto)}")
+        
+        # Renderizar form_complete.html com TODOS os dados populados e serializados
         return render_template('reports/form_complete.html',
                              projetos=projetos,
                              admin_users=admin_users,
@@ -6023,8 +6083,10 @@ def report_edit_complete(report_id):
                              disable_fields=False,
                              preselected_project_id=None,
                              existing_report=existing_report,
-                             existing_fotos=existing_fotos,
-                             existing_checklist=existing_checklist,
+                             existing_fotos=existing_fotos_serialized,
+                             existing_checklist=existing_checklist_dict,
+                             existing_acompanhantes=acompanhantes_list,
+                             categorias_projeto=categorias_projeto,
                              next_numero=existing_report.numero,
                              lembrete_anterior=None,
                              today=date.today().isoformat())
