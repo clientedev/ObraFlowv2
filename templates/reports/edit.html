@@ -165,7 +165,7 @@
                                 {% elif relatorio.status == 'Rejeitado' or relatorio.status == 'Em edição' %}
                                 <!-- Relatório rejeitado/em edição - pode ser editado -->
                                 <div class="alert alert-warning mb-3">
-                                    <strong><i class="fas fa-exclamation-triangle"></i> 
+                                    <i class="fas fa-exclamation-triangle"></i> 
                                     {% if relatorio.status == 'Em edição' %}Relatório Em Edição{% else %}Relatório Rejeitado{% endif %}
                                     </strong><br>
                                     {% if relatorio.comentario_aprovacao %}
@@ -268,9 +268,10 @@
                                                     <select class="form-select form-select-sm photo-legend legendas-select" 
                                                             data-photo-id="{{ foto.id }}"
                                                             data-current-value="{{ foto.legenda or '' }}"
+                                                            data-categoria="all"
                                                             {% if relatorio.status == 'Aprovado' or not user_can_edit %}disabled{% endif %}
                                                             onchange="updatePhotoLegend({{ foto.id }}, this.value)">
-                                                        <option value="">Selecione uma legenda...</option>
+                                                        <option value="">Carregando legendas...</option>
                                                         {% if foto.legenda %}
                                                         <option value="{{ foto.legenda }}" selected>{{ foto.legenda }}</option>
                                                         {% endif %}
@@ -332,6 +333,53 @@ async function loadLegendasForSelect(selectElement, type) {
     }
 }
 
+// Função para popular o select com as legendas disponíveis
+async function populateSelectWithLegendas(selectElement, categoria) {
+    const placeholderOption = selectElement.querySelector('option[value=""]');
+    if (placeholderOption) {
+        placeholderOption.textContent = "Carregando legendas...";
+    }
+
+    try {
+        const response = await fetch(`/api/legendas?type=${categoria}`);
+        if (!response.ok) {
+            throw new Error(`Erro ao buscar legendas: ${response.status}`);
+        }
+        const data = await response.json();
+
+        // Remove todas as opções, exceto a de placeholder
+        selectElement.querySelectorAll('option:not([value=""])').forEach(option => option.remove());
+
+        if (data.success && data.legendas && data.legendas.length > 0) {
+            data.legendas.forEach(legenda => {
+                const option = document.createElement('option');
+                option.value = legenda.nome;
+                option.textContent = legenda.nome;
+                // Mantém a seleção original se existir
+                if (selectElement.dataset.currentValue === legenda.nome) {
+                    option.selected = true;
+                }
+                selectElement.appendChild(option);
+            });
+            if (placeholderOption) {
+                placeholderOption.textContent = "Selecione uma legenda...";
+            }
+            console.log(`✅ Select populado com ${data.legendas.length} legendas para a foto ${selectElement.dataset.photoId}`);
+        } else {
+            if (placeholderOption) {
+                placeholderOption.textContent = "Nenhuma legenda encontrada";
+            }
+            console.log(`⚠️ Nenhuma legenda encontrada para a foto ${selectElement.dataset.photoId}`);
+        }
+    } catch (error) {
+        console.error(`❌ Erro ao popular select para foto ${selectElement.dataset.photoId}:`, error);
+        if (placeholderOption) {
+            placeholderOption.textContent = "Erro ao carregar";
+        }
+    }
+}
+
+
 // Carregar dados do relatório ao abrir a página
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('📄 Carregando dados do relatório ID:', RELATORIO_ID);
@@ -339,7 +387,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // PRIMEIRO: Carregar legendas globalmente ANTES de renderizar as imagens
     try {
         console.log('🏷️ Carregando legendas globalmente...');
-        await window.legendasSelector.loadLegendas('all', true);
+        await window.legendasSelector.loadLegendas('all', true); // Assumindo que legendasSelector existe e tem este método
         console.log('✅ Legendas carregadas globalmente');
     } catch (error) {
         console.error('❌ Erro ao carregar legendas globalmente:', error);
@@ -410,21 +458,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 for (const card of photoCards) {
                     const photoId = card.dataset.photoId;
                     const legendSelect = card.querySelector('.photo-legend');
+                    const categoria = legendSelect.dataset.categoria || 'all'; // Pega a categoria do data-categoria
 
                     if (legendSelect && legendSelect.tagName === 'SELECT') {
-                        const currentValue = legendSelect.dataset.currentValue || '';
-
-                        try {
-                            await window.legendasSelector.populateSelect(legendSelect, 'all', 'Selecione uma legenda...');
-
-                            // Restaurar valor selecionado
-                            if (currentValue) {
-                                legendSelect.value = currentValue;
-                                console.log(`✅ Legenda mantida para foto ${photoId}: "${currentValue}"`);
-                            }
-                        } catch (error) {
-                            console.error(`❌ Erro ao popular select para foto ${photoId}:`, error);
-                        }
+                        await populateSelectWithLegendas(legendSelect, categoria);
                     }
                 }
             }, 300);
@@ -461,6 +498,7 @@ function renderImages(imagens) {
     imagens.forEach(foto => {
         const fotoCard = document.createElement('div');
         fotoCard.className = 'col-md-4 col-lg-3 mb-3';
+        fotoCard.setAttribute('id', `photo-${foto.id}`);
         fotoCard.setAttribute('data-photo-id', foto.id);
 
         fotoCard.innerHTML = `
