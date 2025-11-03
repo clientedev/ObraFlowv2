@@ -5984,7 +5984,29 @@ def report_edit_complete(report_id):
 
         projeto = Projeto.query.get(relatorio.projeto_id)
         fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).all()
-        checklist = ChecklistObra.query.filter_by(relatorio_id=report_id).all()
+        
+        # Checklist vem do campo JSON checklist_data do relatório
+        checklist = []
+        if relatorio.checklist_data:
+            import json
+            try:
+                if isinstance(relatorio.checklist_data, str):
+                    checklist_dict = json.loads(relatorio.checklist_data)
+                elif isinstance(relatorio.checklist_data, dict):
+                    checklist_dict = relatorio.checklist_data
+                else:
+                    checklist_dict = {}
+                
+                for descricao, concluido in checklist_dict.items():
+                    checklist.append({
+                        "id": None,
+                        "descricao": descricao,
+                        "concluido": concluido
+                    })
+            except Exception as e:
+                app.logger.warning(f"⚠️ Erro ao parsear checklist: {e}")
+        
+        # Acompanhantes do projeto
         acompanhantes = FuncionarioProjeto.query.filter_by(projeto_id=relatorio.projeto_id).all() if relatorio.projeto_id else []
 
         report_data = {
@@ -6008,17 +6030,14 @@ def report_edit_complete(report_id):
                     "legenda": getattr(f, "legenda", "") or getattr(f, "titulo", "")
                 } for f in fotos
             ],
-            "checklist": [
-                {"id": c.id, "descricao": c.descricao, "concluido": c.concluido}
-                for c in checklist
-            ],
+            "checklist": checklist,
             "acompanhantes": [
                 {"id": a.id, "nome": a.nome_funcionario, "funcao": getattr(a, "funcao", "") or getattr(a, "cargo", "Não informado")}
                 for a in acompanhantes
             ],
         }
 
-        app.logger.info(f"✅ Dados enviados ao template ({len(fotos)} fotos, {len(acompanhantes)} acompanhantes)")
+        app.logger.info(f"✅ Dados enviados ao template ({len(fotos)} fotos, {len(checklist)} checklist, {len(acompanhantes)} acompanhantes)")
 
         return render_template(
             "reports/form_complete.html",
