@@ -2209,10 +2209,64 @@ let predefinedLegendas = [];
 // Garantir que window.mobilePhotoData sempre exista (conforme especificação técnica)
 if (!window.mobilePhotoData) window.mobilePhotoData = [];
 
+// ============================================================================
+// CARREGAR DADOS EXISTENTES AO EDITAR RELATÓRIO
+// ============================================================================
+{% if existing_fotos and existing_fotos|length > 0 %}
+console.log('📸 Carregando {{ existing_fotos|length }} fotos existentes...');
+try {
+    const fotosExistentes = {{ existing_fotos | tojson | safe }};
+    window.mobilePhotoData = fotosExistentes.map((foto, index) => ({
+        id: foto.id,
+        previewUrl: foto.url,
+        file: null,
+        metadata: {
+            legenda: foto.legenda || '',
+            titulo: foto.titulo || '',
+            descricao: foto.descricao || '',
+            categoria: foto.tipo_servico || 'Geral',
+            local: foto.local || ''
+        },
+        isExisting: true,
+        ordem: foto.ordem || index
+    }));
+    console.log('✅ Fotos existentes carregadas:', window.mobilePhotoData.length);
+} catch (e) {
+    console.error('❌ Erro ao carregar fotos existentes:', e);
+}
+{% endif %}
+
+{% if existing_checklist %}
+console.log('✅ Carregando checklist existente...');
+try {
+    const checklistExistente = {{ existing_checklist | tojson | safe }};
+    // Marcar checkboxes do checklist
+    document.addEventListener('DOMContentLoaded', function() {
+        Object.keys(checklistExistente).forEach(key => {
+            const checkbox = document.querySelector(`input[name="${key}"]`);
+            if (checkbox && checklistExistente[key]) {
+                checkbox.checked = true;
+                console.log(`✓ Checklist item marcado: ${key}`);
+            }
+        });
+    });
+} catch (e) {
+    console.error('❌ Erro ao carregar checklist:', e);
+}
+{% endif %}
+
 // Load predefined captions on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadPredefinedLegendas();
     setupMobilePhotoSystem();
+    
+    // Renderizar fotos existentes na galeria
+    {% if existing_fotos and existing_fotos|length > 0 %}
+    setTimeout(() => {
+        updatePhotoGallery();
+        console.log('✅ Galeria de fotos renderizada com fotos existentes');
+    }, 500);
+    {% endif %}
 });
 
 // Load predefined captions from API
@@ -3048,9 +3102,9 @@ function removerAcompanhante(index) {
 }
 
 // Carregar acompanhantes existentes ao editar relatório
-{% if existing_report and existing_report.acompanhantes %}
+{% if existing_acompanhantes and existing_acompanhantes|length > 0 %}
 try {
-    const acompanhantesExistentes = {{ existing_report.acompanhantes | tojson | safe }};
+    const acompanhantesExistentes = {{ existing_acompanhantes | tojson | safe }};
     if (acompanhantesExistentes && Array.isArray(acompanhantesExistentes)) {
         acompanhantes = acompanhantesExistentes;
         atualizarListaAcompanhantes();
