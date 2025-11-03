@@ -1655,12 +1655,8 @@ document.getElementById('reportForm').addEventListener('submit', async function(
         // Sucesso!
         alert('✅ Relatório atualizado com sucesso!');
         
-        // Redirecionar de volta para a página de edição ou lista
-        if (EDIT_MODE && REPORT_DATA && REPORT_DATA.relatorio && REPORT_DATA.relatorio.id) {
-            window.location.href = `/reports/${REPORT_DATA.relatorio.id}/editarrel`;
-        } else {
-            window.location.href = data.redirect || '/reports';
-        }
+        // Redirecionar para a lista de relatórios
+        window.location.href = '/reports';
 
     } catch (error) {
         console.error('❌ Erro ao salvar relatório:', error);
