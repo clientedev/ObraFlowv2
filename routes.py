@@ -6095,8 +6095,8 @@ def report_edit_complete(report_id):
                             
                             checklist.append({
                                 "id": item.get("id"),
-                                "descricao": item.get("descricao") or item.get("texto", ""),
-                                "concluido": bool(item.get("concluido") or item.get("completado", False)),
+                                "texto": item.get("descricao") or item.get("texto", ""),
+                                "checked": bool(item.get("concluido") or item.get("completado", False)),
                                 "imagem_url": safe_attr(item_completo, "imagem_url") if item_completo else item.get("imagem_url", ""),
                                 "observacao": item.get("observacao", "")
                             })
@@ -6104,8 +6104,8 @@ def report_edit_complete(report_id):
                             # Item é string simples
                             checklist.append({
                                 "id": None,
-                                "descricao": str(item),
-                                "concluido": False,
+                                "texto": str(item),
+                                "checked": False,
                                 "imagem_url": "",
                                 "observacao": ""
                             })
@@ -6115,8 +6115,8 @@ def report_edit_complete(report_id):
                     for descricao, concluido in checklist_raw.items():
                         checklist.append({
                             "id": None,
-                            "descricao": str(descricao),
-                            "concluido": bool(concluido),
+                            "texto": str(descricao),
+                            "checked": bool(concluido),
                             "imagem_url": "",
                             "observacao": ""
                         })
@@ -8574,30 +8574,6 @@ def admin_checklist_reorder():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Erro interno: {str(e)}'}), 500
-
-@app.route('/api/checklist-padrao')
-@login_required
-def api_checklist_padrao():
-    """API para obter itens do checklist padrão"""
-    try:
-        items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
-
-        checklist_data = []
-        for item in items:
-            checklist_data.append({
-                'id': item.id,
-                'texto': item.texto,
-                'ordem': item.ordem
-            })
-
-        return jsonify({
-            'success': True,
-            'checklist': checklist_data
-        })
-
-    except Exception as e:
-        print(f"Erro ao carregar checklist padrão: {e}")
-        return jsonify({'error': str(e)}), 500
 
 # =============================================================================
 # SISTEMA DE E-MAIL - ROTAS PARA ENVIO DE RELATÓRIOS POR E-MAIL

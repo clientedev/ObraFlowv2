@@ -1678,6 +1678,12 @@ function carregarChecklistProjeto(projetoId) {
         return;
     }
 
+    // Armazenar checkboxes marcados antes de trocar o projeto
+    const currentCheckedIds = Array.from(document.querySelectorAll('#checklistItems input[type=checkbox]:checked'))
+        .map(cb => cb.dataset.id || cb.id.replace('check_', ''));
+
+    console.log(`📋 IDs marcados antes de trocar: ${currentCheckedIds.join(', ')}`);
+
     container.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin"></i> Carregando checklist...</p>';
 
     fetch(`/api/projeto/${projetoId}/checklist`)
@@ -1697,10 +1703,14 @@ function carregarChecklistProjeto(projetoId) {
                 data.checklist.forEach(item => {
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'checklist-item mb-3';
+                    
+                    // Verificar se este item estava marcado antes
+                    const wasChecked = currentCheckedIds.includes(String(item.id));
+                    
                     itemDiv.innerHTML = `
                         <div class="d-flex align-items-start">
                             <div class="form-check me-3">
-                                <input class="form-check-input" type="checkbox" id="check_${item.id}" onchange="toggleChecklistItem(this)">
+                                <input class="form-check-input" type="checkbox" id="check_${item.id}" data-id="${item.id}" ${wasChecked ? 'checked' : ''} onchange="toggleChecklistItem(this)">
                                 <label class="form-check-label" for="check_${item.id}">
                                     ${item.texto}
                                 </label>
@@ -3272,22 +3282,22 @@ function carregarChecklist(items) {
 
     const div = document.createElement("div");
     div.className = "checklist-item mb-3";
-    if (item.concluido) {
+    if (item.checked) {
       div.classList.add("completed");
     }
 
-    const descricao = item.descricao || item.texto || 'Sem descrição';
-    const concluido = item.concluido || item.completado || false;
+    const texto = item.texto || 'Sem descrição';
+    const checked = item.checked || false;
     const imagem = item.imagem_url || '';
     const observacao = item.observacao || '';
 
-    console.log(`  📝 Descrição: "${descricao}", Concluído: ${concluido}, Imagem: ${imagem ? 'SIM' : 'NÃO'}`);
+    console.log(`  📝 Texto: "${texto}", Checked: ${checked}, Imagem: ${imagem ? 'SIM' : 'NÃO'}`);
 
     let itemHTML = `
       <div class="form-check">
-        <input type="checkbox" class="form-check-input" id="check_${index}" ${concluido ? "checked" : ""}>
-        <label class="form-check-label fw-bold" for="check_${index}">
-          ${descricao}
+        <input type="checkbox" class="form-check-input" id="check_${item.id || index}" data-id="${item.id || ''}" ${checked ? "checked" : ""}>
+        <label class="form-check-label fw-bold" for="check_${item.id || index}">
+          ${texto}
         </label>
       </div>
     `;
@@ -3309,6 +3319,7 @@ function carregarChecklist(items) {
     itemHTML += `
       <textarea class="form-control mt-2" 
                 placeholder="Observações sobre este item..." 
+                data-id="${item.id || ''}"
                 rows="2">${observacao}</textarea>
     `;
 
