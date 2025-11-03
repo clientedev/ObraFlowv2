@@ -3,6 +3,15 @@ This project is a comprehensive Flask-based construction site visit tracking sys
 
 ## Recent Changes
 
+### Nov 3, 2025 (16:03 UTC)
+✅ **Correção de Bugs de Edição de Relatórios - COMPLETA**: Resolvidos dois problemas críticos de edição:
+- **Acompanhantes**: Eliminada dupla serialização JSON no backend que impedia carregamento correto dos acompanhantes ao editar relatórios (routes.py linha 6277 - agora salva diretamente a lista, pois SQLAlchemy serializa JSONB automaticamente)
+- **Legendas**: Implementado salvamento completo de legendas de imagens existentes:
+  - Frontend agora coleta legendas, categorias e locais de TODAS as imagens existentes (templates/reports/form_complete.html linhas 1599-1631)
+  - Backend recebe e atualiza metadados das imagens existentes no banco de dados (routes.py linhas 6316-6350)
+- **Validação**: Todas as correções aprovadas pelo architect sem problemas de segurança ou regressões
+- **Próximos passos recomendados**: Teste manual de edição de relatórios com múltiplos acompanhantes e fotos existentes
+
 ### Nov 3, 2025
 ✅ **Report Image Editing System - FULLY OPERATIONAL**: Complete fix for image display and management during report editing:
 - **Backend**: Fixed `report_edit_complete` endpoint to send correct image URLs using `url_for('api_get_photo', foto_id=f.id)`
