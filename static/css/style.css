@@ -477,6 +477,31 @@ body {
     font-size: 1.2rem;
 }
 
+.navbar-logo {
+    height: 40px;
+    border-radius: 8px;
+    transition: transform 0.2s ease;
+}
+
+.navbar-logo:hover {
+    transform: scale(1.05);
+}
+
+/* Mobile responsive logo */
+@media (max-width: 767.98px) {
+    .navbar-logo {
+        height: 35px;
+        border-radius: 6px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .navbar-logo {
+        height: 32px;
+        border-radius: 5px;
+    }
+}
+
 /* Logo text styling - responsive */
 .logo-text {
     font-size: 1rem; /* Desktop default - 16px aproximadamente (reduzido -5px) */
