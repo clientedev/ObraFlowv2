@@ -2242,13 +2242,28 @@ try {
     const checklistExistente = {{ existing_checklist | tojson | safe }};
     // Marcar checkboxes do checklist
     document.addEventListener('DOMContentLoaded', function() {
-        Object.keys(checklistExistente).forEach(key => {
-            const checkbox = document.querySelector(`input[name="${key}"]`);
-            if (checkbox && checklistExistente[key]) {
-                checkbox.checked = true;
-                console.log(`✓ Checklist item marcado: ${key}`);
-            }
-        });
+        if (Array.isArray(checklistExistente)) {
+            // Se for um array, iterar sobre os itens
+            checklistExistente.forEach(item => {
+                if (item.id) {
+                    const checkbox = document.querySelector(`#check_${item.id}`);
+                    if (checkbox && item.completed) {
+                        checkbox.checked = true;
+                        toggleChecklistItem(checkbox);
+                        console.log(`✓ Checklist item marcado: ${item.texto || item.id}`);
+                    }
+                }
+            });
+        } else if (typeof checklistExistente === 'object') {
+            // Se for um objeto, usar Object.keys
+            Object.keys(checklistExistente).forEach(key => {
+                const checkbox = document.querySelector(`input[name="${key}"]`);
+                if (checkbox && checklistExistente[key]) {
+                    checkbox.checked = true;
+                    console.log(`✓ Checklist item marcado: ${key}`);
+                }
+            });
+        }
     });
 } catch (e) {
     console.error('❌ Erro ao carregar checklist:', e);
