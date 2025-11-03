@@ -3273,7 +3273,7 @@ def create_report():
         # Modo de criação: estrutura vazia
         report_data = {
             'id': None,
-            'projeto_id': selected_project.id if selected_project else None,
+            'projeto_id': selected_project_data['id'] if selected_project_data else None,
             'titulo': '',
             'conteudo': '',
             'data_relatorio': date.today().isoformat(),
