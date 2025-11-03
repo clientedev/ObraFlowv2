@@ -3189,14 +3189,19 @@ function updatePhotoGallery(photos) {
 }
 
 function carregarChecklist(items) {
+  console.log('📋 carregarChecklist() chamada com:', items);
+  
   const list = document.querySelector("#checklistItems");
   if (!list) {
-    console.warn('⚠️ Container #checklistItems não encontrado');
+    console.error('❌ Container #checklistItems não encontrado no DOM!');
     return;
   }
+  
+  console.log(`📋 Container #checklistItems encontrado, limpando conteúdo...`);
   list.innerHTML = "";
   
   if (!items || items.length === 0) {
+    console.warn('⚠️ Array de items vazio ou undefined');
     list.innerHTML = `
       <div class="alert alert-info">
         <i class="fas fa-info-circle me-2"></i>
@@ -3206,31 +3211,42 @@ function carregarChecklist(items) {
     return;
   }
   
+  console.log(`📋 Processando ${items.length} itens do checklist...`);
+  
   items.forEach((item, index) => {
+    console.log(`📋 Item ${index}:`, item);
+    
     const div = document.createElement("div");
     div.className = "checklist-item mb-3";
     if (item.concluido) {
       div.classList.add("completed");
     }
     
+    const descricao = item.descricao || item.texto || 'Sem descrição';
+    const concluido = item.concluido || item.completado || false;
+    const imagem = item.imagem_url || '';
+    const observacao = item.observacao || '';
+    
+    console.log(`  📝 Descrição: "${descricao}", Concluído: ${concluido}, Imagem: ${imagem ? 'SIM' : 'NÃO'}`);
+    
     let itemHTML = `
       <div class="form-check">
-        <input type="checkbox" class="form-check-input" id="check_${index}" ${item.concluido ? "checked" : ""}>
+        <input type="checkbox" class="form-check-input" id="check_${index}" ${concluido ? "checked" : ""}>
         <label class="form-check-label fw-bold" for="check_${index}">
-          ${item.descricao || 'Sem descrição'}
+          ${descricao}
         </label>
       </div>
     `;
     
     // Adicionar imagem se existir
-    if (item.imagem_url && item.imagem_url.trim() !== "") {
+    if (imagem && imagem.trim() !== "") {
       itemHTML += `
         <div class="mt-2">
-          <img src="${item.imagem_url}" 
+          <img src="${imagem}" 
                alt="Imagem do checklist" 
                class="img-fluid rounded"
                style="max-width: 200px; max-height: 200px; object-fit: cover;"
-               onerror="this.style.display='none'">
+               onerror="console.error('Erro ao carregar imagem:', this.src); this.style.display='none';">
         </div>
       `;
     }
@@ -3238,14 +3254,15 @@ function carregarChecklist(items) {
     // Adicionar campo de observação
     itemHTML += `
       <textarea class="form-control mt-2" 
-                placeholder="Observações..." 
-                rows="2">${item.observacao || ''}</textarea>
+                placeholder="Observações sobre este item..." 
+                rows="2">${observacao}</textarea>
     `;
     
     div.innerHTML = itemHTML;
     list.appendChild(div);
   });
-  console.log(`✅ ${items.length} itens do checklist carregados com imagens`);
+  
+  console.log(`✅ ${items.length} itens do checklist renderizados com sucesso!`);
 }
 
 function carregarAcompanhantes(acompanhantesData) {
@@ -3345,10 +3362,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   
   if (r.titulo) {
-    const tituloField = document.querySelector('[name="titulo_relatorio"]') || document.querySelector('[name="titulo"]');
+    const tituloField = document.querySelector('[name="titulo"]') || document.querySelector('[name="titulo_relatorio"]');
     if (tituloField) {
       tituloField.value = r.titulo;
-      console.log(`✅ Título: ${r.titulo}`);
+      console.log(`✅ Título carregado: "${r.titulo}"`);
+    } else {
+      console.warn('⚠️ Campo de título não encontrado no DOM');
     }
   }
   
@@ -3361,10 +3380,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   
   if (r.observacoes_finais) {
-    const obsField = document.querySelector('[name="observacoes_finais"]');
+    const obsField = document.querySelector('[name="conteudo"]') || document.querySelector('[name="observacoes_finais"]') || document.querySelector('[name="observacoes"]');
     if (obsField) {
       obsField.value = r.observacoes_finais;
-      console.log(`✅ Observações finais carregadas`);
+      console.log(`✅ Observações finais carregadas: "${r.observacoes_finais.substring(0, 50)}..."`);
+    } else {
+      console.warn('⚠️ Campo de observações não encontrado no DOM');
     }
   }
   
@@ -3395,114 +3416,36 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   
   // Carregar checklist
+  console.log('📋 Verificando checklist...', REPORT_DATA.checklist);
   if (REPORT_DATA.checklist && REPORT_DATA.checklist.length > 0) {
+    console.log(`📋 Carregando ${REPORT_DATA.checklist.length} itens do checklist`);
     carregarChecklist(REPORT_DATA.checklist);
+  } else {
+    console.warn('⚠️ Nenhum item no checklist para carregar');
   }
   
   // Carregar acompanhantes
+  console.log('👥 Verificando acompanhantes...', REPORT_DATA.acompanhantes);
   if (REPORT_DATA.acompanhantes && REPORT_DATA.acompanhantes.length > 0) {
+    console.log(`👥 Carregando ${REPORT_DATA.acompanhantes.length} acompanhantes`);
     carregarAcompanhantes(REPORT_DATA.acompanhantes);
+  } else {
+    console.warn('⚠️ Nenhum acompanhante para carregar');
   }
   
   // Carregar fotos
+  console.log('📸 Verificando fotos...', REPORT_DATA.fotos);
   if (REPORT_DATA.fotos && REPORT_DATA.fotos.length > 0) {
+    console.log(`📸 Carregando ${REPORT_DATA.fotos.length} fotos`);
     updatePhotoGallery(REPORT_DATA.fotos);
+  } else {
+    console.warn('⚠️ Nenhuma foto para carregar');
   }
   
   console.log('✅ Carregamento completo dos dados do relatório');
 });
 </script>
 
-<!-- Script de Preenchimento Automático - PROMPT ABSOLUTO E FINAL -->
-<script>
-window.addEventListener("load", function() {
-    if (!{{ 'true' if edit_mode else 'false' }} || !{{ report_data | tojson | safe }}) return;
-    const report = {{ report_data | tojson | safe }};
-    console.log("✏️ Carregando dados do relatório:", report);
-
-    // Campos principais
-    const dataField = document.querySelector('input[name="data_relatorio"]');
-    if (dataField) dataField.value = report.data_relatorio || "";
-    
-    const tituloField = document.querySelector('input[name="titulo"]');
-    if (tituloField) tituloField.value = report.titulo || "";
-    
-    const numeroField = document.querySelector('input[name="numero"]');
-    if (numeroField) numeroField.value = report.numero || "";
-
-    // Projeto
-    if (report.projeto) {
-        const select = document.querySelector('select[name="projeto_id"]');
-        if (select) {
-            select.innerHTML = `<option value="${report.projeto.id}" selected>${report.projeto.codigo} - ${report.projeto.nome}</option>`;
-        }
-    }
-
-    // Observações e lembrete
-    const obs = document.querySelector('textarea[name="observacoes"]') || document.querySelector('textarea[name="observacoes_finais"]');
-    if (obs) obs.value = report.observacoes || "";
-
-    const lembrete = document.querySelector('textarea[name="lembrete"]') || document.querySelector('textarea[name="lembrete_proxima_visita"]');
-    if (lembrete) lembrete.value = report.lembrete || "";
-
-    // Acompanhantes
-    if (report.acompanhantes?.length) {
-        const cont = document.querySelector("#acompanhantes-container") || document.querySelector("#lista-acompanhantes");
-        if (cont) {
-            cont.innerHTML = "";
-            report.acompanhantes.forEach(a => {
-                const div = document.createElement("div");
-                div.className = "acompanhante-item";
-                div.innerHTML = `
-                    <div class="card p-2 mb-2 shadow-sm rounded bg-light">
-                        <strong>${a.nome}</strong><br>
-                        <small>${a.funcao}</small>
-                    </div>`;
-                cont.appendChild(div);
-            });
-        }
-    }
-
-    // Checklist
-    if (report.checklist?.length) {
-        const chk = document.querySelector("#checklist-container") || document.querySelector("#checklistItems");
-        if (chk) {
-            chk.innerHTML = "";
-            report.checklist.forEach(i => {
-                const li = document.createElement("div");
-                li.className = "form-check mb-1";
-                li.innerHTML = `
-                    <input class="form-check-input" type="checkbox" ${i.concluido ? "checked" : ""}>
-                    <label class="form-check-label">${i.descricao}</label>`;
-                chk.appendChild(li);
-            });
-        }
-    }
-
-    // Fotos
-    updatePhotoGallery(report.fotos || []);
-});
-
-function updatePhotoGallery(fotos) {
-    const gallery = document.querySelector("#photo-gallery") || document.querySelector("#photos-list");
-    if (!gallery) return;
-    gallery.innerHTML = "";
-    if (!fotos.length) {
-        gallery.innerHTML = `<p class="text-muted">Nenhuma foto registrada neste relatório.</p>`;
-        return;
-    }
-    fotos.forEach(f => {
-        const card = document.createElement("div");
-        card.className = "photo-card";
-        card.style = "display:inline-block;margin:5px;text-align:center";
-        card.innerHTML = `
-            <img src="${f.url}" alt="${f.legenda}" style="width:110px;height:110px;object-fit:cover;border-radius:8px;display:block;">
-            <small>${f.legenda}</small>`;
-        gallery.appendChild(card);
-    });
-    console.log(`📸 ${fotos.length} fotos renderizadas.`);
-}
-</script>
 
 <!-- Auto Save Script -->
 <script src="{{ url_for('static', filename='js/reports_autosave.js') }}"></script>
