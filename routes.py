@@ -5994,9 +5994,45 @@ def report_edit_complete(report_id):
 
         projeto = Projeto.query.get(relatorio.projeto_id)
         fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).all()
-        acompanhantes = FuncionarioProjeto.query.filter_by(projeto_id=relatorio.projeto_id).all() if relatorio.projeto_id else []
+        
+        # --- ACOMPANHANTES: CARREGAR APENAS OS SELECIONADOS DO RELATÓRIO ---
+        acompanhantes_selecionados = []
+        todos_acompanhantes_projeto = []
+        
+        if relatorio.acompanhantes:
+            import json
+            try:
+                acomp_raw = relatorio.acompanhantes
+                if isinstance(acomp_raw, str):
+                    acomp_raw = json.loads(acomp_raw)
+                
+                if isinstance(acomp_raw, list):
+                    for item in acomp_raw:
+                        if isinstance(item, dict):
+                            acompanhantes_selecionados.append({
+                                "id": item.get("id"),
+                                "nome": item.get("nome") or item.get("nome_funcionario", ""),
+                                "funcao": item.get("funcao") or item.get("cargo", "")
+                            })
+                
+                app.logger.info(f"✅ {len(acompanhantes_selecionados)} acompanhantes selecionados carregados")
+            except Exception as e:
+                app.logger.warning(f"⚠️ Erro ao parsear acompanhantes: {e}")
+                acompanhantes_selecionados = []
+        
+        # Carregar todos os acompanhantes do projeto para permitir adição
+        if relatorio.projeto_id:
+            todos_funcionarios = FuncionarioProjeto.query.filter_by(projeto_id=relatorio.projeto_id).all()
+            todos_acompanhantes_projeto = [
+                {
+                    "id": a.id,
+                    "nome": safe_attr(a, "nome_funcionario") or safe_attr(a, "nome"),
+                    "funcao": safe_attr(a, "funcao") or safe_attr(a, "cargo") or "Não informado"
+                }
+                for a in todos_funcionarios
+            ]
 
-        # --- CHECKLIST: Lidar com lista OU dicionário ---
+        # --- CHECKLIST: Lidar com lista OU dicionário + CARREGAR DADOS COMPLETOS ---
         checklist = []
         if relatorio.checklist_data:
             import json
@@ -6011,17 +6047,30 @@ def report_edit_complete(report_id):
                 if isinstance(checklist_raw, list):
                     for item in checklist_raw:
                         if isinstance(item, dict):
+                            # Buscar item do banco se tiver ID para pegar imagem e dados completos
+                            item_completo = None
+                            if item.get("id"):
+                                try:
+                                    from models import ChecklistObra
+                                    item_completo = ChecklistObra.query.get(item.get("id"))
+                                except:
+                                    pass
+                            
                             checklist.append({
                                 "id": item.get("id"),
-                                "descricao": item.get("descricao", ""),
-                                "concluido": bool(item.get("concluido", False))
+                                "descricao": item.get("descricao") or item.get("texto", ""),
+                                "concluido": bool(item.get("concluido") or item.get("completado", False)),
+                                "imagem_url": safe_attr(item_completo, "imagem_url") if item_completo else item.get("imagem_url", ""),
+                                "observacao": item.get("observacao", "")
                             })
                         else:
                             # Item é string simples
                             checklist.append({
                                 "id": None,
                                 "descricao": str(item),
-                                "concluido": False
+                                "concluido": False,
+                                "imagem_url": "",
+                                "observacao": ""
                             })
                 
                 # Se for dicionário (chave: valor)
@@ -6030,7 +6079,9 @@ def report_edit_complete(report_id):
                         checklist.append({
                             "id": None,
                             "descricao": str(descricao),
-                            "concluido": bool(concluido)
+                            "concluido": bool(concluido),
+                            "imagem_url": "",
+                            "observacao": ""
                         })
                 
                 app.logger.info(f"✅ Checklist parseado: {len(checklist)} itens")
@@ -6041,13 +6092,15 @@ def report_edit_complete(report_id):
 
         # --- CONVERTER OBJETOS ORM EM DICIONÁRIOS PLANOS ---
         report_data = {
-            "id": relatorio.id,
-            "data_relatorio": relatorio.data_relatorio.strftime("%Y-%m-%d") if relatorio.data_relatorio else "",
-            "titulo": safe_attr(relatorio, "titulo"),
-            "numero": safe_attr(relatorio, "numero") or safe_attr(relatorio, "numero_relatorio"),
-            "observacoes": safe_attr(relatorio, "observacoes_finais") or safe_attr(relatorio, "observacoes") or safe_attr(relatorio, "conteudo"),
-            "lembrete": safe_attr(relatorio, "lembrete_proxima_visita") or safe_attr(relatorio, "lembrete"),
-            "autor": safe_attr(safe_attr(relatorio, "autor"), "nome") if hasattr(relatorio, "autor") and relatorio.autor else "",
+            "relatorio": {
+                "id": relatorio.id,
+                "data_relatorio": relatorio.data_relatorio.strftime("%Y-%m-%d") if relatorio.data_relatorio else "",
+                "titulo": safe_attr(relatorio, "titulo"),
+                "numero": safe_attr(relatorio, "numero") or safe_attr(relatorio, "numero_relatorio"),
+                "observacoes_finais": safe_attr(relatorio, "observacoes_finais") or safe_attr(relatorio, "observacoes") or safe_attr(relatorio, "conteudo"),
+                "lembrete_proxima_visita": safe_attr(relatorio, "lembrete_proxima_visita") or safe_attr(relatorio, "lembrete"),
+                "autor": safe_attr(safe_attr(relatorio, "autor"), "nome") if hasattr(relatorio, "autor") and relatorio.autor else "",
+            },
             "projeto": {
                 "id": safe_attr(projeto, "id"),
                 "codigo": safe_attr(projeto, "codigo") or safe_attr(projeto, "numero"),
@@ -6060,21 +6113,16 @@ def report_edit_complete(report_id):
                     "id": f.id,
                     "url": safe_attr(f, "url") or safe_attr(f, "public_url") or (f"/uploads/{safe_attr(f, 'filename')}" if safe_attr(f, "filename") else ""),
                     "legenda": safe_attr(f, "legenda") or safe_attr(f, "titulo"),
-                    "categoria": safe_attr(f, "categoria")
+                    "categoria": safe_attr(f, "categoria"),
+                    "imagem_url": safe_attr(f, "url") or safe_attr(f, "public_url") or (f"/uploads/{safe_attr(f, 'filename')}" if safe_attr(f, "filename") else "")
                 } for f in fotos
             ],
             "checklist": checklist,
-            "acompanhantes": [
-                {
-                    "id": a.id,
-                    "nome": safe_attr(a, "nome_funcionario") or safe_attr(a, "nome"),
-                    "funcao": safe_attr(a, "funcao") or safe_attr(a, "cargo") or "Não informado"
-                }
-                for a in acompanhantes
-            ]
+            "acompanhantes": acompanhantes_selecionados,
+            "todos_acompanhantes": todos_acompanhantes_projeto
         }
 
-        app.logger.info(f"✅ Dados prontos para template: {len(fotos)} fotos, {len(checklist)} checklist, {len(acompanhantes)} acompanhantes")
+        app.logger.info(f"✅ Dados prontos para template: {len(fotos)} fotos, {len(checklist)} checklist, {len(acompanhantes_selecionados)} acompanhantes selecionados")
 
         return render_template(
             "reports/form_complete.html",

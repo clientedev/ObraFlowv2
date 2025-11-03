@@ -3195,21 +3195,57 @@ function carregarChecklist(items) {
     return;
   }
   list.innerHTML = "";
-  items.forEach(item => {
+  
+  if (!items || items.length === 0) {
+    list.innerHTML = `
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        Nenhum item no checklist. Adicione itens personalizados conforme necessário.
+      </div>
+    `;
+    return;
+  }
+  
+  items.forEach((item, index) => {
     const div = document.createElement("div");
-    div.className = "checklist-item mb-2";
+    div.className = "checklist-item mb-3";
     if (item.concluido) {
       div.classList.add("completed");
     }
-    div.innerHTML = `
-      <label class="d-flex align-items-center">
-        <input type="checkbox" class="form-check-input me-2" ${item.concluido ? "checked" : ""}>
-        <span>${item.descricao}</span>
-      </label>
+    
+    let itemHTML = `
+      <div class="form-check">
+        <input type="checkbox" class="form-check-input" id="check_${index}" ${item.concluido ? "checked" : ""}>
+        <label class="form-check-label fw-bold" for="check_${index}">
+          ${item.descricao || 'Sem descrição'}
+        </label>
+      </div>
     `;
+    
+    // Adicionar imagem se existir
+    if (item.imagem_url && item.imagem_url.trim() !== "") {
+      itemHTML += `
+        <div class="mt-2">
+          <img src="${item.imagem_url}" 
+               alt="Imagem do checklist" 
+               class="img-fluid rounded"
+               style="max-width: 200px; max-height: 200px; object-fit: cover;"
+               onerror="this.style.display='none'">
+        </div>
+      `;
+    }
+    
+    // Adicionar campo de observação
+    itemHTML += `
+      <textarea class="form-control mt-2" 
+                placeholder="Observações..." 
+                rows="2">${item.observacao || ''}</textarea>
+    `;
+    
+    div.innerHTML = itemHTML;
     list.appendChild(div);
   });
-  console.log(`✅ ${items.length} itens do checklist carregados`);
+  console.log(`✅ ${items.length} itens do checklist carregados com imagens`);
 }
 
 function carregarAcompanhantes(acompanhantesData) {
@@ -3220,11 +3256,11 @@ function carregarAcompanhantes(acompanhantesData) {
   }
   list.innerHTML = "";
   
-  if (acompanhantesData.length === 0) {
+  if (!acompanhantesData || acompanhantesData.length === 0) {
     list.innerHTML = `
       <p class="text-muted text-center py-3">
         <i class="fas fa-info-circle me-1"></i>
-        Nenhum acompanhante adicionado ainda.
+        Nenhum acompanhante selecionado. Clique em "Adicionar Acompanhante" para selecionar.
       </p>
     `;
     return;
@@ -3233,23 +3269,57 @@ function carregarAcompanhantes(acompanhantesData) {
   const listGroup = document.createElement("div");
   listGroup.className = "list-group";
   
-  acompanhantesData.forEach(a => {
+  acompanhantesData.forEach((a, index) => {
     const div = document.createElement("div");
-    div.className = "list-group-item";
+    div.className = "list-group-item d-flex justify-content-between align-items-center";
+    div.setAttribute('data-acompanhante-id', a.id);
+    
     div.innerHTML = `
-      <div class="d-flex align-items-center">
-        <i class="fas fa-user me-2 text-primary"></i>
+      <div class="d-flex align-items-center flex-grow-1">
+        <i class="fas fa-user me-3 text-primary"></i>
         <div>
-          <h6 class="mb-1"><strong>${a.nome}</strong></h6>
+          <h6 class="mb-1"><strong>${a.nome || 'Nome não informado'}</strong></h6>
           ${a.funcao ? `<p class="mb-0 text-muted"><small><i class="fas fa-briefcase me-1"></i>${a.funcao}</small></p>` : ''}
         </div>
       </div>
+      <button type="button" 
+              class="btn btn-sm btn-outline-danger" 
+              onclick="removerAcompanhante(${a.id})"
+              title="Remover acompanhante">
+        <i class="fas fa-trash"></i>
+      </button>
     `;
     listGroup.appendChild(div);
   });
   
   list.appendChild(listGroup);
-  console.log(`✅ ${acompanhantesData.length} acompanhantes carregados`);
+  console.log(`✅ ${acompanhantesData.length} acompanhantes selecionados carregados (pode excluir)`);
+}
+
+// Função para remover acompanhante
+function removerAcompanhante(acompanhanteId) {
+  if (!confirm('Deseja remover este acompanhante do relatório?')) {
+    return;
+  }
+  
+  // Remover do DOM
+  const elemento = document.querySelector(`[data-acompanhante-id="${acompanhanteId}"]`);
+  if (elemento) {
+    elemento.remove();
+    console.log(`🗑️ Acompanhante ${acompanhanteId} removido`);
+  }
+  
+  // Verificar se lista ficou vazia
+  const list = document.querySelector("#lista-acompanhantes");
+  const listGroup = list.querySelector('.list-group');
+  if (listGroup && listGroup.children.length === 0) {
+    list.innerHTML = `
+      <p class="text-muted text-center py-3">
+        <i class="fas fa-info-circle me-1"></i>
+        Nenhum acompanhante selecionado. Clique em "Adicionar Acompanhante" para selecionar.
+      </p>
+    `;
+  }
 }
 
 // Carregar dados quando estiver em modo de edição
