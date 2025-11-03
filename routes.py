@@ -4598,16 +4598,35 @@ def upload_report_photos(report_id):
     try:
         files = request.files.getlist('photos')
         uploaded_count = 0
+        duplicated_count = 0
 
         for file in files:
             if file.filename and file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                # Read file data before saving
+                file_data = file.read()
+                
+                # 🔧 CORREÇÃO CRÍTICA: Calcular hash SHA-256 para prevenir duplicação
+                import hashlib
+                imagem_hash = hashlib.sha256(file_data).hexdigest()
+                
+                # Verificar se imagem JÁ EXISTE no banco (prevenir duplicação)
+                foto_existente = FotoRelatorio.query.filter_by(
+                    relatorio_id=relatorio.id,
+                    imagem_hash=imagem_hash
+                ).first()
+                
+                if foto_existente:
+                    # Imagem já existe - não duplicar
+                    current_app.logger.info(f"⚠️ Imagem duplicada detectada (hash={imagem_hash[:12]}...) - ID existente={foto_existente.id}. Não será duplicada.")
+                    duplicated_count += 1
+                    continue
+                
+                # Imagem NÃO existe - criar nova
+                file.seek(0)  # Reset for saving to disk
+                
                 # Generate unique filename
                 filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
                 filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-
-                # Read file data before saving
-                file_data = file.read()
-                file.seek(0)  # Reset for saving to disk
 
                 # Save file
                 file.save(filepath)
@@ -4620,15 +4639,23 @@ def upload_report_photos(report_id):
                 foto.legenda = f'Foto {uploaded_count + 1}'
                 foto.ordem = uploaded_count + 1
                 foto.imagem = file_data  # Salvar dados binários da imagem
+                foto.imagem_hash = imagem_hash
+                foto.imagem_size = len(file_data)
 
                 db.session.add(foto)
                 uploaded_count += 1
 
         db.session.commit()
 
+        message = f'{uploaded_count} foto(s) enviada(s) com sucesso!'
+        if duplicated_count > 0:
+            message += f' ({duplicated_count} duplicada(s) ignorada(s))'
+
         return jsonify({
             'success': True, 
-            'message': f'{uploaded_count} foto(s) enviada(s) com sucesso!'
+            'message': message,
+            'uploaded': uploaded_count,
+            'duplicated': duplicated_count
         })
 
     except Exception as e:
