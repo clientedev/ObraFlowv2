@@ -3463,6 +3463,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Preencher projeto
+  let projetoIdSelecionado = null;
   if (REPORT_DATA.projeto) {
     const projetoField = document.querySelector('[name="projeto"]') || document.querySelector('[name="projeto_id"]');
     if (projetoField) {
@@ -3470,23 +3471,38 @@ document.addEventListener("DOMContentLoaded", () => {
       if (projetoField.tagName === 'SELECT') {
         const option = document.createElement('option');
         option.value = REPORT_DATA.projeto.id;
-        option.textContent = `${REPORT_DATA.projeto.numero || ''} - ${REPORT_DATA.projeto.nome || ''}`;
+        option.textContent = `${REPORT_DATA.projeto.codigo || REPORT_DATA.projeto.numero || ''} - ${REPORT_DATA.projeto.nome || ''}`;
         option.selected = true;
         projetoField.appendChild(option);
       } else {
         projetoField.value = REPORT_DATA.projeto.id;
       }
-      console.log(`✅ Projeto: ${REPORT_DATA.projeto.nome}`);
+      projetoIdSelecionado = REPORT_DATA.projeto.id;
+      console.log(`✅ Projeto selecionado: ${REPORT_DATA.projeto.nome} (ID: ${projetoIdSelecionado})`);
     }
   }
 
   // Carregar checklist
   console.log('📋 Verificando checklist...', REPORT_DATA.checklist);
-  if (REPORT_DATA.checklist && REPORT_DATA.checklist.length > 0) {
-    console.log(`📋 Carregando ${REPORT_DATA.checklist.length} itens do checklist`);
+  
+  // Verificar se o checklist tem itens válidos (com campo "texto")
+  const checklistValido = REPORT_DATA.checklist && 
+                          REPORT_DATA.checklist.length > 0 && 
+                          REPORT_DATA.checklist.some(item => item.texto && item.texto !== '');
+  
+  if (checklistValido) {
+    console.log(`📋 Carregando ${REPORT_DATA.checklist.length} itens do checklist do relatório`);
     carregarChecklist(REPORT_DATA.checklist);
   } else {
-    console.warn('⚠️ Nenhum item no checklist para carregar');
+    console.warn('⚠️ Checklist vazio ou inválido no relatório');
+    
+    // Se há um projeto selecionado, carregar o checklist do projeto
+    if (projetoIdSelecionado) {
+      console.log(`📋 Carregando checklist do projeto ${projetoIdSelecionado}...`);
+      carregarChecklistProjeto(projetoIdSelecionado);
+    } else {
+      console.warn('⚠️ Nenhum projeto selecionado para carregar checklist');
+    }
   }
 
   // Carregar acompanhantes
