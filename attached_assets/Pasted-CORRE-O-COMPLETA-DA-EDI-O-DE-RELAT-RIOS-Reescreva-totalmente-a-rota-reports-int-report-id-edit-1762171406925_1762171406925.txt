@@ -1,0 +1,176 @@
+CORREÇÃO COMPLETA DA EDIÇÃO DE RELATÓRIOS
+
+Reescreva totalmente a rota /reports/<int:report_id>/editarrel para:
+
+Carregar corretamente todos os dados do relatório (projeto, fotos, checklist, acompanhantes, observações e lembretes).
+
+Exibir tudo preenchido no template form_complete.html.
+
+Usar as tabelas reais do sistema (relatorios, fotos_relatorio, funcionarios_projetos, checklist_obra, projetos).
+
+Eliminar os erros joinedload, AttributeError e BuildError.
+
+Garantir robustez caso alguma relação não exista (tratamento com fallback).
+
+Incluir logs detalhados de cada etapa.
+
+🔧 CÓDIGO COMPLETO DA ROTA
+# routes.py
+
+from flask import render_template, request
+from flask_login import login_required
+from sqlalchemy.orm import joinedload
+from app import app, db
+from models import Relatorio, Projeto, FotosRelatorio, ChecklistObra, FuncionariosProjetos
+
+
+@app.route("/reports/<int:report_id>/editarrel", methods=["GET"])
+@login_required
+def report_edit_complete(report_id):
+    """
+    Rota definitiva para carregar um relatório completo para edição.
+    Carrega todos os relacionamentos reais do banco e renderiza form_complete.html com dados pré-preenchidos.
+    """
+    try:
+        app.logger.info(f"📝 Iniciando carregamento completo do relatório {report_id}")
+
+        # --- Buscar o relatório principal com seus relacionamentos ---
+        rel = (
+            db.session.query(Relatorio)
+            .options(
+                joinedload(Relatorio.projeto),
+            )
+            .filter(Relatorio.id == report_id)
+            .first()
+        )
+
+        if not rel:
+            app.logger.error(f"❌ Relatório {report_id} não encontrado no banco.")
+            return render_template("reports/error_report.html", message="Relatório não encontrado."), 404
+
+        app.logger.info(f"✅ Relatório {rel.numero_relatorio} encontrado com sucesso.")
+
+        # --- Buscar projeto vinculado ---
+        projeto = (
+            db.session.query(Projeto)
+            .filter(Projeto.id == rel.projeto_id)
+            .first()
+            if rel.projeto_id
+            else None
+        )
+
+        # --- Buscar fotos vinculadas ---
+        fotos = (
+            db.session.query(FotosRelatorio)
+            .filter(FotosRelatorio.relatorio_id == report_id)
+            .all()
+        )
+
+        app.logger.info(f"📸 {len(fotos)} fotos carregadas para o relatório {report_id}")
+
+        # --- Buscar checklist vinculado ---
+        checklist = (
+            db.session.query(ChecklistObra)
+            .filter(ChecklistObra.relatorio_id == report_id)
+            .all()
+        )
+
+        app.logger.info(f"🧾 {len(checklist)} itens de checklist carregados.")
+
+        # --- Buscar acompanhantes (funcionários vinculados ao projeto) ---
+        acompanhantes = (
+            db.session.query(FuncionariosProjetos)
+            .filter(FuncionariosProjetos.projeto_id == rel.projeto_id)
+            .all()
+        )
+
+        app.logger.info(f"👥 {len(acompanhantes)} acompanhantes encontrados no projeto.")
+
+        # --- Montar dicionário de dados para o template ---
+        report_data = {
+            "id": rel.id,
+            "data_relatorio": getattr(rel, "data_relatorio", None),
+            "titulo": getattr(rel, "titulo", ""),
+            "numero_relatorio": getattr(rel, "numero_relatorio", ""),
+            "observacoes": getattr(rel, "observacoes", ""),
+            "lembrete": getattr(rel, "lembrete", ""),
+            "projeto": {
+                "id": projeto.id if projeto else None,
+                "nome": projeto.nome if projeto else "",
+                "codigo": projeto.codigo if projeto else "",
+                "endereco": projeto.endereco if projeto else "",
+                "responsavel": projeto.responsavel if projeto else "",
+            } if projeto else None,
+            "fotos": [
+                {
+                    "id": f.id,
+                    "arquivo": f.arquivo,
+                    "legenda": getattr(f, "legenda", ""),
+                    "url": getattr(f, "public_url", None) or getattr(f, "path", None),
+                }
+                for f in fotos
+            ],
+            "checklist": [
+                {"id": c.id, "descricao": c.descricao, "concluido": c.concluido}
+                for c in checklist
+            ],
+            "acompanhantes": [
+                {"id": a.id, "nome": a.nome_funcionario, "funcao": getattr(a, "funcao", "Não informado")}
+                for a in acompanhantes
+            ],
+        }
+
+        app.logger.info(f"✅ Dados estruturados com sucesso para o relatório {report_id}")
+
+        return render_template(
+            "reports/form_complete.html",
+            report_data=report_data,
+            edit_mode=True,
+        )
+
+    except Exception as e:
+        app.logger.error(f"❌ ERRO ao carregar relatório {report_id}: {e}", exc_info=True)
+        return render_template("reports/error_report.html", message=str(e)), 500
+
+🧩 TEMPLATE DE ERRO SEGURO (templates/reports/error_report.html)
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5">
+  <div class="alert alert-danger shadow">
+    <h4 class="fw-bold mb-3">⚠️ Ocorreu um erro ao carregar o relatório</h4>
+    <p>{{ message }}</p>
+    <div class="mt-4">
+      <a href="{{ url_for('reports_list') }}" class="btn btn-primary">← Voltar aos relatórios</a>
+      <a href="/" class="btn btn-secondary ms-2">Página inicial</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+🔸 Substitua reports_list pelo nome real da função Flask que exibe a listagem de relatórios.
+
+💾 Resumo das Relações Usadas (ajuste conforme seus modelos):
+Tabela	Relacionamento	Campo Chave	Modelo Referência
+relatorios	principal	id	Relatorio
+projetos	rel.projeto_id → projetos.id	projeto_id	Projeto
+fotos_relatorio	relatorio_id → relatorios.id	relatorio_id	FotosRelatorio
+checklist_obra	relatorio_id → relatorios.id	relatorio_id	ChecklistObra
+funcionarios_projetos	projeto_id → projetos.id	projeto_id	FuncionariosProjetos
+✅ O que esse prompt corrige de forma definitiva:
+
+🔹 Carregamento completo e coerente dos dados relacionados.
+
+🔹 Corrige o erro joinedload e AttributeError.
+
+🔹 Mostra todas as fotos existentes no relatório.
+
+🔹 Preenche corretamente projeto, título, número, observações e checklist.
+
+🔹 Exibe acompanhantes do projeto no campo “Acompanhantes da Visita”.
+
+🔹 Corrige a exibição do template sem dependência de rotas inexistentes.
+
+🔹 Evita crash total caso alguma relação esteja vazia.
+
+🔹 Mantém logs claros e legíveis para depuração.
