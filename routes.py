@@ -752,31 +752,46 @@ def api_projeto_funcionarios_emails(projeto_id):
                     'error': 'Acesso negado ao projeto'
                 }), 403
 
-        # Buscar funcionários do projeto
-        funcionarios = FuncionarioProjeto.query.filter_by(
+        # Buscar funcionários do projeto (tabela antiga - FuncionarioProjeto)
+        funcionarios_antigos = FuncionarioProjeto.query.filter_by(
             projeto_id=projeto_id, 
             ativo=True
         ).all()
-        current_app.logger.info(f"📋 Funcionários encontrados: {len(funcionarios)}")
+        current_app.logger.info(f"📋 Funcionários antigos encontrados: {len(funcionarios_antigos)}")
 
-        # Buscar e-mails do projeto
+        # Buscar e-mails do projeto (tabela nova - EmailCliente, onde funcionários também são salvos)
         emails = EmailCliente.query.filter_by(
             projeto_id=projeto_id, 
             ativo=True
         ).all()
-        current_app.logger.info(f"📧 E-mails encontrados: {len(emails)}")
+        current_app.logger.info(f"📧 Contatos encontrados: {len(emails)}")
 
+        # Unificar funcionários de ambas as tabelas
         funcionarios_data = []
-        for func in funcionarios:
+        
+        # Adicionar funcionários da tabela antiga (FuncionarioProjeto)
+        for func in funcionarios_antigos:
             func_data = {
-                'id': func.id,
+                'id': f"fp_{func.id}",  # Prefixo para diferenciar origem
                 'nome_funcionario': func.nome_funcionario or '',
                 'cargo': func.cargo or '',
                 'empresa': func.empresa or '',
                 'is_responsavel_principal': func.is_responsavel_principal or False
             }
             funcionarios_data.append(func_data)
-            current_app.logger.info(f"  📋 Funcionário: {func_data}")
+            current_app.logger.info(f"  📋 Funcionário (antigo): {func_data}")
+        
+        # Adicionar funcionários da tabela nova (EmailCliente)
+        for email in emails:
+            func_data = {
+                'id': f"ec_{email.id}",  # Prefixo para diferenciar origem
+                'nome_funcionario': email.nome_contato or '',
+                'cargo': email.cargo or '',
+                'empresa': email.empresa or '',
+                'is_responsavel_principal': False
+            }
+            funcionarios_data.append(func_data)
+            current_app.logger.info(f"  📋 Funcionário (novo): {func_data}")
 
         emails_data = []
         for email in emails:
