@@ -3181,7 +3181,7 @@ def create_report():
         projetos_data.append({
             'id': projeto.id,
             'nome': projeto.nome,
-            'cliente': projeto.cliente or '',
+            'cliente': projeto.construtora or '',
             'status': projeto.status or 'Ativo',
             'numeracao_inicial': projeto.numeracao_inicial or 1
         })
@@ -3202,7 +3202,7 @@ def create_report():
         selected_project_data = {
             'id': selected_project.id,
             'nome': selected_project.nome,
-            'cliente': selected_project.cliente or '',
+            'cliente': selected_project.construtora or '',
             'status': selected_project.status or 'Ativo',
             'numeracao_inicial': selected_project.numeracao_inicial or 1
         }

@@ -1,0 +1,77 @@
+Objetivo do prompt
+
+Corrigir a rota /reports/new para:
+
+Eliminar o erro AttributeError: 'Projeto' object has no attribute 'cliente';
+
+Garantir que a criação de novos relatórios funcione corretamente;
+
+Preencher corretamente os dados de projeto e cliente, mesmo que a relação esteja em outro modelo.
+
+⚙️ Prompt completo para Replit
+
+Prompt:
+
+Corrigir o erro "AttributeError: 'Projeto' object has no attribute 'cliente'" que ocorre na rota /reports/new (função create_report em routes.py linha ~3184).
+
+Objetivo:
+Garantir que o sistema consiga criar um novo relatório corretamente, preenchendo os dados do projeto e cliente sem gerar erro, e renderizando o template reports/form_complete.html com todas as informações necessárias.
+
+Instruções detalhadas:
+
+1️⃣ Localizar a função create_report (rota /reports/new [GET]) em routes.py.
+
+2️⃣ Dentro dela, há um dicionário ou estrutura semelhante a:
+   ```python
+   report_data = {
+       'projeto_id': projeto.id,
+       'cliente': projeto.cliente or '',
+       'nome_projeto': projeto.nome,
+       ...
+   }
+
+
+O erro ocorre na linha 'cliente': projeto.cliente or ''.
+
+3️⃣ Corrigir essa linha conforme a estrutura real do banco:
+
+Se o modelo Projeto tiver um relacionamento com Cliente via cliente_id:
+
+cliente_nome = projeto.cliente_rel.nome if hasattr(projeto, 'cliente_rel') and projeto.cliente_rel else ''
+
+
+Caso o cliente esteja diretamente associado via cliente_nome ou similar, usar:
+
+cliente_nome = getattr(projeto, 'cliente_nome', '')
+
+
+4️⃣ Atualizar o dicionário report_data para:
+
+report_data = {
+    'projeto_id': projeto.id,
+    'cliente': cliente_nome,
+    'nome_projeto': projeto.nome,
+    'descricao': projeto.descricao if hasattr(projeto, 'descricao') else '',
+    'data_criacao': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    'autor': current_user.nome if hasattr(current_user, 'nome') else str(current_user.id),
+}
+
+
+5️⃣ Testar novamente a rota /reports/new:
+
+O relatório deve carregar normalmente.
+
+Não deve haver erro 500.
+
+O log deve exibir algo como:
+
+INFO:app:✅ Novo relatório criado com sucesso para projeto X (cliente: Y)
+
+
+6️⃣ Validar que o form_complete.html exibe corretamente o nome do projeto e cliente no cabeçalho e nos campos correspondentes.
+
+Critérios de sucesso:
+✅ Rota /reports/new abre sem erro.
+✅ Dados do projeto e cliente são renderizados corretamente.
+✅ O relatório pode ser concluído e salvo normalmente.
+✅ O log mostra o carregamento completo sem tracebacks.
