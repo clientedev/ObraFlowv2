@@ -76,3 +76,15 @@ SQLAlchemy
 weasyprint
 Werkzeug
 WTForms
+flask
+flask-login
+flask-migrate
+flask-sqlalchemy
+flask-wtf
+gunicorn
+pillow
+psycopg2-binary
+python-dotenv
+weasyprint
+werkzeug
+wtforms
