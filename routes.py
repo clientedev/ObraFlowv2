@@ -3305,7 +3305,7 @@ def annotate_photo(photo_id):
 @app.route('/reports/<int:photo_id>/delete', methods=['POST'])
 @login_required
 def delete_photo(photo_id):
-    """Excluir uma foto"""
+    """Excluir uma foto (legacy endpoint - use /api/fotos/<foto_id>/delete)"""
     try:
         foto = FotoRelatorio.query.get_or_404(photo_id)
 
@@ -3327,6 +3327,56 @@ def delete_photo(photo_id):
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/fotos/<int:foto_id>/delete', methods=['POST'])
+@login_required
+@csrf.exempt
+def api_delete_foto(foto_id):
+    """API dedicada para exclusão de fotos - evita conflito com rota de exclusão de relatórios"""
+    try:
+        current_app.logger.info(f"🗑️ API DELETE FOTO: Usuário {current_user.username} deletando foto {foto_id}")
+        
+        foto = FotoRelatorio.query.get_or_404(foto_id)
+
+        # Check permissions
+        if not current_user.is_master and foto.relatorio.autor_id != current_user.id:
+            current_app.logger.warning(f"❌ Permissão negada para deletar foto {foto_id}")
+            return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+
+        # Store info for logging
+        relatorio_id = foto.relatorio_id
+        filename = foto.filename
+
+        # Delete binary data (if stored in database)
+        # The file deletion is optional since we're using database storage
+        try:
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            if filename:
+                filepath = os.path.join(upload_folder, filename)
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    current_app.logger.info(f"📁 Arquivo deletado: {filepath}")
+        except Exception as file_error:
+            current_app.logger.warning(f"⚠️ Erro ao deletar arquivo físico: {file_error}")
+
+        # Delete record from database
+        db.session.delete(foto)
+        db.session.commit()
+        
+        current_app.logger.info(f"✅ Foto {foto_id} deletada com sucesso do relatório {relatorio_id}")
+
+        return jsonify({
+            'success': True,
+            'message': 'Foto deletada com sucesso',
+            'foto_id': foto_id
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"❌ Erro ao deletar foto {foto_id}: {str(e)}")
+        import traceback
+        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': f'Erro ao deletar foto: {str(e)}'}), 500
 
 @app.route('/reports/<int:id>/status', methods=['POST'])
 @login_required
@@ -6148,10 +6198,14 @@ def report_edit_complete(report_id):
             "fotos": [
                 {
                     "id": f.id,
-                    "url": safe_attr(f, "url") or safe_attr(f, "public_url") or (f"/uploads/{safe_attr(f, 'filename')}" if safe_attr(f, "filename") else ""),
+                    "url": url_for('api_get_photo', foto_id=f.id),
+                    "filename": safe_attr(f, "filename"),
                     "legenda": safe_attr(f, "legenda") or safe_attr(f, "titulo"),
-                    "categoria": safe_attr(f, "categoria"),
-                    "imagem_url": safe_attr(f, "url") or safe_attr(f, "public_url") or (f"/uploads/{safe_attr(f, 'filename')}" if safe_attr(f, "filename") else "")
+                    "categoria": safe_attr(f, "tipo_servico") or safe_attr(f, "categoria"),
+                    "tipo_servico": safe_attr(f, "tipo_servico"),
+                    "local": safe_attr(f, "local"),
+                    "ordem": f.ordem if hasattr(f, "ordem") else 0,
+                    "savedId": f.id
                 } for f in fotos
             ],
             "checklist": checklist,

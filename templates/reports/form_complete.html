@@ -2796,12 +2796,42 @@ function editMobilePhoto(photoId) {
     openPhotoEditorFromElement(imgElement);
 }
 
-// Delete mobile photo
-function deleteMobilePhoto(photoId) {
+// Delete mobile photo - CORRIGIDO para deletar do banco se for foto existente
+async function deleteMobilePhoto(photoId) {
     if (!confirm('Deseja excluir esta foto?')) return;
 
+    // Encontrar a foto nos dados
+    const photoData = window.mobilePhotoData.find(p => p.id === photoId);
+    
+    // Se a foto tem savedId, significa que já está salva no banco - precisa deletar via API
+    if (photoData && photoData.savedId) {
+        try {
+            const response = await fetch(`/api/fotos/${photoData.savedId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                console.error('❌ Erro ao deletar foto do banco:', result.error);
+                alert('Erro ao excluir foto: ' + result.error);
+                return;
+            }
+            
+            console.log(`✅ Foto ${photoData.savedId} deletada do banco de dados`);
+        } catch (error) {
+            console.error('❌ Erro ao chamar API de exclusão:', error);
+            alert('Erro ao excluir foto. Tente novamente.');
+            return;
+        }
+    }
+
     // Remove from data array
-    mobilePhotoData = mobilePhotoData.filter(p => p.id !== photoId);
+    window.mobilePhotoData = window.mobilePhotoData.filter(p => p.id !== photoId);
 
     // Remove from DOM
     const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
@@ -2810,7 +2840,7 @@ function deleteMobilePhoto(photoId) {
     }
 
     updatePhotoCounter();
-    console.log(`🗑️ Foto ${photoId} excluída`);
+    console.log(`🗑️ Foto ${photoId} excluída${photoData && photoData.savedId ? ' do banco e' : ''} da interface`);
 }
 
 // Update photo counter and show quick actions
@@ -3573,11 +3603,46 @@ document.addEventListener("DOMContentLoaded", () => {
     console.warn('⚠️ Nenhum acompanhante para carregar');
   }
 
-  // Carregar fotos
+  // Carregar fotos - CORRIGIDO para adicionar ao window.mobilePhotoData
   console.log('📸 Verificando fotos...', REPORT_DATA.fotos);
   if (REPORT_DATA.fotos && REPORT_DATA.fotos.length > 0) {
-    console.log(`📸 Carregando ${REPORT_DATA.fotos.length} fotos`);
-    updatePhotoGallery(REPORT_DATA.fotos);
+    console.log(`📸 Carregando ${REPORT_DATA.fotos.length} fotos existentes`);
+    
+    // Inicializar window.mobilePhotoData se não existir
+    if (!window.mobilePhotoData) {
+      window.mobilePhotoData = [];
+    }
+    
+    // Adicionar fotos existentes ao window.mobilePhotoData
+    REPORT_DATA.fotos.forEach((foto, index) => {
+      const photoData = {
+        id: foto.id,
+        savedId: foto.savedId || foto.id,
+        name: foto.filename || `foto_${foto.id}`,
+        filename: foto.filename,
+        previewUrl: foto.url,
+        url: foto.url,
+        category: foto.categoria || '',
+        local: foto.local || '',
+        caption: foto.legenda || '',
+        manualCaption: foto.legenda || '',
+        predefinedCaption: foto.legenda || '',
+        ordem: foto.ordem || index,
+        isExisting: true,
+        metadata: {
+          legenda: foto.legenda || '',
+          categoria: foto.categoria || '',
+          tipo_servico: foto.categoria || '',
+          local: foto.local || ''
+        }
+      };
+      window.mobilePhotoData.push(photoData);
+      console.log(`✅ Foto ${foto.id} adicionada ao mobilePhotoData:`, photoData);
+    });
+    
+    // Agora renderizar a galeria
+    updatePhotoGallery();
+    console.log(`✅ ${REPORT_DATA.fotos.length} fotos carregadas na galeria`);
   } else {
     console.warn('⚠️ Nenhuma foto para carregar');
   }

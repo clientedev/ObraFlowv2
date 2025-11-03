@@ -1,0 +1,189 @@
+Correção completa de imagens na edição de relatórios
+
+O objetivo é corrigir o comportamento de exibição e salvamento das imagens associadas a um relatório ao editar, garantindo que:
+
+As imagens já existentes sejam carregadas e exibidas automaticamente no mesmo layout e estrutura do template usado ao adicionar novas imagens.
+
+Ao salvar a edição, as imagens sejam mantidas corretamente no banco (sem duplicar nem perder).
+
+Se o usuário adicionar novas imagens, elas se somem às existentes.
+
+Se o usuário excluir alguma imagem, ela seja removida corretamente do relatório e do diretório de mídia.
+
+O processo de sobrescrita do relatório funcione 100%, sem criar novo registro duplicado.
+
+🔍 1️⃣ — Diagnóstico técnico
+
+Atualmente, na rota /reports/<id>/editarrel (ou equivalente report_edit_complete):
+
+As imagens não são renderizadas corretamente no template — aparecem vazias ou não aparecem.
+
+Isso ocorre porque:
+
+O backend não envia o campo de imagens em formato processável (list com URLs válidas).
+
+O template de edição (form_complete.html ou similar) não reusa o mesmo trecho usado no upload.
+
+O salvamento sobrescreve o relatório, mas não vincula corretamente as imagens já existentes.
+
+⚙️ 2️⃣ — Correção no backend
+
+Garanta que o backend envie as imagens existentes da mesma forma que o template de criação espera.
+
+Na função que renderiza o formulário de edição (report_edit_complete), ajuste:
+
+def report_edit_complete(report_id):
+    relatorio = db.session.query(Relatorio).get(report_id)
+    if not relatorio:
+        abort(404)
+
+    imagens = []
+    for img in relatorio.imagens_relatorio:  # nome do relacionamento
+        imagens.append({
+            "id": img.id,
+            "url": url_for('static', filename=f'uploads/{img.caminho}', _external=False),
+            "nome": img.caminho
+        })
+
+    return render_template(
+        'form_complete.html',
+        relatorio=relatorio,
+        imagens=imagens,
+        modo_edicao=True
+    )
+
+
+✅ Explicação:
+
+Isso garante que a lista imagens seja entregue ao template com URLs prontas para exibição.
+
+Use url_for('static', filename=...) ou a rota de mídia usada no app.
+
+modo_edicao=True será usado no template para reexibir a galeria.
+
+🖥️ 3️⃣ — Correção no template HTML (form_complete.html)
+
+No bloco de upload de imagens, garanta que:
+
+As imagens existentes sejam renderizadas logo ao carregar.
+
+O mesmo HTML de preview usado após upload seja reaproveitado.
+
+Adicione no final do script:
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const modoEdicao = {{ 'true' if modo_edicao else 'false' }};
+  if (modoEdicao && {{ imagens|length if imagens else 0 }} > 0) {
+    const imagens = {{ imagens|tojson }};
+    const container = document.querySelector('#preview-container');
+
+    imagens.forEach(img => {
+      const div = document.createElement("div");
+      div.classList.add("preview-item");
+      div.innerHTML = `
+        <img src="${img.url}" alt="${img.nome}" class="preview-img">
+        <button type="button" class="btn btn-danger btn-sm remove-image" data-id="${img.id}">Excluir</button>
+      `;
+      container.appendChild(div);
+    });
+  }
+});
+</script>
+
+
+✅ Explicação:
+
+Esse trecho injeta dinamicamente as imagens existentes no mesmo container usado pelo script de upload.
+
+Assim, o comportamento visual será idêntico ao de adicionar uma imagem nova.
+
+💾 4️⃣ — Correção no salvamento (update)
+
+Na função que trata o POST da edição:
+
+def atualizar_relatorio(report_id):
+    relatorio = db.session.query(Relatorio).get(report_id)
+    if not relatorio:
+        abort(404)
+
+    relatorio.titulo = request.form['titulo']
+    relatorio.descricao = request.form['descricao']
+    # Outros campos...
+
+    # 1️⃣ Preserva imagens existentes
+    imagens_existentes_ids = request.form.getlist('imagens_existentes')
+    relatorio.imagens_relatorio = [
+        img for img in relatorio.imagens_relatorio if str(img.id) in imagens_existentes_ids
+    ]
+
+    # 2️⃣ Adiciona novas imagens
+    arquivos = request.files.getlist('imagens')
+    for arquivo in arquivos:
+        if arquivo.filename:
+            nome_arquivo = secure_filename(arquivo.filename)
+            caminho = os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo)
+            arquivo.save(caminho)
+
+            nova_imagem = ImagemRelatorio(caminho=nome_arquivo, relatorio_id=relatorio.id)
+            db.session.add(nova_imagem)
+
+    db.session.commit()
+    flash('Relatório atualizado com sucesso!', 'success')
+    return redirect(url_for('listar_relatorios'))
+
+
+✅ Explicação:
+
+Garante que:
+
+As imagens já existentes permaneçam vinculadas.
+
+As novas sejam adicionadas corretamente.
+
+O relatório seja sobrescrito, não recriado.
+
+As imagens removidas sejam de fato excluídas.
+
+🧹 5️⃣ — Excluir imagem ao clicar no botão “Excluir”
+
+Adicione no JS:
+
+<script>
+document.addEventListener("click", e => {
+  if (e.target.classList.contains("remove-image")) {
+    const id = e.target.dataset.id;
+    e.target.closest(".preview-item").remove();
+    // Remove também o hidden input correspondente, se houver
+    const hidden = document.querySelector(`input[name="imagens_existentes"][value="${id}"]`);
+    if (hidden) hidden.remove();
+  }
+});
+</script>
+
+
+E no template, ao renderizar imagens existentes, adicione:
+
+<input type="hidden" name="imagens_existentes" value="{{ img.id }}">
+
+
+Assim, o backend saberá quais imagens devem ser mantidas.
+
+🧾 6️⃣ — Testes finais obrigatórios
+Cenário	Resultado esperado
+Abrir relatório existente	Todas as imagens aparecem no preview exatamente como ao adicionar
+Adicionar nova imagem	Ela aparece imediatamente no preview e é salva junto
+Remover imagem	Ela desaparece do preview e não é salva no banco
+Salvar relatório	Atualiza corretamente o mesmo registro
+Reabrir relatório	As imagens mantidas e novas aparecem corretamente
+✅ Resumo do que o prompt deve executar
+
+Corrigir o envio de imagens no backend (report_edit_complete).
+
+Renderizar imagens existentes no mesmo HTML do upload.
+
+Preservar imagens antigas e adicionar novas sem duplicar relatório.
+
+Permitir exclusão de imagens na edição.
+
+Confirmar salvamento e reexibição corretos.
