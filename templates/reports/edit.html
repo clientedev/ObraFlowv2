@@ -314,7 +314,7 @@ async function loadLegendasForSelect(selectElement, type) {
             throw new Error(`Erro ao buscar legendas: ${response.status}`);
         }
         const data = await response.json();
-        
+
         // Limpa opções existentes, exceto a de placeholder se houver
         selectElement.querySelectorAll('option:not([value=""])').forEach(option => option.remove());
 
@@ -403,13 +403,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const legendSelect = card.querySelector('.photo-legend');
 
                 if (legendSelect && legendSelect.tagName === 'SELECT') {
-                    await loadLegendasForSelect(legendSelect, 'all');
+                    // Usar o sistema global de legendas
+                    const currentValue = legendSelect.dataset.currentValue || '';
 
-                    // Manter o valor atual selecionado
-                    const currentValue = legendSelect.dataset.currentValue || legendSelect.getAttribute('value');
-                    if (currentValue) {
-                        legendSelect.value = currentValue;
-                        console.log(`✅ Legenda mantida para foto ${photoId}: "${currentValue}"`);
+                    try {
+                        await window.legendasSelector.populateSelect(legendSelect, 'all', 'Selecione uma legenda...');
+
+                        // Restaurar valor selecionado
+                        if (currentValue) {
+                            legendSelect.value = currentValue;
+                            console.log(`✅ Legenda mantida para foto ${photoId}: "${currentValue}"`);
+                        }
+                    } catch (error) {
+                        console.error(`❌ Erro ao carregar legendas para foto ${photoId}:`, error);
                     }
                 }
             }
