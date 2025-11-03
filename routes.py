@@ -5967,54 +5967,53 @@ def report_edit(report_id):
 @login_required
 def report_edit_complete(report_id):
     """
-    Carrega o relatório completo para edição, incluindo fotos, checklist e acompanhantes.
+    Rota definitiva para carregar um relatório completo para edição.
+    Carrega todos os relacionamentos reais do banco e renderiza form_complete.html com dados pré-preenchidos.
     """
     try:
-        current_app.logger.info(f"📝 report_edit_complete chamado para report_id={report_id}")
-        
-        # Buscar relatório existente com eager loading
+        app.logger.info(f"📝 Iniciando carregamento completo do relatório {report_id}")
+
         rel = (
             db.session.query(Relatorio)
             .options(
                 joinedload(Relatorio.projeto),
-                joinedload(Relatorio.fotos_relatorio),
-                joinedload(Relatorio.checklist_relatorio),
-                joinedload(Relatorio.acompanhantes_relatorio),
             )
             .filter(Relatorio.id == report_id)
             .first()
         )
-        
+
         if not rel:
-            current_app.logger.error(f"❌ Relatório {report_id} não encontrado")
+            app.logger.error(f"❌ Relatório {report_id} não encontrado no banco.")
             return render_template("reports/error_report.html", message="Relatório não encontrado."), 404
-        
-        # Verificar permissões
+
+        app.logger.info(f"✅ Relatório {rel.numero} encontrado com sucesso.")
+
         if rel.autor_id != current_user.id and not current_user.is_master:
+            app.logger.warning(f"⚠️ Usuário {current_user.id} tentou editar relatório {report_id} sem permissão.")
             flash('Você não tem permissão para editar este relatório.', 'error')
             return redirect(url_for('reports'))
-        
-        # Função helper para converter modelo em dict
-        def serialize_model(model):
-            if model is None:
-                return None
-            return {c.name: getattr(model, c.name) for c in model.__table__.columns}
-        
-        # ==========================================
-        # SERIALIZAR CHECKLIST
-        # ==========================================
+
+        app.logger.info(f"✅ Permissões validadas para usuário {current_user.id}.")
+
+        projeto = (
+            db.session.query(Projeto)
+            .filter(Projeto.id == rel.projeto_id)
+            .first()
+            if rel.projeto_id
+            else None
+        )
+
+        fotos = (
+            db.session.query(FotoRelatorio)
+            .filter(FotoRelatorio.relatorio_id == report_id)
+            .all()
+        )
+
+        app.logger.info(f"📸 {len(fotos)} fotos carregadas para o relatório {report_id}")
+
         checklist = []
         try:
-            # Tenta carregar da relação checklist_relatorio primeiro
-            if hasattr(rel, 'checklist_relatorio') and rel.checklist_relatorio:
-                for c in rel.checklist_relatorio:
-                    checklist.append({
-                        "id": c.id,
-                        "descricao": c.descricao,
-                        "concluido": c.concluido
-                    })
-            # Se não houver, tenta carregar do campo checklist_data
-            elif rel.checklist_data:
+            if rel.checklist_data:
                 import json
                 if isinstance(rel.checklist_data, str):
                     checklist_dict = json.loads(rel.checklist_data)
@@ -6022,7 +6021,6 @@ def report_edit_complete(report_id):
                     checklist_dict = rel.checklist_data
                 else:
                     checklist_dict = {}
-                # Converte dict para lista
                 for descricao, concluido in checklist_dict.items():
                     checklist.append({
                         "id": None,
@@ -6030,81 +6028,73 @@ def report_edit_complete(report_id):
                         "concluido": concluido
                     })
         except Exception as e:
-            current_app.logger.error(f"❌ Erro ao carregar checklist: {str(e)}")
+            app.logger.warning(f"⚠️ Erro ao parsear checklist_data: {e}")
             checklist = []
-        
-        # ==========================================
-        # SERIALIZAR ACOMPANHANTES
-        # ==========================================
+
+        app.logger.info(f"🧾 {len(checklist)} itens de checklist carregados.")
+
         acompanhantes = []
-        try:
-            # Tenta carregar da relação acompanhantes_relatorio primeiro
-            if hasattr(rel, 'acompanhantes_relatorio') and rel.acompanhantes_relatorio:
-                for a in rel.acompanhantes_relatorio:
-                    acompanhantes.append({
-                        "id": a.id,
-                        "nome": a.nome,
-                        "funcao": getattr(a, 'funcao', '') or "Não informado"
-                    })
-            # Se não houver, tenta carregar do campo acompanhantes
-            elif rel.acompanhantes:
-                import json
+        if rel.projeto_id:
+            acompanhantes_projeto = (
+                db.session.query(FuncionarioProjeto)
+                .filter(FuncionarioProjeto.projeto_id == rel.projeto_id)
+                .all()
+            )
+            app.logger.info(f"👥 {len(acompanhantes_projeto)} funcionários encontrados no projeto.")
+        
+        if rel.acompanhantes:
+            import json
+            try:
                 if isinstance(rel.acompanhantes, str):
                     acompanhantes = json.loads(rel.acompanhantes)
                 elif isinstance(rel.acompanhantes, list):
                     acompanhantes = rel.acompanhantes
-                # Normalizar estrutura
-                for i, a in enumerate(acompanhantes):
-                    if not isinstance(a, dict):
-                        continue
-                    if 'funcao' not in a and 'cargo' in a:
-                        a['funcao'] = a['cargo']
-                    if 'id' not in a:
-                        a['id'] = None
-                    if not a.get('funcao'):
-                        a['funcao'] = "Não informado"
-        except Exception as e:
-            current_app.logger.error(f"❌ Erro ao parsear acompanhantes: {str(e)}")
-            acompanhantes = []
-        
-        # ==========================================
-        # SERIALIZAR FOTOS
-        # ==========================================
-        fotos = []
-        try:
-            for f in rel.fotos_relatorio:
-                fotos.append({
-                    "id": f.id,
-                    "url": getattr(f, "public_url", None) or f"/uploads/{f.filename}" if f.filename else None,
-                    "caption": getattr(f, "caption", None) or getattr(f, "legenda", "") or "",
-                    "category": getattr(f, "category", None) or getattr(f, "tipo_servico", "") or "",
-                })
-        except Exception as e:
-            current_app.logger.error(f"❌ Erro ao carregar fotos: {str(e)}")
-        
-        # ==========================================
-        # CRIAR ESTRUTURA report_data
-        # ==========================================
+                else:
+                    acompanhantes = []
+            except Exception as e:
+                app.logger.warning(f"⚠️ Erro ao parsear acompanhantes: {e}")
+                acompanhantes = []
+
         report_data = {
-            "relatorio": serialize_model(rel),
-            "projeto": serialize_model(rel.projeto) if rel.projeto else None,
+            "id": rel.id,
+            "data_relatorio": getattr(rel, "data_relatorio", None),
+            "titulo": getattr(rel, "titulo", ""),
+            "numero_relatorio": getattr(rel, "numero", ""),
+            "observacoes": getattr(rel, "observacoes_finais", "") or getattr(rel, "conteudo", ""),
+            "lembrete": getattr(rel, "lembrete_proxima_visita", ""),
+            "projeto": {
+                "id": projeto.id if projeto else None,
+                "nome": projeto.nome if projeto else "",
+                "numero": getattr(projeto, "numero", "") if projeto else "",
+                "endereco": projeto.endereco if projeto else "",
+                "responsavel": projeto.nome_funcionario if projeto else "",
+            } if projeto else None,
+            "fotos": [
+                {
+                    "id": f.id,
+                    "arquivo": f.filename,
+                    "legenda": getattr(f, "legenda", "") or getattr(f, "titulo", ""),
+                    "url": getattr(f, "url", None) or (f"/uploads/{f.filename}" if f.filename else None),
+                }
+                for f in fotos
+            ],
             "checklist": checklist,
-            "acompanhantes": acompanhantes,
-            "fotos": fotos,
+            "acompanhantes": [
+                {"id": a.get("id"), "nome": a.get("nome", ""), "funcao": a.get("funcao", "Não informado")}
+                for a in acompanhantes
+            ] if isinstance(acompanhantes, list) else [],
         }
-        
-        current_app.logger.info(f"✅ Fotos carregadas: {len(report_data['fotos'])}")
-        current_app.logger.info(f"✅ Acompanhantes carregados: {len(report_data['acompanhantes'])}")
-        current_app.logger.info(f"✅ Checklist carregado: {len(report_data['checklist'])}")
-        
+
+        app.logger.info(f"✅ Dados estruturados com sucesso para o relatório {report_id}")
+
         return render_template(
             "reports/form_complete.html",
             report_data=report_data,
             edit_mode=True,
         )
-    
+
     except Exception as e:
-        current_app.logger.error(f"❌ ERRO ao carregar relatório {report_id} para edição completa: {e}", exc_info=True)
+        app.logger.error(f"❌ ERRO ao carregar relatório {report_id}: {e}", exc_info=True)
         return render_template("reports/error_report.html", message=str(e)), 500
 
 @app.route('/reports/<int:report_id>/photos/add', methods=['GET', 'POST'])
