@@ -265,13 +265,16 @@
                                                  onerror="this.onerror=null; this.src='/static/img/no-image.png'; console.error('Erro ao carregar imagem ID {{ foto.id }}');">
                                             <div class="card-body p-2">
                                                 <div class="mb-2">
-                                                    <input type="text" 
-                                                           class="form-control form-control-sm photo-legend" 
-                                                           data-photo-id="{{ foto.id }}"
-                                                           value="{{ foto.legenda or '' }}" 
-                                                           placeholder="Adicionar legenda..."
-                                                           {% if relatorio.status == 'Aprovado' or not user_can_edit %}disabled{% endif %}
-                                                           onchange="updatePhotoLegend({{ foto.id }}, this.value)">
+                                                    <select class="form-select form-select-sm photo-legend legendas-select" 
+                                                            data-photo-id="{{ foto.id }}"
+                                                            data-current-value="{{ foto.legenda or '' }}"
+                                                            {% if relatorio.status == 'Aprovado' or not user_can_edit %}disabled{% endif %}
+                                                            onchange="updatePhotoLegend({{ foto.id }}, this.value)">
+                                                        <option value="">Selecione uma legenda...</option>
+                                                        {% if foto.legenda %}
+                                                        <option value="{{ foto.legenda }}" selected>{{ foto.legenda }}</option>
+                                                        {% endif %}
+                                                    </select>
                                                 </div>
                                                 {% if user_can_edit and relatorio.status != 'Aprovado' %}
                                                 <div class="btn-group w-100" role="group">
@@ -302,6 +305,32 @@
 
 <script>
 const RELATORIO_ID = {{ relatorio.id }};
+
+// Função para carregar as legendas disponíveis para um select
+async function loadLegendasForSelect(selectElement, type) {
+    try {
+        const response = await fetch(`/api/legendas?type=${type}`);
+        if (!response.ok) {
+            throw new Error(`Erro ao buscar legendas: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        // Limpa opções existentes, exceto a de placeholder se houver
+        selectElement.querySelectorAll('option:not([value=""])').forEach(option => option.remove());
+
+        if (data.success) {
+            data.legendas.forEach(legenda => {
+                const option = document.createElement('option');
+                option.value = legenda.nome;
+                option.textContent = legenda.nome;
+                selectElement.appendChild(option);
+            });
+            console.log(`✅ Legendas carregadas para o select: ${data.legendas.length} legendas`);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar legendas:', error);
+    }
+}
 
 // Carregar dados do relatório ao abrir a página
 document.addEventListener('DOMContentLoaded', async function() {
@@ -363,6 +392,26 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Renderizar acompanhantes se existir
             if (data.acompanhantes && data.acompanhantes.length > 0) {
                 console.log('👥 Acompanhantes encontrados:', data.acompanhantes);
+            }
+
+            // Carregar legendas para cada foto existente
+            const photoCards = document.querySelectorAll('[data-photo-id]');
+            console.log(`📸 Carregando legendas para ${photoCards.length} fotos`);
+
+            for (const card of photoCards) {
+                const photoId = card.dataset.photoId;
+                const legendSelect = card.querySelector('.photo-legend');
+
+                if (legendSelect && legendSelect.tagName === 'SELECT') {
+                    await loadLegendasForSelect(legendSelect, 'all');
+
+                    // Manter o valor atual selecionado
+                    const currentValue = legendSelect.dataset.currentValue || legendSelect.getAttribute('value');
+                    if (currentValue) {
+                        legendSelect.value = currentValue;
+                        console.log(`✅ Legenda mantida para foto ${photoId}: "${currentValue}"`);
+                    }
+                }
             }
         }
 
