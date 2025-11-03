@@ -2731,7 +2731,7 @@ def create_report():
 
             relatorio.conteudo = final_content
             relatorio.data_relatorio = data_relatorio
-            relatorio.status = 'preenchimento'  # Criar sempre em preenchimento primeiro
+            relatorio.status = 'Aguardando Aprovação'  # Status correto ao concluir relatório
             relatorio.created_at = datetime.utcnow()
             relatorio.updated_at = datetime.utcnow()
             
@@ -2768,38 +2768,52 @@ def create_report():
             db.session.flush()  # Get the ID
             current_app.logger.info(f"✅ RELATÓRIO ID={relatorio.id} NÚMERO={relatorio.numero}")
 
+            # VERIFICAR SE JÁ EXISTEM FOTOS (do autosave) - Evitar duplicação
+            fotos_existentes = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).count()
+            if fotos_existentes > 0:
+                current_app.logger.info(f"📸 AUTOSAVE: {fotos_existentes} fotos já existem - PULANDO processamento de fotos para evitar duplicação")
+                photo_count = fotos_existentes
+                skip_photo_processing = True
+            else:
+                skip_photo_processing = False
+
             # Handle photo uploads if any - APENAS pasta uploads
             upload_folder = 'uploads'  # Sempre uploads
             if not os.path.exists(upload_folder):
                 os.makedirs(upload_folder)
 
             current_app.logger.info(f"📁 SALVANDO FOTOS EM: {upload_folder}")
-            photo_count = 0
+            photo_count = 0 if not skip_photo_processing else photo_count
 
-            # Process photos from sessionStorage (via form data)
-            photos_data = request.form.get('photos_data')
-            if photos_data:
-                try:
-                    import json
-                    photos_list = json.loads(photos_data)
-                    for i, photo_data in enumerate(photos_list):
-                        # Processo simplificado - apenas salvar referência
-                        foto = FotoRelatorio()
-                        foto.relatorio_id = relatorio.id
-                        foto.filename = f"sessao_foto_{i+1}.jpg"
-                        foto.legenda = photo_data.get('caption', f'Foto {i+1}')
-                        foto.tipo_servico = photo_data.get('category', 'Geral')
-                        foto.ordem = i + 1
+            # Process photos from sessionStorage (via form data) - APENAS se não houver fotos do autosave
+            if not skip_photo_processing:
+                photos_data = request.form.get('photos_data')
+                if photos_data:
+                    try:
+                        import json
+                        photos_list = json.loads(photos_data)
+                        for i, photo_data in enumerate(photos_list):
+                            # Processo simplificado - apenas salvar referência
+                            foto = FotoRelatorio()
+                            foto.relatorio_id = relatorio.id
+                            foto.filename = f"sessao_foto_{i+1}.jpg"
+                            foto.legenda = photo_data.get('caption', f'Foto {i+1}')
+                            foto.tipo_servico = photo_data.get('category', 'Geral')
+                            foto.ordem = i + 1
 
-                        db.session.add(foto)
-                        photo_count += 1
-                except Exception as e:
-                    pass  # Ignore session storage errors
+                            db.session.add(foto)
+                            photo_count += 1
+                    except Exception as e:
+                        pass  # Ignore session storage errors
 
-            # Process mobile photos with mandatory caption validation
-            mobile_photos_data = request.form.get('mobile_photos_data')
-            current_app.logger.info(f"🔍 MOBILE_PHOTOS_DATA PRESENTE? {mobile_photos_data is not None}")
-            if mobile_photos_data:
+            # Process mobile photos with mandatory caption validation - APENAS se não houver fotos do autosave
+            if not skip_photo_processing:
+                mobile_photos_data = request.form.get('mobile_photos_data')
+                current_app.logger.info(f"🔍 MOBILE_PHOTOS_DATA PRESENTE? {mobile_photos_data is not None}")
+            else:
+                mobile_photos_data = None
+            
+            if mobile_photos_data and not skip_photo_processing:
                 current_app.logger.info(f"📦 TAMANHO DO JSON: {len(mobile_photos_data)} caracteres")
                 try:
                     import json
@@ -2884,95 +2898,50 @@ def create_report():
                     current_app.logger.error(f"❌ Traceback completo: {traceback.format_exc()}")
                     flash('⚠️ Algumas fotos mobile podem não ter sido processadas corretamente.', 'warning')
 
-            # Process regular file uploads
-            for i in range(50):  # Support up to 50 photos
-                photo_key = f'photo_{i}'
-                edited_photo_key = f'edited_photo_{i}'
+            # Process regular file uploads - APENAS se não houver fotos do autosave
+            if not skip_photo_processing:
+                for i in range(50):  # Support up to 50 photos
+                    photo_key = f'photo_{i}'
+                    edited_photo_key = f'edited_photo_{i}'
 
-                # Check if this photo was edited
-                has_edited_version = edited_photo_key in request.form
+                    # Check if this photo was edited
+                    has_edited_version = edited_photo_key in request.form
 
-                if has_edited_version:
-                    # Process only the edited version, ignore the original
-                    try:
-                        import base64
-                        from io import BytesIO
-                        from PIL import Image
-
-                        edited_data = request.form[edited_photo_key]
-                        # Remove data:image/jpeg;base64, prefix
-                        if ',' in edited_data:
-                            edited_data = edited_data.split(',')[1]
-
-                        image_data = base64.b64decode(edited_data)
-                        image = Image.open(BytesIO(image_data))
-
-                        # Save edited image
-                        filename = f"{uuid.uuid4().hex}_edited.jpg"
-                        filepath = os.path.join(upload_folder, filename)
-                        image.save(filepath, 'JPEG', quality=85)
-
-                        # Get metadata
-                        photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
-                        photo_category = request.form.get(f'photo_category_{i}', 'Geral')
-                        photo_description = request.form.get(f'photo_description_{i}', '')
-
-                        # Create photo record for edited version only
-                        foto = FotoRelatorio()
-                        foto.relatorio_id = relatorio.id
-                        foto.filename = filename
-                        foto.filename_anotada = filename  # Mark as annotated version
-                        foto.legenda = photo_caption or f'Foto {photo_count + 1}'
-                        foto.descricao = photo_description  # Adicionar descrição
-                        foto.tipo_servico = photo_category or 'Geral'
-                        foto.ordem = photo_count + 1
-                        foto.imagem = image_data  # Salvar dados binários da imagem editada
-
-                        # Salvar anotações se disponível (parse JSON string)
-                        annotations = request.form.get(f'photo_annotations_{i}')
-                        if annotations:
-                            try:
-                                foto.anotacoes_dados = json.loads(annotations)
-                            except (json.JSONDecodeError, TypeError):
-                                current_app.logger.warning(f"⚠️ Anotações inválidas para foto {i}, ignorando")
-                                foto.anotacoes_dados = None
-
-                        db.session.add(foto)
-                        photo_count += 1
-                        current_app.logger.info(f"✅ Foto editada {photo_count} salva: {filename}, {len(image_data)} bytes")
-                    except Exception as e:
-                        current_app.logger.error(f"❌ Erro ao processar foto editada {i}: {e}")
-                        continue
-
-                elif photo_key in request.files:
-                    # Process original photo only if no edited version exists
-                    file = request.files[photo_key]
-                    if file and file.filename and file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                    if has_edited_version:
+                        # Process only the edited version, ignore the original
                         try:
-                            filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
-                            filepath = os.path.join(upload_folder, filename)
+                            import base64
+                            from io import BytesIO
+                            from PIL import Image
 
-                            # Ler dados do arquivo antes de salvar
-                            file_data = file.read()
-                            file.seek(0)  # Reset para salvar o arquivo também
-                            file.save(filepath)
-                            current_app.logger.info(f"✅ FOTO SALVA: {filepath}")
+                            edited_data = request.form[edited_photo_key]
+                            # Remove data:image/jpeg;base64, prefix
+                            if ',' in edited_data:
+                                edited_data = edited_data.split(',')[1]
+
+                            image_data = base64.b64decode(edited_data)
+                            image = Image.open(BytesIO(image_data))
+
+                            # Save edited image
+                            filename = f"{uuid.uuid4().hex}_edited.jpg"
+                            filepath = os.path.join(upload_folder, filename)
+                            image.save(filepath, 'JPEG', quality=85)
 
                             # Get metadata
                             photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
                             photo_category = request.form.get(f'photo_category_{i}', 'Geral')
                             photo_description = request.form.get(f'photo_description_{i}', '')
 
-                            # Create photo record for original
+                            # Create photo record for edited version only
                             foto = FotoRelatorio()
                             foto.relatorio_id = relatorio.id
                             foto.filename = filename
-                            foto.filename_original = filename  # Mark as original version
+                            foto.filename_anotada = filename  # Mark as annotated version
                             foto.legenda = photo_caption or f'Foto {photo_count + 1}'
                             foto.descricao = photo_description  # Adicionar descrição
                             foto.tipo_servico = photo_category or 'Geral'
                             foto.ordem = photo_count + 1
-                            foto.imagem = file_data  # Salvar dados binários da imagem original
+                            foto.imagem = image_data  # Salvar dados binários da imagem editada
 
                             # Salvar anotações se disponível (parse JSON string)
                             annotations = request.form.get(f'photo_annotations_{i}')
@@ -2985,10 +2954,56 @@ def create_report():
 
                             db.session.add(foto)
                             photo_count += 1
-                            current_app.logger.info(f"✅ Foto original {photo_count} salva: {filename}, {len(file_data)} bytes")
+                            current_app.logger.info(f"✅ Foto editada {photo_count} salva: {filename}, {len(image_data)} bytes")
                         except Exception as e:
-                            current_app.logger.error(f"❌ Erro ao processar foto {i}: {e}")
+                            current_app.logger.error(f"❌ Erro ao processar foto editada {i}: {e}")
                             continue
+
+                    elif photo_key in request.files:
+                        # Process original photo only if no edited version exists
+                        file = request.files[photo_key]
+                        if file and file.filename and file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                            try:
+                                filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
+                                filepath = os.path.join(upload_folder, filename)
+
+                                # Ler dados do arquivo antes de salvar
+                                file_data = file.read()
+                                file.seek(0)  # Reset para salvar o arquivo também
+                                file.save(filepath)
+                                current_app.logger.info(f"✅ FOTO SALVA: {filepath}")
+
+                                # Get metadata
+                                photo_caption = request.form.get(f'photo_caption_{i}', f'Foto {photo_count + 1}')
+                                photo_category = request.form.get(f'photo_category_{i}', 'Geral')
+                                photo_description = request.form.get(f'photo_description_{i}', '')
+
+                                # Create photo record for original
+                                foto = FotoRelatorio()
+                                foto.relatorio_id = relatorio.id
+                                foto.filename = filename
+                                foto.filename_original = filename  # Mark as original version
+                                foto.legenda = photo_caption or f'Foto {photo_count + 1}'
+                                foto.descricao = photo_description  # Adicionar descrição
+                                foto.tipo_servico = photo_category or 'Geral'
+                                foto.ordem = photo_count + 1
+                                foto.imagem = file_data  # Salvar dados binários da imagem original
+
+                                # Salvar anotações se disponível (parse JSON string)
+                                annotations = request.form.get(f'photo_annotations_{i}')
+                                if annotations:
+                                    try:
+                                        foto.anotacoes_dados = json.loads(annotations)
+                                    except (json.JSONDecodeError, TypeError):
+                                        current_app.logger.warning(f"⚠️ Anotações inválidas para foto {i}, ignorando")
+                                        foto.anotacoes_dados = None
+
+                                db.session.add(foto)
+                                photo_count += 1
+                                current_app.logger.info(f"✅ Foto original {photo_count} salva: {filename}, {len(file_data)} bytes")
+                            except Exception as e:
+                                current_app.logger.error(f"❌ Erro ao processar foto {i}: {e}")
+                                continue
 
             current_app.logger.info(f"📊 RESUMO FINAL: {photo_count} fotos processadas para relatório {relatorio.numero}")
 
