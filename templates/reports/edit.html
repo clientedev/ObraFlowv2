@@ -333,65 +333,73 @@ async function loadLegendasForSelect(selectElement, type) {
     }
 }
 
-// Função para popular o select com as legendas disponíveis
-async function populateSelectWithLegendas(selectElement, categoria) {
-    const placeholderOption = selectElement.querySelector('option[value=""]');
-    if (placeholderOption) {
-        placeholderOption.textContent = "Carregando legendas...";
-    }
 
+
+
+// Função para popular selects de legendas
+async function populateLegendasSelect(selectElement) {
+    if (!selectElement) return;
+    
+    const currentValue = selectElement.dataset.currentValue || '';
+    
     try {
-        const response = await fetch(`/api/legendas?type=${categoria}`);
-        if (!response.ok) {
-            throw new Error(`Erro ao buscar legendas: ${response.status}`);
-        }
+        console.log('🏷️ Populando select de legendas...');
+        
+        const response = await fetch('/api/legendas?categoria=all&_t=' + Date.now());
         const data = await response.json();
-
-        // Remove todas as opções, exceto a de placeholder
-        selectElement.querySelectorAll('option:not([value=""])').forEach(option => option.remove());
-
-        if (data.success && data.legendas && data.legendas.length > 0) {
-            data.legendas.forEach(legenda => {
+        
+        if (!data.success || !data.legendas || data.legendas.length === 0) {
+            console.error('❌ Nenhuma legenda retornada pela API');
+            selectElement.innerHTML = '<option value="">Nenhuma legenda disponível</option>';
+            return;
+        }
+        
+        console.log(`✅ ${data.legendas.length} legendas recebidas da API`);
+        
+        // Limpar select
+        selectElement.innerHTML = '<option value="">Selecione uma legenda...</option>';
+        
+        // Agrupar por categoria
+        const categorias = {};
+        data.legendas.forEach(leg => {
+            if (!categorias[leg.categoria]) {
+                categorias[leg.categoria] = [];
+            }
+            categorias[leg.categoria].push(leg);
+        });
+        
+        // Adicionar optgroups
+        Object.keys(categorias).sort().forEach(cat => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = `${cat} (${categorias[cat].length})`;
+            
+            categorias[cat].forEach(legenda => {
                 const option = document.createElement('option');
-                option.value = legenda.nome;
-                option.textContent = legenda.nome;
-                // Mantém a seleção original se existir
-                if (selectElement.dataset.currentValue === legenda.nome) {
+                option.value = legenda.texto;
+                option.textContent = legenda.texto;
+                
+                // Manter seleção atual
+                if (currentValue && legenda.texto === currentValue) {
                     option.selected = true;
                 }
-                selectElement.appendChild(option);
+                
+                optgroup.appendChild(option);
             });
-            if (placeholderOption) {
-                placeholderOption.textContent = "Selecione uma legenda...";
-            }
-            console.log(`✅ Select populado com ${data.legendas.length} legendas para a foto ${selectElement.dataset.photoId}`);
-        } else {
-            if (placeholderOption) {
-                placeholderOption.textContent = "Nenhuma legenda encontrada";
-            }
-            console.log(`⚠️ Nenhuma legenda encontrada para a foto ${selectElement.dataset.photoId}`);
-        }
+            
+            selectElement.appendChild(optgroup);
+        });
+        
+        console.log(`✅ Select populado com ${data.legendas.length} legendas`);
+        
     } catch (error) {
-        console.error(`❌ Erro ao popular select para foto ${selectElement.dataset.photoId}:`, error);
-        if (placeholderOption) {
-            placeholderOption.textContent = "Erro ao carregar";
-        }
+        console.error('❌ Erro ao popular select:', error);
+        selectElement.innerHTML = '<option value="">Erro ao carregar legendas</option>';
     }
 }
-
 
 // Carregar dados do relatório ao abrir a página
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('📄 Carregando dados do relatório ID:', RELATORIO_ID);
-
-    // PRIMEIRO: Carregar legendas globalmente ANTES de renderizar as imagens
-    try {
-        console.log('🏷️ Carregando legendas globalmente...');
-        await window.legendasSelector.loadLegendas('all', true); // Assumindo que legendasSelector existe e tem este método
-        console.log('✅ Legendas carregadas globalmente');
-    } catch (error) {
-        console.error('❌ Erro ao carregar legendas globalmente:', error);
-    }
 
     try {
         const response = await fetch(`/api/relatorios/${RELATORIO_ID}`, {
@@ -458,13 +466,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                 for (const card of photoCards) {
                     const photoId = card.dataset.photoId;
                     const legendSelect = card.querySelector('.photo-legend');
-                    const categoria = legendSelect.dataset.categoria || 'all'; // Pega a categoria do data-categoria
 
                     if (legendSelect && legendSelect.tagName === 'SELECT') {
-                        await populateSelectWithLegendas(legendSelect, categoria);
+                        await populateLegendasSelect(legendSelect);
                     }
                 }
-            }, 300);
+                
+                console.log('✅ TODOS os selects de legendas foram populados');
+            }, 500);
         }
 
     } catch (error) {
