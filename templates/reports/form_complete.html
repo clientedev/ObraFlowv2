@@ -350,45 +350,14 @@
                             </label>
                             <input type="date" name="data_relatorio" id="data_relatorio" class="form-control" value="{{ today }}" required>
                         </div>
-                        <!-- Auto-preenchimento do Projeto (se selecionado) -->
-                        {% if selected_project %}
-                        <div class="alert alert-info mobile-project-info" role="alert">
-                            <div class="row align-items-center">
-                                <div class="col-md-1 col-2 text-center">
-                                    <i class="fas fa-info-circle fa-2x"></i>
-                                </div>
-                                <div class="col-md-11 col-10">
-                                    <h6 class="mb-2 fw-bold">
-                                        <i class="fas fa-building me-2"></i>Projeto Pré-selecionado
-                                    </h6>
-                                    <div class="project-auto-info">
-                                        <p class="mb-1"><strong>{{ selected_project.numero }} - {{ selected_project.nome }}</strong></p>
-                                        {% if selected_project.endereco %}
-                                        <p class="mb-1"><small class="text-success">
-                                            <i class="fas fa-map-marker-alt me-1"></i>{{ selected_project.endereco }}
-                                        </small></p>
-                                        {% else %}
-                                        <p class="mb-1"><small class="text-warning">
-                                            <i class="fas fa-exclamation-triangle me-1"></i>Endereço não cadastrado — preencha para continuar
-                                        </small></p>
-                                        {% endif %}
-                                        <p class="mb-0"><small class="text-muted">
-                                            <i class="fas fa-building me-1"></i>{{ selected_project.construtora }} - {{ selected_project.nome_funcionario }}
-                                        </small></p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
 
-                        <!-- Informações Básicas - Ocultar quando vier de projeto específico -->
-                        {% if not selected_project %}
+                        <!-- Informações Básicas - Sempre mostrar, apenas pré-selecionar se vier de projeto específico -->
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label" for="titulo">Título do Relatório *</label>
                                     <input type="text" name="titulo" id="titulo" class="form-control" 
-                                           value="Relatório de visita" required>
+                                           value="{% if existing_report %}{{ existing_report.titulo }}{% else %}Relatório de visita{% endif %}" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -397,7 +366,7 @@
                                     <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value); atualizarNumeroRelatorio(this.value); carregarChecklistProjeto(this.value); carregarLembrete(this.value);">
                                         <option value="">Selecione um projeto</option>
                                         {% for projeto in projetos %}
-                                        <option value="{{ projeto.id }}">
+                                        <option value="{{ projeto.id }}" {% if selected_project and selected_project.id == projeto.id %}selected{% endif %}>
                                             {{ projeto.numero }} - {{ projeto.nome }}
                                         </option>
                                         {% endfor %}
@@ -405,11 +374,6 @@
                                 </div>
                             </div>
                         </div>
-                        {% else %}
-                        <!-- Campos ocultos quando projeto pré-selecionado -->
-                        <input type="hidden" name="titulo" value="Relatório - {{ selected_project.nome }}">
-                        <input type="hidden" name="projeto_id" value="{{ selected_project.id }}">
-                        {% endif %}
 
                         <!-- Número do Relatório -->
                         <div class="row mb-4">
@@ -894,6 +858,12 @@ function carregarFuncionariosEmailsPorId(projetoId) {
     const funcionariosDiv = document.getElementById('funcionarios-projeto');
     const emailsDiv = document.getElementById('emails-projeto');
 
+    // Verificar se os elementos existem antes de tentar modificá-los
+    if (!funcionariosDiv || !emailsDiv) {
+        console.log('⚠️ Elementos funcionarios-projeto ou emails-projeto não encontrados - pulando carregamento');
+        return;
+    }
+
     if (!projetoId) {
         funcionariosDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os funcionários disponíveis</p>';
         emailsDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os e-mails disponíveis</p>';
@@ -931,7 +901,7 @@ function carregarFuncionariosEmailsPorId(projetoId) {
             } else {
                 funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
             }
-            funcionariosDiv.innerHTML = funcionariosHtml;
+            if (funcionariosDiv) funcionariosDiv.innerHTML = funcionariosHtml;
 
             // Renderizar e-mails
             let emailsHtml = '';
@@ -951,16 +921,16 @@ function carregarFuncionariosEmailsPorId(projetoId) {
             } else {
                 emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para este projeto</p>';
             }
-            emailsDiv.innerHTML = emailsHtml;
+            if (emailsDiv) emailsDiv.innerHTML = emailsHtml;
         } else {
-            funcionariosDiv.innerHTML = '<p class="text-danger">Erro ao carregar funcionários</p>';
-            emailsDiv.innerHTML = '<p class="text-danger">Erro ao carregar e-mails</p>';
+            if (funcionariosDiv) funcionariosDiv.innerHTML = '<p class="text-danger">Erro ao carregar funcionários</p>';
+            if (emailsDiv) emailsDiv.innerHTML = '<p class="text-danger">Erro ao carregar e-mails</p>';
         }
     })
     .catch(error => {
         console.error('Erro:', error);
-        funcionariosDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
-        emailsDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
+        if (funcionariosDiv) funcionariosDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
+        if (emailsDiv) emailsDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
     });
 }
 
@@ -1897,21 +1867,16 @@ function carregarChecklistPadrao() {
 
 // Inicializar sistema ao carregar a página
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-carregar dados do projeto se pre-selecionado
-    {% if disable_fields and preselected_project_id %}
-    // Para projeto pré-selecionado com campos desabilitados
-    console.log('🏗️ Projeto pré-selecionado detectado (campos desabilitados):', {{ preselected_project_id }});
-    carregarFuncionariosEmailsPorId({{ preselected_project_id }});
-    carregarChecklistProjeto({{ preselected_project_id }});
-    atualizarNumeroRelatorio({{ preselected_project_id }});
-    {% else %}
-    // Para projeto selecionado normalmente
+    // Auto-carregar dados do projeto se selecionado (tanto via URL quanto manualmente)
     const projetoSelect = document.getElementById('projeto_id');
     if (projetoSelect && projetoSelect.value) {
-        console.log('🏗️ Projeto pré-selecionado detectado:', projetoSelect.value);
-        carregarFuncionariosEmails();
+        console.log('🏗️ Projeto detectado:', projetoSelect.value);
+        // Carregar dados do projeto
+        carregarCategoriasProjeto(projetoSelect.value);
         carregarChecklistProjeto(projetoSelect.value);
         atualizarNumeroRelatorio(projetoSelect.value);
+        carregarLembrete(projetoSelect.value);
+        carregarFuncionariosEmails();
     } else {
         // Se não há projeto selecionado, mostrar mensagem
         const container = document.getElementById('checklistItems');
@@ -1919,7 +1884,6 @@ document.addEventListener('DOMContentLoaded', function() {
             container.innerHTML = '<p class="text-muted">Selecione um projeto para carregar o checklist</p>';
         }
     }
-    {% endif %}
 
     // Inicializar editor modal Fabric.js - exatamente como no Express
     if (typeof initFabricPhotoEditorModal === 'function') {
