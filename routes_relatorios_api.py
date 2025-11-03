@@ -382,14 +382,14 @@ def get_relatorio(relatorio_id):
         imagens = []
         fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
         for foto in fotos:
-            # Determinar o path da imagem
+            # Determinar o path da imagem - CORRIGIDO: verificar se não é string vazia
             image_path = None
-            if foto.url:
+            if foto.url and foto.url.strip():
                 image_path = foto.url
-            elif foto.filename:
+            elif foto.filename and foto.filename.strip():
                 image_path = f"/uploads/{foto.filename}"
             else:
-                # Fallback para gerar URL a partir do ID
+                # Fallback para gerar URL a partir do ID - para fotos antigas sem url/filename
                 image_path = f"/get_imagem/{foto.id}"
 
             imagens.append({
