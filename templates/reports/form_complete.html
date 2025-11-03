@@ -59,7 +59,7 @@
             pointer-events: auto !important;
             transition: all 0.15s ease;
         }
-        
+
         /* Feedback visual do touch - igual Express */
         .photo-category.touching {
             transform: scale(0.95);
@@ -95,7 +95,7 @@
             border-width: 1px !important;
             background: #f8f9fa;
         }
-        
+
         #data_relatorio {
             font-size: 16px;
             font-weight: 400;
@@ -103,32 +103,32 @@
             border-radius: 0.375rem;
             box-shadow: none;
         }
-        
+
         #data_relatorio:focus {
             border-color: #86b7fe;
             box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
     }
-    
+
     @media (max-width: 768px) {
         #data_relatorio {
             font-size: 16px !important;
             min-height: 44px !important;
             padding: 12px !important;
         }
-        
+
         .form-label {
             font-size: 14px !important;
             margin-bottom: 0.5rem !important;
         }
-        
+
         .alert.border-primary {
             margin-bottom: 1rem !important;
             padding: 1rem !important;
             border-radius: 0.375rem !important;
         }
     }
-    
+
     @media (max-width: 576px) {
         #data_relatorio {
             font-size: 16px !important;
@@ -296,15 +296,15 @@
         .mobile-photo-card {
             margin-bottom: 20px;
         }
-        
+
         .photo-card-image {
             height: 160px;
         }
-        
+
         .photo-card-content {
             padding: 12px;
         }
-        
+
         .caption-input, .caption-select {
             font-size: 16px !important; /* Prevent zoom on iOS */
         }
@@ -342,7 +342,7 @@
                         {% if selected_project %}
                         <input type="hidden" name="projeto_id" value="{{ selected_project.id }}">
                         {% endif %}
-                        
+
                         <!-- Data do Relatório -->
                         <div class="mb-3">
                             <label class="form-label" for="data_relatorio">
@@ -608,7 +608,7 @@
 
                             <!-- Preview das Fotos com Cards Mobile-First -->
                             <div id="mobilePhotoCards" class="row g-3"></div>
-                            
+
                             <!-- Quick Action Bar para adicionar mais fotos -->
                             <div id="quickPhotoActions" class="text-center mt-3 p-3 bg-light rounded" style="display: none;">
                                 <div class="d-flex justify-content-center gap-2 flex-wrap">
@@ -621,7 +621,7 @@
                                 </div>
                                 <small class="text-muted d-block mt-2">Total: <span id="quickPhotoCount">0</span> fotos (máximo 200)</small>
                             </div>
-                            
+
                             <!-- Fotos antigas (mantido para compatibilidade) -->
                             <div id="photoPreview" class="row" style="display: none;"></div>
                         </div>
@@ -810,7 +810,7 @@ function carregarCategoriasProjeto(projetoId) {
         console.log('Nenhum projeto selecionado para carregar categorias');
         return;
     }
-    
+
     // Buscar categorias do projeto via API
     fetch(`/api/projects/${projetoId}/categorias`)
         .then(response => response.json())
@@ -832,13 +832,13 @@ function carregarLembrete(projetoId) {
     const lembreteCard = document.getElementById('lembrete-card');
     const lembreteTitulo = document.getElementById('lembrete-titulo');
     const lembreteTexto = document.getElementById('lembrete-texto');
-    
+
     // Ocultar o card se nenhum projeto estiver selecionado
     if (!projetoId) {
         lembreteCard.style.display = 'none';
         return;
     }
-    
+
     // Buscar o lembrete via API
     fetch(`/relatorios/ultimo-lembrete?obra_id=${projetoId}`)
         .then(response => response.json())
@@ -864,11 +864,11 @@ function carregarLembrete(projetoId) {
 // Função para atualizar o número do relatório quando o projeto é selecionado
 function atualizarNumeroRelatorio(projetoId) {
     const numeroInput = document.getElementById('numero');
-    
+
     if (!projetoId || !numeroInput) {
         return;
     }
-    
+
     // Buscar o próximo número do relatório para este projeto via AJAX
     fetch(`/api/projeto/${projetoId}/next-report-number`, {
         method: 'GET',
@@ -1484,15 +1484,15 @@ function saveEditedPhoto() {
 // Função para criar relatório inicial em preenchimento
 async function createInitialReport() {
     const formData = new FormData(document.getElementById('reportForm'));
-    
+
     try {
         const response = await fetch('{{ url_for("create_report") }}', {
             method: 'POST',
             body: formData
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success && result.report_id) {
             console.log('✅ Relatório inicial criado:', result.report_id);
             return result.report_id;
@@ -1522,7 +1522,7 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
         }
         editField.value = window.currentReportId;
         console.log('✅ edit_report_id adicionado ao form:', window.currentReportId);
-        
+
         // Adicionar flag para finalizar após salvar
         let finalizeField = this.querySelector('input[name="should_finalize"]');
         if (!finalizeField) {
@@ -1672,20 +1672,20 @@ function toggleChecklistItem(checkbox) {
 // Carregar checklist do projeto (personalizado ou padrão)
 function carregarChecklistProjeto(projetoId) {
     const container = document.getElementById('checklistItems');
-    
+
     if (!projetoId) {
         container.innerHTML = '<p class="text-muted">Selecione um projeto para carregar o checklist</p>';
         return;
     }
-    
+
     container.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin"></i> Carregando checklist...</p>';
-    
+
     fetch(`/api/projeto/${projetoId}/checklist`)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.checklist && data.checklist.length > 0) {
                 container.innerHTML = '';
-                
+
                 // Mostrar tipo de checklist
                 if (data.tipo === 'personalizado') {
                     const badge = document.createElement('div');
@@ -1721,6 +1721,70 @@ function carregarChecklistProjeto(projetoId) {
         .catch(error => {
             console.error('Erro ao carregar checklist:', error);
             container.innerHTML = `<p class="text-danger">Erro ao carregar checklist. <a href="#" onclick="carregarChecklistProjeto(${projetoId})">Tentar novamente</a></p>`;
+        });
+}
+
+// Carregar checklist padrão do sistema
+function carregarChecklistPadrao() {
+    console.log('📋 Carregando checklist padrão...');
+
+    fetch('/api/checklist-padrao')
+        .then(response => response.json())
+        .then(data => {
+            console.log('📋 Resposta do servidor:', data);
+
+            if (data.success && data.checklist && data.checklist.length > 0) {
+                const container = document.getElementById('checklistItems');
+                container.innerHTML = '';
+
+                data.checklist.forEach((item, index) => {
+                    const itemHtml = `
+                        <div class="checklist-item card mb-3" data-item-id="${item.id}">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-9">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="check_${item.id}" name="checklist_${item.id}" onchange="toggleChecklistItem(this)">
+                                            <label class="form-check-label fw-bold" for="check_${item.id}">
+                                                ${item.texto}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 text-end">
+                                        <small class="text-muted">Item ${index + 1}</small>
+                                    </div>
+                                </div>
+                                <div class="obs-section mt-3" style="display: none;">
+                                    <label class="form-label">Observações:</label>
+                                    <textarea class="form-control" name="obs_${item.id}" rows="2" placeholder="Observações sobre este item..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', itemHtml);
+                });
+
+                console.log('✅ Checklist padrão carregado:', data.checklist.length, 'itens');
+            } else {
+                console.warn('⚠️ Nenhum item de checklist padrão encontrado');
+                const container = document.getElementById('checklistItems');
+                container.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Nenhum item de checklist padrão configurado. Entre em contato com o administrador.
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('❌ Erro ao carregar checklist padrão:', error);
+            const container = document.getElementById('checklistItems');
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Erro ao carregar checklist. Tente recarregar a página.
+                </div>
+            `;
         });
 }
 
@@ -1768,36 +1832,36 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.error('❌ Editor modal não disponível');
     }
-    
+
     // Criar relatório inicial e ativar auto save após preencher dados básicos
     let autoSaveInitialized = false;
-    
+
     // Função para inicializar auto save quando houver dados suficientes
     function tryInitializeAutoSave() {
         if (autoSaveInitialized) return;
-        
+
         const titulo = document.getElementById('titulo').value;
         const projetoId = document.getElementById('projeto_id').value;
-        
+
         if (titulo && projetoId) {
             console.log('📝 Dados básicos preenchidos, criando relatório inicial...');
-            
+
             // Criar relatório inicial
             createInitialReport().then(reportId => {
                 window.currentReportId = reportId;
-                
+
                 // Adicionar data-report-id ao formulário para autosave funcionar
                 const form = document.getElementById('reportForm');
                 if (form) {
                     form.setAttribute('data-report-id', reportId);
                     console.log('✅ data-report-id adicionado ao formulário:', reportId);
                 }
-                
+
                 // Inicializar auto save com CSRF token correto
                 if (typeof initAutoSave === 'function') {
                     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
                     window.autoSaveInstance = initAutoSave(reportId, csrfToken);
-                    
+
                     autoSaveInitialized = true;
                     console.log('✅ Auto save ativado para relatório', reportId);
                 } else {
@@ -1808,15 +1872,15 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    
+
     // Observar mudanças nos campos básicos
     const tituloField = document.getElementById('titulo');
     const projetoField = document.getElementById('projeto_id');
-    
+
     if (tituloField) {
         tituloField.addEventListener('blur', tryInitializeAutoSave);
     }
-    
+
     if (projetoField) {
         projetoField.addEventListener('change', tryInitializeAutoSave);
     }
@@ -2049,11 +2113,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // Sistema de touch inteligente IGUAL AO EXPRESS - funcional 100%
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Sistema de touch inteligente carregado (igual express)');
-    
+
     // Configurações EXATAS do Express
     const TOUCH_THRESHOLD = 10; // pixels
     const TOUCH_TIME_LIMIT = 500; // ms
-    
+
     let touchData = {
         startX: 0,
         startY: 0,
@@ -2061,52 +2125,52 @@ document.addEventListener('DOMContentLoaded', function() {
         isDragging: false,
         element: null
     };
-    
+
     // Função para seleção de categoria IDÊNTICA ao Express
     function selectPhotoCategory(category, element) {
         // Remover seleção anterior
         document.querySelectorAll('.photo-category').forEach(cat => {
             cat.classList.remove('selected');
         });
-        
+
         // Adicionar seleção atual
         element.classList.add('selected');
-        
+
         // Feedback tátil
         if (navigator.vibrate) {
             navigator.vibrate(50);
         }
-        
+
         console.log('📷 Categoria selecionada:', category);
     }
-    
+
     // Event listeners para categorias - CÓDIGO EXATO DO EXPRESS
     document.querySelectorAll('.photo-category').forEach(categoryElement => {
-        
+
         // Touch Start
         categoryElement.addEventListener('touchstart', function(e) {
             console.log('👆 TouchStart categoria');
-            
+
             const touch = e.touches[0];
             touchData.startX = touch.clientX;
             touchData.startY = touch.clientY;
             touchData.startTime = Date.now();
             touchData.isDragging = false;
             touchData.element = categoryElement;
-            
+
             // Feedback visual imediato
             categoryElement.classList.add('touching');
         }, { passive: true });
-        
+
         // Touch Move
         categoryElement.addEventListener('touchmove', function(e) {
             if (!touchData.element) return;
-            
+
             const touch = e.touches[0];
             const deltaX = Math.abs(touch.clientX - touchData.startX);
             const deltaY = Math.abs(touch.clientY - touchData.startY);
             const totalDelta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            
+
             // Se movimento exceder threshold, marcar como drag
             if (totalDelta > TOUCH_THRESHOLD) {
                 touchData.isDragging = true;
@@ -2114,53 +2178,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('🔄 Movimento detectado - modo drag ativado');
             }
         }, { passive: true });
-        
+
         // Touch End
         categoryElement.addEventListener('touchend', function(e) {
             console.log('👆 TouchEnd categoria');
-            
+
             // Remover feedback visual
             categoryElement.classList.remove('touching');
-            
+
             if (!touchData.element) return;
-            
+
             const touchDuration = Date.now() - touchData.startTime;
-            
+
             // Apenas selecionar se foi um tap rápido e sem movimento
             if (!touchData.isDragging && touchDuration < TOUCH_TIME_LIMIT) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const category = categoryElement.getAttribute('data-category');
                 selectPhotoCategory(category, categoryElement);
-                
+
                 console.log('✅ Tap válido - categoria selecionada');
             } else {
                 console.log('❌ Drag detectado - não selecionar categoria');
             }
-            
+
             // Reset
             touchData.element = null;
             touchData.isDragging = false;
         }, { passive: false });
-        
+
         // Mouse events para desktop (fallback)
         categoryElement.addEventListener('click', function(e) {
             // Apenas processar se não houve toque recente
             if (touchData.startTime && (Date.now() - touchData.startTime) < 300) {
                 return; // Ignorar click após touch
             }
-            
+
             e.preventDefault();
             e.stopPropagation();
-            
+
             const category = categoryElement.getAttribute('data-category');
             selectPhotoCategory(category, categoryElement);
-            
+
             console.log('🖱️ Click desktop - categoria selecionada');
         });
     });
-    
+
     console.log('✅ Sistema de touch inteligente ativo para', document.querySelectorAll('.photo-category').length, 'categorias');
 });
 
@@ -2189,18 +2253,18 @@ window.selectPhotoCategory = function(category, element) {
 document.addEventListener('DOMContentLoaded', function() {
     // Verificar se existe um reportId renderizado pelo servidor
     const formReportId = document.querySelector('#reportForm')?.getAttribute('data-report-id');
-    
+
     // Inicializar AutoSave (ele detectará automaticamente ?edit={id} ou usará formReportId)
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
+
     // Se existe reportId do servidor, expor globalmente para o AutoSave
     if (formReportId) {
         window.currentReportId = parseInt(formReportId, 10);
     }
-    
+
     // Inicializar AutoSave - ele detectará o ID automaticamente
     const autoSave = initAutoSave(null, csrfToken);
-    
+
     console.log('✅ Auto Save inicializado');
 });
 </script>
@@ -2246,14 +2310,14 @@ console.log('✅ Carregando checklist existente...');
 try {
     const checklistExistente = {{ existing_checklist | tojson | safe }};
     console.log('📋 Checklist existente:', checklistExistente);
-    
+
     // Marcar checkboxes do checklist
     document.addEventListener('DOMContentLoaded', function() {
         if (!checklistExistente) {
             console.log('⚠️ Nenhum checklist existente');
             return;
         }
-        
+
         if (Array.isArray(checklistExistente)) {
             console.log(`📋 Processando ${checklistExistente.length} itens do checklist (array)`);
             // Se for um array, iterar sobre os itens
@@ -2295,7 +2359,7 @@ try {
 document.addEventListener('DOMContentLoaded', function() {
     loadPredefinedLegendas();
     setupMobilePhotoSystem();
-    
+
     // Renderizar fotos existentes na galeria
     {% if existing_fotos and existing_fotos|length > 0 %}
     setTimeout(() => {
@@ -2311,7 +2375,7 @@ async function loadPredefinedLegendas() {
         console.log('📋 Carregando legendas predefinidas...');
         const response = await fetch('/api/legendas?categoria=all');
         const data = await response.json();
-        
+
         if (data.success) {
             predefinedLegendas = data.legendas;
             console.log(`✅ ${predefinedLegendas.length} legendas carregadas`);
@@ -2324,15 +2388,15 @@ async function loadPredefinedLegendas() {
 // Setup mobile photo system
 function setupMobilePhotoSystem() {
     console.log('📱 Configurando sistema de fotos mobile-first...');
-    
+
     // Setup file input event listeners
     const mobilePhotoInput = document.getElementById('mobilePhotoInput');
     const mobileCameraInput = document.getElementById('mobileCameraInput');
-    
+
     if (mobilePhotoInput) {
         mobilePhotoInput.addEventListener('change', handleMobilePhotoSelection);
     }
-    
+
     if (mobileCameraInput) {
         mobileCameraInput.addEventListener('change', handleMobilePhotoSelection);
     }
@@ -2365,7 +2429,7 @@ function mobileCaptureFromCamera() {
 function handlePhotoAdded(file, metadata = {}) {
     // Garantir que o array global existe
     if (!window.mobilePhotoData) window.mobilePhotoData = [];
-    
+
     // Determinar previewUrl: usar metadata primeiro, senão criar de File se disponível
     let previewUrl = metadata.previewUrl || metadata.url;
     if (!previewUrl && file) {
@@ -2376,11 +2440,11 @@ function handlePhotoAdded(file, metadata = {}) {
             previewUrl = null;
         }
     }
-    
+
     // Determinar filename e name
     const filename = metadata.filename || (file ? file.name : null) || "foto_" + Date.now();
     const name = metadata.name || (file ? file.name : null) || "foto_" + Date.now();
-    
+
     const photoEntry = {
         id: metadata.id || (crypto.randomUUID ? crypto.randomUUID() : 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)),
         name: name,
@@ -2402,12 +2466,12 @@ function handlePhotoAdded(file, metadata = {}) {
         url: metadata.url || null,
         ordem: metadata.ordem !== undefined ? metadata.ordem : null
     };
-    
+
     // Atualiza o array global
     window.mobilePhotoData.push(photoEntry);
-    
+
     console.log("📷 Foto adicionada ao mobilePhotoData:", window.mobilePhotoData);
-    
+
     return photoEntry;
 }
 
@@ -2415,13 +2479,13 @@ function handlePhotoAdded(file, metadata = {}) {
 function handleMobilePhotoSelection(event) {
     console.log('📋 Processando fotos selecionadas...');
     const files = event.target.files;
-    
+
     if (files.length === 0) return;
-    
+
     Array.from(files).forEach(file => {
         createMobilePhotoCard(file, '');
     });
-    
+
     // Clear input for next selection
     event.target.value = '';
 }
@@ -2429,7 +2493,7 @@ function handleMobilePhotoSelection(event) {
 // Create mobile photo card with immediate display
 function createMobilePhotoCard(file, category) {
     const photoId = 'mobile_photo_' + (++mobilePhotoCounter);
-    
+
     // Registrar foto globalmente usando handlePhotoAdded (conforme especificação técnica)
     const photoEntry = handlePhotoAdded(file, {
         category: category || null,
@@ -2438,34 +2502,34 @@ function createMobilePhotoCard(file, category) {
         manualCaption: '',
         predefinedCaption: ''
     });
-    
+
     // Atualizar o ID da foto no photoEntry
     photoEntry.id = photoId;
-    
+
     const reader = new FileReader();
-    
+
     reader.onload = function(e) {
         const photoCard = createPhotoCardHTML(photoId, e.target.result, category, file.name);
-        
+
         // Add to DOM
         const container = document.getElementById('mobilePhotoCards');
         const cardCol = document.createElement('div');
         cardCol.className = 'col-12 col-md-6 col-lg-4';
         cardCol.innerHTML = photoCard;
         container.appendChild(cardCol);
-        
+
         // Update counter after adding photo
         updatePhotoCounter();
-        
+
         // Setup event listeners for this card
         setupPhotoCardEvents(photoId);
-        
+
         // Immediately scroll to the new photo and focus on caption for better UX
         setTimeout(() => {
             const newCard = cardCol.querySelector('.mobile-photo-card');
             if (newCard) {
                 newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                
+
                 // Auto-focus on caption input for immediate editing
                 const captionInput = newCard.querySelector('.caption-input');
                 if (captionInput) {
@@ -2476,18 +2540,18 @@ function createMobilePhotoCard(file, category) {
                 }
             }
         }, 300);
-        
+
         console.log(`📷 Foto adicionada: ${file.name} (${category})`);
         console.log(`📸 Total de fotos em mobilePhotoData: ${window.mobilePhotoData.length}`);
     };
-    
+
     reader.readAsDataURL(file);
 }
 
 // Create photo card HTML
 function createPhotoCardHTML(photoId, imageSrc, category, filename) {
     const legendaSelectHTML = createLegendaSelectHTML(photoId);
-    
+
     return `
         <div class="mobile-photo-card enhanced" data-photo-id="${photoId}" style="border: 2px solid #007bff; border-radius: 12px; padding: 12px; background: white; box-shadow: 0 4px 12px rgba(0,123,255,0.15); margin-bottom: 16px;">
             <!-- Layout Vertical: IMAGEM EM CIMA -->
@@ -2497,7 +2561,7 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
                      data-photo-id="${photoId}"
                      style="width: 100%; max-width: 200px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef; cursor: pointer;">
             </div>
-            
+
             <!-- Categoria (Seleção dentro do card) -->
             <div class="mb-2">
                 <label class="form-label fw-bold mb-1" style="font-size: 12px;">📁 Categoria</label>
@@ -2508,7 +2572,7 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
                     <option value="">${category ? category : 'Selecione...'}</option>
                 </select>
             </div>
-            
+
             <!-- Local -->
             <div class="mb-2">
                 <label class="form-label fw-bold mb-1" style="font-size: 12px;">📍 Local</label>
@@ -2519,7 +2583,7 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
                        data-photo-id="${photoId}"
                        style="border: 2px solid #ff9800; font-size: 13px; padding: 6px;">
             </div>
-            
+
             <!-- Legenda Manual -->
             <div class="mb-2">
                 <label class="form-label fw-bold mb-1" style="font-size: 12px;">📝 Legenda *</label>
@@ -2531,7 +2595,7 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
                        required
                        style="border: 2px solid #28a745; font-size: 13px; padding: 6px; background-color: #f8fff9;">
             </div>
-            
+
             <!-- Legenda Pré-definida -->
             <div class="mb-2">
                 <select class="form-select form-select-sm caption-select" 
@@ -2542,12 +2606,12 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
                     ${legendaSelectHTML}
                 </select>
             </div>
-            
+
             <!-- Status da Legenda -->
             <div class="caption-status pending alert alert-warning py-1 px-2 mb-2" id="caption_status_${photoId}" style="font-size: 12px; margin: 0;">
                 ⚠️ Legenda obrigatória - preencha o campo acima
             </div>
-            
+
             <!-- Ações -->
             <div class="d-flex gap-2 justify-content-center">
                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="editMobilePhoto('${photoId}')">
@@ -2564,7 +2628,7 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
 // Create legend select HTML
 function createLegendaSelectHTML(photoId) {
     let html = '';
-    
+
     // Group legends by category
     const legendsByCategory = {};
     predefinedLegendas.forEach(legenda => {
@@ -2573,7 +2637,7 @@ function createLegendaSelectHTML(photoId) {
         }
         legendsByCategory[legenda.categoria].push(legenda);
     });
-    
+
     // Create optgroups
     Object.keys(legendsByCategory).forEach(categoria => {
         html += `<optgroup label="${categoria}">`;
@@ -2582,7 +2646,7 @@ function createLegendaSelectHTML(photoId) {
         });
         html += `</optgroup>`;
     });
-    
+
     return html;
 }
 
@@ -2592,28 +2656,28 @@ function setupPhotoCardEvents(photoId) {
     const predefinedSelect = document.getElementById(`predefined_caption_${photoId}`);
     const localInput = document.getElementById(`local_${photoId}`);
     const categorySelect = document.getElementById(`category_${photoId}`);
-    
+
     if (manualInput) {
         manualInput.addEventListener('input', () => savePhotoData(photoId));
         manualInput.addEventListener('blur', () => savePhotoData(photoId));
     }
-    
+
     if (localInput) {
         localInput.addEventListener('input', () => savePhotoData(photoId));
         localInput.addEventListener('blur', () => savePhotoData(photoId));
     }
-    
+
     if (categorySelect) {
         categorySelect.addEventListener('change', () => savePhotoData(photoId));
     }
-    
+
     if (predefinedSelect) {
         predefinedSelect.addEventListener('change', function() {
             if (this.value) {
                 // Copy predefined to manual field
                 manualInput.value = this.value;
                 savePhotoData(photoId);
-                
+
                 // Reset select for next use
                 setTimeout(() => {
                     this.selectedIndex = 0;
@@ -2621,7 +2685,7 @@ function setupPhotoCardEvents(photoId) {
             }
         });
     }
-    
+
     // Populate category select with available categories
     populateCategorySelect(photoId);
 }
@@ -2633,12 +2697,12 @@ async function savePhotoData(photoId) {
     const localInput = document.getElementById(`local_${photoId}`);
     const categorySelect = document.getElementById(`category_${photoId}`);
     const statusDiv = document.getElementById(`caption_status_${photoId}`);
-    
+
     const manualCaption = manualInput ? manualInput.value.trim() : '';
     const predefinedCaption = predefinedSelect ? predefinedSelect.value.trim() : '';
     const local = localInput ? localInput.value.trim() : '';
     const category = categorySelect ? categorySelect.value : '';
-    
+
     // Update stored data
     const photoData = mobilePhotoData.find(p => p.id === photoId);
     if (photoData) {
@@ -2647,12 +2711,12 @@ async function savePhotoData(photoId) {
         photoData.local = local;
         photoData.category = category;
     }
-    
+
     // Update status indicator
     const hasCaption = manualCaption || predefinedCaption;
     const hasLocal = local.length > 0;
     const hasCategory = category && category !== '';
-    
+
     if (hasCaption) {
         statusDiv.className = 'caption-status complete alert alert-success py-1 px-2 mb-2';
         statusDiv.innerHTML = '✅ Legenda preenchida';
@@ -2660,7 +2724,7 @@ async function savePhotoData(photoId) {
         statusDiv.className = 'caption-status pending alert alert-warning py-1 px-2 mb-2';
         statusDiv.innerHTML = `⚠️ Obrigatório: Legenda`;
     }
-    
+
     console.log(`💾 Photo data saved for ${photoId}: category="${category}", local="${local}", caption="${manualCaption}"`);
 }
 
@@ -2668,9 +2732,9 @@ async function savePhotoData(photoId) {
 function populateCategorySelect(photoId) {
     const categorySelect = document.getElementById(`category_${photoId}`);
     const projetoId = document.getElementById('projeto_id')?.value;
-    
+
     if (!categorySelect || !projetoId) return;
-    
+
     // Buscar categorias do projeto via API
     fetch(`/api/projects/${projetoId}/categorias`)
         .then(response => response.json())
@@ -2682,7 +2746,7 @@ function populateCategorySelect(photoId) {
                     html += `<option value="${cat.nome}">${cat.nome}</option>`;
                 });
                 categorySelect.innerHTML = html;
-                
+
                 // Set the currently selected value if it exists in photoData
                 const photoData = mobilePhotoData.find(p => p.id === photoId);
                 if (photoData && photoData.category) {
@@ -2708,16 +2772,16 @@ async function saveCaptionData(photoId) {
 function editMobilePhoto(photoId) {
     const photoData = mobilePhotoData.find(p => p.id === photoId);
     if (!photoData) return;
-    
+
     // Encontrar o elemento img da foto
     const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
     const imgElement = photoCard.querySelector('img');
-    
+
     if (!imgElement) {
         console.error('Imagem não encontrada para edição');
         return;
     }
-    
+
     // Abrir editor modal como funcionava antes
     openPhotoEditorFromElement(imgElement);
 }
@@ -2725,16 +2789,16 @@ function editMobilePhoto(photoId) {
 // Delete mobile photo
 function deleteMobilePhoto(photoId) {
     if (!confirm('Deseja excluir esta foto?')) return;
-    
+
     // Remove from data array
     mobilePhotoData = mobilePhotoData.filter(p => p.id !== photoId);
-    
+
     // Remove from DOM
     const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
     if (photoCard) {
         photoCard.closest('.col-12, .col-md-6, .col-lg-4').remove();
     }
-    
+
     updatePhotoCounter();
     console.log(`🗑️ Foto ${photoId} excluída`);
 }
@@ -2742,19 +2806,19 @@ function deleteMobilePhoto(photoId) {
 // Update photo counter and show quick actions
 function updatePhotoCounter() {
     const count = mobilePhotoData.length;
-    
+
     // Update main counter
     const counter = document.getElementById('photoCount');
     if (counter) {
         counter.textContent = count;
     }
-    
+
     // Update quick action counter
     const quickCounter = document.getElementById('quickPhotoCount');
     if (quickCounter) {
         quickCounter.textContent = count;
     }
-    
+
     // Show quick action bar after first photo
     const quickActionBar = document.getElementById('quickPhotoActions');
     if (quickActionBar) {
@@ -2769,12 +2833,12 @@ function updatePhotoCounter() {
 // Validate captions before form submission
 function validateCaptions() {
     let hasInvalidPhotos = false;
-    
+
     mobilePhotoData.forEach(photoData => {
         const hasCaption = photoData.manualCaption || photoData.predefinedCaption;
         if (!hasCaption) {
             hasInvalidPhotos = true;
-            
+
             // Highlight invalid photo
             const statusDiv = document.getElementById(`caption_status_${photoData.id}`);
             if (statusDiv) {
@@ -2784,40 +2848,40 @@ function validateCaptions() {
             }
         }
     });
-    
+
     return !hasInvalidPhotos;
 }
 
 // Prepare form data for submission
 async function prepareMobilePhotoFormData() {
     console.log('📱 Preparando dados das fotos mobile...');
-    
+
     // Adicionar os arquivos reais ao FormData
     mobilePhotoData.forEach((photoData, index) => {
         console.log(`✅ Adicionando foto ${index}: ${photoData.filename} (${photoData.category})`);
-        
+
         // Criar inputs hidden para metadados
         const categoryInput = document.createElement('input');
         categoryInput.type = 'hidden';
         categoryInput.name = `photo_category_${index}`;
         categoryInput.value = photoData.category;
-        
+
         const captionInput = document.createElement('input');
         captionInput.type = 'hidden';
         captionInput.name = `photo_caption_${index}`;
         captionInput.value = photoData.manualCaption || photoData.predefinedCaption;
-        
+
         // Criar file input para o arquivo real
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.name = `photo_${index}`;
         fileInput.style.display = 'none';
-        
+
         // Transferir o arquivo para o input
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(photoData.file);
         fileInput.files = dataTransfer.files;
-        
+
         // Adicionar ao form
         const form = document.getElementById('reportForm');
         if (form) {
@@ -2826,18 +2890,8 @@ async function prepareMobilePhotoFormData() {
             form.appendChild(fileInput);
         }
     });
-    
-    console.log(`📤 Preparados ${mobilePhotoData.length} fotos com arquivos binários para envio`);
-}
 
-// Helper function to convert file to base64
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
+    console.log(`📤 Preparados ${mobilePhotoData.length} fotos com arquivos binários para envio`);
 }
 
 // Form submission validation
@@ -2849,25 +2903,25 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!validateCaptions()) {
                 e.preventDefault();
                 alert('⚠️ ATENÇÃO: Todas as fotos devem ter pelo menos uma legenda (manual ou pré-definida). Verifique as fotos marcadas em vermelho.');
-                
+
                 // Scroll to first invalid photo
                 const firstInvalid = document.querySelector('.caption-status.pending');
                 if (firstInvalid) {
                     firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-                
+
                 return false;
             }
-            
+
             // If there are photos, prepare mobile photo data
             if (mobilePhotoData.length > 0) {
                 e.preventDefault(); // Prevent default submission while processing photos
-                
+
                 console.log('📸 Processando fotos...');
                 try {
                     await prepareMobilePhotoFormData();
                     console.log('✅ Fotos preparadas - enviando formulário com arquivos binários...');
-                    
+
                     // Submit the form with the prepared files (native form submission)
                     form.submit();
                 } catch (error) {
@@ -2905,14 +2959,14 @@ console.log('📱 Sistema de fotos mobile-first carregado');
                             <label class="btn btn-outline-primary" for="tipo_funcionario">
                                 <i class="fas fa-user-tie me-1"></i>Funcionário da Obra
                             </label>
-                            
+
                             <input type="radio" class="btn-check" name="tipo_acompanhante" id="tipo_externo" value="externo" autocomplete="off">
                             <label class="btn btn-outline-info" for="tipo_externo">
                                 <i class="fas fa-user me-1"></i>Externo (Cliente/Visitante)
                             </label>
                         </div>
                     </div>
-                    
+
                     <!-- Seleção de Funcionário -->
                     <div id="selecao-funcionario" class="mb-3">
                         <label for="funcionario-select" class="form-label">Selecionar Funcionário *</label>
@@ -2921,7 +2975,7 @@ console.log('📱 Sistema de fotos mobile-first carregado');
                         </select>
                         <small class="text-muted">Funcionários cadastrados nesta obra</small>
                     </div>
-                    
+
                     <!-- Entrada Manual -->
                     <div id="entrada-manual" class="d-none">
                         <div class="mb-3">
@@ -2958,7 +3012,7 @@ document.querySelectorAll('input[name="tipo_acompanhante"]').forEach(radio => {
     radio.addEventListener('change', function() {
         const selecaoFunc = document.getElementById('selecao-funcionario');
         const entradaManual = document.getElementById('entrada-manual');
-        
+
         if (this.value === 'funcionario') {
             selecaoFunc.classList.remove('d-none');
             entradaManual.classList.add('d-none');
@@ -2977,14 +3031,14 @@ document.getElementById('projeto_id')?.addEventListener('change', function() {
 // Carregar funcionários da obra
 function carregarFuncionariosParaAcompanhantes(projetoId) {
     const select = document.getElementById('funcionario-select');
-    
+
     if (!projetoId) {
         select.innerHTML = '<option value="">Selecione um projeto primeiro...</option>';
         return;
     }
-    
+
     select.innerHTML = '<option value="">Carregando...</option>';
-    
+
     fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
@@ -3012,21 +3066,21 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
 // Abrir modal
 function abrirModalAcompanhantes() {
     const projetoId = document.getElementById('projeto_id')?.value;
-    
+
     if (!projetoId) {
         alert('Por favor, selecione um projeto primeiro!');
         return;
     }
-    
+
     // Carregar funcionários se ainda não foram carregados
     carregarFuncionariosParaAcompanhantes(projetoId);
-    
+
     // Limpar formulário
     document.getElementById('formAcompanhante').reset();
     document.getElementById('tipo_funcionario').checked = true;
     document.getElementById('selecao-funcionario').classList.remove('d-none');
     document.getElementById('entrada-manual').classList.add('d-none');
-    
+
     // Abrir modal
     const modal = new bootstrap.Modal(document.getElementById('modalAcompanhantes'));
     modal.show();
@@ -3038,56 +3092,56 @@ function adicionarAcompanhante() {
     let nome = '';
     let funcao = '';
     let origem = '';
-    
+
     if (tipo === 'funcionario') {
         const select = document.getElementById('funcionario-select');
         const selectedOption = select.options[select.selectedIndex];
-        
+
         if (!select.value) {
             alert('Por favor, selecione um funcionário!');
             return;
         }
-        
+
         nome = selectedOption.getAttribute('data-nome');
         funcao = selectedOption.getAttribute('data-cargo') || '';
         origem = 'Funcionário da obra';
     } else {
         nome = document.getElementById('nome-manual').value.trim();
         funcao = document.getElementById('funcao-acompanhante').value.trim();
-        
+
         if (!nome) {
             alert('Por favor, preencha o nome do acompanhante!');
             return;
         }
-        
+
         origem = 'Inserido manualmente';
     }
-    
+
     // Adicionar ao array
     const acompanhante = {
         nome: nome,
         funcao: funcao,
         origem: origem
     };
-    
+
     acompanhantes.push(acompanhante);
-    
+
     // Atualizar visualização
     atualizarListaAcompanhantes();
-    
+
     // Atualizar campo hidden
     document.getElementById('acompanhantes-data').value = JSON.stringify(acompanhantes);
-    
+
     // Fechar modal
     bootstrap.Modal.getInstance(document.getElementById('modalAcompanhantes')).hide();
-    
+
     console.log('✅ Acompanhante adicionado:', acompanhante);
 }
 
 // Atualizar lista de acompanhantes
 function atualizarListaAcompanhantes() {
     const lista = document.getElementById('lista-acompanhantes');
-    
+
     if (acompanhantes.length === 0) {
         lista.innerHTML = `
             <p class="text-muted text-center py-3">
@@ -3097,7 +3151,7 @@ function atualizarListaAcompanhantes() {
         `;
         return;
     }
-    
+
     let html = '<div class="list-group">';
     acompanhantes.forEach((acomp, index) => {
         html += `
@@ -3123,7 +3177,7 @@ function atualizarListaAcompanhantes() {
         `;
     });
     html += '</div>';
-    
+
     lista.innerHTML = html;
 }
 
@@ -3163,7 +3217,7 @@ function updatePhotoGallery(photos) {
     console.warn('⚠️ Container #mobilePhotoCards não encontrado');
     return;
   }
-  
+
   photos.forEach(p => {
     const div = document.createElement("div");
     div.className = "col-md-6 col-lg-4";
@@ -3178,28 +3232,28 @@ function updatePhotoGallery(photos) {
     `;
     container.appendChild(div);
   });
-  
+
   // Atualizar contador de fotos
   const photoCountEl = document.querySelector("#photoCount");
   if (photoCountEl) {
     photoCountEl.textContent = photos.length;
   }
-  
+
   console.log(`✅ ${photos.length} fotos carregadas na galeria`);
 }
 
 function carregarChecklist(items) {
   console.log('📋 carregarChecklist() chamada com:', items);
-  
+
   const list = document.querySelector("#checklistItems");
   if (!list) {
     console.error('❌ Container #checklistItems não encontrado no DOM!');
     return;
   }
-  
+
   console.log(`📋 Container #checklistItems encontrado, limpando conteúdo...`);
   list.innerHTML = "";
-  
+
   if (!items || items.length === 0) {
     console.warn('⚠️ Array de items vazio ou undefined');
     list.innerHTML = `
@@ -3210,25 +3264,25 @@ function carregarChecklist(items) {
     `;
     return;
   }
-  
+
   console.log(`📋 Processando ${items.length} itens do checklist...`);
-  
+
   items.forEach((item, index) => {
     console.log(`📋 Item ${index}:`, item);
-    
+
     const div = document.createElement("div");
     div.className = "checklist-item mb-3";
     if (item.concluido) {
       div.classList.add("completed");
     }
-    
+
     const descricao = item.descricao || item.texto || 'Sem descrição';
     const concluido = item.concluido || item.completado || false;
     const imagem = item.imagem_url || '';
     const observacao = item.observacao || '';
-    
+
     console.log(`  📝 Descrição: "${descricao}", Concluído: ${concluido}, Imagem: ${imagem ? 'SIM' : 'NÃO'}`);
-    
+
     let itemHTML = `
       <div class="form-check">
         <input type="checkbox" class="form-check-input" id="check_${index}" ${concluido ? "checked" : ""}>
@@ -3237,7 +3291,7 @@ function carregarChecklist(items) {
         </label>
       </div>
     `;
-    
+
     // Adicionar imagem se existir
     if (imagem && imagem.trim() !== "") {
       itemHTML += `
@@ -3250,18 +3304,18 @@ function carregarChecklist(items) {
         </div>
       `;
     }
-    
+
     // Adicionar campo de observação
     itemHTML += `
       <textarea class="form-control mt-2" 
                 placeholder="Observações sobre este item..." 
                 rows="2">${observacao}</textarea>
     `;
-    
+
     div.innerHTML = itemHTML;
     list.appendChild(div);
   });
-  
+
   console.log(`✅ ${items.length} itens do checklist renderizados com sucesso!`);
 }
 
@@ -3272,7 +3326,7 @@ function carregarAcompanhantes(acompanhantesData) {
     return;
   }
   list.innerHTML = "";
-  
+
   if (!acompanhantesData || acompanhantesData.length === 0) {
     list.innerHTML = `
       <p class="text-muted text-center py-3">
@@ -3282,15 +3336,15 @@ function carregarAcompanhantes(acompanhantesData) {
     `;
     return;
   }
-  
+
   const listGroup = document.createElement("div");
   listGroup.className = "list-group";
-  
+
   acompanhantesData.forEach((a, index) => {
     const div = document.createElement("div");
     div.className = "list-group-item d-flex justify-content-between align-items-center";
     div.setAttribute('data-acompanhante-id', a.id);
-    
+
     div.innerHTML = `
       <div class="d-flex align-items-center flex-grow-1">
         <i class="fas fa-user me-3 text-primary"></i>
@@ -3308,7 +3362,7 @@ function carregarAcompanhantes(acompanhantesData) {
     `;
     listGroup.appendChild(div);
   });
-  
+
   list.appendChild(listGroup);
   console.log(`✅ ${acompanhantesData.length} acompanhantes selecionados carregados (pode excluir)`);
 }
@@ -3318,14 +3372,14 @@ function removerAcompanhante(acompanhanteId) {
   if (!confirm('Deseja remover este acompanhante do relatório?')) {
     return;
   }
-  
+
   // Remover do DOM
   const elemento = document.querySelector(`[data-acompanhante-id="${acompanhanteId}"]`);
   if (elemento) {
     elemento.remove();
     console.log(`🗑️ Acompanhante ${acompanhanteId} removido`);
   }
-  
+
   // Verificar se lista ficou vazia
   const list = document.querySelector("#lista-acompanhantes");
   const listGroup = list.querySelector('.list-group');
@@ -3342,16 +3396,16 @@ function removerAcompanhante(acompanhanteId) {
 // Carregar dados quando estiver em modo de edição
 document.addEventListener("DOMContentLoaded", () => {
   console.log('🚀 DOMContentLoaded - Verificando modo de edição');
-  
+
   if (typeof REPORT_DATA === 'undefined' || !REPORT_DATA || !REPORT_DATA.relatorio) {
     console.log('ℹ️ Não há dados de relatório para carregar (modo criação)');
     return;
   }
-  
+
   console.log('📝 Modo de edição ativado - Carregando dados do relatório');
-  
+
   const r = REPORT_DATA.relatorio;
-  
+
   // Preencher campos básicos
   if (r.data_relatorio) {
     const dataField = document.querySelector('[name="data_relatorio"]');
@@ -3360,7 +3414,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log(`✅ Data: ${r.data_relatorio}`);
     }
   }
-  
+
   if (r.titulo) {
     const tituloField = document.querySelector('[name="titulo"]') || document.querySelector('[name="titulo_relatorio"]');
     if (tituloField) {
@@ -3370,7 +3424,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.warn('⚠️ Campo de título não encontrado no DOM');
     }
   }
-  
+
   if (r.numero) {
     const numeroField = document.querySelector('[name="numero_relatorio"]') || document.querySelector('[name="numero"]');
     if (numeroField) {
@@ -3378,7 +3432,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log(`✅ Número: ${r.numero}`);
     }
   }
-  
+
   if (r.observacoes_finais) {
     const obsField = document.querySelector('[name="conteudo"]') || document.querySelector('[name="observacoes_finais"]') || document.querySelector('[name="observacoes"]');
     if (obsField) {
@@ -3388,7 +3442,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.warn('⚠️ Campo de observações não encontrado no DOM');
     }
   }
-  
+
   if (r.lembrete_proxima_visita) {
     const lembreteField = document.querySelector('[name="lembrete_proxima_visita"]');
     if (lembreteField) {
@@ -3396,7 +3450,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log(`✅ Lembrete carregado`);
     }
   }
-  
+
   // Preencher projeto
   if (REPORT_DATA.projeto) {
     const projetoField = document.querySelector('[name="projeto"]') || document.querySelector('[name="projeto_id"]');
@@ -3414,7 +3468,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log(`✅ Projeto: ${REPORT_DATA.projeto.nome}`);
     }
   }
-  
+
   // Carregar checklist
   console.log('📋 Verificando checklist...', REPORT_DATA.checklist);
   if (REPORT_DATA.checklist && REPORT_DATA.checklist.length > 0) {
@@ -3423,7 +3477,7 @@ document.addEventListener("DOMContentLoaded", () => {
   } else {
     console.warn('⚠️ Nenhum item no checklist para carregar');
   }
-  
+
   // Carregar acompanhantes
   console.log('👥 Verificando acompanhantes...', REPORT_DATA.acompanhantes);
   if (REPORT_DATA.acompanhantes && REPORT_DATA.acompanhantes.length > 0) {
@@ -3432,7 +3486,7 @@ document.addEventListener("DOMContentLoaded", () => {
   } else {
     console.warn('⚠️ Nenhum acompanhante para carregar');
   }
-  
+
   // Carregar fotos
   console.log('📸 Verificando fotos...', REPORT_DATA.fotos);
   if (REPORT_DATA.fotos && REPORT_DATA.fotos.length > 0) {
@@ -3441,11 +3495,10 @@ document.addEventListener("DOMContentLoaded", () => {
   } else {
     console.warn('⚠️ Nenhuma foto para carregar');
   }
-  
+
   console.log('✅ Carregamento completo dos dados do relatório');
 });
 </script>
-
 
 <!-- Auto Save Script -->
 <script src="{{ url_for('static', filename='js/reports_autosave.js') }}"></script>

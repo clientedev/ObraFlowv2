@@ -578,6 +578,40 @@ def inject_approval_functions():
     }
 
 # API para legendas pré-definidas (IMPLEMENTAÇÃO ÚNICA)
+@app.route('/api/checklist-padrao')
+def api_checklist_padrao():
+    """API para carregar itens do checklist padrão"""
+    try:
+        from models import ChecklistPadrao
+        
+        # Buscar itens ativos ordenados por ordem
+        itens = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+        
+        checklist_data = []
+        for item in itens:
+            checklist_data.append({
+                'id': item.id,
+                'texto': item.texto,
+                'ordem': item.ordem,
+                'ativo': item.ativo
+            })
+        
+        current_app.logger.info(f"✅ API Checklist Padrão: {len(checklist_data)} itens retornados")
+        
+        return jsonify({
+            'success': True,
+            'checklist': checklist_data,
+            'total': len(checklist_data)
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao buscar checklist padrão: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'checklist': []
+        }), 500
+
 @app.route('/api/legendas')
 def api_legendas():
     """API para carregar legendas pré-definidas do PostgreSQL Railway - VERSÃO CORRIGIDA"""
