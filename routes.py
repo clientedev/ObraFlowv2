@@ -2431,6 +2431,12 @@ def autosave_report(report_id):
 @app.route('/reports/new', methods=['GET', 'POST'])
 @login_required
 def create_report():
+    # CORREÇÃO: Se edit=X na URL, redirecionar para a rota correta de edição
+    edit_id = request.args.get('edit', type=int)
+    if edit_id:
+        current_app.logger.info(f"🔀 Redirecionando /reports/new?edit={edit_id} → /reports/{edit_id}/edit")
+        return redirect(url_for('report_edit', report_id=edit_id))
+    
     # Verificar se há projeto pré-selecionado via URL
     preselected_project_id = request.args.get('projeto_id', type=int)
     disable_fields = bool(preselected_project_id)
