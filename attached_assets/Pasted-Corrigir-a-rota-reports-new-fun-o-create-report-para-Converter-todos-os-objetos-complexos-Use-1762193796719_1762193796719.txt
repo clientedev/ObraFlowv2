@@ -1,0 +1,67 @@
+Corrigir a rota /reports/new (função create_report) para:
+
+Converter todos os objetos complexos (User, Projeto, etc.) em dicionários (dict) antes de renderizar o template.
+
+Garantir que o report_data enviado ao form_complete.html contenha apenas dados serializáveis em JSON (strings, números, listas, dicionários simples).
+
+Assegurar que o template carregue e exiba todas as informações do relatório normalmente.
+
+⚙️ Prompt completo para Replit
+
+Prompt:
+
+Corrigir o erro "TypeError: Object of type User is not JSON serializable" que ocorre na rota /reports/new ao renderizar o template reports/form_complete.html.
+
+Objetivo: garantir que a criação de relatório funcione perfeitamente e que o objeto report_data possa ser convertido em JSON sem erros.
+
+Tarefas:
+1. Localizar a função create_report em routes.py.
+2. Antes de chamar render_template('reports/form_complete.html', ...), revisar a variável report_data.
+3. Converter todos os objetos complexos dentro de report_data (como User, Projeto, FotoRelatorio, ChecklistItem, etc.) em dicionários simples.
+   - Exemplo de conversão:
+     ```python
+     def to_dict(obj):
+         if hasattr(obj, "__dict__"):
+             return {k: v for k, v in obj.__dict__.items() if not k.startswith("_")}
+         return obj
+     ```
+   - Ou, para listas de objetos:
+     ```python
+     fotos_data = [foto.to_dict() for foto in relatorio.fotos] if relatorio.fotos else []
+     ```
+4. Garantir que o dicionário final report_data contenha apenas tipos serializáveis:
+   - strings
+   - números
+   - listas simples
+   - dicionários simples
+5. Ajustar a renderização:
+   ```python
+   return render_template(
+       "reports/form_complete.html",
+       report_data=report_data,
+       legendas=legendas,
+       projetos=projetos,
+       usuarios=usuarios,
+   )
+
+
+Testar novamente o acesso à rota /reports/new e /reports/<id>/editarrel.
+
+A página deve abrir sem erro 500.
+
+O console deve exibir:
+
+INFO:app:✅ Dados prontos para template: X fotos, Y checklist, Z acompanhantes
+
+
+O formulário deve carregar corretamente todas as informações (legendas, checklist, acompanhantes, etc.).
+
+Critérios de sucesso:
+
+O erro "Object of type User is not JSON serializable" desaparece.
+
+O relatório novo é criado e renderizado corretamente.
+
+O relatório existente abre para edição com todas as informações carregadas.
+
+O botão "Concluir Relatório" salva as alterações corretamente.

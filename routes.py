@@ -3172,6 +3172,65 @@ def create_report():
             # Se não há projeto específico, buscar aprovador global
             selected_aprovador = get_aprovador_padrao_para_projeto(None)
 
+    # ===== SERIALIZAÇÃO DE OBJETOS PARA JSON =====
+    # Converter todos os objetos ORM em dicionários simples
+    
+    # Serializar projetos
+    projetos_data = []
+    for projeto in projetos:
+        projetos_data.append({
+            'id': projeto.id,
+            'nome': projeto.nome,
+            'cliente': projeto.cliente or '',
+            'status': projeto.status or 'Ativo',
+            'numeracao_inicial': projeto.numeracao_inicial or 1
+        })
+    
+    # Serializar usuários admin
+    admin_users_data = []
+    for user in admin_users:
+        admin_users_data.append({
+            'id': user.id,
+            'nome': user.nome,
+            'email': user.email,
+            'is_master': user.is_master
+        })
+    
+    # Serializar projeto selecionado
+    selected_project_data = None
+    if selected_project:
+        selected_project_data = {
+            'id': selected_project.id,
+            'nome': selected_project.nome,
+            'cliente': selected_project.cliente or '',
+            'status': selected_project.status or 'Ativo',
+            'numeracao_inicial': selected_project.numeracao_inicial or 1
+        }
+    
+    # Serializar relatório existente
+    existing_report_data = None
+    if existing_report:
+        existing_report_data = {
+            'id': existing_report.id,
+            'numero': existing_report.numero,
+            'titulo': existing_report.titulo or '',
+            'projeto_id': existing_report.projeto_id,
+            'autor_id': existing_report.autor_id,
+            'status': existing_report.status or 'em_andamento'
+        }
+    
+    # Serializar fotos existentes
+    existing_fotos_data = []
+    for foto in existing_fotos:
+        existing_fotos_data.append({
+            'id': foto.id,
+            'url': url_for('api_get_photo', foto_id=foto.id),
+            'legenda': foto.legenda or '',
+            'categoria': foto.categoria or '',
+            'local': foto.local or '',
+            'ordem': foto.ordem or 0
+        })
+    
     # Preparar report_data para autosave
     if existing_report:
         # Serialize acompanhantes to ensure it's JSON-safe (no User objects)
@@ -3208,14 +3267,7 @@ def create_report():
             'longitude': existing_report.longitude,
             'checklist_data': existing_checklist if existing_checklist else {},
             'acompanhantes': acompanhantes_safe,
-            'fotos': [{
-                'id': f.id,
-                'url': url_for('api_get_photo', foto_id=f.id),
-                'legenda': f.legenda or '',
-                'categoria': f.categoria or '',
-                'local': f.local or '',
-                'ordem': f.ordem or 0
-            } for f in existing_fotos]
+            'fotos': existing_fotos_data
         }
     else:
         # Modo de criação: estrutura vazia
@@ -3235,16 +3287,19 @@ def create_report():
             'fotos': []
         }
     
-    # Render the form for GET requests
+    # Log de sucesso
+    current_app.logger.info(f"✅ Dados prontos para template: {len(existing_fotos_data)} fotos, {len(existing_checklist)} checklist items, {len(report_data.get('acompanhantes', []))} acompanhantes")
+    
+    # Render the form for GET requests - TODOS OS OBJETOS AGORA SÃO DICIONÁRIOS
     return render_template('reports/form_complete.html', 
-                         projetos=projetos, 
-                         admin_users=admin_users, 
-                         selected_project=selected_project,
+                         projetos=projetos_data, 
+                         admin_users=admin_users_data, 
+                         selected_project=selected_project_data,
                          selected_aprovador=selected_aprovador,
                          disable_fields=disable_fields,
                          preselected_project_id=preselected_project_id,
-                         existing_report=existing_report,
-                         existing_fotos=existing_fotos,
+                         existing_report=existing_report_data,
+                         existing_fotos=existing_fotos_data,
                          existing_checklist=existing_checklist,
                          next_numero=next_numero,
                          lembrete_anterior=lembrete_anterior,
