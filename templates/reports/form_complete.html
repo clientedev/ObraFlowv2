@@ -2240,21 +2240,35 @@ try {
 console.log('✅ Carregando checklist existente...');
 try {
     const checklistExistente = {{ existing_checklist | tojson | safe }};
+    console.log('📋 Checklist existente:', checklistExistente);
+    
     // Marcar checkboxes do checklist
     document.addEventListener('DOMContentLoaded', function() {
+        if (!checklistExistente) {
+            console.log('⚠️ Nenhum checklist existente');
+            return;
+        }
+        
         if (Array.isArray(checklistExistente)) {
+            console.log(`📋 Processando ${checklistExistente.length} itens do checklist (array)`);
             // Se for um array, iterar sobre os itens
-            checklistExistente.forEach(item => {
-                if (item.id) {
+            checklistExistente.forEach((item, index) => {
+                console.log(`  📝 Item ${index}:`, item);
+                if (item && item.id) {
                     const checkbox = document.querySelector(`#check_${item.id}`);
-                    if (checkbox && item.completed) {
-                        checkbox.checked = true;
-                        toggleChecklistItem(checkbox);
-                        console.log(`✓ Checklist item marcado: ${item.texto || item.id}`);
+                    if (checkbox) {
+                        if (item.completed || item.concluido) {
+                            checkbox.checked = true;
+                            toggleChecklistItem(checkbox);
+                            console.log(`  ✓ Marcado: ${item.texto || item.id}`);
+                        }
+                    } else {
+                        console.log(`  ⚠️ Checkbox não encontrado para ID: ${item.id}`);
                     }
                 }
             });
         } else if (typeof checklistExistente === 'object') {
+            console.log('📋 Processando checklist (objeto)');
             // Se for um objeto, usar Object.keys
             Object.keys(checklistExistente).forEach(key => {
                 const checkbox = document.querySelector(`input[name="${key}"]`);
@@ -2263,6 +2277,8 @@ try {
                     console.log(`✓ Checklist item marcado: ${key}`);
                 }
             });
+        } else {
+            console.warn('⚠️ Formato de checklist não reconhecido:', typeof checklistExistente);
         }
     });
 } catch (e) {

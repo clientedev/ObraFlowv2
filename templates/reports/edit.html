@@ -306,7 +306,7 @@ const RELATORIO_ID = {{ relatorio.id }};
 // Carregar dados do relatório ao abrir a página
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('📄 Carregando dados do relatório ID:', RELATORIO_ID);
-    
+
     try {
         const response = await fetch(`/api/relatorios/${RELATORIO_ID}`, {
             method: 'GET',
@@ -314,16 +314,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                 'Content-Type': 'application/json'
             }
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             console.log('✅ Dados do relatório carregados:', data);
-            
+
             // Atualizar informações do projeto se existir
             if (data.projeto) {
                 const projetoInfo = document.querySelector('.card-body p:nth-child(3)');
@@ -331,100 +331,97 @@ document.addEventListener('DOMContentLoaded', async function() {
                     projetoInfo.innerHTML = `<strong>Projeto:</strong> ${data.projeto.numero} - ${data.projeto.nome}`;
                 }
             }
-            
+
             // Atualizar contador de fotos
             if (data.imagens) {
                 updatePhotoCountDisplay(data.imagens.length);
             }
-            
-            // Renderizar imagens
+
+            // Renderizar imagens se existir
             if (data.imagens && data.imagens.length > 0) {
+                console.log('📸 Renderizando', data.imagens.length, 'imagens');
                 renderImages(data.imagens);
+            } else {
+                console.log('⚠️ Nenhuma imagem para renderizar');
+                const photosContainer = document.getElementById('photos-container');
+                if (photosContainer) {
+                    photosContainer.innerHTML = `
+                        <div class="col-12 text-center py-5" id="no-photos-message">
+                            <i class="fas fa-images fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Nenhuma foto adicionada ainda</p>
+                        </div>
+                    `;
+                }
             }
-            
+
             // Carregar checklist do projeto (se houver projeto_id)
             if (data.projeto && data.projeto.id) {
                 console.log('📋 Carregando checklist para projeto:', data.projeto.id);
                 // O checklist será carregado automaticamente pelo form_complete.html
             }
-            
+
             // Renderizar acompanhantes se existir
             if (data.acompanhantes && data.acompanhantes.length > 0) {
                 console.log('👥 Acompanhantes encontrados:', data.acompanhantes);
             }
         }
-        
+
     } catch (error) {
         console.error('❌ Erro ao carregar dados do relatório:', error);
         showErrorMessage('Erro ao carregar dados do relatório. Recarregue a página.');
     }
 });
 
+// Função para renderizar imagens
 function renderImages(imagens) {
-    const container = document.getElementById('photos-container');
-    if (!container) return;
-    
+    const photosContainer = document.getElementById('photos-container');
+    if (!photosContainer) {
+        console.error('❌ Container de fotos não encontrado');
+        return;
+    }
+
     // Limpar container
-    container.innerHTML = '';
-    
-    if (imagens.length === 0) {
-        container.innerHTML = `
+    photosContainer.innerHTML = '';
+
+    if (!imagens || imagens.length === 0) {
+        photosContainer.innerHTML = `
             <div class="col-12 text-center py-5" id="no-photos-message">
                 <i class="fas fa-images fa-3x text-muted mb-3"></i>
-                <h5>Nenhuma imagem anexada</h5>
-                <p class="text-muted">Este relatório não possui nenhuma imagem anexada.</p>
+                <p class="text-muted">Nenhuma foto adicionada ainda</p>
             </div>
         `;
         return;
     }
-    
-    // Renderizar cada imagem
-    imagens.forEach(foto => {
-        const photoElement = createPhotoElement(foto);
-        container.appendChild(photoElement);
-    });
-    
-    console.log(`✅ ${imagens.length} imagens renderizadas`);
-}
 
-function createPhotoElement(foto) {
-    const div = document.createElement('div');
-    div.className = 'col-md-3 mb-3';
-    div.id = `photo-${foto.id}`;
-    div.dataset.photoId = foto.id;
-    
-    const userCanEdit = {{ 'true' if user_can_edit else 'false' }};
-    const isApproved = '{{ relatorio.status }}' === 'Aprovado';
-    
-    div.innerHTML = `
-        <div class="card">
-            <img src="${foto.url || foto.path || '/get_imagem/' + foto.id}" 
-                 class="card-img-top" 
-                 style="height: 200px; object-fit: cover;" 
-                 alt="${foto.legenda || 'Foto do relatório'}"
-                 onerror="this.onerror=null; this.src='/static/img/no-image.png'; console.error('Erro ao carregar imagem ID ${foto.id}');">
-            <div class="card-body p-2">
-                <div class="mb-2">
-                    <input type="text" 
-                           class="form-control form-control-sm photo-legend" 
-                           data-photo-id="${foto.id}"
-                           value="${foto.legenda || foto.caption || ''}" 
-                           placeholder="Adicionar legenda..."
-                           ${isApproved || !userCanEdit ? 'disabled' : ''}
-                           onchange="updatePhotoLegend(${foto.id}, this.value)">
+    // Renderizar cada foto
+    imagens.forEach(foto => {
+        const fotoCard = document.createElement('div');
+        fotoCard.className = 'col-md-4 col-lg-3 mb-3';
+        fotoCard.setAttribute('data-photo-id', foto.id);
+
+        fotoCard.innerHTML = `
+            <div class="card h-100">
+                <img src="/api/fotos/${foto.id}" 
+                     class="card-img-top" 
+                     style="height: 200px; object-fit: cover;"
+                     alt="${foto.legenda || 'Foto'}"
+                     onerror="this.src='/static/img/no-image.png'">
+                <div class="card-body p-2">
+                    <p class="card-text small mb-1"><strong>${foto.legenda || 'Sem legenda'}</strong></p>
+                    ${foto.descricao ? `<p class="card-text small text-muted mb-2">${foto.descricao}</p>` : ''}
+                    <div class="d-grid gap-1">
+                        <button type="button" class="btn btn-sm btn-danger" onclick="deletePhoto(${foto.id})">
+                            <i class="fas fa-trash"></i> Excluir
+                        </button>
+                    </div>
                 </div>
-                ${userCanEdit && !isApproved ? `
-                <div class="btn-group w-100" role="group">
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deletePhoto(${foto.id}, ${RELATORIO_ID})">
-                        <i class="fas fa-trash"></i> Excluir
-                    </button>
-                </div>
-                ` : ''}
             </div>
-        </div>
-    `;
-    
-    return div;
+        `;
+
+        photosContainer.appendChild(fotoCard);
+    });
+
+    console.log(`✅ ${imagens.length} foto(s) renderizada(s)`);
 }
 
 function updatePhotoCountDisplay(count) {
@@ -441,7 +438,7 @@ function showErrorMessage(message) {
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     const mainContainer = document.querySelector('.container-fluid');
     if (mainContainer) {
         mainContainer.insertBefore(alertDiv, mainContainer.firstChild);
