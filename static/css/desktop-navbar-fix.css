@@ -1,0 +1,89 @@
+
+/* DESKTOP NAVBAR FIX - Exclusivo para telas grandes */
+
+/* Desktop apenas - min-width 992px (lg breakpoint do Bootstrap) */
+@media (min-width: 992px) {
+    /* Garantir que a navbar sempre expanda horizontalmente */
+    .navbar-expand-lg {
+        flex-wrap: nowrap !important;
+    }
+    
+    .navbar-expand-lg .navbar-collapse {
+        display: flex !important;
+        flex-basis: auto !important;
+        flex-grow: 1 !important;
+    }
+    
+    .navbar-expand-lg .navbar-nav {
+        flex-direction: row !important;
+        align-items: center !important;
+    }
+    
+    .navbar-expand-lg .navbar-nav .nav-item {
+        width: auto !important;
+        text-align: left !important;
+        border-bottom: none !important;
+    }
+    
+    .navbar-expand-lg .navbar-nav .nav-link {
+        padding: 0.5rem 1rem !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Esconder botão hambúrguer no desktop */
+    .navbar-expand-lg .navbar-toggler {
+        display: none !important;
+    }
+    
+    /* Dropdown menus no desktop */
+    .navbar-expand-lg .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+    }
+    
+    /* Logo e texto no desktop */
+    .navbar-brand {
+        margin-right: 1rem !important;
+    }
+    
+    .logo-text {
+        font-size: 1rem !important;
+    }
+    
+    /* Melhorar espaçamento entre itens do menu */
+    .navbar-expand-lg .navbar-nav .nav-item {
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+    }
+    
+    /* Garantir que os menus dropdown fiquem alinhados */
+    .navbar-expand-lg .navbar-nav .dropdown-menu {
+        margin-top: 0;
+    }
+    
+    /* Notificação bell - desktop */
+    .navbar-expand-lg #notificationBell {
+        padding: 0.5rem 1rem !important;
+    }
+}
+
+/* Prevenir qualquer conflito de mobile CSS em desktop */
+@media (min-width: 992px) {
+    .navbar-nav {
+        width: auto !important;
+    }
+    
+    .navbar-collapse {
+        overflow: visible !important;
+    }
+    
+    /* Remover qualquer transformação ou transição que cause problemas */
+    .navbar,
+    .navbar-nav,
+    .nav-item,
+    .nav-link {
+        transform: none !important;
+        transition: none !important;
+    }
+}

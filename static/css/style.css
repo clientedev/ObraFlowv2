@@ -490,6 +490,30 @@ body {
     transform: scale(1.05);
 }
 
+/* DESKTOP - Garantir que navbar expanda corretamente */
+@media (min-width: 992px) {
+    .navbar-expand-lg .navbar-collapse {
+        display: flex !important;
+        flex-basis: auto;
+    }
+    
+    .navbar-expand-lg .navbar-nav {
+        flex-direction: row !important;
+    }
+    
+    .navbar-expand-lg .navbar-toggler {
+        display: none !important;
+    }
+    
+    .navbar-nav .nav-item {
+        border-bottom: none !important;
+    }
+    
+    .navbar-nav .nav-link {
+        padding: 0.5rem 1rem !important;
+    }
+}
+
 /* Mobile responsive logo */
 @media (max-width: 767.98px) {
     .navbar-logo {
@@ -547,6 +571,18 @@ body {
 
 .navbar-dark .navbar-nav .nav-link:hover {
     color: var(--elp-cyan);
+}
+
+/* Desktop - dropdown menus */
+@media (min-width: 992px) {
+    .navbar-nav .dropdown-menu {
+        position: absolute;
+    }
+    
+    .navbar-nav .dropdown:hover .dropdown-menu {
+        display: block;
+        margin-top: 0;
+    }
 }
 
 /* Cards */
