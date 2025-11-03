@@ -57,6 +57,9 @@
                 </div>
             </div>
 
+            <!-- Hidden input para projeto_id (necessário para carregar checklist) -->
+            <input type="hidden" id="projeto_id" name="projeto_id" value="{{ relatorio.projeto_id }}">
+
             <div class="row">
                 <div class="col-md-8">
                     <div class="card">
@@ -339,9 +342,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 renderImages(data.imagens);
             }
             
-            // Renderizar checklist se existir
-            if (data.checklist && data.checklist.length > 0) {
-                console.log('📋 Checklist encontrado:', data.checklist);
+            // Carregar checklist do projeto (se houver projeto_id)
+            if (data.projeto && data.projeto.id) {
+                console.log('📋 Carregando checklist para projeto:', data.projeto.id);
+                // O checklist será carregado automaticamente pelo form_complete.html
             }
             
             // Renderizar acompanhantes se existir
@@ -473,8 +477,8 @@ async function deletePhoto(photoId, relatorioId) {
 
             // Show message if no photos left
             const photosContainer = document.getElementById('photos-container');
-            if (photosContainer.children.length === 0 || 
-                (photosContainer.children.length === 1 && photosContainer.querySelector('#no-photos-message'))) {
+            if (photosContainer && (photosContainer.children.length === 0 || 
+                (photosContainer.children.length === 1 && photosContainer.querySelector('#no-photos-message')))) {
                 photosContainer.innerHTML = `
                     <div class="col-12 text-center py-5" id="no-photos-message">
                         <i class="fas fa-images fa-3x text-muted mb-3"></i>
