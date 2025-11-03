@@ -1,0 +1,172 @@
+Correção de Duplicação de Imagens e Envio de E-mails
+
+⚙️ Instruções técnicas:
+Reescreva e otimize completamente as funções responsáveis por:
+
+Concluir relatório
+
+Aprovar relatório (e enviar e-mail)
+
+Implementando as correções abaixo, sem alterar a estrutura geral do banco.
+
+🔧 1. Correção do problema de duplicação de imagens
+
+Problema identificado:
+Ao concluir um relatório, as imagens associadas estão sendo inseridas novamente no banco, gerando duplicações no diretório e na tabela foto_relatorio.
+
+Correção esperada:
+
+Antes de salvar novas imagens, verificar se o arquivo (ou registro) já existe no banco com base em relatorio_id e nome_arquivo.
+
+Impedir reupload do mesmo arquivo.
+
+Substituir apenas se for uma atualização de legenda, categoria ou local.
+
+Implementação técnica:
+
+# Dentro da função de conclusão do relatório
+for foto_data in imagens_recebidas:
+    nome_arquivo = foto_data.get("filename")
+    legenda = foto_data.get("legenda")
+    categoria = foto_data.get("categoria")
+    local = foto_data.get("local")
+
+    # Verificar se a imagem já existe
+    foto_existente = FotoRelatorio.query.filter_by(
+        relatorio_id=relatorio.id,
+        nome_arquivo=nome_arquivo
+    ).first()
+
+    if foto_existente:
+        # Atualiza dados se necessário (sem duplicar)
+        foto_existente.legenda = legenda
+        foto_existente.categoria = categoria
+        foto_existente.local = local
+        db.session.add(foto_existente)
+        app.logger.info(f"🖼️ Atualizada imagem existente: {nome_arquivo}")
+    else:
+        # Adiciona nova imagem apenas se não existir
+        nova_foto = FotoRelatorio(
+            relatorio_id=relatorio.id,
+            nome_arquivo=nome_arquivo,
+            legenda=legenda,
+            categoria=categoria,
+            local=local
+        )
+        db.session.add(nova_foto)
+        app.logger.info(f"🆕 Nova imagem adicionada: {nome_arquivo}")
+
+db.session.commit()
+app.logger.info(f"✅ Imagens processadas sem duplicações para relatório {relatorio.id}")
+
+
+🧩 Garantias técnicas:
+
+O campo relatorio_id + nome_arquivo deve ser único (se necessário, aplicar uma constraint no banco).
+
+Logs detalham se a imagem foi “Atualizada” ou “Nova”.
+
+📧 2. Correção do erro no envio de e-mail ao aprovar relatório
+
+Problema identificado:
+O erro ocorre por falha na autenticação SMTP, manipulação incorreta do anexo ou má serialização dos destinatários.
+
+Correção esperada:
+
+Garantir conexão SMTP válida e reutilizável.
+
+Corrigir encoding do PDF e garantir que o arquivo existe.
+
+Corrigir lógica de destinatários (sem duplicar, sem “None”).
+
+Garantir envio para todos os envolvidos sem crashar a rota.
+
+Implementação técnica:
+
+import smtplib
+from email.message import EmailMessage
+from models import Relatorio, FotoRelatorio, Projeto, User
+import os
+
+def send_report_approval_email(relatorio_id):
+    relatorio = Relatorio.query.get(relatorio_id)
+    if not relatorio:
+        app.logger.error(f"❌ Relatório {relatorio_id} não encontrado para envio de e-mail.")
+        return False
+
+    projeto = relatorio.projeto
+    responsavel_email = getattr(relatorio.autor, "email", None)
+    destinatarios = set()
+
+    # Adiciona todos os envolvidos
+    if responsavel_email:
+        destinatarios.add(responsavel_email)
+    if projeto and projeto.responsavel and projeto.responsavel.email:
+        destinatarios.add(projeto.responsavel.email)
+    for a in relatorio.acompanhantes:
+        if a.email:
+            destinatarios.add(a.email)
+    if projeto and hasattr(projeto, "funcionarios"):
+        for f in projeto.funcionarios:
+            if f.email:
+                destinatarios.add(f.email)
+
+    # Verificação do anexo PDF
+    pdf_path = f"/app/reports/RELATORIO-{relatorio.id}.pdf"
+    if not os.path.exists(pdf_path):
+        app.logger.warning(f"⚠️ PDF não encontrado para relatório {relatorio.id}. Gerando novo arquivo...")
+        gerar_pdf_relatorio(relatorio.id)  # Função existente de geração de PDF
+
+    try:
+        msg = EmailMessage()
+        msg["From"] = "relatorios@elpconsultoria.eng.br"
+        msg["Subject"] = f"RELATORIO-{relatorio.numero}"
+        msg.set_content(f"""
+Este é o relatório da obra "{projeto.nome}".
+Qualquer dúvida, entre em contato com {responsavel_email}.
+        """)
+
+        # Anexa PDF
+        with open(pdf_path, "rb") as pdf:
+            msg.add_attachment(
+                pdf.read(),
+                maintype="application",
+                subtype="pdf",
+                filename=f"RELATORIO-{relatorio.numero}.pdf"
+            )
+
+        with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+            smtp.starttls()
+            smtp.login("relatorios@elpconsultoria.eng.br", "ugZ32b9ayCgu5uK=")
+            for email_destino in destinatarios:
+                msg["To"] = email_destino
+                smtp.send_message(msg)
+                app.logger.info(f"📨 E-mail enviado para {email_destino}")
+
+        app.logger.info(f"✅ Todos os e-mails enviados com sucesso ({len(destinatarios)} destinatários).")
+        return True
+
+    except Exception as e:
+        app.logger.error(f"❌ Falha ao enviar e-mails do relatório {relatorio_id}: {str(e)}")
+        return False
+
+🧩 3. Integração final
+
+Dentro da rota /api/relatorios/<id>/concluir:
+
+processar_imagens(relatorio_id)
+send_report_approval_email(relatorio_id)
+
+✅ Resultado esperado
+
+Nenhuma imagem é duplicada no banco ou no diretório.
+
+Legendas e categorias continuam associadas corretamente.
+
+Ao aprovar um relatório:
+
+Todos os destinatários recebem o e-mail com o PDF anexo.
+
+Nenhum erro de SMTP, encoding ou destinatário ausente.
+
+Logs mostram todos os destinatários e status de envio.
