@@ -5971,50 +5971,26 @@ def report_edit_complete(report_id):
     Carrega todos os relacionamentos reais do banco e renderiza form_complete.html com dados pré-preenchidos.
     """
     try:
-        app.logger.info(f"📝 Iniciando carregamento completo do relatório {report_id}")
+        app.logger.info(f"🧩 Iniciando carregamento completo do relatório {report_id}")
 
-        rel = (
-            db.session.query(Relatorio)
-            .options(
-                joinedload(Relatorio.projeto),
-            )
-            .filter(Relatorio.id == report_id)
-            .first()
-        )
+        rel = Relatorio.query.get(report_id)
 
         if not rel:
-            app.logger.error(f"❌ Relatório {report_id} não encontrado no banco.")
+            app.logger.error(f"❌ Relatório {report_id} não encontrado.")
             return render_template("reports/error_report.html", message="Relatório não encontrado."), 404
-
-        app.logger.info(f"✅ Relatório {rel.numero} encontrado com sucesso.")
 
         if rel.autor_id != current_user.id and not current_user.is_master:
             app.logger.warning(f"⚠️ Usuário {current_user.id} tentou editar relatório {report_id} sem permissão.")
             flash('Você não tem permissão para editar este relatório.', 'error')
             return redirect(url_for('reports'))
 
-        app.logger.info(f"✅ Permissões validadas para usuário {current_user.id}.")
-
-        projeto = (
-            db.session.query(Projeto)
-            .filter(Projeto.id == rel.projeto_id)
-            .first()
-            if rel.projeto_id
-            else None
-        )
-
-        fotos = (
-            db.session.query(FotoRelatorio)
-            .filter(FotoRelatorio.relatorio_id == report_id)
-            .all()
-        )
-
-        app.logger.info(f"📸 {len(fotos)} fotos carregadas para o relatório {report_id}")
-
+        projeto = Projeto.query.get(rel.projeto_id) if rel.projeto_id else None
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).all()
+        
         checklist = []
-        try:
-            if rel.checklist_data:
-                import json
+        if rel.checklist_data:
+            import json
+            try:
                 if isinstance(rel.checklist_data, str):
                     checklist_dict = json.loads(rel.checklist_data)
                 elif isinstance(rel.checklist_data, dict):
@@ -6027,21 +6003,10 @@ def report_edit_complete(report_id):
                         "descricao": descricao,
                         "concluido": concluido
                     })
-        except Exception as e:
-            app.logger.warning(f"⚠️ Erro ao parsear checklist_data: {e}")
-            checklist = []
-
-        app.logger.info(f"🧾 {len(checklist)} itens de checklist carregados.")
-
-        acompanhantes = []
-        if rel.projeto_id:
-            acompanhantes_projeto = (
-                db.session.query(FuncionarioProjeto)
-                .filter(FuncionarioProjeto.projeto_id == rel.projeto_id)
-                .all()
-            )
-            app.logger.info(f"👥 {len(acompanhantes_projeto)} funcionários encontrados no projeto.")
+            except Exception as e:
+                app.logger.warning(f"⚠️ Erro ao parsear checklist: {e}")
         
+        acompanhantes = []
         if rel.acompanhantes:
             import json
             try:
@@ -6049,32 +6014,32 @@ def report_edit_complete(report_id):
                     acompanhantes = json.loads(rel.acompanhantes)
                 elif isinstance(rel.acompanhantes, list):
                     acompanhantes = rel.acompanhantes
-                else:
-                    acompanhantes = []
             except Exception as e:
                 app.logger.warning(f"⚠️ Erro ao parsear acompanhantes: {e}")
-                acompanhantes = []
+        
+        funcionarios_projeto = FuncionarioProjeto.query.filter_by(projeto_id=rel.projeto_id).all() if rel.projeto_id else []
+
+        app.logger.info(f"✅ Dados carregados: projeto={bool(projeto)}, fotos={len(fotos)}, checklist={len(checklist)}, acompanhantes={len(acompanhantes)}, funcionarios={len(funcionarios_projeto)}")
 
         report_data = {
             "id": rel.id,
-            "data_relatorio": getattr(rel, "data_relatorio", None),
-            "titulo": getattr(rel, "titulo", ""),
-            "numero_relatorio": getattr(rel, "numero", ""),
-            "observacoes": getattr(rel, "observacoes_finais", "") or getattr(rel, "conteudo", ""),
-            "lembrete": getattr(rel, "lembrete_proxima_visita", ""),
+            "data_relatorio": rel.data_relatorio.strftime("%Y-%m-%d") if rel.data_relatorio else "",
+            "titulo": rel.titulo or "",
+            "numero": rel.numero or "",
+            "observacoes": rel.observacoes_finais or rel.conteudo or "",
+            "lembrete": str(rel.lembrete_proxima_visita) if rel.lembrete_proxima_visita else "",
             "projeto": {
-                "id": projeto.id if projeto else None,
+                "id": projeto.id if projeto else "",
                 "nome": projeto.nome if projeto else "",
-                "numero": getattr(projeto, "numero", "") if projeto else "",
+                "numero": projeto.numero if projeto else "",
                 "endereco": projeto.endereco if projeto else "",
                 "responsavel": projeto.nome_funcionario if projeto else "",
             } if projeto else None,
             "fotos": [
                 {
                     "id": f.id,
-                    "arquivo": f.filename,
-                    "legenda": getattr(f, "legenda", "") or getattr(f, "titulo", ""),
-                    "url": getattr(f, "url", None) or (f"/uploads/{f.filename}" if f.filename else None),
+                    "url": f.url or (f"/uploads/{f.filename}" if f.filename else ""),
+                    "legenda": f.legenda or f.titulo or "",
                 }
                 for f in fotos
             ],
@@ -6083,9 +6048,13 @@ def report_edit_complete(report_id):
                 {"id": a.get("id"), "nome": a.get("nome", ""), "funcao": a.get("funcao", "Não informado")}
                 for a in acompanhantes
             ] if isinstance(acompanhantes, list) else [],
+            "funcionarios_projeto": [
+                {"id": fp.id, "nome": fp.nome_funcionario, "funcao": fp.cargo or "Não informado"}
+                for fp in funcionarios_projeto
+            ],
         }
 
-        app.logger.info(f"✅ Dados estruturados com sucesso para o relatório {report_id}")
+        app.logger.info(f"✅ Relatório {report_id} carregado e estruturado com sucesso.")
 
         return render_template(
             "reports/form_complete.html",
