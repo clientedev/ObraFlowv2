@@ -2179,28 +2179,24 @@ window.selectPhotoCategory = function(category, element) {
 <!-- Sistema de autosave antigo desabilitado para evitar conflitos -->
 <!-- <script src="{{ url_for('static', filename='js/autosave.js') }}"></script> -->
 <script>
-// Inicializar Auto Save apenas se estivermos editando um relatório existente
+// Inicializar Auto Save após DOM carregar
+// ReportsAutoSave já detecta automaticamente o parâmetro ?edit={id} da URL
 document.addEventListener('DOMContentLoaded', function() {
-    // Verificar se temos um ID de relatório para auto save
-    const urlParams = new URLSearchParams(window.location.search);
+    // Verificar se existe um reportId renderizado pelo servidor
+    const formReportId = document.querySelector('#reportForm')?.getAttribute('data-report-id');
     
-    // Tentar obter o reportId de múltiplas fontes
-    const reportId = urlParams.get('edit') || 
-                     urlParams.get('report_id') || 
-                     document.querySelector('#reportForm')?.getAttribute('data-report-id') ||
-                     document.querySelector('input[name="edit_report_id"]')?.value ||
-                     document.querySelector('input[name="report_id"]')?.value;
+    // Inicializar AutoSave (ele detectará automaticamente ?edit={id} ou usará formReportId)
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     
-    if (reportId) {
-        // Inicializar auto save com CSRF token correto
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        const autoSave = initAutoSave(reportId, csrfToken);
-        
-        console.log('✅ Auto Save ativado para relatório', reportId);
-        console.log('📥 Carregando dados do relatório via AutoSave...');
-    } else {
-        console.log('📝 Novo relatório - Auto Save será ativado após criação inicial');
+    // Se existe reportId do servidor, expor globalmente para o AutoSave
+    if (formReportId) {
+        window.currentReportId = parseInt(formReportId, 10);
     }
+    
+    // Inicializar AutoSave - ele detectará o ID automaticamente
+    const autoSave = initAutoSave(null, csrfToken);
+    
+    console.log('✅ Auto Save inicializado');
 });
 </script>
 
