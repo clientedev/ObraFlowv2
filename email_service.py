@@ -160,137 +160,159 @@ class EmailService:
             # Lista para armazenar logs de cada envio
             logs_envio = []
             
-            # Enviar para cada destinatário principal
-            for email_dest in destinatarios_validos:
-                try:
-                    current_app.logger.info(f"📤 Preparando e-mail para {email_dest}...")
-                    # Buscar dados do cliente se disponível
-                    email_cliente = EmailCliente.query.filter_by(
-                        projeto_id=projeto.id, 
-                        email=email_dest
-                    ).first()
+            # CORREÇÃO: Usar conexão SMTP reutilizável para melhor performance
+            try:
+                with self.mail.connect() as conn:
+                    current_app.logger.info(f"🔌 Conexão SMTP estabelecida - enviando {len(destinatarios_validos)} e-mail(s)...")
                     
-                    nome_cliente = email_cliente.nome_contato if email_cliente else "Cliente"
-                    
-                    # Personalizar corpo do e-mail
-                    corpo_html = corpo_base.format(
-                        nome_cliente=nome_cliente,
-                        data_visita=data_visita,
-                        projeto_nome=projeto.nome
-                    )
-                    
-                    # Implementar CC automático conforme Item 34
-                    cc_emails = cc_validos.copy()
-                    
-                    # Auto-CC: Sempre adicionar o outro usuário envolvido (preenchedor ou aprovador)
-                    relatorio_autor_email = relatorio.autor.email if relatorio.autor else None
-                    aprovador_email = None
-                    
-                    # Buscar e-mail do aprovador se relatório foi aprovado
-                    if hasattr(relatorio, 'aprovador') and relatorio.aprovador:
-                        aprovador_email = relatorio.aprovador.email
-                    elif hasattr(relatorio, 'aprovado_por') and relatorio.aprovado_por:
-                        from models import User
-                        aprovador = User.query.get(relatorio.aprovado_por)
-                        if aprovador:
-                            aprovador_email = aprovador.email
-                    
-                    # Auto-CC: Se usuário atual é o preenchedor, adicionar aprovador na cópia
-                    # Se usuário atual é o aprovador, adicionar preenchedor na cópia
-                    user_email = user_config.email_address if user_config else email_remetente
-                    
-                    if relatorio_autor_email and relatorio_autor_email != user_email and relatorio_autor_email not in cc_emails:
-                        # Validar antes de adicionar
-                        emails_validos, _ = self.validar_emails([relatorio_autor_email])
-                        if emails_validos:
-                            cc_emails.append(relatorio_autor_email)
-                        
-                    if aprovador_email and aprovador_email != user_email and aprovador_email not in cc_emails:
-                        # Validar antes de adicionar
-                        emails_validos, _ = self.validar_emails([aprovador_email])
-                        if emails_validos:
-                            cc_emails.append(aprovador_email)
-                    
-                    # Se usando configuração pessoal, garantir que a conta pessoal está no CC
-                    if user_config and user_config.email_address not in cc_emails:
-                        emails_validos, _ = self.validar_emails([user_config.email_address])
-                        if emails_validos:
-                            cc_emails.append(user_config.email_address)
-                    
-                    # CC Centralizada (Luciana): Adicionar e-mail admin do sistema se configurado
-                    admin_cc_email = os.environ.get('ADMIN_CC_EMAIL')
-                    if admin_cc_email and admin_cc_email not in cc_emails:
-                        emails_validos, _ = self.validar_emails([admin_cc_email])
-                        if emails_validos:
-                            cc_emails.append(admin_cc_email)
-                    elif system_config and hasattr(system_config, 'cc_admin') and system_config.cc_admin and system_config.cc_admin not in cc_emails:
-                        emails_validos, _ = self.validar_emails([system_config.cc_admin])
-                        if emails_validos:
-                            cc_emails.append(system_config.cc_admin)
-                    
-                    # Criar mensagem
-                    msg = Message(
-                        subject=assunto,
-                        recipients=[email_dest],
-                        cc=cc_emails,
-                        bcc=bcc_validos,
-                        html=corpo_html
-                    )
-                    
-                    # Gerar e anexar PDF
-                    from pdf_generator_weasy import gerar_pdf_relatorio_weasy
-                    pdf_path = gerar_pdf_relatorio_weasy(relatorio.id)
-                    
-                    if pdf_path and os.path.exists(pdf_path):
-                        with current_app.open_resource(pdf_path, 'rb') as f:
-                            msg.attach(
-                                filename=f"Relatorio_{projeto.numero}_{data_atual.replace('/', '')}.pdf",
-                                content_type='application/pdf',
-                                data=f.read()
-                            )
-                    
-                    # Enviar e-mail
-                    self.mail.send(msg)
-                    current_app.logger.info(f"✅ E-mail enviado com sucesso para {email_dest}")
-                    
-                    # Log de sucesso com informação da conta usada
-                    log_envio = LogEnvioEmail(
-                        projeto_id=projeto.id,
-                        relatorio_id=relatorio.id,
-                        usuario_id=usuario_id,
-                        destinatarios=json.dumps([email_dest]),
-                        cc=json.dumps(cc_emails),
-                        bcc=json.dumps(destinatarios_data.get('bcc', [])),
-                        assunto=assunto,
-                        status='enviado'
-                    )
-                    # Adicionar informação da conta utilizada para envio nos logs
-                    log_envio.erro_detalhes = f"Enviado via: {email_remetente} ({'Conta pessoal' if user_config else 'Conta sistema'})"
-                    logs_envio.append(log_envio)
-                    
-                    # Limpar arquivo PDF temporário
-                    if pdf_path and os.path.exists(pdf_path):
+                    # Enviar para cada destinatário principal usando a mesma conexão
+                    for email_dest in destinatarios_validos:
                         try:
-                            os.remove(pdf_path)
-                        except:
-                            pass
-                    
-                except Exception as e:
-                    current_app.logger.error(f"❌ Erro ao enviar e-mail para {email_dest}: {str(e)}")
-                    # Para erros, usar CC original pois cc_emails pode não estar definido
-                    cc_fallback = cc_validos
-                    
-                    # Log de erro com informação da conta usada
+                            current_app.logger.info(f"📤 Preparando e-mail para {email_dest}...")
+                            # Buscar dados do cliente se disponível
+                            email_cliente = EmailCliente.query.filter_by(
+                                projeto_id=projeto.id, 
+                                email=email_dest
+                            ).first()
+                            
+                            nome_cliente = email_cliente.nome_contato if email_cliente else "Cliente"
+                            
+                            # Personalizar corpo do e-mail
+                            corpo_html = corpo_base.format(
+                                nome_cliente=nome_cliente,
+                                data_visita=data_visita,
+                                projeto_nome=projeto.nome
+                            )
+                            
+                            # Implementar CC automático conforme Item 34
+                            cc_emails = cc_validos.copy()
+                            
+                            # Auto-CC: Sempre adicionar o outro usuário envolvido (preenchedor ou aprovador)
+                            relatorio_autor_email = relatorio.autor.email if relatorio.autor else None
+                            aprovador_email = None
+                            
+                            # Buscar e-mail do aprovador se relatório foi aprovado
+                            if hasattr(relatorio, 'aprovador') and relatorio.aprovador:
+                                aprovador_email = relatorio.aprovador.email
+                            elif hasattr(relatorio, 'aprovado_por') and relatorio.aprovado_por:
+                                from models import User
+                                aprovador = User.query.get(relatorio.aprovado_por)
+                                if aprovador:
+                                    aprovador_email = aprovador.email
+                            
+                            # Auto-CC: Se usuário atual é o preenchedor, adicionar aprovador na cópia
+                            # Se usuário atual é o aprovador, adicionar preenchedor na cópia
+                            user_email = user_config.email_address if user_config else email_remetente
+                            
+                            if relatorio_autor_email and relatorio_autor_email != user_email and relatorio_autor_email not in cc_emails:
+                                # Validar antes de adicionar
+                                emails_validos_temp, _ = self.validar_emails([relatorio_autor_email])
+                                if emails_validos_temp:
+                                    cc_emails.append(relatorio_autor_email)
+                                
+                            if aprovador_email and aprovador_email != user_email and aprovador_email not in cc_emails:
+                                # Validar antes de adicionar
+                                emails_validos_temp, _ = self.validar_emails([aprovador_email])
+                                if emails_validos_temp:
+                                    cc_emails.append(aprovador_email)
+                            
+                            # Se usando configuração pessoal, garantir que a conta pessoal está no CC
+                            if user_config and user_config.email_address not in cc_emails:
+                                emails_validos_temp, _ = self.validar_emails([user_config.email_address])
+                                if emails_validos_temp:
+                                    cc_emails.append(user_config.email_address)
+                            
+                            # CC Centralizada (Luciana): Adicionar e-mail admin do sistema se configurado
+                            admin_cc_email = os.environ.get('ADMIN_CC_EMAIL')
+                            if admin_cc_email and admin_cc_email not in cc_emails:
+                                emails_validos_temp, _ = self.validar_emails([admin_cc_email])
+                                if emails_validos_temp:
+                                    cc_emails.append(admin_cc_email)
+                            elif system_config and hasattr(system_config, 'cc_admin') and system_config.cc_admin and system_config.cc_admin not in cc_emails:
+                                emails_validos_temp, _ = self.validar_emails([system_config.cc_admin])
+                                if emails_validos_temp:
+                                    cc_emails.append(system_config.cc_admin)
+                            
+                            # Criar mensagem
+                            msg = Message(
+                                subject=assunto,
+                                recipients=[email_dest],
+                                cc=cc_emails,
+                                bcc=bcc_validos,
+                                html=corpo_html
+                            )
+                            
+                            # Gerar e anexar PDF
+                            from pdf_generator_weasy import gerar_pdf_relatorio_weasy
+                            pdf_path = gerar_pdf_relatorio_weasy(relatorio.id)
+                            
+                            if pdf_path and os.path.exists(pdf_path):
+                                with current_app.open_resource(pdf_path, 'rb') as f:
+                                    msg.attach(
+                                        filename=f"Relatorio_{projeto.numero}_{data_atual.replace('/', '')}.pdf",
+                                        content_type='application/pdf',
+                                        data=f.read()
+                                    )
+                            
+                            # Enviar e-mail usando conexão compartilhada
+                            conn.send(msg)
+                            current_app.logger.info(f"✅ E-mail enviado com sucesso para {email_dest}")
+                            
+                            # Log de sucesso com informação da conta usada
+                            log_envio = LogEnvioEmail(
+                                projeto_id=projeto.id,
+                                relatorio_id=relatorio.id,
+                                usuario_id=usuario_id,
+                                destinatarios=json.dumps([email_dest]),
+                                cc=json.dumps(cc_emails),
+                                bcc=json.dumps(bcc_validos),
+                                assunto=assunto,
+                                status='enviado'
+                            )
+                            # Adicionar informação da conta utilizada para envio nos logs
+                            log_envio.erro_detalhes = f"Enviado via: {email_remetente} ({'Conta pessoal' if user_config else 'Conta sistema'})"
+                            logs_envio.append(log_envio)
+                            
+                            # Limpar arquivo PDF temporário
+                            if pdf_path and os.path.exists(pdf_path):
+                                try:
+                                    os.remove(pdf_path)
+                                except:
+                                    pass
+                        
+                        except Exception as e:
+                            current_app.logger.error(f"❌ Erro ao enviar e-mail para {email_dest}: {str(e)}")
+                            # Para erros, usar CC original pois cc_emails pode não estar definido
+                            cc_fallback = cc_validos
+                            
+                            # Log de erro com informação da conta usada
+                            log_envio = LogEnvioEmail(
+                                projeto_id=projeto.id,
+                                relatorio_id=relatorio.id,
+                                usuario_id=usuario_id,
+                                destinatarios=json.dumps([email_dest]),
+                                cc=json.dumps(cc_fallback),
+                                bcc=json.dumps(bcc_validos),
+                                assunto=assunto,
+                                status='falhou',
+                                erro_detalhes=f"Erro: {str(e)} | Tentativa via: {email_remetente} ({'Conta pessoal' if user_config else 'Conta sistema'})"
+                            )
+                            logs_envio.append(log_envio)
+                            
+            except Exception as smtp_conn_error:
+                current_app.logger.error(f"❌ Erro na conexão SMTP: {smtp_conn_error}")
+                # Se falhou a conexão, criar log de erro para todos os destinatários
+                for email_dest in destinatarios_validos:
                     log_envio = LogEnvioEmail(
                         projeto_id=projeto.id,
                         relatorio_id=relatorio.id,
                         usuario_id=usuario_id,
                         destinatarios=json.dumps([email_dest]),
-                        cc=json.dumps(cc_fallback),
-                        bcc=json.dumps(destinatarios_data.get('bcc', [])),
+                        cc=json.dumps(cc_validos),
+                        bcc=json.dumps(bcc_validos),
                         assunto=assunto,
                         status='falhou',
-                        erro_detalhes=f"Erro: {str(e)} | Tentativa via: {email_remetente} ({'Conta pessoal' if user_config else 'Conta sistema'})"
+                        erro_detalhes=f"Erro de conexão SMTP: {str(smtp_conn_error)} | Via: {email_remetente}"
                     )
                     logs_envio.append(log_envio)
             
