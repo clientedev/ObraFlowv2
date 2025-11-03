@@ -7299,6 +7299,25 @@ def report_approve(report_id):
     relatorio.comentario_aprovacao = comment
 
     db.session.commit()
+    
+    # Enviar e-mail de aprovação para todos os envolvidos (após commit)
+    if action == 'approve':
+        try:
+            from email_service import EmailService
+            email_service = EmailService()
+            resultado_email = email_service.send_report_approval_email(report_id)
+            
+            if resultado_email.get('success'):
+                enviados = resultado_email.get('enviados', 0)
+                flash_message += f" E-mails enviados: {enviados}"
+                current_app.logger.info(f"✅ {enviados} e-mail(s) de aprovação enviados para relatório {relatorio.numero}")
+            else:
+                erro_msg = resultado_email.get('error', 'Erro desconhecido')
+                flash_message += f" Aviso: Erro ao enviar e-mails - {erro_msg}"
+                current_app.logger.warning(f"⚠️ Erro ao enviar e-mails para relatório {relatorio.numero}: {erro_msg}")
+        except Exception as e:
+            flash_message += f" Aviso: Falha no envio de e-mails - {str(e)}"
+            current_app.logger.error(f"❌ Exceção ao enviar e-mails para relatório {relatorio.numero}: {str(e)}")
 
     return jsonify({'success': True, 'message': flash_message})
 
