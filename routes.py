@@ -3172,6 +3172,49 @@ def create_report():
             # Se não há projeto específico, buscar aprovador global
             selected_aprovador = get_aprovador_padrao_para_projeto(None)
 
+    # Preparar report_data para autosave
+    if existing_report:
+        # Modo de edição: usar dados existentes
+        report_data = {
+            'id': existing_report.id,
+            'projeto_id': existing_report.projeto_id,
+            'titulo': existing_report.titulo or '',
+            'conteudo': existing_report.conteudo or '',
+            'data_relatorio': existing_report.data_relatorio.isoformat() if existing_report.data_relatorio else date.today().isoformat(),
+            'aprovador_nome': existing_report.aprovador_nome or '',
+            'observacoes_finais': existing_report.observacoes_finais or '',
+            'lembrete_proxima_visita': existing_report.lembrete_proxima_visita.isoformat() if existing_report.lembrete_proxima_visita else '',
+            'latitude': existing_report.latitude,
+            'longitude': existing_report.longitude,
+            'checklist_data': existing_checklist if existing_checklist else {},
+            'acompanhantes': existing_report.acompanhantes or [],
+            'fotos': [{
+                'id': f.id,
+                'url': url_for('api_get_photo', foto_id=f.id),
+                'legenda': f.legenda or '',
+                'categoria': f.categoria or '',
+                'local': f.local or '',
+                'ordem': f.ordem or 0
+            } for f in existing_fotos]
+        }
+    else:
+        # Modo de criação: estrutura vazia
+        report_data = {
+            'id': None,
+            'projeto_id': selected_project.id if selected_project else None,
+            'titulo': '',
+            'conteudo': '',
+            'data_relatorio': date.today().isoformat(),
+            'aprovador_nome': selected_aprovador if selected_aprovador else '',
+            'observacoes_finais': '',
+            'lembrete_proxima_visita': '',
+            'latitude': None,
+            'longitude': None,
+            'checklist_data': {},
+            'acompanhantes': [],
+            'fotos': []
+        }
+    
     # Render the form for GET requests
     return render_template('reports/form_complete.html', 
                          projetos=projetos, 
@@ -3185,6 +3228,7 @@ def create_report():
                          existing_checklist=existing_checklist,
                          next_numero=next_numero,
                          lembrete_anterior=lembrete_anterior,
+                         report_data=report_data,
                          today=date.today().isoformat())
 
 # Removed duplicate function - using the more comprehensive version below at line 7415

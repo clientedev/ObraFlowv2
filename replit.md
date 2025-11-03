@@ -3,6 +3,19 @@ This project is a comprehensive Flask-based construction site visit tracking sys
 
 ## Recent Changes
 
+### Nov 3, 2025 (18:00 UTC)
+✅ **CORREÇÃO: Rota de Novo Relatório com AutoSave 100% Funcional**:
+- **Problema**: Erro 500 ao acessar `/reports/new` devido a variável `report_data` ausente
+- **Erro**: `TypeError: Object of type Undefined is not JSON serializable`
+- **Root Cause**: Template esperava `report_data` para inicializar AutoSave mas a rota não a fornecia
+- **Solução**: Adicionada geração completa de `report_data` na rota `/reports/new`:
+  - Modo criação: estrutura vazia com valores padrão
+  - Modo edição: carrega dados existentes do relatório
+  - Suporte completo para acompanhantes, fotos, checklist, coordenadas GPS
+- **Impacto**: Formulário de novo relatório agora carrega corretamente com AutoSave 100% funcional
+- **Arquivo Modificado**: `routes.py` (linhas 3178-3235)
+- **Status**: ✅ Testado e funcionando
+
 ### Nov 3, 2025 (17:50 UTC)
 ✅ **CORREÇÃO CRÍTICA: Sistema de Carregamento de Acompanhantes - COMPLETAMENTE RESOLVIDO**:
 - **Problema Identificado**: Função `carregarAcompanhantes()` estava causando perda de dados devido a referências compartilhadas entre array global e parâmetros da função
