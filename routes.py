@@ -3300,6 +3300,9 @@ def create_report():
     # Determinar se está em modo de edição
     edit_mode = existing_report is not None
     
+    # IMPORTANTE: Passar report_id para o template para inicializar o autosave corretamente
+    report_id = existing_report.id if existing_report else None
+    
     # Render the form for GET requests - TODOS OS OBJETOS AGORA SÃO DICIONÁRIOS
     return render_template('reports/form_complete.html', 
                          projetos=projetos_data, 
@@ -3315,6 +3318,7 @@ def create_report():
                          lembrete_anterior=lembrete_anterior,
                          report_data=report_data,
                          edit_mode=edit_mode,
+                         report_id=report_id,
                          today=date.today().isoformat())
 
 # Removed duplicate function - using the more comprehensive version below at line 7415

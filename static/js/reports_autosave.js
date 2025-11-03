@@ -14,7 +14,7 @@ class ReportsAutoSave {
         this.isConnected = navigator.onLine;
 
         console.log('🕒 AutoSave: Iniciando sistema de autosave silencioso');
-        
+
         // Verificar se há parâmetro edit na URL
         const urlParams = new URLSearchParams(window.location.search);
         const editParam = urlParams.get('edit');
@@ -22,7 +22,7 @@ class ReportsAutoSave {
             this.reportId = parseInt(editParam, 10);
             console.log(`📥 AutoSave: ID do relatório capturado da URL: ${this.reportId}`);
         }
-        
+
         if (!this.reportId) {
             console.log('📝 AutoSave: Sem reportId - será criado no primeiro salvamento');
         }
@@ -34,102 +34,102 @@ class ReportsAutoSave {
         console.log(`✅ AutoSave: Ativado para relatório ID ${this.reportId}`);
         console.log(`🔑 AutoSave: CSRF Token presente: ${!!this.csrfToken}`);
         console.log(`⏱️ AutoSave: Debounce configurado para ${this.debounceTime}ms`);
-        
+
         // Se há reportId, carregar os dados do relatório primeiro
         if (this.reportId) {
             this.loadReportData();
         }
-        
+
         this.startAutoSave();
         this.setupNetworkListeners();
     }
-    
+
     /**
      * Carrega os dados do relatório existente
      */
     async loadReportData() {
         try {
             console.log(`📥 Carregando relatório ID: ${this.reportId}`);
-            
+
             const response = await fetch(`/api/relatorios/${this.reportId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (!response.ok) {
                 throw new Error(`Erro ao carregar relatório: ${response.status}`);
             }
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 console.log('✅ Dados do relatório carregados:', data);
-                
+
                 // Preencher formulário com dados carregados
                 this.populateForm(data.relatorio);
-                
+
                 // Selecionar projeto se disponível
                 if (data.projeto) {
                     this.selectProjeto(data.projeto);
                 }
-                
+
                 // Carregar imagens com categoria e local
                 if (data.imagens && data.imagens.length > 0) {
                     this.loadImages(data.imagens);
                 }
-                
+
                 // Preencher checklist
                 if (data.checklist && data.checklist.length > 0) {
                     this.preencherChecklist(data.checklist);
                 }
-                
+
                 // Preencher acompanhantes
                 if (data.acompanhantes && data.acompanhantes.length > 0) {
                     this.preencherAcompanhantes(data.acompanhantes);
                 }
-                
+
                 console.log('✅ Relatório carregado e pré-preenchido com sucesso');
             }
-            
+
         } catch (error) {
             console.error('❌ Erro ao carregar relatório:', error);
         }
     }
-    
+
     /**
      * Preenche o formulário com dados do relatório
      */
     populateForm(relatorio) {
         console.log('📝 Preenchendo formulário com dados do relatório');
-        
+
         // Preencher campos básicos
         if (relatorio.titulo) {
             const titulo = document.getElementById('titulo') || document.getElementById('titulo_relatorio');
             if (titulo) titulo.value = relatorio.titulo;
         }
-        
+
         if (relatorio.numero) {
             const numero = document.getElementById('numero') || document.getElementById('numero_relatorio');
             if (numero) numero.value = relatorio.numero;
         }
-        
+
         if (relatorio.data_relatorio) {
             const data = document.getElementById('data_relatorio');
             if (data) data.value = relatorio.data_relatorio.split('T')[0];
         }
-        
+
         if (relatorio.observacoes_finais) {
             const obs = document.getElementById('observacoes') || document.querySelector('[name="observacoes_finais"]');
             if (obs) obs.value = relatorio.observacoes_finais;
         }
-        
+
         if (relatorio.conteudo) {
             const conteudo = document.getElementById('conteudo');
             if (conteudo) conteudo.value = relatorio.conteudo;
         }
-        
+
         if (relatorio.lembrete_proxima_visita) {
             const lembrete = document.getElementById('lembrete_proxima_visita') || document.getElementById('lembrete');
             if (lembrete) {
@@ -137,26 +137,26 @@ class ReportsAutoSave {
                 lembrete.value = date.toISOString().slice(0, 16);
             }
         }
-        
+
         if (relatorio.categoria) {
             const categoria = document.getElementById('categoria');
             if (categoria) categoria.value = relatorio.categoria;
         }
-        
+
         if (relatorio.local) {
             const local = document.getElementById('local');
             if (local) local.value = relatorio.local;
         }
-        
+
         console.log('✅ Formulário preenchido');
     }
-    
+
     /**
      * Seleciona o projeto no campo de seleção
      */
     selectProjeto(projeto) {
         if (!projeto) return;
-        
+
         console.log('🏢 Selecionando projeto:', projeto.nome);
         const projetoSelect = document.getElementById('projeto_id') || document.querySelector('select[name="projeto_id"]');
         if (projetoSelect) {
@@ -168,36 +168,36 @@ class ReportsAutoSave {
                     break;
                 }
             }
-            
+
             if (!optionExists) {
                 const option = new Option(projeto.nome, projeto.id, true, true);
                 projetoSelect.appendChild(option);
             }
-            
+
             // Disparar evento change para carregar dados do projeto
             projetoSelect.dispatchEvent(new Event('change'));
             console.log(`✅ Projeto selecionado: ${projeto.nome}`);
         }
     }
-    
+
     /**
      * Carrega e exibe imagens do relatório
      */
     loadImages(imagens) {
         console.log(`📸 Carregando ${imagens.length} imagens`);
-        
+
         // Tentar encontrar o container de imagens
         const container = document.getElementById('imagens-container') || 
                          document.getElementById('photos-container') ||
                          document.querySelector('.photos-container');
-        
+
         if (!container) {
             console.warn('⚠️ Container de imagens não encontrado');
             return;
         }
-        
+
         container.innerHTML = '';
-        
+
         imagens.forEach((img, index) => {
             const card = document.createElement('div');
             card.className = 'mobile-photo-card';
@@ -218,25 +218,25 @@ class ReportsAutoSave {
             `;
             container.appendChild(card);
         });
-        
+
         console.log(`✅ ${imagens.length} imagens carregadas e exibidas`);
     }
-    
+
     /**
      * Preenche o checklist com os dados carregados
      */
     preencherChecklist(checklist) {
         console.log(`📋 Preenchendo checklist com ${checklist.length} itens`);
-        
+
         if (!Array.isArray(checklist)) {
             console.warn('⚠️ Checklist não é um array:', checklist);
             return;
         }
-        
+
         checklist.forEach(item => {
             const pergunta = item.item || item.pergunta || item.texto;
             const concluido = item.completed || item.concluido || item.resposta;
-            
+
             // Tentar encontrar o checkbox correspondente
             const checkboxes = document.querySelectorAll('.checklist-item .form-check-input[type="checkbox"]');
             checkboxes.forEach(checkbox => {
@@ -246,36 +246,36 @@ class ReportsAutoSave {
                 }
             });
         });
-        
+
         console.log(`✅ ${checklist.length} itens de checklist preenchidos`);
     }
-    
+
     /**
      * Preenche os acompanhantes com os dados carregados
      */
     preencherAcompanhantes(acompanhantesData) {
         console.log(`👥 Preenchendo ${acompanhantesData.length} acompanhantes`);
-        
+
         if (!Array.isArray(acompanhantesData)) {
             console.warn('⚠️ Acompanhantes não é um array:', acompanhantesData);
             return;
         }
-        
+
         // Usar a variável global acompanhantes se existir
         if (typeof window.acompanhantes !== 'undefined') {
             window.acompanhantes = acompanhantesData;
-            
+
             // Atualizar visualização se a função existir
             if (typeof window.atualizarListaAcompanhantes === 'function') {
                 window.atualizarListaAcompanhantes();
             }
-            
+
             // Atualizar campo hidden
             const hiddenField = document.getElementById('acompanhantes-data');
             if (hiddenField) {
                 hiddenField.value = JSON.stringify(acompanhantesData);
             }
-            
+
             console.log(`✅ ${acompanhantesData.length} acompanhantes carregados`);
         }
     }
@@ -332,7 +332,7 @@ class ReportsAutoSave {
                 document.querySelector('#projeto_id')?.value?.trim() ||
                 document.querySelector('[data-project-id]')?.getAttribute('data-project-id') ||
                 (window.currentProjetoId ? String(window.currentProjetoId) : null);
-            
+
             if (projetoIdStr) {
                 data.projeto_id = parseInt(projetoIdStr, 10);
                 console.log('✅ AutoSave - projeto_id encontrado:', data.projeto_id);
@@ -352,13 +352,13 @@ class ReportsAutoSave {
             return {};
         }
     }
-    
+
     async collectFormDataAsync() {
         try {
             // Coletar checklist e acompanhantes ANTES de serializar
             const checklistData = this.getChecklistData();
             const acompanhantesData = this.getAcompanhantesData();
-            
+
             const data = {
                 titulo: document.querySelector('#titulo_relatorio')?.value?.trim() || 
                         document.querySelector('#titulo')?.value?.trim() || "",
@@ -382,7 +382,7 @@ class ReportsAutoSave {
                 document.querySelector('#projeto_id')?.value?.trim() ||
                 document.querySelector('[data-project-id]')?.getAttribute('data-project-id') ||
                 (window.currentProjetoId ? String(window.currentProjetoId) : null);
-            
+
             if (projetoIdStr) {
                 data.projeto_id = parseInt(projetoIdStr, 10);
                 console.log('✅ AutoSave - projeto_id encontrado:', data.projeto_id);
@@ -409,14 +409,14 @@ class ReportsAutoSave {
 
     getChecklistData() {
         const checklistData = [];
-        
+
         // Coletar itens do checklist EXATAMENTE como o botão concluir faz
         document.querySelectorAll('.checklist-item').forEach(item => {
             const checkbox = item.querySelector('.form-check-input[type="checkbox"]');
             const label = item.querySelector('.form-check-label');
             const customInput = item.querySelector('input[type="text"]');
             const textarea = item.querySelector('textarea');
-            
+
             if (checkbox) {
                 const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
                 if (itemText) {
@@ -483,7 +483,7 @@ class ReportsAutoSave {
         console.log(`📸 AutoSave - Total de ${uploaded.length} imagens enviadas`);
         return uploaded;
     }
-    
+
     /**
      * Faz upload da imagem temporária com multipart/form-data
      * Retorna o ID temporário salvo no backend
@@ -551,7 +551,7 @@ class ReportsAutoSave {
                 console.log(`👥 AutoSave - Acompanhantes (global): ${window.acompanhantes.length} pessoas`, window.acompanhantes);
                 return window.acompanhantes;
             }
-            
+
             // Tentar coletar do input hidden
             const acompanhantesInput = document.querySelector('#acompanhantes-data');
             if (acompanhantesInput && acompanhantesInput.value) {
@@ -564,7 +564,7 @@ class ReportsAutoSave {
                     console.log('   Valor do input:', acompanhantesInput.value);
                 }
             }
-            
+
             console.log('👥 AutoSave - Nenhum acompanhante encontrado');
         } catch (e) {
             console.error('❌ Erro ao coletar acompanhantes:', e);
@@ -591,13 +591,13 @@ class ReportsAutoSave {
         }
 
         this.isSaving = true;
-        
+
         // Coletar dados do formulário de forma assíncrona (aguardar upload de imagens)
         const payload = await this.collectFormDataAsync();
 
         try {
             console.log('📤 AutoSave: Enviando dados...', payload);
-            
+
             const response = await fetch('/api/relatorios/autosave', {
                 method: 'POST',
                 headers: { 
@@ -617,20 +617,29 @@ class ReportsAutoSave {
 
             const result = await response.json();
             console.log('✅ AutoSave concluído com sucesso:', result);
-            
+
             // Atualizar reportId se foi criado novo relatório
-            if (result.relatorio_id && !this.reportId) {
-                this.reportId = result.relatorio_id;
-                window.currentReportId = result.relatorio_id;
-                console.log(`📌 AutoSave: Novo relatório criado com ID ${this.reportId}`);
-                
-                // Atualizar campo hidden se existir
-                const reportIdInput = document.querySelector('input[name="report_id"]');
-                if (reportIdInput) {
-                    reportIdInput.value = this.reportId;
+                if (result.relatorio_id) {
+                    if (!this.reportId) {
+                        console.log(`📌 AutoSave: Novo relatório criado com ID ${result.relatorio_id}`);
+                    }
+                    this.reportId = result.relatorio_id;
+                    window.currentReportId = result.relatorio_id;
+
+                    // Atualizar TODOS os campos hidden possíveis
+                    const reportIdInputs = [
+                        document.querySelector('input[name="report_id"]'),
+                        document.getElementById('relatorio_id'),
+                        document.querySelector('input[name="relatorio_id"]')
+                    ];
+
+                    reportIdInputs.forEach(input => {
+                        if (input) {
+                            input.value = this.reportId;
+                        }
+                    });
                 }
-            }
-            
+
             // Mapear temp_ids para IDs reais das imagens salvas
             if (result.imagens && Array.isArray(result.imagens) && window.mobilePhotoData) {
                 console.log(`📸 AutoSave: Mapeando ${result.imagens.length} imagens salvas`);
@@ -649,7 +658,7 @@ class ReportsAutoSave {
             } else {
                 console.warn(`⚠️ AutoSave: Nenhuma imagem retornada no resultado ou mobilePhotoData vazio`);
             }
-            
+
             // VALIDAÇÃO FINAL: Confirmar total de imagens
             console.log(`✅ AutoSave FINAL: ${result.imagens?.length || 0} imagens processadas`);
             console.log(`📊 mobilePhotoData após salvamento:`, window.mobilePhotoData?.map(p => ({
@@ -657,7 +666,7 @@ class ReportsAutoSave {
                 temp_id: p.temp_id,
                 legenda: p.manualCaption || p.predefinedCaption
             })));
-            
+
             // Limpar localStorage após sucesso
             this.clearLocalStorage();
 
@@ -695,7 +704,7 @@ class ReportsAutoSave {
         try {
             const payload = JSON.parse(stored);
             console.log('🔄 AutoSave: Tentando reenviar dados salvos localmente');
-            
+
             const response = await fetch('/api/relatorios/autosave', {
                 method: 'POST',
                 headers: { 

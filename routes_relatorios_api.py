@@ -731,6 +731,21 @@ def api_autosave_relatorio():
 
         relatorio_id = data.get('id')
         print(f"🔍 AutoSave: relatório_id = {relatorio_id}")
+        
+        # Verificar se existe relatório com o mesmo número
+        numero_relatorio = data.get('numero')
+        projeto_id = data.get('projeto_id')
+        
+        if numero_relatorio and projeto_id:
+            relatorio_existente = Relatorio.query.filter_by(
+                numero=numero_relatorio,
+                projeto_id=projeto_id
+            ).first()
+            
+            if relatorio_existente and not relatorio_id:
+                # Usar o ID do relatório existente ao invés de criar duplicado
+                relatorio_id = relatorio_existente.id
+                print(f"📌 AutoSave: Relatório existente encontrado com número {numero_relatorio} - ID: {relatorio_id}")
 
         # 1️⃣ CRIAR NOVO RELATÓRIO SE NÃO EXISTIR
         if not relatorio_id:
