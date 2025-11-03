@@ -1149,30 +1149,61 @@ def api_autosave_relatorio():
                         import hashlib
                         imagem_hash = hashlib.sha256(image_bytes).hexdigest()
 
-                        nova_foto = FotoRelatorio(
+                        # 🔧 CORREÇÃO: Verificar se imagem já existe no banco (prevenir duplicação)
+                        foto_existente = FotoRelatorio.query.filter_by(
                             relatorio_id=relatorio_id,
-                            url=foto_info.get('url'),
-                            filename=filename,
-                            imagem=image_bytes,  # SALVAR BYTES NO BANCO
-                            imagem_hash=imagem_hash,
-                            imagem_size=len(image_bytes),
-                            content_type=foto_info.get('content_type') or 'image/jpeg',
-                            legenda=foto_info.get('legenda') or '',
-                            titulo=foto_info.get('titulo') or '',
-                            tipo_servico=foto_info.get('tipo_servico') or 'Geral',
-                            local=foto_info.get('local') or '',
-                            ordem=foto_info.get('ordem', 0)
-                        )
-                        db.session.add(nova_foto)
-                        db.session.flush()  # Para obter o ID
+                            imagem_hash=imagem_hash
+                        ).first()
 
-                        imagens_resultado.append({
-                            'id': nova_foto.id,
-                            'url': nova_foto.url,
-                            'legenda': nova_foto.legenda,
-                            'ordem': nova_foto.ordem
-                        })
-                        logger.info(f"✅ AutoSave: Nova imagem SALVA NO BANCO - id={nova_foto.id} ({len(image_bytes)} bytes)")
+                        if foto_existente:
+                            # Imagem já existe - apenas atualizar metadados se necessário
+                            logger.info(f"⚠️ AutoSave: Imagem já existe no banco (hash={imagem_hash[:12]}...) - ID={foto_existente.id}. Atualizando metadados.")
+                            
+                            # Atualizar metadados da foto existente
+                            if 'legenda' in foto_info and foto_info['legenda']:
+                                foto_existente.legenda = foto_info['legenda']
+                            if 'titulo' in foto_info and foto_info['titulo']:
+                                foto_existente.titulo = foto_info['titulo']
+                            if 'tipo_servico' in foto_info and foto_info['tipo_servico']:
+                                foto_existente.tipo_servico = foto_info['tipo_servico']
+                            if 'local' in foto_info and foto_info['local']:
+                                foto_existente.local = foto_info['local']
+                            if 'ordem' in foto_info:
+                                foto_existente.ordem = foto_info['ordem']
+
+                            imagens_resultado.append({
+                                'id': foto_existente.id,
+                                'url': foto_existente.url,
+                                'legenda': foto_existente.legenda,
+                                'ordem': foto_existente.ordem
+                            })
+                            logger.info(f"✅ AutoSave: Metadados da imagem existente {foto_existente.id} atualizados (não duplicada)")
+                        else:
+                            # Imagem NÃO existe - criar nova
+                            nova_foto = FotoRelatorio(
+                                relatorio_id=relatorio_id,
+                                url=foto_info.get('url'),
+                                filename=filename,
+                                imagem=image_bytes,  # SALVAR BYTES NO BANCO
+                                imagem_hash=imagem_hash,
+                                imagem_size=len(image_bytes),
+                                content_type=foto_info.get('content_type') or 'image/jpeg',
+                                legenda=foto_info.get('legenda') or '',
+                                titulo=foto_info.get('titulo') or '',
+                                tipo_servico=foto_info.get('tipo_servico') or 'Geral',
+                                local=foto_info.get('local') or '',
+                                ordem=foto_info.get('ordem', 0)
+                            )
+                            db.session.add(nova_foto)
+                            db.session.flush()  # Para obter o ID
+
+                            imagens_resultado.append({
+                                'id': nova_foto.id,
+                                'url': nova_foto.url,
+                                'legenda': nova_foto.legenda,
+                                'ordem': nova_foto.ordem
+                            })
+                            logger.info(f"✅ AutoSave: Nova imagem SALVA NO BANCO - id={nova_foto.id} ({len(image_bytes)} bytes)")
 
                 # Atualizar imagem existente
                 else:
