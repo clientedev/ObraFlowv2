@@ -1080,40 +1080,79 @@ def api_autosave_relatorio():
                         import hashlib
                         imagem_hash = hashlib.sha256(image_bytes).hexdigest()
 
-                        # Criar registro no banco COM DADOS BINÁRIOS
-                        nova_foto = FotoRelatorio(
+                        # 🔧 CORREÇÃO CRÍTICA: Verificar se imagem JÁ EXISTE no banco (prevenir duplicação por temp_id)
+                        foto_existente = FotoRelatorio.query.filter_by(
                             relatorio_id=relatorio_id,
-                            url=f"/uploads/{final_filename}",
-                            filename=final_filename,
-                            imagem=image_bytes,  # SALVAR BYTES NO BANCO
-                            imagem_hash=imagem_hash,
-                            imagem_size=len(image_bytes),
-                            content_type=f"image/{extension}",
-                            legenda=foto_info.get('caption') or foto_info.get('legenda') or '',
-                            titulo=foto_info.get('titulo') or '',
-                            tipo_servico=foto_info.get('tipo_servico') or foto_info.get('category') or 'Geral',
-                            local=foto_info.get('local') or '',
-                            ordem=foto_info.get('ordem', idx)
-                        )
-                        db.session.add(nova_foto)
-                        db.session.flush()  # Para obter o ID
+                            imagem_hash=imagem_hash
+                        ).first()
 
-                        # Remover arquivo temporário após sucesso
-                        try:
-                            os.remove(temp_filepath)
-                            logger.info(f"AutoSave: Arquivo temporário removido: {temp_filepath}")
-                        except:
-                            pass
+                        if foto_existente:
+                            # Imagem já existe - apenas atualizar metadados
+                            logger.info(f"⚠️ AutoSave temp_id: Imagem já existe no banco (hash={imagem_hash[:12]}...) - ID={foto_existente.id}. Atualizando metadados.")
+                            
+                            # Atualizar metadados da foto existente
+                            if foto_info.get('caption') or foto_info.get('legenda'):
+                                foto_existente.legenda = foto_info.get('caption') or foto_info.get('legenda')
+                            if foto_info.get('titulo'):
+                                foto_existente.titulo = foto_info.get('titulo')
+                            if foto_info.get('tipo_servico') or foto_info.get('category'):
+                                foto_existente.tipo_servico = foto_info.get('tipo_servico') or foto_info.get('category')
+                            if foto_info.get('local'):
+                                foto_existente.local = foto_info.get('local')
+                            if 'ordem' in foto_info:
+                                foto_existente.ordem = foto_info['ordem']
 
-                        imagens_resultado.append({
-                            'id': nova_foto.id,
-                            'url': nova_foto.url,
-                            'filename': nova_foto.filename,
-                            'legenda': nova_foto.legenda,
-                            'ordem': nova_foto.ordem,
-                            'temp_id': temp_id  # Retornar para frontend mapear
-                        })
-                        logger.info(f"✅ AutoSave: Imagem temp_id={temp_id} SALVA NO BANCO com id={nova_foto.id} ({len(image_bytes)} bytes)")
+                            # Remover arquivo temporário já que não precisamos mais dele
+                            try:
+                                os.remove(temp_filepath)
+                                logger.info(f"AutoSave: Arquivo temporário removido (duplicata): {temp_filepath}")
+                            except:
+                                pass
+
+                            imagens_resultado.append({
+                                'id': foto_existente.id,
+                                'url': foto_existente.url,
+                                'filename': foto_existente.filename,
+                                'legenda': foto_existente.legenda,
+                                'ordem': foto_existente.ordem,
+                                'temp_id': temp_id  # Retornar para frontend mapear
+                            })
+                            logger.info(f"✅ AutoSave: temp_id={temp_id} mapeado para imagem existente {foto_existente.id} (não duplicada)")
+                        else:
+                            # Imagem NÃO existe - criar nova
+                            nova_foto = FotoRelatorio(
+                                relatorio_id=relatorio_id,
+                                url=f"/uploads/{final_filename}",
+                                filename=final_filename,
+                                imagem=image_bytes,  # SALVAR BYTES NO BANCO
+                                imagem_hash=imagem_hash,
+                                imagem_size=len(image_bytes),
+                                content_type=f"image/{extension}",
+                                legenda=foto_info.get('caption') or foto_info.get('legenda') or '',
+                                titulo=foto_info.get('titulo') or '',
+                                tipo_servico=foto_info.get('tipo_servico') or foto_info.get('category') or 'Geral',
+                                local=foto_info.get('local') or '',
+                                ordem=foto_info.get('ordem', idx)
+                            )
+                            db.session.add(nova_foto)
+                            db.session.flush()  # Para obter o ID
+
+                            # Remover arquivo temporário após sucesso
+                            try:
+                                os.remove(temp_filepath)
+                                logger.info(f"AutoSave: Arquivo temporário removido: {temp_filepath}")
+                            except:
+                                pass
+
+                            imagens_resultado.append({
+                                'id': nova_foto.id,
+                                'url': nova_foto.url,
+                                'filename': nova_foto.filename,
+                                'legenda': nova_foto.legenda,
+                                'ordem': nova_foto.ordem,
+                                'temp_id': temp_id  # Retornar para frontend mapear
+                            })
+                            logger.info(f"✅ AutoSave: Imagem temp_id={temp_id} SALVA NO BANCO com id={nova_foto.id} ({len(image_bytes)} bytes)")
 
                     # Imagens já salvas no filesystem - ler arquivo e salvar bytes no banco
                     elif foto_info.get('url') or foto_info.get('filename'):
