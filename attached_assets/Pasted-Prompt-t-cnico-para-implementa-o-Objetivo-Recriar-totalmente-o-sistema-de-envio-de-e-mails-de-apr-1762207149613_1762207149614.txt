@@ -1,0 +1,135 @@
+Prompt técnico para implementação
+
+Objetivo: Recriar totalmente o sistema de envio de e-mails de aprovação de relatórios.
+Nova regra: Ao aprovar um relatório, enviar e-mail padronizado com PDF anexo a todos os envolvidos (autor, responsáveis, acompanhantes e funcionários da obra).
+
+🔧 Prompt
+
+⚙️ Instruções para o Replit (ou ambiente Flask atual):
+
+Apague completamente a lógica anterior de envio de e-mails relacionada à aprovação de relatórios e implemente do zero a seguinte estrutura:
+
+1. Função de envio de e-mail
+
+Crie uma nova função send_report_approval_email(relatorio_id) no backend Flask, responsável por:
+
+Localizar no banco de dados todas as informações do relatório (Relatorio, Projeto, User e tabelas relacionadas).
+
+Gerar o PDF do relatório (caso ainda não exista um arquivo final gerado).
+
+Coletar todos os destinatários relacionados:
+
+Autor do relatório (autor.email);
+
+Responsável pela obra (projeto.responsavel.email);
+
+Funcionários da obra (funcionarios vinculados ao projeto);
+
+Acompanhantes da visita (relatorio.acompanhantes);
+
+Garantir que não haja duplicação de e-mails.
+
+2. Configuração do servidor de e-mail
+
+Configure o envio utilizando a conta:
+
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 587
+SMTP_USER = "relatorios@elpconsultoria.eng.br"
+SMTP_PASS = "ugZ32b9ayCgu5uK="
+
+
+Utilize smtplib com starttls() e autenticação segura.
+Adicione controle de erros com logs em caso de falha de envio.
+
+3. Estrutura do e-mail
+
+Assunto:
+"RELATORIO-{relatorio.numero}"
+(Exemplo: RELATORIO-0001)
+
+Corpo do e-mail (texto simples e HTML):
+
+{email_destinatario}, este é o relatório da obra "{nome_obra}".
+Qualquer dúvida, entre em contato com {email_responsavel_relatorio}.
+
+<p><strong>{email_destinatario}</strong>, este é o relatório da obra <b>{nome_obra}</b>.</p>
+<p>Qualquer dúvida, entre em contato com <a href="mailto:{email_responsavel_relatorio}">{email_responsavel_relatorio}</a>.</p>
+
+
+Anexo: PDF do relatório (RELATORIO-{id}.pdf), carregado do diretório onde os relatórios são exportados.
+
+4. Integração com aprovação
+
+No endpoint de aprovação de relatórios (exemplo: /api/relatorios/<id>/aprovar), após a atualização do status para “Aprovado”, chame:
+
+send_report_approval_email(relatorio_id)
+
+
+O sistema deve registrar em log (INFO:app) cada envio, listando quantos e-mails foram enviados e a quem.
+
+5. Boas práticas e segurança
+
+Use email.message.EmailMessage para anexar o PDF corretamente (MIME).
+
+Valide que o anexo existe antes de tentar enviar.
+
+Trate exceções com mensagens claras no log (ex: “Erro ao enviar e-mail para X: Y”).
+
+Crie um retorno HTTP 200/500 informando o sucesso ou falha no envio.
+
+6. Estrutura resumida sugerida:
+
+import smtplib
+from email.message import EmailMessage
+from models import Relatorio, Projeto, User
+
+def send_report_approval_email(relatorio_id):
+    relatorio = Relatorio.query.get(relatorio_id)
+    if not relatorio:
+        app.logger.error(f"Relatório {relatorio_id} não encontrado.")
+        return
+
+    projeto = relatorio.projeto
+    responsavel_email = relatorio.autor.email
+
+    destinatarios = set()
+    destinatarios.add(responsavel_email)
+    if projeto and projeto.responsavel:
+        destinatarios.add(projeto.responsavel.email)
+
+    # Acompanhantes e funcionários
+    for a in relatorio.acompanhantes:
+        destinatarios.add(a.email)
+    for f in projeto.funcionarios:
+        destinatarios.add(f.email)
+
+    msg = EmailMessage()
+    msg["From"] = SMTP_USER
+    msg["Subject"] = f"RELATORIO-{relatorio.numero}"
+    msg.set_content(f"{responsavel_email}, este é o relatório da obra '{projeto.nome}'. Qualquer dúvida, entre em contato com {responsavel_email}.")
+
+    pdf_path = f"/app/reports/RELATORIO-{relatorio.id}.pdf"
+    with open(pdf_path, "rb") as f:
+        msg.add_attachment(f.read(), maintype="application", subtype="pdf", filename=f"RELATORIO-{relatorio.numero}.pdf")
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
+        smtp.starttls()
+        smtp.login(SMTP_USER, SMTP_PASS)
+        for dest in destinatarios:
+            msg["To"] = dest
+            smtp.send_message(msg)
+            app.logger.info(f"E-mail enviado para {dest}")
+
+
+7. Resultado esperado
+
+Ao aprovar um relatório, todos os envolvidos recebem o e-mail.
+
+O anexo chega corretamente.
+
+O corpo do e-mail segue o padrão definido.
+
+Nenhum e-mail duplicado é enviado.
+
+Logs registram cada envio de forma limpa e auditável.
