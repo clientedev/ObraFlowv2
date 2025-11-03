@@ -313,6 +313,11 @@
 {% endblock %}
 
 {% block content %}
+<script>
+  const REPORT_DATA = {{ report_data | tojson | safe }};
+  const EDIT_MODE = {{ edit_mode | tojson | safe }};
+  console.log("📝 Dados carregados para edição:", REPORT_DATA);
+</script>
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -3148,6 +3153,194 @@ try {
 {% endif %}
 
 console.log('✅ Sistema de acompanhantes inicializado');
+</script>
+
+<!-- Script de carregamento para modo de edição -->
+<script>
+function updatePhotoGallery(photos) {
+  const container = document.querySelector("#mobilePhotoCards");
+  if (!container) {
+    console.warn('⚠️ Container #mobilePhotoCards não encontrado');
+    return;
+  }
+  
+  photos.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "col-md-6 col-lg-4";
+    div.innerHTML = `
+      <div class="mobile-photo-card">
+        <img src="${p.url}" alt="${p.caption || 'Foto'}" class="photo-card-image">
+        <div class="photo-card-content">
+          <p class="mb-1"><strong>${p.caption || "Sem legenda"}</strong></p>
+          ${p.category ? `<p class="mb-0 text-muted"><small><i class="fas fa-tag me-1"></i>${p.category}</small></p>` : ''}
+        </div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+  
+  // Atualizar contador de fotos
+  const photoCountEl = document.querySelector("#photoCount");
+  if (photoCountEl) {
+    photoCountEl.textContent = photos.length;
+  }
+  
+  console.log(`✅ ${photos.length} fotos carregadas na galeria`);
+}
+
+function carregarChecklist(items) {
+  const list = document.querySelector("#checklistItems");
+  if (!list) {
+    console.warn('⚠️ Container #checklistItems não encontrado');
+    return;
+  }
+  list.innerHTML = "";
+  items.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "checklist-item mb-2";
+    if (item.concluido) {
+      div.classList.add("completed");
+    }
+    div.innerHTML = `
+      <label class="d-flex align-items-center">
+        <input type="checkbox" class="form-check-input me-2" ${item.concluido ? "checked" : ""}>
+        <span>${item.descricao}</span>
+      </label>
+    `;
+    list.appendChild(div);
+  });
+  console.log(`✅ ${items.length} itens do checklist carregados`);
+}
+
+function carregarAcompanhantes(acompanhantesData) {
+  const list = document.querySelector("#lista-acompanhantes");
+  if (!list) {
+    console.warn('⚠️ Container #lista-acompanhantes não encontrado');
+    return;
+  }
+  list.innerHTML = "";
+  
+  if (acompanhantesData.length === 0) {
+    list.innerHTML = `
+      <p class="text-muted text-center py-3">
+        <i class="fas fa-info-circle me-1"></i>
+        Nenhum acompanhante adicionado ainda.
+      </p>
+    `;
+    return;
+  }
+  
+  const listGroup = document.createElement("div");
+  listGroup.className = "list-group";
+  
+  acompanhantesData.forEach(a => {
+    const div = document.createElement("div");
+    div.className = "list-group-item";
+    div.innerHTML = `
+      <div class="d-flex align-items-center">
+        <i class="fas fa-user me-2 text-primary"></i>
+        <div>
+          <h6 class="mb-1"><strong>${a.nome}</strong></h6>
+          ${a.funcao ? `<p class="mb-0 text-muted"><small><i class="fas fa-briefcase me-1"></i>${a.funcao}</small></p>` : ''}
+        </div>
+      </div>
+    `;
+    listGroup.appendChild(div);
+  });
+  
+  list.appendChild(listGroup);
+  console.log(`✅ ${acompanhantesData.length} acompanhantes carregados`);
+}
+
+// Carregar dados quando estiver em modo de edição
+document.addEventListener("DOMContentLoaded", () => {
+  console.log('🚀 DOMContentLoaded - Verificando modo de edição');
+  
+  if (typeof REPORT_DATA === 'undefined' || !REPORT_DATA || !REPORT_DATA.relatorio) {
+    console.log('ℹ️ Não há dados de relatório para carregar (modo criação)');
+    return;
+  }
+  
+  console.log('📝 Modo de edição ativado - Carregando dados do relatório');
+  
+  const r = REPORT_DATA.relatorio;
+  
+  // Preencher campos básicos
+  if (r.data_relatorio) {
+    const dataField = document.querySelector('[name="data_relatorio"]');
+    if (dataField) {
+      dataField.value = r.data_relatorio;
+      console.log(`✅ Data: ${r.data_relatorio}`);
+    }
+  }
+  
+  if (r.titulo) {
+    const tituloField = document.querySelector('[name="titulo_relatorio"]') || document.querySelector('[name="titulo"]');
+    if (tituloField) {
+      tituloField.value = r.titulo;
+      console.log(`✅ Título: ${r.titulo}`);
+    }
+  }
+  
+  if (r.numero) {
+    const numeroField = document.querySelector('[name="numero_relatorio"]') || document.querySelector('[name="numero"]');
+    if (numeroField) {
+      numeroField.value = r.numero;
+      console.log(`✅ Número: ${r.numero}`);
+    }
+  }
+  
+  if (r.observacoes_finais) {
+    const obsField = document.querySelector('[name="observacoes_finais"]');
+    if (obsField) {
+      obsField.value = r.observacoes_finais;
+      console.log(`✅ Observações finais carregadas`);
+    }
+  }
+  
+  if (r.lembrete_proxima_visita) {
+    const lembreteField = document.querySelector('[name="lembrete_proxima_visita"]');
+    if (lembreteField) {
+      lembreteField.value = r.lembrete_proxima_visita;
+      console.log(`✅ Lembrete carregado`);
+    }
+  }
+  
+  // Preencher projeto
+  if (REPORT_DATA.projeto) {
+    const projetoField = document.querySelector('[name="projeto"]') || document.querySelector('[name="projeto_id"]');
+    if (projetoField) {
+      // Se for um select, adicionar a opção selecionada
+      if (projetoField.tagName === 'SELECT') {
+        const option = document.createElement('option');
+        option.value = REPORT_DATA.projeto.id;
+        option.textContent = `${REPORT_DATA.projeto.numero || ''} - ${REPORT_DATA.projeto.nome || ''}`;
+        option.selected = true;
+        projetoField.appendChild(option);
+      } else {
+        projetoField.value = REPORT_DATA.projeto.id;
+      }
+      console.log(`✅ Projeto: ${REPORT_DATA.projeto.nome}`);
+    }
+  }
+  
+  // Carregar checklist
+  if (REPORT_DATA.checklist && REPORT_DATA.checklist.length > 0) {
+    carregarChecklist(REPORT_DATA.checklist);
+  }
+  
+  // Carregar acompanhantes
+  if (REPORT_DATA.acompanhantes && REPORT_DATA.acompanhantes.length > 0) {
+    carregarAcompanhantes(REPORT_DATA.acompanhantes);
+  }
+  
+  // Carregar fotos
+  if (REPORT_DATA.fotos && REPORT_DATA.fotos.length > 0) {
+    updatePhotoGallery(REPORT_DATA.fotos);
+  }
+  
+  console.log('✅ Carregamento completo dos dados do relatório');
+});
 </script>
 
 <!-- Auto Save Script -->
