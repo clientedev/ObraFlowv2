@@ -1,0 +1,113 @@
+Correção do salvamento de relatório em modo de edição
+
+Reimplemente completamente a funcionalidade de “Concluir Relatório” para a rota /reports/<id>/editarrel garantindo que os dados editados sejam atualizados corretamente no relatório existente (não criar novo).
+Corrija também o formato de resposta para sempre retornar JSON válido (sem DOCTYPE nem HTML).
+
+Comportamentos obrigatórios:
+
+O botão Concluir Relatório deve enviar um PUT ou POST para /api/reports/<id>/update.
+
+O backend deve fazer UPDATE de todos os campos (titulo, observacoes_finais, data_relatorio, acompanhantes, checklist, imagens, etc.).
+
+As imagens devem ser mantidas se já existirem e novas devem ser adicionadas corretamente.
+
+O retorno deve ser um JSON: { "success": true, "message": "Relatório atualizado com sucesso", "relatorio_id": id }.
+
+Nenhuma resposta deve conter HTML — apenas JSON.
+
+No frontend, após o retorno success, o sistema deve exibir uma mensagem de confirmação e atualizar a página com os dados mais recentes.
+
+🔧 BACKEND — rota de atualização
+
+Substituir ou criar rota /api/reports/<int:report_id>/update:
+
+@app.route('/api/reports/<int:report_id>/update', methods=['POST'])
+@login_required
+def update_report(report_id):
+    try:
+        relatorio = db.session.get(Relatorio, report_id)
+        if not relatorio:
+            return jsonify({"success": False, "message": "Relatório não encontrado"}), 404
+
+        data = request.form or request.json or {}
+        relatorio.titulo = data.get("titulo", relatorio.titulo)
+        relatorio.observacoes_finais = data.get("observacoes_finais", relatorio.observacoes_finais)
+        relatorio.data_relatorio = data.get("data_relatorio", relatorio.data_relatorio)
+        relatorio.lembrete_proxima_visita = data.get("lembrete_proxima_visita")
+
+        # Atualizar acompanhantes
+        if "acompanhantes" in data:
+            relatorio.acompanhantes.clear()
+            for ac in data["acompanhantes"]:
+                relatorio.acompanhantes.append(Funcionario.query.get(ac["id"]))
+
+        # Atualizar checklist
+        if "checklist" in data:
+            relatorio.checklist = json.dumps(data["checklist"])  # armazenar lista em JSON
+
+        # Atualizar imagens
+        imagens_existentes = data.get("imagens_existentes", [])
+        novas_imagens = request.files.getlist("imagens")
+
+        # Mantém apenas as imagens listadas
+        relatorio.imagens_relatorio = [
+            img for img in relatorio.imagens_relatorio if str(img.id) in imagens_existentes
+        ]
+
+        # Adiciona novas imagens
+        for arquivo in novas_imagens:
+            if arquivo.filename:
+                nome_arquivo = secure_filename(arquivo.filename)
+                caminho = os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo)
+                arquivo.save(caminho)
+                nova = ImagemRelatorio(caminho=nome_arquivo, relatorio_id=relatorio.id)
+                db.session.add(nova)
+
+        db.session.commit()
+        return jsonify({"success": True, "message": "Relatório atualizado com sucesso", "relatorio_id": relatorio.id})
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"❌ Erro ao atualizar relatório {report_id}: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+🧠 FRONTEND — envio correto dos dados
+
+O botão “Concluir Relatório” deve enviar via fetch JSON + arquivos, e não tentar interpretar HTML.
+
+async function concluirRelatorio(reportId) {
+  try {
+    const formData = new FormData(document.getElementById("formRelatorio"));
+    const response = await fetch(`/api/reports/${reportId}/update`, {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      alert("Erro ao atualizar relatório: " + data.message);
+      return;
+    }
+
+    alert("✅ Relatório atualizado com sucesso!");
+    window.location.href = `/reports/${reportId}/editarrel`;
+  } catch (err) {
+    console.error("Erro ao concluir relatório:", err);
+    alert("Erro inesperado ao salvar relatório.");
+  }
+}
+
+
+⚠️ Evite interpretar HTML como JSON.
+O erro Unexpected token '<' indica que a rota estava retornando um template (render_template) em vez de jsonify.
+
+✅ Checklist de correção final
+Item	Deve fazer
+🧱 Backend	Retornar apenas JSON, nunca render_template
+🧩 Formulário	Enviar via FormData para /api/reports/<id>/update
+🖼️ Imagens	Carregar no mesmo layout e salvar corretamente
+👥 Acompanhantes	Apenas os selecionados devem ser salvos
+📋 Checklist	Deve carregar e sobrescrever corretamente
+💾 Salvamento	Atualiza o mesmo registro (UPDATE), sem criar outro
+💬 Retorno	JSON: { success: true, message, relatorio_id }

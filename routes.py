@@ -6225,6 +6225,130 @@ def report_edit_complete(report_id):
         app.logger.error(f"❌ Erro ao carregar relatório {report_id}: {e}", exc_info=True)
         return render_template("reports/error_report.html", message=str(e)), 500
 
+@app.route('/api/reports/<int:report_id>/update', methods=['POST'])
+@login_required
+def update_report(report_id):
+    """
+    Rota de atualização de relatório em modo de edição.
+    Atualiza o relatório existente sem criar um novo.
+    Retorna apenas JSON (nunca HTML).
+    """
+    try:
+        relatorio = db.session.get(Relatorio, report_id)
+        if not relatorio:
+            return jsonify({"success": False, "message": "Relatório não encontrado"}), 404
+
+        app.logger.info(f"📝 Atualizando relatório ID={report_id}")
+
+        # Processar dados do formulário
+        data = request.form if request.form else {}
+        
+        # Atualizar campos básicos do relatório
+        if "titulo" in data:
+            relatorio.titulo = data.get("titulo", relatorio.titulo)
+        if "observacoes_finais" in data:
+            relatorio.observacoes_finais = data.get("observacoes_finais", relatorio.observacoes_finais)
+        if "data_relatorio" in data:
+            data_str = data.get("data_relatorio")
+            if data_str:
+                try:
+                    relatorio.data_relatorio = datetime.strptime(data_str, '%Y-%m-%d')
+                except ValueError:
+                    app.logger.warning(f"⚠️ Formato de data inválido: {data_str}")
+        if "lembrete_proxima_visita" in data:
+            relatorio.lembrete_proxima_visita = data.get("lembrete_proxima_visita")
+
+        # Atualizar acompanhantes
+        if "acompanhantes" in data:
+            import json
+            try:
+                acompanhantes_data = data.get("acompanhantes")
+                if isinstance(acompanhantes_data, str):
+                    acompanhantes_data = json.loads(acompanhantes_data)
+                relatorio.acompanhantes = json.dumps(acompanhantes_data)
+                app.logger.info(f"✅ Acompanhantes atualizados: {len(acompanhantes_data) if isinstance(acompanhantes_data, list) else 0}")
+            except Exception as e:
+                app.logger.error(f"❌ Erro ao atualizar acompanhantes: {e}")
+
+        # Atualizar checklist
+        if "checklist" in data:
+            import json
+            try:
+                checklist_data = data.get("checklist")
+                if isinstance(checklist_data, str):
+                    checklist_data = json.loads(checklist_data)
+                relatorio.checklist_data = json.dumps(checklist_data)
+                app.logger.info(f"✅ Checklist atualizado")
+            except Exception as e:
+                app.logger.error(f"❌ Erro ao atualizar checklist: {e}")
+
+        # Processar imagens
+        # Manter apenas as imagens listadas em imagens_existentes
+        imagens_existentes = request.form.getlist("imagens_existentes[]")
+        if imagens_existentes:
+            # Converter para lista de IDs inteiros
+            ids_existentes = []
+            for img_id in imagens_existentes:
+                try:
+                    ids_existentes.append(int(img_id))
+                except ValueError:
+                    pass
+            
+            # Remover imagens que não estão na lista
+            if ids_existentes:
+                FotoRelatorio.query.filter(
+                    FotoRelatorio.relatorio_id == report_id,
+                    ~FotoRelatorio.id.in_(ids_existentes)
+                ).delete(synchronize_session=False)
+                app.logger.info(f"✅ Mantidas {len(ids_existentes)} imagens existentes")
+
+        # Adicionar novas imagens
+        novas_imagens = request.files.getlist("imagens")
+        if novas_imagens:
+            ordem_atual = FotoRelatorio.query.filter_by(relatorio_id=report_id).count()
+            for arquivo in novas_imagens:
+                if arquivo and arquivo.filename:
+                    try:
+                        # Salvar arquivo
+                        nome_arquivo = secure_filename(arquivo.filename)
+                        unique_filename = f"{uuid.uuid4()}_{nome_arquivo}"
+                        caminho = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                        
+                        # Ler dados do arquivo
+                        file_data = arquivo.read()
+                        arquivo.seek(0)
+                        arquivo.save(caminho)
+                        
+                        # Criar registro da foto
+                        nova_foto = FotoRelatorio()
+                        nova_foto.relatorio_id = report_id
+                        nova_foto.filename = unique_filename
+                        nova_foto.imagem = file_data
+                        nova_foto.ordem = ordem_atual + 1
+                        ordem_atual += 1
+                        
+                        db.session.add(nova_foto)
+                        app.logger.info(f"✅ Nova imagem adicionada: {unique_filename}")
+                    except Exception as e:
+                        app.logger.error(f"❌ Erro ao salvar imagem {arquivo.filename}: {e}")
+
+        # Salvar alterações no banco
+        db.session.commit()
+        app.logger.info(f"✅ Relatório {report_id} atualizado com sucesso")
+        
+        return jsonify({
+            "success": True,
+            "message": "Relatório atualizado com sucesso",
+            "relatorio_id": relatorio.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"❌ Erro ao atualizar relatório {report_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @app.route('/reports/<int:report_id>/photos/add', methods=['GET', 'POST'])
 @login_required
 def report_add_photo(report_id):

@@ -1506,79 +1506,8 @@ async function createInitialReport() {
 }
 
 // Submissão do formulário
-document.getElementById('reportForm').addEventListener('submit', function(e) {
-    e.preventDefault(); // Prevent default form submission
-
-    // CRÍTICO: Se há currentReportId, garantir que edit_report_id está no form
-    // Isso previne duplicação - sempre ATUALIZA o relatório existente
-    if (window.currentReportId) {
-        // Adicionar ou atualizar campo edit_report_id no formulário
-        let editField = this.querySelector('input[name="edit_report_id"]');
-        if (!editField) {
-            editField = document.createElement('input');
-            editField.type = 'hidden';
-            editField.name = 'edit_report_id';
-            this.appendChild(editField);
-        }
-        editField.value = window.currentReportId;
-        console.log('✅ edit_report_id adicionado ao form:', window.currentReportId);
-
-        // Adicionar flag para finalizar após salvar
-        let finalizeField = this.querySelector('input[name="should_finalize"]');
-        if (!finalizeField) {
-            finalizeField = document.createElement('input');
-            finalizeField.type = 'hidden';
-            finalizeField.name = 'should_finalize';
-            this.appendChild(finalizeField);
-        }
-        finalizeField.value = 'true';
-        console.log('✅ Flag should_finalize adicionada ao form');
-    }
-
-    // Create FormData object for proper file handling
-    const formData = new FormData(this);
-
-    // Coletar dados do checklist
-    const checklistData = [];
-    document.querySelectorAll('.checklist-item').forEach(item => {
-        const checkbox = item.querySelector('.form-check-input[type="checkbox"]');
-        const label = item.querySelector('.form-check-label');
-        const customInput = item.querySelector('input[type="text"]');
-        const textarea = item.querySelector('textarea');
-
-        if (checkbox) {
-            const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
-            if (itemText) {
-                checklistData.push({
-                    item: itemText,
-                    completed: checkbox.checked,
-                    observations: textarea ? textarea.value : ''
-                });
-            }
-        }
-    });
-
-    // Add checklist data
-    formData.append('checklist_data', JSON.stringify(checklistData));
-
-    // Add photo files and metadata
-    selectedPhotos.forEach((photo, index) => {
-        // Add the actual file
-        formData.append(`photo_${index}`, photo.file);
-
-        // Add photo metadata
-        formData.append(`photo_category_${index}`, photo.category);
-
-        const caption = document.querySelector(`select[name="photo_caption_${photo.id}"]`);
-        if (caption && caption.value) {
-            formData.append(`photo_caption_${index}`, caption.value);
-        }
-
-        // Add edited photo data if exists
-        if (photo.editedSrc) {
-            formData.append(`edited_photo_${index}`, photo.editedSrc);
-        }
-    });
+document.getElementById('reportForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
 
     // Show loading state
     const submitBtn = this.querySelector('button[type="submit"]');
@@ -1586,32 +1515,111 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
     submitBtn.disabled = true;
 
-    // Submit via fetch
-    fetch(this.action, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
+    try {
+        const formData = new FormData(this);
+
+        // Coletar dados do checklist
+        const checklistData = [];
+        document.querySelectorAll('.checklist-item').forEach(item => {
+            const checkbox = item.querySelector('.form-check-input[type="checkbox"]');
+            const label = item.querySelector('.form-check-label');
+            const customInput = item.querySelector('input[type="text"]');
+            const textarea = item.querySelector('textarea');
+
+            if (checkbox) {
+                const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
+                if (itemText) {
+                    checklistData.push({
+                        texto: itemText,
+                        concluido: checkbox.checked,
+                        observacao: textarea ? textarea.value : ''
+                    });
+                }
+            }
+        });
+
+        // Adicionar checklist ao FormData
+        formData.append('checklist', JSON.stringify(checklistData));
+
+        // Coletar acompanhantes selecionados
+        const acompanhantesData = [];
+        document.querySelectorAll('input[name="acompanhantes[]"]:checked').forEach(input => {
+            const acompanhante = {
+                id: input.value,
+                nome: input.dataset.nome || '',
+                funcao: input.dataset.funcao || ''
+            };
+            acompanhantesData.push(acompanhante);
+        });
+        formData.append('acompanhantes', JSON.stringify(acompanhantesData));
+
+        // Coletar IDs das imagens existentes (que não foram removidas)
+        const imagensExistentes = [];
+        document.querySelectorAll('.mobile-photo-card[data-saved-id]').forEach(card => {
+            const savedId = card.dataset.savedId;
+            if (savedId) {
+                imagensExistentes.push(savedId);
+            }
+        });
+        imagensExistentes.forEach(id => {
+            formData.append('imagens_existentes[]', id);
+        });
+
+        // Adicionar novas imagens
+        selectedPhotos.forEach((photo, index) => {
+            if (photo.file && !photo.savedId) {
+                formData.append('imagens', photo.file);
+            }
+        });
+
+        // Determinar a URL de destino e método
+        let url, method;
+        if (EDIT_MODE && REPORT_DATA && REPORT_DATA.relatorio && REPORT_DATA.relatorio.id) {
+            // Modo de edição: usar a nova rota de atualização
+            url = `/api/reports/${REPORT_DATA.relatorio.id}/update`;
+            method = 'POST';
+            console.log('📝 Modo de edição: atualizando relatório ID', REPORT_DATA.relatorio.id);
+        } else if (window.currentReportId) {
+            // Se há currentReportId, também é edição
+            url = `/api/reports/${window.currentReportId}/update`;
+            method = 'POST';
+            formData.append('edit_report_id', window.currentReportId);
+            console.log('📝 Atualizando relatório ID', window.currentReportId);
         } else {
-            return response.json().then(err => Promise.reject(err));
+            // Modo de criação: usar a rota original
+            url = this.action;
+            method = 'POST';
+            console.log('📝 Modo de criação: criando novo relatório');
         }
-    })
-    .then(data => {
-        if (data.success) {
-            alert('Relatório salvo com sucesso!');
+
+        // Enviar requisição
+        const response = await fetch(url, {
+            method: method,
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.message || 'Erro ao salvar relatório');
+        }
+
+        // Sucesso!
+        alert('✅ Relatório atualizado com sucesso!');
+        
+        // Redirecionar de volta para a página de edição ou lista
+        if (EDIT_MODE && REPORT_DATA && REPORT_DATA.relatorio && REPORT_DATA.relatorio.id) {
+            window.location.href = `/reports/${REPORT_DATA.relatorio.id}/editarrel`;
+        } else {
             window.location.href = data.redirect || '/reports';
-        } else {
-            throw new Error(data.error || 'Erro ao salvar relatório');
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Erro ao salvar relatório. Tente novamente.');
+
+    } catch (error) {
+        console.error('❌ Erro ao salvar relatório:', error);
+        alert('Erro ao salvar relatório: ' + error.message);
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
-    });
+    }
 });
 
 // FUNÇÃO DUPLICADA REMOVIDA - usar apenas a versão otimizada para mobile
