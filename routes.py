@@ -6571,15 +6571,23 @@ def update_report(report_id):
                         # Preparar nome do arquivo
                         nome_arquivo_original = secure_filename(arquivo.filename)
                         
-                        # CORREÇÃO DE DUPLICAÇÃO: Verificar se a imagem já existe
+                        # Ler dados do arquivo primeiro
+                        file_data = arquivo.read()
+                        file_size = len(file_data)
+                        app.logger.info(f"📦 Tamanho do arquivo: {file_size} bytes")
+                        
+                        # 🔧 CORREÇÃO CRÍTICA: Verificar duplicação por HASH SHA-256 (mais seguro que filename)
+                        import hashlib
+                        imagem_hash = hashlib.sha256(file_data).hexdigest()
+                        
                         foto_existente = FotoRelatorio.query.filter_by(
                             relatorio_id=report_id,
-                            filename_original=nome_arquivo_original
+                            imagem_hash=imagem_hash
                         ).first()
                         
                         if foto_existente:
-                            # Imagem já existe - apenas atualizar metadados se necessário
-                            app.logger.info(f"🔄 Imagem já existe: {nome_arquivo_original} (ID: {foto_existente.id})")
+                            # Imagem já existe (por hash) - apenas atualizar metadados se necessário
+                            app.logger.info(f"🔄 Imagem já existe (hash={imagem_hash[:12]}...) - ID: {foto_existente.id}. Atualizando apenas metadados.")
                             
                             # Buscar metadados do form se disponíveis
                             legenda = request.form.get(f"legenda_{index}")
@@ -6599,16 +6607,11 @@ def update_report(report_id):
                                 app.logger.info(f"✏️ Local atualizado: {local}")
                             
                             db.session.add(foto_existente)
-                            app.logger.info(f"🖼️ Imagem existente atualizada (sem duplicação): {nome_arquivo_original}")
+                            app.logger.info(f"🖼️ Imagem existente atualizada (sem duplicação por hash)")
                         else:
                             # Nova imagem - processar normalmente
                             unique_filename = f"{uuid.uuid4()}_{nome_arquivo_original}"
                             caminho = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-                            
-                            # Ler dados do arquivo
-                            file_data = arquivo.read()
-                            file_size = len(file_data)
-                            app.logger.info(f"📦 Tamanho do arquivo: {file_size} bytes")
                             
                             arquivo.seek(0)
                             arquivo.save(caminho)
@@ -6625,6 +6628,8 @@ def update_report(report_id):
                             nova_foto.filename = unique_filename
                             nova_foto.filename_original = nome_arquivo_original
                             nova_foto.imagem = file_data
+                            nova_foto.imagem_hash = imagem_hash
+                            nova_foto.imagem_size = file_size
                             nova_foto.legenda = legenda
                             nova_foto.categoria = categoria
                             nova_foto.tipo_servico = categoria
@@ -6633,7 +6638,7 @@ def update_report(report_id):
                             ordem_atual += 1
                             
                             db.session.add(nova_foto)
-                            app.logger.info(f"🆕 Nova imagem adicionada: {unique_filename} (ordem: {nova_foto.ordem})")
+                            app.logger.info(f"🆕 Nova imagem adicionada: {unique_filename} (ordem: {nova_foto.ordem}, hash: {imagem_hash[:12]}...)")
                     except Exception as e:
                         app.logger.error(f"❌ Erro ao processar imagem {arquivo.filename}: {e}")
                         import traceback
