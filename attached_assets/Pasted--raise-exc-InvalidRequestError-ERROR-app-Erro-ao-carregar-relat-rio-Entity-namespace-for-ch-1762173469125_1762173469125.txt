@@ -1,0 +1,90 @@
+    raise exc.InvalidRequestError(
+ERROR:app:❌ Erro ao carregar relatório: Entity namespace for "checklist_obra" has no property "relatorio_id"
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/base.py", line 2215, in _entity_namespace_key
+    return getattr(ns, key)  # type: ignore
+           ^^^^^^^^^^^^^^^^
+AttributeError: type object 'ChecklistObra' has no attribute 'relatorio_id'
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "/app/routes.py", line 5987, in report_edit_complete
+    checklist = ChecklistObra.query.filter_by(relatorio_id=report_id).all()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 1991, in filter_by
+    clauses = [
+              ^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 1992, in <listcomp>
+    _entity_namespace_key(from_entity, key) == value
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/base.py", line 2217, in _entity_namespace_key
+sqlalchemy.exc.InvalidRequestError: Entity namespace for "checklist_obra" has no property "relatorio_id"
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR:app:Exception on /reports/206/editarrel [GET]
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/base.py", line 2217, in _entity_namespace_key
+Traceback (most recent call last):
+    raise exc.InvalidRequestError(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/base.py", line 2215, in _entity_namespace_key
+    return getattr(ns, key)  # type: ignore
+           ^^^^^^^^^^^^^^^^
+AttributeError: type object 'ChecklistObra' has no attribute 'relatorio_id'
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "/app/routes.py", line 5987, in report_edit_complete
+    checklist = ChecklistObra.query.filter_by(relatorio_id=report_id).all()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 1991, in filter_by
+    clauses = [
+              ^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 1992, in <listcomp>
+    _entity_namespace_key(from_entity, key) == value
+sqlalchemy.exc.InvalidRequestError: Entity namespace for "checklist_obra" has no property "relatorio_id"
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask_cors/extension.py", line 194, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+  File "/usr/local/lib/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    return current_app.ensure_sync(func)(*args, **kwargs)
+    self.environment.handle_exception()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+  File "/app/routes.py", line 6031, in report_edit_complete
+    raise rewrite_traceback_stack(source=source)
+    return render_template("reports/error_report.html", message=str(e)), 500
+  File "/app/templates/reports/error_report.html", line 1, in top-level template code
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    {% extends "base.html" %}
+  File "/usr/local/lib/python3.11/site-packages/flask/templating.py", line 150, in render_template
+  File "/app/templates/base.html", line 313, in top-level template code
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/templating.py", line 131, in _render
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/templates/reports/error_report.html", line 34, in block 'content'
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary ms-2">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'dashboard'. Did you mean 'api_dashboard_stats' instead?
