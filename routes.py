@@ -6263,12 +6263,18 @@ def update_report(report_id):
             import json
             try:
                 acompanhantes_data = data.get("acompanhantes")
+                app.logger.info(f"📥 Acompanhantes recebidos (raw): {acompanhantes_data}")
+                
                 if isinstance(acompanhantes_data, str):
                     acompanhantes_data = json.loads(acompanhantes_data)
+                
+                app.logger.info(f"👥 Acompanhantes parseados: {acompanhantes_data}")
                 relatorio.acompanhantes = json.dumps(acompanhantes_data)
                 app.logger.info(f"✅ Acompanhantes atualizados: {len(acompanhantes_data) if isinstance(acompanhantes_data, list) else 0}")
             except Exception as e:
                 app.logger.error(f"❌ Erro ao atualizar acompanhantes: {e}")
+                import traceback
+                traceback.print_exc()
 
         # Atualizar checklist
         if "checklist" in data:
@@ -6304,11 +6310,17 @@ def update_report(report_id):
 
         # Adicionar novas imagens
         novas_imagens = request.files.getlist("imagens")
+        app.logger.info(f"📥 Novas imagens recebidas: {len(novas_imagens)}")
+        
         if novas_imagens:
             ordem_atual = FotoRelatorio.query.filter_by(relatorio_id=report_id).count()
-            for arquivo in novas_imagens:
+            app.logger.info(f"📊 Ordem atual das fotos: {ordem_atual}")
+            
+            for index, arquivo in enumerate(novas_imagens):
                 if arquivo and arquivo.filename:
                     try:
+                        app.logger.info(f"📤 Processando imagem {index + 1}/{len(novas_imagens)}: {arquivo.filename}")
+                        
                         # Salvar arquivo
                         nome_arquivo = secure_filename(arquivo.filename)
                         unique_filename = f"{uuid.uuid4()}_{nome_arquivo}"
@@ -6316,8 +6328,12 @@ def update_report(report_id):
                         
                         # Ler dados do arquivo
                         file_data = arquivo.read()
+                        file_size = len(file_data)
+                        app.logger.info(f"📦 Tamanho do arquivo: {file_size} bytes")
+                        
                         arquivo.seek(0)
                         arquivo.save(caminho)
+                        app.logger.info(f"💾 Arquivo salvo em: {caminho}")
                         
                         # Criar registro da foto
                         nova_foto = FotoRelatorio()
@@ -6328,9 +6344,13 @@ def update_report(report_id):
                         ordem_atual += 1
                         
                         db.session.add(nova_foto)
-                        app.logger.info(f"✅ Nova imagem adicionada: {unique_filename}")
+                        app.logger.info(f"✅ Nova imagem adicionada: {unique_filename} (ordem: {nova_foto.ordem})")
                     except Exception as e:
                         app.logger.error(f"❌ Erro ao salvar imagem {arquivo.filename}: {e}")
+                        import traceback
+                        traceback.print_exc()
+                else:
+                    app.logger.warning(f"⚠️ Arquivo vazio ou sem nome recebido no índice {index}")
 
         # Salvar alterações no banco
         db.session.commit()

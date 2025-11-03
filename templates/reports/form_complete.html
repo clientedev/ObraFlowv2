@@ -1047,15 +1047,39 @@ function addPhotoPreview(file, category) {
 
         document.getElementById('photoPreview').appendChild(photoDiv);
 
-        selectedPhotos.push({
+        // CORREÇÃO DEFINITIVA: Adicionar a AMBOS os arrays para sincronização total
+        const photoObject = {
             id: photoId,
             file: file,
             category: category,
             element: photoDiv,
-            originalSrc: src
-        });
+            originalSrc: src,
+            previewUrl: src,
+            name: file.name,
+            filename: file.name,
+            isExisting: false,  // Nova foto, não existente
+            savedId: null,  // Ainda não foi salva
+            metadata: {
+                legenda: '',
+                categoria: category,
+                local: ''
+            }
+        };
 
-        // Foto adicionada ao array
+        selectedPhotos.push(photoObject);
+        
+        // IMPORTANTE: Adicionar também a window.mobilePhotoData
+        if (!window.mobilePhotoData) {
+            window.mobilePhotoData = [];
+        }
+        window.mobilePhotoData.push(photoObject);
+        
+        console.log(`✅ Nova foto adicionada: ${file.name}`, {
+            id: photoId,
+            category: category,
+            totalSelectedPhotos: selectedPhotos.length,
+            totalMobilePhotoData: window.mobilePhotoData.length
+        });
 
         loadPredefinedCaptionsForPhoto(photoId, category);
     };
@@ -1067,6 +1091,12 @@ function removePhoto(photoId) {
     if (photo) {
         photo.element.remove();
         selectedPhotos = selectedPhotos.filter(p => p.id !== photoId);
+        
+        // CORREÇÃO DEFINITIVA: Remover também de window.mobilePhotoData
+        if (window.mobilePhotoData) {
+            window.mobilePhotoData = window.mobilePhotoData.filter(p => p.id !== photoId);
+            console.log(`🗑️ Foto ${photoId} removida de ambos os arrays`);
+        }
     }
 }
 
@@ -1541,36 +1571,60 @@ document.getElementById('reportForm').addEventListener('submit', async function(
         // Adicionar checklist ao FormData
         formData.append('checklist', JSON.stringify(checklistData));
 
-        // Coletar acompanhantes selecionados
-        const acompanhantesData = [];
-        document.querySelectorAll('input[name="acompanhantes[]"]:checked').forEach(input => {
-            const acompanhante = {
-                id: input.value,
-                nome: input.dataset.nome || '',
-                funcao: input.dataset.funcao || ''
-            };
-            acompanhantesData.push(acompanhante);
-        });
+        // CORREÇÃO DEFINITIVA: Coletar acompanhantes do campo hidden
+        const acompanhantesField = document.getElementById('acompanhantes-data');
+        let acompanhantesData = [];
+        if (acompanhantesField && acompanhantesField.value) {
+            try {
+                acompanhantesData = JSON.parse(acompanhantesField.value);
+                console.log(`👥 Acompanhantes coletados: ${acompanhantesData.length}`, acompanhantesData);
+            } catch (e) {
+                console.error('❌ Erro ao parsear acompanhantes:', e);
+                acompanhantesData = [];
+            }
+        } else {
+            console.warn('⚠️ Campo acompanhantes-data não encontrado ou vazio');
+        }
         formData.append('acompanhantes', JSON.stringify(acompanhantesData));
 
-        // Coletar IDs das imagens existentes (que não foram removidas)
+        // CORREÇÃO DEFINITIVA: Usar window.mobilePhotoData (onde as fotos realmente estão)
+        const photoData = window.mobilePhotoData || [];
+        console.log(`📸 Total de fotos no sistema: ${photoData.length}`);
+
+        // Coletar IDs das imagens existentes (que já estavam salvas)
         const imagensExistentes = [];
-        document.querySelectorAll('.mobile-photo-card[data-saved-id]').forEach(card => {
-            const savedId = card.dataset.savedId;
-            if (savedId) {
-                imagensExistentes.push(savedId);
+        photoData.forEach(photo => {
+            if (photo.savedId || photo.isExisting) {
+                imagensExistentes.push(photo.savedId || photo.id);
+                console.log(`✅ Imagem existente mantida: ${photo.savedId || photo.id}`);
             }
         });
+        
         imagensExistentes.forEach(id => {
             formData.append('imagens_existentes[]', id);
         });
+        console.log(`💾 Total de imagens existentes a manter: ${imagensExistentes.length}`);
 
-        // Adicionar novas imagens
-        selectedPhotos.forEach((photo, index) => {
-            if (photo.file && !photo.savedId) {
+        // Adicionar novas imagens (que têm file mas não têm savedId)
+        let novasImagensCount = 0;
+        photoData.forEach((photo, index) => {
+            if (photo.file && !photo.savedId && !photo.isExisting) {
                 formData.append('imagens', photo.file);
+                novasImagensCount++;
+                console.log(`📤 Nova imagem #${novasImagensCount}: ${photo.name || photo.filename}`);
             }
         });
+        console.log(`📤 Total de novas imagens para upload: ${novasImagensCount}`);
+        
+        // LOG FINAL DE DEBUG: Mostrar tudo que está sendo enviado
+        console.log('📦 RESUMO DO QUE SERÁ ENVIADO:');
+        console.log(`   📸 Imagens existentes: ${imagensExistentes.length}`);
+        console.log(`   📸 Novas imagens: ${novasImagensCount}`);
+        console.log(`   👥 Acompanhantes: ${acompanhantesData.length}`);
+        console.log(`   ✓ Checklist: ${checklistData.length} itens`);
+        if (acompanhantesData.length > 0) {
+            console.log('   👥 Detalhes dos acompanhantes:', acompanhantesData);
+        }
 
         // Determinar a URL de destino e método
         let url, method;
@@ -3650,9 +3704,10 @@ document.addEventListener("DOMContentLoaded", () => {
     REPORT_DATA.fotos.forEach((foto, index) => {
       const photoData = {
         id: foto.id,
-        savedId: foto.savedId || foto.id,
+        savedId: foto.id,  // IMPORTANTE: savedId deve ser o ID do banco de dados
         name: foto.filename || `foto_${foto.id}`,
         filename: foto.filename,
+        file: null,  // Fotos existentes não têm file
         previewUrl: foto.url,
         url: foto.url,
         category: foto.categoria || '',
@@ -3661,7 +3716,7 @@ document.addEventListener("DOMContentLoaded", () => {
         manualCaption: foto.legenda || '',
         predefinedCaption: foto.legenda || '',
         ordem: foto.ordem || index,
-        isExisting: true,
+        isExisting: true,  // IMPORTANTE: marcar como existente
         metadata: {
           legenda: foto.legenda || '',
           categoria: foto.categoria || '',
@@ -3670,8 +3725,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       };
       window.mobilePhotoData.push(photoData);
-      console.log(`✅ Foto ${foto.id} adicionada ao mobilePhotoData:`, photoData);
+      console.log(`✅ Foto existente ${foto.id} carregada:`, {
+        id: photoData.id,
+        savedId: photoData.savedId,
+        isExisting: photoData.isExisting,
+        filename: photoData.filename
+      });
     });
+    
+    console.log(`📸 TOTAL em mobilePhotoData: ${window.mobilePhotoData.length} fotos`);
     
     // Agora renderizar a galeria
     updatePhotoGallery();
