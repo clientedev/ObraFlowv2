@@ -3598,51 +3598,66 @@ function carregarChecklist(items) {
 }
 
 function carregarAcompanhantes(acompanhantesData) {
+  console.log('🔄 carregarAcompanhantes chamada com:', acompanhantesData);
+  
   const list = document.querySelector("#lista-acompanhantes");
   if (!list) {
     console.warn('⚠️ Container #lista-acompanhantes não encontrado');
     return;
   }
 
-  // IMPORTANTE: Sincronizar com o array global
+  // CORREÇÃO CRÍTICA: Clonar dados antes de manipular para evitar perda de referência
+  const dadosParaProcessar = acompanhantesData ? JSON.parse(JSON.stringify(acompanhantesData)) : [];
+  console.log('📋 Dados clonados para processamento:', dadosParaProcessar.length, 'itens');
+
+  // Sincronizar com o array global
   if (typeof acompanhantes !== 'undefined') {
-    acompanhantes = [];
-    if (acompanhantesData && acompanhantesData.length > 0) {
-      acompanhantesData.forEach(a => {
+    // Limpar array global (agora é seguro porque clonamos os dados)
+    acompanhantes.length = 0;
+    
+    // Repopular com os dados clonados
+    if (dadosParaProcessar.length > 0) {
+      dadosParaProcessar.forEach(a => {
         acompanhantes.push({
           id: a.id,
           nome: a.nome || 'Nome não informado',
-          funcao: a.funcao || '',
-          origem: 'Carregado do relatório'
+          funcao: a.funcao || a.cargo || '',
+          origem: a.origem || 'Carregado do relatório'
         });
       });
+      console.log(`✅ Array global sincronizado: ${acompanhantes.length} acompanhantes`);
     }
     
     // Atualizar campo hidden
     const hiddenField = document.getElementById('acompanhantes-data');
     if (hiddenField) {
       hiddenField.value = JSON.stringify(acompanhantes);
-      console.log('✅ Campo hidden de acompanhantes atualizado:', acompanhantes.length);
+      console.log('✅ Campo hidden atualizado com:', acompanhantes.length, 'acompanhantes');
+    } else {
+      console.error('❌ Campo hidden #acompanhantes-data NÃO encontrado!');
     }
+  } else {
+    console.warn('⚠️ Variável global acompanhantes não está definida');
   }
 
-  // Renderizar visualização
+  // Renderizar visualização usando os dados clonados
   list.innerHTML = "";
 
-  if (!acompanhantesData || acompanhantesData.length === 0) {
+  if (dadosParaProcessar.length === 0) {
     list.innerHTML = `
       <p class="text-muted text-center py-3">
         <i class="fas fa-info-circle me-1"></i>
-        Nenhum acompanhante selecionado. Clique em "Adicionar Acompanhante" para selecionar.
+        Nenhum acompanhante adicionado ainda. Clique em "Adicionar Acompanhante" para começar.
       </p>
     `;
+    console.log('ℹ️ Lista de acompanhantes vazia - mostrando mensagem padrão');
     return;
   }
 
   const listGroup = document.createElement("div");
   listGroup.className = "list-group";
 
-  acompanhantesData.forEach((a, index) => {
+  dadosParaProcessar.forEach((a, index) => {
     const div = document.createElement("div");
     div.className = "list-group-item d-flex justify-content-between align-items-center";
     div.setAttribute('data-acompanhante-id', a.id);
@@ -3653,7 +3668,7 @@ function carregarAcompanhantes(acompanhantesData) {
         <i class="fas fa-user me-3 text-primary"></i>
         <div>
           <h6 class="mb-1"><strong>${a.nome || 'Nome não informado'}</strong></h6>
-          ${a.funcao ? `<p class="mb-0 text-muted"><small><i class="fas fa-briefcase me-1"></i>${a.funcao}</small></p>` : ''}
+          ${a.funcao || a.cargo ? `<p class="mb-0 text-muted"><small><i class="fas fa-briefcase me-1"></i>${a.funcao || a.cargo}</small></p>` : ''}
         </div>
       </div>
       <button type="button" 
@@ -3667,7 +3682,7 @@ function carregarAcompanhantes(acompanhantesData) {
   });
 
   list.appendChild(listGroup);
-  console.log(`✅ ${acompanhantesData.length} acompanhantes carregados e sincronizados`);
+  console.log(`✅ ${dadosParaProcessar.length} acompanhantes renderizados na tela!`);
 }
 
 // Função para remover acompanhante do relatório em edição
@@ -3686,8 +3701,8 @@ function removerAcompanhanteDoRelatorio(index) {
       hiddenField.value = JSON.stringify(acompanhantes);
     }
     
-    // Atualizar visualização
-    atualizarListaAcompanhantes();
+    // CORREÇÃO: Usar carregarAcompanhantes para manter renderização consistente
+    carregarAcompanhantes(acompanhantes);
     console.log(`🗑️ Acompanhante removido. Total: ${acompanhantes.length}`);
   }
 }
