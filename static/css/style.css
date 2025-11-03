@@ -284,39 +284,39 @@ body {
     .participant-selector-container {
         padding: 12px;
     }
-    
+
     .participant-controls {
         flex-direction: column;
         gap: 8px;
     }
-    
+
     .participant-controls .btn {
         width: 100%;
         margin-bottom: 4px;
     }
-    
+
     .participant-search-bar {
         flex-direction: column;
         align-items: stretch !important;
     }
-    
+
     .participant-search-bar .flex-grow-1 {
         margin-right: 0;
         margin-bottom: 12px;
     }
-    
+
     .participant-list {
         max-height: 250px !important;
     }
-    
+
     .participant-item {
         padding: 10px;
     }
-    
+
     .participant-name {
         font-size: 0.9rem;
     }
-    
+
     .participant-role {
         font-size: 0.75rem;
     }
@@ -479,7 +479,10 @@ body {
 
 .navbar-logo {
     height: 40px;
-    border-radius: 8px;
+    width: auto;
+    max-width: 150px;
+    object-fit: contain;
+    border-radius: 12px;
     transition: transform 0.2s ease;
 }
 
@@ -491,14 +494,16 @@ body {
 @media (max-width: 767.98px) {
     .navbar-logo {
         height: 35px;
-        border-radius: 6px;
+        max-width: 120px;
+        border-radius: 10px;
     }
 }
 
 @media (max-width: 575.98px) {
     .navbar-logo {
         height: 32px;
-        border-radius: 5px;
+        max-width: 100px;
+        border-radius: 8px;
     }
 }
 
