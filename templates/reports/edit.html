@@ -336,6 +336,15 @@ async function loadLegendasForSelect(selectElement, type) {
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('📄 Carregando dados do relatório ID:', RELATORIO_ID);
 
+    // PRIMEIRO: Carregar legendas globalmente ANTES de renderizar as imagens
+    try {
+        console.log('🏷️ Carregando legendas globalmente...');
+        await window.legendasSelector.loadLegendas('all', true);
+        console.log('✅ Legendas carregadas globalmente');
+    } catch (error) {
+        console.error('❌ Erro ao carregar legendas globalmente:', error);
+    }
+
     try {
         const response = await fetch(`/api/relatorios/${RELATORIO_ID}`, {
             method: 'GET',
@@ -386,7 +395,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Carregar checklist do projeto (se houver projeto_id)
             if (data.projeto && data.projeto.id) {
                 console.log('📋 Carregando checklist para projeto:', data.projeto.id);
-                // O checklist será carregado automaticamente pelo form_complete.html
             }
 
             // Renderizar acompanhantes se existir
@@ -394,31 +402,32 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.log('👥 Acompanhantes encontrados:', data.acompanhantes);
             }
 
-            // Carregar legendas para cada foto existente
-            const photoCards = document.querySelectorAll('[data-photo-id]');
-            console.log(`📸 Carregando legendas para ${photoCards.length} fotos`);
+            // Carregar legendas para cada foto existente APÓS renderizar
+            setTimeout(async () => {
+                const photoCards = document.querySelectorAll('[data-photo-id]');
+                console.log(`📸 Populando selects de legendas para ${photoCards.length} fotos`);
 
-            for (const card of photoCards) {
-                const photoId = card.dataset.photoId;
-                const legendSelect = card.querySelector('.photo-legend');
+                for (const card of photoCards) {
+                    const photoId = card.dataset.photoId;
+                    const legendSelect = card.querySelector('.photo-legend');
 
-                if (legendSelect && legendSelect.tagName === 'SELECT') {
-                    // Usar o sistema global de legendas
-                    const currentValue = legendSelect.dataset.currentValue || '';
+                    if (legendSelect && legendSelect.tagName === 'SELECT') {
+                        const currentValue = legendSelect.dataset.currentValue || '';
 
-                    try {
-                        await window.legendasSelector.populateSelect(legendSelect, 'all', 'Selecione uma legenda...');
+                        try {
+                            await window.legendasSelector.populateSelect(legendSelect, 'all', 'Selecione uma legenda...');
 
-                        // Restaurar valor selecionado
-                        if (currentValue) {
-                            legendSelect.value = currentValue;
-                            console.log(`✅ Legenda mantida para foto ${photoId}: "${currentValue}"`);
+                            // Restaurar valor selecionado
+                            if (currentValue) {
+                                legendSelect.value = currentValue;
+                                console.log(`✅ Legenda mantida para foto ${photoId}: "${currentValue}"`);
+                            }
+                        } catch (error) {
+                            console.error(`❌ Erro ao popular select para foto ${photoId}:`, error);
                         }
-                    } catch (error) {
-                        console.error(`❌ Erro ao carregar legendas para foto ${photoId}:`, error);
                     }
                 }
-            }
+            }, 300);
         }
 
     } catch (error) {
