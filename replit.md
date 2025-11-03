@@ -1,7 +1,18 @@
 # Overview
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, and **autosave functionality with real-time synchronization** (fully debugged, corrected and operational as of Nov 2, 2025 19:45 UTC). The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
-## Recent Changes (Nov 2, 2025)
+## Recent Changes
+
+### Nov 3, 2025
+✅ **Report Image Editing System - FULLY OPERATIONAL**: Complete fix for image display and management during report editing:
+- **Backend**: Fixed `report_edit_complete` endpoint to send correct image URLs using `url_for('api_get_photo', foto_id=f.id)`
+- **Metadata Preservation**: Corrected category field mapping to preserve both `categoria` and `tipo_servico` fields
+- **Frontend**: Updated template to properly populate `window.mobilePhotoData` from `REPORT_DATA.fotos` when loading existing reports
+- **Image Deletion**: Created dedicated API endpoint `/api/fotos/<foto_id>/delete` to avoid routing conflicts with report deletion (`/reports/<id>/delete`)
+- **Complete Workflow**: Users can now open reports, view existing images, add new ones, delete unwanted images, and save—all while maintaining metadata integrity
+- **Architecture Review**: All changes passed architect review with no security issues identified
+
+### Nov 2, 2025
 ✅ **AutoSave Image Upload - DEFINITIVELY FIXED (V3 - 22:22 UTC)**: Resolved critical bug preventing images from being saved to database during autosave:
 - **Root Cause**: Backend was searching for temporary files with wrong extension (`.jpg` default instead of actual `.png`, `.jpeg`, etc.)
 - **Solution**: Implemented dynamic file extension detection using `glob.glob()` to find temp files regardless of extension
