@@ -5573,46 +5573,51 @@ def visit_new():
             db.session.add(visita)
             db.session.flush()  # Get the ID
 
-            # Add selected participants using form data - CORRIGIDO
+            # Rastrear participantes adicionados para evitar duplicatas
+            participantes_adicionados = set()
+
+            # Add selected participants using form data
             if form.participantes.data:
                 current_app.logger.info(f"🔧 Processando {len(form.participantes.data)} participantes")
                 for user_id in form.participantes.data:
                     try:
                         # Validar se user_id é válido
                         user_id_int = int(user_id)
+                        
+                        # Pular se já foi adicionado
+                        if user_id_int in participantes_adicionados:
+                            current_app.logger.warning(f"⚠️ Participante {user_id_int} já processado, pulando")
+                            continue
+                        
                         user_exists = User.query.get(user_id_int)
 
                         if user_exists and user_exists.ativo:
-                            # Verificar se já existe para evitar duplicatas
-                            existing = VisitaParticipante.query.filter_by(
+                            # Marcar como confirmado se for o responsável
+                            is_responsavel = (user_id_int == current_user.id)
+                            
+                            participante = VisitaParticipante(
                                 visita_id=visita.id,
-                                user_id=user_id_int
-                            ).first()
-
-                            if not existing:
-                                participante = VisitaParticipante(
-                                    visita_id=visita.id,
-                                    user_id=user_id_int,
-                                    confirmado=False
-                                )
-                                db.session.add(participante)
-                                current_app.logger.info(f"✅ Participante adicionado: {user_exists.nome_completo}")
-                            else:
-                                current_app.logger.warning(f"⚠️ Participante já existe: {user_exists.nome_completo}")
+                                user_id=user_id_int,
+                                confirmado=is_responsavel  # Responsável já confirmado automaticamente
+                            )
+                            db.session.add(participante)
+                            participantes_adicionados.add(user_id_int)
+                            current_app.logger.info(f"✅ Participante adicionado: {user_exists.nome_completo} (confirmado={is_responsavel})")
                         else:
                             current_app.logger.error(f"❌ Usuário inválido ou inativo: {user_id}")
                     except (ValueError, TypeError) as e:
                         current_app.logger.error(f"❌ Erro ao processar participante {user_id}: {e}")
                         continue
 
-            # Add responsavel as participant if not already included
-            if not form.participantes.data or str(current_user.id) not in form.participantes.data:
+            # Adicionar responsável como participante se ainda não foi adicionado
+            if current_user.id not in participantes_adicionados:
                 responsavel_participante = VisitaParticipante(
                     visita_id=visita.id,
                     user_id=current_user.id,
                     confirmado=True  # Responsável já confirmado automaticamente
                 )
                 db.session.add(responsavel_participante)
+                participantes_adicionados.add(current_user.id)
                 current_app.logger.info(f"✅ Responsável adicionado como participante: {current_user.nome_completo}")
 
             # Add default checklist items from templates if available
@@ -5848,6 +5853,9 @@ def visit_edit(visit_id):
                     VisitaParticipante.query.filter_by(visita_id=visit_id).delete()
                     current_app.logger.info(f"🗑️ Participantes existentes removidos da visita {visit_id}")
 
+                    # Rastrear participantes adicionados para evitar duplicatas
+                    participantes_adicionados = set()
+
                     # Adicionar novos participantes selecionados
                     if form.participantes.data:
                         current_app.logger.info(f"🔧 Processando {len(form.participantes.data)} participantes para edição")
@@ -5856,16 +5864,25 @@ def visit_edit(visit_id):
                             try:
                                 user_id_int = int(user_id)
 
+                                # Pular se já foi adicionado
+                                if user_id_int in participantes_adicionados:
+                                    current_app.logger.warning(f"⚠️ Participante {user_id_int} já processado, pulando")
+                                    continue
+
                                 # Verificar se usuário existe e está ativo
                                 user_exists = User.query.get(user_id_int)
                                 if user_exists and user_exists.ativo:
+                                    # Marcar como confirmado se for o responsável
+                                    is_responsavel = (user_id_int == visit.responsavel_id)
+                                    
                                     participante = VisitaParticipante(
                                         visita_id=visit_id,
                                         user_id=user_id_int,
-                                        confirmado=False
+                                        confirmado=is_responsavel
                                     )
                                     db.session.add(participante)
-                                    current_app.logger.info(f"✅ Participante readicionado: {user_exists.nome_completo}")
+                                    participantes_adicionados.add(user_id_int)
+                                    current_app.logger.info(f"✅ Participante readicionado: {user_exists.nome_completo} (confirmado={is_responsavel})")
                                 else:
                                     current_app.logger.warning(f"⚠️ Usuário inválido ou inativo ignorado: {user_id}")
 
@@ -5873,8 +5890,8 @@ def visit_edit(visit_id):
                                 current_app.logger.warning(f"⚠️ ID de usuário inválido ignorado: {user_id} - {e}")
                                 continue
 
-                    # Sempre garantir que o responsável seja participante
-                    if not form.participantes.data or str(visit.responsavel_id) not in form.participantes.data:
+                    # Adicionar responsável como participante se ainda não foi adicionado
+                    if visit.responsavel_id not in participantes_adicionados:
                         try:
                             responsavel_participante = VisitaParticipante(
                                 visita_id=visit_id,
@@ -5882,6 +5899,7 @@ def visit_edit(visit_id):
                                 confirmado=True  # Responsável já confirmado automaticamente
                             )
                             db.session.add(responsavel_participante)
+                            participantes_adicionados.add(visit.responsavel_id)
                             current_app.logger.info(f"✅ Responsável readicionado como participante")
                         except Exception as resp_error:
                             current_app.logger.error(f"❌ Erro ao readicionar responsável: {resp_error}")

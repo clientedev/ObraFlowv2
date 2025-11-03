@@ -1,0 +1,35 @@
+INFO:app:🔧 Processando 2 participantes
+INFO:app:✅ Participante adicionado: Administrador do Sistema
+INFO:app:✅ Responsável adicionado como participante: Administrador do Sistema
+WARNING:app:⚠️ Erro ao adicionar templates de checklist: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "unique_visita_participante"
+DETAIL:  Key (visita_id, user_id)=(10, 1) already exists.
+[SQL: INSERT INTO visita_participantes (visita_id, user_id, confirmado, created_at) SELECT p0::INTEGER, p1::INTEGER, p2::BOOLEAN, p3::TIMESTAMP WITHOUT TIME ZONE FROM (VALUES (%(visita_id__0)s, %(user_id__0)s, %(confirmado__0)s, %(created_at__0)s, 0), (%(visita_id__1)s, %(user_id__1)s, %(confirmado__1)s, %(created_at__1)s, 1)) AS imp_sen(p0, p1, p2, p3, sen_counter) ORDER BY sen_counter RETURNING visita_participantes.id, visita_participantes.id AS id__1]
+[parameters: {'user_id__0': 2, 'created_at__0': datetime.datetime(2025, 11, 3, 20, 2, 55, 846495), 'visita_id__0': 10, 'confirmado__0': False, 'user_id__1': 1, 'created_at__1': datetime.datetime(2025, 11, 3, 20, 2, 55, 846499), 'visita_id__1': 10, 'confirmado__1': True}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+INFO:app:✅ Participante adicionado: José Leopoldo Pugliese
+Traceback (most recent call last):
+ERROR:app:❌ Erro ao criar visita: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "unique_visita_participante"
+  File "/app/routes.py", line 5633, in visit_new
+    db.session.commit()
+DETAIL:  Key (visita_id, user_id)=(10, 1) already exists.
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/scoping.py", line 599, in commit
+[SQL: INSERT INTO visita_participantes (visita_id, user_id, confirmado, created_at) SELECT p0::INTEGER, p1::INTEGER, p2::BOOLEAN, p3::TIMESTAMP WITHOUT TIME ZONE FROM (VALUES (%(visita_id__0)s, %(user_id__0)s, %(confirmado__0)s, %(created_at__0)s, 0), (%(visita_id__1)s, %(user_id__1)s, %(confirmado__1)s, %(created_at__1)s, 1)) AS imp_sen(p0, p1, p2, p3, sen_counter) ORDER BY sen_counter RETURNING visita_participantes.id, visita_participantes.id AS id__1]
+[parameters: {'user_id__0': 2, 'created_at__0': datetime.datetime(2025, 11, 3, 20, 2, 55, 846495), 'visita_id__0': 10, 'confirmado__0': False, 'user_id__1': 1, 'created_at__1': datetime.datetime(2025, 11, 3, 20, 2, 55, 846499), 'visita_id__1': 10, 'confirmado__1': True}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+    return self._proxied.commit()
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2032, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 101, in _go
+    self._raise_for_prerequisite_state(fn.__name__, current_state)
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 973, in _raise_for_prerequisite_state
+    raise sa_exc.PendingRollbackError(
+sqlalchemy.exc.PendingRollbackError: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "unique_visita_participante"
+DETAIL:  Key (visita_id, user_id)=(10, 1) already exists.
+[SQL: INSERT INTO visita_participantes (visita_id, user_id, confirmado, created_at) SELECT p0::INTEGER, p1::INTEGER, p2::BOOLEAN, p3::TIMESTAMP WITHOUT TIME ZONE FROM (VALUES (%(visita_id__0)s, %(user_id__0)s, %(confirmado__0)s, %(created_at__0)s, 0), (%(visita_id__1)s, %(user_id__1)s, %(confirmado__1)s, %(created_at__1)s, 1)) AS imp_sen(p0, p1, p2, p3, sen_counter) ORDER BY sen_counter RETURNING visita_participantes.id, visita_participantes.id AS id__1]
+[parameters: {'user_id__0': 2, 'created_at__0': datetime.datetime(2025, 11, 3, 20, 2, 55, 846495), 'visita_id__0': 10, 'confirmado__0': False, 'user_id__1': 1, 'created_at__1': datetime.datetime(2025, 11, 3, 20, 2, 55, 846499), 'visita_id__1': 10, 'confirmado__1': True}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
