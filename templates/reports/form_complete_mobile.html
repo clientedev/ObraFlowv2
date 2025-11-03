@@ -1,3 +1,4 @@
+
 {% extends "reports/form_complete.html" %}
 
 {% block extra_css %}
@@ -48,6 +49,56 @@
         width: 100%;
         min-height: 50px;
     }
+
+    /* Estilos para cards de fotos - garantir visibilidade dos campos */
+    .photo-item {
+        margin-bottom: 16px;
+    }
+
+    .photo-item .card {
+        border: 1px solid #dee2e6;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .photo-item .card-img-top {
+        height: 200px;
+        object-fit: cover;
+        width: 100%;
+    }
+
+    .photo-item .badge {
+        font-size: 0.875rem;
+        padding: 0.35em 0.65em;
+    }
+
+    .photo-item .card-body {
+        padding: 1rem;
+    }
+
+    .photo-item .card-body > div {
+        margin-bottom: 0.75rem;
+    }
+
+    .photo-item .card-body strong {
+        display: block;
+        margin-bottom: 0.25rem;
+        color: #212529;
+    }
+
+    .photo-item .text-muted {
+        color: #6c757d !important;
+        font-size: 0.875rem;
+    }
+
+    .photo-item .card-footer {
+        background-color: #f8f9fa;
+        padding: 0.75rem 1rem;
+    }
+
+    .photo-item .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
 }
 
 @media (max-width: 576px) {
@@ -64,52 +115,10 @@
     .checklist-item {
         padding: 10px;
     }
+
+    .photo-item .card-img-top {
+        height: 180px;
+    }
 }
 </style>
-{% endblock %}
-
-{% block form_content %}
-    {% if relatorio.fotos_relatorio %}
-                                    {% for foto in relatorio.fotos_relatorio %}
-                                    <div class="photo-item" data-photo-id="{{ foto.id }}">
-                                        <div class="card h-100 shadow-sm">
-                                            <div class="position-relative">
-                                                <img src="{{ foto.url or url_for('imagem_relatorio', filename=foto.filename) }}" 
-                                                     alt="{{ foto.legenda or 'Foto' }}"
-                                                     class="card-img-top"
-                                                     onerror="handleImageError(this)"
-                                                     loading="lazy"
-                                                     style="height: 200px; object-fit: cover;">
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="mb-2">
-                                                    <span class="badge bg-primary">{{ foto.categoria or 'Sem categoria' }}</span>
-                                                </div>
-                                                <div class="mb-2">
-                                                    <i class="fas fa-map-marker-alt text-danger"></i>
-                                                    <strong>Local:</strong>
-                                                    <div class="text-muted">{{ foto.local or 'Não especificado' }}</div>
-                                                </div>
-                                                <div>
-                                                    <i class="fas fa-comment-alt text-primary"></i>
-                                                    <strong>Legenda:</strong>
-                                                    <div class="text-muted">{{ foto.legenda or 'Sem legenda' }}</div>
-                                                </div>
-                                            </div>
-                                            <div class="card-footer bg-light">
-                                                <div class="d-flex gap-2 justify-content-end">
-                                                    <button type="button" class="btn btn-sm btn-primary" 
-                                                            onclick="editarFoto({{ foto.id }})">
-                                                        <i class="fas fa-edit"></i> Editar
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-danger" 
-                                                            onclick="excluirFoto({{ foto.id }})">
-                                                        <i class="fas fa-trash"></i> Excluir
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                {% endif %}
 {% endblock %}
