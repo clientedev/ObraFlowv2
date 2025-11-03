@@ -2468,17 +2468,108 @@ document.addEventListener('DOMContentLoaded', function() {
 // Load predefined captions from API
 async function loadPredefinedLegendas() {
     try {
-        console.log('📋 Carregando legendas predefinidas...');
+        console.log('📦 Carregando legendas pré-definidas...');
         const response = await fetch('/api/legendas?categoria=all');
+        
+        if (!response.ok) {
+            throw new Error(`Falha ao carregar legendas. Status: ${response.status}`);
+        }
+        
         const data = await response.json();
 
-        if (data.success) {
+        if (data.success && Array.isArray(data.legendas)) {
             predefinedLegendas = data.legendas;
-            console.log(`✅ ${predefinedLegendas.length} legendas carregadas`);
+            console.log(`✅ ${predefinedLegendas.length} legendas carregadas com sucesso`);
+            
+            // ✅ CORREÇÃO: Preencher todos os dropdowns existentes após carregar as legendas
+            preencherDropdownLegendas();
+        } else if (Array.isArray(data.legendas) && data.legendas.length > 0) {
+            // Se apenas data.legendas existe, usar mesmo assim
+            predefinedLegendas = data.legendas;
+            console.log(`✅ ${predefinedLegendas.length} legendas carregadas (sem flag success)`);
+            preencherDropdownLegendas();
+        } else {
+            console.warn('⚠️ Nenhuma legenda encontrada na resposta');
+            predefinedLegendas = [];
         }
     } catch (error) {
         console.error('❌ Erro ao carregar legendas:', error);
+        predefinedLegendas = [];
     }
+}
+
+// ✅ NOVA FUNÇÃO: Preenche todos os dropdowns de legendas pré-definidas
+function preencherDropdownLegendas() {
+    if (!predefinedLegendas || predefinedLegendas.length === 0) {
+        console.warn('⚠️ Nenhuma legenda disponível para preencher dropdowns');
+        return;
+    }
+
+    // Selecionar todos os dropdowns de legenda (caption-select)
+    const selects = document.querySelectorAll('.caption-select');
+    
+    if (selects.length === 0) {
+        console.log('ℹ️ Nenhum dropdown de legenda encontrado no momento (normal se não há fotos ainda)');
+        return;
+    }
+
+    console.log(`📋 Preenchendo ${selects.length} dropdowns de legendas...`);
+    
+    selects.forEach(select => {
+        // Limpar opções antigas (manter apenas o placeholder)
+        select.innerHTML = '<option value="">📋 Ou escolha uma legenda pré-definida...</option>';
+        
+        // Agrupar legendas por categoria
+        const legendsByCategory = {};
+        predefinedLegendas.forEach(legenda => {
+            if (!legendsByCategory[legenda.categoria]) {
+                legendsByCategory[legenda.categoria] = [];
+            }
+            legendsByCategory[legenda.categoria].push(legenda);
+        });
+        
+        // Adicionar opções agrupadas
+        Object.keys(legendsByCategory).sort().forEach(categoria => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = `${categoria} (${legendsByCategory[categoria].length})`;
+            
+            legendsByCategory[categoria].forEach(legenda => {
+                const option = document.createElement('option');
+                option.value = legenda.texto;
+                option.textContent = legenda.texto;
+                option.dataset.categoria = legenda.categoria;
+                option.dataset.id = legenda.id;
+                
+                optgroup.appendChild(option);
+            });
+            
+            select.appendChild(optgroup);
+        });
+        
+        // ✅ CORREÇÃO: Garantir que o listener de change está configurado
+        const photoId = select.dataset.photoId;
+        if (photoId && !select.dataset.listenerAdded) {
+            const manualInput = document.getElementById(`manual_caption_${photoId}`);
+            if (manualInput) {
+                select.addEventListener('change', function() {
+                    if (this.value) {
+                        // Preencher o campo de texto automaticamente
+                        manualInput.value = this.value;
+                        manualInput.classList.add('border-success');
+                        savePhotoData(photoId);
+                        
+                        // Reset select para permitir reutilização
+                        setTimeout(() => {
+                            this.selectedIndex = 0;
+                        }, 500);
+                    }
+                });
+                select.dataset.listenerAdded = 'true';
+            }
+        }
+    });
+    
+    console.log(`✅ ${selects.length} dropdowns preenchidos com ${predefinedLegendas.length} legendas`);
 }
 
 // Setup mobile photo system
@@ -2620,6 +2711,11 @@ function createMobilePhotoCard(file, category) {
         // Setup event listeners for this card
         setupPhotoCardEvents(photoId);
 
+        // ✅ CORREÇÃO: Preencher dropdowns de legendas para o novo cartão
+        if (predefinedLegendas && predefinedLegendas.length > 0) {
+            preencherDropdownLegendas();
+        }
+
         // Immediately scroll to the new photo and focus on caption for better UX
         setTimeout(() => {
             const newCard = cardCol.querySelector('.mobile-photo-card');
@@ -2722,28 +2818,11 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
 }
 
 // Create legend select HTML
+// ✅ CORREÇÃO: Esta função agora retorna vazio - o preenchimento é feito por preencherDropdownLegendas()
 function createLegendaSelectHTML(photoId) {
-    let html = '';
-
-    // Group legends by category
-    const legendsByCategory = {};
-    predefinedLegendas.forEach(legenda => {
-        if (!legendsByCategory[legenda.categoria]) {
-            legendsByCategory[legenda.categoria] = [];
-        }
-        legendsByCategory[legenda.categoria].push(legenda);
-    });
-
-    // Create optgroups
-    Object.keys(legendsByCategory).forEach(categoria => {
-        html += `<optgroup label="${categoria}">`;
-        legendsByCategory[categoria].forEach(legenda => {
-            html += `<option value="${legenda.texto}">${legenda.texto}</option>`;
-        });
-        html += `</optgroup>`;
-    });
-
-    return html;
+    // Retornar vazio - as legendas serão carregadas dinamicamente por preencherDropdownLegendas()
+    // Isso garante que as legendas sejam carregadas após o fetch da API estar completo
+    return '';
 }
 
 // Setup event listeners for photo card
@@ -3428,6 +3507,15 @@ function updatePhotoGallery() {
     });
 
     updatePhotoCounter();
+    
+    // ✅ CORREÇÃO: Preencher dropdowns de legendas para todas as fotos existentes
+    setTimeout(() => {
+        if (predefinedLegendas && predefinedLegendas.length > 0) {
+            preencherDropdownLegendas();
+            console.log('✅ Dropdowns de legendas preenchidos para fotos existentes');
+        }
+    }, 400);
+    
     console.log('✅ Galeria atualizada com metadados completos');
 }
 

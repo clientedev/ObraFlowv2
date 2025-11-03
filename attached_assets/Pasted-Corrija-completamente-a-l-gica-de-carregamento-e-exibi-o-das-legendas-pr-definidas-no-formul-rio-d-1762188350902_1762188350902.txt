@@ -1,0 +1,104 @@
+Corrija completamente a lógica de carregamento e exibição das legendas pré-definidas no formulário de edição de relatório (/reports/<id>/editarrel).
+
+O backend já retorna corretamente as legendas pela rota:
+
+GET /api/legendas?categoria=all
+
+
+e o console mostra ✅ DADOS OK: 42 legendas (sem mudanças),
+mas elas não aparecem na lista de seleção (<select> ou dropdown) ao editar.
+
+⚙️ Requisitos para a correção:
+1️⃣ As legendas devem ser carregadas assim que a página for aberta.
+2️⃣ Devem aparecer no campo “Ou escolha uma legenda pré-definida” de cada imagem existente.
+3️⃣ A legenda selecionada deve preencher automaticamente o campo de texto “Legenda *”.
+4️⃣ Deve funcionar tanto na criação quanto na edição de relatórios.
+5️⃣ O carregamento deve ocorrer apenas uma vez e armazenar as legendas em cache (para não refazer o GET a cada imagem).
+6️⃣ Caso a API falhe, exibir uma mensagem de erro clara no console.
+
+🧩 FRONTEND — Substituir o carregamento de legendas
+// --- reports_legendas.js ---
+// Corrige o carregamento e vinculação das legendas pré-definidas
+
+async function carregarLegendasPreDefinidas() {
+  try {
+    console.log("📦 Carregando legendas pré-definidas...");
+    const response = await fetch("/api/legendas?categoria=all");
+    if (!response.ok) throw new Error("Falha ao carregar legendas.");
+
+    const data = await response.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      console.warn("⚠️ Nenhuma legenda encontrada.");
+      return [];
+    }
+
+    console.log(`✅ ${data.length} legendas carregadas com sucesso.`);
+    return data;
+  } catch (error) {
+    console.error("❌ Erro ao carregar legendas:", error);
+    return [];
+  }
+}
+
+// --- Preenche o dropdown de legendas em cada bloco de imagem ---
+async function preencherDropdownLegendas() {
+  const legendas = await carregarLegendasPreDefinidas();
+  if (!legendas.length) return;
+
+  document.querySelectorAll(".legenda-select").forEach(select => {
+    // Limpa opções antigas
+    select.innerHTML = `<option value="">Ou escolha uma legenda pré-definida</option>`;
+    // Preenche lista
+    legendas.forEach(legenda => {
+      const opt = document.createElement("option");
+      opt.value = legenda.texto || legenda.nome || legenda.legenda;
+      opt.textContent = legenda.texto || legenda.nome || legenda.legenda;
+      select.appendChild(opt);
+    });
+
+    // Ao selecionar uma legenda, preencher o campo de texto automaticamente
+    select.addEventListener("change", e => {
+      const campoLegenda = select.closest(".photo-card").querySelector(".photo-caption");
+      if (campoLegenda) campoLegenda.value = e.target.value;
+      campoLegenda.classList.add("border-success");
+    });
+  });
+}
+
+// --- Chama assim que a tela de edição estiver pronta ---
+document.addEventListener("DOMContentLoaded", () => {
+  preencherDropdownLegendas();
+});
+
+✅ HTML — garantir a estrutura esperada
+
+Cada bloco de imagem no template form_complete.html deve ter:
+
+<div class="photo-card" data-photo-id="{{ imagem.id }}">
+  <label>Legenda *</label>
+  <input type="text" class="form-control photo-caption" value="{{ imagem.legenda or '' }}">
+
+  <select class="form-select legenda-select">
+    <option value="">Ou escolha uma legenda pré-definida</option>
+  </select>
+</div>
+
+🧩 BACKEND — garantir o formato esperado
+
+A rota /api/legendas deve retornar um array simples, ex:
+
+[
+  {"id": 1, "texto": "Emboço mal-acabado"},
+  {"id": 2, "texto": "Lixamento executado sem preenchimento"},
+  {"id": 3, "texto": "Pintura irregular"}
+]
+
+
+Se atualmente ela retorna algo como {"data": [...]}, ajuste o JS para data.data em vez de data.
+
+🧠 Diagnóstico e Garantias
+Situação atual	Causa	Correção aplicada
+✅ API retorna legendas, mas dropdown vazio	Script não popula os <select>	JS faz fetch e preenche todos
+⚠️ Dropdown sem listener	Nenhum evento vinculado	select.addEventListener("change", ...) incluído
+⚡ API sendo chamada várias vezes	Multiplicação de chamadas por foto	Armazena em cache (carregarLegendasPreDefinidas() é chamada uma vez)
+🧱 Legenda selecionada não preenche input	Falta sincronização de campos	Sincronização automática adicionada
