@@ -3121,6 +3121,7 @@ def create_report():
     # Auto-preenchimento: Verificar se projeto_id foi passado como parâmetro da URL
     selected_project = None
     selected_aprovador = None
+    selected_aprovador_nome = ''
     next_numero = None
     lembrete_anterior = None
     
@@ -3128,7 +3129,9 @@ def create_report():
     if existing_report:
         selected_project = existing_report.projeto
         if selected_project:
-            selected_aprovador = get_aprovador_padrao_para_projeto(selected_project.id)
+            aprovador_obj = get_aprovador_padrao_para_projeto(selected_project.id)
+            selected_aprovador_nome = aprovador_obj.nome_completo if aprovador_obj else ''
+            selected_aprovador = selected_aprovador_nome
     else:
         projeto_id_param = request.args.get('projeto_id')
         if projeto_id_param:
@@ -3137,7 +3140,9 @@ def create_report():
                 selected_project = Projeto.query.get(projeto_id_param)
                 # Buscar aprovador padrão para este projeto
                 if selected_project:
-                    selected_aprovador = get_aprovador_padrao_para_projeto(selected_project.id)
+                    aprovador_obj = get_aprovador_padrao_para_projeto(selected_project.id)
+                    selected_aprovador_nome = aprovador_obj.nome_completo if aprovador_obj else ''
+                    selected_aprovador = selected_aprovador_nome
                     
                     # Calculate next report number: max of (numeracao_inicial-1, highest existing numero_projeto) + 1
                     numeracao_inicial = selected_project.numeracao_inicial or 1
@@ -3170,7 +3175,9 @@ def create_report():
                 selected_project = None
         else:
             # Se não há projeto específico, buscar aprovador global
-            selected_aprovador = get_aprovador_padrao_para_projeto(None)
+            aprovador_obj = get_aprovador_padrao_para_projeto(None)
+            selected_aprovador_nome = aprovador_obj.nome_completo if aprovador_obj else ''
+            selected_aprovador = selected_aprovador_nome
 
     # ===== SERIALIZAÇÃO DE OBJETOS PARA JSON =====
     # Converter todos os objetos ORM em dicionários simples
