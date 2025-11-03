@@ -1092,7 +1092,7 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
                         'Acabamentos': [],
                         'Estrutural': [],
                         'Geral': [],
-                        'Segurança': []
+                        'Segurança' : []
                     };
 
                     data.legendas.forEach(leg => {
@@ -1703,10 +1703,10 @@ function carregarChecklistProjeto(projetoId) {
                 data.checklist.forEach(item => {
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'checklist-item mb-3';
-                    
+
                     // Verificar se este item estava marcado antes
                     const wasChecked = currentCheckedIds.includes(String(item.id));
-                    
+
                     itemDiv.innerHTML = `
                         <div class="d-flex align-items-start">
                             <div class="form-check me-3">
@@ -3221,35 +3221,94 @@ console.log('✅ Sistema de acompanhantes inicializado');
 
 <!-- Script de carregamento para modo de edição -->
 <script>
-function updatePhotoGallery(photos) {
-  const container = document.querySelector("#mobilePhotoCards");
-  if (!container) {
-    console.warn('⚠️ Container #mobilePhotoCards não encontrado');
-    return;
-  }
+// Update photo gallery - VERSÃO CORRIGIDA para fotos existentes
+function updatePhotoGallery() {
+    const container = document.getElementById('mobilePhotoCards');
+    if (!container) {
+        console.warn('⚠️ Container mobilePhotoCards não encontrado');
+        return;
+    }
 
-  photos.forEach(p => {
-    const div = document.createElement("div");
-    div.className = "col-md-6 col-lg-4";
-    div.innerHTML = `
-      <div class="mobile-photo-card">
-        <img src="${p.url}" alt="${p.caption || 'Foto'}" class="photo-card-image">
-        <div class="photo-card-content">
-          <p class="mb-1"><strong>${p.caption || "Sem legenda"}</strong></p>
-          ${p.category ? `<p class="mb-0 text-muted"><small><i class="fas fa-tag me-1"></i>${p.category}</small></p>` : ''}
-        </div>
-      </div>
-    `;
-    container.appendChild(div);
-  });
+    container.innerHTML = '';
 
-  // Atualizar contador de fotos
-  const photoCountEl = document.querySelector("#photoCount");
-  if (photoCountEl) {
-    photoCountEl.textContent = photos.length;
-  }
+    if (!window.mobilePhotoData || window.mobilePhotoData.length === 0) {
+        console.log('📸 Nenhuma foto para renderizar');
+        updatePhotoCounter();
+        return;
+    }
 
-  console.log(`✅ ${photos.length} fotos carregadas na galeria`);
+    console.log(`🎨 Renderizando ${window.mobilePhotoData.length} fotos`);
+
+    window.mobilePhotoData.forEach((photo, index) => {
+        const cardCol = document.createElement('div');
+        cardCol.className = 'col-12 col-md-6 col-lg-4';
+
+        // CORREÇÃO: Garantir que categoria seja extraída corretamente
+        const categoria = photo.metadata?.categoria || photo.metadata?.tipo_servico || photo.category || photo.tipo_servico || '';
+        const local = photo.metadata?.local || photo.local || '';
+        const legenda = photo.metadata?.legenda || photo.legenda || photo.caption || '';
+
+        console.log(`📸 Foto ${index + 1}:`, {
+            id: photo.id,
+            categoria: categoria,
+            local: local,
+            legenda: legenda,
+            isExisting: photo.isExisting
+        });
+
+        const photoCard = createPhotoCardHTML(
+            photo.id,
+            photo.previewUrl || photo.url,
+            categoria,
+            photo.name || photo.filename || photo.filename_original || `foto_${index + 1}`
+        );
+
+        cardCol.innerHTML = photoCard;
+        container.appendChild(cardCol);
+
+        // Setup event listeners for this card
+        setupPhotoCardEvents(photo.id);
+
+        // CORREÇÃO: Preencher TODOS os campos com dados existentes
+        setTimeout(() => {
+            const legendaInput = document.getElementById(`manual_caption_${photo.id}`);
+            const categoriaSelect = document.getElementById(`category_${photo.id}`);
+            const localInput = document.getElementById(`local_${photo.id}`);
+            const predefinedSelect = document.getElementById(`predefined_caption_${photo.id}`);
+
+            // Preencher legenda manual
+            if (legendaInput && legenda) {
+                legendaInput.value = legenda;
+                console.log(`✅ Legenda preenchida para ${photo.id}: ${legenda}`);
+            }
+
+            // Preencher categoria
+            if (categoriaSelect && categoria) {
+                categoriaSelect.value = categoria;
+                console.log(`✅ Categoria preenchida para ${photo.id}: ${categoria}`);
+            }
+
+            // Preencher local
+            if (localInput && local) {
+                localInput.value = local;
+                console.log(`✅ Local preenchido para ${photo.id}: ${local}`);
+            }
+
+            // Se tem legenda, também preencher o select de predefinidas
+            if (predefinedSelect && legenda) {
+                const options = predefinedSelect.querySelectorAll('option');
+                for (let opt of options) {
+                    if (opt.value === legenda) {
+                        predefinedSelect.value = legenda;
+                        break;
+                    }
+                }
+            }
+        }, 200);
+    });
+
+    updatePhotoCounter();
+    console.log('✅ Galeria atualizada com metadados completos');
 }
 
 function carregarChecklist(items) {
@@ -3484,18 +3543,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Carregar checklist
   console.log('📋 Verificando checklist...', REPORT_DATA.checklist);
-  
+
   // Verificar se o checklist tem itens válidos (com campo "texto")
   const checklistValido = REPORT_DATA.checklist && 
                           REPORT_DATA.checklist.length > 0 && 
                           REPORT_DATA.checklist.some(item => item.texto && item.texto !== '');
-  
+
   if (checklistValido) {
     console.log(`📋 Carregando ${REPORT_DATA.checklist.length} itens do checklist do relatório`);
     carregarChecklist(REPORT_DATA.checklist);
   } else {
     console.warn('⚠️ Checklist vazio ou inválido no relatório');
-    
+
     // Se há um projeto selecionado, carregar o checklist do projeto
     if (projetoIdSelecionado) {
       console.log(`📋 Carregando checklist do projeto ${projetoIdSelecionado}...`);
