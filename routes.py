@@ -3637,182 +3637,47 @@ def review_report(report_id):
 @app.route('/reports/<int:id>/approve', methods=['POST'])
 @login_required
 def approve_report(id):
-    """
-    Aprovar relatório - apenas usuários aprovadores
-    Implementado conforme Item 23: Correção das Funcionalidades de Aprovação
-    """
-    relatorio = Relatorio.query.get_or_404(id)
+    """Aprova relatório, gera PDF e envia e-mail via Resend."""
+    relatorio = db.session.get(Relatorio, id)
+    if not relatorio:
+        return jsonify({"error": "Relatório não encontrado"}), 404
 
-    # Verificar se usuário é aprovador para este projeto
-    if not current_user_is_aprovador(relatorio.projeto_id):
-        flash('Acesso negado. Apenas usuários aprovadores podem aprovar relatórios.', 'error')
-        return redirect(url_for('reports'))
+    pdf_path = f"/app/static/reports/relatorio_{relatorio.numero}.pdf"
 
-    # Guardar dados importantes antes de modificar
-    autor = relatorio.autor
-    aprovador = current_user
-    projeto = relatorio.projeto
-    
-    try:
-        # ========== BLOCO 1: ATUALIZAÇÃO DO BANCO DE DADOS ==========
-        # Todas as operações de banco DEVEM ser concluídas ANTES do envio de e-mail
-        
-        # 1. Atualizar status do relatório
-        relatorio.status = 'Aprovado'
-        relatorio.aprovado_por = current_user.id
-        relatorio.data_aprovacao = datetime.utcnow()
-        
-        # 2. COMMIT ÚNICO de todas as alterações do banco
+    destinatarios = []
+    if relatorio.responsavel and getattr(relatorio.responsavel, "email", None):
+        destinatarios.append(relatorio.responsavel.email)
+    for acomp in getattr(relatorio.acompanhantes, "__iter__", lambda: [])():
+        if getattr(acomp, "email", None):
+            destinatarios.append(acomp.email)
+    if getattr(current_user, "email", None):
+        destinatarios.append(current_user.email)
+
+    destinatarios = list(set(destinatarios))
+    print(f"📧 Enviando relatório para: {destinatarios}")
+
+    assunto = f"RELATÓRIO-{relatorio.numero}"
+    corpo_html = f"""
+    <p>Olá,</p>
+    <p>Este é o relatório da obra <b>{relatorio.projeto.nome}</b>.</p>
+    <p>Qualquer dúvida, entre em contato com <b>{relatorio.responsavel.email}</b>.</p>
+    <br><p>Atenciosamente,<br><b>ELP Consultoria</b></p>
+    """
+
+    from email_service import EmailServiceRelatorio
+    email_service = EmailServiceRelatorio()
+    enviado = email_service.enviar_relatorio_por_email(
+        relatorio.id, destinatarios, assunto, corpo_html, pdf_path
+    )
+
+    if enviado:
+        relatorio.status = "Aprovado"
         db.session.commit()
-        
-        # 3. Criar notificação para o autor usando o novo serviço
-        from notification_service import notification_service
-        try:
-            notification_service.criar_notificacao(
-                user_id=autor.id,
-                tipo='relatorio_aprovado',
-                titulo=f"Relatório {relatorio.numero} aprovado",
-                mensagem=f'O relatório "{relatorio.titulo}" referente à obra {projeto.nome} foi aprovado por {aprovador.nome_completo}.',
-                link_destino=url_for('review_report', report_id=relatorio.id)
-            )
-        except Exception as notif_error:
-            current_app.logger.error(f"⚠️ Erro ao criar notificação de aprovação: {notif_error}")
-        
-        # 4. Enviar push notification após commit
-        from notification_service import notification_service
-        if autor.fcm_token:
-            notification_service.enviar_push_notification(
-                token=autor.fcm_token,
-                titulo=titulo,
-                corpo=f"Seu relatório para {projeto.nome} foi aprovado!",
-                link=url_for('review_report', report_id=relatorio.id),
-                tipo='aprovado'
-            )
-        
-        current_app.logger.info(f"✅ Relatório {relatorio.numero} aprovado com sucesso - Status atualizado no banco")
-        
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"❌ Erro ao aprovar relatório {relatorio.numero}: {str(e)}")
-        flash(f'Erro ao aprovar relatório: {str(e)}', 'error')
-        return redirect(url_for('review_report', report_id=id))
-    
-    # ========== BLOCO 2: ENVIO DE E-MAILS (APÓS COMMIT) ==========
-    # E-mails são enviados APÓS o commit para evitar InFailedSqlTransaction
-    
-    # 2.1 Coletar todos os destinatários da obra
-    destinatarios_obra = []
-    
-    # Adicionar autor do relatório
-    if autor.email:
-        destinatarios_obra.append({
-            'email': autor.email,
-            'nome': autor.nome_completo,
-            'tipo': 'autor'
-        })
-    
-    # Adicionar responsável do projeto
-    if projeto.responsavel and projeto.responsavel.email:
-        if projeto.responsavel.email != autor.email:  # Evitar duplicata
-            destinatarios_obra.append({
-                'email': projeto.responsavel.email,
-                'nome': projeto.responsavel.nome_completo,
-                'tipo': 'responsavel'
-            })
-    
-    # Adicionar funcionários da obra (se houver campo email)
-    try:
-        from models import User
-        funcionarios = User.query.filter(
-            User.projetos.any(id=projeto.id),
-            User.email.isnot(None)
-        ).all()
-        
-        for func in funcionarios:
-            if func.email and func.email not in [d['email'] for d in destinatarios_obra]:
-                destinatarios_obra.append({
-                    'email': func.email,
-                    'nome': func.nome_completo,
-                    'tipo': 'funcionario'
-                })
-    except Exception as e:
-        current_app.logger.warning(f"⚠️ Erro ao buscar funcionários: {str(e)}")
-    
-    # Adicionar clientes da obra
-    try:
-        from models import EmailCliente
-        emails_clientes = EmailCliente.query.filter_by(
-            projeto_id=relatorio.projeto_id,
-            ativo=True,
-            receber_relatorios=True
-        ).all()
-        
-        for ec in emails_clientes:
-            if ec.email not in [d['email'] for d in destinatarios_obra]:
-                destinatarios_obra.append({
-                    'email': ec.email,
-                    'nome': ec.nome or 'Cliente',
-                    'tipo': 'cliente'
-                })
-    except Exception as e:
-        current_app.logger.warning(f"⚠️ Erro ao buscar clientes: {str(e)}")
-    
-    # 2.2 Enviar e-mail com PDF anexo para todos os destinatários
-    emails_enviados = 0
-    emails_falhos = 0
-    
-    if destinatarios_obra:
-        try:
-            from email_service import EmailService
-            email_service_relatorio = EmailService()
-            
-            # Preparar lista de e-mails
-            lista_emails = [d['email'] for d in destinatarios_obra]
-            
-            # Assunto e corpo conforme especificação do documento
-            assunto_custom = f"Relatório {relatorio.numero} aprovado"
-            corpo_custom = f"""
-            <p>Olá,</p>
-            
-            <p>O relatório <strong>{relatorio.numero}</strong> referente à obra <strong>{projeto.nome}</strong> foi aprovado e está disponível no sistema.</p>
-            
-            <p>Atenciosamente,<br>
-            <strong>{aprovador.nome_completo}</strong></p>
-            """
-            
-            destinatarios_data = {
-                'destinatarios': lista_emails,
-                'cc': [],
-                'bcc': [],
-                'assunto_custom': assunto_custom,
-                'corpo_custom': corpo_custom
-            }
-            
-            # Enviar e-mail com PDF anexo
-            resultado = email_service_relatorio.enviar_relatorio_por_email(
-                relatorio,
-                destinatarios_data,
-                current_user.id
-            )
-            
-            if resultado['success']:
-                emails_enviados = len(lista_emails)
-                current_app.logger.info(f"✅ E-mail com PDF enviado para {emails_enviados} destinatário(s)")
-                flash(f'Relatório {relatorio.numero} aprovado e enviado com PDF para {emails_enviados} destinatário(s)!', 'success')
-            else:
-                current_app.logger.warning(f"⚠️ Falha no envio de e-mail: {resultado.get('error')}")
-                flash(f'Relatório aprovado, mas falha ao enviar e-mail: {resultado.get("error", "Erro desconhecido")}', 'warning')
-                
-        except Exception as e:
-            current_app.logger.error(f"❌ Erro ao enviar e-mails de aprovação: {str(e)}")
-            flash(f'Relatório aprovado, mas falha ao enviar e-mail: {str(e)}', 'warning')
+        print(f"✅ Relatório {relatorio.numero} aprovado e e-mail enviado.")
+        return jsonify({"success": True, "message": "Relatório aprovado e e-mail enviado com sucesso"})
     else:
-        flash(f'Relatório {relatorio.numero} aprovado! Nenhum destinatário de e-mail configurado.', 'warning')
-
-    # Log final confirmando que o processo foi concluído sem travar o worker
-    current_app.logger.info(f"🟢 Relatório {id} aprovado e processo finalizado com sucesso.")
-    
-    return redirect(url_for('review_report', report_id=id))
+        print(f"⚠️ Falha ao enviar e-mail para relatório {relatorio.numero}")
+        return jsonify({"error": "Falha ao enviar e-mail"}), 500
 
 @app.route('/reports/<int:id>/reject', methods=['POST'])
 @login_required
