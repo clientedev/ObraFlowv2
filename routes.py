@@ -11,10 +11,9 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import HTTPException
-from flask_mail import Message
 from sqlalchemy.orm import joinedload
 
-from app import app, db, mail, csrf
+from app import app, db, csrf
 from models import (
     User, Projeto, Relatorio, LegendaPredefinida, Visita, FotoRelatorio,
     Contato, ContatoProjeto, Reembolso, EnvioRelatorio, ChecklistTemplate,
@@ -519,8 +518,6 @@ from models import User, Projeto, Contato, ContatoProjeto, Visita, Relatorio, Fo
 from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, VisitaRealizadaForm, EmailClienteForm, RelatorioForm, FotoRelatorioForm, ReembolsoForm, ContatoForm, ContatoProjetoForm, LegendaPredefinidaForm, FirstLoginForm
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
 from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
-from forms_express import RelatorioExpressForm, FotoExpressForm, EditarFotoExpressForm
-from email_service import email_service
 from pdf_generator_express import gerar_pdf_relatorio_express, gerar_numero_relatorio_express
 from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total, get_coordinates_from_address
 from pdf_generator import generate_visit_report_pdf
@@ -3732,23 +3729,7 @@ def reject_report(id):
     logging.info(f"Relatório {relatorio.numero} rejeitado por {current_user.nome_completo} (ID: {current_user.id}). "
                 f"Projeto: {projeto_nome}. Motivo: {comentario.strip()[:100]}...")
 
-    # Envio de notificação por email ao autor
-    try:
-        from email_service import email_service
-        resultado_email = email_service.enviar_notificacao_rejeicao(
-            relatorio, 
-            comentario.strip(), 
-            current_user, 
-            current_user.id
-        )
-
-        if resultado_email['success']:
-            logging.info(f"Notificação de rejeição enviada por email para {autor.nome_completo} ({autor.email}) - Relatório {relatorio.numero}")
-        else:
-            logging.warning(f"Falha ao enviar notificação por email para {autor.nome_completo}: {resultado_email.get('error', 'Erro desconhecido')}")
-
-    except Exception as e:
-        logging.error(f"Erro ao notificar autor sobre reprovação por email: {str(e)}")
+    # TODO: Implementar envio de notificação por email ao autor com Resend
 
     flash(f'Relatório {relatorio.numero} rejeitado e devolvido para edição. '
           f'O autor {autor.nome_completo} deve fazer as correções solicitadas.', 'warning')
@@ -3872,19 +3853,7 @@ Clique abaixo para acessar o relatório:
                 notification_service.criar_notificacao_relatorio_pendente(relatorio.id)
                 current_app.logger.info(f"✅ Notificação criada para aprovador {aprovador.nome_completo}")
                 
-                # Enviar e-mail ao aprovador
-                from email_service import email_service
-                resultado_email = email_service.enviar_notificacao_enviado_para_aprovacao(
-                    relatorio,
-                    aprovador,
-                    autor,
-                    current_user.id
-                )
-                
-                if resultado_email['success']:
-                    current_app.logger.info(f"✅ E-mail de notificação enviado para {aprovador.email}")
-                else:
-                    current_app.logger.warning(f"⚠️ Falha ao enviar e-mail: {resultado_email.get('error')}")
+                # TODO: Implementar envio de e-mail ao aprovador com Resend
                     
             except Exception as e:
                 db.session.rollback()
