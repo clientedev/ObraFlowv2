@@ -160,6 +160,10 @@ class EmailService:
             # Lista para armazenar logs de cada envio
             logs_envio = []
             
+            # CORREÇÃO: Configurar timeout seguro de 10 segundos para evitar WORKER TIMEOUT
+            import smtplib
+            smtplib.socket.setdefaulttimeout(10)
+            
             # CORREÇÃO: Usar conexão SMTP reutilizável para melhor performance
             try:
                 with self.mail.connect() as conn:
@@ -298,9 +302,12 @@ class EmailService:
                                 erro_detalhes=f"Erro: {str(e)} | Tentativa via: {email_remetente} ({'Conta pessoal' if user_config else 'Conta sistema'})"
                             )
                             logs_envio.append(log_envio)
+                    
+                    # Log de sucesso após todos os envios
+                    current_app.logger.info(f"📧 E-mail(s) enviado(s) com sucesso para todos os destinatários.")
                             
-            except Exception as smtp_conn_error:
-                current_app.logger.error(f"❌ Erro na conexão SMTP: {smtp_conn_error}")
+            except smtplib.SMTPConnectError as e:
+                current_app.logger.error(f"❌ Falha na conexão SMTP: {e}")
                 # Se falhou a conexão, criar log de erro para todos os destinatários
                 for email_dest in destinatarios_validos:
                     log_envio = LogEnvioEmail(
@@ -312,9 +319,59 @@ class EmailService:
                         bcc=json.dumps(bcc_validos),
                         assunto=assunto,
                         status='falhou',
-                        erro_detalhes=f"Erro de conexão SMTP: {str(smtp_conn_error)} | Via: {email_remetente}"
+                        erro_detalhes=f"Falha na conexão SMTP: {str(e)} | Via: {email_remetente}"
                     )
                     logs_envio.append(log_envio)
+            except smtplib.SMTPAuthenticationError as e:
+                current_app.logger.error(f"❌ Erro de autenticação SMTP: {e}")
+                # Erro de autenticação - criar log de erro para todos os destinatários
+                for email_dest in destinatarios_validos:
+                    log_envio = LogEnvioEmail(
+                        projeto_id=projeto.id,
+                        relatorio_id=relatorio.id,
+                        usuario_id=usuario_id,
+                        destinatarios=json.dumps([email_dest]),
+                        cc=json.dumps(cc_validos),
+                        bcc=json.dumps(bcc_validos),
+                        assunto=assunto,
+                        status='falhou',
+                        erro_detalhes=f"Erro de autenticação SMTP: {str(e)} | Via: {email_remetente}"
+                    )
+                    logs_envio.append(log_envio)
+            except smtplib.SMTPException as e:
+                current_app.logger.error(f"⚠️ Erro genérico de envio SMTP: {e}")
+                # Erro SMTP genérico - criar log de erro para todos os destinatários
+                for email_dest in destinatarios_validos:
+                    log_envio = LogEnvioEmail(
+                        projeto_id=projeto.id,
+                        relatorio_id=relatorio.id,
+                        usuario_id=usuario_id,
+                        destinatarios=json.dumps([email_dest]),
+                        cc=json.dumps(cc_validos),
+                        bcc=json.dumps(bcc_validos),
+                        assunto=assunto,
+                        status='falhou',
+                        erro_detalhes=f"Erro SMTP genérico: {str(e)} | Via: {email_remetente}"
+                    )
+                    logs_envio.append(log_envio)
+            except Exception as e:
+                current_app.logger.error(f"💥 Erro inesperado ao enviar e-mail: {str(e)}")
+                # Erro inesperado - criar log de erro para todos os destinatários
+                for email_dest in destinatarios_validos:
+                    log_envio = LogEnvioEmail(
+                        projeto_id=projeto.id,
+                        relatorio_id=relatorio.id,
+                        usuario_id=usuario_id,
+                        destinatarios=json.dumps([email_dest]),
+                        cc=json.dumps(cc_validos),
+                        bcc=json.dumps(bcc_validos),
+                        assunto=assunto,
+                        status='falhou',
+                        erro_detalhes=f"Erro inesperado: {str(e)} | Via: {email_remetente}"
+                    )
+                    logs_envio.append(log_envio)
+            finally:
+                current_app.logger.info("✅ Processo de envio de e-mail concluído — mesmo em caso de falha de envio.")
             
             # Salvar todos os logs em nova transação
             try:

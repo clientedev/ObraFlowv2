@@ -1,0 +1,79 @@
+Correção SMTP e Aprovação de Relatório
+
+Este prompt redefine apenas o envio de e-mail durante a aprovação do relatório, corrigindo o erro de WORKER TIMEOUT e garantindo que, mesmo em falha de conexão SMTP, o sistema continue funcionando e registrando logs detalhados.
+
+🧠 Prompt:
+
+Identifique e corrija a causa raiz do erro “WORKER TIMEOUT” e “smtplib.SMTP() timeout” que ocorre ao aprovar relatórios.  
+Atualmente, o sistema tenta enviar e-mails via Flask-Mail e trava porque o servidor SMTP não responde, causando falha no Gunicorn.  
+
+Implemente as seguintes melhorias no sistema, sem alterar outras funcionalidades:
+
+1️⃣ No arquivo `config.py`, configure corretamente o SMTP com suporte SSL, evitando bloqueios:
+   MAIL_SERVER = 'smtp.hostinger.com'
+   MAIL_PORT = 465
+   MAIL_USE_SSL = True
+   MAIL_USE_TLS = False
+   MAIL_USERNAME = os.getenv('SMTP_USER')
+   MAIL_PASSWORD = os.getenv('SMTP_PASS')
+   MAIL_DEFAULT_SENDER = ('ELP Consultoria', MAIL_USERNAME)
+   MAIL_DEBUG = True
+
+2️⃣ No arquivo `email_service.py`, modifique a função responsável por enviar e-mails (`enviar_relatorio_por_email`) para:
+   - Adicionar timeout seguro de 10 segundos na conexão SMTP:
+     ```python
+     import smtplib
+     smtplib.socket.setdefaulttimeout(10)
+     ```
+   - Usar try/except robusto para capturar falhas de rede, autenticação ou SSL:
+     ```python
+     try:
+         with self.mail.connect() as conn:
+             conn.send(msg)
+             app.logger.info("📧 Email enviado com sucesso para todos os destinatários.")
+     except smtplib.SMTPConnectError as e:
+         app.logger.error(f"❌ Falha na conexão SMTP: {e}")
+     except smtplib.SMTPAuthenticationError as e:
+         app.logger.error(f"❌ Erro de autenticação SMTP: {e}")
+     except smtplib.SMTPException as e:
+         app.logger.error(f"⚠️ Erro genérico de envio SMTP: {e}")
+     except Exception as e:
+         app.logger.error(f"💥 Erro inesperado ao enviar e-mail: {str(e)}")
+     finally:
+         app.logger.info("✅ Processo de aprovação concluído — mesmo em caso de falha de envio.")
+     ```
+
+3️⃣ No endpoint `/reports/<int:id>/approve`, adicione tratamento de exceções para que a aprovação do relatório **não dependa do sucesso do e-mail**:
+   ```python
+   try:
+       resultado = email_service_relatorio.enviar_relatorio_por_email(...)
+   except Exception as e:
+       app.logger.warning(f"⚠️ Relatório aprovado, mas falha ao enviar e-mail: {e}")
+
+
+4️⃣ Adicione um log para confirmar que o worker não travou:
+
+app.logger.info(f"🟢 Relatório {report_id} aprovado e processo finalizado com sucesso.")
+
+
+5️⃣ Teste com as variáveis de ambiente:
+SMTP_USER="relatorios@elpconsultoria.eng.br
+"
+SMTP_PASS="ugZ32b9ayCgu5uK="
+
+Objetivo final:
+
+Evitar travamentos (WORKER TIMEOUT).
+
+Permitir aprovação de relatórios mesmo se o envio de e-mail falhar.
+
+Garantir logs informativos no console (INFO, ERROR, WARNING).
+
+Manter o envio de anexos (PDF do relatório) e mensagem no formato correto.
+
+💡 Resultado esperado:
+Após aplicar, ao aprovar um relatório:
+
+O sistema deve registrar “📧 Email enviado com sucesso...” ou “⚠️ Falha ao enviar e-mail...”,
+
+E o relatório deve ser aprovado corretamente, sem travar ou duplicar workers.

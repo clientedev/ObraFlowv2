@@ -3809,6 +3809,9 @@ def approve_report(id):
     else:
         flash(f'Relatório {relatorio.numero} aprovado! Nenhum destinatário de e-mail configurado.', 'warning')
 
+    # Log final confirmando que o processo foi concluído sem travar o worker
+    current_app.logger.info(f"🟢 Relatório {id} aprovado e processo finalizado com sucesso.")
+    
     return redirect(url_for('review_report', report_id=id))
 
 @app.route('/reports/<int:id>/reject', methods=['POST'])

@@ -86,6 +86,7 @@ app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', os.environ.get('SM
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', ('ELP Consultoria', app.config['MAIL_USERNAME']))
 app.config['MAIL_MAX_EMAILS'] = 10
 app.config['MAIL_ASCII_ATTACHMENTS'] = False
+app.config['MAIL_DEBUG'] = True
 
 # CSRF Configuration - Enable for security
 app.config['WTF_CSRF_ENABLED'] = True
