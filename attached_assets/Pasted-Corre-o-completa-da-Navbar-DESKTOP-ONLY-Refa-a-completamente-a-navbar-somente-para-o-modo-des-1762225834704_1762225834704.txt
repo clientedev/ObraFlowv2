@@ -1,0 +1,182 @@
+Correção completa da Navbar (DESKTOP ONLY)
+
+💻 Refaça completamente a navbar somente para o modo desktop.
+Ela deve:
+
+Exibir todos os menus alinhados horizontalmente ao centro.
+
+Ter espaçamento e hierarquia visual profissional.
+
+Corrigir a sobreposição e garantir que os menus dropdown funcionem normalmente.
+
+Ter suporte completo a Bootstrap 5 (ou equivalente).
+
+Ser totalmente responsiva, mas otimizada para desktop (mín. 1024px).
+
+Garantir que o clique em cada item (ou dropdown) funcione sem conflitos de JS.
+
+O logotipo “ELP” deve permanecer à esquerda fixado.
+
+🔧 Código HTML Reestruturado
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3 px-4 shadow-sm" id="navbarELP">
+  <div class="container-fluid">
+    <!-- LOGO -->
+    <a class="navbar-brand d-flex align-items-center" href="/dashboard">
+      <img src="/static/images/elp_logo.png" alt="ELP Logo" width="90" height="auto" class="me-2">
+    </a>
+
+    <!-- ITENS DA NAVBAR -->
+    <div class="collapse navbar-collapse justify-content-between" id="navbarContent">
+      <ul class="navbar-nav mx-auto">
+
+        <li class="nav-item">
+          <a class="nav-link" href="/dashboard">
+            <i class="bi bi-house-door"></i> Dashboard
+          </a>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="visitasDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-calendar-event"></i> Visitas
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="visitasDropdown">
+            <li><a class="dropdown-item" href="/visitas/nova">Nova Visita</a></li>
+            <li><a class="dropdown-item" href="/visitas">Listar Visitas</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="relatoriosDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-file-earmark-text"></i> Relatórios
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="relatoriosDropdown">
+            <li><a class="dropdown-item" href="/reports/new">Novo Relatório</a></li>
+            <li><a class="dropdown-item" href="/reports">Listar Relatórios</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="expressDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-lightning-charge"></i> Express
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="expressDropdown">
+            <li><a class="dropdown-item" href="/express/novo">Novo</a></li>
+            <li><a class="dropdown-item" href="/express">Histórico</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="reembolsosDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-cash-stack"></i> Reembolsos
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="reembolsosDropdown">
+            <li><a class="dropdown-item" href="/reembolsos/novo">Novo Reembolso</a></li>
+            <li><a class="dropdown-item" href="/reembolsos">Listar Reembolsos</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-gear"></i> Administração
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+            <li><a class="dropdown-item" href="/admin/usuarios">Usuários</a></li>
+            <li><a class="dropdown-item" href="/admin/config">Configurações</a></li>
+          </ul>
+        </li>
+
+      </ul>
+
+      <!-- PERFIL E NOTIFICAÇÕES -->
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-circle"></i> Administrador do Sistema
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <li><a class="dropdown-item" href="/perfil">Meu Perfil</a></li>
+            <li><a class="dropdown-item" href="/logout">Sair</a></li>
+          </ul>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link position-relative" href="/notificacoes">
+            <i class="bi bi-bell"></i>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+🎨 CSS Customizado (para corrigir espaçamento e alinhamento desktop)
+#navbarELP {
+  background-color: #2d2f33 !important;
+  border-bottom: 2px solid #00aaff;
+}
+
+#navbarELP .navbar-nav .nav-link {
+  color: #f0f0f0 !important;
+  font-weight: 500;
+  padding: 8px 16px;
+  transition: 0.3s;
+}
+
+#navbarELP .navbar-nav .nav-link:hover,
+#navbarELP .navbar-nav .nav-link:focus {
+  color: #00aaff !important;
+  text-decoration: none;
+}
+
+#navbarELP .dropdown-menu {
+  background-color: #34373b;
+  border: none;
+  border-radius: 6px;
+}
+
+#navbarELP .dropdown-item {
+  color: #f0f0f0;
+  transition: 0.2s;
+}
+
+#navbarELP .dropdown-item:hover {
+  background-color: #00aaff;
+  color: white;
+}
+
+@media (max-width: 1024px) {
+  #navbarELP {
+    display: none; /* Totalmente desativada em mobile */
+  }
+}
+
+⚙️ JS Complementar (corrige cliques e dropdowns)
+document.addEventListener('DOMContentLoaded', function () {
+  const dropdowns = document.querySelectorAll('.dropdown-toggle');
+  dropdowns.forEach(dropdown => {
+    dropdown.addEventListener('click', function (e) {
+      e.preventDefault();
+      const menu = this.nextElementSibling;
+      const isVisible = menu.classList.contains('show');
+      document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+      if (!isVisible) menu.classList.add('show');
+    });
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.dropdown')) {
+      document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+    }
+  });
+});
+
+✅ Resultado esperado
+
+Navbar totalmente funcional no desktop.
+
+Layout centralizado, limpo e profissional.
+
+Clique e dropdowns corrigidos.
+
+Ícones e nomes visíveis, sem sobreposição.
+
+Layout desabilitado em mobile (totalmente exclusivo para desktop).

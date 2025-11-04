@@ -101,166 +101,126 @@ img[src*="no-image"] {
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: var(--elp-dark);">
-        <div class="container">
+    <!-- Navigation - Desktop Optimized -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3 px-4 shadow-sm" id="navbarELP">
+        <div class="container-fluid">
+            <!-- LOGO -->
             <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
-                <img src="{{ url_for('static', filename='logo_elp_navbar.png') }}" alt="ELP Logo" class="navbar-logo me-2">
-                <span class="logo-text fw-bold text-white">ELP Engenharia e Consultoria</span>
+                <img src="{{ url_for('static', filename='logo_elp_navbar.png') }}" alt="ELP Logo" width="90" height="auto" class="me-2">
             </a>
 
             {% if current_user.is_authenticated %}
-            <!-- Ícone de notificações ao lado do menu hambúrguer (mobile) -->
-            <div class="d-flex align-items-center gap-2 ms-auto order-lg-2">
-                <!-- Ícone de Notificações - visível sempre -->
-                <a class="nav-link position-relative" href="#" id="notificationBell" style="cursor: pointer;">
-                    <i class="fas fa-bell fs-5 text-white"></i>
-                    <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.65rem;">
-                        0
-                    </span>
-                </a>
-                <!-- Botão hambúrguer -->
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-            </div>
-
-            <div class="collapse navbar-collapse order-lg-1" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+            <!-- ITENS DA NAVBAR -->
+            <div class="collapse navbar-collapse justify-content-between" id="navbarContent">
+                <ul class="navbar-nav mx-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('index') }}">
-                            <i class="fas fa-home me-1"></i>Dashboard
+                            <i class="fas fa-home"></i> Dashboard
                         </a>
                     </li>
+
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-building me-1"></i>Obras
+                        <a class="nav-link dropdown-toggle" href="#" id="visitasDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-calendar-check"></i> Visitas
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('projects_list') }}">Listar Obras</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('project_new') }}">Nova Obra</a></li>
+                        <ul class="dropdown-menu" aria-labelledby="visitasDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('visit_new') }}">Nova Visita</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('visits_list') }}">Listar Visitas</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('visits_calendar') }}">Calendário</a></li>
                         </ul>
                     </li>
 
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-calendar-check me-1"></i>Visitas
+                        <a class="nav-link dropdown-toggle" href="#" id="relatoriosDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-file-alt"></i> Relatórios
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('visits_list') }}"><i class="fas fa-list me-2"></i>Lista</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('visits_calendar') }}"><i class="fas fa-calendar-alt me-2"></i>Calendário</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('visit_new') }}"><i class="fas fa-plus me-2"></i>Agendar Visita</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-file-alt me-1"></i>Relatórios
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('reports') }}">Listar Relatórios</a></li>
+                        <ul class="dropdown-menu" aria-labelledby="relatoriosDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('create_report') }}">Novo Relatório</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('reports') }}">Listar Relatórios</a></li>
                             {% if current_user_is_aprovador() %}
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('pending_reports') }}">
-                                <i class="fas fa-clock me-1"></i>Aguardando Aprovação
-                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('pending_reports') }}">Aguardando Aprovação</a></li>
                             {% endif %}
                         </ul>
                     </li>
+
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-bolt me-1"></i>Express
+                        <a class="nav-link dropdown-toggle" href="#" id="expressDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-bolt"></i> Express
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('express_list') }}">
-                                <i class="fas fa-list me-2"></i>Listar Relatórios Express
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('express_new') }}">
-                                <i class="fas fa-plus me-2"></i>Novo Relatório Express
-                            </a></li>
+                        <ul class="dropdown-menu" aria-labelledby="expressDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('express_new') }}">Novo</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('express_list') }}">Histórico</a></li>
                         </ul>
                     </li>
+
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-money-bill-wave me-1"></i>Reembolsos
+                        <a class="nav-link dropdown-toggle" href="#" id="reembolsosDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-money-bill-wave"></i> Reembolsos
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('reimbursements_list') }}">Meus Reembolsos</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('request_reimbursement') }}">Solicitar Reembolso</a></li>
+                        <ul class="dropdown-menu" aria-labelledby="reembolsosDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('request_reimbursement') }}">Novo Reembolso</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('reimbursements_list') }}">Listar Reembolsos</a></li>
                             {% if current_user.is_master %}
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('reimbursements_admin') }}">
-                                <i class="fas fa-cog me-1"></i>Painel Administrativo
-                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('reimbursements_admin') }}">Painel Administrativo</a></li>
                             {% endif %}
                         </ul>
                     </li>
+
                     {% if current_user.is_master %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-cog"></i> Administração
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('users_list') }}">
-                                <i class="fas fa-users"></i> Usuários
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_emails') }}">
-                                <i class="fas fa-envelope"></i> E-mails de Clientes
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_legendas') }}">
-                                <i class="fas fa-tags"></i> Legendas Pré-definidas
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('configuracao_email_list') }}">
-                                <i class="fas fa-mail-bulk"></i> Config. E-mail
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_aprovadores_padrao') }}">
-                                <i class="fas fa-user-check"></i> Aprovadores Padrão
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_checklist_padrao') }}">
-                                <i class="fas fa-list-check"></i> Checklist Padrão
-                            </a></li>
+                        <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('users_list') }}">Usuários</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('projects_list') }}">Obras</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_emails') }}">E-mails de Clientes</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_legendas') }}">Legendas</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('configuracao_email_list') }}">Config. E-mail</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_aprovadores_padrao') }}">Aprovadores Padrão</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_checklist_padrao') }}">Checklist Padrão</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_drive_test') }}">
-                                <i class="fas fa-cloud"></i> Testar Google Drive
-                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_drive_test') }}">Testar Google Drive</a></li>
                         </ul>
                     </li>
                     {% endif %}
 
                     {% if current_user.is_developer %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-code me-1"></i>Desenvolvedor
+                        <a class="nav-link dropdown-toggle" href="#" id="devDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-code"></i> Desenvolvedor
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('admin_legendas') }}">
-                                <i class="fas fa-tags me-2"></i>Gerenciar Legendas
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('developer_checklist_padrao') }}">
-                                <i class="fas fa-tasks me-2"></i>Checklist Padrão
-                            </a></li>
+                        <ul class="dropdown-menu" aria-labelledby="devDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('admin_legendas') }}">Gerenciar Legendas</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('developer_checklist_padrao') }}">Checklist Padrão</a></li>
                         </ul>
                     </li>
                     {% endif %}
                 </ul>
 
-                <ul class="navbar-nav">
+                <!-- PERFIL E NOTIFICAÇÕES -->
+                <ul class="navbar-nav ms-auto">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user me-1"></i>{{ current_user.nome_completo }}
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle"></i> {{ current_user.nome_completo }}
                         </a>
-                        <ul class="dropdown-menu">
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><span class="dropdown-item-text">{{ current_user.cargo or 'Usuário' }}</span></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('install_guide') }}">
-                                <i class="fas fa-mobile-alt me-1"></i>Instalar App no Celular
-                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('install_guide') }}">Instalar App no Celular</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">
-                                <i class="fas fa-sign-out-alt me-1"></i>Sair
-                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">Sair</a></li>
                         </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="#" id="notificationBell" style="cursor: pointer;">
+                            <i class="fas fa-bell"></i>
+                            <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.65rem;">
+                                0
+                            </span>
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -333,6 +293,8 @@ img[src*="no-image"] {
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/legendas-selector.js') }}"></script>
+    <!-- Navbar Dropdown Fix -->
+    <script src="{{ url_for('static', filename='js/navbar-dropdown-fix.js') }}"></script>
 
 
     <!-- Google Drive Backup Scripts -->
