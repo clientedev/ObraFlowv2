@@ -48,6 +48,8 @@
     justify-content: space-between;
     visibility: visible !important;
     height: auto !important;
+    position: relative;
+    z-index: 10;
   }
   
   #navbarELP .navbar-collapse.collapse:not(.show) {
@@ -57,6 +59,8 @@
   #navbarELP .navbar-nav {
     flex-direction: row !important;
     align-items: center !important;
+    position: relative;
+    z-index: 10;
   }
   
   #navbarELP .navbar-nav.mx-auto {
@@ -68,11 +72,22 @@
     width: auto !important;
     text-align: left !important;
     border-bottom: none !important;
+    position: relative;
+    z-index: 10;
   }
   
   #navbarELP .navbar-nav .nav-link {
     padding: 0.5rem 1rem !important;
     font-size: 1rem !important;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  
+  /* CRÍTICO: Esconder completamente o container mobile no desktop */
+  #navbarELP .order-lg-2 {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
   
   /* Esconder botão hambúrguer no desktop */
@@ -85,6 +100,17 @@
     position: absolute;
     top: 100%;
     left: 0;
+    z-index: 1050;
+  }
+  
+  /* Garantir que dropdowns sejam clicáveis */
+  #navbarELP .dropdown {
+    position: relative;
+  }
+  
+  #navbarELP .dropdown-toggle {
+    cursor: pointer;
+    pointer-events: auto;
   }
   
   /* Logo e texto no desktop */
