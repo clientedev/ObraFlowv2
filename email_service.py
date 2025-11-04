@@ -21,19 +21,33 @@ class EmailServiceRelatorio:
         print(f"📤 Iniciando envio de e-mail do relatório {relatorio_id} para {destinatarios}")
 
         try:
-            headers = {"Authorization": f"Bearer {self.api_key}"}
+            import base64
+            
+            # Ler PDF e converter para base64
             with open(pdf_path, "rb") as pdf_file:
                 pdf_bytes = pdf_file.read()
+                pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
 
-            files = {
-                "from": (None, f"ELP Consultoria <{self.from_email}>"),
-                "to": (None, ", ".join(destinatarios)),
-                "subject": (None, assunto),
-                "html": (None, corpo_html),
-                "attachments[0]": (f"relatorio_{relatorio_id}.pdf", pdf_bytes, "application/pdf"),
+            # Preparar payload JSON conforme API Resend v2
+            payload = {
+                "from": f"ELP Consultoria <{self.from_email}>",
+                "to": destinatarios,  # Lista direta
+                "subject": assunto,
+                "html": corpo_html,
+                "attachments": [
+                    {
+                        "filename": f"relatorio_{relatorio_id}.pdf",
+                        "content": pdf_base64
+                    }
+                ]
             }
 
-            response = requests.post(self.api_url, headers=headers, files=files, timeout=30)
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            response = requests.post(self.api_url, headers=headers, json=payload, timeout=30)
 
             if response.status_code == 200:
                 print(f"✅ E-mail do relatório {relatorio_id} enviado com sucesso para {destinatarios}")
