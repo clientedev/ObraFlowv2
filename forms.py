@@ -233,9 +233,12 @@ class ConfiguracaoEmailForm(FlaskForm):
 
 # Formulários adicionais que estavam faltando
 class VisitaRealizadaForm(FlaskForm):
-    data_realizada = DateTimeField('Data da Visita Realizada', validators=[DataRequired()])
-    observacoes = TextAreaField('Observações da Visita')
-    checklist_items = TextAreaField('Itens Verificados')
+    atividades_realizadas = TextAreaField('Atividades Realizadas', validators=[Optional()])
+    observacoes = TextAreaField('Observações da Visita', validators=[Optional()])
+    latitude = HiddenField('Latitude', validators=[Optional()])
+    longitude = HiddenField('Longitude', validators=[Optional()])
+    endereco_gps = HiddenField('Endereço GPS', validators=[Optional()])
+    submit = SubmitField('Registrar Visita')
 
 class FotoRelatorioForm(FlaskForm):
     legenda = StringField('Legenda da Foto', validators=[Optional(), Length(max=500)])
