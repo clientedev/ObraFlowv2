@@ -1,6 +1,6 @@
 """
 Sistema de envio de e-mails para relatórios
-Suporte para SMTP (Gmail, Outlook) e APIs (SendGrid, Amazon SES)
+Suporte para SMTP (Gmail, Outlook) e APIs (Resend, SendGrid, Amazon SES)
 """
 
 import json
@@ -16,6 +16,230 @@ from flask import current_app
 from flask_mail import Mail, Message
 from models import LogEnvioEmail, ConfiguracaoEmail, EmailCliente
 from app import db
+
+class EmailServiceResend:
+    """
+    Serviço de e-mail via Resend API
+    Substitui o SMTP tradicional por envio via HTTPS
+    """
+    def __init__(self):
+        self.api_key = os.getenv("RESEND_API_KEY")
+        self.from_email = os.getenv("RESEND_FROM_EMAIL", "relatorios@elpconsultoria.eng.br")
+        self.api_url = "https://api.resend.com/emails"
+    
+    def enviar_relatorio_por_email(self, relatorio, destinatarios_data, usuario_id):
+        """
+        Envia e-mail via Resend com anexo PDF.
+        
+        Args:
+            relatorio: Objeto Relatorio
+            destinatarios_data: {
+                'destinatarios': ['email1@test.com'],
+                'cc': ['email2@test.com'],
+                'bcc': ['email3@test.com'],
+                'assunto_custom': 'Assunto personalizado',
+                'corpo_custom': 'Corpo personalizado HTML'
+            }
+            usuario_id: ID do usuário que está enviando
+        
+        Returns:
+            dict: {
+                'success': bool,
+                'total_destinatarios': int,
+                'sucessos': int,
+                'falhas': int,
+                'logs': list
+            }
+        """
+        try:
+            # Validar API key
+            if not self.api_key:
+                raise Exception("RESEND_API_KEY não configurada")
+            
+            # Preparar dados do relatório
+            projeto = relatorio.projeto
+            
+            # Obter data da visita
+            if relatorio.visita and relatorio.visita.data_inicio:
+                data_visita = relatorio.visita.data_inicio.strftime('%d/%m/%Y')
+            elif relatorio.data_relatorio:
+                data_visita = relatorio.data_relatorio.strftime('%d/%m/%Y')
+            else:
+                data_visita = 'N/A'
+            
+            # Preparar assunto
+            assunto = destinatarios_data.get('assunto_custom', f"Relatório {relatorio.numero} - {projeto.nome}")
+            
+            # Preparar corpo do e-mail
+            corpo_html = destinatarios_data.get('corpo_custom', f"""
+            <html>
+            <body>
+                <p>Olá,</p>
+                <p>Segue anexo o relatório <strong>{relatorio.numero}</strong> referente à obra <strong>{projeto.nome}</strong>.</p>
+                <p>Data da visita: {data_visita}</p>
+                <p>Atenciosamente,<br>
+                <strong>Equipe ELP Consultoria</strong></p>
+            </body>
+            </html>
+            """)
+            
+            # Validar destinatários
+            destinatarios_raw = destinatarios_data.get('destinatarios', [])
+            destinatarios_validos = [email.strip() for email in destinatarios_raw if email and '@' in email]
+            
+            if not destinatarios_validos:
+                raise Exception("Nenhum destinatário válido fornecido")
+            
+            # Gerar PDF do relatório
+            from pdf_generator_weasy import gerar_pdf_relatorio_weasy
+            pdf_path = gerar_pdf_relatorio_weasy(relatorio.id)
+            
+            if not pdf_path or not os.path.exists(pdf_path):
+                raise Exception("Falha ao gerar PDF do relatório")
+            
+            # Preparar dados para envio
+            current_app.logger.info(f"📧 Resend: Iniciando envio para {len(destinatarios_validos)} destinatário(s)")
+            
+            logs_envio = []
+            
+            # Enviar para cada destinatário
+            for destinatario in destinatarios_validos:
+                try:
+                    # Ler PDF
+                    with open(pdf_path, "rb") as f:
+                        pdf_bytes = f.read()
+                    
+                    # Preparar request para Resend API
+                    headers = {
+                        "Authorization": f"Bearer {self.api_key}",
+                    }
+                    
+                    files = {
+                        "from": (None, f"ELP Consultoria <{self.from_email}>"),
+                        "to": (None, destinatario),
+                        "subject": (None, assunto),
+                        "html": (None, corpo_html),
+                        "attachments[0]": (f"relatorio_{relatorio.numero}.pdf", pdf_bytes, "application/pdf")
+                    }
+                    
+                    # Enviar via Resend API
+                    response = requests.post(self.api_url, headers=headers, files=files, timeout=30)
+                    
+                    if response.status_code == 200:
+                        current_app.logger.info(f"✅ Resend: E-mail enviado com sucesso para {destinatario}")
+                        
+                        # Log de sucesso
+                        log_envio = LogEnvioEmail(
+                            projeto_id=projeto.id,
+                            relatorio_id=relatorio.id,
+                            usuario_id=usuario_id,
+                            destinatarios=json.dumps([destinatario]),
+                            cc=json.dumps([]),
+                            bcc=json.dumps([]),
+                            assunto=assunto,
+                            status='enviado',
+                            erro_detalhes=f"Enviado via Resend API: {response.json().get('id', 'N/A')}"
+                        )
+                        logs_envio.append(log_envio)
+                    else:
+                        current_app.logger.error(f"❌ Resend: Erro ao enviar para {destinatario}: {response.text}")
+                        
+                        # Log de erro
+                        log_envio = LogEnvioEmail(
+                            projeto_id=projeto.id,
+                            relatorio_id=relatorio.id,
+                            usuario_id=usuario_id,
+                            destinatarios=json.dumps([destinatario]),
+                            cc=json.dumps([]),
+                            bcc=json.dumps([]),
+                            assunto=assunto,
+                            status='falhou',
+                            erro_detalhes=f"Erro Resend API ({response.status_code}): {response.text}"
+                        )
+                        logs_envio.append(log_envio)
+                
+                except Exception as e:
+                    current_app.logger.error(f"❌ Resend: Exceção ao enviar para {destinatario}: {str(e)}")
+                    
+                    # Log de erro
+                    log_envio = LogEnvioEmail(
+                        projeto_id=projeto.id,
+                        relatorio_id=relatorio.id,
+                        usuario_id=usuario_id,
+                        destinatarios=json.dumps([destinatario]),
+                        cc=json.dumps([]),
+                        bcc=json.dumps([]),
+                        assunto=assunto,
+                        status='falhou',
+                        erro_detalhes=f"Exceção: {str(e)}"
+                    )
+                    logs_envio.append(log_envio)
+            
+            # Limpar arquivo PDF temporário
+            if pdf_path and os.path.exists(pdf_path):
+                try:
+                    os.remove(pdf_path)
+                except Exception as e:
+                    current_app.logger.warning(f"⚠️ Não foi possível remover PDF temporário: {str(e)}")
+            
+            # Salvar logs no banco de dados
+            try:
+                for log in logs_envio:
+                    db.session.add(log)
+                db.session.commit()
+            except Exception as log_error:
+                db.session.rollback()
+                current_app.logger.error(f"⚠️ Erro ao salvar logs de envio: {str(log_error)}")
+            
+            # Retornar resultado
+            sucessos = sum(1 for log in logs_envio if log.status == 'enviado')
+            falhas = sum(1 for log in logs_envio if log.status == 'falhou')
+            
+            current_app.logger.info(f"✅ Resend: Processo concluído - {sucessos} sucesso(s), {falhas} falha(s)")
+            
+            return {
+                'success': sucessos > 0,
+                'total_destinatarios': len(destinatarios_validos),
+                'sucessos': sucessos,
+                'falhas': falhas,
+                'logs': logs_envio
+            }
+        
+        except Exception as e:
+            current_app.logger.error(f"💥 Resend: Erro geral ao enviar e-mail: {str(e)}")
+            
+            # Fazer rollback de qualquer transação pendente
+            try:
+                db.session.rollback()
+            except:
+                pass
+            
+            # Log geral de erro
+            try:
+                log_envio = LogEnvioEmail(
+                    projeto_id=relatorio.projeto.id,
+                    relatorio_id=relatorio.id,
+                    usuario_id=usuario_id,
+                    destinatarios=json.dumps(destinatarios_data.get('destinatarios', [])),
+                    cc=json.dumps([]),
+                    bcc=json.dumps([]),
+                    assunto=destinatarios_data.get('assunto_custom', 'Erro ao gerar assunto'),
+                    status='falhou',
+                    erro_detalhes=f"Erro geral: {str(e)}"
+                )
+                db.session.add(log_envio)
+                db.session.commit()
+            except Exception as log_error:
+                db.session.rollback()
+                current_app.logger.error(f"⚠️ Erro ao salvar log de erro: {str(log_error)}")
+            
+            return {
+                'success': False,
+                'error': str(e),
+                'total_destinatarios': len(destinatarios_data.get('destinatarios', [])),
+                'sucessos': 0,
+                'falhas': len(destinatarios_data.get('destinatarios', []))
+            }
 
 class EmailService:
     def __init__(self):
