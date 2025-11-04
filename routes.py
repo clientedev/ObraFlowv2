@@ -5713,7 +5713,7 @@ def visit_view(visit_id):
 
     return render_template('visits/checklist.html', visit=visit, checklist_items=checklist_items, comunicacoes=comunicacoes, participantes=participantes)
 
-# Item @app.route('/visits/<int:visit_id>/cancel', methods=['POST'])
+@app.route('/visits/<int:visit_id>/cancel', methods=['POST'])
 @login_required
 def visit_cancel(visit_id):
     """Cancelar uma visita"""
