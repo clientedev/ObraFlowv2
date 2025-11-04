@@ -4,11 +4,9 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
-from flask_mail import Mail
 from flask_cors import CORS
 from flask_migrate import Migrate
 import time
-import logging
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy import text
@@ -24,7 +22,6 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 migrate = Migrate()
 login_manager = LoginManager()
-mail = Mail()
 csrf = CSRFProtect()
 
 # create the app
@@ -76,18 +73,6 @@ os.makedirs('static/reports', exist_ok=True)
 # Log da configuração
 logging.info(f"📁 UPLOAD_FOLDER configurado: {UPLOAD_FOLDER}")
 
-# Mail configuration - Configuração Hostinger (SMTP com SSL porta 465)
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.hostinger.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', '465'))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'false').lower() in ['true', 'on', '1']
-app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'true').lower() in ['true', 'on', '1']
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', os.environ.get('SMTP_USER', 'relatorios@elpconsultoria.eng.br'))
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', os.environ.get('SMTP_PASS', ''))
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', ('ELP Consultoria', app.config['MAIL_USERNAME']))
-app.config['MAIL_MAX_EMAILS'] = 10
-app.config['MAIL_ASCII_ATTACHMENTS'] = False
-app.config['MAIL_DEBUG'] = True
-
 # CSRF Configuration - Enable for security
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['WTF_CSRF_CHECK_DEFAULT'] = True  # Check CSRF by default for security
@@ -98,7 +83,6 @@ try:
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    mail.init_app(app)
     csrf.init_app(app)
 
     # Configure CORS for geolocation and API calls
