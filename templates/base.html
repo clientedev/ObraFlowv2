@@ -102,16 +102,32 @@ img[src*="no-image"] {
 </head>
 <body>
     <!-- Navigation - Desktop Optimized -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3 px-4 shadow-sm" id="navbarELP">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3 px-4 shadow-sm" id="navbarELP" style="background-color: var(--elp-dark);">
         <div class="container-fluid">
             <!-- LOGO -->
             <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
                 <img src="{{ url_for('static', filename='logo_elp_navbar.png') }}" alt="ELP Logo" width="90" height="auto" class="me-2">
+                <span class="logo-text fw-bold text-white d-none d-lg-inline">ELP</span>
             </a>
 
             {% if current_user.is_authenticated %}
+            <!-- Ícone de notificações e botão hambúrguer (mobile) -->
+            <div class="d-flex align-items-center gap-2 ms-auto order-lg-2">
+                <!-- Ícone de Notificações - visível sempre -->
+                <a class="nav-link position-relative d-lg-none" href="#" id="notificationBellMobile" style="cursor: pointer;">
+                    <i class="fas fa-bell fs-5 text-white"></i>
+                    <span id="notificationBadgeMobile" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.65rem;">
+                        0
+                    </span>
+                </a>
+                <!-- Botão hambúrguer -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+
             <!-- ITENS DA NAVBAR -->
-            <div class="collapse navbar-collapse justify-content-between" id="navbarContent">
+            <div class="collapse navbar-collapse order-lg-1" id="navbarContent">
                 <ul class="navbar-nav mx-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('index') }}">
@@ -214,7 +230,7 @@ img[src*="no-image"] {
                             <li><a class="dropdown-item" href="{{ url_for('logout') }}">Sair</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item d-none d-lg-block">
                         <a class="nav-link position-relative" href="#" id="notificationBell" style="cursor: pointer;">
                             <i class="fas fa-bell"></i>
                             <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.65rem;">
@@ -293,8 +309,6 @@ img[src*="no-image"] {
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/legendas-selector.js') }}"></script>
-    <!-- Navbar Dropdown Fix -->
-    <script src="{{ url_for('static', filename='js/navbar-dropdown-fix.js') }}"></script>
 
 
     <!-- Google Drive Backup Scripts -->

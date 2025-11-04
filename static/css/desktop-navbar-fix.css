@@ -41,88 +41,98 @@
 /* Desktop apenas - min-width 1024px */
 @media (min-width: 1024px) {
   /* Garantir que a navbar sempre expanda horizontalmente */
-  .navbar-expand-lg {
-    flex-wrap: nowrap !important;
-  }
-  
-  .navbar-expand-lg .navbar-collapse {
+  #navbarELP .navbar-collapse {
     display: flex !important;
     flex-basis: auto !important;
     flex-grow: 1 !important;
+    justify-content: space-between;
   }
   
-  .navbar-expand-lg .navbar-nav {
+  #navbarELP .navbar-nav {
     flex-direction: row !important;
     align-items: center !important;
   }
   
-  .navbar-expand-lg .navbar-nav .nav-item {
+  #navbarELP .navbar-nav.mx-auto {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+  #navbarELP .navbar-nav .nav-item {
     width: auto !important;
     text-align: left !important;
     border-bottom: none !important;
   }
   
-  .navbar-expand-lg .navbar-nav .nav-link {
+  #navbarELP .navbar-nav .nav-link {
     padding: 0.5rem 1rem !important;
     font-size: 1rem !important;
   }
   
   /* Esconder botão hambúrguer no desktop */
-  .navbar-expand-lg .navbar-toggler {
+  #navbarELP .navbar-toggler {
     display: none !important;
   }
   
   /* Dropdown menus no desktop */
-  .navbar-expand-lg .dropdown-menu {
+  #navbarELP .dropdown-menu {
     position: absolute;
     top: 100%;
     left: 0;
   }
   
   /* Logo e texto no desktop */
-  .navbar-brand {
+  #navbarELP .navbar-brand {
     margin-right: 1rem !important;
   }
   
   /* Melhorar espaçamento entre itens do menu */
-  .navbar-expand-lg .navbar-nav .nav-item {
-    margin-left: 0.5rem;
-    margin-right: 0.5rem;
+  #navbarELP .navbar-nav .nav-item {
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
   }
   
   /* Garantir que os menus dropdown fiquem alinhados */
-  .navbar-expand-lg .navbar-nav .dropdown-menu {
+  #navbarELP .navbar-nav .dropdown-menu {
     margin-top: 0;
   }
   
   /* Notificação bell - desktop */
-  .navbar-expand-lg #notificationBell {
+  #navbarELP #notificationBell {
     padding: 0.5rem 1rem !important;
   }
+  
+  /* Container fluid no desktop */
+  #navbarELP .container-fluid {
+    max-width: 100%;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
 }
 
-/* Desabilitar navbar em mobile (menor que 1024px) */
-@media (max-width: 1024px) {
-  #navbarELP {
-    display: none !important;
-  }
-}
-
-/* Prevenir qualquer conflito de mobile CSS em desktop */
-@media (min-width: 1024px) {
-  .navbar-nav {
-    width: auto !important;
+/* Mobile - manter layout padrão do Bootstrap */
+@media (max-width: 1023px) {
+  /* Permitir comportamento padrão do Bootstrap para mobile */
+  #navbarELP .navbar-collapse {
+    flex-basis: 100%;
+    flex-grow: 1;
+    align-items: flex-start;
   }
   
-  .navbar-collapse {
-    overflow: visible !important;
+  #navbarELP .navbar-nav {
+    width: 100%;
   }
   
-  /* Remover qualquer transformação ou transição que cause problemas */
-  #navbarELP .navbar,
-  #navbarELP .navbar-nav,
-  #navbarELP .nav-item,
-  #navbarELP .nav-link {
-    transform: none !important;
+  #navbarELP .nav-item {
+    width: 100%;
+  }
+  
+  /* Menus dropdown em mobile */
+  #navbarELP .dropdown-menu {
+    position: static;
+    float: none;
+    width: 100%;
+    margin-top: 0;
+    background-color: #34373b;
   }
 }
