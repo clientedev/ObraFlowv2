@@ -46,6 +46,12 @@
     flex-basis: auto !important;
     flex-grow: 1 !important;
     justify-content: space-between;
+    visibility: visible !important;
+    height: auto !important;
+  }
+  
+  #navbarELP .navbar-collapse.collapse:not(.show) {
+    display: flex !important;
   }
   
   #navbarELP .navbar-nav {
