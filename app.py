@@ -76,13 +76,16 @@ os.makedirs('static/reports', exist_ok=True)
 # Log da configuração
 logging.info(f"📁 UPLOAD_FOLDER configurado: {UPLOAD_FOLDER}")
 
-# Mail configuration
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', '587'))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
+# Mail configuration - Configuração Hostinger (SMTP com SSL porta 465)
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.hostinger.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', '465'))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'false').lower() in ['true', 'on', '1']
+app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'true').lower() in ['true', 'on', '1']
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', os.environ.get('SMTP_USER', 'relatorios@elpconsultoria.eng.br'))
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', os.environ.get('SMTP_PASS', ''))
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', ('ELP Consultoria', app.config['MAIL_USERNAME']))
+app.config['MAIL_MAX_EMAILS'] = 10
+app.config['MAIL_ASCII_ATTACHMENTS'] = False
 
 # CSRF Configuration - Enable for security
 app.config['WTF_CSRF_ENABLED'] = True

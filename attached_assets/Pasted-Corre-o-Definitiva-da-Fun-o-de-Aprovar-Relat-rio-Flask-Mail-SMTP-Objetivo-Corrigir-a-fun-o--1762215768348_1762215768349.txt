@@ -1,0 +1,116 @@
+Correção Definitiva da Função de Aprovar Relatório (Flask-Mail + SMTP)
+
+Objetivo:
+Corrigir a função /reports/<id>/approve para que o envio de e-mails com o PDF do relatório funcione corretamente via relatorios@elpconsultoria.eng.br, sem causar timeout ou erro 500.
+
+🔧 Passo 1 – Corrigir configuração SMTP (em config.py ou equivalente)
+
+Substitua completamente o bloco de configuração do Flask-Mail por este:
+
+import os
+
+class Config:
+    MAIL_SERVER = 'smtp.hostinger.com'        # Servidor SMTP correto da Hostinger
+    MAIL_PORT = 465                           # Porta SSL
+    MAIL_USE_TLS = False
+    MAIL_USE_SSL = True                       # Hostinger usa SSL, não TLS
+    MAIL_USERNAME = os.getenv('SMTP_USER', 'relatorios@elpconsultoria.eng.br')
+    MAIL_PASSWORD = os.getenv('SMTP_PASS', 'ugZ32b9ayCgu5uK=')
+    MAIL_DEFAULT_SENDER = ('ELP Consultoria', MAIL_USERNAME)
+    MAIL_MAX_EMAILS = 10
+    MAIL_ASCII_ATTACHMENTS = False
+
+
+⚠️ Importante:
+
+smtp.hostinger.com é o host SMTP correto para domínios Hostinger.
+
+Porta 465 com MAIL_USE_SSL=True é obrigatória.
+
+MAIL_USE_TLS deve estar desativado, pois conflita com SSL.
+
+📨 Passo 2 – Ajustar serviço de envio de email (email_service.py)
+
+Substitua a função atual de envio por esta, garantindo que a conexão seja segura e o PDF seja anexado corretamente:
+
+from flask_mail import Message
+from app import mail
+import traceback
+
+def enviar_relatorio_por_email(destinatarios, assunto, corpo, caminho_pdf):
+    try:
+        with mail.connect() as conn:
+            for destinatario in destinatarios:
+                msg = Message(
+                    subject=assunto,
+                    recipients=[destinatario],
+                    body=corpo
+                )
+                with open(caminho_pdf, 'rb') as pdf:
+                    msg.attach("relatorio.pdf", "application/pdf", pdf.read())
+                conn.send(msg)
+        print("✅ E-mails enviados com sucesso.")
+        return True
+    except Exception as e:
+        print(f"❌ Erro ao enviar email: {e}")
+        print(traceback.format_exc())
+        return False
+
+✅ Passo 3 – Corrigir a rota /reports/<id>/approve
+
+Garanta que o relatório só é aprovado após envio bem-sucedido:
+
+@app.route('/reports/<int:report_id>/approve', methods=['POST'])
+@login_required
+def approve_report(report_id):
+    report = Report.query.get_or_404(report_id)
+
+    # Gera PDF
+    pdf_path = gerar_pdf_relatorio(report)  # Use sua função existente
+
+    # Monta lista de destinatários (responsável, acompanhantes, criador, etc.)
+    destinatarios = set()
+    if report.responsavel_email:
+        destinatarios.add(report.responsavel_email)
+    for acomp in report.acompanhantes:
+        destinatarios.add(acomp.email)
+    destinatarios.add(current_user.email)
+
+    # Monta email
+    assunto = f"RELATORIO-{report.codigo}"
+    corpo = (
+        f"{', '.join(destinatarios)}\n\n"
+        f"Este é o relatório da obra '{report.projeto.nome}'.\n"
+        f"Qualquer dúvida, entre em contato com {report.usuario.email}."
+    )
+
+    # Envia email
+    sucesso = enviar_relatorio_por_email(list(destinatarios), assunto, corpo, pdf_path)
+
+    if sucesso:
+        report.status = 'Aprovado'
+        db.session.commit()
+        flash('✅ Relatório aprovado e e-mails enviados com sucesso!', 'success')
+    else:
+        flash('❌ Falha ao enviar e-mails. Relatório não aprovado.', 'danger')
+
+    return redirect(url_for('reports_list'))
+
+🧪 Teste Final
+
+Verifique as variáveis no ambiente do Replit:
+
+SMTP_USER=relatorios@elpconsultoria.eng.br
+SMTP_PASS=ugZ32b9ayCgu5uK=
+
+
+Reinicie o servidor.
+
+Aprove um relatório — o PDF deve ser enviado a todos e o relatório aprovado.
+
+Se o log mostrar algo como Connection refused ou Timeout, use:
+
+ping smtp.hostinger.com
+
+
+para testar se o servidor SMTP é acessível do host.
