@@ -1,0 +1,29 @@
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask_cors/extension.py", line 194, in wrapped_function
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ^^^^^^^^^^^^^^^^^^
+INFO:app:✅ API LEGENDAS: 42 legendas retornadas (categoria=all)
+187.95.173.111 - - [04/Nov/2025:01:49:48 +0000] "GET /api/legendas?categoria=all&_t=1762220986965&sync=realtime HTTP/1.1" 200 4919 "https://elpconsultoria.pro/reports/238/review" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+ERROR:app:Exception on /reports/238/approve [POST]
+    rv = self.dispatch_request()
+Traceback (most recent call last):
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/routes.py", line 3645, in approve_report
+    if relatorio.responsavel and getattr(relatorio.responsavel, "email", None):
+       ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Relatorio' object has no attribute 'responsavel'

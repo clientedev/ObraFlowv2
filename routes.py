@@ -3639,42 +3639,119 @@ def approve_report(id):
     if not relatorio:
         return jsonify({"error": "Relatório não encontrado"}), 404
 
-    pdf_path = f"/app/static/reports/relatorio_{relatorio.numero}.pdf"
-
-    destinatarios = []
-    if relatorio.responsavel and getattr(relatorio.responsavel, "email", None):
-        destinatarios.append(relatorio.responsavel.email)
-    for acomp in getattr(relatorio.acompanhantes, "__iter__", lambda: [])():
-        if getattr(acomp, "email", None):
-            destinatarios.append(acomp.email)
-    if getattr(current_user, "email", None):
-        destinatarios.append(current_user.email)
-
-    destinatarios = list(set(destinatarios))
-    print(f"📧 Enviando relatório para: {destinatarios}")
-
-    assunto = f"RELATÓRIO-{relatorio.numero}"
-    corpo_html = f"""
-    <p>Olá,</p>
-    <p>Este é o relatório da obra <b>{relatorio.projeto.nome}</b>.</p>
-    <p>Qualquer dúvida, entre em contato com <b>{relatorio.responsavel.email}</b>.</p>
-    <br><p>Atenciosamente,<br><b>ELP Consultoria</b></p>
-    """
-
-    from email_service import EmailServiceRelatorio
-    email_service = EmailServiceRelatorio()
-    enviado = email_service.enviar_relatorio_por_email(
-        relatorio.id, destinatarios, assunto, corpo_html, pdf_path
-    )
-
-    if enviado:
+    try:
+        # Atualizar status do relatório ANTES de enviar e-mail
         relatorio.status = "Aprovado"
+        relatorio.aprovado_por = current_user.id
+        relatorio.data_aprovacao = datetime.utcnow()
         db.session.commit()
-        print(f"✅ Relatório {relatorio.numero} aprovado e e-mail enviado.")
-        return jsonify({"success": True, "message": "Relatório aprovado e e-mail enviado com sucesso"})
-    else:
-        print(f"⚠️ Falha ao enviar e-mail para relatório {relatorio.numero}")
-        return jsonify({"error": "Falha ao enviar e-mail"}), 500
+        
+        current_app.logger.info(f"✅ Relatório {relatorio.numero} aprovado no banco de dados")
+
+        # Gerar PDF usando WeasyPrint
+        from pdf_generator_weasy import WeasyPrintReportGenerator
+        generator = WeasyPrintReportGenerator()
+        
+        # Buscar fotos do relatório
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
+        
+        # Gerar PDF
+        pdf_filename = f"relatorio_{relatorio.numero}.pdf"
+        pdf_path = os.path.join('static', 'reports', pdf_filename)
+        os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+        
+        generator.generate_report_pdf(relatorio, fotos, output_path=pdf_path)
+        current_app.logger.info(f"📄 PDF gerado: {pdf_path}")
+
+        # Coletar destinatários de e-mail
+        destinatarios = []
+        
+        # Adicionar autor do relatório
+        if relatorio.autor and relatorio.autor.email:
+            destinatarios.append(relatorio.autor.email)
+        
+        # Adicionar responsável do projeto
+        if relatorio.projeto and relatorio.projeto.responsavel:
+            if relatorio.projeto.responsavel.email and relatorio.projeto.responsavel.email not in destinatarios:
+                destinatarios.append(relatorio.projeto.responsavel.email)
+        
+        # Adicionar acompanhantes (JSONB array)
+        if relatorio.acompanhantes:
+            try:
+                acompanhantes_list = relatorio.acompanhantes if isinstance(relatorio.acompanhantes, list) else []
+                for acomp in acompanhantes_list:
+                    if isinstance(acomp, dict) and acomp.get('email'):
+                        if acomp['email'] not in destinatarios:
+                            destinatarios.append(acomp['email'])
+            except Exception as e:
+                current_app.logger.warning(f"⚠️ Erro ao processar acompanhantes: {e}")
+        
+        # Adicionar clientes da obra que devem receber relatórios
+        try:
+            clientes = EmailCliente.query.filter_by(
+                projeto_id=relatorio.projeto_id,
+                ativo=True,
+                receber_relatorios=True
+            ).all()
+            
+            for cliente in clientes:
+                if cliente.email and cliente.email not in destinatarios:
+                    destinatarios.append(cliente.email)
+        except Exception as e:
+            current_app.logger.warning(f"⚠️ Erro ao buscar clientes: {e}")
+
+        if not destinatarios:
+            current_app.logger.warning(f"⚠️ Nenhum destinatário encontrado para relatório {relatorio.numero}")
+            return jsonify({
+                "success": True, 
+                "message": "Relatório aprovado, mas nenhum destinatário de e-mail encontrado"
+            })
+
+        current_app.logger.info(f"📧 Destinatários: {destinatarios}")
+
+        # Preparar assunto e corpo do e-mail
+        assunto = f"Relatório {relatorio.numero} - {relatorio.projeto.nome}"
+        responsavel_email = relatorio.projeto.responsavel.email if relatorio.projeto and relatorio.projeto.responsavel else "elp@elpconsultoria.eng.br"
+        
+        corpo_html = f"""
+        <html>
+        <body>
+            <p>Olá,</p>
+            <p>O relatório <strong>{relatorio.numero}</strong> referente à obra <strong>{relatorio.projeto.nome}</strong> foi aprovado.</p>
+            <p>O PDF está anexado a este e-mail.</p>
+            <p>Qualquer dúvida, entre em contato com <strong>{responsavel_email}</strong>.</p>
+            <br>
+            <p>Atenciosamente,<br><strong>ELP Consultoria</strong></p>
+        </body>
+        </html>
+        """
+
+        # Enviar e-mail via Resend
+        from email_service import EmailServiceRelatorio
+        email_service = EmailServiceRelatorio()
+        enviado = email_service.enviar_relatorio_por_email(
+            relatorio.id, destinatarios, assunto, corpo_html, pdf_path
+        )
+
+        if enviado:
+            current_app.logger.info(f"✅ E-mail enviado com sucesso para {len(destinatarios)} destinatário(s)")
+            return jsonify({
+                "success": True, 
+                "message": f"Relatório aprovado e e-mail enviado para {len(destinatarios)} destinatário(s)"
+            })
+        else:
+            current_app.logger.warning(f"⚠️ Falha ao enviar e-mail")
+            return jsonify({
+                "success": True,
+                "message": "Relatório aprovado, mas houve falha no envio de e-mail"
+            })
+            
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"❌ Erro ao aprovar relatório: {str(e)}")
+        import traceback
+        current_app.logger.error(traceback.format_exc())
+        return jsonify({"error": f"Erro ao aprovar relatório: {str(e)}"}), 500
 
 @app.route('/reports/<int:id>/reject', methods=['POST'])
 @login_required
