@@ -1,0 +1,126 @@
+INTEGRAÇÃO RESEND
+
+🚨 Este prompt substitui completamente a função de envio de e-mails ao aprovar relatórios,
+garantindo que o PDF seja anexado e enviado via Resend para todos os envolvidos.
+
+Você deve revisar todo o projeto Flask atual e substituir **qualquer uso de Flask-Mail** pela integração com **Resend**, garantindo que o envio de e-mails ao aprovar relatórios funcione corretamente.
+
+🧩 1. CONFIGURAÇÃO
+O sistema já possui as seguintes variáveis de ambiente:
+RESEND_API_KEY = "re_gY6c2vnb_CXhLes2MewUuq4BY85G8stDQ"
+RESEND_FROM_EMAIL = "relatorios@elpconsultoria.eng.br"
+
+📡 O domínio elpconsultoria.eng.br já está verificado no Resend, região São Paulo (sa-east-1), e com os seguintes registros DNS configurados:
+- TXT resend._domainkey → p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDfj29U1POcJiJGv0kg/JzQPZAjDj8Usa9y8qYhZFcu7w5gYopGtuthUV3Em0Alen0wgx7ATgFkLZOrVtWAdSGJq42TqEDcONIxFsxyk4+n3b+UlvZr0u51sTL8jzc+0WoSA2PbleH6ElCXljLTmEyaTbRyr/RDhtWEFZVFJQd9PwIDAQAB
+- MX send → feedback-smtp.sa-east-1.amazonses.com
+- TXT send → v=spf1 include:amazonses.com ~all
+- TXT _dmarc (opcional) → v=DMARC1; p=none;
+
+🧩 2. IMPLEMENTAÇÃO — NOVO SERVIÇO DE EMAIL
+
+Crie um arquivo chamado `email_service.py` (ou substitua o existente) com o seguinte conteúdo:
+
+```python
+import os
+import requests
+
+class EmailServiceRelatorio:
+    def __init__(self):
+        self.api_key = os.getenv("RESEND_API_KEY")
+        self.from_email = os.getenv("RESEND_FROM_EMAIL", "relatorios@elpconsultoria.eng.br")
+        self.api_url = "https://api.resend.com/emails"
+
+    def enviar_relatorio_por_email(self, relatorio_id, destinatarios, assunto, corpo_html, pdf_path):
+        """Envia e-mail via Resend com anexo PDF."""
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+        }
+
+        with open(pdf_path, "rb") as f:
+            pdf_bytes = f.read()
+
+        files = {
+            "from": (None, f"ELP Consultoria <{self.from_email}>"),
+            "to": (None, ", ".join(destinatarios)),
+            "subject": (None, assunto),
+            "html": (None, corpo_html),
+            "attachments[0]": (f"relatorio_{relatorio_id}.pdf", pdf_bytes, "application/pdf")
+        }
+
+        response = requests.post(self.api_url, headers=headers, files=files)
+        if response.status_code == 200:
+            print(f"✅ E-mail enviado com sucesso para {destinatarios}")
+            return True
+        else:
+            print(f"❌ Erro ao enviar e-mail: {response.text}")
+            return False
+
+
+🧩 3. AJUSTE NA ROTA DE APROVAÇÃO DO RELATÓRIO
+
+No arquivo routes.py, localize a rota /reports/<int:report_id>/approve e substitua o código atual pelo seguinte:
+
+from email_service import EmailServiceRelatorio
+
+@app.route("/reports/<int:report_id>/approve", methods=["POST"])
+@login_required
+def approve_report(report_id):
+    """Aprova o relatório, gera o PDF e envia e-mail via Resend."""
+    relatorio = db.session.get(Relatorio, report_id)
+    if not relatorio:
+        return jsonify({"error": "Relatório não encontrado"}), 404
+
+    pdf_path = f"/app/static/reports/relatorio_{relatorio.numero}.pdf"
+
+    destinatarios = []
+    if relatorio.responsavel and relatorio.responsavel.email:
+        destinatarios.append(relatorio.responsavel.email)
+    for acomp in relatorio.acompanhantes:
+        if acomp.email:
+            destinatarios.append(acomp.email)
+    if current_user.email:
+        destinatarios.append(current_user.email)
+
+    assunto = f"RELATÓRIO-{relatorio.numero}"
+    corpo_html = f"""
+    <p>Olá,</p>
+    <p>Este é o relatório da obra <b>{relatorio.projeto.nome}</b>.</p>
+    <p>Qualquer dúvida, entre em contato com <b>{relatorio.responsavel.email}</b>.</p>
+    <p>Atenciosamente,<br>Equipe ELP Consultoria</p>
+    """
+
+    email_service = EmailServiceRelatorio()
+    sucesso = email_service.enviar_relatorio_por_email(
+        relatorio.id, destinatarios, assunto, corpo_html, pdf_path
+    )
+
+    if sucesso:
+        relatorio.status = "Aprovado"
+        db.session.commit()
+        print(f"✅ Relatório {relatorio.numero} aprovado e e-mail enviado.")
+        return jsonify({"success": True, "message": "Relatório aprovado e e-mail enviado com sucesso"})
+    else:
+        print(f"❌ Falha ao enviar e-mail para relatório {relatorio.numero}")
+        return jsonify({"error": "Falha ao enviar e-mail"}), 500
+
+
+🧩 4. VERIFICAÇÃO FINAL
+
+Certifique-se de que o PDF existe antes de enviar.
+
+Verifique se o domínio elpconsultoria.eng.br aparece como “Verified” no painel Resend.
+
+Teste aprovando um relatório real.
+
+Verifique no console do Replit:
+→ ✅ E-mail enviado com sucesso para [...]
+
+📩 O e-mail deve chegar a todos os destinatários (responsável, acompanhantes e autor).
+
+🎯 OBJETIVO FINAL:
+
+Remover completamente dependências SMTP e Flask-Mail.
+
+Integrar envio 100% via HTTPS com Resend.
+
+Garantir aprovação de relatório com envio imediato e seguro.
