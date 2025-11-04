@@ -3743,7 +3743,7 @@ def approve_report(id):
             current_app.logger.warning(f"⚠️ Falha ao enviar e-mail")
             return jsonify({
                 "success": True,
-                "message": "Relatório aprovado, mas houve falha no envio de e-mail"
+                "message": "✅ Relatório aprovado com sucesso! Não foi possível enviar o e-mail de notificação."
             })
             
     except Exception as e:
@@ -7331,10 +7331,10 @@ def report_approve(report_id):
                 current_app.logger.info(f"✅ {enviados} e-mail(s) de aprovação enviados para relatório {relatorio.numero}")
             else:
                 erro_msg = resultado_email.get('error', 'Erro desconhecido')
-                flash_message += f" Aviso: Erro ao enviar e-mails - {erro_msg}"
+                flash_message += f" Não foi possível enviar os e-mails de notificação."
                 current_app.logger.warning(f"⚠️ Erro ao enviar e-mails para relatório {relatorio.numero}: {erro_msg}")
         except Exception as e:
-            flash_message += f" Aviso: Falha no envio de e-mails - {str(e)}"
+            flash_message += f" Não foi possível enviar os e-mails de notificação."
             current_app.logger.error(f"❌ Exceção ao enviar e-mails para relatório {relatorio.numero}: {str(e)}")
 
     return jsonify({'success': True, 'message': flash_message})
