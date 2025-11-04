@@ -1,0 +1,167 @@
+REIMPLEMENTAR ENVIO DE EMAIL COM RESEND (RAILWAY)
+
+🎯 objetivo: apagar completamente qualquer vestígio de código antigo (Flask-Mail, SMTP, email.mime, smtplib, etc.) e implementar o envio via Resend API de forma moderna, limpa e segura.
+deve também exibir logs no console com as variáveis utilizadas e status do envio.
+
+🔧 REFAÇA O SISTEMA DE EMAILS DO PROJETO FLASK CONFORME AS DIRETRIZES ABAIXO:
+
+1️⃣ LIMPEZA DE CÓDIGO ANTIGO
+- Remova completamente qualquer referência a:
+  - Flask-Mail (`from flask_mail import Mail, Message`)
+  - smtplib
+  - email.mime
+  - conexões SMTP diretas
+  - variáveis `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, etc.
+  - quaisquer classes ou funções relacionadas a `email_service_antigo` ou `EmailService` anteriores.
+
+2️⃣ VARIÁVEIS DE AMBIENTE DO RAILWAY
+As seguintes variáveis **já estão definidas no Railway** e devem ser usadas diretamente via `os.getenv`:
+
+
+RESEND_API_KEY = "re_gY6c2vnb_CXhLes2MewUuq4BY85G8stDQ"
+RESEND_FROM_EMAIL = "relatorios@elpconsultoria.eng.br
+"
+
+Garanta que o código exiba logs confirmando o carregamento dessas variáveis, ex:
+```python
+print(f"✅ RESEND_API_KEY detectada: {os.getenv('RESEND_API_KEY')[:10]}...") 
+print(f"✅ RESEND_FROM_EMAIL: {os.getenv('RESEND_FROM_EMAIL')}")
+
+
+3️⃣ NOVO ARQUIVO — email_service.py
+
+Crie ou substitua completamente o arquivo email_service.py com o seguinte conteúdo:
+
+import os
+import requests
+from flask import current_app
+
+class EmailServiceRelatorio:
+    def __init__(self):
+        self.api_key = os.getenv("RESEND_API_KEY")
+        self.from_email = os.getenv("RESEND_FROM_EMAIL", "relatorios@elpconsultoria.eng.br")
+        self.api_url = "https://api.resend.com/emails"
+
+        # logs de inicialização
+        print("🟢 Inicializando EmailServiceRelatorio...")
+        if not self.api_key:
+            print("❌ ERRO: RESEND_API_KEY não encontrada nas variáveis de ambiente.")
+        else:
+            print(f"✅ RESEND_API_KEY detectada (início): {self.api_key[:10]}...")
+
+        print(f"📧 E-mails serão enviados de: {self.from_email}")
+
+    def enviar_relatorio_por_email(self, relatorio_id, destinatarios, assunto, corpo_html, pdf_path):
+        """Envia e-mail via Resend com anexo PDF"""
+        print(f"📤 Iniciando envio de e-mail do relatório {relatorio_id} para {destinatarios}")
+
+        try:
+            headers = {"Authorization": f"Bearer {self.api_key}"}
+            with open(pdf_path, "rb") as pdf_file:
+                pdf_bytes = pdf_file.read()
+
+            files = {
+                "from": (None, f"ELP Consultoria <{self.from_email}>"),
+                "to": (None, ", ".join(destinatarios)),
+                "subject": (None, assunto),
+                "html": (None, corpo_html),
+                "attachments[0]": (f"relatorio_{relatorio_id}.pdf", pdf_bytes, "application/pdf"),
+            }
+
+            response = requests.post(self.api_url, headers=headers, files=files, timeout=30)
+
+            if response.status_code == 200:
+                print(f"✅ E-mail do relatório {relatorio_id} enviado com sucesso para {destinatarios}")
+                return True
+            else:
+                print(f"❌ Erro ao enviar e-mail (HTTP {response.status_code}): {response.text}")
+                return False
+
+        except Exception as e:
+            print(f"💥 Erro inesperado ao enviar e-mail: {e}")
+            return False
+
+
+4️⃣ ATUALIZE A ROTA /reports/<int:report_id>/approve EM routes.py
+
+Substitua toda a lógica anterior de aprovação e envio de e-mail por esta versão moderna e limpa:
+
+from email_service import EmailServiceRelatorio
+
+@app.route("/reports/<int:report_id>/approve", methods=["POST"])
+@login_required
+def approve_report(report_id):
+    """Aprova relatório, gera PDF e envia e-mail via Resend."""
+    relatorio = db.session.get(Relatorio, report_id)
+    if not relatorio:
+        return jsonify({"error": "Relatório não encontrado"}), 404
+
+    pdf_path = f"/app/static/reports/relatorio_{relatorio.numero}.pdf"
+
+    # coletar e-mails envolvidos
+    destinatarios = []
+    if relatorio.responsavel and getattr(relatorio.responsavel, "email", None):
+        destinatarios.append(relatorio.responsavel.email)
+    for acomp in getattr(relatorio.acompanhantes, "__iter__", lambda: [])():
+        if getattr(acomp, "email", None):
+            destinatarios.append(acomp.email)
+    if getattr(current_user, "email", None):
+        destinatarios.append(current_user.email)
+
+    # remover duplicados
+    destinatarios = list(set(destinatarios))
+    print(f"📧 Enviando relatório para: {destinatarios}")
+
+    assunto = f"RELATÓRIO-{relatorio.numero}"
+    corpo_html = f"""
+    <p>Olá,</p>
+    <p>Este é o relatório da obra <b>{relatorio.projeto.nome}</b>.</p>
+    <p>Qualquer dúvida, entre em contato com <b>{relatorio.responsavel.email}</b>.</p>
+    <br><p>Atenciosamente,<br><b>ELP Consultoria</b></p>
+    """
+
+    email_service = EmailServiceRelatorio()
+    enviado = email_service.enviar_relatorio_por_email(
+        relatorio.id, destinatarios, assunto, corpo_html, pdf_path
+    )
+
+    if enviado:
+        relatorio.status = "Aprovado"
+        db.session.commit()
+        print(f"✅ Relatório {relatorio.numero} aprovado e e-mail enviado.")
+        return jsonify({"success": True, "message": "Relatório aprovado e e-mail enviado com sucesso"})
+    else:
+        print(f"⚠️ Falha ao enviar e-mail para relatório {relatorio.numero}")
+        return jsonify({"error": "Falha ao enviar e-mail"}), 500
+
+
+5️⃣ VERIFICAÇÃO FINAL
+
+✅ Após o deploy, abra o console do Railway e verifique a saída:
+
+🟢 Inicializando EmailServiceRelatorio...
+✅ RESEND_API_KEY detectada (início): re_gY6c2v...
+📧 E-mails serão enviados de: relatorios@elpconsultoria.eng.br
+📤 Iniciando envio de e-mail do relatório 235 para [...]
+✅ E-mail do relatório 235 enviado com sucesso
+
+
+✅ Em caso de erro, deve exibir logs legíveis como:
+
+❌ Erro ao enviar e-mail (HTTP 400): {detalhes}
+💥 Erro inesperado ao enviar e-mail: {mensagem}
+
+
+✅ Nenhum módulo Flask-Mail deve permanecer no projeto.
+
+🎯 Objetivo garantido:
+
+Código SMTP antigo totalmente removido.
+
+Envio de e-mails confiável via HTTPS (Resend).
+
+Uso seguro de variáveis de ambiente do Railway.
+
+Logs profissionais e descritivos para debug.
+
+Aprovação de relatórios totalmente funcional. ✅
