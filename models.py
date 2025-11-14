@@ -305,7 +305,7 @@ class Relatorio(db.Model):
     lembrete_proxima_visita = db.Column(db.DateTime, nullable=True)  # Lembrete para próxima visita (TIMESTAMP)
     observacoes_finais = db.Column(db.Text, nullable=True)  # Observações finais do relatório
     
-    status = db.Column(db.String(50), default='preenchimento')  # preenchimento, Aguardando Aprovação, Aprovado, Rejeitado
+    status = db.Column(db.String(50), default='em_andamento')  # em_andamento (legado), preenchimento, Aguardando Aprovação, Aprovado, Rejeitado
     comentario_aprovacao = db.Column(db.Text)
     acompanhantes = db.Column(JSONB, nullable=True)  # JSONB array of visit attendees
     criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Usuário que criou
