@@ -24,7 +24,7 @@ class ReportAutoSave {
             observacoes_finais: '',
             conteudo: '',
             checklist_data: null,
-            status: 'em_andamento',
+            status: 'preenchimento',
             imagens: [],
             atualizado_em: null
         };

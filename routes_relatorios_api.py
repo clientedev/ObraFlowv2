@@ -251,7 +251,7 @@ def api_criar_relatorio():
             data_relatorio=datetime.utcnow(),
 
             # Status
-            status=data.get('status', 'em_andamento'),
+            status=data.get('status', 'preenchimento'),
 
             # Outros campos
             conteudo=data.get('conteudo'),
@@ -856,7 +856,7 @@ def api_autosave_relatorio():
                 data_relatorio=datetime.utcnow(),
 
                 # Status
-                status=data.get('status', 'em_andamento'),
+                status=data.get('status', 'preenchimento'),
 
                 # Outros campos - SALVAR CORRETAMENTE
                 conteudo=data.get('conteudo'),

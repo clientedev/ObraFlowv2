@@ -357,7 +357,7 @@ class RelatorioAutoSave {
             observacoes_finais: this.getFieldValue('observacoes_finais'),
             lembrete_proxima_visita: this.getFieldValue('lembrete_proxima_visita'),
             conteudo: this.getFieldValue('conteudo'),
-            status: this.getFieldValue('status') || 'em_andamento',
+            status: this.getFieldValue('status') || 'preenchimento',
             checklist_data: this.getChecklistData(),
             acompanhantes: this.getAcompanhantes(),
             fotos: this.imagens.map(img => ({
