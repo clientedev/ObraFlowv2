@@ -2728,7 +2728,7 @@ def create_report():
 
             relatorio.conteudo = final_content
             relatorio.data_relatorio = data_relatorio
-            relatorio.status = 'Aguardando Aprovação'  # Status correto ao concluir relatório
+            relatorio.status = 'preenchimento'  # Status inicial - muda para "Aguardando Aprovação" ao finalizar
             relatorio.created_at = datetime.utcnow()
             relatorio.updated_at = datetime.utcnow()
             
