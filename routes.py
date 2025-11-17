@@ -6556,6 +6556,29 @@ def update_report(report_id):
                 else:
                     app.logger.warning(f"⚠️ Arquivo vazio ou sem nome recebido no índice {index}")
 
+        # Se flag should_finalize está presente, finalizar relatório
+        # Isso muda status de "preenchimento" para "Aguardando Aprovação"
+        should_finalize = request.form.get('should_finalize') == 'true'
+        if should_finalize and relatorio.status == 'preenchimento':
+            app.logger.info(f"🎯 FLAG should_finalize detectado - finalizando relatório {relatorio.id}")
+            
+            # Mudar status para Aguardando Aprovação
+            relatorio.status = 'Aguardando Aprovação'
+            relatorio.updated_at = datetime.utcnow()
+            
+            # Criar notificação de relatório pendente para o aprovador
+            if relatorio.aprovador_id:
+                from notification_service import notification_service
+                try:
+                    notification_service.criar_notificacao_relatorio_pendente(relatorio.id)
+                    app.logger.info(f"✅ Notificação de relatório pendente criada para aprovador {relatorio.aprovador_id}")
+                except Exception as notif_error:
+                    app.logger.error(f"⚠️ Erro ao criar notificação de relatório pendente: {notif_error}")
+            else:
+                app.logger.warning(f"⚠️ Relatório {relatorio.id} finalizado sem aprovador designado - notificação não criada")
+            
+            app.logger.info(f"✅ Relatório {relatorio.numero} FINALIZADO - status alterado para Aguardando Aprovação")
+
         # Salvar alterações no banco
         db.session.commit()
         app.logger.info(f"✅ Relatório {report_id} atualizado com sucesso")
