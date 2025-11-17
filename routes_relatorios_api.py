@@ -251,7 +251,7 @@ def api_criar_relatorio():
             data_relatorio=datetime.utcnow(),
 
             # Status
-            status=data.get('status', 'em_andamento'),
+            status=data.get('status', 'preenchimento'),
 
             # Outros campos
             conteudo=data.get('conteudo'),
@@ -329,10 +329,37 @@ def api_criar_relatorio():
             if i < len(imagens_salvas):
                 imagens_salvas[i]['id'] = foto.id
 
+        # Verificar se deve finalizar o relatório (mudar status para "Aguardando Aprovação")
+        # Isso replica exatamente o comportamento do botão "Concluir relatório" no formulário
+        should_finalize = data.get('should_finalize') == True or data.get('should_finalize') == 'true'
+        
+        if should_finalize and novo_relatorio.status == 'preenchimento':
+            logger.info(f"🎯 FLAG should_finalize detectado - finalizando relatório {novo_relatorio.id}")
+            
+            # Mudar status para Aguardando Aprovação
+            novo_relatorio.status = 'Aguardando Aprovação'
+            novo_relatorio.updated_at = datetime.utcnow()
+            
+            db.session.commit()
+            
+            # Criar notificação de relatório pendente para o aprovador
+            if novo_relatorio.aprovador_id:
+                from notification_service import notification_service
+                try:
+                    notification_service.criar_notificacao_relatorio_pendente(novo_relatorio.id)
+                    logger.info(f"✅ Notificação de relatório pendente criada para aprovador {novo_relatorio.aprovador_id}")
+                except Exception as notif_error:
+                    logger.error(f"⚠️ Erro ao criar notificação de relatório pendente: {notif_error}")
+            else:
+                logger.warning(f"⚠️ Relatório {novo_relatorio.id} finalizado sem aprovador designado - notificação não criada")
+            
+            logger.info(f"✅ Relatório {novo_relatorio.numero} FINALIZADO - Status: {novo_relatorio.status}")
+
         return jsonify({
             'success': True,
             'id': novo_relatorio.id,
             'numero': novo_relatorio.numero,
+            'status': novo_relatorio.status,
             'imagens': imagens_salvas,
             'message': 'Relatório criado com sucesso'
         }), 201
@@ -439,7 +466,7 @@ def get_relatorio(relatorio_id):
             'observacoes_finais': relatorio.observacoes_finais or '',
             'lembrete_proxima_visita': relatorio.lembrete_proxima_visita.isoformat() if relatorio.lembrete_proxima_visita else None,
             'conteudo': relatorio.conteudo or '',
-            'status': relatorio.status or 'em_andamento',
+            'status': relatorio.status or 'preenchimento',
             'created_at': relatorio.created_at.isoformat() if relatorio.created_at else None,
             'updated_at': relatorio.updated_at.isoformat() if relatorio.updated_at else None
         }
@@ -856,7 +883,7 @@ def api_autosave_relatorio():
                 data_relatorio=datetime.utcnow(),
 
                 # Status
-                status=data.get('status', 'em_andamento'),
+                status=data.get('status', 'preenchimento'),
 
                 # Outros campos - SALVAR CORRETAMENTE
                 conteudo=data.get('conteudo'),
@@ -1272,6 +1299,36 @@ def api_autosave_relatorio():
         db.session.commit()
         print(f"✅ AutoSave registrado: {relatorio_id}")
         logger.info(f"✅ AutoSave: Commit realizado para relatório {relatorio_id}")
+
+        # 5️⃣ VERIFICAR SE DEVE FINALIZAR O RELATÓRIO (mudar status para "Aguardando Aprovação")
+        # Isso replica exatamente o comportamento do botão "Concluir relatório" no formulário
+        should_finalize = data.get('should_finalize') == True or data.get('should_finalize') == 'true'
+        relatorio_final = Relatorio.query.get(relatorio_id)
+        
+        if should_finalize and relatorio_final.status == 'preenchimento':
+            logger.info(f"🎯 FLAG should_finalize detectado - finalizando relatório {relatorio_id}")
+            print(f"🎯 Finalizando relatório {relatorio_id}")
+            
+            # Mudar status para Aguardando Aprovação
+            relatorio_final.status = 'Aguardando Aprovação'
+            relatorio_final.updated_at = datetime.utcnow()
+            
+            db.session.commit()
+            
+            # Criar notificação de relatório pendente para o aprovador
+            if relatorio_final.aprovador_id:
+                from notification_service import notification_service
+                try:
+                    notification_service.criar_notificacao_relatorio_pendente(relatorio_final.id)
+                    logger.info(f"✅ Notificação de relatório pendente criada para aprovador {relatorio_final.aprovador_id}")
+                    print(f"✅ Notificação criada para aprovador {relatorio_final.aprovador_id}")
+                except Exception as notif_error:
+                    logger.error(f"⚠️ Erro ao criar notificação de relatório pendente: {notif_error}")
+            else:
+                logger.warning(f"⚠️ Relatório {relatorio_id} finalizado sem aprovador designado - notificação não criada")
+            
+            logger.info(f"✅ Relatório {relatorio_final.numero} FINALIZADO - Status: {relatorio_final.status}")
+            print(f"✅ Relatório {relatorio_final.numero} FINALIZADO")
 
         # VALIDAÇÃO DETALHADA: Verificar quantas imagens foram realmente salvas no banco
         total_imagens_db = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count()

@@ -3250,7 +3250,7 @@ def create_report():
             'titulo': existing_report.titulo or '',
             'projeto_id': existing_report.projeto_id,
             'autor_id': existing_report.autor_id,
-            'status': existing_report.status or 'em_andamento'
+            'status': existing_report.status or 'preenchimento'
         }
     
     # Serializar fotos existentes

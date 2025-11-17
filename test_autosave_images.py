@@ -83,7 +83,7 @@ def test_autosave_with_image(temp_data):
         'titulo': 'Relatório Teste AutoSave',
         'categoria': 'Teste',
         'local': 'Teste Local',
-        'status': 'em_andamento',
+        'status': 'preenchimento',
         'fotos': [
             {
                 'temp_id': temp_data['temp_id'],
