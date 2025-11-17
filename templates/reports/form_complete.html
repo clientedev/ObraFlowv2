@@ -1610,12 +1610,17 @@ document.getElementById('reportForm').addEventListener('submit', async function(
         });
         console.log(`📤 Total de novas imagens para upload: ${novasImagensCount}`);
         
+        // CRÍTICO: Adicionar flag de finalização
+        // Quando o usuário submete o formulário "Concluir relatório", deve mudar status para "Aguardando Aprovação"
+        formData.append('should_finalize', 'true');
+        
         // LOG FINAL DE DEBUG: Mostrar tudo que está sendo enviado
         console.log('📦 RESUMO DO QUE SERÁ ENVIADO:');
         console.log(`   📸 Imagens existentes: ${imagensExistentes.length}`);
         console.log(`   📸 Novas imagens: ${novasImagensCount}`);
         console.log(`   👥 Acompanhantes: ${acompanhantesData.length}`);
         console.log(`   ✓ Checklist: ${checklistData.length} itens`);
+        console.log(`   ✅ Finalizar relatório: true`);
         if (acompanhantesData.length > 0) {
             console.log('   👥 Detalhes dos acompanhantes:', acompanhantesData);
         }
