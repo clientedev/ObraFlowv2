@@ -1,67 +1,5 @@
 # Overview
-This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, and **autosave functionality with real-time synchronization** (fully debugged, corrected and operational as of Nov 2, 2025 19:45 UTC). The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
-
-## Recent Changes
-
-### Nov 3, 2025 (18:00 UTC)
-✅ **CORREÇÃO: Rota de Novo Relatório com AutoSave 100% Funcional**:
-- **Problema**: Erro 500 ao acessar `/reports/new` devido a variável `report_data` ausente
-- **Erro**: `TypeError: Object of type Undefined is not JSON serializable`
-- **Root Cause**: Template esperava `report_data` para inicializar AutoSave mas a rota não a fornecia
-- **Solução**: Adicionada geração completa de `report_data` na rota `/reports/new`:
-  - Modo criação: estrutura vazia com valores padrão
-  - Modo edição: carrega dados existentes do relatório
-  - Suporte completo para acompanhantes, fotos, checklist, coordenadas GPS
-- **Impacto**: Formulário de novo relatório agora carrega corretamente com AutoSave 100% funcional
-- **Arquivo Modificado**: `routes.py` (linhas 3178-3235)
-- **Status**: ✅ Testado e funcionando
-
-### Nov 3, 2025 (17:50 UTC)
-✅ **CORREÇÃO CRÍTICA: Sistema de Carregamento de Acompanhantes - COMPLETAMENTE RESOLVIDO**:
-- **Problema Identificado**: Função `carregarAcompanhantes()` estava causando perda de dados devido a referências compartilhadas entre array global e parâmetros da função
-- **Root Cause**: Ao limpar o array global com `acompanhantes.length = 0`, também limpava o parâmetro recebido (mesma referência), impedindo repopulação
-- **Solução Implementada**: Clonagem profunda dos dados usando `JSON.parse(JSON.stringify())` antes de qualquer manipulação
-- **Impacto**: Ciclo completo adicionar/remover/re-renderizar agora mantém sincronização perfeita entre:
-  - Array global `acompanhantes`
-  - Campo hidden `#acompanhantes-data`
-  - Lista visual na interface
-- **Validação Architect**: Aprovado sem problemas de performance ou segurança
-- **Arquivos Modificados**: `templates/reports/form_complete.html` (função `carregarAcompanhantes` linha ~3603 e função `removerAcompanhanteDoRelatorio` linha ~3692)
-- **Logs de Debug**: Adicionados logs detalhados para monitoramento e troubleshooting futuro
-- **Status**: ✅ Pronto para produção
-
-### Nov 3, 2025 (16:03 UTC)
-✅ **Correção de Bugs de Edição de Relatórios - COMPLETA**: Resolvidos dois problemas críticos de edição:
-- **Acompanhantes**: Eliminada dupla serialização JSON no backend que impedia carregamento correto dos acompanhantes ao editar relatórios (routes.py linha 6277 - agora salva diretamente a lista, pois SQLAlchemy serializa JSONB automaticamente)
-- **Legendas**: Implementado salvamento completo de legendas de imagens existentes:
-  - Frontend agora coleta legendas, categorias e locais de TODAS as imagens existentes (templates/reports/form_complete.html linhas 1599-1631)
-  - Backend recebe e atualiza metadados das imagens existentes no banco de dados (routes.py linhas 6316-6350)
-- **Validação**: Todas as correções aprovadas pelo architect sem problemas de segurança ou regressões
-- **Próximos passos recomendados**: Teste manual de edição de relatórios com múltiplos acompanhantes e fotos existentes
-
-### Nov 3, 2025
-✅ **Report Image Editing System - FULLY OPERATIONAL**: Complete fix for image display and management during report editing:
-- **Backend**: Fixed `report_edit_complete` endpoint to send correct image URLs using `url_for('api_get_photo', foto_id=f.id)`
-- **Metadata Preservation**: Corrected category field mapping to preserve both `categoria` and `tipo_servico` fields
-- **Frontend**: Updated template to properly populate `window.mobilePhotoData` from `REPORT_DATA.fotos` when loading existing reports
-- **Image Deletion**: Created dedicated API endpoint `/api/fotos/<foto_id>/delete` to avoid routing conflicts with report deletion (`/reports/<id>/delete`)
-- **Complete Workflow**: Users can now open reports, view existing images, add new ones, delete unwanted images, and save—all while maintaining metadata integrity
-- **Architecture Review**: All changes passed architect review with no security issues identified
-
-### Nov 2, 2025
-✅ **AutoSave Image Upload - DEFINITIVELY FIXED (V3 - 22:22 UTC)**: Resolved critical bug preventing images from being saved to database during autosave:
-- **Root Cause**: Backend was searching for temporary files with wrong extension (`.jpg` default instead of actual `.png`, `.jpeg`, etc.)
-- **Solution**: Implemented dynamic file extension detection using `glob.glob()` to find temp files regardless of extension
-- **Impact**: Images now save correctly to PostgreSQL during autosave with full metadata (legenda, categoria, local)
-- **Validation**: Server logs show "📸 AutoSave: Arquivo temporário encontrado" and "✅ AutoSave: Imagem SALVA NO BANCO"
-Full documentation: `CORRECAO_AUTOSAVE_IMAGENS_DEFINITIVA.md`
-
-✅ **AutoSave System - Completely Fixed (V2)**: Resolved 4 critical bugs preventing autosave from functioning:
-1. Corrected projeto_id collection (now searches 4 different locations)
-2. Fixed initAutoSave parameters (now passes csrfToken correctly)
-3. Added data-report-id attribute to form for auto-initialization
-4. Enhanced error logging for complete debugging visibility
-Full documentation: `AUTOSAVE_CORRECOES_COMPLETAS_V2.md`
+This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, autosave functionality with real-time synchronization, and a comprehensive notification system. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # User Preferences
 Preferred communication style: Simple, everyday language.
@@ -75,7 +13,7 @@ Report forms: Location section removed from report creation/editing interface (g
 - **Database**: Railway PostgreSQL for production, SQLite for development.
 - **Authentication**: Flask-Login for session management and role-based access (regular/master users).
 - **Forms**: WTForms for secure form handling and CSRF protection.
-- **File Handling**: Manages file uploads (photos, documents) with a **50MB limit per file**, supporting binary image storage in the database with filesystem fallback. Enforced validation with HTTP 413 response for oversized uploads.
+- **File Handling**: Manages file uploads (photos, documents) with a 50MB limit per file, supporting binary image storage in the database with filesystem fallback, and enforced validation with HTTP 413 response for oversized uploads.
 - **PDF Generation**: WeasyPrint for pixel-perfect HTML/CSS templates.
 - **Geolocation**: Robust system with IP fallback and reverse geocoding using `geopy`.
 - **CORS**: Flask-CORS configured with credentials support.
@@ -91,8 +29,8 @@ Report forms: Location section removed from report creation/editing interface (g
 ## Data Model Design
 - **Core Entities**: Users, Projects, Visits, Reports, Reimbursements, Checklist Templates, Communications, Notifications, Global and Temporary Approvers.
 - **Projects**: Includes `numeracao_inicial` for custom sequential report numbering.
-- **Reports**: Includes `acompanhantes` (JSONB) for visit attendees, `lembrete_proxima_visita` (TIMESTAMP) for reminders, `categoria`, `local`, `observacoes_finais` (TEXT), `criado_por`, and `atualizado_por` for audit trail.
-- **Photo Storage**: Stores binary image data, JSONB for annotation metadata, SHA-256 hash for deduplication, MIME type, and file size. Each photo card displays optional **Categoria**, optional **Local**, and mandatory **Legenda**. **NEW: FotoRelatorio includes `url`, `legenda` (TEXT), `ordem` (INTEGER) for drag-drop reordering, and cascade delete on parent report removal**.
+- **Reports**: Includes `acompanhantes` (JSONB), `lembrete_proxima_visita` (TIMESTAMP), `categoria`, `local`, `observacoes_finais` (TEXT), `criado_por`, and `atualizado_por`.
+- **Photo Storage**: Stores binary image data, JSONB for annotation metadata, SHA-256 hash for deduplication, MIME type, and file size. Each photo card displays optional **Categoria**, optional **Local**, and mandatory **Legenda**. `FotoRelatorio` includes `url`, `legenda` (TEXT), `ordem` (INTEGER) for drag-drop reordering, and cascade delete on parent report removal.
 - **Notifications**: Tracks report status changes, origin/destination users, message content, type, read status, and email delivery.
 - **Aprovador Global**: Single system-wide approver with exclusive permissions to transfer role and manage temporary approvers.
 - **Aprovadores Temporários**: Project-specific approvers, managed by the Aprovador Global.
@@ -101,8 +39,8 @@ Report forms: Location section removed from report creation/editing interface (g
 ## Key Features
 - **Project Management**: CRUD operations, automatic numbering, GPS location, dynamic categories, project reactivation, and project-specific checklists.
 - **Visit Tracking**: GPS-enabled logging, custom checklists, team communication.
-- **Report System**: Professional PDF reports with photo annotation, ELP branding, and an approval workflow with email notifications. Reports are numbered sequentially per project. Reminders for next visits are displayed. **AutoSave System (Nov 2, 2025)**: Fully functional and SILENT with 2s debounce, automatic persistence of all fields including text, dates, coordinates, checklists, acompanhantes, **and image files with temporary upload**; retry logic, localStorage fallback, automatic report creation on first save, and complete console logging for diagnostics. NO visual feedback - completely transparent to user.
-- **Photo Management**: Advanced editing (drawing, arrows, text, captions), up to 50 photos per report, predefined caption management, deduplication. **NEW: Drag-and-drop reordering, real-time synchronization, 50MB file size limit per image**. **AutoSave-Compatible (Nov 2, 2025)**: Images are automatically uploaded via `/api/uploads/temp` during autosave, then promoted to permanent storage with full metadata (categoria, local, legenda).
+- **Report System**: Professional PDF reports with photo annotation, ELP branding, and an approval workflow with email notifications. Reports are numbered sequentially per project. Reminders for next visits are displayed. **AutoSave System**: Fully functional and silent with 2s debounce, automatic persistence of all fields including text, dates, coordinates, checklists, `acompanhantes`, and image files with temporary upload; retry logic, localStorage fallback, automatic report creation on first save, and complete console logging for diagnostics.
+- **Photo Management**: Advanced editing (drawing, arrows, text, captions), up to 50 photos per report, predefined caption management, deduplication. Drag-and-drop reordering, real-time synchronization, 50MB file size limit per image. Images are automatically uploaded via `/api/uploads/temp` during autosave, then promoted to permanent storage with full metadata (categoria, local, legenda).
 - **REST API**: Complete RESTful API for reports with POST/GET/PUT/DELETE endpoints, atomic transactions with rollback, and comprehensive validation. **AutoSave endpoint**: `/api/relatorios/autosave` accepts partial updates and creates drafts automatically, processes temporary image uploads (temp_id), and returns image IDs for client-side mapping.
 - **Client Email Management**: CRUD system for client emails per project with report reception options.
 - **Internal Notifications System**: Database-stored notifications with automatic email alerts and push notifications for report status changes.
