@@ -30,19 +30,14 @@ def can_view_report(user, relatorio):
     """
     Verifica se o usuário tem permissão para visualizar um relatório.
     
-    Regras (CORRIGIDAS 2025-11-19 - Revisão 5 - SEGURA E PERMISSIVA):
-    - Usuários master: podem visualizar QUALQUER relatório
-    - Usuários autenticados: podem visualizar QUALQUER relatório (visualização é permissiva)
+    Regras (PERMISSIVA TOTAL - 2025-11-19):
+    - Todos os usuários autenticados podem visualizar QUALQUER relatório
     """
     if not user.is_authenticated:
         current_app.logger.warning(f"❌ can_view_report: Usuário não autenticado")
         return False
     
-    # Logging detalhado para debug
-    current_app.logger.info(f"🔍 can_view_report: user_id={user.id}, is_master={user.is_master}")
-    current_app.logger.info(f"🔍 can_view_report: relatorio_id={relatorio.id}, autor_id={relatorio.autor_id}")
-    
-    # POLÍTICA PERMISSIVA para visualização: Todos os usuários autenticados podem visualizar relatórios
+    # POLÍTICA PERMISSIVA TOTAL: Todos os usuários autenticados podem visualizar relatórios
     current_app.logger.info(f"✅ can_view_report: Acesso concedido (usuário autenticado)")
     return True
 
@@ -50,14 +45,11 @@ def can_edit_report(user, relatorio):
     """
     Verifica se o usuário tem permissão para editar um relatório.
     
-    Regras (CORRIGIDAS 2025-11-19 - Revisão 5 - SEGURA):
-    - Usuários master: podem editar QUALQUER relatório (incluindo Aprovado/Finalizado)
-    - Usuários não-master: podem editar relatórios do PROJETO em que participam
-    
-    Status editáveis para não-master: Rascunho, preenchimento, Em preenchimento, Rejeitado, 
-                                      Em edição, Aguardando Aprovação, em_andamento
-                                      
-    IMPORTANTE: Apenas usuários master podem APROVAR relatórios
+    Regras (PERMISSIVA TOTAL - 2025-11-19):
+    - TODOS os usuários autenticados podem editar QUALQUER relatório
+    - EXCETO relatórios com status 'Aprovado' (somente master pode editar aprovados)
+    - Todos podem criar, editar e enviar para aprovação
+    - Apenas master e aprovadores podem APROVAR/REPROVAR relatórios
     """
     if not user.is_authenticated:
         current_app.logger.warning(f"❌ can_edit_report: Usuário não autenticado")
@@ -65,55 +57,21 @@ def can_edit_report(user, relatorio):
         
     # Logging detalhado para debug
     current_app.logger.info(f"🔍 can_edit_report: user_id={user.id}, is_master={user.is_master}")
-    current_app.logger.info(f"🔍 can_edit_report: relatorio_id={relatorio.id}, status='{relatorio.status}', autor_id={relatorio.autor_id}")
+    current_app.logger.info(f"🔍 can_edit_report: relatorio_id={relatorio.id}, status='{relatorio.status}'")
     
-    # Lista de status que permitem edição para usuários não-master
-    status_editaveis_usuario = [
-        'Rascunho', 'preenchimento', 'Em preenchimento', 
-        'Rejeitado', 'Em edição', 'Aguardando Aprovação',
-        'em_andamento', None, ''
-    ]
-    
-    # Master pode editar QUALQUER relatório sem restrições
+    # Master pode editar QUALQUER relatório sem restrições (incluindo Aprovados)
     if user.is_master:
-        current_app.logger.info(f"✅ can_edit_report: Acesso concedido (master)")
+        current_app.logger.info(f"✅ can_edit_report: Acesso concedido (master - sem restrições)")
         return True
     
-    # Verificar se o status permite edição para usuários não-master
-    if relatorio.status not in status_editaveis_usuario:
-        current_app.logger.info(f"❌ can_edit_report: Status '{relatorio.status}' não permite edição para não-master")
+    # Usuários não-master NÃO podem editar relatórios aprovados
+    if relatorio.status == 'Aprovado':
+        current_app.logger.info(f"❌ can_edit_report: Relatório aprovado - somente master pode editar")
         return False
     
-    # Verificar se é o autor
-    if relatorio.autor_id:
-        try:
-            if int(relatorio.autor_id) == int(user.id):
-                current_app.logger.info(f"✅ can_edit_report: Acesso concedido (autor)")
-                return True
-        except (ValueError, TypeError) as e:
-            current_app.logger.error(f"Erro ao comparar IDs: {e}")
-    
-    # Verificar se é membro do projeto/equipe
-    if hasattr(relatorio, 'projeto_id') and relatorio.projeto_id:
-        try:
-            # Verificar se é membro da equipe do projeto
-            is_team_member = FuncionarioProjeto.query.filter_by(
-                projeto_id=relatorio.projeto_id,
-                user_id=user.id,
-                ativo=True
-            ).first()
-            
-            if is_team_member:
-                current_app.logger.info(f"✅ can_edit_report: Acesso concedido (membro da equipe do projeto {relatorio.projeto_id})")
-                return True
-            else:
-                current_app.logger.info(f"❌ can_edit_report: Usuário não é membro do projeto {relatorio.projeto_id}")
-                
-        except Exception as e:
-            current_app.logger.error(f"Erro ao verificar membro do projeto: {e}")
-    
-    current_app.logger.info(f"❌ can_edit_report: Acesso negado")
-    return False
+    # TODOS os usuários autenticados podem editar qualquer relatório que não seja aprovado
+    current_app.logger.info(f"✅ can_edit_report: Acesso concedido (usuário autenticado - relatório não aprovado)")
+    return True
 # ==========================================================================================
 
 # Health check endpoint for Railway deployment - LIGHTWEIGHT VERSION
