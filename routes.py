@@ -7436,19 +7436,24 @@ def report_submit_for_approval(report_id):
     """Submit report for approval"""
     relatorio = Relatorio.query.get_or_404(report_id)
 
-    # Check permissions
-    if relatorio.autor_id != current_user.id:
+    # Check permissions - author or master can submit
+    if relatorio.autor_id != current_user.id and not current_user.is_master:
         flash('Acesso negado.', 'error')
         return redirect(url_for('reports'))
 
-    if relatorio.status != 'Rascunho':
-        flash('Apenas relatórios em rascunho podem ser enviados para aprovação.', 'error')
+    # Allow submission from multiple editable statuses
+    status_permitidos = ['preenchimento', 'Rascunho', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
+    if relatorio.status not in status_permitidos:
+        flash('Relatório não pode ser enviado para aprovação no status atual.', 'error')
         return redirect(url_for('report_view', report_id=report_id))
 
     relatorio.status = 'Aguardando Aprovação'
+    relatorio.updated_at = datetime.utcnow()
+    # Clear any previous rejection comments
+    relatorio.comentario_aprovacao = None
     db.session.commit()
 
-    flash('Relatório enviado para aprovação.', 'success')
+    flash('Relatório enviado para aprovação com sucesso!', 'success')
     return redirect(url_for('report_view', report_id=report_id))
 
 @app.route('/visits/<int:visit_id>/communication', methods=['GET', 'POST'])
