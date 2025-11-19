@@ -7828,23 +7828,18 @@ def api_export_google_calendar():
         from datetime import datetime, timedelta
         from urllib.parse import urlencode, quote
         
-        # Filtrar visitas: próximos 3 meses e do usuário atual (como participante ou responsável)
-        hoje = datetime.now()
-        tres_meses = hoje + timedelta(days=90)
+        # Buscar TODAS as visitas do usuário atual (como participante ou responsável)
+        # Sem filtro de data para permitir exportação de visitas passadas também
         
         # Buscar visitas onde o usuário é participante OU responsável
         visitas_participante = db.session.query(Visita).join(
             VisitaParticipante, Visita.id == VisitaParticipante.visita_id
         ).filter(
-            VisitaParticipante.user_id == current_user.id,
-            Visita.data_inicio >= hoje,
-            Visita.data_inicio <= tres_meses
+            VisitaParticipante.user_id == current_user.id
         ).all()
         
         visitas_responsavel = Visita.query.filter(
-            Visita.responsavel_id == current_user.id,
-            Visita.data_inicio >= hoje,
-            Visita.data_inicio <= tres_meses
+            Visita.responsavel_id == current_user.id
         ).all()
         
         # Combinar e remover duplicatas
@@ -7854,7 +7849,7 @@ def api_export_google_calendar():
         if not visits:
             return jsonify({
                 'success': False,
-                'error': 'Nenhuma visita encontrada nos próximos 3 meses'
+                'error': 'Nenhuma visita encontrada para exportar'
             })
 
         # Gerar URLs do Google Calendar para cada visita

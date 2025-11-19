@@ -13,7 +13,7 @@
             <div class="card shadow-sm">
                 <div class="card-body p-4">
                     <form method="POST" action="{{ url_for('reports_visits_monthly') }}">
-                        {{ csrf_token() }}
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         
                         <!-- Selecionar Usuário -->
                         <div class="mb-3">
