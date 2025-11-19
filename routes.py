@@ -30,26 +30,41 @@ def can_edit_report(user, relatorio):
     """
     Verifica se o usuário tem permissão para editar um relatório.
     
-    Regras:
-    - Usuários master: podem editar qualquer relatório
-    - Usuários não-master: podem editar APENAS seus próprios relatórios em status editável
+    Regras (CORRIGIDAS 2025-11-19):
+    - Usuários master: podem editar qualquer relatório exceto Aprovado/Finalizado
+    - Usuários não-master: podem editar seus próprios relatórios em status editável
+    - Relatórios sem autor (legados): podem ser editados por qualquer usuário em status editável
     
-    Status editáveis: Rascunho, preenchimento, Em preenchimento, Rejeitado, Em edição, Aguardando Aprovação
+    Status editáveis: Rascunho, preenchimento, Em preenchimento, Rejeitado, Em edição, 
+                     Aguardando Aprovação, em_andamento
     """
-    # Master tem acesso total
+    # Lista de status que permitem edição
+    status_editaveis = [
+        'Rascunho', 'preenchimento', 'Em preenchimento', 
+        'Rejeitado', 'Em edição', 'Aguardando Aprovação',
+        'em_andamento', None, ''
+    ]
+    
+    # Master pode editar tudo exceto aprovados/finalizados
     if user.is_master:
+        return relatorio.status not in ['Aprovado', 'Finalizado']
+    
+    # Autor pode editar seus próprios relatórios (comparação robusta com conversão de tipo)
+    if relatorio.autor_id:
+        try:
+            # Conversão explícita para int para garantir comparação correta
+            if int(relatorio.autor_id) == int(user.id):
+                return relatorio.status in status_editaveis
+        except (ValueError, TypeError) as e:
+            current_app.logger.error(f"Erro ao comparar IDs: {e}")
+            return False
+    
+    # IMPORTANTE: Relatórios sem autor (legados) podem ser editados por qualquer usuário
+    # se estiverem em status editável
+    if not relatorio.autor_id and relatorio.status in status_editaveis:
         return True
     
-    # Não-master pode editar apenas seus próprios relatórios
-    if relatorio.autor_id != user.id:
-        return False
-    
-    # Verificar se o status permite edição (incluindo variações de português)
-    status_editaveis = {
-        'Rascunho', 'preenchimento', 'Em preenchimento', 
-        'Rejeitado', 'Em edição', 'Aguardando Aprovação'
-    }
-    return relatorio.status in status_editaveis
+    return False
 # ==========================================================================================
 
 # Health check endpoint for Railway deployment - LIGHTWEIGHT VERSION
@@ -5923,21 +5938,32 @@ def view_report(report_id):
         current_app.logger.info(f"  - report.status = '{report.status}'")
         current_app.logger.info(f"  - Comparação autor_id == current_user.id: {report.autor_id == current_user.id}")
 
-        # Check basic permissions
+        # CORREÇÃO: Verificar permissões de forma mais robusta e permissiva
         user_can_view = False
         user_can_edit = False
+        status_editaveis = ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação', 'em_andamento', None, '']
 
+        # Master pode visualizar e editar tudo (exceto aprovados/finalizados para edição)
         if current_user.is_master:
             user_can_view = True
             user_can_edit = report.status not in ['Aprovado', 'Finalizado']
             current_app.logger.info(f"  ✅ Usuário é MASTER - can_view={user_can_view}, can_edit={user_can_edit}")
-        elif report.autor_id == current_user.id:
+        
+        # Autor pode visualizar e editar seus próprios relatórios (comparação robusta)
+        elif report.autor_id and int(report.autor_id) == int(current_user.id):
             user_can_view = True
-            user_can_edit = report.status in ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
+            user_can_edit = report.status in status_editaveis
             current_app.logger.info(f"  ✅ Usuário é AUTOR - can_view={user_can_view}, can_edit={user_can_edit}")
+        
+        # Se autor_id está vazio, permitir visualização e edição para status editáveis
+        elif not report.autor_id and report.status in status_editaveis:
+            user_can_view = True
+            user_can_edit = True
+            current_app.logger.info(f"  ✅ Relatório sem autor - can_view={user_can_view}, can_edit={user_can_edit}")
+        
+        # Verificar acesso via projeto
         else:
             current_app.logger.info(f"  ⚠️ Usuário não é autor nem master - verificando acesso por projeto")
-            # Allow project team members to view
             if hasattr(report, 'projeto') and report.projeto:
                 try:
                     user_has_access = FuncionarioProjeto.query.filter_by(
@@ -6027,20 +6053,34 @@ def report_edit(report_id):
         current_app.logger.info(f"  - relatorio.status = '{relatorio.status}'")
         current_app.logger.info(f"  - Comparação autor_id == current_user.id: {relatorio.autor_id == current_user.id}")
 
-        # Verificar permissões básicas - CORRIGIDO PARA RELATÓRIOS REJEITADOS
+        # CORREÇÃO: Verificar permissões de forma mais robusta e permissiva
         user_can_edit = False
+        status_editaveis = ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação', 'em_andamento', None, '']
 
-        # Master pode editar tudo exceto aprovados
+        # Master pode editar tudo exceto aprovados/finalizados
         if current_user.is_master:
             user_can_edit = relatorio.status not in ['Aprovado', 'Finalizado']
             current_app.logger.info(f"  ✅ Usuário é MASTER - can_edit={user_can_edit}")
-
-        # Autor pode editar se não aprovado - INCLUINDO REJEITADOS
-        elif relatorio.autor_id == current_user.id:
-            user_can_edit = relatorio.status in ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
+        
+        # Autor pode editar seus próprios relatórios (comparação mais robusta)
+        elif relatorio.autor_id and int(relatorio.autor_id) == int(current_user.id):
+            user_can_edit = relatorio.status in status_editaveis
             current_app.logger.info(f"  ✅ Usuário é AUTOR do relatório - can_edit={user_can_edit}")
+        
+        # IMPORTANTE: Se autor_id está vazio/None, permitir edição para status editáveis
+        # Isso resolve o problema de relatórios legados sem autor definido
+        elif not relatorio.autor_id and relatorio.status in status_editaveis:
+            user_can_edit = True
+            # Atribuir o usuário atual como autor se ainda não tem
+            relatorio.autor_id = current_user.id
+            try:
+                db.session.commit()
+                current_app.logger.info(f"  ✅ Autor atribuído automaticamente ao relatório - can_edit={user_can_edit}")
+            except Exception as e:
+                current_app.logger.error(f"  ⚠️ Erro ao atribuir autor: {e}")
+                db.session.rollback()
         else:
-            current_app.logger.warning(f"  ❌ Usuário NÃO é autor nem master")
+            current_app.logger.warning(f"  ❌ Usuário NÃO é autor nem master - verificando outros casos")
 
         current_app.logger.info(f"  📝 RESULTADO FINAL: user_can_edit = {user_can_edit}")
 
