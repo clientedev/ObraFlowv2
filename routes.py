@@ -30,40 +30,37 @@ def can_edit_report(user, relatorio):
     """
     Verifica se o usuário tem permissão para editar um relatório.
     
-    Regras (CORRIGIDAS 2025-11-19):
-    - Usuários master: podem editar qualquer relatório exceto Aprovado/Finalizado
-    - Usuários não-master: podem editar seus próprios relatórios em status editável
-    - Relatórios sem autor (legados): podem ser editados por qualquer usuário em status editável
+    Regras (CORRIGIDAS 2025-11-19 - Revisão 2):
+    - Usuários master: podem editar QUALQUER relatório (incluindo Aprovado/Finalizado)
+    - Usuários não-master: podem editar APENAS seus próprios relatórios em status editável
     
-    Status editáveis: Rascunho, preenchimento, Em preenchimento, Rejeitado, Em edição, 
-                     Aguardando Aprovação, em_andamento
+    Status editáveis para não-master: Rascunho, preenchimento, Em preenchimento, Rejeitado, 
+                                      Em edição, Aguardando Aprovação, em_andamento
     """
-    # Lista de status que permitem edição
-    status_editaveis = [
+    # Lista de status que permitem edição para usuários não-master
+    status_editaveis_usuario = [
         'Rascunho', 'preenchimento', 'Em preenchimento', 
         'Rejeitado', 'Em edição', 'Aguardando Aprovação',
         'em_andamento', None, ''
     ]
     
-    # Master pode editar tudo exceto aprovados/finalizados
+    # Master pode editar QUALQUER relatório sem restrições
     if user.is_master:
-        return relatorio.status not in ['Aprovado', 'Finalizado']
+        return True
     
-    # Autor pode editar seus próprios relatórios (comparação robusta com conversão de tipo)
+    # Usuários não-master podem editar APENAS seus próprios relatórios
     if relatorio.autor_id:
         try:
             # Conversão explícita para int para garantir comparação correta
             if int(relatorio.autor_id) == int(user.id):
-                return relatorio.status in status_editaveis
+                # Verificar se o status permite edição para usuários comuns
+                return relatorio.status in status_editaveis_usuario
         except (ValueError, TypeError) as e:
-            current_app.logger.error(f"Erro ao comparar IDs: {e}")
+            current_app.logger.error(f"Erro ao comparar IDs de autor: {e}")
             return False
     
-    # IMPORTANTE: Relatórios sem autor (legados) podem ser editados por qualquer usuário
-    # se estiverem em status editável
-    if not relatorio.autor_id and relatorio.status in status_editaveis:
-        return True
-    
+    # Relatórios sem autor: NEGAR acesso para segurança
+    # (apenas master pode editar conforme regra acima)
     return False
 # ==========================================================================================
 
@@ -1893,8 +1890,8 @@ def api_upload_photo():
                 'error': 'Relatório não encontrado'
             }), 404
         
-        # Verificar permissão
-        if not current_user.is_master and relatorio.autor_id != current_user.id:
+        # Verificar permissão usando função helper
+        if not can_edit_report(current_user, relatorio):
             current_app.logger.error(f"❌ Usuário {current_user.id} sem permissão para relatório {relatorio_id}")
             return jsonify({
                 'success': False,
@@ -2413,8 +2410,8 @@ def autosave_report(report_id):
             current_app.logger.warning(f"⚠️ AUTOSAVE: Relatório {report_id} não encontrado")
             return jsonify({"success": False, "error": "Relatório não encontrado"}), 404
 
-        # Verificar permissão (autor ou master)
-        if relatorio.autor_id != current_user.id and not current_user.is_master:
+        # Verificar permissão usando função helper
+        if not can_edit_report(current_user, relatorio):
             current_app.logger.warning(f"🚫 AUTOSAVE: Usuário {current_user.username} sem permissão para relatório {report_id}")
             return jsonify({"success": False, "error": "Sem permissão para editar este relatório"}), 403
 
@@ -2579,8 +2576,8 @@ def create_report():
                     flash('Relatório não encontrado para edição.', 'error')
                     return redirect(url_for('create_report'))
                 
-                # Check permissions
-                if relatorio.autor_id != current_user.id and not current_user.is_master:
+                # Check permissions usando função helper
+                if not can_edit_report(current_user, relatorio):
                     flash('Você não tem permissão para editar este relatório.', 'error')
                     return redirect(url_for('reports'))
                 
@@ -3133,8 +3130,8 @@ def create_report():
             edit_report_id = int(edit_report_id)
             existing_report = Relatorio.query.get(edit_report_id)
             if existing_report:
-                # Check permissions - only author or master can edit
-                if existing_report.autor_id != current_user.id and not current_user.is_master:
+                # Check permissions usando função helper
+                if not can_edit_report(current_user, existing_report):
                     flash('Você não tem permissão para editar este relatório.', 'error')
                     return redirect(url_for('reports'))
                 
@@ -3499,8 +3496,8 @@ def delete_photo(photo_id):
     try:
         foto = FotoRelatorio.query.get_or_404(photo_id)
 
-        # Check permissions
-        if not current_user.is_master and foto.relatorio.autor_id != current_user.id:
+        # Check permissions usando função helper
+        if not can_edit_report(current_user, foto.relatorio):
             return jsonify({'success': False, 'error': 'Permissão negada'})
 
         # Delete file
@@ -3528,8 +3525,8 @@ def api_delete_foto(foto_id):
         
         foto = FotoRelatorio.query.get_or_404(foto_id)
 
-        # Check permissions
-        if not current_user.is_master and foto.relatorio.autor_id != current_user.id:
+        # Check permissions usando função helper
+        if not can_edit_report(current_user, foto.relatorio):
             current_app.logger.warning(f"❌ Permissão negada para deletar foto {foto_id}")
             return jsonify({'success': False, 'error': 'Permissão negada'}), 403
 
@@ -3576,8 +3573,8 @@ def update_report_status(id):
         relatorio = Relatorio.query.get_or_404(id)
         data = request.get_json()
 
-        # Check permissions
-        if not current_user.is_master and relatorio.autor_id != current_user.id:
+        # Check permissions usando função helper
+        if not can_edit_report(current_user, relatorio):
             return jsonify({'success': False, 'error': 'Permissão negada'})
 
         new_status = data.get('status')
@@ -3869,8 +3866,8 @@ def finalize_report(report_id):
     try:
         relatorio = Relatorio.query.get_or_404(report_id)
 
-        # Verificar permissões
-        if not current_user.is_master and relatorio.autor_id != current_user.id:
+        # Verificar permissões usando função helper
+        if not can_edit_report(current_user, relatorio):
             return jsonify({'success': False, 'error': 'Acesso negado'}), 403
 
         # Tornar idempotente: se já está aguardando aprovação, limpar duplicados e retornar sucesso
@@ -4496,8 +4493,8 @@ def check_specific_image():
 def upload_report_photos(report_id):
     relatorio = Relatorio.query.get_or_404(report_id)
 
-    # Check permissions
-    if not current_user.is_master and relatorio.autor_id != current_user.id:
+    # Check permissions usando função helper
+    if not can_edit_report(current_user, relatorio):
         return jsonify({'success': False, 'error': 'Acesso negado'}), 403
 
     try:
@@ -5930,59 +5927,42 @@ def view_report(report_id):
         report = Relatorio.query.get_or_404(report_id)
         current_app.logger.info(f"✅ Relatório {report_id} encontrado: Status={report.status}")
 
-        # DEBUG: Log detalhado de permissões na visualização
-        current_app.logger.info(f"🔍 DEBUG PERMISSÕES view_report:")
-        current_app.logger.info(f"  - current_user.id = {current_user.id} (tipo: {type(current_user.id)})")
-        current_app.logger.info(f"  - current_user.is_master = {current_user.is_master}")
-        current_app.logger.info(f"  - report.autor_id = {report.autor_id} (tipo: {type(report.autor_id)})")
-        current_app.logger.info(f"  - report.status = '{report.status}'")
-        current_app.logger.info(f"  - Comparação autor_id == current_user.id: {report.autor_id == current_user.id}")
-
-        # CORREÇÃO: Verificar permissões de forma mais robusta e permissiva
+        # Verificar permissões de edição usando função helper
+        user_can_edit = can_edit_report(current_user, report)
+        
+        # Verificar permissões de visualização
         user_can_view = False
-        user_can_edit = False
-        status_editaveis = ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação', 'em_andamento', None, '']
-
-        # Master pode visualizar e editar tudo (exceto aprovados/finalizados para edição)
+        
+        # Master pode visualizar tudo
         if current_user.is_master:
             user_can_view = True
-            user_can_edit = report.status not in ['Aprovado', 'Finalizado']
-            current_app.logger.info(f"  ✅ Usuário é MASTER - can_view={user_can_view}, can_edit={user_can_edit}")
+        # Autor pode visualizar seus próprios relatórios
+        elif report.autor_id:
+            try:
+                if int(report.autor_id) == int(current_user.id):
+                    user_can_view = True
+            except (ValueError, TypeError):
+                pass
         
-        # Autor pode visualizar e editar seus próprios relatórios (comparação robusta)
-        elif report.autor_id and int(report.autor_id) == int(current_user.id):
-            user_can_view = True
-            user_can_edit = report.status in status_editaveis
-            current_app.logger.info(f"  ✅ Usuário é AUTOR - can_view={user_can_view}, can_edit={user_can_edit}")
+        # Verificar acesso via projeto (membros da equipe podem visualizar)
+        if not user_can_view and hasattr(report, 'projeto') and report.projeto:
+            try:
+                user_has_access = FuncionarioProjeto.query.filter_by(
+                    projeto_id=report.projeto.id,
+                    user_id=current_user.id,
+                    ativo=True
+                ).first()
+                
+                if user_has_access or (hasattr(report.projeto, 'responsavel_id') and report.projeto.responsavel_id == current_user.id):
+                    user_can_view = True
+            except Exception as e:
+                current_app.logger.warning(f"Erro ao verificar acesso via projeto: {str(e)}")
         
-        # Se autor_id está vazio, permitir visualização e edição para status editáveis
-        elif not report.autor_id and report.status in status_editaveis:
-            user_can_view = True
-            user_can_edit = True
-            current_app.logger.info(f"  ✅ Relatório sem autor - can_view={user_can_view}, can_edit={user_can_edit}")
-        
-        # Verificar acesso via projeto
-        else:
-            current_app.logger.info(f"  ⚠️ Usuário não é autor nem master - verificando acesso por projeto")
-            if hasattr(report, 'projeto') and report.projeto:
-                try:
-                    user_has_access = FuncionarioProjeto.query.filter_by(
-                        projeto_id=report.projeto.id,
-                        user_id=current_user.id,
-                        ativo=True
-                    ).first()
-
-                    if user_has_access or (hasattr(report.projeto, 'responsavel_id') and report.projeto.responsavel_id == current_user.id):
-                        user_can_view = True
-                        user_can_edit = False  # Membros da equipe só visualizam
-                        current_app.logger.info(f"  ✅ Usuário tem acesso via projeto")
-                    else:
-                        current_app.logger.warning(f"  ❌ Usuário NÃO tem acesso via projeto")
-                except Exception as e:
-                    current_app.logger.warning(f"Erro ao verificar acesso ao projeto para relatório {report_id}: {str(e)}")
-                    pass
-
-        current_app.logger.info(f"  📝 RESULTADO view_report: can_view={user_can_view}, can_edit={user_can_edit}")
+        # DEBUG: Log para troubleshooting
+        current_app.logger.info(f"🔍 PERMISSÕES view_report:")
+        current_app.logger.info(f"  - user_id={current_user.id}, is_master={current_user.is_master}")
+        current_app.logger.info(f"  - report.autor_id={report.autor_id}, status='{report.status}'")
+        current_app.logger.info(f"  - can_view={user_can_view}, can_edit={user_can_edit}")
 
         if not user_can_view:
             flash('Acesso negado ao relatório.', 'error')
@@ -6045,44 +6025,14 @@ def report_edit(report_id):
             flash('Relatório não encontrado.', 'error')
             return redirect(url_for('reports'))
 
-        # DEBUG: Log detalhado de permissões
-        current_app.logger.info(f"🔍 DEBUG PERMISSÕES:")
-        current_app.logger.info(f"  - current_user.id = {current_user.id} (tipo: {type(current_user.id)})")
-        current_app.logger.info(f"  - current_user.is_master = {current_user.is_master}")
-        current_app.logger.info(f"  - relatorio.autor_id = {relatorio.autor_id} (tipo: {type(relatorio.autor_id)})")
-        current_app.logger.info(f"  - relatorio.status = '{relatorio.status}'")
-        current_app.logger.info(f"  - Comparação autor_id == current_user.id: {relatorio.autor_id == current_user.id}")
-
-        # CORREÇÃO: Verificar permissões de forma mais robusta e permissiva
-        user_can_edit = False
-        status_editaveis = ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação', 'em_andamento', None, '']
-
-        # Master pode editar tudo exceto aprovados/finalizados
-        if current_user.is_master:
-            user_can_edit = relatorio.status not in ['Aprovado', 'Finalizado']
-            current_app.logger.info(f"  ✅ Usuário é MASTER - can_edit={user_can_edit}")
+        # Verificar permissões usando função helper centralizada
+        user_can_edit = can_edit_report(current_user, relatorio)
         
-        # Autor pode editar seus próprios relatórios (comparação mais robusta)
-        elif relatorio.autor_id and int(relatorio.autor_id) == int(current_user.id):
-            user_can_edit = relatorio.status in status_editaveis
-            current_app.logger.info(f"  ✅ Usuário é AUTOR do relatório - can_edit={user_can_edit}")
-        
-        # IMPORTANTE: Se autor_id está vazio/None, permitir edição para status editáveis
-        # Isso resolve o problema de relatórios legados sem autor definido
-        elif not relatorio.autor_id and relatorio.status in status_editaveis:
-            user_can_edit = True
-            # Atribuir o usuário atual como autor se ainda não tem
-            relatorio.autor_id = current_user.id
-            try:
-                db.session.commit()
-                current_app.logger.info(f"  ✅ Autor atribuído automaticamente ao relatório - can_edit={user_can_edit}")
-            except Exception as e:
-                current_app.logger.error(f"  ⚠️ Erro ao atribuir autor: {e}")
-                db.session.rollback()
-        else:
-            current_app.logger.warning(f"  ❌ Usuário NÃO é autor nem master - verificando outros casos")
-
-        current_app.logger.info(f"  📝 RESULTADO FINAL: user_can_edit = {user_can_edit}")
+        # DEBUG: Log detalhado para troubleshooting
+        current_app.logger.info(f"🔍 PERMISSÕES report_edit:")
+        current_app.logger.info(f"  - user_id={current_user.id}, is_master={current_user.is_master}")
+        current_app.logger.info(f"  - relatorio.autor_id={relatorio.autor_id}, status='{relatorio.status}'")
+        current_app.logger.info(f"  - can_edit={user_can_edit}")
 
         if not user_can_edit:
             flash('Você não tem permissão para editar este relatório ou ele já foi finalizado.', 'error')
@@ -7466,8 +7416,8 @@ def report_photo_annotate(report_id):
     """Save annotated photo"""
     relatorio = Relatorio.query.get_or_404(report_id)
 
-    # Check permissions
-    if relatorio.autor_id != current_user.id and not current_user.is_master:
+    # Check permissions usando função helper
+    if not can_edit_report(current_user, relatorio):
         return jsonify({'success': False, 'message': 'Acesso negado.'})
 
     photo_id = request.form.get('photo_id')
@@ -7509,8 +7459,8 @@ def report_submit_for_approval(report_id):
     """Submit report for approval"""
     relatorio = Relatorio.query.get_or_404(report_id)
 
-    # Check permissions - author or master can submit
-    if relatorio.autor_id != current_user.id and not current_user.is_master:
+    # Check permissions usando função helper - author or master can submit
+    if not can_edit_report(current_user, relatorio):
         flash('Acesso negado.', 'error')
         return redirect(url_for('reports'))
 
