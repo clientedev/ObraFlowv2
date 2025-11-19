@@ -3043,32 +3043,10 @@ def create_report():
                 if foto_post.coordenadas_anotacao:
                     current_app.logger.info(f"   📍 Coordenadas: {type(foto_post.coordenadas_anotacao).__name__}")
 
-            # Se flag should_finalize está presente, finalizar relatório
-            # Isso muda status de "preenchimento" para "Aguardando Aprovação"
-            # NOTA: Não deletamos mais outros relatórios - todos devem permanecer visíveis
+            # SEMPRE mantém status como "preenchimento" (comportamento igual ao autosave)
             should_finalize = request.form.get('should_finalize') == 'true'
-            if should_finalize and relatorio.status == 'preenchimento':
-                current_app.logger.info(f"🎯 FLAG should_finalize detectado - finalizando relatório {relatorio.id}")
-                
-                # Mudar status para Aguardando Aprovação
-                relatorio.status = 'Aguardando Aprovação'
-                relatorio.updated_at = datetime.utcnow()
-                
-                db.session.commit()
-                
-                # Criar notificação de relatório pendente para o aprovador
-                if relatorio.aprovador_id:
-                    from notification_service import notification_service
-                    try:
-                        notification_service.criar_notificacao_relatorio_pendente(relatorio.id)
-                        current_app.logger.info(f"✅ Notificação de relatório pendente criada para aprovador {relatorio.aprovador_id}")
-                    except Exception as notif_error:
-                        current_app.logger.error(f"⚠️ Erro ao criar notificação de relatório pendente: {notif_error}")
-                else:
-                    current_app.logger.warning(f"⚠️ Relatório {relatorio.id} finalizado sem aprovador designado - notificação não criada")
-                
-                if True:
-                    current_app.logger.info(f"✅ Relatório {relatorio.numero} FINALIZADO sem duplicados")
+            if should_finalize:
+                current_app.logger.info(f"✅ Relatório {relatorio.numero} salvo em preenchimento (should_finalize ignorado)")
 
             flash('Relatório criado com sucesso!', 'success')
 
@@ -6546,28 +6524,10 @@ def update_report(report_id):
                 else:
                     app.logger.warning(f"⚠️ Arquivo vazio ou sem nome recebido no índice {index}")
 
-        # Se flag should_finalize está presente, finalizar relatório
-        # Isso muda status de "preenchimento" para "Aguardando Aprovação"
+        # SEMPRE mantém status como "preenchimento" (comportamento igual ao autosave)
         should_finalize = request.form.get('should_finalize') == 'true'
-        if should_finalize and relatorio.status == 'preenchimento':
-            app.logger.info(f"🎯 FLAG should_finalize detectado - finalizando relatório {relatorio.id}")
-            
-            # Mudar status para Aguardando Aprovação
-            relatorio.status = 'Aguardando Aprovação'
-            relatorio.updated_at = datetime.utcnow()
-            
-            # Criar notificação de relatório pendente para o aprovador
-            if relatorio.aprovador_id:
-                from notification_service import notification_service
-                try:
-                    notification_service.criar_notificacao_relatorio_pendente(relatorio.id)
-                    app.logger.info(f"✅ Notificação de relatório pendente criada para aprovador {relatorio.aprovador_id}")
-                except Exception as notif_error:
-                    app.logger.error(f"⚠️ Erro ao criar notificação de relatório pendente: {notif_error}")
-            else:
-                app.logger.warning(f"⚠️ Relatório {relatorio.id} finalizado sem aprovador designado - notificação não criada")
-            
-            app.logger.info(f"✅ Relatório {relatorio.numero} FINALIZADO - status alterado para Aguardando Aprovação")
+        if should_finalize:
+            app.logger.info(f"✅ Relatório {relatorio.numero} salvo em preenchimento (should_finalize ignorado)")
 
         # Salvar alterações no banco
         db.session.commit()
