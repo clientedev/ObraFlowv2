@@ -1,0 +1,54 @@
+187.95.161.96 - - [19/Nov/2025:18:12:31 +0000] "GET /api/legendas?categoria=all&_t=1763575950492&sync=realtime HTTP/1.1" 200 4919 "https://elpconsultoria.pro/visits" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    return current_app.ensure_sync(func)(*args, **kwargs)
+    rv = self.handle_user_exception(e)
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/usr/local/lib/python3.11/site-packages/flask_cors/extension.py", line 194, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ^^^^^^^^^^^^^^^^^^
+ERROR:app:Exception on /reports/visits-monthly [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+187.95.161.96 - - [19/Nov/2025:18:12:36 +0000] "GET /reports/visits-monthly HTTP/1.1" 500 22562 "https://elpconsultoria.pro/visits" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
+    <a href="{{ url_for('list_visits') }}"
+  File "/usr/local/lib/python3.11/site-packages/werkzeug/routing/map.py", line 924, in build
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1110, in url_for
+187.95.161.96 - - [19/Nov/2025:18:12:36 +0000] "GET /static/css/style.css HTTP/1.1" 304 0 "https://elpconsultoria.pro/reports/visits-monthly" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    raise BuildError(endpoint, values, method, self)
+    rv = url_adapter.build(  # type: ignore[union-attr]
+187.95.161.96 - - [19/Nov/2025:18:12:36 +0000] "GET /static/css/mobile-accessibility.css HTTP/1.1" 304 0 "https://elpconsultoria.pro/reports/visits-monthly" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1121, in url_for
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'list_visits'. Did you mean 'api_visits_list' instead?
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    return self.handle_url_build_error(error, endpoint, values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/routes.py", line 10804, in reports_visits_monthly
+    return render_template('reports/visits_monthly.html', usuarios=usuarios)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/app/templates/reports/visits_monthly.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/app/templates/base.html", line 290, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/templates/reports/visits_monthly.html", line 103, in block 'content'
