@@ -42,7 +42,7 @@ class LegendasSelector {
             });
             
             if (!response.ok) {
-                // Log detalhado do erro HTTP
+                // Log detalhado do erro HTTP (APENAS NO CONSOLE)
                 const responseText = await response.text();
                 console.error(`❌ HTTP ${response.status}: ${responseText}`);
                 throw new Error(`HTTP ${response.status}`);
@@ -67,6 +67,7 @@ class LegendasSelector {
             }
             
         } catch (error) {
+            // APENAS LOGS NO CONSOLE - SEM ALERTAS VISUAIS
             console.error(`❌ Erro ao carregar legendas (tentativa ${this.retryCount + 1}/${this.maxRetries}):`, error);
             
             // Sistema de retry com backoff exponencial
@@ -85,8 +86,8 @@ class LegendasSelector {
                 return this.cache.get(cacheKey);
             }
             
-            // Fallback final: dados estáticos básicos
-            console.warn('⚠️ Usando dados de fallback estáticos');
+            // Fallback final: dados estáticos básicos (SEM ALERTAS)
+            console.warn('⚠️ Usando dados de fallback estáticos - legendas básicas');
             return [
                 {id: 1, texto: 'Emboço bem-acabado', categoria: 'Acabamentos'},
                 {id: 2, texto: 'Estrutura bem-acabada', categoria: 'Estrutural'},
@@ -148,8 +149,11 @@ class LegendasSelector {
             console.log(`✅ Select populado com ${legendas.length} legendas`);
             
         } catch (error) {
+            // APENAS LOG NO CONSOLE - SEM MENSAGEM DE ERRO VISÍVEL
             console.error('❌ Erro ao popular select:', error);
-            selectElement.innerHTML = '<option value="">Erro ao carregar legendas</option>';
+            
+            // Manter select funcional com opção padrão
+            selectElement.innerHTML = `<option value="">${placeholder}</option>`;
             selectElement.disabled = false;
         }
     }
