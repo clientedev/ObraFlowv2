@@ -5930,31 +5930,53 @@ def view_report(report_id):
         # Verificar permissões de edição usando função helper
         user_can_edit = can_edit_report(current_user, report)
         
-        # Verificar permissões de visualização
+        # Verificar permissões de visualização - LÓGICA MAIS PERMISSIVA
         user_can_view = False
         
-        # Master pode visualizar tudo
+        # 1. Master pode visualizar tudo
         if current_user.is_master:
             user_can_view = True
-        # Autor pode visualizar seus próprios relatórios
-        elif report.autor_id:
+            current_app.logger.info(f"✅ Acesso master concedido")
+        
+        # 2. Autor pode visualizar seus próprios relatórios
+        if not user_can_view and report.autor_id:
             try:
                 if int(report.autor_id) == int(current_user.id):
                     user_can_view = True
-            except (ValueError, TypeError):
-                pass
+                    current_app.logger.info(f"✅ Acesso concedido - usuário é autor do relatório")
+            except (ValueError, TypeError) as e:
+                current_app.logger.warning(f"Erro na comparação de IDs: {e}")
         
-        # Verificar acesso via projeto (membros da equipe podem visualizar)
+        # 3. Verificar acesso via projeto (membros da equipe, responsável, ou qualquer um que tenha relatórios no projeto)
         if not user_can_view and hasattr(report, 'projeto') and report.projeto:
             try:
+                # a) Verificar se é membro da equipe do projeto
                 user_has_access = FuncionarioProjeto.query.filter_by(
                     projeto_id=report.projeto.id,
                     user_id=current_user.id,
                     ativo=True
                 ).first()
                 
-                if user_has_access or (hasattr(report.projeto, 'responsavel_id') and report.projeto.responsavel_id == current_user.id):
+                # b) Verificar se é responsável pelo projeto
+                is_project_responsible = (hasattr(report.projeto, 'responsavel_id') and 
+                                        report.projeto.responsavel_id == current_user.id)
+                
+                # c) Verificar se já criou outros relatórios neste projeto
+                has_reports_in_project = Relatorio.query.filter_by(
+                    projeto_id=report.projeto.id,
+                    autor_id=current_user.id
+                ).first()
+                
+                if user_has_access:
                     user_can_view = True
+                    current_app.logger.info(f"✅ Acesso concedido - membro da equipe do projeto")
+                elif is_project_responsible:
+                    user_can_view = True
+                    current_app.logger.info(f"✅ Acesso concedido - responsável pelo projeto")
+                elif has_reports_in_project:
+                    user_can_view = True
+                    current_app.logger.info(f"✅ Acesso concedido - tem relatórios no projeto")
+                    
             except Exception as e:
                 current_app.logger.warning(f"Erro ao verificar acesso via projeto: {str(e)}")
         
