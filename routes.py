@@ -1201,13 +1201,20 @@ def get_nearby_projects():
 @app.route('/api/notificacoes')
 @login_required
 def listar_notificacoes():
-    """Listar notificações do usuário autenticado"""
+    """Listar notificações do usuário autenticado (filtrando expiradas)"""
     try:
         from notification_service import notification_service
+        from datetime import datetime
         
         try:
+            # Filtrar notificações não expiradas (expires_at > agora OU expires_at é NULL)
+            agora = datetime.utcnow()
             notificacoes = Notificacao.query.filter(
-                Notificacao.user_id == current_user.id
+                Notificacao.user_id == current_user.id,
+                db.or_(
+                    Notificacao.expires_at > agora,
+                    Notificacao.expires_at == None
+                )
             ).order_by(Notificacao.created_at.desc()).all()
         except Exception as db_error:
             current_app.logger.error(f"❌ Erro SQL ao buscar notificações: {db_error}")
@@ -3648,6 +3655,14 @@ def approve_report(id):
         db.session.commit()
         
         current_app.logger.info(f"✅ Relatório {relatorio.numero} aprovado no banco de dados")
+        
+        # Criar notificação para o autor do relatório
+        try:
+            from notification_service import notification_service
+            notification_service.criar_notificacao_relatorio_aprovado(relatorio.id, current_user.id)
+            current_app.logger.info(f"✅ Notificação de aprovação enviada ao autor")
+        except Exception as notif_error:
+            current_app.logger.error(f"⚠️ Erro ao criar notificação de aprovação: {notif_error}")
 
         # Gerar PDF usando WeasyPrint
         from pdf_generator_weasy import WeasyPrintReportGenerator
@@ -6594,6 +6609,15 @@ def update_report(report_id):
         # Salvar alterações no banco
         db.session.commit()
         app.logger.info(f"✅ Relatório {report_id} atualizado com sucesso")
+        
+        # Criar notificação se relatório foi editado e está aguardando aprovação
+        if not should_finalize:  # Não criar notificação se acabou de finalizar (já foi criada acima)
+            try:
+                from notification_service import notification_service
+                notification_service.criar_notificacao_relatorio_editado(relatorio.id, current_user.id)
+                app.logger.info(f"✅ Notificação de edição criada (se aplicável)")
+            except Exception as notif_error:
+                app.logger.error(f"⚠️ Erro ao criar notificação de edição: {notif_error}")
         
         return jsonify({
             "success": True,

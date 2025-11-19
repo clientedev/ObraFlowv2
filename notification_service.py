@@ -158,27 +158,63 @@ class NotificationService:
     def criar_notificacao_relatorio_pendente(self, relatorio_id):
         """
         Cria notificação para o aprovador de um relatório pendente
+        Busca aprovador específico do projeto ou aprovador global
         
         Args:
             relatorio_id: ID do relatório pendente
         """
         try:
-            from models import Relatorio
+            from models import Relatorio, Projeto, AprovadorPadrao
             
             relatorio = Relatorio.query.get(relatorio_id)
             if not relatorio:
                 logger.error(f"❌ Relatório {relatorio_id} não encontrado")
                 return {'success': False, 'error': 'Relatório não encontrado'}
             
-            if not relatorio.aprovador_id:
-                logger.warning(f"⚠️ Relatório {relatorio_id} não tem aprovador designado")
-                return {'success': False, 'error': 'Relatório sem aprovador'}
+            # Buscar aprovador específico do projeto ou aprovador global
+            aprovador_id = None
+            
+            # 1. Tentar buscar aprovador específico do projeto
+            if relatorio.projeto_id:
+                aprovador_projeto = AprovadorPadrao.query.filter_by(
+                    projeto_id=relatorio.projeto_id,
+                    ativo=True
+                ).order_by(AprovadorPadrao.prioridade).first()
+                
+                if aprovador_projeto:
+                    aprovador_id = aprovador_projeto.aprovador_id
+                    logger.info(f"✅ Aprovador específico encontrado para projeto {relatorio.projeto_id}: user {aprovador_id}")
+            
+            # 2. Se não encontrou aprovador específico, buscar aprovador global
+            if not aprovador_id:
+                aprovador_global = AprovadorPadrao.query.filter_by(
+                    is_global=True,
+                    ativo=True
+                ).order_by(AprovadorPadrao.prioridade).first()
+                
+                if aprovador_global:
+                    aprovador_id = aprovador_global.aprovador_id
+                    logger.info(f"✅ Aprovador global encontrado: user {aprovador_id}")
+            
+            # 3. Fallback: usar aprovador_id do relatório se existir
+            if not aprovador_id and relatorio.aprovador_id:
+                aprovador_id = relatorio.aprovador_id
+                logger.info(f"✅ Usando aprovador_id do relatório: user {aprovador_id}")
+            
+            # Se não encontrou nenhum aprovador, retornar erro
+            if not aprovador_id:
+                logger.warning(f"⚠️ Relatório {relatorio_id} não tem aprovador designado (nem específico, nem global)")
+                return {'success': False, 'error': 'Relatório sem aprovador designado'}
+            
+            # Buscar informações do projeto para mensagem mais completa
+            projeto = Projeto.query.get(relatorio.projeto_id) if relatorio.projeto_id else None
+            projeto_nome = projeto.nome if projeto else "Sem projeto"
             
             resultado = self.criar_notificacao(
-                user_id=relatorio.aprovador_id,
+                user_id=aprovador_id,
                 tipo='relatorio_pendente',
-                titulo='Relatório pendente de aprovação',
-                mensagem=f'O relatório "{relatorio.titulo}" está aguardando sua aprovação.',
+                titulo='Você tem um relatório com aprovação pendente',
+                mensagem=f'O relatório "{relatorio.titulo or relatorio.numero}" da obra "{projeto_nome}" está aguardando sua aprovação.',
                 link_destino=f'/reports/{relatorio_id}/review'
             )
             
@@ -347,10 +383,211 @@ class NotificationService:
             logger.error(f"❌ Erro ao listar notificações: {e}")
             return {'success': False, 'error': str(e)}
     
+    def criar_notificacao_relatorio_aprovado(self, relatorio_id, aprovador_id):
+        """
+        Cria notificação para o autor quando relatório é aprovado
+        
+        Args:
+            relatorio_id: ID do relatório aprovado
+            aprovador_id: ID do aprovador que aprovou
+        """
+        try:
+            from models import Relatorio, User, Projeto
+            
+            relatorio = Relatorio.query.get(relatorio_id)
+            if not relatorio:
+                logger.error(f"❌ Relatório {relatorio_id} não encontrado")
+                return {'success': False, 'error': 'Relatório não encontrado'}
+            
+            # Notificar o autor do relatório
+            aprovador = User.query.get(aprovador_id)
+            aprovador_nome = aprovador.nome_completo if aprovador else "Aprovador"
+            
+            projeto = Projeto.query.get(relatorio.projeto_id) if relatorio.projeto_id else None
+            projeto_nome = projeto.nome if projeto else "Sem projeto"
+            
+            resultado = self.criar_notificacao(
+                user_id=relatorio.autor_id,
+                tipo='relatorio_aprovado',
+                titulo='Relatório aprovado',
+                mensagem=f'Seu relatório "{relatorio.titulo or relatorio.numero}" da obra "{projeto_nome}" foi aprovado por {aprovador_nome}.',
+                link_destino=f'/reports/{relatorio_id}'
+            )
+            
+            return resultado
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao criar notificação de relatório aprovado: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    def criar_notificacao_relatorio_criado(self, relatorio_id):
+        """
+        Cria notificação para participantes quando um novo relatório é criado
+        
+        Args:
+            relatorio_id: ID do relatório criado
+        """
+        try:
+            from models import Relatorio, Projeto, FuncionarioProjeto, AprovadorPadrao
+            
+            relatorio = Relatorio.query.get(relatorio_id)
+            if not relatorio:
+                logger.error(f"❌ Relatório {relatorio_id} não encontrado")
+                return {'success': False, 'error': 'Relatório não encontrado'}
+            
+            projeto = Projeto.query.get(relatorio.projeto_id) if relatorio.projeto_id else None
+            projeto_nome = projeto.nome if projeto else "Sem projeto"
+            
+            # Coletar IDs de usuários a notificar (excluindo o autor)
+            usuarios_a_notificar = set()
+            
+            # 1. Responsável do projeto
+            if projeto and projeto.responsavel_id and projeto.responsavel_id != relatorio.autor_id:
+                usuarios_a_notificar.add(projeto.responsavel_id)
+            
+            # 2. Funcionários do projeto
+            if relatorio.projeto_id:
+                funcionarios = FuncionarioProjeto.query.filter_by(
+                    projeto_id=relatorio.projeto_id,
+                    ativo=True
+                ).all()
+                
+                for func in funcionarios:
+                    if func.user_id and func.user_id != relatorio.autor_id:
+                        usuarios_a_notificar.add(func.user_id)
+            
+            # Criar notificações
+            notificacoes_criadas = 0
+            for user_id in usuarios_a_notificar:
+                resultado = self.criar_notificacao(
+                    user_id=user_id,
+                    tipo='relatorio_criado',
+                    titulo='Novo relatório criado',
+                    mensagem=f'Um novo relatório "{relatorio.titulo or relatorio.numero}" foi criado para a obra "{projeto_nome}".',
+                    link_destino=f'/reports/{relatorio_id}'
+                )
+                
+                if resultado['success']:
+                    notificacoes_criadas += 1
+            
+            logger.info(f"✅ {notificacoes_criadas} notificações de relatório criado enviadas")
+            return {'success': True, 'count': notificacoes_criadas}
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao criar notificações de relatório criado: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    def criar_notificacao_relatorio_editado(self, relatorio_id, editor_id):
+        """
+        Cria notificação quando relatório é editado (se estiver aguardando aprovação)
+        
+        Args:
+            relatorio_id: ID do relatório editado
+            editor_id: ID do usuário que editou
+        """
+        try:
+            from models import Relatorio, Projeto, AprovadorPadrao, User
+            
+            relatorio = Relatorio.query.get(relatorio_id)
+            if not relatorio:
+                logger.error(f"❌ Relatório {relatorio_id} não encontrado")
+                return {'success': False, 'error': 'Relatório não encontrado'}
+            
+            # Só notificar se o relatório está aguardando aprovação
+            if relatorio.status != 'Aguardando Aprovação':
+                logger.debug(f"ℹ️ Relatório {relatorio_id} não está aguardando aprovação - notificação não criada")
+                return {'success': True, 'message': 'Relatório não está aguardando aprovação'}
+            
+            # Buscar aprovador
+            aprovador_id = None
+            
+            if relatorio.projeto_id:
+                aprovador_projeto = AprovadorPadrao.query.filter_by(
+                    projeto_id=relatorio.projeto_id,
+                    ativo=True
+                ).order_by(AprovadorPadrao.prioridade).first()
+                
+                if aprovador_projeto:
+                    aprovador_id = aprovador_projeto.aprovador_id
+            
+            if not aprovador_id:
+                aprovador_global = AprovadorPadrao.query.filter_by(
+                    is_global=True,
+                    ativo=True
+                ).order_by(AprovadorPadrao.prioridade).first()
+                
+                if aprovador_global:
+                    aprovador_id = aprovador_global.aprovador_id
+            
+            if not aprovador_id:
+                logger.warning(f"⚠️ Nenhum aprovador encontrado para relatório {relatorio_id}")
+                return {'success': False, 'error': 'Nenhum aprovador encontrado'}
+            
+            # Não notificar se o editor é o próprio aprovador
+            if editor_id == aprovador_id:
+                logger.debug(f"ℹ️ Editor é o aprovador - notificação não criada")
+                return {'success': True, 'message': 'Editor é o aprovador'}
+            
+            projeto = Projeto.query.get(relatorio.projeto_id) if relatorio.projeto_id else None
+            projeto_nome = projeto.nome if projeto else "Sem projeto"
+            
+            editor = User.query.get(editor_id)
+            editor_nome = editor.nome_completo if editor else "Um usuário"
+            
+            resultado = self.criar_notificacao(
+                user_id=aprovador_id,
+                tipo='relatorio_editado',
+                titulo='Relatório pendente foi editado',
+                mensagem=f'{editor_nome} editou o relatório "{relatorio.titulo or relatorio.numero}" da obra "{projeto_nome}" que está aguardando sua aprovação.',
+                link_destino=f'/reports/{relatorio_id}/review'
+            )
+            
+            return resultado
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao criar notificação de relatório editado: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    def limpar_notificacoes_expiradas(self):
+        """
+        Remove notificações que expiraram (mais de 24 horas)
+        """
+        try:
+            from models import Notificacao
+            
+            agora = datetime.utcnow()
+            
+            # Buscar notificações expiradas
+            notificacoes_expiradas = Notificacao.query.filter(
+                Notificacao.expires_at < agora
+            ).all()
+            
+            count = len(notificacoes_expiradas)
+            
+            if count > 0:
+                for notificacao in notificacoes_expiradas:
+                    db.session.delete(notificacao)
+                
+                db.session.commit()
+                logger.info(f"🧹 {count} notificações expiradas removidas")
+            else:
+                logger.debug("ℹ️ Nenhuma notificação expirada encontrada")
+            
+            return {'success': True, 'removed_count': count}
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"❌ Erro ao limpar notificações expiradas: {e}")
+            return {'success': False, 'error': str(e)}
+    
     def get_icone_tipo(self, tipo):
         icones = {
             'obra_criada': '🏗️',
             'relatorio_pendente': '📄',
+            'relatorio_aprovado': '✅',
+            'relatorio_reprovado': '❌',
+            'relatorio_criado': '📝',
+            'relatorio_editado': '✏️',
             'aprovado': '✅',
             'rejeitado': '⚠️',
             'enviado_para_aprovacao': '📤'
