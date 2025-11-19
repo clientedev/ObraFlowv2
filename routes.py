@@ -34,7 +34,7 @@ def can_edit_report(user, relatorio):
     - Usuários master: podem editar qualquer relatório
     - Usuários não-master: podem editar APENAS seus próprios relatórios em status editável
     
-    Status editáveis: Rascunho, preenchimento, Rejeitado, Em edição, Aguardando Aprovação
+    Status editáveis: Rascunho, preenchimento, Em preenchimento, Rejeitado, Em edição, Aguardando Aprovação
     """
     # Master tem acesso total
     if user.is_master:
@@ -44,8 +44,11 @@ def can_edit_report(user, relatorio):
     if relatorio.autor_id != user.id:
         return False
     
-    # Verificar se o status permite edição
-    status_editaveis = {'Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação'}
+    # Verificar se o status permite edição (incluindo variações de português)
+    status_editaveis = {
+        'Rascunho', 'preenchimento', 'Em preenchimento', 
+        'Rejeitado', 'Em edição', 'Aguardando Aprovação'
+    }
     return relatorio.status in status_editaveis
 # ==========================================================================================
 
