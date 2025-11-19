@@ -80,16 +80,30 @@ function setupDateTimeInputs() {
         }
     });
 
+    // Função auxiliar para formatar data no horário local
+    function formatarDataLocal(date) {
+        const ano = date.getFullYear();
+        const mes = String(date.getMonth() + 1).padStart(2, '0');
+        const dia = String(date.getDate()).padStart(2, '0');
+        const hora = String(date.getHours()).padStart(2, '0');
+        const minuto = String(date.getMinutes()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
+    }
+
     // Set default datetime for visit scheduling
     const datetimeInputs = document.querySelectorAll('input[type="datetime-local"]');
     datetimeInputs.forEach(function(input) {
-        if (!input.value) {
+        // Não sobrescrever se já tem valor ou se está em formulário de visitas
+        // (o formulário de visitas tem seu próprio controle)
+        if (!input.value && !input.closest('form[action*="visit"]')) {
             const now = new Date();
             now.setMinutes(0); // Round to the hour
             now.setSeconds(0);
             now.setMilliseconds(0);
-            input.value = now.toISOString().slice(0, 16);
-            input.min = now.toISOString().slice(0, 16);
+            
+            const horarioLocal = formatarDataLocal(now);
+            input.value = horarioLocal;
+            input.min = horarioLocal;
         }
     });
 }
