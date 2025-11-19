@@ -4885,45 +4885,57 @@ def project_edit(project_id):
                     if contato and contato.projeto_id == project.id:
                         db.session.delete(contato)
             
-            # Processar contatos - novos e existentes
-            nomes = request.form.getlist('contatos_nome[]')
-            cargos = request.form.getlist('contatos_cargo[]')
-            empresas = request.form.getlist('contatos_empresa[]')
-            emails = request.form.getlist('contatos_email[]')
-            telefones = request.form.getlist('contatos_telefone[]')
-            ids = request.form.getlist('contatos_id[]')
+            # Processar contatos usando indexed notation (contatos[0][nome], contatos[0][email], etc.)
+            # Extract all unique contact indices from form keys
+            contatos = []
+            contact_indices = set()
+            for key in request.form.keys():
+                if key.startswith('contatos[') and '][' in key:
+                    index = key.split('[')[1].split(']')[0]
+                    contact_indices.add(index)
+            
+            # Process each contact by index
+            for index in sorted(contact_indices):
+                nome = request.form.get(f'contatos[{index}][nome]', '')
+                cargo = request.form.get(f'contatos[{index}][cargo]', '')
+                empresa = request.form.get(f'contatos[{index}][empresa]', '')
+                email = request.form.get(f'contatos[{index}][email]', '')
+                telefone = request.form.get(f'contatos[{index}][telefone]', '')
+                contato_id = request.form.get(f'contatos[{index}][id]', None)
+
+                if nome or email:  # Pelo menos nome ou email deve estar preenchido
+                    contatos.append({
+                        'nome': nome,
+                        'cargo': cargo,
+                        'empresa': empresa,
+                        'email': email,
+                        'telefone': telefone,
+                        'id': contato_id
+                    })
             
             # Processar cada contato
-            for i in range(len(nomes)):
-                nome = nomes[i] if i < len(nomes) else ''
-                cargo = cargos[i] if i < len(cargos) else ''
-                empresa = empresas[i] if i < len(empresas) else ''
-                email = emails[i] if i < len(emails) else ''
-                telefone = telefones[i] if i < len(telefones) else ''
-                contato_id = ids[i] if i < len(ids) else None
-                
-                if nome or email:  # Pelo menos nome ou email deve estar preenchido
-                    if contato_id:
-                        # Atualizar contato existente
-                        contato = EmailCliente.query.get(int(contato_id))
-                        if contato and contato.projeto_id == project.id:
-                            contato.nome_contato = nome
-                            contato.cargo = cargo
-                            contato.empresa = empresa
-                            contato.email = email or None
-                            contato.telefone = telefone
-                    else:
-                        # Criar novo contato
-                        novo_contato = EmailCliente(
-                            projeto_id=project.id,
-                            nome_contato=nome,
-                            cargo=cargo,
-                            empresa=empresa,
-                            email=email or None,
-                            telefone=telefone,
-                            ativo=True
-                        )
-                        db.session.add(novo_contato)
+            for contato_data in contatos:
+                if contato_data.get('id'):
+                    # Atualizar contato existente
+                    contato = EmailCliente.query.get(int(contato_data['id']))
+                    if contato and contato.projeto_id == project.id:
+                        contato.nome_contato = contato_data['nome']
+                        contato.cargo = contato_data['cargo']
+                        contato.empresa = contato_data['empresa']
+                        contato.email = contato_data['email'] or None
+                        contato.telefone = contato_data['telefone']
+                else:
+                    # Criar novo contato
+                    novo_contato = EmailCliente(
+                        projeto_id=project.id,
+                        nome_contato=contato_data['nome'],
+                        cargo=contato_data['cargo'],
+                        empresa=contato_data['empresa'],
+                        email=contato_data['email'] or None,
+                        telefone=contato_data['telefone'],
+                        ativo=True
+                    )
+                    db.session.add(novo_contato)
             
             # Atualizar campos legados do projeto com primeiro contato
             primeiro_contato = EmailCliente.query.filter_by(projeto_id=project.id).first()
@@ -7940,6 +7952,7 @@ def novo_email_cliente(projeto_id):
             nome_contato=form.nome_contato.data,
             cargo=form.cargo.data,
             empresa=form.empresa.data,
+            telefone=form.telefone.data,
             receber_notificacoes=form.receber_notificacoes.data,
             receber_relatorios=form.receber_relatorios.data,
             ativo=form.ativo.data
@@ -7982,6 +7995,7 @@ def editar_email_cliente(email_id):
         email_cliente.nome_contato = form.nome_contato.data
         email_cliente.cargo = form.cargo.data
         email_cliente.empresa = form.empresa.data
+        email_cliente.telefone = form.telefone.data
         email_cliente.receber_notificacoes = form.receber_notificacoes.data
         email_cliente.receber_relatorios = form.receber_relatorios.data
         email_cliente.ativo = form.ativo.data

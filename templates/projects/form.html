@@ -139,31 +139,31 @@
                             
                             <div id="lista-contatos">
                                 {% for contato in contatos_existentes %}
-                                <div class="card-contato" data-id="{{ contato.id }}">
+                                <div class="card-contato" data-id="{{ contato.id }}" data-index="{{ loop.index0 }}">
                                     <div class="form-group">
                                         <label>Nome</label>
-                                        <input type="text" name="contatos_nome[]" class="form-control" value="{{ contato.nome_contato }}" required>
-                                        <input type="hidden" name="contatos_id[]" value="{{ contato.id }}">
+                                        <input type="text" name="contatos[{{ loop.index0 }}][nome]" class="form-control" value="{{ contato.nome_contato }}" required>
+                                        <input type="hidden" name="contatos[{{ loop.index0 }}][id]" value="{{ contato.id }}">
                                     </div>
                                     
                                     <div class="form-group">
                                         <label>Cargo</label>
-                                        <input type="text" name="contatos_cargo[]" class="form-control" value="{{ contato.cargo or '' }}">
+                                        <input type="text" name="contatos[{{ loop.index0 }}][cargo]" class="form-control" value="{{ contato.cargo or '' }}">
                                     </div>
                                     
                                     <div class="form-group">
                                         <label>Empresa</label>
-                                        <input type="text" name="contatos_empresa[]" class="form-control" value="{{ contato.empresa or '' }}">
+                                        <input type="text" name="contatos[{{ loop.index0 }}][empresa]" class="form-control" value="{{ contato.empresa or '' }}">
                                     </div>
                                     
                                     <div class="form-group">
                                         <label>E-mail</label>
-                                        <input type="email" name="contatos_email[]" class="form-control" value="{{ contato.email or '' }}" required>
+                                        <input type="email" name="contatos[{{ loop.index0 }}][email]" class="form-control" value="{{ contato.email or '' }}" required>
                                     </div>
                                     
                                     <div class="form-group">
                                         <label>Telefone (opcional)</label>
-                                        <input type="text" name="contatos_telefone[]" class="form-control" value="{{ contato.telefone or '' }}">
+                                        <input type="text" name="contatos[{{ loop.index0 }}][telefone]" class="form-control" value="{{ contato.telefone or '' }}">
                                     </div>
                                     
                                     <button type="button" class="btn btn-danger btn-sm btn-excluir" onclick="removerContato(this, {{ contato.id }})">
@@ -488,36 +488,39 @@ function confirmMapLocation() {
 // Gestão de Contatos da Obra
 let categoriaCounter = 0;
 let contatosExcluidos = [];
+let contatoCounter = {{ contatos_existentes|length }};
 
 document.getElementById('addContatoBtn').addEventListener('click', function() {
     const lista = document.getElementById('lista-contatos');
     const novo = document.createElement('div');
     novo.classList.add('card-contato');
+    novo.setAttribute('data-index', contatoCounter);
     novo.innerHTML = `
         <div class="form-group">
             <label>Nome</label>
-            <input type="text" name="contatos_nome[]" class="form-control" required>
+            <input type="text" name="contatos[${contatoCounter}][nome]" class="form-control" required>
         </div>
         <div class="form-group">
             <label>Cargo</label>
-            <input type="text" name="contatos_cargo[]" class="form-control">
+            <input type="text" name="contatos[${contatoCounter}][cargo]" class="form-control">
         </div>
         <div class="form-group">
             <label>Empresa</label>
-            <input type="text" name="contatos_empresa[]" class="form-control">
+            <input type="text" name="contatos[${contatoCounter}][empresa]" class="form-control">
         </div>
         <div class="form-group">
             <label>E-mail</label>
-            <input type="email" name="contatos_email[]" class="form-control" required>
+            <input type="email" name="contatos[${contatoCounter}][email]" class="form-control" required>
         </div>
         <div class="form-group">
             <label>Telefone (opcional)</label>
-            <input type="text" name="contatos_telefone[]" class="form-control">
+            <input type="text" name="contatos[${contatoCounter}][telefone]" class="form-control">
         </div>
         <button type="button" class="btn btn-danger btn-sm btn-excluir" onclick="removerContato(this)">
             <i class="bi bi-trash"></i> Excluir
         </button>`;
     lista.appendChild(novo);
+    contatoCounter++;
 });
 
 function removerContato(btn, contatoId) {
