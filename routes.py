@@ -7615,6 +7615,8 @@ def api_visits_calendar():
                         projeto_numero = projeto.numero
                 elif visit.projeto_outros:
                     projeto_nome = visit.projeto_outros
+                elif visit.is_pessoal:
+                    projeto_nome = "Compromisso Pessoal"
             except Exception as proj_error:
                 current_app.logger.warning(f"⚠️ Erro ao carregar projeto da visita {visit.id}: {proj_error}")
 
@@ -7627,24 +7629,66 @@ def api_visits_calendar():
                 else:
                     title = f"{visit.numero or f'Visita {visit.id}'} (Pessoal)"
 
-            visits_data.append({
-                'id': visit.id,
-                'numero': visit.numero or f"V{visit.id}",
-                'title': title,
-                'data_inicio': visit.data_inicio.isoformat() if visit.data_inicio else None,
-                'data_fim': visit.data_fim.isoformat() if visit.data_fim else None,
-                'data_realizada': visit.data_realizada.isoformat() if visit.data_realizada else None,
-                'status': visit.status or 'Agendada',
-                'projeto_nome': projeto_nome,
-                'projeto_numero': projeto_numero,
-                'responsavel_nome': responsavel_nome,
-                'responsavel_cor': responsavel_cor,
-                'observacoes': visit.observacoes or '',
-                'atividades_realizadas': visit.atividades_realizadas or '',
-                'participantes': participantes,  # Item 29: Lista de participantes com cores
-                'is_pessoal': visit.is_pessoal or False,  # Item 31: Flag de compromisso pessoal
-                'criado_por': visit.criado_por
-            })
+            # PARTE 3: Criar um card para cada participante
+            total_participantes = len(participantes)
+            has_multiple_participants = total_participantes > 1
+            
+            # Se não houver participantes (visita antiga), criar ao menos um evento com o responsável
+            if not participantes:
+                visits_data.append({
+                    'id': f"{visit.id}-{visit.responsavel_id}",  # ID único: visit_id-participant_id
+                    'visit_id': visit.id,  # ID real da visita para navegação
+                    'numero': visit.numero or f"V{visit.id}",
+                    'title': title,
+                    'data_inicio': visit.data_inicio.isoformat() if visit.data_inicio else None,
+                    'data_fim': visit.data_fim.isoformat() if visit.data_fim else None,
+                    'data_realizada': visit.data_realizada.isoformat() if visit.data_realizada else None,
+                    'status': visit.status or 'Agendada',
+                    'projeto_nome': projeto_nome,
+                    'projeto_numero': projeto_numero,
+                    'responsavel_nome': responsavel_nome,
+                    'responsavel_cor': responsavel_cor,
+                    'observacoes': visit.observacoes or '',
+                    'atividades_realizadas': visit.atividades_realizadas or '',
+                    'participantes': [],
+                    'is_pessoal': visit.is_pessoal or False,
+                    'criado_por': visit.criado_por,
+                    'has_multiple_participants': False,
+                    'total_participants': 0,
+                    'participant_name': responsavel_nome,
+                    'participant_id': visit.responsavel_id
+                })
+            else:
+                # Criar um card para cada participante
+                for participante in participantes:
+                    # Criar título com nome do participante se houver múltiplos
+                    participant_title = title
+                    if has_multiple_participants:
+                        participant_title = f"{title} - {participante['nome']}"
+                    
+                    visits_data.append({
+                        'id': f"{visit.id}-{participante['id']}",  # ID único: visit_id-participant_id
+                        'visit_id': visit.id,  # ID real da visita para navegação
+                        'numero': visit.numero or f"V{visit.id}",
+                        'title': participant_title,
+                        'data_inicio': visit.data_inicio.isoformat() if visit.data_inicio else None,
+                        'data_fim': visit.data_fim.isoformat() if visit.data_fim else None,
+                        'data_realizada': visit.data_realizada.isoformat() if visit.data_realizada else None,
+                        'status': visit.status or 'Agendada',
+                        'projeto_nome': projeto_nome,
+                        'projeto_numero': projeto_numero,
+                        'responsavel_nome': responsavel_nome,
+                        'responsavel_cor': participante['cor_agenda'],  # Cor do participante específico
+                        'observacoes': visit.observacoes or '',
+                        'atividades_realizadas': visit.atividades_realizadas or '',
+                        'participantes': participantes,  # Manter lista completa para referência
+                        'is_pessoal': visit.is_pessoal or False,
+                        'criado_por': visit.criado_por,
+                        'has_multiple_participants': has_multiple_participants,  # Flag para mostrar ícone
+                        'total_participants': total_participantes,
+                        'participant_name': participante['nome'],  # Nome específico deste card
+                        'participant_id': participante['id']  # ID do participante deste card
+                    })
 
         current_app.logger.info(f"✅ Calendário carregado com {len(visits_data)} eventos")
 
@@ -7776,41 +7820,125 @@ def api_visit_details(visit_id):
 @app.route('/api/visits/export/google')
 @login_required
 def api_export_google_calendar():
-    """Export all visits to Google Calendar"""
+    """
+    PARTE 4: Export all user visits to Google Calendar with duplicate prevention
+    Exporta TODAS as visitas do usuário (filtradas por próximos 3 meses)
+    """
     try:
-        visits = Visita.query.filter_by(status='Agendada').all()
+        from datetime import datetime, timedelta
+        from urllib.parse import urlencode, quote
+        
+        # Filtrar visitas: próximos 3 meses e do usuário atual (como participante ou responsável)
+        hoje = datetime.now()
+        tres_meses = hoje + timedelta(days=90)
+        
+        # Buscar visitas onde o usuário é participante OU responsável
+        visitas_participante = db.session.query(Visita).join(
+            VisitaParticipante, Visita.id == VisitaParticipante.visita_id
+        ).filter(
+            VisitaParticipante.user_id == current_user.id,
+            Visita.data_inicio >= hoje,
+            Visita.data_inicio <= tres_meses
+        ).all()
+        
+        visitas_responsavel = Visita.query.filter(
+            Visita.responsavel_id == current_user.id,
+            Visita.data_inicio >= hoje,
+            Visita.data_inicio <= tres_meses
+        ).all()
+        
+        # Combinar e remover duplicatas
+        visitas_ids = set([v.id for v in visitas_participante] + [v.id for v in visitas_responsavel])
+        visits = Visita.query.filter(Visita.id.in_(visitas_ids)).order_by(Visita.data_inicio).all()
 
-        # Generate Google Calendar URL for all visits
-        base_url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
-
-        if visits:
-            first_visit = visits[0]
-            # Format for Google Calendar
-            start_time = first_visit.data_agendada.strftime('%Y%m%dT%H%M%S')
-            end_time = (first_visit.data_agendada + timedelta(hours=2)).strftime('%Y%m%dT%H%M%S')
-
-            params = {
-                'text': f'Visita {first_visit.numero} - {first_visit.projeto.nome}',
-                'dates': f'{start_time}/{end_time}',
-                'details': f'Objetivo: {first_visit.objetivo}\\nProjeto: {first_visit.projeto.nome}\\nResponsável: {first_visit.responsavel.nome_completo}',
-                'location': first_visit.projeto.endereco or 'Localização do projeto'
-            }
-
-            google_url = base_url + '&' + '&'.join([f'{k}={v}' for k, v in params.items()])
-
-            return jsonify({
-                'success': True,
-                'url': google_url,
-                'message': f'Link gerado para {len(visits)} visitas agendadas'
-            })
-        else:
+        if not visits:
             return jsonify({
                 'success': False,
-                'error': 'Nenhuma visita agendada encontrada'
+                'error': 'Nenhuma visita encontrada nos próximos 3 meses'
             })
 
+        # Gerar URLs do Google Calendar para cada visita
+        base_url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
+        export_urls = []
+        novas_exportacoes = 0
+        duplicatas = 0
+
+        for visit in visits:
+            # PARTE 4: Verificar se já foi exportada (tem google_event_id)
+            if visit.google_event_id:
+                duplicatas += 1
+                continue  # Pular visitas já exportadas
+            
+            # Formatar para Google Calendar
+            start_time = visit.data_inicio.strftime('%Y%m%dT%H%M%S')
+            end_time = (visit.data_fim or visit.data_inicio + timedelta(hours=2)).strftime('%Y%m%dT%H%M%S')
+            
+            # Preparar título e descrição
+            projeto_nome = visit.projeto_nome or "Sem projeto"
+            title = f"Visita {visit.numero} - {projeto_nome}"
+            
+            # Buscar participantes para incluir na descrição
+            participantes_nomes = []
+            try:
+                participantes_query = db.session.query(VisitaParticipante).filter_by(
+                    visita_id=visit.id
+                ).join(User, VisitaParticipante.user_id == User.id).all()
+                participantes_nomes = [p.user.nome_completo for p in participantes_query if p.user]
+            except:
+                pass
+            
+            participantes_str = ", ".join(participantes_nomes) if participantes_nomes else visit.responsavel.nome_completo
+            
+            details = f"Observações: {visit.observacoes or 'N/A'}\\n"
+            details += f"Projeto: {projeto_nome}\\n"
+            details += f"Responsável: {visit.responsavel.nome_completo}\\n"
+            details += f"Participantes: {participantes_str}"
+            
+            # Localização
+            location = ""
+            if visit.projeto and hasattr(visit.projeto, 'endereco'):
+                location = visit.projeto.endereco or ''
+            
+            # Montar parâmetros
+            params = {
+                'text': title,
+                'dates': f'{start_time}/{end_time}',
+                'details': details,
+                'location': location
+            }
+            
+            google_url = base_url + '&' + urlencode(params, quote_via=quote)
+            
+            # Gerar ID único para controle (baseado no ID da visita + timestamp)
+            # Quando houver integração API real, este ID será substituído pelo do Google
+            event_id = f"visit_{visit.id}_{int(datetime.now().timestamp())}"
+            visit.google_event_id = event_id
+            
+            export_urls.append({
+                'visit_id': visit.id,
+                'visit_numero': visit.numero,
+                'url': google_url,
+                'title': title
+            })
+            
+            novas_exportacoes += 1
+        
+        # Salvar os google_event_id no banco
+        if novas_exportacoes > 0:
+            db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'{novas_exportacoes} visitas prontas para exportação. {duplicatas} já exportadas anteriormente.',
+            'total_visits': len(visits),
+            'novas_exportacoes': novas_exportacoes,
+            'duplicatas': duplicatas,
+            'export_urls': export_urls,
+            'note': 'Clique em cada URL para adicionar ao Google Calendar. Para sincronização automática bidirecional, configure a integração do Google Calendar.'
+        })
+
     except Exception as e:
-        print(f"Google export error: {e}")
+        current_app.logger.exception(f"❌ Erro na exportação para Google Calendar: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -10572,3 +10700,354 @@ def project_checklist_delete_item(project_id, item_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
+
+# ====== PARTE 5: RELATÓRIO MENSAL DE VISITAS POR USUÁRIO ======
+
+@app.route('/reports/visits-monthly', methods=['GET', 'POST'])
+@login_required
+def reports_visits_monthly():
+    """
+    PARTE 5: Relatório Mensal de Visitas por Usuário
+    - Permite filtrar por mês, ano e usuário
+    - Gera PDF ou Excel conforme selecionado
+    """
+    from datetime import datetime, timedelta
+    from calendar import monthrange
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from flask import make_response, send_file
+    
+    # Get all active users for filter dropdown
+    usuarios = User.query.filter_by(ativo=True).order_by(User.nome_completo).all()
+    
+    if request.method == 'POST':
+        # Process report generation
+        try:
+            mes = int(request.form.get('mes', datetime.now().month))
+            ano = int(request.form.get('ano', datetime.now().year))
+            user_id = request.form.get('user_id')
+            formato = request.form.get('formato', 'pdf')  # pdf ou excel
+            
+            # Validar filtros
+            if not user_id:
+                flash('Selecione um usuário para gerar o relatório', 'warning')
+                return redirect(url_for('reports_visits_monthly'))
+            
+            user = User.query.get_or_404(user_id)
+            
+            # Calcular período (primeiro e último dia do mês)
+            primeiro_dia = datetime(ano, mes, 1)
+            ultimo_dia_num = monthrange(ano, mes)[1]
+            ultimo_dia = datetime(ano, mes, ultimo_dia_num, 23, 59, 59)
+            
+            # Buscar visitas do usuário no período (como participante OU responsável)
+            visitas_participante = db.session.query(Visita).join(
+                VisitaParticipante, Visita.id == VisitaParticipante.visita_id
+            ).filter(
+                VisitaParticipante.user_id == user_id,
+                Visita.data_inicio >= primeiro_dia,
+                Visita.data_inicio <= ultimo_dia
+            ).all()
+            
+            visitas_responsavel = Visita.query.filter(
+                Visita.responsavel_id == user_id,
+                Visita.data_inicio >= primeiro_dia,
+                Visita.data_inicio <= ultimo_dia
+            ).all()
+            
+            # Combinar e remover duplicatas
+            visitas_ids = set([v.id for v in visitas_participante] + [v.id for v in visitas_responsavel])
+            visitas = Visita.query.filter(Visita.id.in_(visitas_ids)).order_by(Visita.data_inicio).all()
+            
+            # Calcular métricas
+            total_visitas = len(visitas)
+            visitas_por_status = {}
+            visitas_por_projeto = {}
+            
+            for visita in visitas:
+                # Contar por status
+                status = visita.status or 'Sem status'
+                visitas_por_status[status] = visitas_por_status.get(status, 0) + 1
+                
+                # Contar por projeto
+                projeto_nome = visita.projeto_nome or 'Sem projeto'
+                visitas_por_projeto[projeto_nome] = visitas_por_projeto.get(projeto_nome, 0) + 1
+            
+            # Nome do mês em português
+            meses_pt = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+            mes_nome = meses_pt[mes]
+            
+            # Gerar relatório conforme formato
+            if formato == 'excel':
+                return _gerar_relatorio_excel(visitas, user, mes_nome, ano, 
+                                             visitas_por_status, visitas_por_projeto, total_visitas)
+            else:  # pdf
+                return _gerar_relatorio_pdf(visitas, user, mes_nome, ano,
+                                           visitas_por_status, visitas_por_projeto, total_visitas)
+                                           
+        except Exception as e:
+            current_app.logger.exception(f"❌ Erro ao gerar relatório mensal: {str(e)}")
+            flash(f'Erro ao gerar relatório: {str(e)}', 'danger')
+            return redirect(url_for('reports_visits_monthly'))
+    
+    # GET: Show filter form
+    return render_template('reports/visits_monthly.html', usuarios=usuarios)
+
+
+def _gerar_relatorio_pdf(visitas, user, mes_nome, ano, visitas_por_status, visitas_por_projeto, total_visitas):
+    """Gera relatório PDF de visitas mensais"""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from flask import send_file
+    
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        textColor=colors.HexColor('#1f2937'),
+        spaceAfter=0.5*cm,
+        alignment=TA_CENTER
+    )
+    
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Normal'],
+        fontSize=12,
+        textColor=colors.HexColor('#4b5563'),
+        spaceAfter=1*cm,
+        alignment=TA_CENTER
+    )
+    
+    section_style = ParagraphStyle(
+        'SectionHeader',
+        parent=styles['Heading2'],
+        fontSize=14,
+        textColor=colors.HexColor('#1f2937'),
+        spaceAfter=0.3*cm,
+        spaceBefore=0.5*cm
+    )
+    
+    # Título
+    elements.append(Paragraph(f"Relatório Mensal de Visitas", title_style))
+    elements.append(Paragraph(f"{mes_nome} de {ano} - {user.nome_completo}", subtitle_style))
+    
+    # Resumo
+    elements.append(Paragraph("Resumo do Período", section_style))
+    resumo_data = [
+        ['Métrica', 'Valor'],
+        ['Total de Visitas', str(total_visitas)],
+    ]
+    
+    # Adicionar contagens por status
+    for status, count in visitas_por_status.items():
+        resumo_data.append([f'Visitas {status}', str(count)])
+    
+    resumo_table = Table(resumo_data, colWidths=[12*cm, 4*cm])
+    resumo_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3b82f6')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+    elements.append(resumo_table)
+    elements.append(Spacer(1, 0.5*cm))
+    
+    # Visitas por Projeto
+    if visitas_por_projeto:
+        elements.append(Paragraph("Visitas por Projeto", section_style))
+        projeto_data = [['Projeto', 'Quantidade']]
+        for projeto, count in sorted(visitas_por_projeto.items(), key=lambda x: x[1], reverse=True):
+            projeto_data.append([projeto, str(count)])
+        
+        projeto_table = Table(projeto_data, colWidths=[12*cm, 4*cm])
+        projeto_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#10b981')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f0fdf4')),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        elements.append(projeto_table)
+        elements.append(Spacer(1, 0.5*cm))
+    
+    # Detalhamento das Visitas
+    if visitas:
+        elements.append(Paragraph("Detalhamento das Visitas", section_style))
+        visitas_data = [['Data', 'Nº Visita', 'Projeto', 'Status']]
+        
+        for visita in visitas:
+            data_str = visita.data_inicio.strftime('%d/%m/%Y %H:%M')
+            numero = visita.numero or f'V{visita.id}'
+            projeto = visita.projeto_nome or 'Sem projeto'
+            status = visita.status or 'Sem status'
+            visitas_data.append([data_str, numero, projeto, status])
+        
+        visitas_table = Table(visitas_data, colWidths=[4*cm, 3*cm, 6*cm, 3*cm])
+        visitas_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6366f1')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f5f5f5')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')]),
+        ]))
+        elements.append(visitas_table)
+    else:
+        elements.append(Paragraph("Nenhuma visita encontrada no período selecionado.", styles['Normal']))
+    
+    # Build PDF
+    doc.build(elements)
+    buffer.seek(0)
+    
+    filename = f"relatorio_visitas_{user.nome_completo.replace(' ', '_')}_{mes_nome}_{ano}.pdf"
+    return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+
+
+def _gerar_relatorio_excel(visitas, user, mes_nome, ano, visitas_por_status, visitas_por_projeto, total_visitas):
+    """Gera relatório Excel de visitas mensais"""
+    from io import BytesIO
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+    from flask import send_file
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Relatório Visitas"
+    
+    # Estilos
+    header_fill = PatternFill(start_color="3B82F6", end_color="3B82F6", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=12)
+    title_font = Font(bold=True, size=16)
+    section_font = Font(bold=True, size=14)
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    # Título
+    ws['A1'] = "Relatório Mensal de Visitas"
+    ws['A1'].font = title_font
+    ws['A1'].alignment = Alignment(horizontal='center')
+    ws.merge_cells('A1:D1')
+    
+    ws['A2'] = f"{mes_nome} de {ano} - {user.nome_completo}"
+    ws['A2'].alignment = Alignment(horizontal='center')
+    ws.merge_cells('A2:D2')
+    
+    # Resumo
+    row = 4
+    ws[f'A{row}'] = "Resumo do Período"
+    ws[f'A{row}'].font = section_font
+    row += 1
+    
+    ws[f'A{row}'] = "Métrica"
+    ws[f'B{row}'] = "Valor"
+    ws[f'A{row}'].font = header_font
+    ws[f'B{row}'].font = header_font
+    ws[f'A{row}'].fill = header_fill
+    ws[f'B{row}'].fill = header_fill
+    row += 1
+    
+    ws[f'A{row}'] = "Total de Visitas"
+    ws[f'B{row}'] = total_visitas
+    row += 1
+    
+    for status, count in visitas_por_status.items():
+        ws[f'A{row}'] = f"Visitas {status}"
+        ws[f'B{row}'] = count
+        row += 1
+    
+    # Visitas por Projeto
+    row += 2
+    ws[f'A{row}'] = "Visitas por Projeto"
+    ws[f'A{row}'].font = section_font
+    row += 1
+    
+    ws[f'A{row}'] = "Projeto"
+    ws[f'B{row}'] = "Quantidade"
+    ws[f'A{row}'].font = header_font
+    ws[f'B{row}'].font = header_font
+    ws[f'A{row}'].fill = PatternFill(start_color="10B981", end_color="10B981", fill_type="solid")
+    ws[f'B{row}'].fill = PatternFill(start_color="10B981", end_color="10B981", fill_type="solid")
+    row += 1
+    
+    for projeto, count in sorted(visitas_por_projeto.items(), key=lambda x: x[1], reverse=True):
+        ws[f'A{row}'] = projeto
+        ws[f'B{row}'] = count
+        row += 1
+    
+    # Detalhamento das Visitas
+    row += 2
+    ws[f'A{row}'] = "Detalhamento das Visitas"
+    ws[f'A{row}'].font = section_font
+    row += 1
+    
+    headers = ['Data', 'Nº Visita', 'Projeto', 'Status']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=row, column=col, value=header)
+        cell.font = header_font
+        cell.fill = PatternFill(start_color="6366F1", end_color="6366F1", fill_type="solid")
+        cell.border = border
+    row += 1
+    
+    for visita in visitas:
+        ws[f'A{row}'] = visita.data_inicio.strftime('%d/%m/%Y %H:%M')
+        ws[f'B{row}'] = visita.numero or f'V{visita.id}'
+        ws[f'C{row}'] = visita.projeto_nome or 'Sem projeto'
+        ws[f'D{row}'] = visita.status or 'Sem status'
+        
+        for col in range(1, 5):
+            ws.cell(row=row, column=col).border = border
+        row += 1
+    
+    # Ajustar largura das colunas
+    ws.column_dimensions['A'].width = 20
+    ws.column_dimensions['B'].width = 15
+    ws.column_dimensions['C'].width = 40
+    ws.column_dimensions['D'].width = 15
+    
+    # Salvar em buffer
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    
+    filename = f"relatorio_visitas_{user.nome_completo.replace(' ', '_')}_{mes_nome}_{ano}.xlsx"
+    return send_file(buffer, as_attachment=True, download_name=filename, 
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

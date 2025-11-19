@@ -234,6 +234,7 @@ class Visita(db.Model):
     longitude = db.Column(db.Float)
     is_pessoal = db.Column(db.Boolean, default=False)  # Flag para compromissos pessoais - Item 31
     criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Usuário criador - Item 31
+    google_event_id = db.Column(db.String(255), nullable=True)  # ID do evento no Google Calendar para evitar duplicação
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     @property
