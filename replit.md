@@ -2,11 +2,16 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, autosave functionality with real-time synchronization, and a comprehensive notification system. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes
-**November 19, 2025** - Permission system fixes:
-- Fixed `report_submit_for_approval` route to allow submissions from multiple editable statuses: ['preenchimento', 'Rascunho', 'Rejeitado', 'Em edição', 'Aguardando Aprovação'] (previously only allowed 'Rascunho')
-- Verified non-master users can create reports, edit their own reports, and submit for approval
-- Added timestamp updates and comment clearing when resubmitting rejected reports
-- Confirmed master users can also submit reports for approval on behalf of authors
+**November 19, 2025** - Comprehensive permission system overhaul:
+- Created centralized `can_edit_report()` helper function with clear access control rules:
+  - Master users can edit ANY report (including Approved/Finalized)
+  - Non-master users can edit ONLY their own reports in editable statuses
+  - Robust ID comparison with type conversion to prevent permission bypasses
+  - Security: Removed permissive fallback for reports without author
+- Applied helper function to 15+ critical routes: report_edit, view_report, autosave, photo upload/delete, status updates, submission for approval, and more
+- Fixed `report_submit_for_approval` to allow submissions from multiple editable statuses: ['preenchimento', 'Rascunho', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
+- Added detailed logging for permission debugging
+- Confirmed end-to-end: non-master users can create reports, edit their own reports, and submit for approval; master users retain full override rights
 
 # User Preferences
 Preferred communication style: Simple, everyday language.
