@@ -23,6 +23,32 @@ from models import (
     VisitaParticipante, TipoObra, CategoriaObra, Notificacao
 )
 
+# ==========================================================================================
+# PERMISSION HELPER - Centraliza verificação de permissões para edição de relatórios
+# ==========================================================================================
+def can_edit_report(user, relatorio):
+    """
+    Verifica se o usuário tem permissão para editar um relatório.
+    
+    Regras:
+    - Usuários master: podem editar qualquer relatório
+    - Usuários não-master: podem editar APENAS seus próprios relatórios em status editável
+    
+    Status editáveis: Rascunho, preenchimento, Rejeitado, Em edição, Aguardando Aprovação
+    """
+    # Master tem acesso total
+    if user.is_master:
+        return True
+    
+    # Não-master pode editar apenas seus próprios relatórios
+    if relatorio.autor_id != user.id:
+        return False
+    
+    # Verificar se o status permite edição
+    status_editaveis = {'Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação'}
+    return relatorio.status in status_editaveis
+# ==========================================================================================
+
 # Health check endpoint for Railway deployment - LIGHTWEIGHT VERSION
 @app.route('/health')
 def health_check():
