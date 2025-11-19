@@ -170,11 +170,6 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="relatorios-express-tab" data-bs-toggle="tab" data-bs-target="#relatorios-express" type="button" role="tab">
-                    <i class="fas fa-bolt me-2"></i>Relatórios Express ({{ relatorios_express|length }})
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="categorias-tab" data-bs-toggle="tab" data-bs-target="#categorias" type="button" role="tab">
                     <i class="fas fa-tags me-2"></i>Categorias
                 </button>
@@ -458,89 +453,6 @@
                 </div>
             </div>
             
-            <!-- Relatórios Express Tab -->
-            <div class="tab-pane fade" id="relatorios-express" role="tabpanel">
-                <div class="card border-top-0">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i class="fas fa-bolt me-2 text-success"></i>
-                                Relatórios Express
-                            </h6>
-                            <a href="{{ url_for('express_new') }}" class="btn btn-sm btn-success">
-                                <i class="fas fa-plus me-1"></i>Novo Relatório Express
-                            </a>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        {% if relatorios_express %}
-                            <div class="row">
-                                {% for relatorio in relatorios_express %}
-                                <div class="col-lg-6 col-12 mb-3">
-                                    <div class="card border-left-success">
-                                        <div class="card-body py-3">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <div>
-                                                    <h6 class="card-title mb-1">
-                                                        <i class="fas fa-bolt text-success me-1"></i>
-                                                        {{ relatorio.numero }}
-                                                    </h6>
-                                                    <small class="text-muted">
-                                                        <i class="fas fa-user me-1"></i>{{ relatorio.autor.nome_completo }}<br>
-                                                        <i class="fas fa-calendar me-1"></i>{{ relatorio.created_at.strftime('%d/%m/%Y às %H:%M') }}
-                                                    </small>
-                                                </div>
-                                                <div class="dropdown">
-                                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                                        <i class="fas fa-cog"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu">
-                                                        <li><a class="dropdown-item" href="{{ url_for('express_detail', id=relatorio.id) }}">
-                                                            <i class="fas fa-eye me-2"></i>Ver Detalhes
-                                                        </a></li>
-                                                        <li><a class="dropdown-item" href="{{ url_for('express_pdf', id=relatorio.id) }}">
-                                                            <i class="fas fa-file-pdf me-2"></i>Gerar PDF
-                                                        </a></li>
-                                                        <li><a class="dropdown-item" href="{{ url_for('express_edit', id=relatorio.id) }}">
-                                                            <i class="fas fa-edit me-2"></i>Editar
-                                                        </a></li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="card-text">
-                                                <small class="text-dark">
-                                                    {{ relatorio.observacoes_gerais[:100] if relatorio.observacoes_gerais else 'Sem observações' }}{{ '...' if relatorio.observacoes_gerais and relatorio.observacoes_gerais|length > 100 else '' }}
-                                                </small>
-                                            </div>
-                                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                                <small class="text-muted">
-                                                    <i class="fas fa-camera me-1"></i>{{ relatorio.fotos|length }} foto{{ 's' if relatorio.fotos|length != 1 else '' }}
-                                                </small>
-                                                <div>
-                                                    <a href="{{ url_for('express_detail', id=relatorio.id) }}" class="btn btn-sm btn-outline-success">
-                                                        <i class="fas fa-eye me-1"></i>Ver
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="text-center text-muted py-4">
-                                <i class="fas fa-bolt fa-3x text-success mb-3"></i>
-                                <h6>Nenhum relatório express criado ainda</h6>
-                                <p class="mb-3">Os relatórios express são perfeitos para comunicações rápidas e objetivas.</p>
-                                <a href="{{ url_for('express_new') }}" class="btn btn-success">
-                                    <i class="fas fa-plus me-2"></i>Criar Primeiro Relatório Express
-                                </a>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            
             <!-- Categorias Tab - Item 16 -->
             <div class="tab-pane fade" id="categorias" role="tabpanel">
                 <div class="card border-top-0">
@@ -603,15 +515,8 @@
     </div>
 </div>
 
-<!-- CSS adicional para estilo dos relatórios express e mobile CTA -->
+<!-- CSS adicional para mobile CTA -->
 <style>
-.border-left-success {
-    border-left: 4px solid #28a745 !important;
-}
-.text-success {
-    color: #28a745 !important;
-}
-
 /* Mobile-First CTA Button Styles */
 .mobile-cta-card {
     border: none;
