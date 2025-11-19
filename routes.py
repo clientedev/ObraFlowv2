@@ -26,16 +26,73 @@ from models import (
 # ==========================================================================================
 # PERMISSION HELPER - Centraliza verificação de permissões para edição de relatórios
 # ==========================================================================================
+def can_view_report(user, relatorio):
+    """
+    Verifica se o usuário tem permissão para visualizar um relatório.
+    
+    Regras (CORRIGIDAS 2025-11-19 - Revisão 3):
+    - Usuários master: podem visualizar QUALQUER relatório
+    - Autor: pode visualizar seus próprios relatórios
+    - Membros da equipe do projeto: podem visualizar relatórios do projeto
+    - Responsável pelo projeto: pode visualizar relatórios do projeto
+    - Usuários com outros relatórios no projeto: podem visualizar
+    """
+    # 1. Master pode visualizar tudo
+    if user.is_master:
+        return True
+    
+    # 2. Autor pode visualizar seus próprios relatórios
+    if relatorio.autor_id:
+        try:
+            if int(relatorio.autor_id) == int(user.id):
+                return True
+        except (ValueError, TypeError):
+            pass
+    
+    # 3. Verificar acesso via projeto (membros da equipe, responsável, ou qualquer um que tenha relatórios no projeto)
+    if hasattr(relatorio, 'projeto') and relatorio.projeto:
+        try:
+            # a) Verificar se é membro da equipe do projeto
+            user_has_access = FuncionarioProjeto.query.filter_by(
+                projeto_id=relatorio.projeto.id,
+                user_id=user.id,
+                ativo=True
+            ).first()
+            
+            if user_has_access:
+                return True
+            
+            # b) Verificar se é responsável pelo projeto
+            if hasattr(relatorio.projeto, 'responsavel_id') and relatorio.projeto.responsavel_id == user.id:
+                return True
+            
+            # c) Verificar se já criou outros relatórios neste projeto
+            has_reports_in_project = Relatorio.query.filter_by(
+                projeto_id=relatorio.projeto.id,
+                autor_id=user.id
+            ).first()
+            
+            if has_reports_in_project:
+                return True
+                
+        except Exception as e:
+            current_app.logger.warning(f"Erro ao verificar acesso via projeto: {str(e)}")
+    
+    return False
+
 def can_edit_report(user, relatorio):
     """
     Verifica se o usuário tem permissão para editar um relatório.
     
-    Regras (CORRIGIDAS 2025-11-19 - Revisão 2):
+    Regras (CORRIGIDAS 2025-11-19 - Revisão 3):
     - Usuários master: podem editar QUALQUER relatório (incluindo Aprovado/Finalizado)
-    - Usuários não-master: podem editar APENAS seus próprios relatórios em status editável
+    - Autor: pode editar seus próprios relatórios em status editável
+    - Membros da equipe do projeto: podem editar relatórios do projeto em status editável
     
     Status editáveis para não-master: Rascunho, preenchimento, Em preenchimento, Rejeitado, 
                                       Em edição, Aguardando Aprovação, em_andamento
+                                      
+    IMPORTANTE: Apenas usuários master podem APROVAR relatórios
     """
     # Lista de status que permitem edição para usuários não-master
     status_editaveis_usuario = [
@@ -48,19 +105,41 @@ def can_edit_report(user, relatorio):
     if user.is_master:
         return True
     
-    # Usuários não-master podem editar APENAS seus próprios relatórios
+    # Verificar se o status permite edição para usuários não-master
+    status_permite_edicao = relatorio.status in status_editaveis_usuario
+    
+    if not status_permite_edicao:
+        return False
+    
+    # Usuários não-master podem editar seus próprios relatórios em status editável
     if relatorio.autor_id:
         try:
-            # Conversão explícita para int para garantir comparação correta
             if int(relatorio.autor_id) == int(user.id):
-                # Verificar se o status permite edição para usuários comuns
-                return relatorio.status in status_editaveis_usuario
+                return True
         except (ValueError, TypeError) as e:
             current_app.logger.error(f"Erro ao comparar IDs de autor: {e}")
-            return False
     
-    # Relatórios sem autor: NEGAR acesso para segurança
-    # (apenas master pode editar conforme regra acima)
+    # Membros da equipe do projeto podem editar relatórios do projeto em status editável
+    if hasattr(relatorio, 'projeto') and relatorio.projeto:
+        try:
+            # Verificar se é membro da equipe do projeto
+            user_has_access = FuncionarioProjeto.query.filter_by(
+                projeto_id=relatorio.projeto.id,
+                user_id=user.id,
+                ativo=True
+            ).first()
+            
+            if user_has_access:
+                return True
+            
+            # Verificar se é responsável pelo projeto
+            if hasattr(relatorio.projeto, 'responsavel_id') and relatorio.projeto.responsavel_id == user.id:
+                return True
+                
+        except Exception as e:
+            current_app.logger.error(f"Erro ao verificar acesso via projeto: {e}")
+    
+    # Caso contrário, negar acesso
     return False
 # ==========================================================================================
 
@@ -3613,6 +3692,12 @@ def review_report(report_id):
             current_app.logger.error(f"❌ Relatório {report_id} é None após get_or_404")
             abort(404, description="Relatório não encontrado.")
 
+        # Verificar permissões de visualização usando função helper
+        if not can_view_report(current_user, report):
+            current_app.logger.warning(f"⚠️ Usuário {current_user.id} sem permissão para visualizar relatório {report_id}")
+            flash('Acesso negado ao relatório.', 'error')
+            return redirect(url_for('reports'))
+
         # Proteger contra JSON malformado no checklist com validação defensiva
         try:
             import json
@@ -5927,58 +6012,9 @@ def view_report(report_id):
         report = Relatorio.query.get_or_404(report_id)
         current_app.logger.info(f"✅ Relatório {report_id} encontrado: Status={report.status}")
 
-        # Verificar permissões de edição usando função helper
+        # Verificar permissões usando funções helper
+        user_can_view = can_view_report(current_user, report)
         user_can_edit = can_edit_report(current_user, report)
-        
-        # Verificar permissões de visualização - LÓGICA MAIS PERMISSIVA
-        user_can_view = False
-        
-        # 1. Master pode visualizar tudo
-        if current_user.is_master:
-            user_can_view = True
-            current_app.logger.info(f"✅ Acesso master concedido")
-        
-        # 2. Autor pode visualizar seus próprios relatórios
-        if not user_can_view and report.autor_id:
-            try:
-                if int(report.autor_id) == int(current_user.id):
-                    user_can_view = True
-                    current_app.logger.info(f"✅ Acesso concedido - usuário é autor do relatório")
-            except (ValueError, TypeError) as e:
-                current_app.logger.warning(f"Erro na comparação de IDs: {e}")
-        
-        # 3. Verificar acesso via projeto (membros da equipe, responsável, ou qualquer um que tenha relatórios no projeto)
-        if not user_can_view and hasattr(report, 'projeto') and report.projeto:
-            try:
-                # a) Verificar se é membro da equipe do projeto
-                user_has_access = FuncionarioProjeto.query.filter_by(
-                    projeto_id=report.projeto.id,
-                    user_id=current_user.id,
-                    ativo=True
-                ).first()
-                
-                # b) Verificar se é responsável pelo projeto
-                is_project_responsible = (hasattr(report.projeto, 'responsavel_id') and 
-                                        report.projeto.responsavel_id == current_user.id)
-                
-                # c) Verificar se já criou outros relatórios neste projeto
-                has_reports_in_project = Relatorio.query.filter_by(
-                    projeto_id=report.projeto.id,
-                    autor_id=current_user.id
-                ).first()
-                
-                if user_has_access:
-                    user_can_view = True
-                    current_app.logger.info(f"✅ Acesso concedido - membro da equipe do projeto")
-                elif is_project_responsible:
-                    user_can_view = True
-                    current_app.logger.info(f"✅ Acesso concedido - responsável pelo projeto")
-                elif has_reports_in_project:
-                    user_can_view = True
-                    current_app.logger.info(f"✅ Acesso concedido - tem relatórios no projeto")
-                    
-            except Exception as e:
-                current_app.logger.warning(f"Erro ao verificar acesso via projeto: {str(e)}")
         
         # DEBUG: Log para troubleshooting
         current_app.logger.info(f"🔍 PERMISSÕES view_report:")
@@ -6227,6 +6263,12 @@ def report_edit_complete(report_id):
 
         if not relatorio:
             return render_template("reports/error_report.html", message="Relatório não encontrado"), 404
+
+        # Verificar permissões usando função helper
+        if not can_edit_report(current_user, relatorio):
+            app.logger.warning(f"⚠️ Usuário {current_user.id} sem permissão para editar relatório {report_id}")
+            flash('Você não tem permissão para editar este relatório.', 'error')
+            return redirect(url_for('reports'))
 
         # --- FUNÇÃO DE SERIALIZAÇÃO SEGURA ---
         def safe_attr(obj, attr, default=""):
