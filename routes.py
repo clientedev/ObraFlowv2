@@ -5531,7 +5531,7 @@ def visits_calendar():
 @app.route('/visits/new', methods=['GET', 'POST'])
 @login_required  
 def visit_new():
-    form = VisitaForm()
+    form = VisitaForm(current_user_id=current_user.id)
 
     if form.validate_on_submit():
         try:
@@ -5556,12 +5556,12 @@ def visit_new():
                 numero=generate_visit_number(),
                 projeto_id=final_projeto_id,
                 projeto_outros=final_projeto_outros,
-                responsavel_id=current_user.id,
+                responsavel_id=form.responsavel_id.data,  # Responsável selecionado no formulário
                 data_inicio=dt_inicio,
                 data_fim=dt_fim,
                 observacoes=form.observacoes.data,
                 is_pessoal=form.is_pessoal.data,  # Item 31: Compromisso pessoal
-                criado_por=current_user.id  # Item 31: Usuário criador
+                criado_por=current_user.id  # Item 31: Usuário criador (para auditoria)
             )
 
             db.session.add(visita)
@@ -5587,7 +5587,7 @@ def visit_new():
 
                         if user_exists and user_exists.ativo:
                             # Marcar como confirmado se for o responsável
-                            is_responsavel = (user_id_int == current_user.id)
+                            is_responsavel = (user_id_int == visita.responsavel_id)
                             
                             participante = VisitaParticipante(
                                 visita_id=visita.id,
@@ -5604,15 +5604,16 @@ def visit_new():
                         continue
 
             # Adicionar responsável como participante se ainda não foi adicionado
-            if current_user.id not in participantes_adicionados:
+            if visita.responsavel_id not in participantes_adicionados:
+                responsavel = User.query.get(visita.responsavel_id)
                 responsavel_participante = VisitaParticipante(
                     visita_id=visita.id,
-                    user_id=current_user.id,
+                    user_id=visita.responsavel_id,
                     confirmado=True  # Responsável já confirmado automaticamente
                 )
                 db.session.add(responsavel_participante)
-                participantes_adicionados.add(current_user.id)
-                current_app.logger.info(f"✅ Responsável adicionado como participante: {current_user.nome_completo}")
+                participantes_adicionados.add(visita.responsavel_id)
+                current_app.logger.info(f"✅ Responsável adicionado como participante: {responsavel.nome_completo if responsavel else 'Desconhecido'}")
 
             # Add default checklist items from templates if available
             try:
@@ -5786,7 +5787,7 @@ def visit_edit(visit_id):
             flash('Não é possível alterar uma visita já realizada.', 'error')
             return redirect(url_for('visit_view', visit_id=visit_id))
 
-        form = VisitaForm()
+        form = VisitaForm(visit=visit, current_user_id=current_user.id)
 
         if request.method == 'GET':
             try:
@@ -5794,6 +5795,8 @@ def visit_edit(visit_id):
                 form.data_inicio.data = visit.data_inicio.strftime('%Y-%m-%dT%H:%M') if visit.data_inicio else ''
                 form.data_fim.data = visit.data_fim.strftime('%Y-%m-%dT%H:%M') if visit.data_fim else ''
                 form.observacoes.data = visit.observacoes or ''
+                form.responsavel_id.data = visit.responsavel_id  # Preencher responsável atual
+                form.is_pessoal.data = visit.is_pessoal or False  # Preencher flag pessoal
 
                 # Preencher projeto
                 if visit.projeto_id:
@@ -5830,6 +5833,8 @@ def visit_edit(visit_id):
                 visit.data_inicio = dt_inicio
                 visit.data_fim = dt_fim
                 visit.observacoes = form.observacoes.data or ''
+                visit.responsavel_id = form.responsavel_id.data  # Atualizar responsável
+                visit.is_pessoal = form.is_pessoal.data or False  # Atualizar flag pessoal
 
                 # Atualizar projeto
                 if form.projeto_id.data == -1:  # 'Outros'

@@ -84,6 +84,18 @@
                             {% endfor %}
                         </div>
                         
+                        <!-- Seleção do Responsável -->
+                        <div class="mb-3">
+                            {{ form.responsavel_id.label(class="form-label") }}
+                            {{ form.responsavel_id(class="form-select" + (" is-invalid" if form.responsavel_id.errors else ""), id="responsavel_id") }}
+                            {% for error in form.responsavel_id.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">
+                                <i class="fas fa-info-circle"></i> Selecione o membro da equipe responsável por esta visita
+                            </div>
+                        </div>
+                        
                         <!-- Seleção de Participantes -->
                         <div class="mb-3">
                             {{ form.participantes.label(class="form-label") }}

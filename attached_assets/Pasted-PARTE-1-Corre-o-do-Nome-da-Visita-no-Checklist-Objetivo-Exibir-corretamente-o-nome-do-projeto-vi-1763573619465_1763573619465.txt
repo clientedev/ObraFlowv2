@@ -1,0 +1,80 @@
+PARTE 1: Correção do Nome da Visita no Checklist
+Objetivo: Exibir corretamente o nome do projeto/visita na página de checklist
+
+Passos:
+
+Investigar a rota /visits/<visit_id>/checklist em routes.py
+Verificar como os dados da visita são passados para o template templates/visits/checklist.html
+Corrigir a propriedade visit.projeto.nome para exibir corretamente:
+Se projeto_id existe, mostrar projeto.numero - projeto.nome
+Se for "Outros", mostrar visit.projeto_outros
+Se for visita pessoal (is_pessoal=True), mostrar "Compromisso Pessoal"
+Adicionar tratamento de erro para casos onde projeto seja None
+PARTE 2: Permitir Criação de Visita para Outro Membro
+Objetivo: Quando selecionar um responsável diferente na criação, a visita deve ser atribuída a ele, não ao criador
+
+Passos:
+
+Revisar o formulário de criação de visita em forms.py (classe VisitaForm)
+Verificar o campo responsavel_id - garantir que está sendo usado corretamente
+Na rota de criação /visits/new em routes.py:
+Separar os conceitos de responsavel_id (quem será responsável pela visita) e criado_por (quem está criando o registro)
+Salvar responsavel_id do formulário como proprietário da visita
+Salvar current_user.id apenas no campo criado_por para auditoria
+Verificar que o sistema de permissões permite ao criador editar/visualizar visitas de outros
+PARTE 3: Múltiplos Participantes e Cards Duplicados na Agenda
+Objetivo: Permitir adicionar vários membros na visita e exibir um card para cada um no calendário
+
+Passos:
+
+Verificar se a tabela visita_participantes está sendo usada corretamente
+No formulário de visita, o campo participantes deve permitir seleção múltipla
+Ao salvar a visita:
+Criar um registro principal na tabela visitas
+Criar registros em visita_participantes para cada membro selecionado
+Manter o responsavel_id como campo principal
+Na API do calendário /api/visits/calendar:
+Modificar a query para retornar uma visita por participante
+Cada card deve mostrar:
+Ícone de múltiplos participantes se houver mais de um
+Nome do participante específico
+Cor da agenda do participante
+Implementar lógica para evitar cards completamente duplicados (mesmo participante, mesma visita)
+PARTE 4: Correção da Exportação Google Agenda
+Objetivo: Exportar todas as visitas sem duplicação e permitir sincronização adequada
+
+Passos:
+
+Revisar a rota /api/visits/export/google em routes.py
+Problemas a corrigir:
+Duplicação: Implementar controle de eventos já exportados usando um campo google_event_id na tabela visitas
+Apenas VIS-001 exportada: Corrigir a query para buscar TODAS as visitas do usuário ou projeto
+Filtrar visitas por período (exemplo: próximos 3 meses)
+Implementar sistema de sincronização bidirecional:
+Ao exportar, salvar o event_id retornado pelo Google
+Verificar se evento já existe antes de criar duplicata
+Permitir atualização de eventos existentes
+Adicionar opção de exportar visitas individuais ou em lote
+PARTE 5: Relatório Mensal de Visitas por Usuário
+Objetivo: Adicionar botão para gerar relatório PDF/Excel das visitas do mês separado por usuário
+
+Passos:
+
+Criar nova rota em routes.py: /reports/visits-monthly
+Criar template HTML para seleção de parâmetros:
+Mês/Ano (datepicker)
+Usuário (dropdown com todos os membros da equipe)
+Formato (PDF ou Excel)
+Implementar lógica de geração:
+Query para buscar visitas filtradas por mês e usuário
+Agrupar por status (Agendada, Realizada, Cancelada)
+Incluir métricas: total de visitas, tempo total, projetos visitados
+Gerar PDF usando pdf_generator.py:
+Cabeçalho com logo ELP
+Tabela com: Data, Projeto, Status, Observações
+Rodapé com totalizadores
+Para Excel: usar biblioteca openpyxl ou pandas
+Adicionar botão na página /visits/list:
+Ícone de documento
+Texto "Relatório Mensal"
+Link para a nova rota

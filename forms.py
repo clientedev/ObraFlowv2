@@ -93,6 +93,7 @@ class EmailClienteForm(FlaskForm):
 class VisitaForm(FlaskForm):
     projeto_id = SelectField('Projeto', coerce=int, validators=[Optional()])
     projeto_outros = StringField('Nome do Projeto (Outros)', validators=[Optional(), Length(max=300)])
+    responsavel_id = SelectField('Responsável', coerce=int, validators=[DataRequired()])
     data_inicio = StringField('Data e Hora de Início', validators=[DataRequired()])
     data_fim = StringField('Data e Hora de Fim', validators=[DataRequired()])
     observacoes = TextAreaField('Observações', validators=[Optional()])
@@ -100,6 +101,10 @@ class VisitaForm(FlaskForm):
     is_pessoal = BooleanField('Compromisso Pessoal', default=False)  # Item 31
 
     def __init__(self, *args, **kwargs):
+        # Extract visit parameter if provided for editing
+        visit = kwargs.pop('visit', None)
+        current_user_id = kwargs.pop('current_user_id', None)
+        
         super(VisitaForm, self).__init__(*args, **kwargs)
         from models import Projeto, User
 
@@ -107,8 +112,23 @@ class VisitaForm(FlaskForm):
         projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
         self.projeto_id.choices = [(-1, 'Outros')] + [(p.id, f"{p.numero} - {p.nome}") for p in projetos_ativos]
 
-        # Carregar usuários ativos para seleção de participantes
+        # Carregar usuários ativos para seleção de responsável
         usuarios_ativos = User.query.filter_by(ativo=True).all()
+        responsavel_choices = [(u.id, f"{u.nome_completo} ({u.cargo})") for u in usuarios_ativos]
+        
+        # Se editando e o responsável atual está inativo, incluir na lista
+        if visit and visit.responsavel_id:
+            responsavel_atual = User.query.get(visit.responsavel_id)
+            if responsavel_atual and not responsavel_atual.ativo:
+                responsavel_choices.insert(0, (responsavel_atual.id, f"{responsavel_atual.nome_completo} ({responsavel_atual.cargo}) [Inativo]"))
+        
+        self.responsavel_id.choices = responsavel_choices
+        
+        # Definir valor padrão para responsavel_id se não estiver definido
+        if not self.responsavel_id.data and current_user_id:
+            self.responsavel_id.data = current_user_id
+        
+        # Carregar usuários ativos para seleção de participantes
         self.participantes.choices = [(u.id, f"{u.nome_completo} ({u.cargo})") for u in usuarios_ativos]
 
     def validate(self, extra_validators=None):

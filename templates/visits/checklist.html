@@ -24,7 +24,7 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <p><strong>Projeto:</strong> {{ visit.projeto.nome }} ({{ visit.projeto.numero }})</p>
+                        <p><strong>Projeto:</strong> {{ visit.projeto_nome }}</p>
                         <p><strong>Data Agendada:</strong> {{ visit.data_inicio.strftime('%d/%m/%Y às %H:%M') if visit.data_inicio else 'Não definida' }}</p>
                         <p><strong>Responsável:</strong> {{ visit.responsavel.nome_completo }}</p>
                     </div>

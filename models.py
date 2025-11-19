@@ -245,7 +245,9 @@ class Visita(db.Model):
     @property
     def projeto_nome(self):
         """Retorna o nome do projeto ou o valor de 'outros'"""
-        if self.projeto_id and self.projeto:
+        if self.is_pessoal:
+            return "Compromisso Pessoal"
+        elif self.projeto_id and self.projeto:
             return f"{self.projeto.numero} - {self.projeto.nome}"
         elif self.projeto_outros:
             return self.projeto_outros
