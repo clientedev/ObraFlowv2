@@ -3882,9 +3882,28 @@ def finalize_report(report_id):
         if relatorio.status != 'preenchimento':
             return jsonify({'success': False, 'error': 'Relatório não está em preenchimento'}), 400
 
-        # Alterar status para aguardando aprovação
+        # VALIDAR SE O RELATÓRIO ESTÁ REALMENTE CONCLUÍDO
+        # Verificar se tem conteúdo mínimo ou fotos
+        tem_conteudo = relatorio.conteudo and len(relatorio.conteudo.strip()) > 10
+        tem_fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).count() > 0
+        
+        # Se o relatório NÃO está concluído (sem conteúdo E sem fotos), mantém em preenchimento
+        if not tem_conteudo and not tem_fotos:
+            current_app.logger.info(f"⚠️ Relatório {relatorio.numero} não está concluído - mantendo em preenchimento")
+            relatorio.updated_at = datetime.utcnow()
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Relatório salvo como rascunho (em preenchimento). Adicione conteúdo ou fotos para finalizar.',
+                'status': 'em preenchimento',
+                'redirect': url_for('reports')
+            })
+        
+        # Relatório está concluído - alterar status para aguardando aprovação
         relatorio.status = 'Aguardando Aprovação'
         relatorio.updated_at = datetime.utcnow()
+        current_app.logger.info(f"✅ Relatório {relatorio.numero} concluído - enviado para aprovação")
 
         # IMPORTANTE: Deletar TODOS os outros relatórios em "preenchimento" do mesmo projeto
         # Isso garante que apenas 1 relatório existirá após a conclusão
