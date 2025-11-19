@@ -5915,6 +5915,14 @@ def view_report(report_id):
         report = Relatorio.query.get_or_404(report_id)
         current_app.logger.info(f"✅ Relatório {report_id} encontrado: Status={report.status}")
 
+        # DEBUG: Log detalhado de permissões na visualização
+        current_app.logger.info(f"🔍 DEBUG PERMISSÕES view_report:")
+        current_app.logger.info(f"  - current_user.id = {current_user.id} (tipo: {type(current_user.id)})")
+        current_app.logger.info(f"  - current_user.is_master = {current_user.is_master}")
+        current_app.logger.info(f"  - report.autor_id = {report.autor_id} (tipo: {type(report.autor_id)})")
+        current_app.logger.info(f"  - report.status = '{report.status}'")
+        current_app.logger.info(f"  - Comparação autor_id == current_user.id: {report.autor_id == current_user.id}")
+
         # Check basic permissions
         user_can_view = False
         user_can_edit = False
@@ -5922,10 +5930,13 @@ def view_report(report_id):
         if current_user.is_master:
             user_can_view = True
             user_can_edit = report.status not in ['Aprovado', 'Finalizado']
+            current_app.logger.info(f"  ✅ Usuário é MASTER - can_view={user_can_view}, can_edit={user_can_edit}")
         elif report.autor_id == current_user.id:
             user_can_view = True
             user_can_edit = report.status in ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
+            current_app.logger.info(f"  ✅ Usuário é AUTOR - can_view={user_can_view}, can_edit={user_can_edit}")
         else:
+            current_app.logger.info(f"  ⚠️ Usuário não é autor nem master - verificando acesso por projeto")
             # Allow project team members to view
             if hasattr(report, 'projeto') and report.projeto:
                 try:
@@ -5938,9 +5949,14 @@ def view_report(report_id):
                     if user_has_access or (hasattr(report.projeto, 'responsavel_id') and report.projeto.responsavel_id == current_user.id):
                         user_can_view = True
                         user_can_edit = False  # Membros da equipe só visualizam
+                        current_app.logger.info(f"  ✅ Usuário tem acesso via projeto")
+                    else:
+                        current_app.logger.warning(f"  ❌ Usuário NÃO tem acesso via projeto")
                 except Exception as e:
                     current_app.logger.warning(f"Erro ao verificar acesso ao projeto para relatório {report_id}: {str(e)}")
                     pass
+
+        current_app.logger.info(f"  📝 RESULTADO view_report: can_view={user_can_view}, can_edit={user_can_edit}")
 
         if not user_can_view:
             flash('Acesso negado ao relatório.', 'error')
@@ -6003,16 +6019,30 @@ def report_edit(report_id):
             flash('Relatório não encontrado.', 'error')
             return redirect(url_for('reports'))
 
+        # DEBUG: Log detalhado de permissões
+        current_app.logger.info(f"🔍 DEBUG PERMISSÕES:")
+        current_app.logger.info(f"  - current_user.id = {current_user.id} (tipo: {type(current_user.id)})")
+        current_app.logger.info(f"  - current_user.is_master = {current_user.is_master}")
+        current_app.logger.info(f"  - relatorio.autor_id = {relatorio.autor_id} (tipo: {type(relatorio.autor_id)})")
+        current_app.logger.info(f"  - relatorio.status = '{relatorio.status}'")
+        current_app.logger.info(f"  - Comparação autor_id == current_user.id: {relatorio.autor_id == current_user.id}")
+
         # Verificar permissões básicas - CORRIGIDO PARA RELATÓRIOS REJEITADOS
         user_can_edit = False
 
         # Master pode editar tudo exceto aprovados
         if current_user.is_master:
             user_can_edit = relatorio.status not in ['Aprovado', 'Finalizado']
+            current_app.logger.info(f"  ✅ Usuário é MASTER - can_edit={user_can_edit}")
 
         # Autor pode editar se não aprovado - INCLUINDO REJEITADOS
         elif relatorio.autor_id == current_user.id:
             user_can_edit = relatorio.status in ['Rascunho', 'preenchimento', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
+            current_app.logger.info(f"  ✅ Usuário é AUTOR do relatório - can_edit={user_can_edit}")
+        else:
+            current_app.logger.warning(f"  ❌ Usuário NÃO é autor nem master")
+
+        current_app.logger.info(f"  📝 RESULTADO FINAL: user_can_edit = {user_can_edit}")
 
         if not user_can_edit:
             flash('Você não tem permissão para editar este relatório ou ele já foi finalizado.', 'error')
