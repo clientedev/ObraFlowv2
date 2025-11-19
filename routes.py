@@ -3882,28 +3882,10 @@ def finalize_report(report_id):
         if relatorio.status != 'preenchimento':
             return jsonify({'success': False, 'error': 'Relatório não está em preenchimento'}), 400
 
-        # VALIDAR SE O RELATÓRIO ESTÁ REALMENTE CONCLUÍDO
-        # Verificar se tem conteúdo mínimo ou fotos
-        tem_conteudo = relatorio.conteudo and len(relatorio.conteudo.strip()) > 10
-        tem_fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).count() > 0
-        
-        # Se o relatório NÃO está concluído (sem conteúdo E sem fotos), mantém em preenchimento
-        if not tem_conteudo and not tem_fotos:
-            current_app.logger.info(f"⚠️ Relatório {relatorio.numero} não está concluído - mantendo em preenchimento")
-            relatorio.updated_at = datetime.utcnow()
-            db.session.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': 'Relatório salvo como rascunho (em preenchimento). Adicione conteúdo ou fotos para finalizar.',
-                'status': 'em preenchimento',
-                'redirect': url_for('reports')
-            })
-        
-        # Relatório está concluído - alterar status para aguardando aprovação
-        relatorio.status = 'Aguardando Aprovação'
+        # SEMPRE mantém como "em preenchimento" ao concluir (igual ao autosave)
+        relatorio.status = 'preenchimento'
         relatorio.updated_at = datetime.utcnow()
-        current_app.logger.info(f"✅ Relatório {relatorio.numero} concluído - enviado para aprovação")
+        current_app.logger.info(f"✅ Relatório {relatorio.numero} salvo em preenchimento")
 
         # IMPORTANTE: Deletar TODOS os outros relatórios em "preenchimento" do mesmo projeto
         # Isso garante que apenas 1 relatório existirá após a conclusão
@@ -3921,63 +3903,20 @@ def finalize_report(report_id):
             db.session.delete(dup)
             current_app.logger.info(f"🗑️ Deletado relatório duplicado ID={dup.id} (estava em preenchimento)")
 
-        # COMMIT da alteração de status ANTES de criar notificação (evita InFailedSqlTransaction)
+        # COMMIT da alteração
         db.session.commit()
 
-        # Buscar aprovador do projeto
-        from models import AprovadorPadrao, Notificacao
-        aprovador_padrao = AprovadorPadrao.query.filter_by(
-            projeto_id=relatorio.projeto_id,
-            ativo=True
-        ).first()
-        
-        # Se não houver aprovador específico do projeto, buscar aprovador global
-        if not aprovador_padrao:
-            aprovador_padrao = AprovadorPadrao.query.filter_by(
-                projeto_id=None,
-                ativo=True
-            ).first()
-        
-        # Criar notificação e enviar e-mail ao aprovador
-        if aprovador_padrao and aprovador_padrao.aprovador:
-            aprovador = aprovador_padrao.aprovador
-            autor = relatorio.autor
-            projeto = relatorio.projeto
-            
-            # Gerar link direto para o relatório
-            link_relatorio = f"{request.host_url}reports/{relatorio.id}/review"
-            
-            # Criar mensagem da notificação
-            titulo = f"Relatório {relatorio.numero} enviado para aprovação"
-            mensagem = f"""Olá {aprovador.nome_completo},
-O relatório {relatorio.numero} referente à obra {projeto.nome} foi enviado para aprovação por {autor.nome_completo}.
-Clique abaixo para acessar o relatório:
-{link_relatorio}"""
-            
-            try:
-                # Criar notificação interna usando o novo serviço
-                from notification_service import notification_service
-                notification_service.criar_notificacao_relatorio_pendente(relatorio.id)
-                current_app.logger.info(f"✅ Notificação criada para aprovador {aprovador.nome_completo}")
-                
-                # TODO: Implementar envio de e-mail ao aprovador com Resend
-                    
-            except Exception as e:
-                db.session.rollback()
-                current_app.logger.error(f"❌ Erro ao criar notificação/enviar e-mail: {str(e)}")
-                import traceback
-                current_app.logger.error(f"Traceback: {traceback.format_exc()}")
-
         if duplicados:
-            current_app.logger.info(f"✅ Relatório {relatorio.numero} finalizado e {len(duplicados)} duplicado(s) removido(s)")
-            message = f'Relatório finalizado e enviado para aprovação ({len(duplicados)} duplicado(s) removido(s))'
+            current_app.logger.info(f"✅ Relatório {relatorio.numero} salvo em preenchimento - {len(duplicados)} duplicado(s) removido(s)")
+            message = f'Relatório salvo em preenchimento ({len(duplicados)} duplicado(s) removido(s))'
         else:
-            current_app.logger.info(f"✅ Relatório {relatorio.numero} finalizado sem duplicados")
-            message = 'Relatório finalizado e enviado para aprovação'
+            current_app.logger.info(f"✅ Relatório {relatorio.numero} salvo em preenchimento")
+            message = 'Relatório salvo em preenchimento'
 
         return jsonify({
             'success': True,
             'message': message,
+            'status': 'preenchimento',
             'redirect': url_for('reports')
         })
 
