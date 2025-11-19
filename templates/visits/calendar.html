@@ -576,9 +576,61 @@ function exportToGoogleCalendar() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                window.open(data.url, '_blank');
+                if (data.export_urls && data.export_urls.length > 0) {
+                    // Mostrar mensagem com estatísticas
+                    const message = data.message || `${data.novas_exportacoes} visitas prontas para exportação`;
+                    
+                    if (data.novas_exportacoes === 0) {
+                        alert(`${message}\n\nTodas as suas visitas já foram exportadas anteriormente.`);
+                        return;
+                    }
+                    
+                    // Criar modal com lista de visitas para exportar
+                    const modalHtml = `
+                        <div class="modal fade" id="googleExportModal" tabindex="-1">
+                            <div class="modal-dialog modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">📅 Exportar para Google Calendar</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p class="text-muted">${message}</p>
+                                        <p class="small"><strong>Nota:</strong> Clique em cada visita para adicionar ao Google Calendar</p>
+                                        <div class="list-group">
+                                            ${data.export_urls.map(visit => `
+                                                <a href="${visit.url}" target="_blank" class="list-group-item list-group-item-action">
+                                                    <i class="fas fa-calendar-plus text-primary me-2"></i>
+                                                    ${visit.title}
+                                                </a>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Remover modal anterior se existir
+                    const existingModal = document.getElementById('googleExportModal');
+                    if (existingModal) {
+                        existingModal.remove();
+                    }
+                    
+                    // Adicionar e mostrar novo modal
+                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                    const modal = new bootstrap.Modal(document.getElementById('googleExportModal'));
+                    modal.show();
+                } else if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('Nenhuma visita encontrada para exportação.');
+                }
             } else {
-                alert('Erro ao gerar link do Google Calendar.');
+                alert(data.error || 'Erro ao gerar link do Google Calendar.');
             }
         })
         .catch(error => {
