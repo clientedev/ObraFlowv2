@@ -389,9 +389,8 @@ def get_relatorio(relatorio_id):
     try:
         relatorio = Relatorio.query.get_or_404(relatorio_id)
 
-        # Verificar permissão
-        if not current_user.is_master and relatorio.autor_id != current_user.id:
-            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        # POLÍTICA PERMISSIVA: Todos os usuários autenticados podem visualizar/editar qualquer relatório
+        # (conforme requisito do sistema)
 
         # Buscar dados do projeto
         projeto = None
