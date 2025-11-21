@@ -49,11 +49,19 @@ function updateNotificationStatus() {
     }
     
     // Se ainda não há notification manager, aguardar
-    if (!window.notificationManager) {
+    if (!window.notificationManager && !window.notificationsManager) {
         badge.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Carregando...';
         badge.className = 'badge bg-info me-2';
         toggleBtn.disabled = true;
+        setTimeout(updateNotificationStatus, 500);
         return;
+    }
+    
+    // Conectar ao manager correto
+    const manager = window.notificationsManager || window.notificationManager;
+    if (manager) {
+        // Carregar notificações para atualizar o badge
+        manager.carregarNotificacoes(true);
     }
     
     const permission = window.notificationManager.permission;
@@ -185,8 +193,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(updateNotificationStatus, 500);
     setTimeout(updateNotificationStatus, 2000);
     
-    // Atualizar status periodicamente (menos frequente)
-    setInterval(updateNotificationStatus, 10000);
+    // Atualizar status periodicamente (a cada 30 segundos)
+    setInterval(() => {
+        updateNotificationStatus();
+        const manager = window.notificationsManager || window.notificationManager;
+        if (manager) {
+            manager.carregarNotificacoes(true); // silent mode
+        }
+    }, 30000);
 });
 </script>
 

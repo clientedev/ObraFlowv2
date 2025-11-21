@@ -71,9 +71,14 @@ class NotificationsManager {
                 }
                 
                 console.log(`✅ ${data.total} notificações carregadas (${data.nao_lidas} não lidas)`);
+            } else {
+                // Se falhar, zerar o contador
+                this.atualizarContador(0);
             }
         } catch (error) {
             console.error('❌ Erro ao carregar notificações:', error);
+            // Em caso de erro, zerar o contador
+            this.atualizarContador(0);
         }
     }
     
