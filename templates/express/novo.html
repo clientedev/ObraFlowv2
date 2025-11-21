@@ -1147,9 +1147,13 @@ function showPhotoConfigurationModal(files, category) {
                         <div class="card-body p-3">
                             <div class="mb-2">
                                 <label class="form-label">Legenda (Obrigatória):</label>
-                                <select class="form-select legend-select" onchange="updatePhotoConfig('${photoId}')" required>
-                                    <option value="">Selecione uma legenda predefinida</option>
+                                <select class="form-select legend-select" id="predefined_${photoId}" onchange="updatePhotoConfig('${photoId}')">
+                                    <option value="">Selecione uma legenda predefinida...</option>
                                 </select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Ou digite uma legenda personalizada:</label>
+                                <input type="text" class="form-control custom-legend-input" id="custom_${photoId}" placeholder="Digite uma legenda..." onchange="updatePhotoConfig('${photoId}')">
                             </div>
                             <div class="d-flex justify-content-between">
                                 <button type="button" class="btn btn-outline-primary btn-sm" onclick="openPhotoEditor('${photoId}')">
@@ -1174,91 +1178,90 @@ function showPhotoConfigurationModal(files, category) {
     });
 }
 
-// Carregar legendas pré-definidas
+// Carregar legendas pré-definidas - REPLICADO DO RELATÓRIO NORMAL
 function loadLegends(photoId, category) {
-    console.log(`Carregando legendas para foto ${photoId}, categoria: ${category}`);
+    console.log(`📋 Carregando TODAS as legendas para foto ${photoId}`);
 
-    const selectElement = document.querySelector(`[data-photo-id="${photoId}"] .legend-select`);
-    if (!selectElement) return;
+    const selectElement = document.getElementById(`predefined_${photoId}`);
+    if (!selectElement) {
+        console.error('❌ Select element não encontrado para photoId:', photoId);
+        return;
+    }
 
-    // COMUNICAÇÃO OBRIGATÓRIA COM BANCO DE DADOS POSTGRESQL
-    selectElement.innerHTML = '<option value="">🔗 Conectando com banco...</option>';
-    console.log('🔗 MOBILE: Conectando obrigatoriamente ao PostgreSQL');
+    selectElement.innerHTML = '<option value="">⏳ Carregando legendas...</option>';
 
-    // Comunicação direta com API PostgreSQL - SEM FALLBACK
+    // Carregar TODAS as legendas (igual ao relatório normal)
     const xhr = new XMLHttpRequest();
-    xhr.open('GET', `/api/legendas?categoria=${encodeURIComponent(category)}&t=${Date.now()}`, true);
-    xhr.timeout = 30000; // 30 segundos para garantir conexão
-
-    // Configurar headers para mobile
-    xhr.setRequestHeader('Accept', 'application/json');
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Cache-Control', 'no-cache');
+    xhr.open('GET', '/api/legendas?categoria=all&t=' + Date.now(), true);
+    xhr.timeout = 10000; // 10 segundos
 
     xhr.onload = function() {
-        console.log(`🔗 MOBILE API: Status ${xhr.status}, Response:`, xhr.responseText.substring(0, 200));
-
         if (xhr.status === 200) {
             try {
                 const data = JSON.parse(xhr.responseText);
-
+                
                 if (data.success && data.legendas && data.legendas.length > 0) {
-                    // SUCESSO: Dados carregados do PostgreSQL
-                    selectElement.innerHTML = '<option value="">📊 Selecione uma legenda...</option>';
+                    selectElement.innerHTML = '<option value="">Selecione uma legenda...</option>';
 
-                    const legendasFiltradas = data.legendas.filter(leg => leg.categoria === category);
+                    // Organizar legendas por categoria (igual ao relatório normal)
+                    const cats = {
+                        'Acabamentos': [],
+                        'Estrutural': [],
+                        'Geral': [],
+                        'Segurança': []
+                    };
 
-                    if (legendasFiltradas.length > 0) {
-                        const optgroup = document.createElement('optgroup');
-                        optgroup.label = `${category} (${legendasFiltradas.length} itens do BD)`;
+                    data.legendas.forEach(leg => {
+                        if (cats[leg.categoria]) {
+                            cats[leg.categoria].push(leg);
+                        }
+                    });
 
-                        legendasFiltradas.forEach(legenda => {
-                            const option = document.createElement('option');
-                            option.value = legenda.texto;
-                            option.textContent = legenda.texto;
-                            option.setAttribute('data-id', legenda.id);
-                            option.setAttribute('data-categoria', legenda.categoria);
-                            optgroup.appendChild(option);
-                        });
-                        selectElement.appendChild(optgroup);
-                    } else {
-                         selectElement.innerHTML = '<option value="">ℹ️ Nenhuma legenda encontrada para esta categoria no BD</option>';
-                    }
+                    // Criar optgroups por categoria
+                    Object.keys(cats).forEach(cat => {
+                        if (cats[cat].length > 0) {
+                            const optgroup = document.createElement('optgroup');
+                            optgroup.label = cat + ' (' + cats[cat].length + ' itens)';
 
-                    console.log(`✅ MOBILE DB: ${legendasFiltradas.length} legendas carregadas do PostgreSQL para ${category}!`);
+                            cats[cat].forEach(legenda => {
+                                const option = document.createElement('option');
+                                option.value = legenda.texto;
+                                option.textContent = legenda.texto;
+                                option.setAttribute('data-id', legenda.id);
+                                option.setAttribute('data-categoria', legenda.categoria);
+                                optgroup.appendChild(option);
+                            });
 
+                            selectElement.appendChild(optgroup);
+                        }
+                    });
+
+                    console.log(`✅ ${data.legendas.length} legendas carregadas do banco de dados`);
                 } else {
-                    // ERRO: API funcionou mas sem dados
-                    selectElement.innerHTML = '<option value="">❌ ERRO: Nenhuma legenda no banco</option>';
-                    console.error('❌ MOBILE DB: API respondeu mas sem legendas no banco');
+                    selectElement.innerHTML = '<option value="">⚠️ Nenhuma legenda no banco</option>';
+                    console.warn('⚠️ API respondeu mas sem legendas');
                 }
-
             } catch (parseError) {
-                // ERRO: JSON inválido
-                selectElement.innerHTML = '<option value="">❌ ERRO: Formato de dados inválido</option>';
-                console.error('❌ MOBILE DB: Erro ao processar JSON:', parseError);
+                selectElement.innerHTML = '<option value="">❌ Erro ao processar dados</option>';
+                console.error('❌ Erro ao processar JSON:', parseError);
             }
         } else {
-            // ERRO: Status HTTP diferente de 200
-            selectElement.innerHTML = `<option value="">❌ ERRO: Servidor (${xhr.status})</option>`;
-            console.error(`❌ MOBILE DB: Falha HTTP ${xhr.status}:`, xhr.responseText);
+            selectElement.innerHTML = '<option value="">❌ Erro no servidor</option>';
+            console.error('❌ Falha HTTP', xhr.status);
         }
     };
 
     xhr.onerror = function() {
-        // ERRO: Falha de rede
-        selectElement.innerHTML = '<option value="">❌ ERRO: Falha de rede com servidor</option>';
-        console.error('❌ MOBILE DB: Falha de conexão de rede');
+        selectElement.innerHTML = '<option value="">❌ Erro de rede</option>';
+        console.error('❌ Falha de rede');
     };
 
     xhr.ontimeout = function() {
-        // ERRO: Timeout
-        selectElement.innerHTML = '<option value="">❌ ERRO: Timeout (30s) - Servidor lento</option>';
-        console.error('❌ MOBILE DB: Timeout na conexão');
+        selectElement.innerHTML = '<option value="">❌ Tempo esgotado</option>';
+        console.error('❌ Timeout na conexão');
     };
 
     xhr.send();
-    console.log('🔗 MOBILE: Requisição PostgreSQL enviada');
 }
 
 // DIAGNÓSTICO DE CONEXÃO MOBILE-POSTGRESQL
@@ -1283,14 +1286,32 @@ function diagnosticarConexaoMobile() {
         });
 }
 
-// Atualizar configuração da foto
+// Atualizar configuração da foto - ATUALIZADO PARA SUPORTAR LEGENDA PERSONALIZADA
 function updatePhotoConfig(photoId) {
     const card = document.querySelector(`[data-photo-id="${photoId}"]`);
-    const legendSelect = card.querySelector('.legend-select');
+    if (!card) return;
 
-    // Apenas validar se foi selecionada uma legenda
-    if (legendSelect.value) {
-        console.log(`Foto ${photoId} configurada com legenda: ${legendSelect.value}`);
+    const legendSelect = document.getElementById(`predefined_${photoId}`);
+    const customInput = document.getElementById(`custom_${photoId}`);
+
+    // Determinar qual legenda usar (prioridade: personalizada > predefinida)
+    let finalLegend = '';
+    
+    if (customInput && customInput.value.trim()) {
+        // Se há legenda personalizada, usar ela
+        finalLegend = customInput.value.trim();
+        // Limpar seleção do dropdown se houver legenda personalizada
+        if (legendSelect) legendSelect.value = '';
+        console.log(`✏️ Foto ${photoId} configurada com legenda PERSONALIZADA: "${finalLegend}"`);
+    } else if (legendSelect && legendSelect.value) {
+        // Se não há legenda personalizada, usar a predefinida
+        finalLegend = legendSelect.value;
+        console.log(`📋 Foto ${photoId} configurada com legenda PREDEFINIDA: "${finalLegend}"`);
+    }
+
+    // Armazenar a legenda final no data attribute
+    if (finalLegend) {
+        card.setAttribute('data-legend', finalLegend);
     }
 }
 
@@ -1438,9 +1459,18 @@ function confirmPhotoConfiguration(category) {
     console.log('✅ Confirmando', photoCards.length, 'fotos com categoria:', category || '(sem categoria)');
 
     photoCards.forEach(card => {
-        const legendSelect = card.querySelector('.legend-select');
-        const legend = legendSelect.value;
+        const photoId = card.dataset.photoId;
+        const legendSelect = document.getElementById(`predefined_${photoId}`);
+        const customInput = document.getElementById(`custom_${photoId}`);
         const img = card.querySelector('img');
+
+        // Determinar qual legenda usar (prioridade: personalizada > predefinida)
+        let legend = '';
+        if (customInput && customInput.value.trim()) {
+            legend = customInput.value.trim();
+        } else if (legendSelect && legendSelect.value) {
+            legend = legendSelect.value;
+        }
 
         if (legend && img) {
             const photoConfig = {
@@ -1467,7 +1497,7 @@ function confirmPhotoConfiguration(category) {
     });
 
     if (validPhotos === 0) {
-        alert('Por favor, selecione legendas predefinidas para todas as fotos.');
+        alert('Por favor, selecione uma legenda predefinida ou digite uma legenda personalizada para todas as fotos.');
         return;
     }
 
