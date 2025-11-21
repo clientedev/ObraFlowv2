@@ -776,6 +776,30 @@ function handleCameraCapture(input) {
     }
 }
 
+// Atualizar campo oculto de configurações de fotos
+function updateFotoConfiguracoesInput() {
+    const photoConfigurations = [];
+    
+    // Converter configuredPhotos para o formato esperado pelo backend
+    configuredPhotos.forEach(photo => {
+        if (photo.imageData && photo.legend) {
+            photoConfigurations.push({
+                data: photo.imageData,
+                legenda: photo.legend,
+                categoria: photo.category || '',
+                originalName: photo.fileName || 'photo.png'
+            });
+        }
+    });
+    
+    // Salvar no campo oculto
+    const fotoConfigInput = document.getElementById('fotoConfiguracoes');
+    if (fotoConfigInput) {
+        fotoConfigInput.value = JSON.stringify(photoConfigurations);
+        console.log(`📸 Campo fotoConfiguracoes atualizado: ${photoConfigurations.length} fotos`);
+    }
+}
+
 // Resetar seleção de categoria e fotos
 function resetPhotoCategories() {
     // Limpar campo de categoria
@@ -1511,18 +1535,15 @@ function confirmPhotoConfiguration(category) {
         return;
     }
 
-    // Salvar configurações no campo oculto para o backend
-    document.getElementById('fotoConfiguracoes').value = JSON.stringify(photoConfigurations);
-    console.log(`Configurações das fotos salvas: ${photoConfigurations.length} fotos`);
-
-    // Limpar preview e mostrar fotos configuradas (compatibilidade)
+    // Limpar preview e mostrar fotos configuradas
     document.getElementById('selectedPhotosPreview').innerHTML = '';
     displayConfiguredPhotos();
     updatePhotoCounter();
+    
+    // Atualizar campo oculto para o backend
+    updateFotoConfiguracoesInput();
 
-    // Limpar seleção de categoria para nova seleção
-    resetPhotoCategories();
-
+    console.log(`✅ ${validPhotos} foto(s) configurada(s) e salvas com sucesso!`);
     alert(`${validPhotos} foto(s) configurada(s) com sucesso!`);
 }
 
@@ -1585,6 +1606,7 @@ function removeConfiguredPhoto(index) {
         configuredPhotos.splice(index, 1);
         displayConfiguredPhotos();
         updatePhotoCounter();
+        updateFotoConfiguracoesInput();
     }
 }
 
