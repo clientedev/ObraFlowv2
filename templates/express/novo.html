@@ -1286,7 +1286,7 @@ function diagnosticarConexaoMobile() {
         });
 }
 
-// Atualizar configuração da foto - ATUALIZADO PARA SUPORTAR LEGENDA PERSONALIZADA
+// Atualizar configuração da foto - ATUALIZADO PARA COPIAR DROPDOWN PARA CAMPO DE TEXTO
 function updatePhotoConfig(photoId) {
     const card = document.querySelector(`[data-photo-id="${photoId}"]`);
     if (!card) return;
@@ -1294,19 +1294,23 @@ function updatePhotoConfig(photoId) {
     const legendSelect = document.getElementById(`predefined_${photoId}`);
     const customInput = document.getElementById(`custom_${photoId}`);
 
-    // Determinar qual legenda usar (prioridade: personalizada > predefinida)
+    // Se uma legenda foi selecionada no dropdown, copiar para o campo de texto
+    if (legendSelect && legendSelect.value && customInput) {
+        customInput.value = legendSelect.value;
+        console.log(`📋 Legenda copiada para campo personalizado: "${legendSelect.value}"`);
+    }
+
+    // Determinar qual legenda usar (prioridade: campo de texto > dropdown)
     let finalLegend = '';
     
     if (customInput && customInput.value.trim()) {
-        // Se há legenda personalizada, usar ela
+        // Usar o valor do campo de texto (que pode ser editado)
         finalLegend = customInput.value.trim();
-        // Limpar seleção do dropdown se houver legenda personalizada
-        if (legendSelect) legendSelect.value = '';
-        console.log(`✏️ Foto ${photoId} configurada com legenda PERSONALIZADA: "${finalLegend}"`);
+        console.log(`✏️ Foto ${photoId} configurada com legenda: "${finalLegend}"`);
     } else if (legendSelect && legendSelect.value) {
-        // Se não há legenda personalizada, usar a predefinida
+        // Se não há nada no campo de texto, usar a predefinida
         finalLegend = legendSelect.value;
-        console.log(`📋 Foto ${photoId} configurada com legenda PREDEFINIDA: "${finalLegend}"`);
+        console.log(`📋 Foto ${photoId} configurada com legenda: "${finalLegend}"`);
     }
 
     // Armazenar a legenda final no data attribute
