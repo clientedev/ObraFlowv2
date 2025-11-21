@@ -9947,6 +9947,128 @@ def express_edit(id):
                     participante.funcionario_id = funcionario_id
                     db.session.add(participante)
 
+            # Processar fotos existentes (atualizar metadados e detectar exclusões)
+            fotos_existentes_str = request.form.get('fotos_existentes_data')
+            if fotos_existentes_str:
+                try:
+                    fotos_existentes_data = json.loads(fotos_existentes_str)
+                    
+                    # IDs das fotos que ainda existem no formulário
+                    ids_mantidos = {int(foto['id']) for foto in fotos_existentes_data if foto.get('id')}
+                    
+                    # Buscar todas as fotos atuais do relatório
+                    fotos_atuais = FotoRelatorioExpress.query.filter_by(
+                        relatorio_express_id=relatorio.id
+                    ).all()
+                    
+                    # Atualizar metadados das fotos mantidas
+                    for foto_data in fotos_existentes_data:
+                        if foto_data.get('id'):
+                            foto = FotoRelatorioExpress.query.get(foto_data['id'])
+                            if foto and foto.relatorio_express_id == relatorio.id:
+                                # Atualizar metadados
+                                foto.legenda = foto_data.get('legenda', foto.legenda)
+                                foto.tipo_servico = foto_data.get('categoria', foto.tipo_servico)
+                                foto.local = foto_data.get('local', foto.local)
+                                foto.ordem = foto_data.get('ordem', foto.ordem)
+                    
+                    # Deletar fotos que foram removidas
+                    for foto in fotos_atuais:
+                        if foto.id not in ids_mantidos:
+                            # Remover arquivo do disco se existir
+                            if foto.filename:
+                                upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                                foto_path = os.path.join(upload_folder, foto.filename)
+                                if os.path.exists(foto_path):
+                                    try:
+                                        os.remove(foto_path)
+                                        current_app.logger.info(f"🗑️ Arquivo {foto.filename} removido do disco")
+                                    except Exception as e:
+                                        current_app.logger.error(f"❌ Erro ao remover arquivo {foto.filename}: {str(e)}")
+                            
+                            db.session.delete(foto)
+                            current_app.logger.info(f"🗑️ Foto {foto.id} removida do relatório {relatorio.id}")
+                    
+                    if fotos_existentes_data:
+                        current_app.logger.info(f"✏️ Metadados de {len(fotos_existentes_data)} fotos existentes atualizados")
+                        
+                except Exception as e:
+                    current_app.logger.error(f"❌ Erro ao processar fotos existentes: {str(e)}")
+            
+            # Processar fotos NOVAS
+            foto_configs_str = request.form.get('foto_configuracoes')
+            if foto_configs_str:
+                try:
+                    foto_configs = json.loads(foto_configs_str)
+                    
+                    # Validação básica: limite de fotos e tamanho
+                    MAX_PHOTOS_PER_REQUEST = 50
+                    MAX_PHOTO_SIZE_MB = 10
+                    MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024
+                    
+                    if len(foto_configs) > MAX_PHOTOS_PER_REQUEST:
+                        current_app.logger.warning(f"⚠️ Tentativa de upload de {len(foto_configs)} fotos excede o limite de {MAX_PHOTOS_PER_REQUEST}")
+                        flash(f'Limite de {MAX_PHOTOS_PER_REQUEST} fotos por vez excedido', 'warning')
+                        raise ValueError(f'Too many photos: {len(foto_configs)}')
+                    
+                    upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                    if not os.path.exists(upload_folder):
+                        os.makedirs(upload_folder)
+                    
+                    # Calcular próximo número de ordem baseado nas fotos existentes
+                    fotos_existentes_count = FotoRelatorioExpress.query.filter_by(
+                        relatorio_express_id=relatorio.id
+                    ).count()
+                    ordem = fotos_existentes_count + 1
+                    
+                    for config in foto_configs:
+                        if config.get('data') and config.get('legenda'):
+                            # Salvar imagem do base64
+                            import base64
+                            
+                            # Validar formato base64
+                            if not config['data'].startswith('data:image/'):
+                                current_app.logger.warning(f"⚠️ Formato de imagem inválido ignorado")
+                                continue
+                            
+                            image_data = config['data'].split(',')[1]  # Remover prefixo data:image/...
+                            image_bytes = base64.b64decode(image_data)
+                            
+                            # Validar tamanho
+                            if len(image_bytes) > MAX_PHOTO_SIZE_BYTES:
+                                current_app.logger.warning(f"⚠️ Foto excede {MAX_PHOTO_SIZE_MB}MB e foi ignorada")
+                                continue
+                            
+                            # Usar timestamp único para evitar colisões
+                            import uuid
+                            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                            unique_id = str(uuid.uuid4())[:8]
+                            filename = f"express_{relatorio.id}_{timestamp}_{unique_id}.png"
+                            foto_path = os.path.join(upload_folder, filename)
+                            
+                            with open(foto_path, 'wb') as f:
+                                f.write(image_bytes)
+                            
+                            # Criar registro da foto
+                            foto_express = FotoRelatorioExpress()
+                            foto_express.relatorio_express_id = relatorio.id
+                            foto_express.filename = filename
+                            foto_express.filename_original = config.get('originalName', filename)
+                            foto_express.ordem = ordem
+                            foto_express.legenda = config['legenda'][:500]  # Limitar tamanho
+                            foto_express.tipo_servico = config.get('categoria', 'Geral')[:100]
+                            foto_express.local = config.get('local', '')[:200]
+                            foto_express.imagem = image_bytes
+                            
+                            db.session.add(foto_express)
+                            ordem += 1
+                    
+                    if len(foto_configs) > 0:
+                        current_app.logger.info(f"📸 Adicionadas {len(foto_configs)} novas fotos ao relatório {relatorio.id}")
+                        
+                except Exception as e:
+                    current_app.logger.error(f"❌ Erro ao processar fotos novas na edição: {str(e)}")
+
             # Atualizar status se finalizar
             if action == 'finalize':
                 relatorio.status = 'finalizado'
@@ -9991,7 +10113,32 @@ def express_edit(id):
         participantes_ids = [p.funcionario_id for p in relatorio.participantes_lista]
         form.participantes.data = participantes_ids
 
-    return render_template('express/novo.html', form=form, relatorio=relatorio, editing=True)
+    # Carregar fotos existentes do relatório para edição
+    fotos_existentes = []
+    if relatorio.id:
+        from models import FotoRelatorioExpress
+        
+        fotos_db = FotoRelatorioExpress.query.filter_by(
+            relatorio_express_id=relatorio.id
+        ).order_by(FotoRelatorioExpress.ordem).all()
+        
+        for foto in fotos_db:
+            foto_data = {
+                'id': foto.id,
+                'ordem': foto.ordem or 0,
+                'legenda': foto.legenda or '',
+                'categoria': foto.tipo_servico or '',
+                'local': foto.local or '',
+                'fileName': foto.filename_original or foto.filename,
+                'imageUrl': url_for('api_get_express_photo', foto_id=foto.id),
+                'existingPhoto': True  # Flag para identificar fotos existentes
+            }
+            
+            fotos_existentes.append(foto_data)
+        
+        current_app.logger.info(f"📸 Carregadas {len(fotos_existentes)} fotos para edição do relatório {relatorio.id}")
+
+    return render_template('express/novo.html', form=form, relatorio=relatorio, editing=True, fotos_existentes=fotos_existentes)
 
 @app.route('/express/<int:id>/pdf')
 @login_required
@@ -10130,6 +10277,56 @@ def express_delete(id):
         flash(f'Erro ao excluir relatório: {str(e)}', 'error')
 
     return redirect(url_for('express_list'))
+
+@app.route('/api/express/fotos/<int:foto_id>', methods=['GET'])
+@login_required
+def api_get_express_photo(foto_id):
+    """
+    API para recuperar foto de relatório express
+    Serve a imagem do disco ou do banco de dados
+    """
+    try:
+        from models import FotoRelatorioExpress
+        foto = FotoRelatorioExpress.query.get_or_404(foto_id)
+        
+        # Tentar servir do disco primeiro
+        if foto.filename:
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            foto_path = os.path.join(upload_folder, foto.filename)
+            
+            if os.path.exists(foto_path):
+                # Detectar mimetype
+                mimetype = foto.content_type or 'image/jpeg'
+                if not foto.content_type and foto.filename:
+                    if foto.filename.lower().endswith('.png'):
+                        mimetype = 'image/png'
+                    elif foto.filename.lower().endswith('.gif'):
+                        mimetype = 'image/gif'
+                    elif foto.filename.lower().endswith('.webp'):
+                        mimetype = 'image/webp'
+                
+                return send_file(foto_path, mimetype=mimetype)
+        
+        # Fallback: servir do banco de dados
+        if foto.imagem:
+            mimetype = foto.content_type or 'image/jpeg'
+            image_data = foto.imagem
+            if isinstance(image_data, memoryview):
+                image_data = bytes(image_data)
+            
+            response = make_response(image_data)
+            response.headers['Content-Type'] = mimetype
+            response.headers['Content-Disposition'] = f'inline; filename="{foto.filename}"'
+            response.headers['Cache-Control'] = 'public, max-age=31536000'
+            return response
+        
+        # Nenhuma fonte disponível
+        current_app.logger.warning(f"⚠️ Foto express {foto_id} sem dados")
+        return make_response("Imagem não encontrada", 404)
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao servir foto express {foto_id}: {str(e)}")
+        return make_response(f"Erro ao carregar imagem: {str(e)}", 500)
 
 @app.route('/relatorio-express/<int:relatorio_id>/remover-foto/<int:foto_id>', methods=['POST'])
 @login_required

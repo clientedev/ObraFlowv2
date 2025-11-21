@@ -638,6 +638,9 @@ input, textarea, select {
 
                         <!-- Campo oculto para configurações das fotos -->
                         <input type="hidden" id="fotoConfiguracoes" name="foto_configuracoes">
+                        
+                        <!-- Campo oculto para fotos existentes (apenas metadados) -->
+                        <input type="hidden" id="fotosExistentesData" name="fotos_existentes_data">
                     </div>
                 </div>
 
@@ -745,6 +748,35 @@ input, textarea, select {
 let configuredPhotos = [];
 let photoCounter = 0;
 
+// Carregar fotos existentes se estiver em modo de edição
+{% if editing and fotos_existentes %}
+try {
+    const fotosExistentes = {{ fotos_existentes|tojson }};
+    if (fotosExistentes && Array.isArray(fotosExistentes)) {
+        configuredPhotos = fotosExistentes.map(foto => ({
+            imageUrl: foto.imageUrl,  // URL para carregar imagem existente
+            imageData: foto.imageData,  // Base64 para novas imagens
+            legend: foto.legenda,
+            category: foto.categoria,
+            local: foto.local || '',
+            fileName: foto.fileName,
+            ordem: foto.ordem,
+            id: foto.id,
+            existingPhoto: foto.existingPhoto || false  // Flag para identificar fotos existentes
+        }));
+        photoCounter = configuredPhotos.length;
+        console.log(`📸 Carregadas ${configuredPhotos.length} fotos existentes para edição`);
+        
+        // Exibir as fotos carregadas
+        displayConfiguredPhotos();
+        updatePhotoCounter();
+        updateFotoConfiguracoesInput();
+    }
+} catch (error) {
+    console.error('❌ Erro ao carregar fotos existentes:', error);
+}
+{% endif %}
+
 // Função para obter categoria atual do campo de texto
 function getCurrentCategory() {
     const categoryInput = document.getElementById('photoCategory');
@@ -779,25 +811,44 @@ function handleCameraCapture(input) {
 // Atualizar campo oculto de configurações de fotos
 function updateFotoConfiguracoesInput() {
     const photoConfigurations = [];
+    const existingPhotosData = [];
     
     // Converter configuredPhotos para o formato esperado pelo backend
     configuredPhotos.forEach(photo => {
-        if (photo.imageData && photo.legend) {
+        if (photo.existingPhoto && photo.id) {
+            // Foto existente - enviar apenas metadados atualizados (não re-enviar imagem)
+            existingPhotosData.push({
+                id: photo.id,
+                legenda: photo.legend || '',
+                categoria: photo.category || '',
+                local: photo.local || '',
+                ordem: photo.ordem || 0
+            });
+        } else if (photo.imageData && photo.legend) {
+            // Foto nova - enviar com dados de imagem
             photoConfigurations.push({
                 data: photo.imageData,
                 legenda: photo.legend,
                 categoria: photo.category || '',
+                local: photo.local || '',
                 originalName: photo.fileName || 'photo.png'
             });
         }
     });
     
-    // Salvar no campo oculto
+    // Salvar fotos NOVAS no campo fotoConfiguracoes
     const fotoConfigInput = document.getElementById('fotoConfiguracoes');
     if (fotoConfigInput) {
         fotoConfigInput.value = JSON.stringify(photoConfigurations);
-        console.log(`📸 Campo fotoConfiguracoes atualizado: ${photoConfigurations.length} fotos`);
     }
+    
+    // Salvar fotos EXISTENTES em campo separado
+    const fotosExistentesInput = document.getElementById('fotosExistentesData');
+    if (fotosExistentesInput) {
+        fotosExistentesInput.value = JSON.stringify(existingPhotosData);
+    }
+    
+    console.log(`📸 Campos atualizados: ${photoConfigurations.length} novas, ${existingPhotosData.length} existentes (${configuredPhotos.length} total)`);
 }
 
 // Resetar seleção de categoria e fotos
@@ -1580,14 +1631,19 @@ function displayConfiguredPhotos() {
 
     const grid = document.getElementById('configuredPhotosGrid');
     configuredPhotos.forEach((photo, index) => {
+        // Usar imageUrl para fotos existentes, imageData para fotos novas
+        const imageSrc = photo.imageUrl || photo.imageData || '';
+        
         const col = document.createElement('div');
         col.className = 'col-md-4 col-lg-3 mb-3';
         col.innerHTML = `
             <div class="card">
-                <img src="${photo.imageData}" class="card-img-top" style="height: 120px; object-fit: cover;">
+                <img src="${imageSrc}" class="card-img-top" style="height: 120px; object-fit: cover;" 
+                     onerror="this.src='/static/placeholder-image.png';">
                 <div class="card-body p-2">
-                    <small class="text-muted d-block">${photo.category}</small>
-                    <small class="fw-bold">${photo.legend}</small>
+                    <small class="text-muted d-block">${photo.category || ''}</small>
+                    <small class="fw-bold">${photo.legend || ''}</small>
+                    ${photo.existingPhoto ? '<span class="badge bg-info badge-sm">Existente</span>' : ''}
                     <div class="mt-2">
                         <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeConfiguredPhoto(${index})">
                             <i class="fas fa-trash"></i>
@@ -1750,6 +1806,16 @@ document.addEventListener('DOMContentLoaded', function() {
     updatePhotoCounter();
     loadDefaultChecklist();
     // Sistema de categoria visual removido - agora usa campo de texto #photoCategory
+    
+    // Exibir fotos existentes se estiver em modo de edição
+    {% if editing %}
+    if (configuredPhotos.length > 0) {
+        displayConfiguredPhotos();
+        updatePhotoCounter();
+        updateFotoConfiguracoesInput(); // Sincronizar com o campo oculto
+        console.log(`✅ ${configuredPhotos.length} fotos exibidas no modo de edição`);
+    }
+    {% endif %}
 });
 
 function getCurrentLocation(btn) {
