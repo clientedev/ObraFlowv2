@@ -9707,6 +9707,12 @@ def express_new():
                             with open(foto_path, 'wb') as f:
                                 f.write(image_bytes)
 
+                            # Converter para bytes se necessário
+                            if isinstance(image_bytes, str):
+                                image_bytes = image_bytes.encode()
+                            elif isinstance(image_bytes, memoryview):
+                                image_bytes = bytes(image_bytes)
+                            
                             # Criar registro da foto
                             foto_express = FotoRelatorioExpress()
                             foto_express.relatorio_express_id = relatorio_express.id
@@ -9715,12 +9721,18 @@ def express_new():
                             foto_express.ordem = ordem
                             foto_express.legenda = config['legenda']
                             foto_express.tipo_servico = config.get('categoria', 'Geral')
-                            foto_express.imagem = image_bytes  # Salvar dados binários da imagem express
+                            
+                            # Atribuir dados binários (garantir que é bytes)
+                            foto_express.imagem = image_bytes
                             foto_express.imagem_hash = calcular_hash_imagem(image_bytes)
                             foto_express.content_type = detectar_content_type(filename, image_bytes)
                             foto_express.imagem_size = len(image_bytes)
 
+                            current_app.logger.info(f"📸 Salvando foto {ordem}: {filename}, tamanho={len(image_bytes)} bytes, hash={calcular_hash_imagem(image_bytes)[:16]}...")
+                            
                             db.session.add(foto_express)
+                            db.session.flush()  # Forçar flush imediato desta foto
+                            
                             ordem += 1
 
                 except Exception as e:
@@ -9747,6 +9759,12 @@ def express_new():
                         foto_file.seek(0)  # Reset para salvar o arquivo também
                         foto_file.save(foto_path)
 
+                        # Converter para bytes se necessário
+                        if isinstance(file_data, str):
+                            file_data = file_data.encode()
+                        elif isinstance(file_data, memoryview):
+                            file_data = bytes(file_data)
+
                         # Criar registro da foto
                         foto_express = FotoRelatorioExpress()
                         foto_express.relatorio_express_id = relatorio_express.id
@@ -9754,12 +9772,18 @@ def express_new():
                         foto_express.filename_original = filename
                         foto_express.ordem = ordem
                         foto_express.legenda = f'Foto {ordem}'
-                        foto_express.imagem = file_data  # Salvar dados binários da imagem express básica
+                        
+                        # Atribuir dados binários
+                        foto_express.imagem = file_data
                         foto_express.imagem_hash = calcular_hash_imagem(file_data)
                         foto_express.content_type = detectar_content_type(filename, file_data)
                         foto_express.imagem_size = len(file_data)
+                        
+                        current_app.logger.info(f"📸 Salvando foto básica {ordem}: {filename}, tamanho={len(file_data)} bytes")
 
                         db.session.add(foto_express)
+                        db.session.flush()  # Forçar flush imediato desta foto
+                        
                         ordem += 1
 
             db.session.commit()
@@ -9895,6 +9919,12 @@ def relatorio_express_adicionar_foto(relatorio_id):
             file.seek(0)  # Reset para salvar o arquivo também
             file.save(file_path)
             
+            # Converter para bytes se necessário
+            if isinstance(file_data, str):
+                file_data = file_data.encode()
+            elif isinstance(file_data, memoryview):
+                file_data = bytes(file_data)
+            
             # Criar registro no banco
             foto = FotoRelatorioExpress(
                 relatorio_express_id=relatorio_id,
@@ -9912,8 +9942,12 @@ def relatorio_express_adicionar_foto(relatorio_id):
                 imagem_size=len(file_data)
             )
             
+            current_app.logger.info(f"📸 Adicionando foto individual: {unique_filename}, tamanho={len(file_data)} bytes, hash={calcular_hash_imagem(file_data)[:16]}...")
+            
             db.session.add(foto)
             db.session.commit()
+            
+            current_app.logger.info(f"✅ Foto {foto.id} salva com sucesso no banco")
             
             flash('Foto adicionada com sucesso!', 'success')
             return redirect(url_for('express_detail', id=relatorio_id))
@@ -10111,6 +10145,12 @@ def express_edit(id):
                             with open(foto_path, 'wb') as f:
                                 f.write(image_bytes)
                             
+                            # Converter para bytes se necessário
+                            if isinstance(image_bytes, str):
+                                image_bytes = image_bytes.encode()
+                            elif isinstance(image_bytes, memoryview):
+                                image_bytes = bytes(image_bytes)
+                            
                             # Criar registro da foto
                             foto_express = FotoRelatorioExpress()
                             foto_express.relatorio_express_id = relatorio.id
@@ -10120,12 +10160,18 @@ def express_edit(id):
                             foto_express.legenda = config['legenda'][:500]  # Limitar tamanho
                             foto_express.tipo_servico = config.get('categoria', 'Geral')[:100]
                             foto_express.local = config.get('local', '')[:200]
+                            
+                            # Atribuir dados binários
                             foto_express.imagem = image_bytes
                             foto_express.imagem_hash = calcular_hash_imagem(image_bytes)
                             foto_express.content_type = detectar_content_type(filename, image_bytes)
                             foto_express.imagem_size = len(image_bytes)
                             
+                            current_app.logger.info(f"📸 [EDIT] Salvando foto {ordem}: {filename}, tamanho={len(image_bytes)} bytes, hash={calcular_hash_imagem(image_bytes)[:16]}...")
+                            
                             db.session.add(foto_express)
+                            db.session.flush()  # Forçar flush imediato
+                            
                             ordem += 1
                     
                     if len(foto_configs) > 0:
