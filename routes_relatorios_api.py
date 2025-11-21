@@ -453,6 +453,14 @@ def get_relatorio(relatorio_id):
             except:
                 acompanhantes = []
 
+        # Processar lembrete_proxima_visita (pode ser string ou datetime)
+        lembrete_str = None
+        if relatorio.lembrete_proxima_visita:
+            if isinstance(relatorio.lembrete_proxima_visita, str):
+                lembrete_str = relatorio.lembrete_proxima_visita
+            else:
+                lembrete_str = relatorio.lembrete_proxima_visita.isoformat()
+
         # Serializar relatório completo
         relatorio_data = {
             'id': relatorio.id,
@@ -463,7 +471,7 @@ def get_relatorio(relatorio_id):
             'categoria': relatorio.categoria or '',
             'local': relatorio.local or '',
             'observacoes_finais': relatorio.observacoes_finais or '',
-            'lembrete_proxima_visita': relatorio.lembrete_proxima_visita.isoformat() if relatorio.lembrete_proxima_visita else None,
+            'lembrete_proxima_visita': lembrete_str,
             'conteudo': relatorio.conteudo or '',
             'status': relatorio.status or 'preenchimento',
             'created_at': relatorio.created_at.isoformat() if relatorio.created_at else None,
