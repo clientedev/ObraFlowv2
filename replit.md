@@ -2,6 +2,16 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, autosave functionality with real-time synchronization, and a comprehensive notification system. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes
+**November 21, 2025** - Enhanced project listing with tabs and distance-based sorting:
+- Implemented tabbed interface for project filtering: "Obras Ativas" (default) and "Obras Concluídas"
+- Client-side geolocation-based distance sorting using Haversine formula
+- Visual distance badges on project cards (automatically shows km or m)
+- Loading spinner and success alert during distance calculation
+- Search and filter forms preserve tab selection with hidden status field
+- Graceful degradation: falls back to original order if geolocation unavailable or denied
+- Projects without coordinates appear at end of sorted list
+- 5-minute geolocation cache for improved performance
+
 **November 19, 2025** - Comprehensive permission system overhaul:
 - Created centralized `can_edit_report()` helper function with clear access control rules:
   - Master users can edit ANY report (including Approved/Finalized)
@@ -49,7 +59,7 @@ Report forms: Location section removed from report creation/editing interface (g
 - **Checklist Individual por Obra**: Customizable checklists per project based on a global template.
 
 ## Key Features
-- **Project Management**: CRUD operations, automatic numbering, GPS location, dynamic categories, project reactivation, and project-specific checklists.
+- **Project Management**: CRUD operations, automatic numbering, GPS location, dynamic categories, project reactivation, and project-specific checklists. **Tabbed listing interface**: separate views for active (Ativo/Pausado) and completed (Concluído) projects with status preservation across searches. **Distance-based sorting**: automatic client-side geolocation sorting with visual distance badges and graceful fallback.
 - **Visit Tracking**: GPS-enabled logging, custom checklists, team communication.
 - **Report System**: Professional PDF reports with photo annotation, ELP branding, and an approval workflow with email notifications. Reports are numbered sequentially per project. Reminders for next visits are displayed. **AutoSave System**: Fully functional and silent with 2s debounce, automatic persistence of all fields including text, dates, coordinates, checklists, `acompanhantes`, and image files with temporary upload; retry logic, localStorage fallback, automatic report creation on first save, and complete console logging for diagnostics.
 - **Photo Management**: Advanced editing (drawing, arrows, text, captions), up to 50 photos per report, predefined caption management, deduplication. Drag-and-drop reordering, real-time synchronization, 50MB file size limit per image. Images are automatically uploaded via `/api/uploads/temp` during autosave, then promoted to permanent storage with full metadata (categoria, local, legenda).
