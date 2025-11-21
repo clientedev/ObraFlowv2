@@ -9685,15 +9685,21 @@ def express_new():
 
             # Processar fotos configuradas do modal
             foto_configs_str = request.form.get('foto_configuracoes')
+            current_app.logger.info(f"📸 EXPRESS NEW: foto_configuracoes recebido, tamanho={len(foto_configs_str) if foto_configs_str else 0}")
+            
             if foto_configs_str:
                 try:
                     foto_configs = json.loads(foto_configs_str)
+                    current_app.logger.info(f"📸 EXPRESS NEW: {len(foto_configs)} fotos para processar")
+                    
                     upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
                     if not os.path.exists(upload_folder):
                         os.makedirs(upload_folder)
 
                     ordem = 1
                     for config in foto_configs:
+                        current_app.logger.info(f"📸 EXPRESS NEW: Processando foto {ordem}, config keys={list(config.keys())}")
+                        
                         if config.get('data') and config.get('legenda'):
                             # Salvar imagem do base64
                             import base64
@@ -9719,8 +9725,9 @@ def express_new():
                             foto_express.filename = filename
                             foto_express.filename_original = config.get('originalName', filename)
                             foto_express.ordem = ordem
-                            foto_express.legenda = config['legenda']
-                            foto_express.tipo_servico = config.get('categoria', 'Geral')
+                            foto_express.legenda = config['legenda'][:500]  # Limitar tamanho
+                            foto_express.tipo_servico = config.get('categoria', 'Geral')[:100]
+                            foto_express.local = config.get('local', '')[:300]  # CORRIGIDO: adicionar campo local
                             
                             # Atribuir dados binários (garantir que é bytes)
                             foto_express.imagem = image_bytes
@@ -9728,18 +9735,27 @@ def express_new():
                             foto_express.content_type = detectar_content_type(filename, image_bytes)
                             foto_express.imagem_size = len(image_bytes)
 
-                            current_app.logger.info(f"📸 Salvando foto {ordem}: {filename}, tamanho={len(image_bytes)} bytes, hash={calcular_hash_imagem(image_bytes)[:16]}...")
+                            current_app.logger.info(f"📸 EXPRESS NEW: Salvando foto {ordem}: {filename}, tamanho={len(image_bytes)} bytes, legenda={config['legenda'][:30]}, categoria={config.get('categoria', 'N/A')}, local={config.get('local', 'N/A')[:30]}")
                             
                             db.session.add(foto_express)
                             db.session.flush()  # Forçar flush imediato desta foto
                             
+                            current_app.logger.info(f"✅ EXPRESS NEW: Foto {ordem} (ID={foto_express.id}) adicionada à sessão do banco")
+                            
                             ordem += 1
+                        else:
+                            current_app.logger.warning(f"⚠️ EXPRESS NEW: Foto {ordem} ignorada - falta data ou legenda")
 
+                    current_app.logger.info(f"✅ EXPRESS NEW: Total de {ordem-1} fotos processadas com sucesso")
+                    
                 except Exception as e:
-                    current_app.logger.error(f"Erro ao processar fotos: {str(e)}")
-
+                    current_app.logger.error(f"❌ EXPRESS NEW: Erro ao processar fotos: {str(e)}")
+                    current_app.logger.error(f"❌ EXPRESS NEW: Traceback: {traceback.format_exc()}")
+            else:
+                current_app.logger.info(f"ℹ️ EXPRESS NEW: Nenhuma foto configurada recebida")
+            
             # Fallback: processar fotos básicas se não houver configurações
-            elif form.fotos.data:
+            if not foto_configs_str and form.fotos.data:
                 upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
                 if not os.path.exists(upload_folder):
                     os.makedirs(upload_folder)
@@ -9772,6 +9788,8 @@ def express_new():
                         foto_express.filename_original = filename
                         foto_express.ordem = ordem
                         foto_express.legenda = f'Foto {ordem}'
+                        foto_express.tipo_servico = 'Geral'
+                        foto_express.local = ''  # CORRIGIDO: adicionar campo local
                         
                         # Atribuir dados binários
                         foto_express.imagem = file_data
@@ -9779,14 +9797,25 @@ def express_new():
                         foto_express.content_type = detectar_content_type(filename, file_data)
                         foto_express.imagem_size = len(file_data)
                         
-                        current_app.logger.info(f"📸 Salvando foto básica {ordem}: {filename}, tamanho={len(file_data)} bytes")
+                        current_app.logger.info(f"📸 EXPRESS NEW: Salvando foto básica {ordem}: {filename}, tamanho={len(file_data)} bytes")
 
                         db.session.add(foto_express)
                         db.session.flush()  # Forçar flush imediato desta foto
                         
+                        current_app.logger.info(f"✅ EXPRESS NEW: Foto básica {ordem} (ID={foto_express.id}) adicionada à sessão")
+                        
                         ordem += 1
 
             db.session.commit()
+            current_app.logger.info(f"✅ EXPRESS NEW: Relatório {relatorio_express.id} commitado no banco de dados")
+            
+            # Verificar se as fotos foram realmente salvas no banco
+            fotos_salvas = FotoRelatorioExpress.query.filter_by(relatorio_express_id=relatorio_express.id).all()
+            current_app.logger.info(f"🔍 EXPRESS NEW: Verificação pós-commit: {len(fotos_salvas)} fotos encontradas no banco para relatório {relatorio_express.id}")
+            
+            for foto_verif in fotos_salvas:
+                imagem_size_db = len(foto_verif.imagem) if foto_verif.imagem else 0
+                current_app.logger.info(f"   📸 Foto ID={foto_verif.id}, filename={foto_verif.filename}, imagem_size={imagem_size_db} bytes, legenda={foto_verif.legenda[:30] if foto_verif.legenda else 'N/A'}")
 
             if action == 'finalize':
                 flash('Relatório Express finalizado com sucesso!', 'success')
