@@ -24,6 +24,23 @@ from models import (
 )
 
 # ==========================================================================================
+# UTILITY HELPERS
+# ==========================================================================================
+def sanitize_filename(text):
+    """
+    Sanitiza texto para uso em nome de arquivo.
+    Remove caracteres especiais e substitui espaços por underscores.
+    """
+    if not text:
+        return ""
+    import re
+    text = text.strip()
+    text = re.sub(r'[^\w\s-]', '', text)
+    text = re.sub(r'[\s]+', '_', text)
+    text = text[:50]
+    return text
+
+# ==========================================================================================
 # PERMISSION HELPER - Centraliza verificação de permissões para edição de relatórios
 # ==========================================================================================
 def can_view_report(user, relatorio):
@@ -3707,7 +3724,8 @@ def approve_report(id):
         fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
         
         # Gerar PDF
-        pdf_filename = f"relatorio_{relatorio.numero}.pdf"
+        obra_nome = sanitize_filename(relatorio.projeto.nome)
+        pdf_filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
         pdf_path = os.path.join('static', 'reports', pdf_filename)
         os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
         
@@ -4059,7 +4077,8 @@ def generate_pdf_report(report_id):
 
         # Create response for inline viewing
         from flask import Response
-        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        obra_nome = sanitize_filename(relatorio.projeto.nome)
+        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
 
         response = Response(
             pdf_data,
@@ -4092,7 +4111,8 @@ def generate_report_pdf_download(id):
 
         # Create response for download
         from flask import Response
-        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        obra_nome = sanitize_filename(relatorio.projeto.nome)
+        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
 
         response = Response(
             pdf_data,
@@ -4125,7 +4145,8 @@ def generate_pdf_report_legacy(id):
 
         # Create response
         from flask import Response
-        filename = f"relatorio_legacy_{relatorio.numero.replace('/', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        obra_nome = sanitize_filename(relatorio.projeto.nome)
+        filename = f"relatorio_legacy_{relatorio.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
 
         response = Response(
             pdf_data,
@@ -10303,7 +10324,8 @@ def express_pdf(id):
 
     try:
         # Gerar PDF
-        pdf_filename = f"relatorio_express_{relatorio.numero}.pdf"
+        empresa_nome = sanitize_filename(relatorio.empresa_nome)
+        pdf_filename = f"relatorio_express_{relatorio.numero}_{empresa_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
         pdf_path = os.path.join('uploads', pdf_filename)
 
         result = gerar_pdf_relatorio_express(relatorio, pdf_path)
@@ -10532,8 +10554,10 @@ def relatorio_express_gerar_pdf(relatorio_id):
         pdf_path = gerar_pdf_relatorio_express(relatorio_id)
 
         # Retornar arquivo para download
+        empresa_nome = sanitize_filename(relatorio.empresa_nome)
+        pdf_filename = f"relatorio_express_{relatorio.numero}_{empresa_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
         return send_file(pdf_path, as_attachment=True, 
-                        download_name=f"relatorio_express_{relatorio.numero}.pdf")
+                        download_name=pdf_filename)
 
     except Exception as e:
         flash(f'Erro ao gerar PDF: {str(e)}', 'error')
@@ -10665,8 +10689,10 @@ def enviar_relatorio_express_por_email(relatorio, destinatarios, cc_emails, bcc_
 
                 # Anexar PDF
                 pdf_bytes.seek(0)
+                empresa_nome = sanitize_filename(relatorio.empresa_nome)
+                pdf_filename = f"relatorio_express_{relatorio.numero}_{empresa_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
                 msg.attach(
-                    filename=f"relatorio_express_{relatorio.numero}.pdf",
+                    filename=pdf_filename,
                     content_type='application/pdf',
                     data=pdf_bytes.read()
                 )
