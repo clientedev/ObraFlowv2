@@ -827,12 +827,12 @@ textarea {
                 <i class="fas fa-camera"></i> Fotos <span id="photoCounter" class="photo-counter">0</span>
             </div>
             <div class="section-content">
-                <!-- Seleção de Categoria -->
+                <!-- Seleção de Categoria (Opcional) -->
                 <!-- NOTA: Este arquivo (novo_mobile.html) é LEGADO e não está mais em uso.
                      O sistema usa templates/express/novo.html para relatórios express.
                      Categorias são carregadas dinamicamente do banco de dados por projeto. -->
                 <div id="categorySelection">
-                    <label class="form-label">Selecione a categoria para as fotos:</label>
+                    <label class="form-label"><strong>Categoria (Opcional):</strong> Você pode selecionar uma categoria para organizar suas fotos:</label>
                     <div class="category-grid" id="dynamicCategoryGrid">
                         <!-- Categorias seriam carregadas dinamicamente aqui via JavaScript -->
                         <p class="text-muted">Template legado - categorias devem ser carregadas do banco</p>
@@ -840,7 +840,7 @@ textarea {
                 </div>
 
                 <!-- Upload de Fotos -->
-                <div id="photoUploadZone" class="photo-upload-zone" style="display: none;">
+                <div id="photoUploadZone" class="photo-upload-zone">
                     <div class="upload-options">
                         <button type="button" class="btn btn-outline-primary" onclick="selectFromGallery()">
                             <i class="fas fa-images"></i><br>Galeria
@@ -1212,16 +1212,12 @@ function selectCategory(category) {
     });
     document.querySelector(`[data-category="${category}"]`).classList.add('selected');
 
-    // Show upload zone
-    document.getElementById('photoUploadZone').style.display = 'block';
+    // Upload zone já está sempre visível (categoria opcional)
 }
 
 // Camera and gallery functions with error handling
 function selectFromGallery() {
-    if (!selectedCategory) {
-        alert('Selecione uma categoria antes de adicionar fotos.');
-        return;
-    }
+    // Categoria é opcional - não bloquear se não selecionada
     const photoInput = document.getElementById('photoInput');
     if (photoInput) {
         photoInput.click();
@@ -1231,10 +1227,7 @@ function selectFromGallery() {
 }
 
 function captureFromCamera() {
-    if (!selectedCategory) {
-        alert('Selecione uma categoria antes de adicionar fotos.');
-        return;
-    }
+    // Categoria é opcional - não bloquear se não selecionada
     const cameraInput = document.getElementById('cameraInput');
     if (cameraInput) {
         cameraInput.click();
@@ -1244,10 +1237,7 @@ function captureFromCamera() {
 }
 
 function handlePhotoUpload(files) {
-    if (!selectedCategory) {
-        alert('Por favor, selecione uma categoria primeiro.');
-        return;
-    }
+    // Categoria é opcional - usar selectedCategory se disponível, senão deixar vazio
 
     Array.from(files).forEach((file, index) => {
         if (file.type.startsWith('image/')) {

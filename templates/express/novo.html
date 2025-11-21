@@ -673,9 +673,9 @@ input, textarea, select {
                         </div>
                     </div>
                     <div class="card-body">
-                        <!-- Seletor de Categoria -->
+                        <!-- Seletor de Categoria (Opcional) -->
                         <div class="mb-4">
-                            <p class="mb-3 text-muted">Selecione a categoria antes de adicionar a foto:</p>
+                            <p class="mb-3 text-muted"><strong>Categoria (Opcional):</strong> Você pode selecionar uma categoria para organizar suas fotos, ou deixar em branco:</p>
                             <div class="category-selector">
                                 <div class="category-grid">
                                     {% for categoria in categorias %}
@@ -689,7 +689,7 @@ input, textarea, select {
                         </div>
 
                         <!-- Upload de Fotos -->
-                        <div class="photo-upload-section" id="photoUploadSection" style="display: none;">
+                        <div class="photo-upload-section" id="photoUploadSection">
                             <label class="form-label">Fotos</label>
                             <div class="d-flex gap-2 mb-3">
                                 <button type="button" class="btn btn-outline-primary" onclick="selectFromGallery()">
@@ -702,11 +702,8 @@ input, textarea, select {
                             <input type="file" id="photoInput" class="form-control" multiple accept="image/*" style="display: none;" onchange="handlePhotoUpload(this)">
                             <input type="file" id="cameraInput" class="form-control" accept="image/*" capture="environment" style="display: none;" onchange="handleCameraCapture(this)">
                             <small class="form-text text-muted">
-                                Selecione uma categoria antes de escolher as fotos. Máximo 200 fotos - Limite total: 3GB.
+                                Adicione fotos ao seu relatório. A categoria é opcional. Máximo 200 fotos - Limite total: 3GB.
                             </small>
-                            <div class="alert alert-warning mt-2" id="categoryWarning" style="display: none;">
-                                <i class="fas fa-exclamation-triangle"></i> Selecione uma categoria antes de escolher as fotos.
-                            </div>
                         </div>
 
                         <!-- Preview das Fotos Selecionadas -->
@@ -785,11 +782,7 @@ let photoCounter = 0;
         console.log('✅ VARIÁVEIS DEFINIDAS: selectedCategory =', selectedCategory);
         console.log('✅ VARIÁVEIS DEFINIDAS: window.selectedPhotoCategory =', window.selectedPhotoCategory);
 
-        // Mostrar área de upload
-        const uploadSection = document.getElementById('photoUploadSection');
-        if (uploadSection) {
-            uploadSection.style.display = 'block';
-        }
+        // Área de upload já está sempre visível (categoria opcional)
     }
 
 // Camera and gallery functions with error handling
@@ -797,11 +790,7 @@ function selectFromGallery() {
     console.log('🔍 DEBUG: selectedCategory =', selectedCategory);
     console.log('🔍 DEBUG: window.selectedPhotoCategory =', window.selectedPhotoCategory);
 
-    // Usar tanto a variável local quanto a global para garantir
-    if (!selectedCategory && !window.selectedPhotoCategory) {
-        alert('Selecione uma categoria antes de adicionar fotos.');
-        return;
-    }
+    // Categoria é opcional - não bloquear se não selecionada
     const photoInput = document.getElementById('photoInput');
     if (photoInput) {
         photoInput.click();
@@ -814,11 +803,7 @@ function captureFromCamera() {
     console.log('🔍 DEBUG: selectedCategory =', selectedCategory);
     console.log('🔍 DEBUG: window.selectedPhotoCategory =', window.selectedPhotoCategory);
 
-    // Usar tanto a variável local quanto a global para garantir
-    if (!selectedCategory && !window.selectedPhotoCategory) {
-        alert('Selecione uma categoria antes de adicionar fotos.');
-        return;
-    }
+    // Categoria é opcional - não bloquear se não selecionada
     const cameraInput = document.getElementById('cameraInput');
     if (cameraInput) {
         cameraInput.click();
