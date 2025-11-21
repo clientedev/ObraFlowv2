@@ -9996,33 +9996,6 @@ def enviar_relatorio_express_por_email(relatorio, destinatarios, cc_emails, bcc_
                 email_service.mail.send(msg)
                 sucessos += 1
 
-
-
-@app.route('/admin/legendas/<int:id>/excluir', methods=['POST'])
-@login_required
-def admin_legenda_excluir(id):
-    """Excluir legenda predefinida - apenas Desenvolvedor ou Master"""
-    if not (current_user.is_developer or current_user.is_master):
-        flash('Acesso negado. Apenas usuários Desenvolvedor ou Master podem excluir legendas.', 'error')
-        return redirect(url_for('admin_legendas'))
-    
-    try:
-        legenda = LegendaPredefinida.query.get_or_404(id)
-        texto = legenda.texto[:50]
-        
-        db.session.delete(legenda)
-        db.session.commit()
-        
-        flash(f'Legenda "{texto}..." excluída com sucesso!', 'success')
-        current_app.logger.info(f"✅ Legenda ID={id} excluída por {current_user.username}")
-        
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"❌ Erro ao excluir legenda ID={id}: {str(e)}")
-        flash(f'Erro ao excluir legenda: {str(e)}', 'error')
-    
-    return redirect(url_for('admin_legendas'))
-
             except Exception as e:
                 current_app.logger.error(f"Erro ao enviar email para {email_dest}: {e}")
                 falhas += 1
