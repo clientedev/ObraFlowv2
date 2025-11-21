@@ -6131,6 +6131,21 @@ def report_edit(report_id):
             current_app.logger.warning(f"⚠️ Checklist inválido no relatório {report_id}: {str(e)}")
             checklist = {}
 
+        # Processar acompanhantes
+        acompanhantes_list = []
+        try:
+            if hasattr(relatorio, 'acompanhantes') and relatorio.acompanhantes:
+                import json
+                acomp_data = relatorio.acompanhantes
+                if isinstance(acomp_data, str):
+                    acomp_data = json.loads(acomp_data)
+                if isinstance(acomp_data, list):
+                    acompanhantes_list = acomp_data
+                current_app.logger.info(f"✅ Acompanhantes carregados: {len(acompanhantes_list)}")
+        except Exception as e:
+            current_app.logger.warning(f"⚠️ Erro ao processar acompanhantes: {str(e)}")
+            acompanhantes_list = []
+
         # Garantir valores padrão para evitar erros no template
         if not hasattr(relatorio, 'observacoes') or relatorio.observacoes is None:
             relatorio.observacoes = ''
@@ -6163,6 +6178,7 @@ def report_edit(report_id):
                              projetos=projetos, 
                              fotos=fotos,
                              checklist=checklist,
+                             acompanhantes=acompanhantes_list,
                              is_readonly=False,
                              user_can_edit=True,
                              user_can_view=True)
