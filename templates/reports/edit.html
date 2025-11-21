@@ -149,9 +149,13 @@
                                     {% for acomp in acompanhantes %}
                                     <li class="mb-1">
                                         <i class="fas fa-user-circle me-2 text-primary"></i>
-                                        {{ acomp.nome if acomp.nome else acomp.get('name', 'Não informado') }}
-                                        {% if acomp.cargo or acomp.get('cargo') %}
-                                        <span class="text-muted">- {{ acomp.cargo if acomp.cargo else acomp.get('cargo') }}</span>
+                                        {% if acomp is mapping %}
+                                            {{ acomp.get('nome', acomp.get('name', 'Não informado')) }}
+                                            {% if acomp.get('cargo') %}
+                                            <span class="text-muted">- {{ acomp.get('cargo') }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            {{ acomp }}
                                         {% endif %}
                                     </li>
                                     {% endfor %}
@@ -164,19 +168,33 @@
                             <!-- Checklist -->
                             <div class="mb-3">
                                 <strong><i class="fas fa-check-square me-2"></i>Checklist Selecionado:</strong>
-                                {% if checklist and (checklist.items or checklist.get('items')) %}
-                                {% set items = checklist.items if checklist.items else checklist.get('items', []) %}
-                                <div class="mt-2 ms-3">
-                                    {% for item in items %}
-                                    <div class="mb-2">
-                                        <i class="fas fa-{{ 'check-circle text-success' if item.concluido or item.get('concluido') else 'circle text-muted' }} me-2"></i>
-                                        <strong>{{ item.pergunta if item.pergunta else item.get('pergunta', 'Item sem descrição') }}</strong>
-                                        {% if item.resposta or item.get('resposta') %}
-                                        <div class="ms-4 text-muted">{{ item.resposta if item.resposta else item.get('resposta') }}</div>
-                                        {% endif %}
+                                {% if checklist %}
+                                    {% if checklist is mapping %}
+                                        {% set items = checklist.get('items', []) %}
+                                    {% else %}
+                                        {% set items = checklist %}
+                                    {% endif %}
+                                    
+                                    {% if items and items|length > 0 %}
+                                    <div class="mt-2 ms-3">
+                                        {% for item in items %}
+                                        <div class="mb-2">
+                                            {% if item is mapping %}
+                                                <i class="fas fa-{{ 'check-circle text-success' if item.get('concluido', False) else 'circle text-muted' }} me-2"></i>
+                                                <strong>{{ item.get('pergunta', item.get('texto', 'Item sem descrição')) }}</strong>
+                                                {% if item.get('resposta') %}
+                                                <div class="ms-4 text-muted">{{ item.get('resposta') }}</div>
+                                                {% endif %}
+                                            {% else %}
+                                                <i class="fas fa-circle text-muted me-2"></i>
+                                                <strong>{{ item }}</strong>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
                                     </div>
-                                    {% endfor %}
-                                </div>
+                                    {% else %}
+                                    <p class="text-muted ms-3 mt-2 mb-0">Não preenchido</p>
+                                    {% endif %}
                                 {% else %}
                                 <p class="text-muted ms-3 mt-2 mb-0">Não preenchido</p>
                                 {% endif %}
