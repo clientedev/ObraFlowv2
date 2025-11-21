@@ -4999,7 +4999,30 @@ def project_edit(project_id):
             db.session.rollback()
             flash(f'Erro ao atualizar obra: {str(e)}', 'error')
     
-    return render_template('projects/form.html', form=form, project=project, categorias=categorias_serializadas, contatos_existentes=contatos_existentes)
+    # Get or create checklist config for this project
+    config = ProjetoChecklistConfig.query.filter_by(projeto_id=project_id).first()
+    if not config:
+        # Default to standard checklist
+        config = ProjetoChecklistConfig(
+            projeto_id=project_id,
+            tipo_checklist="padrao",
+            criado_por=current_user.id
+        )
+        db.session.add(config)
+        db.session.commit()
+
+    # Get appropriate checklist items
+    if config.tipo_checklist == "personalizado":
+        checklist_items = ChecklistObra.query.filter_by(
+            projeto_id=project_id, 
+            ativo=True
+        ).order_by(ChecklistObra.ordem).all()
+    else:
+        checklist_items = ChecklistPadrao.query.filter_by(
+            ativo=True
+        ).order_by(ChecklistPadrao.ordem).all()
+    
+    return render_template('projects/form.html', form=form, project=project, categorias=categorias_serializadas, contatos_existentes=contatos_existentes, checklist_items=checklist_items, config=config)
 
 # Category management routes - Item 16
 @app.route('/projects/<int:project_id>/categorias')

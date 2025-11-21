@@ -237,7 +237,66 @@
                         </div>
                     </div>
                     
-                    <div class="d-flex justify-content-between">
+                    {% if project %}
+                    <!-- Checklist Configuration Section -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-check-square me-2"></i>Itens do Checklist
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if checklist_items %}
+                                    <div class="list-group mb-3">
+                                        {% for item in checklist_items %}
+                                        <div class="list-group-item">
+                                            <div class="d-flex align-items-start">
+                                                <div class="me-3">
+                                                    <span class="badge bg-primary rounded-pill">{{ item.ordem }}</span>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <p class="mb-0">{{ item.texto }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    <div class="text-center py-3 mb-3">
+                                        <i class="fas fa-clipboard-list fa-3x text-muted mb-2"></i>
+                                        <h6 class="text-muted">Nenhum item de checklist configurado</h6>
+                                        <p class="text-muted small">Configure o tipo de checklist para este projeto usando as opções abaixo.</p>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="card bg-light mt-3">
+                                        <div class="card-body">
+                                            <h6 class="card-title">
+                                                <i class="fas fa-tools me-2"></i>Opções de Configuração
+                                            </h6>
+                                            <div class="d-grid gap-2 d-md-flex">
+                                                <button type="button" class="btn btn-outline-primary" onclick="configureChecklist('padrao')">
+                                                    <i class="fas fa-list me-2"></i>Usar Checklist Padrão
+                                                </button>
+                                                <button type="button" class="btn btn-outline-success" onclick="configureChecklist('personalizado')">
+                                                    <i class="fas fa-edit me-2"></i>Criar Checklist Personalizado
+                                                </button>
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">
+                                                <i class="fas fa-info-circle"></i>
+                                                Importante: O checklist não aparece nos PDFs gerados, apenas na visualização web dos relatórios.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between mt-4">
                         <a href="{{ url_for('projects_list') }}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left me-2"></i>Voltar
                         </a>
@@ -774,6 +833,43 @@ function geocodeAddressToCoordinates() {
         }
     });
 }
+
+// Checklist Configuration Function
+{% if project %}
+function configureChecklist(tipo) {
+    const projectId = {{ project.id }};
+    
+    if (confirm(`Deseja configurar este projeto para usar checklist ${tipo === 'padrao' ? 'padrão' : 'personalizado'}?`)) {
+        fetch(`/projects/${projectId}/checklist/config`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                tipo_checklist: tipo
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                if (data.redirect) {
+                    // Open custom checklist editor in new tab
+                    window.open(data.redirect, '_blank');
+                }
+                // Reload page to show updated checklist
+                location.reload();
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao configurar checklist');
+        });
+    }
+}
+{% endif %}
 </script>
 
 <!-- Load Leaflet CSS and JS -->
