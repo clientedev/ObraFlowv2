@@ -97,13 +97,10 @@
             <form method="POST" enctype="multipart/form-data" id="uploadForm">
                 {{ form.hidden_tag() }}
                 
-                <!-- Seleção de Categoria (Opcional) -->
-                <div class="category-selection">
-                    <h5><i class="fas fa-tag me-2"></i>Categoria da Foto (Opcional)</h5>
-                    <p class="text-muted mb-3">Você pode selecionar uma categoria se desejar:</p>
-                    
+                <!-- Campo de Categoria (Opcional) -->
+                <div class="mb-3">
                     {{ form.tipo_servico.label(class="form-label") }}
-                    {{ form.tipo_servico(class="form-select form-select-lg", id="categoria") }}
+                    {{ form.tipo_servico(class="form-control", id="categoria") }}
                     
                     {% if form.tipo_servico.errors %}
                         <div class="text-danger mt-1">
@@ -112,6 +109,11 @@
                             {% endfor %}
                         </div>
                     {% endif %}
+                    
+                    <small class="form-text text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Campo opcional. Digite a categoria se desejar (ex: Fundação, Estrutura, Acabamento).
+                    </small>
                 </div>
                 
                 <!-- Zona de Upload -->
@@ -147,7 +149,7 @@
                     {% endif %}
                 </div>
 
-                <!-- Campo de Legenda -->
+                <!-- Campo de Legenda (Opcional) -->
                 <div class="mb-3">
                     {{ form.legenda.label(class="form-label") }}
                     {{ form.legenda(class="form-control", placeholder="Ex: Detalhe da estrutura de concreto", id="legenda") }}
@@ -162,12 +164,12 @@
                     
                     <small class="form-text text-muted">
                         <i class="fas fa-info-circle me-1"></i>
-                        Descreva brevemente o que aparece na foto. Máximo 500 caracteres.
+                        Campo opcional. Descreva brevemente o que aparece na foto. Máximo 500 caracteres.
                     </small>
                 </div>
 
                 <!-- Campo de Descrição -->
-                <div class="mb-4">
+                <div class="mb-3">
                     {{ form.descricao.label(class="form-label") }}
                     {{ form.descricao(class="form-control", placeholder="Descrição detalhada da foto...", id="descricao") }}
                     
@@ -178,6 +180,25 @@
                             {% endfor %}
                         </div>
                     {% endif %}
+                </div>
+
+                <!-- Campo de Local (Opcional) -->
+                <div class="mb-4">
+                    {{ form.local.label(class="form-label") }}
+                    {{ form.local(class="form-control", placeholder="Ex: Sala 101, Fachada norte", id="local") }}
+                    
+                    {% if form.local.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.local.errors %}
+                                <small><i class="fas fa-exclamation-triangle me-1"></i>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <small class="form-text text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Campo opcional. Indique o local ou ambiente onde a foto foi tirada.
+                    </small>
                 </div>
 
                 <!-- Botões -->
@@ -231,19 +252,6 @@ function previewImage(input) {
     }
 }
 
-// Verificar seleção de categoria (opcional, apenas para visual)
-function checkCategory() {
-    const categoria = document.getElementById('categoria');
-    const hasCategory = categoria.value !== '';
-    
-    const categoryBox = document.querySelector('.category-selection');
-    if (hasCategory) {
-        categoryBox.classList.add('selected');
-    } else {
-        categoryBox.classList.remove('selected');
-    }
-}
-
 // Atualizar estado do botão de submit
 function updateSubmitButton() {
     const submitBtn = document.getElementById('submitBtn');
@@ -289,12 +297,6 @@ function dropHandler(ev) {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Listener para mudanças na categoria (apenas para visual)
-    const categoriaEl = document.getElementById('categoria');
-    if (categoriaEl) {
-        categoriaEl.addEventListener('change', checkCategory);
-    }
-    
     // Verificar estado inicial
     updateSubmitButton();
 });

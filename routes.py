@@ -9791,6 +9791,78 @@ def express_detail(id):
 
     return render_template('express/detalhes.html', relatorio=relatorio)
 
+@app.route('/relatorio-express/<int:relatorio_id>/adicionar-foto', methods=['GET', 'POST'])
+@login_required
+def relatorio_express_adicionar_foto(relatorio_id):
+    """Adicionar foto a um relatório express existente"""
+    relatorio = RelatorioExpress.query.get_or_404(relatorio_id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_list'))
+    
+    # Apenas rascunhos podem ter fotos adicionadas
+    if relatorio.status != 'rascunho':
+        flash('Apenas rascunhos podem ter fotos adicionadas.', 'warning')
+        return redirect(url_for('express_detail', id=relatorio_id))
+    
+    form = FotoExpressForm()
+    
+    if request.method == 'POST' and form.validate_on_submit():
+        try:
+            # Verificar se há arquivo
+            if 'foto' not in request.files:
+                flash('Nenhum arquivo selecionado.', 'error')
+                return render_template('express/adicionar_foto.html', form=form, relatorio=relatorio)
+            
+            file = request.files['foto']
+            if file.filename == '':
+                flash('Nenhum arquivo selecionado.', 'error')
+                return render_template('express/adicionar_foto.html', form=form, relatorio=relatorio)
+            
+            # Validar extensão
+            allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+            file_ext = os.path.splitext(file.filename.lower())[1]
+            if file_ext not in allowed_extensions:
+                flash(f'Formato não suportado. Use: {", ".join(allowed_extensions)}', 'error')
+                return render_template('express/adicionar_foto.html', form=form, relatorio=relatorio)
+            
+            # Salvar arquivo
+            import uuid
+            from datetime import datetime
+            
+            unique_filename = f"express_{relatorio_id}_{uuid.uuid4().hex}{file_ext}"
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            os.makedirs(upload_folder, exist_ok=True)
+            file_path = os.path.join(upload_folder, unique_filename)
+            file.save(file_path)
+            
+            # Criar registro no banco
+            foto = FotoRelatorioExpress(
+                relatorio_express_id=relatorio_id,
+                filename=unique_filename,
+                titulo=form.titulo.data,
+                legenda=form.legenda.data or '',
+                descricao=form.descricao.data,
+                tipo_servico=form.tipo_servico.data,
+                local=form.local.data,
+                ordem=len(relatorio.fotos) + 1
+            )
+            
+            db.session.add(foto)
+            db.session.commit()
+            
+            flash('Foto adicionada com sucesso!', 'success')
+            return redirect(url_for('express_detail', id=relatorio_id))
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'Erro ao adicionar foto: {str(e)}')
+            flash(f'Erro ao adicionar foto: {str(e)}', 'error')
+    
+    return render_template('express/adicionar_foto.html', form=form, relatorio=relatorio)
+
 @app.route('/express/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def express_edit(id):

@@ -100,35 +100,20 @@ class FotoExpressForm(FlaskForm):
                         render_kw={'placeholder': 'Título da foto'})
     
     legenda = StringField('Legenda', 
-                         validators=[DataRequired(message='Legenda é obrigatória'), Length(max=500)],
+                         validators=[Optional(), Length(max=500)],
                          render_kw={'placeholder': 'Legenda da foto'})
     
     descricao = TextAreaField('Descrição', 
                             validators=[Optional()],
                             render_kw={'rows': 3, 'placeholder': 'Descrição detalhada da foto'})
     
-    tipo_servico = SelectField('Tipo de Serviço (Categoria)',
-                              choices=[('', 'Selecione...')],
-                              validators=[Optional()])
+    tipo_servico = StringField('Categoria',
+                              validators=[Optional(), Length(max=200)],
+                              render_kw={'placeholder': 'Digite a categoria (opcional)'})
     
     local = StringField('Local', 
                        validators=[Optional(), Length(max=300)],
                        render_kw={'placeholder': 'Local ou ambiente da foto'})
-    
-    def set_categoria_choices(self, projeto_id):
-        """Define as escolhas de categoria baseado no projeto"""
-        from models import CategoriaObra
-        
-        categorias = CategoriaObra.query.filter_by(projeto_id=projeto_id).order_by(CategoriaObra.ordem).all()
-        
-        # Carrega categorias dinâmicas do banco de dados
-        if categorias:
-            self.tipo_servico.choices = [('', 'Selecione...')] + [
-                (c.nome_categoria, c.nome_categoria) for c in categorias
-            ]
-        else:
-            # Projeto sem categorias - lista vazia
-            self.tipo_servico.choices = [('', 'Nenhuma categoria cadastrada para este projeto')]
 
 # Alias para compatibilidade com imports existentes
 EditarFotoExpressForm = FotoExpressForm
