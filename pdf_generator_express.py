@@ -148,6 +148,8 @@ class ExpressReportGenerator(WeasyPrintReportGenerator if WEASYPRINT_AVAILABLE e
                     def __init__(self, foto_express):
                         self.filename = foto_express.filename
                         self.filename_anotada = getattr(foto_express, 'filename_anotada', None)
+                        # CRÍTICO: Copiar campo imagem do PostgreSQL
+                        self.imagem = getattr(foto_express, 'imagem', None)
                         # Criar descrição completa incluindo legenda pré-definida
                         base_descricao = f"Foto {foto_express.ordem}"
                         if foto_express.legenda:

@@ -5,6 +5,7 @@ Gerador de PDF usando WeasyPrint para replicar exatamente o modelo Artesano
 import os
 import json
 from datetime import datetime
+import pytz
 from jinja2 import Template
 from flask import current_app
 
@@ -112,18 +113,34 @@ class WeasyPrintReportGenerator:
             
             observacoes_filtradas = '\n'.join(filtered_lines).strip()
         
+        # Usar timezone do Brasil (São Paulo)
+        brazil_tz = pytz.timezone('America/Sao_Paulo')
+        utc_tz = pytz.UTC
+        now_brazil = datetime.now(brazil_tz)
+        
+        # Helper para converter datetime naive (UTC) para Brazil timezone
+        def to_brazil_tz(dt):
+            """Converte datetime para timezone do Brasil, tratando naive datetimes como UTC"""
+            if dt is None:
+                return now_brazil
+            # Se datetime é naive (sem timezone), assumir que é UTC
+            if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+                dt = utc_tz.localize(dt)
+            # Converter para timezone do Brasil
+            return dt.astimezone(brazil_tz)
+        
         data = {
             'titulo': 'Relatório de Visita',
-            'data_atual': datetime.now().strftime('%d/%m/%Y %H:%M'),
+            'data_atual': now_brazil.strftime('%d/%m/%Y %H:%M'),
             'numero_relatorio': relatorio.numero,
-            'empresa': projeto.responsavel.nome_completo if projeto.responsavel else "ELP Consultoria",
+            'empresa': projeto.nome if projeto else "ELP Consultoria",
             'obra': projeto.nome,
             'endereco': projeto.endereco or "Não informado",
             'observacoes': observacoes_filtradas,
             'preenchido_por': relatorio.autor.nome_completo if relatorio.autor else "Não informado",
             'liberado_por': "Eng. José Leopoldo Pugliese",
             'responsavel': projeto.responsavel.nome_completo if projeto.responsavel else "Não informado",
-            'data_relatorio': relatorio.data_relatorio.strftime('%d/%m/%Y %H:%M') if relatorio.data_relatorio else datetime.now().strftime('%d/%m/%Y %H:%M'),
+            'data_relatorio': to_brazil_tz(relatorio.data_relatorio).strftime('%d/%m/%Y %H:%M'),
             'logo_base64': logo_base64,
             'fotos': []
         }
@@ -135,38 +152,58 @@ class WeasyPrintReportGenerator:
             for foto in fotos:
                 foto_base64 = None
                 
+                print(f"🔍 Processando foto {foto.ordem}: filename={foto.filename if hasattr(foto, 'filename') else 'N/A'}")
+                
                 # PRIORIDADE 1: Buscar imagem do campo BYTEA do PostgreSQL
                 if hasattr(foto, 'imagem') and foto.imagem:
                     try:
                         # Verificar se é memoryview (PostgreSQL retorna assim)
                         if isinstance(foto.imagem, memoryview):
-                            foto_base64 = base64.b64encode(bytes(foto.imagem)).decode('utf-8')
+                            image_bytes = bytes(foto.imagem)
+                            foto_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                            print(f"✅ Foto {foto.ordem} carregada do PostgreSQL (memoryview): {len(image_bytes)} bytes")
                         elif isinstance(foto.imagem, bytes):
                             foto_base64 = base64.b64encode(foto.imagem).decode('utf-8')
-                        print(f"✅ Foto {foto.ordem} carregada do PostgreSQL: {len(foto.imagem)} bytes")
+                            print(f"✅ Foto {foto.ordem} carregada do PostgreSQL (bytes): {len(foto.imagem)} bytes")
+                        else:
+                            print(f"⚠️ Foto {foto.ordem}: campo imagem tem tipo inesperado: {type(foto.imagem)}")
                     except Exception as e:
                         print(f"⚠️ Erro ao processar imagem do PostgreSQL para foto {foto.ordem}: {e}")
+                else:
+                    print(f"⚠️ Foto {foto.ordem}: campo imagem não existe ou está vazio")
                 
                 # FALLBACK: Tentar carregar do filesystem
-                if not foto_base64:
+                if not foto_base64 and hasattr(foto, 'filename') and foto.filename:
                     try:
                         upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
                     except RuntimeError:
                         upload_folder = 'uploads'
                     
                     foto_path = os.path.join(upload_folder, foto.filename)
+                    print(f"🔍 Tentando carregar do filesystem: {foto_path}")
+                    
                     if os.path.exists(foto_path):
                         try:
                             with open(foto_path, 'rb') as f:
-                                foto_base64 = base64.b64encode(f.read()).decode('utf-8')
-                            print(f"✅ Foto {foto.ordem} carregada do filesystem: {foto_path}")
+                                file_bytes = f.read()
+                                foto_base64 = base64.b64encode(file_bytes).decode('utf-8')
+                            print(f"✅ Foto {foto.ordem} carregada do filesystem: {foto_path} ({len(file_bytes)} bytes)")
                         except Exception as e:
                             print(f"⚠️ Erro ao ler arquivo {foto_path}: {e}")
+                    else:
+                        print(f"❌ Arquivo não encontrado: {foto_path}")
                 
-                # Criar legenda completa
-                legenda_completa = foto.legenda or f"Foto {foto.ordem}"
+                if not foto_base64:
+                    print(f"❌ ERRO: Foto {foto.ordem} NÃO CARREGADA - não encontrada no PostgreSQL nem no filesystem")
+                
+                # Criar legenda completa - PRIORIDADE: descricao > legenda
+                legenda_completa = f"Foto {foto.ordem}"
                 if hasattr(foto, 'descricao') and foto.descricao:
                     legenda_completa = foto.descricao
+                elif hasattr(foto, 'legenda') and foto.legenda:
+                    legenda_completa = foto.legenda
+                
+                print(f"📝 Foto {foto.ordem} - Legenda: {legenda_completa}")
                 
                 # Adicionar foto aos dados
                 data['fotos'].append({
@@ -364,8 +401,8 @@ body {
 }
 
 .logo-container {
-    width: 100px;
-    height: 35px;
+    width: 150px;
+    height: 55px;
     flex-shrink: 0;
 }
 
