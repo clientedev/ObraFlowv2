@@ -55,18 +55,6 @@
                             </div>
                         </div>
                         
-                        <div class="mb-3">
-                            {{ form.numero_ordem.label(class="form-label") }}
-                            {{ form.numero_ordem(class="form-control" + (" is-invalid" if form.numero_ordem.errors else ""), 
-                                                 placeholder="Exemplo: 1, 2, 3... (opcional)", style="max-width: 200px;") }}
-                            {% if form.numero_ordem.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.numero_ordem.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                            <div class="form-text">Campo opcional para organizar a ordem das legendas. Não aparece no PDF.</div>
-                        </div>
-                        
                         <div class="mb-4">
                             <div class="form-check">
                                 {{ form.ativo(class="form-check-input") }}
