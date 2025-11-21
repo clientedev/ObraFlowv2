@@ -9440,6 +9440,43 @@ def express_list():
                          relatorios_rascunho=relatorios_rascunho,
                          relatorios_finalizados=relatorios_finalizados)
 
+def calcular_hash_imagem(image_data):
+    """Calcula SHA256 hash de dados de imagem"""
+    import hashlib
+    if isinstance(image_data, memoryview):
+        image_data = bytes(image_data)
+    return hashlib.sha256(image_data).hexdigest()
+
+def detectar_content_type(filename, image_data=None):
+    """Detecta content type baseado no filename ou nos dados da imagem"""
+    import imghdr
+    
+    # Tentar detectar pelo filename primeiro
+    if filename:
+        ext = filename.lower().split('.')[-1]
+        content_types = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'bmp': 'image/bmp'
+        }
+        if ext in content_types:
+            return content_types[ext]
+    
+    # Fallback: tentar detectar pelos dados da imagem
+    if image_data:
+        try:
+            img_type = imghdr.what(None, h=image_data[:32])
+            if img_type:
+                return f'image/{img_type}'
+        except:
+            pass
+    
+    # Default
+    return 'image/jpeg'
+
 @app.route('/express/novo', methods=['GET', 'POST'])
 @login_required
 def express_new():
@@ -9601,16 +9638,26 @@ def express_new():
                                     
                                     # Ler dados binários do arquivo copiado
                                     with open(caminho_novo, 'rb') as f:
-                                        nova_foto.imagem = f.read()
+                                        image_data = f.read()
+                                        nova_foto.imagem = image_data
+                                        nova_foto.imagem_hash = calcular_hash_imagem(image_data)
+                                        nova_foto.content_type = detectar_content_type(novo_filename, image_data)
+                                        nova_foto.imagem_size = len(image_data)
                                 elif foto_original.imagem:
                                     # Se não existe arquivo mas tem dados binários, usar os dados binários
-                                    nova_foto.imagem = foto_original.imagem
+                                    image_data = foto_original.imagem
+                                    if isinstance(image_data, memoryview):
+                                        image_data = bytes(image_data)
+                                    nova_foto.imagem = image_data
                                     nova_foto.filename = novo_filename
                                     nova_foto.filename_original = foto_original.filename_original
+                                    nova_foto.imagem_hash = calcular_hash_imagem(image_data)
+                                    nova_foto.content_type = detectar_content_type(novo_filename, image_data)
+                                    nova_foto.imagem_size = len(image_data)
                                     
                                     # Salvar arquivo no disco a partir dos dados binários
                                     with open(caminho_novo, 'wb') as f:
-                                        f.write(foto_original.imagem)
+                                        f.write(image_data)
                                 
                                 db.session.add(nova_foto)
                             
@@ -9669,6 +9716,9 @@ def express_new():
                             foto_express.legenda = config['legenda']
                             foto_express.tipo_servico = config.get('categoria', 'Geral')
                             foto_express.imagem = image_bytes  # Salvar dados binários da imagem express
+                            foto_express.imagem_hash = calcular_hash_imagem(image_bytes)
+                            foto_express.content_type = detectar_content_type(filename, image_bytes)
+                            foto_express.imagem_size = len(image_bytes)
 
                             db.session.add(foto_express)
                             ordem += 1
@@ -9705,6 +9755,9 @@ def express_new():
                         foto_express.ordem = ordem
                         foto_express.legenda = f'Foto {ordem}'
                         foto_express.imagem = file_data  # Salvar dados binários da imagem express básica
+                        foto_express.imagem_hash = calcular_hash_imagem(file_data)
+                        foto_express.content_type = detectar_content_type(filename, file_data)
+                        foto_express.imagem_size = len(file_data)
 
                         db.session.add(foto_express)
                         ordem += 1
@@ -9836,18 +9889,27 @@ def relatorio_express_adicionar_foto(relatorio_id):
             upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
             os.makedirs(upload_folder, exist_ok=True)
             file_path = os.path.join(upload_folder, unique_filename)
+            
+            # Ler dados do arquivo antes de salvar
+            file_data = file.read()
+            file.seek(0)  # Reset para salvar o arquivo também
             file.save(file_path)
             
             # Criar registro no banco
             foto = FotoRelatorioExpress(
                 relatorio_express_id=relatorio_id,
                 filename=unique_filename,
+                filename_original=file.filename,
                 titulo=form.titulo.data,
                 legenda=form.legenda.data or '',
                 descricao=form.descricao.data,
                 tipo_servico=form.tipo_servico.data,
                 local=form.local.data,
-                ordem=len(relatorio.fotos) + 1
+                ordem=len(relatorio.fotos) + 1,
+                imagem=file_data,
+                imagem_hash=calcular_hash_imagem(file_data),
+                content_type=detectar_content_type(unique_filename, file_data),
+                imagem_size=len(file_data)
             )
             
             db.session.add(foto)
@@ -10059,6 +10121,9 @@ def express_edit(id):
                             foto_express.tipo_servico = config.get('categoria', 'Geral')[:100]
                             foto_express.local = config.get('local', '')[:200]
                             foto_express.imagem = image_bytes
+                            foto_express.imagem_hash = calcular_hash_imagem(image_bytes)
+                            foto_express.content_type = detectar_content_type(filename, image_bytes)
+                            foto_express.imagem_size = len(image_bytes)
                             
                             db.session.add(foto_express)
                             ordem += 1
