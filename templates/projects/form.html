@@ -897,20 +897,52 @@ function geocodeAddressToCoordinates() {
 // Checklist Configuration System
 let currentChecklistType = {% if project and config %}'{{ config.tipo_checklist }}'{% else %}'padrao'{% endif %};
 let customChecklistItems = [];
+const isNewProject = {% if project %}false{% else %}true{% endif %};
 
 // Initialize checklist on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Set initial button state
-    updateChecklistTypeButtons(currentChecklistType);
-    selectChecklistType(currentChecklistType);
-    
-    // Load custom checklist items for existing projects
-    {% if project and config and config.tipo_checklist == 'personalizado' %}
-    loadCustomChecklistItems();
-    {% endif %}
+    if (!isNewProject) {
+        // Set initial button state for existing projects
+        updateChecklistTypeButtons(currentChecklistType);
+        selectChecklistType(currentChecklistType);
+        
+        // Load custom checklist items for existing projects with custom checklist
+        {% if project and config and config.tipo_checklist == 'personalizado' %}
+        loadCustomChecklistItems();
+        {% endif %}
+    } else {
+        // For new projects, show default message and disable custom checklist
+        showNewProjectChecklistMessage();
+    }
 });
 
+function showNewProjectChecklistMessage() {
+    // For new projects, show informational message
+    const padraoPreview = document.getElementById('checklistPadraoPreview');
+    const personalizadoEditor = document.getElementById('checklistPersonalizadoEditor');
+    const currentDisplay = document.getElementById('currentChecklistDisplay');
+    
+    // Show standard checklist preview
+    padraoPreview.style.display = 'block';
+    personalizadoEditor.style.display = 'none';
+    if (currentDisplay) currentDisplay.style.display = 'none';
+    
+    // Disable custom checklist button for new projects
+    const btnPersonalizado = document.getElementById('btnChecklistPersonalizado');
+    btnPersonalizado.disabled = true;
+    btnPersonalizado.title = 'Salve o projeto primeiro para configurar checklist personalizado';
+    
+    // Activate standard checklist button
+    updateChecklistTypeButtons('padrao');
+}
+
 function selectChecklistType(tipo) {
+    // Don't allow switching for new projects
+    if (isNewProject && tipo === 'personalizado') {
+        alert('Por favor, salve o projeto primeiro para configurar um checklist personalizado.');
+        return;
+    }
+    
     currentChecklistType = tipo;
     
     // Update button states
@@ -927,18 +959,18 @@ function selectChecklistType(tipo) {
         if (currentDisplay) currentDisplay.style.display = 'none';
         
         // Save configuration for existing projects
-        {% if project %}
-        saveChecklistConfig('padrao');
-        {% endif %}
+        if (!isNewProject) {
+            saveChecklistConfig('padrao');
+        }
     } else {
         padraoPreview.style.display = 'none';
         personalizadoEditor.style.display = 'block';
         if (currentDisplay) currentDisplay.style.display = 'none';
         
         // Save configuration for existing projects
-        {% if project %}
-        saveChecklistConfig('personalizado');
-        {% endif %}
+        if (!isNewProject) {
+            saveChecklistConfig('personalizado');
+        }
     }
 }
 
@@ -960,6 +992,11 @@ function updateChecklistTypeButtons(tipo) {
 }
 
 function saveChecklistConfig(tipo) {
+    if (isNewProject) {
+        console.log('Skipping config save for new project');
+        return;
+    }
+    
     {% if project %}
     const projectId = {{ project.id }};
     
@@ -989,6 +1026,11 @@ function saveChecklistConfig(tipo) {
 }
 
 function loadCustomChecklistItems() {
+    if (isNewProject) {
+        console.log('Skipping load for new project');
+        return;
+    }
+    
     {% if project %}
     const projectId = {{ project.id }};
     
@@ -1010,6 +1052,11 @@ function loadCustomChecklistItems() {
 
 function addChecklistItem(event) {
     event.preventDefault();
+    
+    if (isNewProject) {
+        alert('Por favor, salve o projeto primeiro para configurar um checklist personalizado.');
+        return;
+    }
     
     const texto = document.getElementById('newChecklistItemText').value.trim();
     
@@ -1045,17 +1092,6 @@ function addChecklistItem(event) {
         console.error('Error:', error);
         alert('Erro ao adicionar item');
     });
-    {% else %}
-    // For new projects, store locally
-    const newItem = {
-        id: Date.now(),
-        texto: texto,
-        ordem: customChecklistItems.length + 1,
-        temp: true
-    };
-    customChecklistItems.push(newItem);
-    renderCustomChecklistItems();
-    document.getElementById('newChecklistItemText').value = '';
     {% endif %}
 }
 
@@ -1079,6 +1115,10 @@ function editChecklistItem(itemId) {
 }
 
 function saveChecklistItem(itemId) {
+    if (isNewProject) {
+        return;
+    }
+    
     const card = document.querySelector(`[data-checklist-item-id="${itemId}"]`);
     const editInput = card.querySelector('.item-edit-input');
     const texto = editInput.value.trim();
@@ -1114,12 +1154,6 @@ function saveChecklistItem(itemId) {
         console.error('Error:', error);
         alert('Erro ao salvar item');
     });
-    {% else %}
-    const item = customChecklistItems.find(i => i.id === itemId);
-    if (item) {
-        item.texto = texto;
-        renderCustomChecklistItems();
-    }
     {% endif %}
 }
 
@@ -1128,6 +1162,10 @@ function cancelEditChecklistItem(itemId) {
 }
 
 function deleteChecklistItem(itemId) {
+    if (isNewProject) {
+        return;
+    }
+    
     if (!confirm('Tem certeza que deseja remover este item do checklist?')) {
         return;
     }
@@ -1151,9 +1189,6 @@ function deleteChecklistItem(itemId) {
         console.error('Error:', error);
         alert('Erro ao remover item');
     });
-    {% else %}
-    customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
-    renderCustomChecklistItems();
     {% endif %}
 }
 
