@@ -662,36 +662,26 @@ input, textarea, select {
                     </div>
                 </div>
 
-                <!-- FOTOS AVANÇADAS (IGUAL AO RELATÓRIO PADRÃO) -->
+                <!-- FOTOS -->
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5><i class="fas fa-camera"></i> Fotos <span class="badge bg-info ms-2" id="photoCount">(Até 200 fotos)</span></h5>
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="resetPhotoCategories()">
-                                <i class="fas fa-undo"></i> Limpar Seleção
-                            </button>
-                        </div>
+                        <h5><i class="fas fa-camera"></i> Fotos <span class="badge bg-info ms-2" id="photoCount">(0/200 fotos)</span></h5>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="resetPhotoCategories()">
+                            <i class="fas fa-undo"></i> Limpar Seleção
+                        </button>
                     </div>
                     <div class="card-body">
-                        <!-- Seletor de Categoria (Opcional) -->
-                        <div class="mb-4">
-                            <p class="mb-3 text-muted"><strong>Categoria (Opcional):</strong> Você pode selecionar uma categoria para organizar suas fotos, ou deixar em branco:</p>
-                            <div class="category-selector">
-                                <div class="category-grid">
-                                    {% for categoria in categorias %}
-                                    <div class="category-option" data-category="{{ categoria.nome }}">
-                                        <i class="fas {{ categoria.icon }} category-icon"></i>
-                                        <div class="category-name">{{ categoria.nome }}</div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
+                        <!-- Campo de Categoria (Opcional) - Campo de texto livre -->
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Categoria (Opcional):</strong> Você pode selecionar uma categoria para organizar suas fotos, ou deixar em branco:</label>
+                            <input type="text" class="form-control" id="photoCategory" placeholder="Digite a categoria (ex: Fundação, Estrutura, Acabamento...)" maxlength="100">
+                            <small class="form-text text-muted">Campo opcional. Digite manualmente a categoria desejada.</small>
                         </div>
 
                         <!-- Upload de Fotos -->
-                        <div class="photo-upload-section" id="photoUploadSection">
+                        <div class="mb-3">
                             <label class="form-label">Fotos</label>
-                            <div class="d-flex gap-2 mb-3">
+                            <div class="d-flex gap-2 mb-2">
                                 <button type="button" class="btn btn-outline-primary" onclick="selectFromGallery()">
                                     <i class="fas fa-images"></i> Galeria
                                 </button>
@@ -752,45 +742,17 @@ input, textarea, select {
 
 <script>
 // Variáveis globais para controle de fotos
-let selectedCategory = null;
 let configuredPhotos = [];
 let photoCounter = 0;
 
-// Seleção de categoria IDÊNTICA ao Express
-    function selectPhotoCategory(category, element) {
-        // Remover seleção anterior
-        document.querySelectorAll('.category-option').forEach(cat => {
-            cat.classList.remove('selected');
-        });
+// Função para obter categoria atual do campo de texto
+function getCurrentCategory() {
+    const categoryInput = document.getElementById('photoCategory');
+    return categoryInput ? categoryInput.value.trim() : '';
+}
 
-        // Adicionar seleção atual
-        element.classList.add('selected');
-
-        // Feedback tátil
-        if (navigator.vibrate) {
-            navigator.vibrate(50);
-        }
-
-        console.log('📷 Categoria selecionada:', category);
-
-        // Atualizar categoria global PRIMEIRO
-        window.selectedPhotoCategory = category;
-
-        // Também atualizar variável local para compatibilidade
-        selectedCategory = category;
-
-        console.log('✅ VARIÁVEIS DEFINIDAS: selectedCategory =', selectedCategory);
-        console.log('✅ VARIÁVEIS DEFINIDAS: window.selectedPhotoCategory =', window.selectedPhotoCategory);
-
-        // Área de upload já está sempre visível (categoria opcional)
-    }
-
-// Camera and gallery functions with error handling
+// Camera and gallery functions
 function selectFromGallery() {
-    console.log('🔍 DEBUG: selectedCategory =', selectedCategory);
-    console.log('🔍 DEBUG: window.selectedPhotoCategory =', window.selectedPhotoCategory);
-
-    // Categoria é opcional - não bloquear se não selecionada
     const photoInput = document.getElementById('photoInput');
     if (photoInput) {
         photoInput.click();
@@ -800,10 +762,6 @@ function selectFromGallery() {
 }
 
 function captureFromCamera() {
-    console.log('🔍 DEBUG: selectedCategory =', selectedCategory);
-    console.log('🔍 DEBUG: window.selectedPhotoCategory =', window.selectedPhotoCategory);
-
-    // Categoria é opcional - não bloquear se não selecionada
     const cameraInput = document.getElementById('cameraInput');
     if (cameraInput) {
         cameraInput.click();
@@ -818,20 +776,29 @@ function handleCameraCapture(input) {
     }
 }
 
-// Resetar seleção de categoria
+// Resetar seleção de categoria e fotos
 function resetPhotoCategories() {
-    selectedCategory = null;
-    document.querySelectorAll('.category-option').forEach(option => {
-        option.classList.remove('selected');
-    });
-    document.getElementById('photoUploadSection').style.display = 'none';
-    document.getElementById('selectedPhotosPreview').innerHTML = '';
-
-    // Limpar input de fotos
-    const fileInput = document.querySelector('input[type="file"][multiple]');
-    if (fileInput) {
-        fileInput.value = '';
+    // Limpar campo de categoria
+    const categoryInput = document.getElementById('photoCategory');
+    if (categoryInput) {
+        categoryInput.value = '';
     }
+    
+    // Limpar preview e lista de fotos configuradas
+    document.getElementById('selectedPhotosPreview').innerHTML = '';
+    document.getElementById('configuredPhotosList').innerHTML = '';
+
+    // Limpar inputs de fotos
+    const photoInput = document.getElementById('photoInput');
+    const cameraInput = document.getElementById('cameraInput');
+    if (photoInput) photoInput.value = '';
+    if (cameraInput) cameraInput.value = '';
+    
+    // Resetar array e contador
+    configuredPhotos = [];
+    photoCounter = 0;
+    document.getElementById('photoCount').textContent = '(0/200 fotos)';
+    updateFotoConfiguracoesInput();
 }
 
 // Função para capturar localização (idêntica ao relatório normal)
@@ -1117,15 +1084,11 @@ function captureCurrentLocation() {
 
 // Manipular upload de fotos
 function handlePhotoUpload(input) {
-    console.log('🔍 DEBUG upload: selectedCategory =', selectedCategory);
-    console.log('🔍 DEBUG upload: window.selectedPhotoCategory =', window.selectedPhotoCategory);
-
-    // Usar tanto a variável local quanto a global para garantir
-    if (!selectedCategory && !window.selectedPhotoCategory) {
-        document.getElementById('categoryWarning').style.display = 'block';
-        input.value = '';
-        return;
-    }
+    // Obter categoria do campo de texto (opcional)
+    const categoryInput = document.getElementById('photoCategory');
+    const currentCategory = categoryInput ? categoryInput.value.trim() : '';
+    
+    console.log('📸 Categoria atual:', currentCategory || '(sem categoria)');
 
     if (input.files && input.files.length > 0) {
         // Verificar limite de fotos
@@ -1136,26 +1099,22 @@ function handlePhotoUpload(input) {
             return;
         }
 
-        showPhotoConfigurationModal(input.files, selectedCategory);
+        showPhotoConfigurationModal(input.files, currentCategory);
     }
 }
 
 // Mostrar modal de configuração de fotos
 function showPhotoConfigurationModal(files, category) {
-    console.log('🔧 MODAL DEBUG: category recebida =', category);
-    console.log('🔧 MODAL DEBUG: selectedCategory atual =', selectedCategory);
-    console.log('🔧 MODAL DEBUG: window.selectedPhotoCategory atual =', window.selectedPhotoCategory);
-
-    // Garantir que temos uma categoria válida
-    const finalCategory = category || selectedCategory || window.selectedPhotoCategory;
-    console.log('🔧 MODAL DEBUG: categoria final =', finalCategory);
+    // Categoria agora vem do campo de texto e é opcional
+    const displayCategory = category || '(sem categoria)';
+    console.log('📸 Configurando fotos - Categoria:', displayCategory);
 
     const preview = document.getElementById('selectedPhotosPreview');
     preview.innerHTML = `
         <div class="card border-primary">
             <div class="card-header bg-primary text-white">
                 <h6 class="mb-0">
-                    <i class="fas fa-cog"></i> Configurar ${files.length} foto(s) - Categoria: ${finalCategory}
+                    <i class="fas fa-cog"></i> Configurar ${files.length} foto(s) - Categoria: ${displayCategory}
                 </h6>
             </div>
             <div class="card-body">
@@ -1166,7 +1125,7 @@ function showPhotoConfigurationModal(files, category) {
                     <button type="button" class="btn btn-secondary" onclick="cancelPhotoConfiguration()">
                         <i class="fas fa-times"></i> Cancelar
                     </button>
-                    <button type="button" class="btn btn-success" onclick="confirmPhotoConfiguration()">
+                    <button type="button" class="btn btn-success" onclick="confirmPhotoConfiguration('${category || ''}')">
                         <i class="fas fa-check"></i> Confirmar Fotos
                     </button>
                 </div>
@@ -1183,7 +1142,7 @@ function showPhotoConfigurationModal(files, category) {
                 const col = document.createElement('div');
                 col.className = 'col-md-6 col-lg-4 mb-4';
                 col.innerHTML = `
-                    <div class="card photo-config-card" data-photo-id="${photoId}" data-file-name="${file.name}" data-category="${finalCategory}">
+                    <div class="card photo-config-card" data-photo-id="${photoId}" data-file-name="${file.name}" data-category="${category || ''}">
                         <img src="${e.target.result}" class="card-img-top" style="height: 200px; object-fit: cover;">
                         <div class="card-body p-3">
                             <div class="mb-2">
@@ -1205,10 +1164,10 @@ function showPhotoConfigurationModal(files, category) {
                 `;
                 grid.appendChild(col);
 
-                // Carregar legendas para a categoria
-                loadLegends(photoId, finalCategory); // Usar finalCategory aqui
+                // Carregar legendas para a categoria (usar 'all' se categoria vazia)
+                loadLegends(photoId, category || 'all');
 
-                console.log('🔧 CARD DEBUG: photoId =', photoId, 'categoria =', finalCategory);
+                console.log('📸 Card criado - photoId:', photoId, 'categoria:', category || '(sem categoria)');
             };
             reader.readAsDataURL(file);
         }
@@ -1471,26 +1430,23 @@ function removePhotoFromConfig(photoId) {
 }
 
 // Confirmar configuração das fotos
-function confirmPhotoConfiguration() {
+function confirmPhotoConfiguration(category) {
     const photoCards = document.querySelectorAll('.photo-config-card');
     let validPhotos = 0;
     let photoConfigurations = [];
 
-    console.log('🔧 CONFIRM DEBUG: Encontrados', photoCards.length, 'cards de foto');
+    console.log('✅ Confirmando', photoCards.length, 'fotos com categoria:', category || '(sem categoria)');
 
     photoCards.forEach(card => {
         const legendSelect = card.querySelector('.legend-select');
         const legend = legendSelect.value;
         const img = card.querySelector('img');
 
-        console.log('🔧 CONFIRM DEBUG: card.dataset.category =', card.dataset.category);
-        console.log('🔧 CONFIRM DEBUG: legend =', legend);
-
         if (legend && img) {
             const photoConfig = {
                 data: img.src,  // Base64 da imagem (editada ou original)
                 legenda: legend,
-                categoria: card.dataset.category || selectedCategory || window.selectedPhotoCategory,
+                categoria: category || '',
                 originalName: card.dataset.fileName
             };
 
@@ -1501,12 +1457,10 @@ function confirmPhotoConfiguration() {
             const photoData = {
                 id: card.dataset.photoId,
                 fileName: card.dataset.fileName,
-                category: card.dataset.category || selectedCategory || window.selectedPhotoCategory,
+                category: category || '',
                 legend: legend,
                 imageData: img.src
             };
-
-            console.log('🔧 CONFIRM DEBUG: photoData.category =', photoData.category);
 
             configuredPhotos.push(photoData);
         }
@@ -1735,39 +1689,12 @@ function handleTouch(e) {
     }
 }
 
-// Adicionar event listeners para categorias de foto
+// Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     updatePhotoCounter();
     loadDefaultChecklist();
-
-    // Adicionar event listeners para as categorias de foto
-    document.querySelectorAll('.category-option').forEach(option => {
-        // Remover eventos antigos para evitar duplicação
-        option.removeEventListener('click', handleCategoryClick);
-        option.removeEventListener('touchend', handleCategoryTouch);
-
-        // Adicionar novos event listeners
-        option.addEventListener('click', handleCategoryClick);
-        option.addEventListener('touchend', handleCategoryTouch);
-    });
+    // Sistema de categoria visual removido - agora usa campo de texto #photoCategory
 });
-
-// Handler para clique em categoria
-function handleCategoryClick(e) {
-    e.preventDefault();
-    const category = this.getAttribute('data-category');
-    selectPhotoCategory(category, this);
-}
-
-// Handler para touch em categoria - melhorado para mobile
-function handleCategoryTouch(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    const category = this.getAttribute('data-category');
-    selectPhotoCategory(category, this);
-}
-
-// Event listener para localização removido - elemento não existe no template
 
 function getCurrentLocation(btn) {
     const originalText = btn.innerHTML;
@@ -2117,132 +2044,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 2000);
 });
 
-// Gerenciamento de toque inteligente para categorias de fotos
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Sistema de touch inteligente carregado');
-
-    // Configurações de toque
-    const TOUCH_THRESHOLD = 10; // pixels
-    const TOUCH_TIME_LIMIT = 500; // ms
-
-    let touchData = {
-        startX: 0,
-        startY: 0,
-        startTime: 0,
-        isDragging: false,
-        element: null
-    };
-
-    // Event listeners para categorias
-    document.querySelectorAll('.category-option').forEach(categoryElement => {
-
-        // Touch Start
-        categoryElement.addEventListener('touchstart', function(e) {
-            console.log('👆 TouchStart categoria');
-
-            const touch = e.touches[0];
-            touchData.startX = touch.clientX;
-            touchData.startY = touch.clientY;
-            touchData.startTime = Date.now();
-            touchData.isDragging = false;
-            touchData.element = categoryElement;
-
-            // Feedback visual imediato
-            categoryElement.classList.add('touching');
-        }, { passive: true });
-
-        // Touch Move
-        categoryElement.addEventListener('touchmove', function(e) {
-            if (!touchData.element) return;
-
-            const touch = e.touches[0];
-            const deltaX = Math.abs(touch.clientX - touchData.startX);
-            const deltaY = Math.abs(touch.clientY - touchData.startY);
-            const totalDelta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-            // Se movimento exceder threshold, marcar como drag
-            if (totalDelta > TOUCH_THRESHOLD) {
-                touchData.isDragging = true;
-                categoryElement.classList.remove('touching');
-                console.log('🔄 Movimento detectado - modo drag ativado');
-            }
-        }, { passive: true });
-
-        // Touch End
-        categoryElement.addEventListener('touchend', function(e) {
-            console.log('👆 TouchEnd categoria');
-
-            // Remover feedback visual
-            categoryElement.classList.remove('touching');
-
-            if (!touchData.element) return;
-
-            const touchDuration = Date.now() - touchData.startTime;
-
-            // Apenas selecionar se foi um tap rápido e sem movimento
-            if (!touchData.isDragging && touchDuration < TOUCH_TIME_LIMIT) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const category = categoryElement.getAttribute('data-category');
-                selectPhotoCategory(category, categoryElement);
-
-                console.log('✅ Tap válido - categoria selecionada');
-            } else {
-                console.log('❌ Drag detectado - não selecionar categoria');
-            }
-
-            // Reset
-            touchData.element = null;
-            touchData.isDragging = false;
-        }, { passive: false });
-
-        // Mouse events para desktop (fallback)
-        categoryElement.addEventListener('click', function(e) {
-            // Apenas processar se não houve toque recente
-            if (touchData.startTime && (Date.now() - touchData.startTime) < 300) {
-                return; // Ignorar click após touch
-            }
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            const category = categoryElement.getAttribute('data-category');
-            selectPhotoCategory(category, categoryElement);
-
-            console.log('🖱️ Click desktop - categoria selecionada');
-        });
-    });
-
-    console.log('✅ Sistema de touch inteligente ativo para', document.querySelectorAll('.category-option').length, 'categorias');
-});
-
-// Função global para compatibilidade (caso seja chamada de outros lugares)
-window.selectPhotoCategory = function(category, element) {
-    if (!element) {
-        element = document.querySelector(`[data-category="${category}"]`);
-    }
-
-    if (element) {
-        // Remover seleção anterior
-        document.querySelectorAll('.category-option').forEach(cat => {
-            cat.classList.remove('selected');
-        });
-
-        // Adicionar seleção atual
-        element.classList.add('selected');
-
-        // Mostrar área de upload
-        const uploadSection = document.getElementById('photoUploadSection');
-        if (uploadSection) {
-            uploadSection.style.display = 'block';
-        }
-
-        // Atualizar categoria global
-        window.selectedPhotoCategory = category;
-
-        console.log('📷 Categoria selecionada via função global:', category);
-    }
-};
+// Sistema de seleção visual de categoria foi removido
+// Agora usa campo de texto livre #photoCategory
 </script>
 {% endblock %}

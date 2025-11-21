@@ -827,20 +827,16 @@ textarea {
                 <i class="fas fa-camera"></i> Fotos <span id="photoCounter" class="photo-counter">0</span>
             </div>
             <div class="section-content">
-                <!-- Seleção de Categoria (Opcional) -->
-                <!-- NOTA: Este arquivo (novo_mobile.html) é LEGADO e não está mais em uso.
-                     O sistema usa templates/express/novo.html para relatórios express.
-                     Categorias são carregadas dinamicamente do banco de dados por projeto. -->
-                <div id="categorySelection">
-                    <label class="form-label"><strong>Categoria (Opcional):</strong> Você pode selecionar uma categoria para organizar suas fotos:</label>
-                    <div class="category-grid" id="dynamicCategoryGrid">
-                        <!-- Categorias seriam carregadas dinamicamente aqui via JavaScript -->
-                        <p class="text-muted">Template legado - categorias devem ser carregadas do banco</p>
-                    </div>
+                <!-- Campo de Categoria (Opcional) - Campo de texto livre -->
+                <div class="mb-3">
+                    <label class="form-label"><strong>Categoria (Opcional):</strong> Você pode selecionar uma categoria para organizar suas fotos, ou deixar em branco:</label>
+                    <input type="text" class="form-control" id="photoCategory" placeholder="Digite a categoria (ex: Fundação, Estrutura...)" maxlength="100">
+                    <small class="form-text text-muted">Campo opcional. Digite manualmente a categoria desejada.</small>
                 </div>
 
                 <!-- Upload de Fotos -->
                 <div id="photoUploadZone" class="photo-upload-zone">
+                    <label class="form-label">Fotos</label>
                     <div class="upload-options">
                         <button type="button" class="btn btn-outline-primary" onclick="selectFromGallery()">
                             <i class="fas fa-images"></i><br>Galeria
@@ -849,8 +845,9 @@ textarea {
                             <i class="fas fa-camera"></i><br>Câmera
                         </button>
                     </div>
-                    <input type="file" id="photoInput" multiple accept="image/*" style="display: none;">
-                    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+                    <input type="file" id="photoInput" multiple accept="image/*" style="display: none;" onchange="handlePhotoUpload(this)">
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handleCameraCapture(this)">
+                    <small class="form-text text-muted">Adicione fotos ao seu relatório. A categoria é opcional. Máximo 200 fotos - Limite total: 3GB.</small>
                 </div>
 
                 <!-- Preview de Fotos -->
