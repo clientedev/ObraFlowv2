@@ -504,7 +504,7 @@ input, textarea, select {
         </div>
     </div>
 
-    <form method="POST" enctype="multipart/form-data">
+    <form id="relatorioExpressForm" method="POST" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         {% if projeto_id %}
         <input type="hidden" name="projeto_id" value="{{ projeto_id }}">
@@ -1940,6 +1940,34 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!dataVisita.value) {
         const hoje = new Date().toISOString().split('T')[0];
         dataVisita.value = hoje;
+    }
+    
+    // ✅ CRÍTICO: Garantir que fotos e checklist sejam salvos antes do submit
+    const form = document.getElementById('relatorioExpressForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('📋 EXPRESS SUBMIT: Preparando dados antes de enviar...');
+            
+            // Atualizar configurações de fotos
+            updateFotoConfiguracoesInput();
+            
+            // Atualizar checklist
+            collectChecklistData();
+            
+            // Log para debug
+            const fotoConfigsValue = document.getElementById('fotoConfiguracoes')?.value || '';
+            const checklistValue = document.getElementById('checklistData')?.value || '';
+            
+            console.log(`📸 EXPRESS SUBMIT: ${fotoConfigsValue.length > 2 ? JSON.parse(fotoConfigsValue).length : 0} fotos no campo oculto`);
+            console.log(`📋 EXPRESS SUBMIT: ${checklistValue.length > 2 ? JSON.parse(checklistValue).length : 0} itens de checklist`);
+            
+            // Permitir submit continuar
+            return true;
+        });
+        
+        console.log('✅ EXPRESS: Event listener de submit configurado');
+    } else {
+        console.error('❌ EXPRESS: Formulário não encontrado!');
     }
 });
 </script>
