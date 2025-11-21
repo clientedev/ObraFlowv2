@@ -7266,7 +7266,6 @@ def get_imagem(id):
 def get_imagem_express(id):
     """Servir imagem diretamente do banco de dados para FotoRelatorioExpress"""
     try:
-        from models import FotoRelatorioExpress
         foto = FotoRelatorioExpress.query.get_or_404(id)
 
         # Se tem imagem no banco, usar ela
@@ -10264,8 +10263,6 @@ def express_edit(id):
     # Carregar fotos existentes do relatório para edição
     fotos_existentes = []
     if relatorio.id:
-        from models import FotoRelatorioExpress
-        
         fotos_db = FotoRelatorioExpress.query.filter_by(
             relatorio_express_id=relatorio.id
         ).order_by(FotoRelatorioExpress.ordem).all()
@@ -10434,7 +10431,6 @@ def api_get_express_photo(foto_id):
     Serve a imagem do disco ou do banco de dados
     """
     try:
-        from models import FotoRelatorioExpress
         foto = FotoRelatorioExpress.query.get_or_404(foto_id)
         
         # Tentar servir do disco primeiro
