@@ -237,51 +237,28 @@
                         </div>
                     </div>
                     
-                    {% if project %}
-                    <!-- Checklist Configuration Section -->
+                    <!-- Checklist Configuration Section - Always visible -->
                     <div class="row mt-4">
                         <div class="col-12">
                             <div class="card border-primary">
                                 <div class="card-header bg-primary text-white">
                                     <h5 class="card-title mb-0">
-                                        <i class="fas fa-check-square me-2"></i>Itens do Checklist
+                                        <i class="fas fa-check-square me-2"></i>Configuração do Checklist
                                     </h5>
                                 </div>
                                 <div class="card-body">
-                                    {% if checklist_items %}
-                                    <div class="list-group mb-3">
-                                        {% for item in checklist_items %}
-                                        <div class="list-group-item">
-                                            <div class="d-flex align-items-start">
-                                                <div class="me-3">
-                                                    <span class="badge bg-primary rounded-pill">{{ item.ordem }}</span>
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <p class="mb-0">{{ item.texto }}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                    {% else %}
-                                    <div class="text-center py-3 mb-3">
-                                        <i class="fas fa-clipboard-list fa-3x text-muted mb-2"></i>
-                                        <h6 class="text-muted">Nenhum item de checklist configurado</h6>
-                                        <p class="text-muted small">Configure o tipo de checklist para este projeto usando as opções abaixo.</p>
-                                    </div>
-                                    {% endif %}
-                                    
-                                    <div class="card bg-light mt-3">
+                                    <!-- Checklist Type Selection -->
+                                    <div class="card bg-light mb-3">
                                         <div class="card-body">
                                             <h6 class="card-title">
-                                                <i class="fas fa-tools me-2"></i>Opções de Configuração
+                                                <i class="fas fa-tools me-2"></i>Tipo de Checklist
                                             </h6>
-                                            <div class="d-grid gap-2 d-md-flex">
-                                                <button type="button" class="btn btn-outline-primary" onclick="configureChecklist('padrao')">
-                                                    <i class="fas fa-list me-2"></i>Usar Checklist Padrão
+                                            <div class="btn-group w-100" role="group" id="checklistTypeSelector">
+                                                <button type="button" class="btn btn-outline-primary" id="btnChecklistPadrao" onclick="selectChecklistType('padrao')">
+                                                    <i class="fas fa-list me-2"></i>Checklist Padrão
                                                 </button>
-                                                <button type="button" class="btn btn-outline-success" onclick="configureChecklist('personalizado')">
-                                                    <i class="fas fa-edit me-2"></i>Criar Checklist Personalizado
+                                                <button type="button" class="btn btn-outline-success" id="btnChecklistPersonalizado" onclick="selectChecklistType('personalizado')">
+                                                    <i class="fas fa-edit me-2"></i>Checklist Personalizado
                                                 </button>
                                             </div>
                                             <small class="text-muted mt-2 d-block">
@@ -290,11 +267,94 @@
                                             </small>
                                         </div>
                                     </div>
+
+                                    <!-- Standard Checklist Preview -->
+                                    <div id="checklistPadraoPreview" style="display: none;">
+                                        <h6><i class="fas fa-eye me-2"></i>Visualização do Checklist Padrão</h6>
+                                        {% if checklist_items_padrao %}
+                                        <div class="list-group mb-3">
+                                            {% for item in checklist_items_padrao %}
+                                            <div class="list-group-item">
+                                                <div class="d-flex align-items-start">
+                                                    <div class="me-3">
+                                                        <span class="badge bg-primary rounded-pill">{{ item.ordem }}</span>
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <p class="mb-0">{{ item.texto }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% else %}
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            Nenhum item no checklist padrão encontrado.
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Custom Checklist Editor -->
+                                    <div id="checklistPersonalizadoEditor" style="display: none;">
+                                        <h6><i class="fas fa-edit me-2"></i>Editor de Checklist Personalizado</h6>
+                                        
+                                        <!-- Add New Item Form -->
+                                        <div class="card mb-3">
+                                            <div class="card-body">
+                                                <form id="addChecklistItemForm" onsubmit="addChecklistItem(event)">
+                                                    <div class="row">
+                                                        <div class="col-md-9">
+                                                            <input type="text" class="form-control" id="newChecklistItemText" placeholder="Digite o texto do novo item do checklist" required>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <button type="submit" class="btn btn-success w-100">
+                                                                <i class="fas fa-plus me-2"></i>Adicionar
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+
+                                        <!-- Custom Checklist Items List -->
+                                        <div id="customChecklistItems">
+                                            <!-- Items will be loaded here dynamically -->
+                                            <div class="text-center py-3" id="emptyChecklistMessage">
+                                                <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
+                                                <p class="text-muted">Nenhum item adicionado ainda. Use o formulário acima para adicionar itens.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Current Checklist Display (for editing existing projects) -->
+                                    {% if project and checklist_items %}
+                                    <div id="currentChecklistDisplay">
+                                        <h6><i class="fas fa-list me-2"></i>Checklist Atual ({{ config.tipo_checklist }})</h6>
+                                        <div class="list-group mb-3">
+                                            {% for item in checklist_items %}
+                                            <div class="list-group-item">
+                                                <div class="d-flex align-items-start">
+                                                    <div class="me-3">
+                                                        <span class="badge bg-primary rounded-pill">{{ item.ordem }}</span>
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <p class="mb-0">{{ item.texto }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            Tipo atual: <strong>{{ 'Padrão' if config.tipo_checklist == 'padrao' else 'Personalizado' }}</strong>. 
+                                            Use os botões acima para alterar.
+                                        </div>
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                     </div>
-                    {% endif %}
                     
                     <div class="d-flex justify-content-between mt-4">
                         <a href="{{ url_for('projects_list') }}" class="btn btn-secondary">
@@ -834,42 +894,315 @@ function geocodeAddressToCoordinates() {
     });
 }
 
-// Checklist Configuration Function
-{% if project %}
-function configureChecklist(tipo) {
-    const projectId = {{ project.id }};
+// Checklist Configuration System
+let currentChecklistType = {% if project and config %}'{{ config.tipo_checklist }}'{% else %}'padrao'{% endif %};
+let customChecklistItems = [];
+
+// Initialize checklist on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set initial button state
+    updateChecklistTypeButtons(currentChecklistType);
+    selectChecklistType(currentChecklistType);
     
-    if (confirm(`Deseja configurar este projeto para usar checklist ${tipo === 'padrao' ? 'padrão' : 'personalizado'}?`)) {
-        fetch(`/projects/${projectId}/checklist/config`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                tipo_checklist: tipo
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                if (data.redirect) {
-                    // Open custom checklist editor in new tab
-                    window.open(data.redirect, '_blank');
-                }
-                // Reload page to show updated checklist
-                location.reload();
-            } else {
-                alert('Erro: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Erro ao configurar checklist');
-        });
+    // Load custom checklist items for existing projects
+    {% if project and config and config.tipo_checklist == 'personalizado' %}
+    loadCustomChecklistItems();
+    {% endif %}
+});
+
+function selectChecklistType(tipo) {
+    currentChecklistType = tipo;
+    
+    // Update button states
+    updateChecklistTypeButtons(tipo);
+    
+    // Show/hide appropriate sections
+    const padraoPreview = document.getElementById('checklistPadraoPreview');
+    const personalizadoEditor = document.getElementById('checklistPersonalizadoEditor');
+    const currentDisplay = document.getElementById('currentChecklistDisplay');
+    
+    if (tipo === 'padrao') {
+        padraoPreview.style.display = 'block';
+        personalizadoEditor.style.display = 'none';
+        if (currentDisplay) currentDisplay.style.display = 'none';
+        
+        // Save configuration for existing projects
+        {% if project %}
+        saveChecklistConfig('padrao');
+        {% endif %}
+    } else {
+        padraoPreview.style.display = 'none';
+        personalizadoEditor.style.display = 'block';
+        if (currentDisplay) currentDisplay.style.display = 'none';
+        
+        // Save configuration for existing projects
+        {% if project %}
+        saveChecklistConfig('personalizado');
+        {% endif %}
     }
 }
-{% endif %}
+
+function updateChecklistTypeButtons(tipo) {
+    const btnPadrao = document.getElementById('btnChecklistPadrao');
+    const btnPersonalizado = document.getElementById('btnChecklistPersonalizado');
+    
+    if (tipo === 'padrao') {
+        btnPadrao.classList.remove('btn-outline-primary');
+        btnPadrao.classList.add('btn-primary');
+        btnPersonalizado.classList.remove('btn-success');
+        btnPersonalizado.classList.add('btn-outline-success');
+    } else {
+        btnPadrao.classList.remove('btn-primary');
+        btnPadrao.classList.add('btn-outline-primary');
+        btnPersonalizado.classList.remove('btn-outline-success');
+        btnPersonalizado.classList.add('btn-success');
+    }
+}
+
+function saveChecklistConfig(tipo) {
+    {% if project %}
+    const projectId = {{ project.id }};
+    
+    fetch(`/projects/${projectId}/checklist/config`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            tipo_checklist: tipo
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Checklist config saved:', data.message);
+        } else {
+            console.error('Error saving config:', data.error);
+            alert('Erro ao salvar configuração: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao salvar configuração do checklist');
+    });
+    {% endif %}
+}
+
+function loadCustomChecklistItems() {
+    {% if project %}
+    const projectId = {{ project.id }};
+    
+    fetch(`/projects/${projectId}/checklist/items/list`, {
+        method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            customChecklistItems = data.items;
+            renderCustomChecklistItems();
+        }
+    })
+    .catch(error => {
+        console.error('Error loading items:', error);
+    });
+    {% endif %}
+}
+
+function addChecklistItem(event) {
+    event.preventDefault();
+    
+    const texto = document.getElementById('newChecklistItemText').value.trim();
+    
+    if (!texto) {
+        alert('Digite o texto do item');
+        return;
+    }
+    
+    {% if project %}
+    // For existing projects, save to database
+    const projectId = {{ project.id }};
+    
+    fetch(`/projects/${projectId}/checklist/items`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            texto: texto
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            customChecklistItems.push(data.item);
+            renderCustomChecklistItems();
+            document.getElementById('newChecklistItemText').value = '';
+        } else {
+            alert('Erro: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao adicionar item');
+    });
+    {% else %}
+    // For new projects, store locally
+    const newItem = {
+        id: Date.now(),
+        texto: texto,
+        ordem: customChecklistItems.length + 1,
+        temp: true
+    };
+    customChecklistItems.push(newItem);
+    renderCustomChecklistItems();
+    document.getElementById('newChecklistItemText').value = '';
+    {% endif %}
+}
+
+function editChecklistItem(itemId) {
+    const card = document.querySelector(`[data-checklist-item-id="${itemId}"]`);
+    const textSpan = card.querySelector('.item-text');
+    const editInput = card.querySelector('.item-edit-input');
+    const editBtn = card.querySelector('.btn-edit-item');
+    const saveBtn = card.querySelector('.btn-save-item');
+    const cancelBtn = card.querySelector('.btn-cancel-item');
+    const deleteBtn = card.querySelector('.btn-delete-item');
+    
+    textSpan.classList.add('d-none');
+    editInput.classList.remove('d-none');
+    editBtn.classList.add('d-none');
+    saveBtn.classList.remove('d-none');
+    cancelBtn.classList.remove('d-none');
+    deleteBtn.classList.add('d-none');
+    
+    editInput.focus();
+}
+
+function saveChecklistItem(itemId) {
+    const card = document.querySelector(`[data-checklist-item-id="${itemId}"]`);
+    const editInput = card.querySelector('.item-edit-input');
+    const texto = editInput.value.trim();
+    
+    if (!texto) {
+        alert('Digite o texto do item');
+        return;
+    }
+    
+    {% if project %}
+    const projectId = {{ project.id }};
+    
+    fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            texto: texto
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const item = customChecklistItems.find(i => i.id === itemId);
+            if (item) item.texto = texto;
+            renderCustomChecklistItems();
+        } else {
+            alert('Erro: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao salvar item');
+    });
+    {% else %}
+    const item = customChecklistItems.find(i => i.id === itemId);
+    if (item) {
+        item.texto = texto;
+        renderCustomChecklistItems();
+    }
+    {% endif %}
+}
+
+function cancelEditChecklistItem(itemId) {
+    renderCustomChecklistItems();
+}
+
+function deleteChecklistItem(itemId) {
+    if (!confirm('Tem certeza que deseja remover este item do checklist?')) {
+        return;
+    }
+    
+    {% if project %}
+    const projectId = {{ project.id }};
+    
+    fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
+            renderCustomChecklistItems();
+        } else {
+            alert('Erro: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao remover item');
+    });
+    {% else %}
+    customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
+    renderCustomChecklistItems();
+    {% endif %}
+}
+
+function renderCustomChecklistItems() {
+    const container = document.getElementById('customChecklistItems');
+    const emptyMessage = document.getElementById('emptyChecklistMessage');
+    
+    if (customChecklistItems.length === 0) {
+        emptyMessage.style.display = 'block';
+        return;
+    }
+    
+    emptyMessage.style.display = 'none';
+    
+    let html = '';
+    customChecklistItems.forEach(item => {
+        html += `
+            <div class="card mb-2" data-checklist-item-id="${item.id}">
+                <div class="card-body py-2">
+                    <div class="row align-items-center">
+                        <div class="col-1">
+                            <span class="badge bg-primary">${item.ordem}</span>
+                        </div>
+                        <div class="col-8">
+                            <span class="item-text">${item.texto}</span>
+                            <input type="text" class="form-control d-none item-edit-input" value="${item.texto}">
+                        </div>
+                        <div class="col-3 text-end">
+                            <button type="button" class="btn btn-sm btn-outline-primary me-1 btn-edit-item" onclick="editChecklistItem(${item.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-success d-none btn-save-item" onclick="saveChecklistItem(${item.id})">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary d-none btn-cancel-item" onclick="cancelEditChecklistItem(${item.id})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-item" onclick="deleteChecklistItem(${item.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
 </script>
 
 <!-- Load Leaflet CSS and JS -->

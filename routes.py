@@ -10708,6 +10708,33 @@ def project_checklist_delete_item(project_id, item_id):
         db.session.rollback()
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
 
+@app.route("/projects/<int:project_id>/checklist/items/list", methods=["GET"])
+@login_required
+def project_checklist_list_items(project_id):
+    """List all custom checklist items for a project"""
+    project = Projeto.query.get_or_404(project_id)
+    
+    try:
+        # Get custom checklist items
+        items = ChecklistObra.query.filter_by(
+            projeto_id=project_id,
+            ativo=True
+        ).order_by(ChecklistObra.ordem).all()
+        
+        items_data = [{
+            "id": item.id,
+            "texto": item.texto,
+            "ordem": item.ordem
+        } for item in items]
+        
+        return jsonify({
+            "success": True,
+            "items": items_data
+        })
+    
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
 
 # ====== PARTE 5: RELATÓRIO MENSAL DE VISITAS POR USUÁRIO ======
 
