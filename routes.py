@@ -9558,6 +9558,75 @@ def express_new():
             db.session.add(relatorio_express)
             db.session.flush()  # Para obter o ID
 
+            # Copiar fotos do relatório original se for duplicação
+            if 'relatorio_duplicado' in session:
+                dados_duplicacao = session.pop('relatorio_duplicado')  # Remove da sessão após usar
+                relatorio_original_id = dados_duplicacao.get('relatorio_original_id')
+                
+                if relatorio_original_id:
+                    try:
+                        # Buscar fotos do relatório original
+                        fotos_originais = FotoRelatorioExpress.query.filter_by(
+                            relatorio_express_id=relatorio_original_id
+                        ).order_by(FotoRelatorioExpress.ordem).all()
+                        
+                        if fotos_originais:
+                            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                            if not os.path.exists(upload_folder):
+                                os.makedirs(upload_folder)
+                            
+                            for foto_original in fotos_originais:
+                                # Criar nova foto copiando dados da original
+                                nova_foto = FotoRelatorioExpress()
+                                nova_foto.relatorio_express_id = relatorio_express.id
+                                nova_foto.ordem = foto_original.ordem
+                                nova_foto.legenda = foto_original.legenda
+                                nova_foto.tipo_servico = foto_original.tipo_servico
+                                
+                                # Copiar arquivo físico com novo nome
+                                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S%f')
+                                extensao = os.path.splitext(foto_original.filename)[1]
+                                novo_filename = f"express_{relatorio_express.id}_{timestamp}_{foto_original.ordem}{extensao}"
+                                
+                                # Caminho dos arquivos
+                                caminho_original = os.path.join(upload_folder, foto_original.filename)
+                                caminho_novo = os.path.join(upload_folder, novo_filename)
+                                
+                                # Copiar arquivo se existir no disco
+                                if os.path.exists(caminho_original):
+                                    import shutil
+                                    shutil.copy2(caminho_original, caminho_novo)
+                                    nova_foto.filename = novo_filename
+                                    nova_foto.filename_original = foto_original.filename_original
+                                    
+                                    # Ler dados binários do arquivo copiado
+                                    with open(caminho_novo, 'rb') as f:
+                                        nova_foto.imagem = f.read()
+                                elif foto_original.imagem:
+                                    # Se não existe arquivo mas tem dados binários, usar os dados binários
+                                    nova_foto.imagem = foto_original.imagem
+                                    nova_foto.filename = novo_filename
+                                    nova_foto.filename_original = foto_original.filename_original
+                                    
+                                    # Salvar arquivo no disco a partir dos dados binários
+                                    with open(caminho_novo, 'wb') as f:
+                                        f.write(foto_original.imagem)
+                                
+                                db.session.add(nova_foto)
+                            
+                            current_app.logger.info(f"✅ {len(fotos_originais)} fotos copiadas do relatório {relatorio_original_id}")
+                        else:
+                            current_app.logger.info(f"ℹ️ Relatório original {relatorio_original_id} não possui fotos para copiar")
+                            
+                    except Exception as e:
+                        current_app.logger.error(f"❌ Erro ao copiar fotos: {str(e)}")
+                        # Fazer rollback se a cópia de fotos falhar
+                        db.session.rollback()
+                        # Limpar sessão
+                        session.pop('relatorio_duplicado', None)
+                        flash(f'Erro ao copiar fotos do relatório original: {str(e)}', 'error')
+                        return redirect(url_for('express_new'))
+
             # Salvar participantes selecionados
             if form.participantes.data:
                 from models import RelatorioExpressParticipante
@@ -9653,6 +9722,56 @@ def express_new():
             db.session.rollback()
             flash(f'Erro ao criar relatório express: {str(e)}', 'error')
             current_app.logger.error(f'Erro ao criar relatório express: {str(e)}')
+
+    # Pré-preencher formulário com dados de duplicação se existir na sessão
+    if request.method == 'GET' and 'relatorio_duplicado' in session:
+        dados = session['relatorio_duplicado']  # NÃO fazer pop aqui - manter para o POST
+        
+        try:
+            from datetime import datetime, date, time
+            
+            # Dados da empresa
+            form.empresa_nome.data = dados.get('empresa_nome')
+            form.empresa_endereco.data = dados.get('empresa_endereco')
+            form.empresa_telefone.data = dados.get('empresa_telefone')
+            form.empresa_email.data = dados.get('empresa_email')
+            form.empresa_responsavel.data = dados.get('empresa_responsavel')
+            
+            # Dados da visita - converter strings ISO para objetos date/time
+            if dados.get('data_visita'):
+                form.data_visita.data = date.fromisoformat(dados['data_visita'])
+            if dados.get('periodo_inicio'):
+                form.periodo_inicio.data = time.fromisoformat(dados['periodo_inicio'])
+            if dados.get('periodo_fim'):
+                form.periodo_fim.data = time.fromisoformat(dados['periodo_fim'])
+                
+            form.condicoes_climaticas.data = dados.get('condicoes_climaticas')
+            form.temperatura.data = dados.get('temperatura')
+            
+            # Localização
+            if dados.get('latitude'):
+                form.latitude.data = str(dados['latitude'])
+            if dados.get('longitude'):
+                form.longitude.data = str(dados['longitude'])
+            form.endereco_visita.data = dados.get('endereco_visita')
+            
+            # Observações
+            form.observacoes_gerais.data = dados.get('observacoes_gerais')
+            form.pendencias.data = dados.get('pendencias')
+            form.recomendacoes.data = dados.get('recomendacoes')
+            
+            # Checklist
+            if dados.get('checklist_dados'):
+                form.checklist_completo.data = dados['checklist_dados']
+            
+            # Participantes
+            if dados.get('participantes'):
+                form.participantes.data = dados['participantes']
+            
+            current_app.logger.info(f"✅ Formulário pré-preenchido com dados de relatório duplicado (ID original: {dados.get('relatorio_original_id')})")
+            
+        except Exception as e:
+            current_app.logger.error(f"❌ Erro ao pré-preencher formulário: {str(e)}")
 
     # SEMPRE usar template desktop para garantir estilização adequada
     template = 'express/novo.html'
@@ -9846,6 +9965,64 @@ def express_pdf(id):
     except Exception as e:
         flash(f'Erro ao gerar PDF: {str(e)}', 'error')
         return redirect(url_for('express_detail', id=id))
+
+@app.route('/express/<int:id>/duplicar')
+@login_required
+def express_duplicate(id):
+    """Duplicar relatório express - carrega dados na sessão e redireciona para formulário de criação"""
+    relatorio_original = RelatorioExpress.query.get_or_404(id)
+    
+    # Verificar acesso - apenas o autor ou master pode duplicar
+    if not current_user.is_master and relatorio_original.autor_id != current_user.id:
+        flash('Você não tem permissão para duplicar este relatório.', 'error')
+        return redirect(url_for('express_list'))
+    
+    try:
+        # Armazenar dados do relatório original na sessão para pré-preenchimento
+        # Excluindo campos únicos (id, numero, created_at, updated_at, finalizado_at)
+        session['relatorio_duplicado'] = {
+            # Dados da empresa
+            'empresa_nome': relatorio_original.empresa_nome,
+            'empresa_endereco': relatorio_original.empresa_endereco,
+            'empresa_telefone': relatorio_original.empresa_telefone,
+            'empresa_email': relatorio_original.empresa_email,
+            'empresa_responsavel': relatorio_original.empresa_responsavel,
+            
+            # Dados da visita
+            'data_visita': relatorio_original.data_visita.isoformat() if relatorio_original.data_visita else None,
+            'periodo_inicio': relatorio_original.periodo_inicio.isoformat() if relatorio_original.periodo_inicio else None,
+            'periodo_fim': relatorio_original.periodo_fim.isoformat() if relatorio_original.periodo_fim else None,
+            'condicoes_climaticas': relatorio_original.condicoes_climaticas,
+            'temperatura': relatorio_original.temperatura,
+            
+            # Localização
+            'latitude': relatorio_original.latitude,
+            'longitude': relatorio_original.longitude,
+            'endereco_visita': relatorio_original.endereco_visita,
+            
+            # Observações e checklist
+            'observacoes_gerais': relatorio_original.observacoes_gerais,
+            'pendencias': relatorio_original.pendencias,
+            'recomendacoes': relatorio_original.recomendacoes,
+            'checklist_dados': relatorio_original.checklist_dados,
+            
+            # ID do relatório original para copiar fotos
+            'relatorio_original_id': id
+        }
+        
+        # Participantes
+        from models import RelatorioExpressParticipante
+        participantes = RelatorioExpressParticipante.query.filter_by(relatorio_express_id=id).all()
+        if participantes:
+            session['relatorio_duplicado']['participantes'] = [p.funcionario_id for p in participantes]
+        
+        flash(f'Relatório {relatorio_original.numero} duplicado como rascunho. Revise e salve as alterações.', 'info')
+        return redirect(url_for('express_new'))
+        
+    except Exception as e:
+        current_app.logger.error(f'❌ Erro ao duplicar relatório: {str(e)}')
+        flash(f'Erro ao duplicar relatório: {str(e)}', 'error')
+        return redirect(url_for('express_list'))
 
 @app.route('/express/<int:id>/delete', methods=['POST'])
 @login_required
