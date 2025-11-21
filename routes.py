@@ -5033,6 +5033,9 @@ def project_edit(project_id):
                     )
                     db.session.add(nova_categoria)
                     categorias_adicionadas += 1
+            
+            # Note: Checklist updates for existing projects are handled via API routes only
+            # This prevents form submission issues and maintains consistency
 
             db.session.commit()
             

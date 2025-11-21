@@ -300,19 +300,22 @@
                                         
                                         <!-- Add New Item Form -->
                                         <div class="card mb-3">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Adicionar Novo Item</h6>
+                                            </div>
                                             <div class="card-body">
-                                                <form id="addChecklistItemForm" onsubmit="addChecklistItem(event)">
+                                                <div id="addChecklistItemForm">
                                                     <div class="row">
                                                         <div class="col-md-9">
-                                                            <input type="text" class="form-control" id="newChecklistItemText" placeholder="Digite o texto do novo item do checklist" required>
+                                                            <input type="text" class="form-control" id="newChecklistItemText" placeholder="Digite o texto do novo item do checklist">
                                                         </div>
                                                         <div class="col-md-3">
-                                                            <button type="submit" class="btn btn-success w-100">
+                                                            <button type="button" class="btn btn-success w-100" onclick="addChecklistItem(event)">
                                                                 <i class="fas fa-plus me-2"></i>Adicionar
                                                             </button>
                                                         </div>
                                                     </div>
-                                                </form>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -901,9 +904,12 @@ const isNewProject = {% if project %}false{% else %}true{% endif %};
 
 // Initialize checklist on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize hidden fields
-    updateChecklistTypeHiddenField(currentChecklistType);
-    updateChecklistItemsHiddenField();
+    // Initialize hidden fields ONLY for new projects (form submission)
+    // Existing projects use API-only updates (no form submission for checklists)
+    if (isNewProject) {
+        updateChecklistTypeHiddenField(currentChecklistType);
+        updateChecklistItemsHiddenField();
+    }
     
     if (!isNewProject) {
         // Set initial button state for existing projects
@@ -1044,12 +1050,12 @@ function loadCustomChecklistItems() {
 }
 
 function addChecklistItem(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     
     const texto = document.getElementById('newChecklistItemText').value.trim();
     
     if (!texto) {
-        alert('Digite o texto do item');
+        alert('Por favor, digite o texto do item');
         return;
     }
     
@@ -1066,7 +1072,7 @@ function addChecklistItem(event) {
         document.getElementById('newChecklistItemText').value = '';
     } else {
         {% if project %}
-        // For existing projects, save to database
+        // For existing projects, use API-only approach (immediate save to database)
         const projectId = {{ project.id }};
         
         fetch(`/projects/${projectId}/checklist/items`, {
