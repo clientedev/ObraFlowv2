@@ -901,6 +901,10 @@ const isNewProject = {% if project %}false{% else %}true{% endif %};
 
 // Initialize checklist on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize hidden fields
+    updateChecklistTypeHiddenField(currentChecklistType);
+    updateChecklistItemsHiddenField();
+    
     if (!isNewProject) {
         // Set initial button state for existing projects
         updateChecklistTypeButtons(currentChecklistType);
@@ -911,38 +915,13 @@ document.addEventListener('DOMContentLoaded', function() {
         loadCustomChecklistItems();
         {% endif %}
     } else {
-        // For new projects, show default message and disable custom checklist
-        showNewProjectChecklistMessage();
+        // For new projects, allow both options
+        updateChecklistTypeButtons('padrao');
+        selectChecklistType('padrao');
     }
 });
 
-function showNewProjectChecklistMessage() {
-    // For new projects, show informational message
-    const padraoPreview = document.getElementById('checklistPadraoPreview');
-    const personalizadoEditor = document.getElementById('checklistPersonalizadoEditor');
-    const currentDisplay = document.getElementById('currentChecklistDisplay');
-    
-    // Show standard checklist preview
-    padraoPreview.style.display = 'block';
-    personalizadoEditor.style.display = 'none';
-    if (currentDisplay) currentDisplay.style.display = 'none';
-    
-    // Disable custom checklist button for new projects
-    const btnPersonalizado = document.getElementById('btnChecklistPersonalizado');
-    btnPersonalizado.disabled = true;
-    btnPersonalizado.title = 'Salve o projeto primeiro para configurar checklist personalizado';
-    
-    // Activate standard checklist button
-    updateChecklistTypeButtons('padrao');
-}
-
 function selectChecklistType(tipo) {
-    // Don't allow switching for new projects
-    if (isNewProject && tipo === 'personalizado') {
-        alert('Por favor, salve o projeto primeiro para configurar um checklist personalizado.');
-        return;
-    }
-    
     currentChecklistType = tipo;
     
     // Update button states
@@ -958,6 +937,12 @@ function selectChecklistType(tipo) {
         personalizadoEditor.style.display = 'none';
         if (currentDisplay) currentDisplay.style.display = 'none';
         
+        // Clear custom items for new projects when switching to padrao
+        if (isNewProject) {
+            customChecklistItems = [];
+            updateChecklistItemsHiddenField();
+        }
+        
         // Save configuration for existing projects
         if (!isNewProject) {
             saveChecklistConfig('padrao');
@@ -967,11 +952,19 @@ function selectChecklistType(tipo) {
         personalizadoEditor.style.display = 'block';
         if (currentDisplay) currentDisplay.style.display = 'none';
         
+        // Render items for new projects
+        if (isNewProject) {
+            renderCustomChecklistItems();
+        }
+        
         // Save configuration for existing projects
         if (!isNewProject) {
             saveChecklistConfig('personalizado');
         }
     }
+    
+    // Update hidden field for form submission
+    updateChecklistTypeHiddenField(tipo);
 }
 
 function updateChecklistTypeButtons(tipo) {
@@ -1053,11 +1046,6 @@ function loadCustomChecklistItems() {
 function addChecklistItem(event) {
     event.preventDefault();
     
-    if (isNewProject) {
-        alert('Por favor, salve o projeto primeiro para configurar um checklist personalizado.');
-        return;
-    }
-    
     const texto = document.getElementById('newChecklistItemText').value.trim();
     
     if (!texto) {
@@ -1065,34 +1053,47 @@ function addChecklistItem(event) {
         return;
     }
     
-    {% if project %}
-    // For existing projects, save to database
-    const projectId = {{ project.id }};
-    
-    fetch(`/projects/${projectId}/checklist/items`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            texto: texto
+    if (isNewProject) {
+        // For new projects, store temporarily in memory
+        const newItem = {
+            id: Date.now(), // Temporary ID
+            texto: texto,
+            ordem: customChecklistItems.length + 1
+        };
+        customChecklistItems.push(newItem);
+        renderCustomChecklistItems();
+        updateChecklistItemsHiddenField();
+        document.getElementById('newChecklistItemText').value = '';
+    } else {
+        {% if project %}
+        // For existing projects, save to database
+        const projectId = {{ project.id }};
+        
+        fetch(`/projects/${projectId}/checklist/items`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                texto: texto
+            })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            customChecklistItems.push(data.item);
-            renderCustomChecklistItems();
-            document.getElementById('newChecklistItemText').value = '';
-        } else {
-            alert('Erro: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Erro ao adicionar item');
-    });
-    {% endif %}
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                customChecklistItems.push(data.item);
+                renderCustomChecklistItems();
+                document.getElementById('newChecklistItemText').value = '';
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao adicionar item');
+        });
+        {% endif %}
+    }
 }
 
 function editChecklistItem(itemId) {
@@ -1115,10 +1116,6 @@ function editChecklistItem(itemId) {
 }
 
 function saveChecklistItem(itemId) {
-    if (isNewProject) {
-        return;
-    }
-    
     const card = document.querySelector(`[data-checklist-item-id="${itemId}"]`);
     const editInput = card.querySelector('.item-edit-input');
     const texto = editInput.value.trim();
@@ -1128,33 +1125,43 @@ function saveChecklistItem(itemId) {
         return;
     }
     
-    {% if project %}
-    const projectId = {{ project.id }};
-    
-    fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            texto: texto
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const item = customChecklistItems.find(i => i.id === itemId);
-            if (item) item.texto = texto;
+    if (isNewProject) {
+        // For new projects, update in memory
+        const item = customChecklistItems.find(i => i.id === itemId);
+        if (item) {
+            item.texto = texto;
             renderCustomChecklistItems();
-        } else {
-            alert('Erro: ' + data.error);
+            updateChecklistItemsHiddenField();
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Erro ao salvar item');
-    });
-    {% endif %}
+    } else {
+        {% if project %}
+        const projectId = {{ project.id }};
+        
+        fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                texto: texto
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const item = customChecklistItems.find(i => i.id === itemId);
+                if (item) item.texto = texto;
+                renderCustomChecklistItems();
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao salvar item');
+        });
+        {% endif %}
+    }
 }
 
 function cancelEditChecklistItem(itemId) {
@@ -1162,46 +1169,52 @@ function cancelEditChecklistItem(itemId) {
 }
 
 function deleteChecklistItem(itemId) {
-    if (isNewProject) {
-        return;
-    }
-    
     if (!confirm('Tem certeza que deseja remover este item do checklist?')) {
         return;
     }
     
-    {% if project %}
-    const projectId = {{ project.id }};
-    
-    fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
-        method: 'DELETE'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
-            renderCustomChecklistItems();
-        } else {
-            alert('Erro: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Erro ao remover item');
-    });
-    {% endif %}
+    if (isNewProject) {
+        // For new projects, remove from memory
+        customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
+        renderCustomChecklistItems();
+        updateChecklistItemsHiddenField();
+    } else {
+        {% if project %}
+        const projectId = {{ project.id }};
+        
+        fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
+                renderCustomChecklistItems();
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao remover item');
+        });
+        {% endif %}
+    }
 }
 
 function renderCustomChecklistItems() {
     const container = document.getElementById('customChecklistItems');
     const emptyMessage = document.getElementById('emptyChecklistMessage');
     
+    if (!container) return;
+    
     if (customChecklistItems.length === 0) {
-        emptyMessage.style.display = 'block';
+        if (emptyMessage) emptyMessage.style.display = 'block';
+        container.innerHTML = '';
         return;
     }
     
-    emptyMessage.style.display = 'none';
+    if (emptyMessage) emptyMessage.style.display = 'none';
     
     let html = '';
     customChecklistItems.forEach(item => {
@@ -1237,6 +1250,32 @@ function renderCustomChecklistItems() {
     });
     
     container.innerHTML = html;
+}
+
+// Helper function to update hidden field with checklist type
+function updateChecklistTypeHiddenField(tipo) {
+    let hiddenField = document.getElementById('checklistTypeHidden');
+    if (!hiddenField) {
+        hiddenField = document.createElement('input');
+        hiddenField.type = 'hidden';
+        hiddenField.id = 'checklistTypeHidden';
+        hiddenField.name = 'checklist_tipo';
+        document.getElementById('projectForm').appendChild(hiddenField);
+    }
+    hiddenField.value = tipo;
+}
+
+// Helper function to update hidden field with custom checklist items
+function updateChecklistItemsHiddenField() {
+    let hiddenField = document.getElementById('checklistItemsHidden');
+    if (!hiddenField) {
+        hiddenField = document.createElement('input');
+        hiddenField.type = 'hidden';
+        hiddenField.id = 'checklistItemsHidden';
+        hiddenField.name = 'checklist_items';
+        document.getElementById('projectForm').appendChild(hiddenField);
+    }
+    hiddenField.value = JSON.stringify(customChecklistItems);
 }
 </script>
 

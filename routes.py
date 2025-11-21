@@ -4758,6 +4758,51 @@ def project_new():
                 total_contatos = len(contatos)
                 total_categorias = len(categorias_adicionais)
                 flash(f'Obra cadastrada com sucesso! {total_contatos} contato(s) e {total_categorias} categoria(s) adicionados.', 'success')
+                
+                # Process checklist configuration for new projects
+                checklist_tipo = request.form.get('checklist_tipo', 'padrao')
+                checklist_items_json = request.form.get('checklist_items', '')
+                
+                # Only create config if personalizado or if explicitly needed
+                if checklist_tipo == 'personalizado':
+                    # Create checklist configuration
+                    checklist_config = ProjetoChecklistConfig(
+                        projeto_id=projeto.id,
+                        tipo_checklist=checklist_tipo,
+                        criado_por=current_user.id
+                    )
+                    db.session.add(checklist_config)
+                    
+                    # Parse and create custom items
+                    if checklist_items_json:
+                        try:
+                            import json
+                            checklist_items = json.loads(checklist_items_json)
+                            if isinstance(checklist_items, list):
+                                for item in checklist_items:
+                                    if isinstance(item, dict) and item.get('texto'):
+                                        custom_item = ChecklistObra(
+                                            projeto_id=projeto.id,
+                                            texto=item.get('texto', ''),
+                                            ordem=item.get('ordem', 1),
+                                            criado_por=current_user.id,
+                                            ativo=True
+                                        )
+                                        db.session.add(custom_item)
+                                print(f"✅ DEBUG: Added {len(checklist_items)} custom checklist items")
+                            else:
+                                print(f"⚠️ DEBUG: checklist_items is not a list")
+                        except (json.JSONDecodeError, ValueError) as e:
+                            print(f"⚠️ DEBUG: Error parsing checklist items: {e}")
+                            flash(f'Aviso: Não foi possível processar os itens do checklist personalizado', 'warning')
+                elif checklist_tipo == 'padrao':
+                    # Create config for padrao as well (for consistency)
+                    checklist_config = ProjetoChecklistConfig(
+                        projeto_id=projeto.id,
+                        tipo_checklist='padrao',
+                        criado_por=current_user.id
+                    )
+                    db.session.add(checklist_config)
 
             db.session.commit()
             print(f"🔍 DEBUG: Trying to save projeto: {projeto.nome}")
