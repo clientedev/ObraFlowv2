@@ -4778,7 +4778,10 @@ def project_new():
             db.session.rollback()
             flash(f'Erro ao salvar obra: {str(e)}', 'error')
 
-    return render_template('projects/form.html', form=form, contatos_existentes=[])
+    # Get standard checklist items for display
+    checklist_items_padrao = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+    
+    return render_template('projects/form.html', form=form, contatos_existentes=[], checklist_items_padrao=checklist_items_padrao)
 
 @app.route('/projects/<int:project_id>')
 @login_required
@@ -5022,7 +5025,10 @@ def project_edit(project_id):
             ativo=True
         ).order_by(ChecklistPadrao.ordem).all()
     
-    return render_template('projects/form.html', form=form, project=project, categorias=categorias_serializadas, contatos_existentes=contatos_existentes, checklist_items=checklist_items, config=config)
+    # Also get standard checklist items for switching
+    checklist_items_padrao = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+    
+    return render_template('projects/form.html', form=form, project=project, categorias=categorias_serializadas, contatos_existentes=contatos_existentes, checklist_items=checklist_items, config=config, checklist_items_padrao=checklist_items_padrao)
 
 # Category management routes - Item 16
 @app.route('/projects/<int:project_id>/categorias')
