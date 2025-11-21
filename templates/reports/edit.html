@@ -184,10 +184,10 @@
 
                             <!-- Observações Gerais -->
                             <div class="mb-3">
-                                <strong><i class="fas fa-comment-dots me-2"></i>Observações Gerais:</strong>
-                                {% if relatorio.observacoes_gerais %}
+                                <strong><i class="fas fa-comment-dots me-2"></i>Observações Finais:</strong>
+                                {% if relatorio.observacoes_finais %}
                                 <div class="border p-3 mt-2 bg-light">
-                                    {{ relatorio.observacoes_gerais|safe }}
+                                    {{ relatorio.observacoes_finais|safe }}
                                 </div>
                                 {% else %}
                                 <p class="text-muted ms-3 mt-2 mb-0">Não preenchido</p>
