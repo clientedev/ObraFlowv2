@@ -9683,9 +9683,17 @@ def express_new():
                     participante.funcionario_id = funcionario_id
                     db.session.add(participante)
 
+            # DEBUG: Log ALL form data received
+            current_app.logger.info(f"🔍 EXPRESS NEW DEBUG: request.form keys = {list(request.form.keys())}")
+            current_app.logger.info(f"🔍 EXPRESS NEW DEBUG: request.files keys = {list(request.files.keys())}")
+            current_app.logger.info(f"🔍 EXPRESS NEW DEBUG: request.content_length = {request.content_length}")
+            
             # Processar fotos configuradas do modal
             foto_configs_str = request.form.get('foto_configuracoes')
             current_app.logger.info(f"📸 EXPRESS NEW: foto_configuracoes recebido, tamanho={len(foto_configs_str) if foto_configs_str else 0}")
+            
+            if foto_configs_str:
+                current_app.logger.info(f"📸 EXPRESS NEW: foto_configuracoes primeiros 200 chars = {foto_configs_str[:200] if len(foto_configs_str) > 200 else foto_configs_str}")
             
             if foto_configs_str:
                 try:
