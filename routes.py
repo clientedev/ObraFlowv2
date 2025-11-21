@@ -10309,10 +10309,20 @@ def express_pdf(id):
         result = gerar_pdf_relatorio_express(relatorio, pdf_path)
 
         if result.get('success'):
-            # Se o PDF foi gerado e retornado como bytes
+            # Verificar se retornou file_path ou pdf_content
+            file_path = result.get('file_path')
             pdf_content = result.get('pdf_content')
-            if pdf_content:
-                from flask import send_file
+            
+            if file_path and os.path.exists(file_path):
+                # Ler o arquivo e enviar
+                return send_file(
+                    file_path,
+                    as_attachment=True,
+                    download_name=pdf_filename,
+                    mimetype='application/pdf'
+                )
+            elif pdf_content:
+                # Enviar bytes diretamente
                 return send_file(
                     io.BytesIO(pdf_content),
                     as_attachment=True,
@@ -10320,13 +10330,14 @@ def express_pdf(id):
                     mimetype='application/pdf'
                 )
             else:
-                flash('PDF gerado, mas sem conteúdo de arquivo.', 'error')
+                flash('PDF gerado, mas arquivo não encontrado.', 'error')
                 return redirect(url_for('express_detail', id=id))
         else:
             flash(f'Erro ao gerar PDF: {result.get("error", "Erro desconhecido")}', 'error')
             return redirect(url_for('express_detail', id=id))
 
     except Exception as e:
+        current_app.logger.error(f'Erro ao gerar PDF express: {str(e)}')
         flash(f'Erro ao gerar PDF: {str(e)}', 'error')
         return redirect(url_for('express_detail', id=id))
 
