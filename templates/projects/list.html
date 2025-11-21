@@ -17,7 +17,7 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
             <h1>
                 <i class="fas fa-building me-2"></i>
                 Obras
@@ -31,12 +31,38 @@
     </div>
 </div>
 
+<!-- Abas de Filtro por Status -->
+<div class="row">
+    <div class="col-12">
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if status_filter == 'ativo' %}active{% endif %}" 
+                   href="{{ url_for('projects_list', status='ativo', q=request.args.get('q', '')) }}"
+                   role="tab">
+                    <i class="fas fa-hammer me-1"></i>
+                    Obras Ativas
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if status_filter == 'concluido' %}active{% endif %}" 
+                   href="{{ url_for('projects_list', status='concluido', q=request.args.get('q', '')) }}"
+                   role="tab">
+                    <i class="fas fa-check-circle me-1"></i>
+                    Obras Concluídas
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+
 <!-- Busca Simples -->
 <div class="row mb-3">
     <div class="col-12">
         <div class="card">
             <div class="card-body py-3">
                 <form method="GET" action="{{ url_for('projects_list') }}">
+                    <!-- Hidden field to preserve status filter -->
+                    <input type="hidden" name="status" value="{{ status_filter }}">
                     <div class="row g-3 align-items-end">
                         <div class="col-md-8">
                             <label class="form-label fw-bold">🔍 Busca Rápida</label>
@@ -49,7 +75,7 @@
                                     <i class="fas fa-search me-1"></i>Buscar
                                 </button>
                                 {% if request.args.get('q') %}
-                                <a href="{{ url_for('projects_list') }}" class="btn btn-outline-secondary">
+                                <a href="{{ url_for('projects_list', status=status_filter) }}" class="btn btn-outline-secondary">
                                     <i class="fas fa-times me-1"></i>Limpar
                                 </a>
                                 {% endif %}
@@ -135,6 +161,16 @@
         <div class="card">
             <div class="card-body">
                 {% if projects %}
+                    <!-- Indicador de ordenação por distância -->
+                    <div id="sortingIndicator" class="alert alert-info d-none mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span>📍 Ordenando obras por distância...</span>
+                        </div>
+                    </div>
+                    
                     <!-- Layout de cards mobile-first sem rolagem horizontal -->
                     <div class="mobile-projects-list" id="projectsTable">
                         {% for project in projects %}
@@ -145,6 +181,8 @@
                              data-funcionario="{{ project.nome_funcionario if project.nome_funcionario else '' }}"
                              data-responsavel="{{ project.responsavel.nome_completo if project.responsavel else '' }}"
                              data-search="{{ (project.numero + ' ' + project.nome)|lower }}"
+                             data-lat="{{ project.latitude if project.latitude else '' }}"
+                             data-lon="{{ project.longitude if project.longitude else '' }}"
                              onclick="window.location.href='{{ url_for('project_view', project_id=project.id) }}'"
                              style="cursor: pointer;">
                             
@@ -225,7 +263,118 @@ document.addEventListener('DOMContentLoaded', function() {
     const table = document.getElementById('projectsTable');
     if (!table) return;
     
-    const rows = table.querySelectorAll('tbody tr');
+    const projectCards = table.querySelectorAll('.project-card');
+    
+    // Função para calcular distância usando fórmula de Haversine
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Raio da Terra em km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+    
+    // Tentar obter localização e ordenar projetos
+    async function sortProjectsByDistance() {
+        const indicator = document.getElementById('sortingIndicator');
+        
+        try {
+            console.log('📍 Tentando obter localização para ordenar projetos...');
+            
+            // Mostrar indicador
+            if (indicator) {
+                indicator.classList.remove('d-none');
+            }
+            
+            // Usar o sistema de geolocalização global se disponível
+            if (window.geoLocation) {
+                const position = await window.geoLocation.getLocation({
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 300000, // Cache de 5 minutos
+                    showUI: false, // Não mostrar UI
+                    fallbackToIP: true,
+                    reverseGeocode: false
+                });
+                
+                const userLat = position.coords.latitude;
+                const userLon = position.coords.longitude;
+                
+                console.log('✅ Localização obtida:', { userLat, userLon });
+                
+                // Calcular distância para cada projeto e adicionar badge de distância
+                const projectsWithDistance = [];
+                projectCards.forEach(card => {
+                    const lat = parseFloat(card.dataset.lat);
+                    const lon = parseFloat(card.dataset.lon);
+                    
+                    let distance = Infinity;
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                        distance = calculateDistance(userLat, userLon, lat, lon);
+                    }
+                    
+                    projectsWithDistance.push({ card, distance });
+                    
+                    // Adicionar badge de distância no card
+                    if (distance !== Infinity) {
+                        const distanceText = distance < 1 
+                            ? `${Math.round(distance * 1000)}m` 
+                            : `${distance.toFixed(1)}km`;
+                        
+                        const badgeContainer = card.querySelector('.col-3.text-end');
+                        if (badgeContainer) {
+                            const distanceBadge = document.createElement('div');
+                            distanceBadge.className = 'text-muted mt-1';
+                            distanceBadge.style.fontSize = '0.7rem';
+                            distanceBadge.innerHTML = `<i class="fas fa-location-arrow me-1"></i>${distanceText}`;
+                            badgeContainer.appendChild(distanceBadge);
+                        }
+                    }
+                });
+                
+                // Ordenar por distância
+                projectsWithDistance.sort((a, b) => a.distance - b.distance);
+                
+                // Reordenar os cards no DOM
+                const container = table;
+                projectsWithDistance.forEach(({ card }) => {
+                    container.appendChild(card);
+                });
+                
+                console.log('✅ Projetos ordenados por distância');
+                
+                // Ocultar indicador com mensagem de sucesso
+                if (indicator) {
+                    indicator.classList.add('alert-success');
+                    indicator.classList.remove('alert-info');
+                    indicator.innerHTML = '<i class="fas fa-check-circle me-2"></i>Obras ordenadas por distância da sua localização';
+                    setTimeout(() => {
+                        indicator.classList.add('d-none');
+                    }, 3000);
+                }
+            } else {
+                console.log('⚠️ Sistema de geolocalização não disponível');
+                if (indicator) {
+                    indicator.classList.add('d-none');
+                }
+            }
+        } catch (error) {
+            console.log('⚠️ Não foi possível obter localização:', error.message);
+            // Ocultar indicador se falhou
+            if (indicator) {
+                indicator.classList.add('d-none');
+            }
+        }
+    }
+    
+    // Executar ordenação por distância
+    sortProjectsByDistance();
+    
+    const rows = projectCards; // Compatibilidade com código existente
     // Lista de projetos carregada
     
     // Preencher filtros dinamicamente

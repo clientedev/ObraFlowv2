@@ -2277,9 +2277,25 @@ def projects_list():
 
     # Get search query parameter
     q = request.args.get('q')
+    
+    # Get status filter parameter (default: 'ativo')
+    status_filter = request.args.get('status', 'ativo').lower()
 
     # Start with base query
     query = Projeto.query
+    
+    # Apply status filter
+    if status_filter == 'ativo':
+        # Show only active projects (Ativo, Pausado)
+        from sqlalchemy import or_
+        query = query.filter(or_(
+            Projeto.status == 'Ativo',
+            Projeto.status == 'Pausado'
+        ))
+    elif status_filter == 'concluido':
+        # Show only completed projects
+        query = query.filter(Projeto.status == 'Concluído')
+    # If status_filter is 'todos', show all projects (no filter)
 
     # Apply intelligent search if query provided
     if q and q.strip():
@@ -2323,7 +2339,7 @@ def projects_list():
     # Extract only the sorted projects
     projects = [p[0] for p in projects_with_distance]
 
-    return render_template('projects/list.html', projects=projects)
+    return render_template('projects/list.html', projects=projects, status_filter=status_filter)
 
 # Reports routes - Versão DEFINITIVA para PostgreSQL Railway
 @app.route('/reports')
