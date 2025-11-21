@@ -102,7 +102,9 @@
 
                                     {% if relatorio.status == 'Aprovado' and relatorio.data_aprovacao %}
                                     <p><strong>Aprovado em:</strong> {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }}
-                                    {% if relatorio.aprovador %}por {{ relatorio.aprovador.nome_completo }}{% endif %}</p>
+                                    {% if relatorio.aprovador %}
+                                        por {% if relatorio.aprovador is mapping %}{{ relatorio.aprovador.get('nome_completo', relatorio.aprovador.get('username', 'Aprovador')) }}{% else %}{{ relatorio.aprovador.nome_completo if relatorio.aprovador.nome_completo else relatorio.aprovador.username }}{% endif %}
+                                    {% endif %}</p>
                                     {% endif %}
 
                                     {% if (relatorio.status == 'Rejeitado' or relatorio.status == 'Em edição') and relatorio.comentario_aprovacao %}
@@ -111,7 +113,9 @@
                                         {{ relatorio.comentario_aprovacao }}
                                         {% if relatorio.data_aprovacao %}
                                         <br><small class="text-muted">Rejeitado em {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }}
-                                        {% if relatorio.aprovador %}por {{ relatorio.aprovador.nome_completo }}{% endif %}</small>
+                                        {% if relatorio.aprovador %}
+                                            por {% if relatorio.aprovador is mapping %}{{ relatorio.aprovador.get('nome_completo', relatorio.aprovador.get('username', 'Aprovador')) }}{% else %}{{ relatorio.aprovador.nome_completo if relatorio.aprovador.nome_completo else relatorio.aprovador.username }}{% endif %}
+                                        {% endif %}</small>
                                         {% endif %}
                                     </div>
                                     {% endif %}
@@ -138,78 +142,112 @@
 
                             {% if relatorio.status == 'Aprovado' %}
                             <!-- Seção de detalhes adicionais para relatórios aprovados -->
-                            <hr class="my-4">
-                            <h5 class="mb-3">Detalhes da Visita</h5>
+                            <hr class="my-4" style="border-top: 2px solid #e3e6f0;">
+                            <h5 class="mb-4 fw-bold" style="color: #2c3e50;">
+                                <i class="fas fa-clipboard-list me-2" style="color: #4e73df;"></i>Detalhes da Visita
+                            </h5>
 
-                            <!-- Acompanhantes -->
-                            <div class="mb-3">
-                                <strong><i class="fas fa-users me-2"></i>Acompanhantes da Visita:</strong>
-                                {% if acompanhantes and acompanhantes|length > 0 %}
-                                <ul class="list-unstyled mt-2 ms-3">
-                                    {% for acomp in acompanhantes %}
-                                    <li class="mb-1">
-                                        <i class="fas fa-user-circle me-2 text-primary"></i>
-                                        {% if acomp is mapping %}
-                                            {{ acomp.get('nome', acomp.get('name', 'Não informado')) }}
-                                            {% if acomp.get('cargo') %}
-                                            <span class="text-muted">- {{ acomp.get('cargo') }}</span>
-                                            {% endif %}
-                                        {% else %}
-                                            {{ acomp }}
-                                        {% endif %}
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                                {% else %}
-                                <p class="text-muted ms-3 mt-2 mb-0">Não preenchido</p>
-                                {% endif %}
-                            </div>
-
-                            <!-- Checklist -->
-                            <div class="mb-3">
-                                <strong><i class="fas fa-check-square me-2"></i>Checklist Selecionado:</strong>
-                                {% if checklist %}
-                                    {% if checklist is mapping %}
-                                        {% set items = checklist.get('items', []) %}
-                                    {% else %}
-                                        {% set items = checklist %}
-                                    {% endif %}
-                                    
-                                    {% if items and items|length > 0 %}
-                                    <div class="mt-2 ms-3">
-                                        {% for item in items %}
-                                        <div class="mb-2">
-                                            {% if item is mapping %}
-                                                <i class="fas fa-{{ 'check-circle text-success' if item.get('concluido', False) else 'circle text-muted' }} me-2"></i>
-                                                <strong>{{ item.get('pergunta', item.get('texto', 'Item sem descrição')) }}</strong>
-                                                {% if item.get('resposta') %}
-                                                <div class="ms-4 text-muted">{{ item.get('resposta') }}</div>
+                            <!-- Card: Acompanhantes -->
+                            <div class="card mb-3 shadow-sm border-0" style="border-left: 4px solid #4e73df !important;">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3 fw-bold text-primary">
+                                        <i class="fas fa-users me-2"></i>Acompanhantes da Visita
+                                    </h6>
+                                    {% if acompanhantes and acompanhantes|length > 0 %}
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% for acomp in acompanhantes %}
+                                        <div class="badge bg-light text-dark border px-3 py-2" 
+                                             style="font-size: 0.9rem; font-weight: normal; border-radius: 20px;">
+                                            <i class="fas fa-user-circle me-1" style="color: #4e73df;"></i>
+                                            {% if acomp is mapping %}
+                                                <strong>{{ acomp.get('nome', acomp.get('name', 'Não informado')) }}</strong>
+                                                {% if acomp.get('cargo') %}
+                                                <span class="text-muted ms-1">- {{ acomp.get('cargo') }}</span>
                                                 {% endif %}
                                             {% else %}
-                                                <i class="fas fa-circle text-muted me-2"></i>
-                                                <strong>{{ item }}</strong>
+                                                <strong>{{ acomp }}</strong>
                                             {% endif %}
                                         </div>
                                         {% endfor %}
                                     </div>
                                     {% else %}
-                                    <p class="text-muted ms-3 mt-2 mb-0">Não preenchido</p>
+                                    <p class="text-muted mb-0 fst-italic">
+                                        <i class="fas fa-info-circle me-1"></i>Não preenchido
+                                    </p>
                                     {% endif %}
-                                {% else %}
-                                <p class="text-muted ms-3 mt-2 mb-0">Não preenchido</p>
-                                {% endif %}
+                                </div>
                             </div>
 
-                            <!-- Observações Gerais -->
-                            <div class="mb-3">
-                                <strong><i class="fas fa-comment-dots me-2"></i>Observações Finais:</strong>
-                                {% if relatorio.observacoes_finais %}
-                                <div class="border p-3 mt-2 bg-light">
-                                    {{ relatorio.observacoes_finais|safe }}
+                            <!-- Card: Checklist -->
+                            <div class="card mb-3 shadow-sm border-0" style="border-left: 4px solid #1cc88a !important;">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3 fw-bold text-success">
+                                        <i class="fas fa-check-square me-2"></i>Checklist Selecionado
+                                    </h6>
+                                    {% if checklist %}
+                                        {% if checklist is mapping %}
+                                            {% set items = checklist.get('items', []) %}
+                                        {% else %}
+                                            {% set items = checklist %}
+                                        {% endif %}
+                                        
+                                        {% if items and items|length > 0 %}
+                                        <div class="checklist-container">
+                                            {% for item in items %}
+                                            <div class="checklist-item p-3 mb-2 rounded" 
+                                                 style="background: {% if item is mapping and item.get('concluido', False) %}#d1f2eb{% else %}#f8f9fc{% endif %}; 
+                                                        border-left: 3px solid {% if item is mapping and item.get('concluido', False) %}#1cc88a{% else %}#d1d3e2{% endif %};">
+                                                {% if item is mapping %}
+                                                    <div class="d-flex align-items-start">
+                                                        <i class="fas fa-{{ 'check-circle' if item.get('concluido', False) else 'circle' }} me-2 mt-1" 
+                                                           style="color: {% if item.get('concluido', False) %}#1cc88a{% else %}#858796{% endif %}; font-size: 1.1rem;"></i>
+                                                        <div class="flex-grow-1">
+                                                            <strong style="color: #5a5c69;">{{ item.get('pergunta', item.get('texto', 'Item sem descrição')) }}</strong>
+                                                            {% if item.get('resposta') %}
+                                                            <div class="mt-1 text-muted" style="font-size: 0.9rem; padding-left: 1.5rem;">
+                                                                {{ item.get('resposta') }}
+                                                            </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                {% else %}
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-circle me-2" style="color: #858796; font-size: 0.6rem;"></i>
+                                                        <strong style="color: #5a5c69;">{{ item }}</strong>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% else %}
+                                        <p class="text-muted mb-0 fst-italic">
+                                            <i class="fas fa-info-circle me-1"></i>Não preenchido
+                                        </p>
+                                        {% endif %}
+                                    {% else %}
+                                    <p class="text-muted mb-0 fst-italic">
+                                        <i class="fas fa-info-circle me-1"></i>Não preenchido
+                                    </p>
+                                    {% endif %}
                                 </div>
-                                {% else %}
-                                <p class="text-muted ms-3 mt-2 mb-0">Não preenchido</p>
-                                {% endif %}
+                            </div>
+
+                            <!-- Card: Observações Finais -->
+                            <div class="card mb-3 shadow-sm border-0" style="border-left: 4px solid #f6c23e !important;">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3 fw-bold text-warning">
+                                        <i class="fas fa-comment-dots me-2"></i>Observações Finais
+                                    </h6>
+                                    {% if relatorio.observacoes_finais %}
+                                    <div class="p-3 rounded" style="background: #fff3cd; border: 1px solid #ffeaa7;">
+                                        <div style="color: #856404;">{{ relatorio.observacoes_finais|safe }}</div>
+                                    </div>
+                                    {% else %}
+                                    <p class="text-muted mb-0 fst-italic">
+                                        <i class="fas fa-info-circle me-1"></i>Não preenchido
+                                    </p>
+                                    {% endif %}
+                                </div>
                             </div>
                             {% endif %}
                         </div>
@@ -231,7 +269,7 @@
                                     {% if relatorio.data_aprovacao and relatorio.aprovador %}
                                     <br><small class="text-muted">
                                         Aprovado em {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }} 
-                                        por {{ relatorio.aprovador.nome_completo }}
+                                        por {% if relatorio.aprovador is mapping %}{{ relatorio.aprovador.get('nome_completo', relatorio.aprovador.get('username', 'Aprovador')) }}{% else %}{{ relatorio.aprovador.nome_completo if relatorio.aprovador.nome_completo else relatorio.aprovador.username }}{% endif %}
                                     </small>
                                     {% endif %}
                                 </div>
@@ -252,7 +290,9 @@
                                     <small class="text-muted">
                                         {% if relatorio.status == 'Em edição' %}Rejeitado em{% else %}Rejeitado em{% endif %}
                                         {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }}
-                                        {% if relatorio.aprovador %}por {{ relatorio.aprovador.nome_completo }}{% endif %}
+                                        {% if relatorio.aprovador %}
+                                            por {% if relatorio.aprovador is mapping %}{{ relatorio.aprovador.get('nome_completo', relatorio.aprovador.get('username', 'Aprovador')) }}{% else %}{{ relatorio.aprovador.nome_completo if relatorio.aprovador.nome_completo else relatorio.aprovador.username }}{% endif %}
+                                        {% endif %}
                                     </small>
                                     {% endif %}
                                 </div>
