@@ -3,7 +3,9 @@ class NotificationsManager {
         this.notificacoes = [];
         this.drawer = null;
         this.badge = null;
+        this.badgeMobile = null;
         this.bell = null;
+        this.bellMobile = null;
         this.notificationsList = null;
         this.unreadCountSpan = null;
         this.markAllReadBtn = null;
@@ -16,20 +18,34 @@ class NotificationsManager {
         document.addEventListener('DOMContentLoaded', () => {
             this.drawer = document.getElementById('notificationsDrawer');
             this.badge = document.getElementById('notificationBadge');
+            this.badgeMobile = document.getElementById('notificationBadgeMobile');
             this.bell = document.getElementById('notificationBell');
+            this.bellMobile = document.getElementById('notificationBellMobile');
             this.notificationsList = document.getElementById('notificationsList');
             this.unreadCountSpan = document.getElementById('unreadCount');
             this.markAllReadBtn = document.getElementById('markAllReadBtn');
             
-            if (!this.bell) {
+            // Desktop bell
+            if (this.bell) {
+                this.bell.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.openDrawer();
+                });
+            }
+            
+            // Mobile bell
+            if (this.bellMobile) {
+                this.bellMobile.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.openDrawer();
+                });
+            }
+            
+            // Se nenhum bell existir, o usuário não está logado
+            if (!this.bell && !this.bellMobile) {
                 console.debug('ℹ️ Sistema de notificações: aguardando login do usuário');
                 return;
             }
-            
-            this.bell.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.openDrawer();
-            });
             
             if (this.markAllReadBtn) {
                 this.markAllReadBtn.addEventListener('click', () => {
@@ -83,13 +99,26 @@ class NotificationsManager {
     }
     
     atualizarContador(count) {
-        if (!this.badge) return;
+        const displayCount = count > 99 ? '99+' : count;
         
-        if (count > 0) {
-            this.badge.textContent = count > 99 ? '99+' : count;
-            this.badge.style.display = 'inline-block';
-        } else {
-            this.badge.style.display = 'none';
+        // Atualizar badge desktop
+        if (this.badge) {
+            if (count > 0) {
+                this.badge.textContent = displayCount;
+                this.badge.style.display = 'inline-block';
+            } else {
+                this.badge.style.display = 'none';
+            }
+        }
+        
+        // Atualizar badge mobile
+        if (this.badgeMobile) {
+            if (count > 0) {
+                this.badgeMobile.textContent = displayCount;
+                this.badgeMobile.style.display = 'inline-block';
+            } else {
+                this.badgeMobile.style.display = 'none';
+            }
         }
         
         if (this.unreadCountSpan) {
