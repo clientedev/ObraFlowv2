@@ -192,33 +192,52 @@
                                         {% endif %}
                                         
                                         {% if items and items|length > 0 %}
+                                        {% set has_selected = [] %}
                                         <div class="checklist-container">
                                             {% for item in items %}
-                                            <div class="checklist-item p-3 mb-2 rounded" 
-                                                 style="background: {% if item is mapping and item.get('concluido', False) %}#d1f2eb{% else %}#f8f9fc{% endif %}; 
-                                                        border-left: 3px solid {% if item is mapping and item.get('concluido', False) %}#1cc88a{% else %}#d1d3e2{% endif %};">
                                                 {% if item is mapping %}
-                                                    <div class="d-flex align-items-start">
-                                                        <i class="fas fa-{{ 'check-circle' if item.get('concluido', False) else 'circle' }} me-2 mt-1" 
-                                                           style="color: {% if item.get('concluido', False) %}#1cc88a{% else %}#858796{% endif %}; font-size: 1.1rem;"></i>
-                                                        <div class="flex-grow-1">
-                                                            <strong style="color: #5a5c69;">{{ item.get('pergunta', item.get('texto', 'Item sem descrição')) }}</strong>
-                                                            {% if item.get('resposta') %}
-                                                            <div class="mt-1 text-muted" style="font-size: 0.9rem; padding-left: 1.5rem;">
-                                                                {{ item.get('resposta') }}
-                                                            </div>
-                                                            {% endif %}
-                                                        </div>
-                                                    </div>
+                                                    {% set concluido_val = item.get('concluido', False) %}
+                                                    {% set checked_val = item.get('checked', False) %}
+                                                    {% set completed_val = item.get('completed', False) %}
+                                                    {% set selecionado_val = item.get('selecionado', False) %}
+                                                    {% set true_values = [true, 'true', 'True', 'TRUE', '1', 1, 2, 3, 4, 5, 6, 7, 8, 9, '2', '3', '4', '5', '01', 'yes', 'Yes', 'YES', 'y', 'Y', 't', 'T', 'sim', 'Sim', 'SIM', 's', 'S', 'ok', 'OK', 'checked', 'selected', 'ativo', 'active'] %}
+                                                    {% set is_selected = (concluido_val in true_values) or (checked_val in true_values) or (completed_val in true_values) or (selecionado_val in true_values) %}
                                                 {% else %}
-                                                    <div class="d-flex align-items-center">
-                                                        <i class="fas fa-circle me-2" style="color: #858796; font-size: 0.6rem;"></i>
-                                                        <strong style="color: #5a5c69;">{{ item }}</strong>
+                                                    {% set is_selected = false %}
+                                                {% endif %}
+                                                
+                                                {% if is_selected %}
+                                                    {% if has_selected.append(1) %}{% endif %}
+                                                    <div class="checklist-item p-3 mb-2 rounded" 
+                                                         style="background: #d1f2eb; border-left: 3px solid #1cc88a;">
+                                                        {% if item is mapping %}
+                                                            <div class="d-flex align-items-start">
+                                                                <i class="fas fa-check-circle me-2 mt-1" 
+                                                                   style="color: #1cc88a; font-size: 1.1rem;"></i>
+                                                                <div class="flex-grow-1">
+                                                                    <strong style="color: #5a5c69;">{{ item.get('pergunta', item.get('texto', 'Item sem descrição')) }}</strong>
+                                                                    {% if item.get('resposta') or item.get('observacao') or item.get('observations') %}
+                                                                    <div class="mt-1 text-muted" style="font-size: 0.9rem; padding-left: 1.5rem;">
+                                                                        {{ item.get('resposta', item.get('observacao', item.get('observations', ''))) }}
+                                                                    </div>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        {% else %}
+                                                            <div class="d-flex align-items-center">
+                                                                <i class="fas fa-check-circle me-2" style="color: #1cc88a; font-size: 1.1rem;"></i>
+                                                                <strong style="color: #5a5c69;">{{ item }}</strong>
+                                                            </div>
+                                                        {% endif %}
                                                     </div>
                                                 {% endif %}
-                                            </div>
                                             {% endfor %}
                                         </div>
+                                        {% if has_selected|length == 0 %}
+                                        <p class="text-muted mb-0 fst-italic">
+                                            <i class="fas fa-info-circle me-1"></i>Nenhum item selecionado no checklist
+                                        </p>
+                                        {% endif %}
                                         {% else %}
                                         <p class="text-muted mb-0 fst-italic">
                                             <i class="fas fa-info-circle me-1"></i>Não preenchido

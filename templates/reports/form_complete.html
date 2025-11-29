@@ -3514,21 +3514,51 @@ function carregarChecklist(items) {
 
     const div = document.createElement("div");
     div.className = "checklist-item mb-3";
-    if (item.checked) {
+    
+    // Normalizar o estado de checked - função robusta que suporta todos os formatos de true/false
+    const isCheckedValue = (val) => {
+      // Valores explicitamente falsos
+      if (val === false || val === 0 || val === null || val === undefined || val === '') return false;
+      // Valores explicitamente verdadeiros
+      if (val === true || val === 1) return true;
+      // Strings - verificar se é explicitamente falso primeiro
+      if (typeof val === 'string') {
+        const lower = val.toLowerCase().trim();
+        // Retorna false para valores explicitamente negativos
+        if (['false', '0', 'no', 'n', 'f', 'nao', 'não', 'nenhum', 'none', ''].includes(lower)) return false;
+        // Retorna true para valores positivos (inclui todas as variantes possíveis)
+        if (['true', '1', 'yes', 'y', 't', 'sim', 's', 'ok', 'checked', 'selected', 'ativo', 'active'].includes(lower)) return true;
+        // Se é numérico não-zero, é true
+        if (!isNaN(Number(lower)) && Number(lower) !== 0) return true;
+      }
+      // Números não-zero são true
+      if (typeof val === 'number' && val !== 0) return true;
+      return false;
+    };
+    const checked = isCheckedValue(item.checked) || isCheckedValue(item.completed) || 
+                    isCheckedValue(item.concluido) || isCheckedValue(item.selecionado);
+    
+    if (checked) {
       div.classList.add("completed");
     }
 
-    const texto = item.texto || 'Sem descrição';
-    const checked = item.checked || false;
+    // Garantir identificador único e estável para cada item
+    const texto = item.texto || item.item || item.pergunta || 'Sem descrição';
+    // Usar ID existente se disponível (prioridade: server ID > salvo > gerado)
+    let itemId = item.id || item.item_id || item.checklist_id || item.original_id || item.uid || item.generated_id;
+    if (!itemId) {
+      // Gerar ID único usando índice (necessário para manter unicidade entre itens com texto igual)
+      itemId = `chk_${index}`;
+    }
     const imagem = item.imagem_url || '';
-    const observacao = item.observacao || '';
+    const observacao = item.observacao || item.observations || item.resposta || '';
 
-    console.log(`  📝 Texto: "${texto}", Checked: ${checked}, Imagem: ${imagem ? 'SIM' : 'NÃO'}`);
+    console.log(`  📝 Texto: "${texto}", Checked: ${checked}, ID: ${itemId}, Imagem: ${imagem ? 'SIM' : 'NÃO'}`);
 
     let itemHTML = `
       <div class="form-check">
-        <input type="checkbox" class="form-check-input" id="check_${item.id || index}" data-id="${item.id || ''}" ${checked ? "checked" : ""}>
-        <label class="form-check-label fw-bold" for="check_${item.id || index}">
+        <input type="checkbox" class="form-check-input" id="check_${itemId}" data-id="${itemId}" ${checked ? "checked" : ""} onchange="toggleChecklistItem(this)">
+        <label class="form-check-label fw-bold" for="check_${itemId}">
           ${texto}
         </label>
       </div>
@@ -3547,12 +3577,15 @@ function carregarChecklist(items) {
       `;
     }
 
-    // Adicionar campo de observação
+    // Adicionar campo de observação - visível apenas se item estiver marcado
     itemHTML += `
-      <textarea class="form-control mt-2" 
-                placeholder="Observações sobre este item..." 
-                data-id="${item.id || ''}"
-                rows="2">${observacao}</textarea>
+      <div class="mt-2" id="obs_${itemId}" style="display: ${checked ? 'block' : 'none'};">
+        <textarea class="form-control" 
+                  placeholder="Observações sobre este item..." 
+                  name="obs_${itemId}"
+                  data-id="${itemId}"
+                  rows="2">${observacao}</textarea>
+      </div>
     `;
 
     div.innerHTML = itemHTML;

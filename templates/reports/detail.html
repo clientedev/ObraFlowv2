@@ -134,31 +134,62 @@
 </div>
 
 <script>
-// Carregar e exibir checklist
+// Carregar e exibir checklist - mostra apenas itens selecionados/concluídos
 document.addEventListener('DOMContentLoaded', function() {
     const checklistData = {{ relatorio.checklist_data|safe if relatorio.checklist_data else '[]' }};
     const checklistDisplay = document.getElementById('checklistDisplay');
     
+    // Função robusta para normalizar booleanos - suporta todos os formatos comuns
+    const isTrue = (val) => {
+        // Valores explicitamente falsos
+        if (val === false || val === 0 || val === null || val === undefined || val === '') return false;
+        // Valores explicitamente verdadeiros
+        if (val === true || val === 1) return true;
+        // Strings - verificar se é explicitamente falso primeiro
+        if (typeof val === 'string') {
+            const lower = val.toLowerCase().trim();
+            // Retorna false para valores explicitamente negativos
+            if (['false', '0', 'no', 'n', 'f', 'nao', 'não', 'nenhum', 'none', ''].includes(lower)) return false;
+            // Retorna true para valores positivos (inclui todas as variantes)
+            if (['true', '1', 'yes', 'y', 't', 'sim', 's', 'ok', 'checked', 'selected', 'ativo', 'active'].includes(lower)) return true;
+            // Se é numérico não-zero, é true
+            if (!isNaN(Number(lower)) && Number(lower) !== 0) return true;
+        }
+        // Números não-zero são true
+        if (typeof val === 'number' && val !== 0) return true;
+        return false;
+    };
+    
     if (checklistData && checklistData.length > 0) {
-        let html = '<div class="list-group">';
-        checklistData.forEach(item => {
-            const status = item.completed ? 'list-group-item-success' : 'list-group-item-light';
-            const icon = item.completed ? 'fa-check-circle text-success' : 'fa-circle text-muted';
-            
-            html += `
-                <div class="list-group-item ${status}">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h6 class="mb-1">
-                            <i class="fas ${icon}"></i> ${item.item}
-                        </h6>
-                        <small>${item.completed ? 'Concluído' : 'Pendente'}</small>
+        // Filtrar apenas itens selecionados - normalizando valores booleanos
+        const selectedItems = checklistData.filter(item => 
+            isTrue(item.completed) || isTrue(item.checked) || 
+            isTrue(item.concluido) || isTrue(item.selecionado)
+        );
+        
+        if (selectedItems.length > 0) {
+            let html = '<div class="list-group">';
+            selectedItems.forEach(item => {
+                const itemText = item.item || item.texto || item.pergunta || 'Item sem descrição';
+                const observation = item.observations || item.observacao || item.resposta || '';
+                
+                html += `
+                    <div class="list-group-item list-group-item-success">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">
+                                <i class="fas fa-check-circle text-success"></i> ${itemText}
+                            </h6>
+                            <small class="text-success">Selecionado</small>
+                        </div>
+                        ${observation ? `<p class="mb-1 text-muted">${observation}</p>` : ''}
                     </div>
-                    ${item.observations ? `<p class="mb-1">${item.observations}</p>` : ''}
-                </div>
-            `;
-        });
-        html += '</div>';
-        checklistDisplay.innerHTML = html;
+                `;
+            });
+            html += '</div>';
+            checklistDisplay.innerHTML = html;
+        } else {
+            checklistDisplay.innerHTML = '<p class="text-muted">Nenhum item selecionado no checklist.</p>';
+        }
     } else {
         checklistDisplay.innerHTML = '<p class="text-muted">Nenhum checklist disponível.</p>';
     }
