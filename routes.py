@@ -936,27 +936,48 @@ def api_next_report_number(projeto_id):
 @app.route('/relatorios/ultimo-lembrete')
 @login_required
 def ultimo_lembrete():
-    """Retorna o lembrete do último relatório de uma obra"""
+    """Retorna o lembrete do relatório IMEDIATAMENTE anterior de uma obra
+    
+    O lembrete só aparece no relatório subsequente imediato (N-1 -> N).
+    Exemplo: lembrete do relatório 79 só aparece no 80, não no 81 ou posteriores.
+    """
     try:
         obra_id = request.args.get('obra_id', type=int)
         
         if not obra_id:
             return jsonify({'lembrete': None}), 200
         
-        # Buscar o relatório mais recente da obra que contenha lembrete_proxima_visita
-        ultimo_relatorio = Relatorio.query.filter(
-            Relatorio.projeto_id == obra_id,
-            Relatorio.lembrete_proxima_visita.isnot(None),
-            Relatorio.lembrete_proxima_visita != ''
-        ).order_by(Relatorio.data_relatorio.desc()).first()
+        # Buscar o projeto para obter o próximo número
+        projeto = Projeto.query.get(obra_id)
+        if not projeto:
+            return jsonify({'lembrete': None}), 200
         
-        if not ultimo_relatorio:
+        # Calcular o próximo número do relatório
+        numeracao_inicial = projeto.numeracao_inicial or 1
+        max_numero_existente = db.session.query(
+            db.func.max(Relatorio.numero_projeto)
+        ).filter_by(projeto_id=obra_id).scalar()
+        
+        if max_numero_existente is None:
+            # Não há relatórios, logo não há lembrete anterior
+            return jsonify({'lembrete': None}), 200
+        
+        proximo_numero_projeto = max(numeracao_inicial - 1, max_numero_existente) + 1
+        numero_anterior = proximo_numero_projeto - 1
+        
+        # Buscar APENAS o relatório imediatamente anterior (N-1)
+        relatorio_anterior = Relatorio.query.filter_by(
+            projeto_id=obra_id,
+            numero_projeto=numero_anterior
+        ).first()
+        
+        if not relatorio_anterior or not relatorio_anterior.lembrete_proxima_visita:
             return jsonify({'lembrete': None}), 200
         
         return jsonify({
-            'lembrete': ultimo_relatorio.lembrete_proxima_visita,
-            'relatorio_origem': ultimo_relatorio.numero,
-            'data_relatorio': ultimo_relatorio.data_relatorio.strftime('%d/%m/%Y') if ultimo_relatorio.data_relatorio else None
+            'lembrete': relatorio_anterior.lembrete_proxima_visita,
+            'relatorio_origem': relatorio_anterior.numero,
+            'data_relatorio': relatorio_anterior.data_relatorio.strftime('%d/%m/%Y') if relatorio_anterior.data_relatorio else None
         }), 200
         
     except Exception as e:
@@ -3256,17 +3277,22 @@ def create_report():
                     next_numero = f"REL-{proximo_numero_projeto:04d}"
                     current_app.logger.info(f"📋 Next numero for project {projeto_id_param}: {next_numero} (numeracao_inicial: {numeracao_inicial}, max_existente: {max_numero_existente})")
                     
-                    # Buscar lembrete do último relatório deste projeto
-                    ultimo_relatorio = Relatorio.query.filter_by(
-                        projeto_id=projeto_id_param
-                    ).order_by(Relatorio.created_at.desc()).first()
+                    # Buscar lembrete APENAS do relatório IMEDIATAMENTE anterior (N-1)
+                    # Se o próximo número é 81, buscar apenas o relatório 80
+                    numero_anterior = proximo_numero_projeto - 1
                     
-                    if ultimo_relatorio and ultimo_relatorio.lembrete_proxima_visita:
-                        lembrete_anterior = {
-                            'numero': ultimo_relatorio.numero,
-                            'texto': ultimo_relatorio.lembrete_proxima_visita
-                        }
-                        current_app.logger.info(f"📝 Lembrete encontrado do relatório {ultimo_relatorio.numero}")
+                    if numero_anterior >= 1:
+                        relatorio_anterior = Relatorio.query.filter_by(
+                            projeto_id=projeto_id_param,
+                            numero_projeto=numero_anterior
+                        ).first()
+                        
+                        if relatorio_anterior and relatorio_anterior.lembrete_proxima_visita:
+                            lembrete_anterior = {
+                                'numero': relatorio_anterior.numero,
+                                'texto': relatorio_anterior.lembrete_proxima_visita
+                            }
+                            current_app.logger.info(f"📝 Lembrete encontrado do relatório anterior {relatorio_anterior.numero} (numero_projeto={numero_anterior})")
             except (ValueError, TypeError):
                 selected_project = None
         else:
