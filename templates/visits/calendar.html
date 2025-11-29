@@ -449,7 +449,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         backgroundColor: eventColor,
                         borderColor: eventColor,
                         extendedProps: {
-                            visitId: visit.id,
+                            visitId: visit.visit_id || visit.id,
                             status: visit.status,
                             projeto: visit.projeto_nome,
                             responsavel: visit.responsavel_nome,
