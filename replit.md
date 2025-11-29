@@ -2,6 +2,12 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, autosave functionality with real-time synchronization, and a comprehensive notification system. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes
+**November 29, 2025** - Checklist UI improvements:
+- Observation textareas now only display for checked checklist items (hidden by default, shown on check)
+- Approved report view (detail.html) correctly filters to show only selected checklist items
+- Comprehensive boolean normalization to handle various truthy value formats across templates
+- Improved ID stability for checklist items to maintain observation persistence
+
 **November 21, 2025** - Enhanced project listing with tabs and distance-based sorting:
 - Implemented tabbed interface for project filtering: "Obras Ativas" (default) and "Obras Concluídas"
 - Client-side geolocation-based distance sorting using Haversine formula
