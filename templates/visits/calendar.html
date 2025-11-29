@@ -206,21 +206,36 @@
     </div>
 </div>
 
-<!-- Modal para detalhes da visita -->
+<!-- Modal para detalhes da visita - Design melhorado -->
 <div class="modal fade" id="visitModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="visitModalTitle">Detalhes da Visita</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0" id="visitModalHeader" style="background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%); border-radius: 0.5rem 0.5rem 0 0;">
+                <div class="w-100 text-white py-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h4 class="modal-title mb-1" id="visitModalTitle">
+                                <i class="fas fa-calendar-check me-2"></i>Detalhes da Visita
+                            </h4>
+                            <p class="mb-0 opacity-75" id="visitModalSubtitle"></p>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                </div>
             </div>
-            <div class="modal-body" id="visitModalBody">
-                <!-- Conteúdo carregado via AJAX -->
+            <div class="modal-body pt-4" id="visitModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="text-muted mt-2">Carregando detalhes...</p>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                <div id="visitModalActions">
-                    <!-- Ações específicas da visita -->
+            <div class="modal-footer border-0 bg-light" style="border-radius: 0 0 0.5rem 0.5rem;">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Fechar
+                </button>
+                <div id="visitModalActions" class="d-flex gap-2">
                 </div>
             </div>
         </div>
@@ -248,10 +263,10 @@ document.addEventListener('DOMContentLoaded', function() {
             right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
         },
         height: 'auto',
-        // Item 28: Implementar clique em eventos para redirecionamento
+        // Item 28: Implementar clique em eventos para mostrar modal de detalhes
         eventClick: function(info) {
-            // Redirecionar para a página do agendamento
-            window.location.href = "/visits/" + info.event.extendedProps.visitId;
+            info.jsEvent.preventDefault();
+            showVisitDetails(info.event.extendedProps.visitId);
         },
         // Item 28: Implementar clique em datas para novo agendamento
         dateClick: function(info) {
@@ -487,74 +502,192 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showVisitDetails(visitId) {
+        const modal = new bootstrap.Modal(document.getElementById('visitModal'));
+        modal.show();
+        
+        const modalHeader = document.getElementById('visitModalHeader');
+        const modalTitle = document.getElementById('visitModalTitle');
+        const modalSubtitle = document.getElementById('visitModalSubtitle');
+        const modalBody = document.getElementById('visitModalBody');
+        const modalActions = document.getElementById('visitModalActions');
+        
+        modalBody.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+                <p class="text-muted mt-2">Carregando detalhes...</p>
+            </div>
+        `;
+        
         fetch(`/api/visits/${visitId}/details`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     const visit = data.visit;
-                    const modalTitle = document.getElementById('visitModalTitle');
-                    const modalBody = document.getElementById('visitModalBody');
-                    const modalActions = document.getElementById('visitModalActions');
-
-                    modalTitle.textContent = `Visita ${visit.numero}`;
+                    
+                    const statusColors = {
+                        'Agendada': { bg: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)', badge: 'primary' },
+                        'Realizada': { bg: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', badge: 'success' },
+                        'Cancelado': { bg: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', badge: 'danger' },
+                        'Cancelada': { bg: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', badge: 'danger' }
+                    };
+                    const statusStyle = statusColors[visit.status] || statusColors['Agendada'];
+                    
+                    modalHeader.style.background = statusStyle.bg;
+                    modalTitle.innerHTML = `<i class="fas fa-calendar-check me-2"></i>Visita ${visit.numero}`;
+                    modalSubtitle.innerHTML = visit.is_pessoal ? 
+                        '<i class="fas fa-user me-1"></i>Compromisso Pessoal' : 
+                        `<i class="fas fa-building me-1"></i>${visit.projeto_nome}${visit.projeto_numero ? ' (' + visit.projeto_numero + ')' : ''}`;
+                    
+                    const dataInicio = visit.data_inicio ? new Date(visit.data_inicio) : null;
+                    const dataFim = visit.data_fim ? new Date(visit.data_fim) : null;
+                    const dataRealizada = visit.data_realizada ? new Date(visit.data_realizada) : null;
+                    
+                    let participantesHtml = '';
+                    if (visit.participantes && visit.participantes.length > 0) {
+                        participantesHtml = `
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-2"><i class="fas fa-users me-2"></i>Participantes</h6>
+                                <div class="d-flex flex-wrap gap-2">
+                                    ${visit.participantes.map(p => `
+                                        <span class="badge" style="background-color: ${p.cor_agenda}; font-size: 0.85rem; padding: 8px 12px;">
+                                            ${p.is_responsavel ? '<i class="fas fa-star me-1"></i>' : ''}
+                                            ${p.nome}
+                                            ${p.confirmado ? '<i class="fas fa-check-circle ms-1"></i>' : ''}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
                     
                     modalBody.innerHTML = `
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6><i class="fas fa-project-diagram me-2"></i>Projeto</h6>
-                                <p>${visit.projeto_nome} (${visit.projeto_numero})</p>
-                                
-                                <h6><i class="fas fa-user me-2"></i>Responsável</h6>
-                                <p>${visit.responsavel_nome}</p>
-                                
-                                <h6><i class="fas fa-calendar me-2"></i>Data Agendada</h6>
-                                <p>${new Date(visit.data_agendada).toLocaleString('pt-BR')}</p>
-                                
-                                ${visit.data_realizada ? `
-                                <h6><i class="fas fa-check me-2"></i>Data Realizada</h6>
-                                <p>${new Date(visit.data_realizada).toLocaleString('pt-BR')}</p>
-                                ` : ''}
+                        <div class="row g-4">
+                            <div class="col-12">
+                                <div class="d-flex align-items-center mb-3">
+                                    <span class="badge bg-${statusStyle.badge} me-2" style="font-size: 0.9rem; padding: 8px 16px;">
+                                        <i class="fas fa-${visit.status === 'Realizada' ? 'check-circle' : visit.status === 'Agendada' ? 'clock' : 'times-circle'} me-1"></i>
+                                        ${visit.status}
+                                    </span>
+                                    ${visit.is_pessoal ? '<span class="badge bg-secondary"><i class="fas fa-user me-1"></i>Pessoal</span>' : ''}
+                                </div>
                             </div>
+                            
                             <div class="col-md-6">
-                                <h6><i class="fas fa-flag me-2"></i>Status</h6>
-                                <p><span class="badge bg-${visit.status === 'Realizada' ? 'success' : visit.status === 'Agendada' ? 'primary' : 'danger'}">${visit.status}</span></p>
-                                
-                                <h6><i class="fas fa-target me-2"></i>Objetivo</h6>
-                                <p>${visit.objetivo}</p>
-                                
-                                ${visit.atividades_realizadas ? `
-                                <h6><i class="fas fa-tasks me-2"></i>Atividades Realizadas</h6>
-                                <p>${visit.atividades_realizadas}</p>
-                                ` : ''}
-                                
-                                ${visit.observacoes ? `
-                                <h6><i class="fas fa-sticky-note me-2"></i>Observações</h6>
-                                <p>${visit.observacoes}</p>
-                                ` : ''}
+                                <div class="card border-0 bg-light h-100">
+                                    <div class="card-body">
+                                        <h6 class="text-primary mb-3"><i class="fas fa-calendar-alt me-2"></i>Datas</h6>
+                                        
+                                        <div class="mb-2">
+                                            <small class="text-muted d-block">Início</small>
+                                            <strong>${dataInicio ? dataInicio.toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' }) : 'N/A'}</strong>
+                                        </div>
+                                        
+                                        ${dataFim ? `
+                                        <div class="mb-2">
+                                            <small class="text-muted d-block">Término</small>
+                                            <strong>${dataFim.toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })}</strong>
+                                        </div>
+                                        ` : ''}
+                                        
+                                        ${dataRealizada ? `
+                                        <div class="mb-2">
+                                            <small class="text-muted d-block"><i class="fas fa-check-circle text-success me-1"></i>Realizada em</small>
+                                            <strong class="text-success">${dataRealizada.toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })}</strong>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
                             </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light h-100">
+                                    <div class="card-body">
+                                        <h6 class="text-primary mb-3"><i class="fas fa-user-tie me-2"></i>Responsável</h6>
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                                 style="width: 40px; height: 40px; background-color: ${visit.responsavel_cor || '#0EA5E9'}; color: white;">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                            <div>
+                                                <strong>${visit.responsavel_nome}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            ${participantesHtml ? `<div class="col-12">${participantesHtml}</div>` : ''}
+                            
+                            ${visit.observacoes ? `
+                            <div class="col-12">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body">
+                                        <h6 class="text-primary mb-2"><i class="fas fa-clipboard-list me-2"></i>Observações</h6>
+                                        <p class="mb-0">${visit.observacoes}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            ${visit.atividades_realizadas ? `
+                            <div class="col-12">
+                                <div class="card border-0 bg-success bg-opacity-10">
+                                    <div class="card-body">
+                                        <h6 class="text-success mb-2"><i class="fas fa-tasks me-2"></i>Atividades Realizadas</h6>
+                                        <p class="mb-0">${visit.atividades_realizadas}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            ${(visit.endereco_gps || visit.projeto_endereco) ? `
+                            <div class="col-12">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body">
+                                        <h6 class="text-primary mb-2"><i class="fas fa-map-marker-alt me-2"></i>Localização</h6>
+                                        <p class="mb-0">${visit.endereco_gps || visit.projeto_endereco}</p>
+                                        ${visit.latitude && visit.longitude ? `
+                                        <a href="https://www.google.com/maps?q=${visit.latitude},${visit.longitude}" 
+                                           target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                            <i class="fas fa-external-link-alt me-1"></i>Abrir no Mapa
+                                        </a>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            ` : ''}
                         </div>
                     `;
 
-                    // Ações do modal
                     let actions = '';
                     if (visit.status === 'Agendada') {
-                        actions += `<a href="/visits/${visit.id}/realize" class="btn btn-success me-2"><i class="fas fa-check me-2"></i>Realizar</a>`;
+                        actions += `<a href="/visits/${visit.id}/realize" class="btn btn-success"><i class="fas fa-check me-1"></i>Realizar</a>`;
+                        actions += `<a href="/visits/${visit.id}/edit" class="btn btn-warning"><i class="fas fa-edit me-1"></i>Editar</a>`;
                     }
-                    actions += `<a href="/visits/${visit.id}/checklist" class="btn btn-primary me-2"><i class="fas fa-list-check me-2"></i>Checklist</a>`;
-                    actions += `<button onclick="exportSingleVisit(${visit.id})" class="btn btn-outline-success"><i class="fab fa-google me-2"></i>Exportar</button>`;
+                    actions += `<a href="/visits/${visit.id}/checklist" class="btn btn-primary"><i class="fas fa-list-check me-1"></i>Ver Detalhes</a>`;
                     
                     modalActions.innerHTML = actions;
-
-                    // Mostrar modal
-                    const modal = new bootstrap.Modal(document.getElementById('visitModal'));
-                    modal.show();
                 } else {
-                    alert('Erro ao carregar detalhes da visita.');
+                    modalBody.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Erro ao carregar detalhes da visita.
+                        </div>
+                    `;
+                    modalActions.innerHTML = '';
                 }
             })
             .catch(error => {
                 console.error('Erro ao carregar detalhes:', error);
-                alert('Erro ao carregar detalhes da visita.');
+                modalBody.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erro ao carregar detalhes da visita. Tente novamente.
+                    </div>
+                `;
+                modalActions.innerHTML = '';
             });
     }
 

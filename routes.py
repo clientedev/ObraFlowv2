@@ -7882,9 +7882,32 @@ def api_visits_list():
 @app.route('/api/visits/<int:visit_id>/details')
 @login_required  
 def api_visit_details(visit_id):
-    """API endpoint for visit details"""
+    """API endpoint for visit details - Enhanced for modal display"""
     try:
         visit = Visita.query.get_or_404(visit_id)
+        
+        projeto_nome = "Compromisso Pessoal" if visit.is_pessoal else (
+            visit.projeto.nome if visit.projeto else (visit.projeto_outros or "Outros")
+        )
+        projeto_numero = "" if visit.is_pessoal else (
+            visit.projeto.numero if visit.projeto else ""
+        )
+        
+        responsavel_nome = visit.responsavel.nome_completo if visit.responsavel else "N/A"
+        responsavel_cor = visit.responsavel.cor_agenda if visit.responsavel else "#0EA5E9"
+        
+        participantes_list = []
+        if hasattr(visit, 'participantes'):
+            for p in visit.participantes:
+                if p.user:
+                    participantes_list.append({
+                        'id': p.user.id,
+                        'nome': p.user.nome_completo,
+                        'cargo': p.user.cargo or '',
+                        'cor_agenda': p.user.cor_agenda or '#0EA5E9',
+                        'confirmado': p.confirmado,
+                        'is_responsavel': p.user.id == visit.responsavel_id
+                    })
 
         visit_data = {
             'id': visit.id,
@@ -7893,12 +7916,19 @@ def api_visit_details(visit_id):
             'data_fim': visit.data_fim.isoformat() if visit.data_fim else None,
             'data_realizada': visit.data_realizada.isoformat() if visit.data_realizada else None,
             'status': visit.status,
-            'projeto_nome': visit.projeto.nome,
-            'projeto_numero': visit.projeto.numero,
-            'responsavel_nome': visit.responsavel.nome_completo,
-            'observacoes_objetivo': visit.observacoes or '',
+            'projeto_nome': projeto_nome,
+            'projeto_numero': projeto_numero,
+            'projeto_endereco': visit.projeto.endereco if visit.projeto else '',
+            'responsavel_nome': responsavel_nome,
+            'responsavel_cor': responsavel_cor,
+            'observacoes': visit.observacoes or '',
             'atividades_realizadas': visit.atividades_realizadas or '',
-            'observacoes': visit.observacoes or ''
+            'endereco_gps': visit.endereco_gps or '',
+            'latitude': visit.latitude,
+            'longitude': visit.longitude,
+            'is_pessoal': visit.is_pessoal or False,
+            'participantes': participantes_list,
+            'created_at': visit.created_at.isoformat() if visit.created_at else None
         }
 
         return jsonify({
