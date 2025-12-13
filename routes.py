@@ -6667,10 +6667,10 @@ def update_report(report_id):
                             # Imagem já existe (por hash) - apenas atualizar metadados se necessário
                             app.logger.info(f"🔄 Imagem já existe (hash={imagem_hash[:12]}...) - ID: {foto_existente.id}. Atualizando apenas metadados.")
                             
-                            # Buscar metadados do form se disponíveis
-                            legenda = request.form.get(f"legenda_{index}")
-                            categoria = request.form.get(f"categoria_{index}")
-                            local = request.form.get(f"local_{index}")
+                            # Buscar metadados do form se disponíveis - CORREÇÃO: aceitar múltiplos nomes de campos
+                            legenda = request.form.get(f"legenda_{index}") or request.form.get(f"photo_caption_{index}") or request.form.get(f"caption_{index}")
+                            categoria = request.form.get(f"categoria_{index}") or request.form.get(f"photo_category_{index}") or request.form.get(f"category_{index}")
+                            local = request.form.get(f"local_{index}") or request.form.get(f"photo_local_{index}")
                             
                             # Atualizar apenas metadados (sem duplicar arquivo)
                             if legenda is not None:
@@ -6695,10 +6695,10 @@ def update_report(report_id):
                             arquivo.save(caminho)
                             app.logger.info(f"💾 Arquivo salvo em: {caminho}")
                             
-                            # Buscar metadados do form se disponíveis
-                            legenda = request.form.get(f"legenda_{index}", "")
-                            categoria = request.form.get(f"categoria_{index}", "")
-                            local = request.form.get(f"local_{index}", "")
+                            # Buscar metadados do form se disponíveis - CORREÇÃO: aceitar múltiplos nomes de campos
+                            legenda = request.form.get(f"legenda_{index}") or request.form.get(f"photo_caption_{index}") or request.form.get(f"caption_{index}") or ""
+                            categoria = request.form.get(f"categoria_{index}") or request.form.get(f"photo_category_{index}") or request.form.get(f"category_{index}") or ""
+                            local = request.form.get(f"local_{index}") or request.form.get(f"photo_local_{index}") or ""
                             
                             # Criar registro da foto
                             nova_foto = FotoRelatorio()

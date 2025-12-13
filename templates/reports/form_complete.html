@@ -3034,12 +3034,18 @@ async function prepareMobilePhotoFormData() {
         const categoryInput = document.createElement('input');
         categoryInput.type = 'hidden';
         categoryInput.name = `photo_category_${index}`;
-        categoryInput.value = photoData.category;
+        categoryInput.value = photoData.category || '';
 
         const captionInput = document.createElement('input');
         captionInput.type = 'hidden';
         captionInput.name = `photo_caption_${index}`;
-        captionInput.value = photoData.manualCaption || photoData.predefinedCaption;
+        captionInput.value = photoData.manualCaption || photoData.predefinedCaption || '';
+        
+        // CORREÇÃO: Adicionar campo local que estava faltando
+        const localInput = document.createElement('input');
+        localInput.type = 'hidden';
+        localInput.name = `photo_local_${index}`;
+        localInput.value = photoData.local || '';
 
         // Criar file input para o arquivo real
         const fileInput = document.createElement('input');
@@ -3057,6 +3063,7 @@ async function prepareMobilePhotoFormData() {
         if (form) {
             form.appendChild(categoryInput);
             form.appendChild(captionInput);
+            form.appendChild(localInput);
             form.appendChild(fileInput);
         }
     });
