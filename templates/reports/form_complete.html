@@ -1572,8 +1572,8 @@ document.getElementById('reportForm').addEventListener('submit', async function(
                 console.log(`✅ Imagem existente mantida: ${fotoId}`);
                 
                 // CORREÇÃO: Coletar legenda, categoria e local da imagem existente
-                const legenda = photo.manualCaption || photo.predefinedCaption || photo.caption || photo.metadata?.legenda || '';
-                const categoria = photo.category || photo.metadata?.categoria || photo.metadata?.tipo_servico || '';
+                const legenda = photo.manualCaption || photo.predefinedCaption || photo.caption || photo.legenda || photo.metadata?.legenda || '';
+                const categoria = photo.category || photo.categoria || photo.tipo_servico || photo.metadata?.categoria || photo.metadata?.tipo_servico || '';
                 const local = photo.local || photo.metadata?.local || '';
                 
                 legendasImagens.push({

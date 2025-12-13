@@ -6619,9 +6619,9 @@ def update_report(report_id):
                                 foto.legenda = img_data["legenda"]
                                 app.logger.info(f"✅ Legenda atualizada para foto {foto_id}: {img_data['legenda'][:50]}...")
                             
-                            # Atualizar categoria
+                            # Atualizar categoria (tipo_servico no modelo)
                             if "categoria" in img_data:
-                                foto.categoria = img_data["categoria"]
+                                foto.tipo_servico = img_data["categoria"]
                             
                             # Atualizar local
                             if "local" in img_data:
