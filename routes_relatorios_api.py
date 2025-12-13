@@ -598,6 +598,10 @@ def api_atualizar_relatorio(relatorio_id):
                                 foto.legenda = img_info['legenda']
                             if 'ordem' in img_info:
                                 foto.ordem = img_info['ordem']
+                            if 'category' in img_info:
+                                foto.tipo_servico = img_info['category']
+                            if 'local' in img_info:
+                                foto.local = img_info['local']
             except Exception as e:
                 logger.error(f"Erro ao atualizar imagens: {e}")
 
@@ -657,7 +661,10 @@ def api_atualizar_relatorio(relatorio_id):
             'id': img.id,
             'url': img.url or f"/uploads/{img.filename}" if img.filename else None,
             'legenda': img.legenda,
-            'ordem': img.ordem
+            'ordem': img.ordem,
+            'tipo_servico': img.tipo_servico or '',
+            'category': img.tipo_servico or '',
+            'local': img.local or ''
         } for img in relatorio.imagens.order_by(FotoRelatorio.ordem).all()]
 
         return jsonify({

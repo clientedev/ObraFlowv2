@@ -605,10 +605,14 @@ class ReportAutoSave {
         imageCards.forEach((card, index) => {
             const imageId = card.dataset.imageId;
             const legendaInput = card.querySelector('.image-legenda');
+            const categoriaInput = card.querySelector('.image-categoria');
+            const localInput = card.querySelector('.image-local');
             
             imagens.push({
                 id: imageId ? parseInt(imageId) : null,
                 legenda: legendaInput ? legendaInput.value : '',
+                category: categoriaInput ? categoriaInput.value : '',
+                local: localInput ? localInput.value : '',
                 ordem: index
             });
         });
