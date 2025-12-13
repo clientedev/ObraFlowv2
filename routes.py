@@ -3875,7 +3875,7 @@ def approve_report(id):
         if not destinatarios:
             current_app.logger.warning(f"⚠️ Nenhum destinatário encontrado para relatório {relatorio.numero}")
             flash('✅ Relatório aprovado com sucesso! Nenhum destinatário de e-mail configurado.', 'warning')
-            return redirect(url_for('review_report', report_id=id))
+            return redirect(url_for('report_edit', report_id=id))
 
         current_app.logger.info(f"📧 Destinatários: {destinatarios}")
 
@@ -3910,7 +3910,7 @@ def approve_report(id):
             current_app.logger.warning(f"⚠️ Falha ao enviar e-mail")
             flash('✅ Relatório aprovado com sucesso! Não foi possível enviar o e-mail de notificação.', 'warning')
         
-        return redirect(url_for('review_report', report_id=id))
+        return redirect(url_for('report_edit', report_id=id))
             
     except Exception as e:
         db.session.rollback()
@@ -3918,7 +3918,7 @@ def approve_report(id):
         import traceback
         current_app.logger.error(traceback.format_exc())
         flash(f'Erro ao aprovar relatório: {str(e)}', 'error')
-        return redirect(url_for('review_report', report_id=id))
+        return redirect(url_for('report_edit', report_id=id))
 
 @app.route('/reports/<int:id>/reject', methods=['POST'])
 @login_required
