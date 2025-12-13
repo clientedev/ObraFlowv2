@@ -1232,13 +1232,15 @@ def api_autosave_relatorio():
                             # Imagem já existe - apenas atualizar metadados se necessário
                             logger.info(f"⚠️ AutoSave: Imagem já existe no banco (hash={imagem_hash[:12]}...) - ID={foto_existente.id}. Atualizando metadados.")
                             
-                            # Atualizar metadados da foto existente
-                            if 'legenda' in foto_info and foto_info['legenda']:
-                                foto_existente.legenda = foto_info['legenda']
+                            # Atualizar metadados da foto existente - CORREÇÃO: aceitar tanto keys em PT quanto EN
+                            legenda_value = foto_info.get('caption') or foto_info.get('legenda')
+                            if legenda_value:
+                                foto_existente.legenda = legenda_value
                             if 'titulo' in foto_info and foto_info['titulo']:
                                 foto_existente.titulo = foto_info['titulo']
-                            if 'tipo_servico' in foto_info and foto_info['tipo_servico']:
-                                foto_existente.tipo_servico = foto_info['tipo_servico']
+                            tipo_servico_value = foto_info.get('tipo_servico') or foto_info.get('category')
+                            if tipo_servico_value:
+                                foto_existente.tipo_servico = tipo_servico_value
                             if 'local' in foto_info and foto_info['local']:
                                 foto_existente.local = foto_info['local']
                             if 'ordem' in foto_info:
@@ -1252,7 +1254,7 @@ def api_autosave_relatorio():
                             })
                             logger.info(f"✅ AutoSave: Metadados da imagem existente {foto_existente.id} atualizados (não duplicada)")
                         else:
-                            # Imagem NÃO existe - criar nova
+                            # Imagem NÃO existe - criar nova - CORREÇÃO: aceitar tanto keys em PT quanto EN
                             nova_foto = FotoRelatorio(
                                 relatorio_id=relatorio_id,
                                 url=foto_info.get('url'),
@@ -1261,9 +1263,9 @@ def api_autosave_relatorio():
                                 imagem_hash=imagem_hash,
                                 imagem_size=len(image_bytes),
                                 content_type=foto_info.get('content_type') or 'image/jpeg',
-                                legenda=foto_info.get('legenda') or '',
+                                legenda=foto_info.get('caption') or foto_info.get('legenda') or '',
                                 titulo=foto_info.get('titulo') or '',
-                                tipo_servico=foto_info.get('tipo_servico') or 'Geral',
+                                tipo_servico=foto_info.get('tipo_servico') or foto_info.get('category') or 'Geral',
                                 local=foto_info.get('local') or '',
                                 ordem=foto_info.get('ordem', 0)
                             )
@@ -1282,13 +1284,15 @@ def api_autosave_relatorio():
                 else:
                     foto = FotoRelatorio.query.get(foto_info['id'])
                     if foto and foto.relatorio_id == relatorio_id:
-                        # Atualizar metadados
-                        if 'legenda' in foto_info:
-                            foto.legenda = foto_info['legenda']
+                        # Atualizar metadados - CORREÇÃO: aceitar tanto keys em PT quanto EN
+                        legenda_value = foto_info.get('caption') or foto_info.get('legenda')
+                        if legenda_value:
+                            foto.legenda = legenda_value
                         if 'titulo' in foto_info:
                             foto.titulo = foto_info['titulo']
-                        if 'tipo_servico' in foto_info:
-                            foto.tipo_servico = foto_info['tipo_servico']
+                        tipo_servico_value = foto_info.get('tipo_servico') or foto_info.get('category')
+                        if tipo_servico_value:
+                            foto.tipo_servico = tipo_servico_value
                         if 'local' in foto_info:
                             foto.local = foto_info['local']
                         if 'ordem' in foto_info:
