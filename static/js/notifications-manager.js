@@ -10,6 +10,7 @@ class NotificationsManager {
         this.unreadCountSpan = null;
         this.markAllReadBtn = null;
         this.refreshInterval = null;
+        this.offcanvasInstance = null;
         
         this.init();
     }
@@ -241,10 +242,26 @@ class NotificationsManager {
     
     openDrawer() {
         if (this.drawer) {
-            const bsOffcanvas = new bootstrap.Offcanvas(this.drawer);
-            bsOffcanvas.show();
+            if (!this.offcanvasInstance) {
+                this.offcanvasInstance = new bootstrap.Offcanvas(this.drawer);
+                
+                this.drawer.addEventListener('hidden.bs.offcanvas', () => {
+                    this.removeBackdrop();
+                });
+            }
+            this.offcanvasInstance.show();
             this.carregarNotificacoes();
         }
+    }
+    
+    removeBackdrop() {
+        const backdrops = document.querySelectorAll('.offcanvas-backdrop');
+        backdrops.forEach(backdrop => {
+            backdrop.remove();
+        });
+        document.body.classList.remove('overflow-hidden');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
     }
     
     getCsrfToken() {
