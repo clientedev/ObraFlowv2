@@ -148,7 +148,20 @@
                                     
                                     <div class="form-group">
                                         <label>Cargo</label>
-                                        <input type="text" name="contatos[{{ loop.index0 }}][cargo]" class="form-control" value="{{ contato.cargo or '' }}">
+                                        <select name="contatos[{{ loop.index0 }}][cargo_select]" class="form-select cargo-select" onchange="handleProjectCargoChange(this, {{ loop.index0 }})">
+                                            <option value="">Selecione um cargo...</option>
+                                            <option value="Engenheiro/a" {% if contato.cargo == 'Engenheiro/a' %}selected{% endif %}>Engenheiro/a</option>
+                                            <option value="Arquiteto/a" {% if contato.cargo == 'Arquiteto/a' %}selected{% endif %}>Arquiteto/a</option>
+                                            <option value="Analista" {% if contato.cargo == 'Analista' %}selected{% endif %}>Analista</option>
+                                            <option value="Assistente" {% if contato.cargo == 'Assistente' %}selected{% endif %}>Assistente</option>
+                                            <option value="Encarregado" {% if contato.cargo == 'Encarregado' %}selected{% endif %}>Encarregado</option>
+                                            <option value="Mestre" {% if contato.cargo == 'Mestre' %}selected{% endif %}>Mestre</option>
+                                            <option value="outro" {% if contato.cargo and contato.cargo not in ['Engenheiro/a', 'Arquiteto/a', 'Analista', 'Assistente', 'Encarregado', 'Mestre', ''] %}selected{% endif %}>Outro (adicionar novo)</option>
+                                        </select>
+                                        <div class="cargo-custom-container mt-2" id="cargo_custom_container_{{ loop.index0 }}" style="display: {% if contato.cargo and contato.cargo not in ['Engenheiro/a', 'Arquiteto/a', 'Analista', 'Assistente', 'Encarregado', 'Mestre', ''] %}block{% else %}none{% endif %};">
+                                            <input type="text" class="form-control cargo-custom-input" placeholder="Digite o cargo personalizado" value="{{ contato.cargo if contato.cargo and contato.cargo not in ['Engenheiro/a', 'Arquiteto/a', 'Analista', 'Assistente', 'Encarregado', 'Mestre', ''] else '' }}" onchange="updateProjectCargoHidden(this, {{ loop.index0 }})">
+                                        </div>
+                                        <input type="hidden" name="contatos[{{ loop.index0 }}][cargo]" class="cargo-hidden" id="cargo_hidden_{{ loop.index0 }}" value="{{ contato.cargo or '' }}">
                                     </div>
                                     
                                     <div class="form-group">
@@ -607,6 +620,26 @@ function confirmMapLocation() {
     }
 }
 
+// Funções para gerenciar campo de cargo com opções pré-definidas
+function handleProjectCargoChange(select, index) {
+    const customContainer = document.getElementById(`cargo_custom_container_${index}`);
+    const cargoHidden = document.getElementById(`cargo_hidden_${index}`);
+    
+    if (select.value === 'outro') {
+        customContainer.style.display = 'block';
+        const customInput = customContainer.querySelector('.cargo-custom-input');
+        cargoHidden.value = customInput ? customInput.value : '';
+    } else {
+        customContainer.style.display = 'none';
+        cargoHidden.value = select.value;
+    }
+}
+
+function updateProjectCargoHidden(input, index) {
+    const cargoHidden = document.getElementById(`cargo_hidden_${index}`);
+    cargoHidden.value = input.value;
+}
+
 // Gestão de Contatos da Obra
 let categoriaCounter = 0;
 let contatosExcluidos = [];
@@ -624,7 +657,20 @@ document.getElementById('addContatoBtn').addEventListener('click', function() {
         </div>
         <div class="form-group">
             <label>Cargo</label>
-            <input type="text" name="contatos[${contatoCounter}][cargo]" class="form-control">
+            <select name="contatos[${contatoCounter}][cargo_select]" class="form-select cargo-select" onchange="handleProjectCargoChange(this, ${contatoCounter})">
+                <option value="">Selecione um cargo...</option>
+                <option value="Engenheiro/a">Engenheiro/a</option>
+                <option value="Arquiteto/a">Arquiteto/a</option>
+                <option value="Analista">Analista</option>
+                <option value="Assistente">Assistente</option>
+                <option value="Encarregado">Encarregado</option>
+                <option value="Mestre">Mestre</option>
+                <option value="outro">Outro (adicionar novo)</option>
+            </select>
+            <div class="cargo-custom-container mt-2" id="cargo_custom_container_${contatoCounter}" style="display: none;">
+                <input type="text" class="form-control cargo-custom-input" placeholder="Digite o cargo personalizado" onchange="updateProjectCargoHidden(this, ${contatoCounter})">
+            </div>
+            <input type="hidden" name="contatos[${contatoCounter}][cargo]" class="cargo-hidden" id="cargo_hidden_${contatoCounter}" value="">
         </div>
         <div class="form-group">
             <label>Empresa</label>
