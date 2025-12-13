@@ -3007,6 +3007,67 @@ def create_report():
                     current_app.logger.error(f"❌ Traceback completo: {traceback.format_exc()}")
                     flash('⚠️ Algumas fotos mobile podem não ter sido processadas corretamente.', 'warning')
 
+            # Process imagens list (from form_complete.html) - APENAS se não houver fotos do autosave
+            if not skip_photo_processing:
+                imagens_list = request.files.getlist('imagens')
+                if imagens_list:
+                    current_app.logger.info(f"📸 PROCESSANDO {len(imagens_list)} imagens do form_complete.html")
+                    
+                    # Parse novas_imagens_metadata JSON
+                    import json
+                    novas_imagens_metadata = []
+                    novas_imagens_metadata_str = request.form.get("novas_imagens_metadata")
+                    if novas_imagens_metadata_str:
+                        try:
+                            novas_imagens_metadata = json.loads(novas_imagens_metadata_str)
+                            current_app.logger.info(f"📝 Metadados de {len(novas_imagens_metadata)} novas imagens recebidos")
+                        except Exception as e:
+                            current_app.logger.warning(f"⚠️ Erro ao parsear novas_imagens_metadata: {e}")
+                    
+                    for index, arquivo in enumerate(imagens_list):
+                        if arquivo and arquivo.filename:
+                            try:
+                                # Get metadata from novas_imagens_metadata by index
+                                meta = novas_imagens_metadata[index] if index < len(novas_imagens_metadata) else {}
+                                
+                                legenda = meta.get('legenda', '').strip()
+                                categoria = meta.get('categoria', 'Geral')
+                                local = meta.get('local', '')
+                                descricao = meta.get('descricao', '')
+                                
+                                # Validate caption (mandatory)
+                                if not legenda:
+                                    current_app.logger.warning(f"⚠️ Imagem {index+1} sem legenda será ignorada")
+                                    continue
+                                
+                                # Read file data
+                                file_data = arquivo.read()
+                                arquivo.seek(0)
+                                
+                                # Generate filename
+                                filename = secure_filename(f"{uuid.uuid4().hex}_{arquivo.filename}")
+                                filepath = os.path.join(upload_folder, filename)
+                                arquivo.save(filepath)
+                                
+                                # Create photo record
+                                foto = FotoRelatorio()
+                                foto.relatorio_id = relatorio.id
+                                foto.filename = filename
+                                foto.legenda = legenda
+                                foto.descricao = descricao
+                                foto.tipo_servico = categoria
+                                foto.local = local
+                                foto.ordem = photo_count + 1
+                                foto.imagem = file_data
+                                
+                                db.session.add(foto)
+                                photo_count += 1
+                                current_app.logger.info(f"✅ Imagem {index+1} salva: legenda='{legenda}', categoria='{categoria}', local='{local}', bytes={len(file_data)}")
+                                
+                            except Exception as e:
+                                current_app.logger.error(f"❌ Erro ao processar imagem {index+1}: {e}")
+                                continue
+
             # Process regular file uploads - APENAS se não houver fotos do autosave
             if not skip_photo_processing:
                 for i in range(50):  # Support up to 50 photos
@@ -6637,6 +6698,16 @@ def update_report(report_id):
         novas_imagens = request.files.getlist("imagens")
         app.logger.info(f"📥 Novas imagens recebidas: {len(novas_imagens)}")
         
+        # CORREÇÃO CRÍTICA: Ler metadados das novas imagens do JSON
+        novas_imagens_metadata = []
+        novas_imagens_metadata_str = request.form.get("novas_imagens_metadata")
+        if novas_imagens_metadata_str:
+            try:
+                novas_imagens_metadata = json.loads(novas_imagens_metadata_str)
+                app.logger.info(f"📝 Metadados de novas imagens recebidos: {len(novas_imagens_metadata)}")
+            except Exception as e:
+                app.logger.error(f"❌ Erro ao parsear novas_imagens_metadata: {e}")
+        
         if novas_imagens:
             ordem_atual = FotoRelatorio.query.filter_by(relatorio_id=report_id).count()
             app.logger.info(f"📊 Ordem atual das fotos: {ordem_atual}")
@@ -6695,10 +6766,22 @@ def update_report(report_id):
                             arquivo.save(caminho)
                             app.logger.info(f"💾 Arquivo salvo em: {caminho}")
                             
-                            # Buscar metadados do form se disponíveis - CORREÇÃO: aceitar múltiplos nomes de campos
-                            legenda = request.form.get(f"legenda_{index}") or request.form.get(f"photo_caption_{index}") or request.form.get(f"caption_{index}") or ""
-                            categoria = request.form.get(f"categoria_{index}") or request.form.get(f"photo_category_{index}") or request.form.get(f"category_{index}") or ""
-                            local = request.form.get(f"local_{index}") or request.form.get(f"photo_local_{index}") or ""
+                            # CORREÇÃO CRÍTICA: Buscar metadados do JSON (novas_imagens_metadata) primeiro
+                            legenda = ""
+                            categoria = ""
+                            local = ""
+                            
+                            if index < len(novas_imagens_metadata):
+                                meta = novas_imagens_metadata[index]
+                                legenda = meta.get("legenda", "")
+                                categoria = meta.get("categoria", "")
+                                local = meta.get("local", "")
+                                app.logger.info(f"📝 Metadados do JSON para imagem {index}: legenda='{legenda[:30]}...', categoria='{categoria}', local='{local}'")
+                            else:
+                                # Fallback: Buscar metadados do form se disponíveis
+                                legenda = request.form.get(f"legenda_{index}") or request.form.get(f"photo_caption_{index}") or request.form.get(f"caption_{index}") or ""
+                                categoria = request.form.get(f"categoria_{index}") or request.form.get(f"photo_category_{index}") or request.form.get(f"category_{index}") or ""
+                                local = request.form.get(f"local_{index}") or request.form.get(f"photo_local_{index}") or ""
                             
                             # Criar registro da foto
                             nova_foto = FotoRelatorio()
@@ -6716,7 +6799,7 @@ def update_report(report_id):
                             ordem_atual += 1
                             
                             db.session.add(nova_foto)
-                            app.logger.info(f"🆕 Nova imagem adicionada: {unique_filename} (ordem: {nova_foto.ordem}, hash: {imagem_hash[:12]}...)")
+                            app.logger.info(f"🆕 Nova imagem adicionada: {unique_filename} (ordem: {nova_foto.ordem}, legenda: '{legenda[:30]}...', categoria: '{categoria}', local: '{local}')")
                     except Exception as e:
                         app.logger.error(f"❌ Erro ao processar imagem {arquivo.filename}: {e}")
                         import traceback

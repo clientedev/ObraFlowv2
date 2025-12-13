@@ -1599,15 +1599,38 @@ document.getElementById('reportForm').addEventListener('submit', async function(
         
         console.log(`💾 Total de imagens existentes a manter: ${imagensExistentes.length}`);
 
-        // Adicionar novas imagens (que têm file mas não têm savedId)
+        // Adicionar novas imagens (que têm file mas não têm savedId) COM METADADOS
         let novasImagensCount = 0;
+        const novasImagensMetadata = [];
+        
         photoData.forEach((photo, index) => {
             if (photo.file && !photo.savedId && !photo.isExisting) {
                 formData.append('imagens', photo.file);
+                
+                // CORREÇÃO CRÍTICA: Coletar metadados da nova imagem
+                const legenda = photo.manualCaption || photo.predefinedCaption || photo.caption || photo.legenda || '';
+                const categoria = photo.category || photo.categoria || photo.tipo_servico || '';
+                const local = photo.local || '';
+                
+                novasImagensMetadata.push({
+                    ordem: novasImagensCount,
+                    legenda: legenda,
+                    categoria: categoria,
+                    local: local,
+                    filename: photo.name || photo.filename || `nova_imagem_${novasImagensCount}.jpg`
+                });
+                
                 novasImagensCount++;
-                console.log(`📤 Nova imagem #${novasImagensCount}: ${photo.name || photo.filename}`);
+                console.log(`📤 Nova imagem #${novasImagensCount}: ${photo.name || photo.filename} (legenda: "${legenda.substring(0, 30)}...", categoria: "${categoria}", local: "${local}")`);
             }
         });
+        
+        // CORREÇÃO: Enviar metadados das novas imagens
+        if (novasImagensMetadata.length > 0) {
+            formData.append('novas_imagens_metadata', JSON.stringify(novasImagensMetadata));
+            console.log(`📝 Metadados de novas imagens enviados: ${novasImagensMetadata.length}`);
+        }
+        
         console.log(`📤 Total de novas imagens para upload: ${novasImagensCount}`);
         
         // CRÍTICO: Adicionar flag de finalização
