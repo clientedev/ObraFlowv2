@@ -318,7 +318,9 @@ class ReportsAutoSave {
                 numero: document.querySelector('#numero_relatorio')?.value?.trim() || 
                         document.querySelector('#numero')?.value?.trim() || "",
                 data_relatorio: document.querySelector('#data_relatorio')?.value || null,
-                observacoes_finais: document.querySelector('#observacoes')?.value?.trim() || "",
+                // Observações Gerais: ler do #conteudo e salvar em observacoes_finais
+                observacoes_finais: document.querySelector('#conteudo')?.value?.trim() || 
+                                   document.querySelector('#observacoes')?.value?.trim() || "",
                 lembrete_proxima_visita: document.querySelector('#lembrete')?.value?.trim() || null,
                 conteudo: this.collectRichTextContent() || "",
                 checklist_data: this.getChecklistData(),
@@ -365,7 +367,9 @@ class ReportsAutoSave {
                 numero: document.querySelector('#numero_relatorio')?.value?.trim() || 
                         document.querySelector('#numero')?.value?.trim() || "",
                 data_relatorio: document.querySelector('#data_relatorio')?.value || null,
-                observacoes_finais: document.querySelector('#observacoes')?.value?.trim() || "",
+                // Observações Gerais: ler do #conteudo e salvar em observacoes_finais
+                observacoes_finais: document.querySelector('#conteudo')?.value?.trim() || 
+                                   document.querySelector('#observacoes')?.value?.trim() || "",
                 lembrete_proxima_visita: document.querySelector('#lembrete_proxima_visita')?.value?.trim() || null,
                 conteudo: this.collectRichTextContent() || "",
                 // ENVIAR COMO ARRAY - backend irá converter para JSON
@@ -540,8 +544,19 @@ class ReportsAutoSave {
     }
 
     collectRichTextContent() {
+        // Primeiro, tentar o editor Quill (se existir)
         const editor = document.querySelector('.ql-editor');
-        return editor ? editor.innerHTML.trim() : '';
+        if (editor) {
+            return editor.innerHTML.trim();
+        }
+        
+        // Fallback: ler do textarea #conteudo diretamente
+        const conteudoTextarea = document.querySelector('#conteudo');
+        if (conteudoTextarea) {
+            return conteudoTextarea.value?.trim() || '';
+        }
+        
+        return '';
     }
 
     getAcompanhantesData() {
