@@ -6311,6 +6311,18 @@ def report_edit(report_id):
                         # Limpar comentário de reprovação anterior
                         relatorio.comentario_aprovacao = None
                         db.session.commit()
+                        
+                        # Criar notificação para o aprovador padrão/global
+                        try:
+                            from notification_service import notification_service
+                            resultado = notification_service.criar_notificacao_relatorio_pendente(relatorio.id)
+                            if resultado.get('success'):
+                                current_app.logger.info(f"✅ Notificação criada para aprovador do relatório {relatorio.id}")
+                            else:
+                                current_app.logger.warning(f"⚠️ Falha ao criar notificação: {resultado.get('error')}")
+                        except Exception as e:
+                            current_app.logger.error(f"❌ Erro ao criar notificação para aprovador: {e}")
+                        
                         flash('Relatório reenviado para aprovação!', 'success')
                     else:
                         flash('Relatório não pode ser enviado para aprovação no status atual.', 'warning')
