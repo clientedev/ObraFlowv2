@@ -8873,6 +8873,49 @@ def admin_legenda_excluir(id):
 
     return redirect(url_for('admin_legendas'))
 
+@app.route('/admin/categorias/renomear', methods=['POST'])
+@login_required
+def admin_categoria_renomear():
+    """Renomear uma categoria de legendas - atualiza todas as legendas dessa categoria"""
+    if not current_user.is_master:
+        flash('Acesso negado. Apenas usuários master podem gerenciar categorias.', 'error')
+        return redirect(url_for('index'))
+
+    try:
+        from models import LegendaPredefinida
+        
+        categoria_antiga = request.form.get('categoria_antiga', '').strip()
+        categoria_nova = request.form.get('categoria_nova', '').strip()
+        
+        if not categoria_antiga or not categoria_nova:
+            flash('Nome da categoria não pode estar vazio.', 'error')
+            return redirect(url_for('admin_legendas'))
+        
+        if categoria_antiga == categoria_nova:
+            flash('O novo nome é igual ao anterior.', 'info')
+            return redirect(url_for('admin_legendas'))
+        
+        legendas = LegendaPredefinida.query.filter_by(categoria=categoria_antiga).all()
+        
+        if not legendas:
+            flash(f'Categoria "{categoria_antiga}" não encontrada.', 'error')
+            return redirect(url_for('admin_legendas'))
+        
+        count = 0
+        for legenda in legendas:
+            legenda.categoria = categoria_nova
+            count += 1
+        
+        db.session.commit()
+        
+        flash(f'Categoria renomeada com sucesso! {count} legenda(s) atualizada(s).', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao renomear categoria: {str(e)}', 'error')
+
+    return redirect(url_for('admin_legendas'))
+
 # Rota de diagnóstico para Railway PostgreSQL
 @app.route('/api/legendas/diagnostico')
 def api_legendas_diagnostico():

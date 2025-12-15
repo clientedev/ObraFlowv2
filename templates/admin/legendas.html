@@ -6,29 +6,28 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-2">
                 <div>
                     <h1 class="h3 mb-0">Legendas Pré-definidas</h1>
-                    <p class="text-muted">Gerencie as legendas que aparecem nos relatórios</p>
+                    <p class="text-muted mb-0">Gerencie as legendas que aparecem nos relatórios</p>
                 </div>
                 <a href="{{ url_for('admin_legenda_nova') }}" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Nova Legenda
                 </a>
             </div>
 
-            <!-- Campo de Busca Mobile-First -->
             <div class="row mb-4">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
-                            <form method="GET" class="d-flex gap-2">
+                            <form method="GET" class="d-flex flex-column flex-sm-row gap-2">
                                 <div class="flex-grow-1">
                                     <input type="text" name="q" value="{{ q or '' }}" 
                                            class="form-control form-control-lg" 
-                                           placeholder="🔍 Buscar legendas por texto..."
+                                           placeholder="Buscar legendas por texto..."
                                            style="min-height: 48px; font-size: 16px;">
                                 </div>
-                                <button type="submit" class="btn btn-primary btn-lg" style="min-height: 48px; min-width: 120px;">
+                                <button type="submit" class="btn btn-primary btn-lg" style="min-height: 48px;">
                                     <i class="fas fa-search"></i> Buscar
                                 </button>
                                 {% if q %}
@@ -50,54 +49,53 @@
                 </div>
             </div>
 
-            <!-- Estatísticas -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card bg-primary text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
+            <div class="row mb-4 g-3">
+                <div class="col-6 col-md-3">
+                    <div class="card bg-primary text-white h-100">
+                        <div class="card-body py-3">
+                            <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <div class="h4 mb-0">{{ legendas|length }}</div>
-                                    <div>Total de Legendas</div>
+                                    <small>Total</small>
                                 </div>
                                 <i class="fas fa-tags fa-2x opacity-75"></i>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card bg-success text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
+                <div class="col-6 col-md-3">
+                    <div class="card bg-success text-white h-100">
+                        <div class="card-body py-3">
+                            <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <div class="h4 mb-0">{{ legendas|selectattr('ativo')|list|length }}</div>
-                                    <div>Ativas</div>
+                                    <small>Ativas</small>
                                 </div>
                                 <i class="fas fa-check-circle fa-2x opacity-75"></i>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card bg-warning text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
+                <div class="col-6 col-md-3">
+                    <div class="card bg-warning text-white h-100">
+                        <div class="card-body py-3">
+                            <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <div class="h4 mb-0">{{ legendas|rejectattr('ativo')|list|length }}</div>
-                                    <div>Inativas</div>
+                                    <small>Inativas</small>
                                 </div>
                                 <i class="fas fa-pause-circle fa-2x opacity-75"></i>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card bg-info text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
+                <div class="col-6 col-md-3">
+                    <div class="card bg-info text-white h-100">
+                        <div class="card-body py-3">
+                            <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <div class="h4 mb-0">{{ legendas|map(attribute='categoria')|unique|list|length }}</div>
-                                    <div>Categorias</div>
+                                    <small>Categorias</small>
                                 </div>
                                 <i class="fas fa-layer-group fa-2x opacity-75"></i>
                             </div>
@@ -106,83 +104,69 @@
                 </div>
             </div>
 
-            <!-- Teste de Conectividade API - MOBILE -->
             <div class="row mb-3">
                 <div class="col-12">
                     <div class="card bg-light">
-                        <div class="card-body">
-                            <h6 class="card-title">Status da API</h6>
-                            <button id="testApiBtn" class="btn btn-sm btn-outline-primary" onclick="testMobileApi()">
-                                <i class="fas fa-wifi"></i> Testar Conectividade Mobile
-                            </button>
-                            <span id="apiStatus" class="ms-2 text-muted">Clique para testar</span>
+                        <div class="card-body py-2">
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <span class="text-muted"><i class="fas fa-wifi me-1"></i>API:</span>
+                                <button id="testApiBtn" class="btn btn-sm btn-outline-primary" onclick="testMobileApi()">
+                                    Testar
+                                </button>
+                                <span id="apiStatus" class="text-muted small">Clique para testar</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Lista de Legendas por Categoria -->
             {% set categorias = legendas|map(attribute='categoria')|unique|list %}
             {% for categoria in categorias %}
                 {% set legendas_categoria = legendas|selectattr('categoria', 'equalto', categoria)|list %}
                 {% if legendas_categoria %}
                 <div class="card mb-4">
                     <div class="card-header bg-light">
-                        <h5 class="mb-0">
-                            <i class="fas fa-folder"></i> {{ categoria }}
-                            <span class="badge bg-secondary ms-2">{{ legendas_categoria|length }}</span>
-                        </h5>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-folder me-2"></i>{{ categoria }}
+                                <span class="badge bg-secondary ms-2">{{ legendas_categoria|length }}</span>
+                            </h5>
+                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                    onclick="editarCategoria('{{ categoria }}')" title="Renomear categoria">
+                                <i class="fas fa-edit"></i> Renomear
+                            </button>
+                        </div>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Legenda</th>
-                                        <th width="80">Seq.</th>
-                                        <th width="120">Status</th>
-                                        <th width="150">Criado em</th>
-                                        <th width="120">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for legenda in legendas_categoria %}
-                                    <tr>
-                                        <td>
-                                            <div class="text-wrap" style="max-width: 400px;">
-                                                {{ legenda.texto }}
-                                            </div>
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="badge bg-info">{{ loop.index }}</span>
-                                        </td>
-                                        <td>
+                    <div class="card-body p-2">
+                        <div class="list-group list-group-flush">
+                            {% for legenda in legendas_categoria %}
+                            <div class="list-group-item px-2 py-3">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div class="flex-grow-1 min-width-0">
+                                        <div class="mb-1" style="word-break: break-word;">{{ legenda.texto }}</div>
+                                        <div class="d-flex flex-wrap gap-2 align-items-center">
                                             {% if legenda.ativo %}
                                                 <span class="badge bg-success">Ativa</span>
                                             {% else %}
                                                 <span class="badge bg-secondary">Inativa</span>
                                             {% endif %}
-                                        </td>
-                                        <td class="text-muted">
-                                            {{ legenda.created_at.strftime('%d/%m/%Y') }}
-                                        </td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <a href="{{ url_for('admin_legenda_editar', id=legenda.id) }}" 
-                                                   class="btn btn-outline-primary" title="Editar">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <button type="button" class="btn btn-outline-danger" 
-                                                        onclick="excluirLegenda({{ legenda.id }}, '{{ legenda.texto[:30] }}...')"
-                                                        title="Excluir">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                                            <small class="text-muted">{{ legenda.created_at.strftime('%d/%m/%Y') }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-1 flex-shrink-0">
+                                        <a href="{{ url_for('admin_legenda_editar', id=legenda.id) }}" 
+                                           class="btn btn-sm btn-outline-primary" title="Editar" style="min-width: 38px; min-height: 38px;">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                onclick="excluirLegenda({{ legenda.id }}, '{{ legenda.texto[:30] }}...')"
+                                                title="Excluir" style="min-width: 38px; min-height: 38px;">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
@@ -213,9 +197,8 @@
     </div>
 </div>
 
-<!-- Modal de Confirmação -->
 <div class="modal fade" id="modalExcluir" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Confirmar Exclusão</h5>
@@ -224,7 +207,7 @@
             <div class="modal-body">
                 <p>Tem certeza que deseja excluir a legenda:</p>
                 <p><strong id="legendaTexto"></strong></p>
-                <p class="text-warning">Esta ação não pode ser desfeita.</p>
+                <p class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Esta ação não pode ser desfeita.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -237,6 +220,35 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalEditarCategoria" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Renomear Categoria</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEditarCategoria" method="POST" action="{{ url_for('admin_categoria_renomear') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="categoria_antiga" id="categoriaAntiga">
+                    <div class="mb-3">
+                        <label for="categoriaNova" class="form-label">Nome da Categoria</label>
+                        <input type="text" class="form-control form-control-lg" id="categoriaNova" name="categoria_nova" 
+                               required style="min-height: 48px; font-size: 16px;">
+                        <div class="form-text">Todas as legendas desta categoria serão atualizadas.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function excluirLegenda(id, texto) {
     document.getElementById('legendaTexto').textContent = texto;
@@ -244,17 +256,25 @@ function excluirLegenda(id, texto) {
     new bootstrap.Modal(document.getElementById('modalExcluir')).show();
 }
 
-// TESTE DE API MOBILE - DIAGNÓSTICO COMPLETO
+function editarCategoria(nomeCategoria) {
+    document.getElementById('categoriaAntiga').value = nomeCategoria;
+    document.getElementById('categoriaNova').value = nomeCategoria;
+    new bootstrap.Modal(document.getElementById('modalEditarCategoria')).show();
+    setTimeout(() => {
+        document.getElementById('categoriaNova').focus();
+        document.getElementById('categoriaNova').select();
+    }, 300);
+}
+
 function testMobileApi() {
     const btn = document.getElementById('testApiBtn');
     const status = document.getElementById('apiStatus');
     
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testando...';
-    status.innerHTML = 'Executando testes...';
-    status.className = 'ms-2 text-warning';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    status.innerHTML = 'Testando...';
+    status.className = 'text-warning small';
     
-    // Teste da API
     const xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/legendas?categoria=all', true);
     xhr.timeout = 15000;
@@ -264,92 +284,44 @@ function testMobileApi() {
             try {
                 const data = JSON.parse(xhr.responseText);
                 if (data.success && data.legendas) {
-                    status.innerHTML = `✅ API OK - ${data.total} legendas carregadas`;
-                    status.className = 'ms-2 text-success';
-                    createTestSelect(data.legendas);
+                    status.innerHTML = `OK - ${data.total} legendas`;
+                    status.className = 'text-success small';
                 } else {
-                    status.innerHTML = '❌ API OK mas sem dados válidos';
-                    status.className = 'ms-2 text-danger';
+                    status.innerHTML = 'Erro nos dados';
+                    status.className = 'text-danger small';
                 }
             } catch (e) {
-                status.innerHTML = '❌ API OK mas JSON inválido: ' + e.message;
-                status.className = 'ms-2 text-danger';
+                status.innerHTML = 'JSON inválido';
+                status.className = 'text-danger small';
             }
         } else {
-            status.innerHTML = `❌ API falhou - Status: ${xhr.status}`;
-            status.className = 'ms-2 text-danger';
+            status.innerHTML = `Erro ${xhr.status}`;
+            status.className = 'text-danger small';
         }
         
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-wifi"></i> Testar Novamente';
+        btn.innerHTML = 'Testar';
     };
     
     xhr.onerror = function() {
-        status.innerHTML = '❌ Erro de rede';
-        status.className = 'ms-2 text-danger';
+        status.innerHTML = 'Erro de rede';
+        status.className = 'text-danger small';
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-wifi"></i> Testar Novamente';
+        btn.innerHTML = 'Testar';
     };
     
     xhr.ontimeout = function() {
-        status.innerHTML = '❌ Timeout - API lenta';
-        status.className = 'ms-2 text-danger';
+        status.innerHTML = 'Timeout';
+        status.className = 'text-danger small';
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-wifi"></i> Testar Novamente';
+        btn.innerHTML = 'Testar';
     };
     
     xhr.send();
 }
 
-function createTestSelect(legendas) {
-    let existingTest = document.getElementById('testSelectContainer');
-    if (existingTest) existingTest.remove();
-    
-    const container = document.createElement('div');
-    container.id = 'testSelectContainer';
-    container.className = 'mt-3 p-3 bg-success bg-opacity-10 rounded';
-    container.innerHTML = `
-        <h6>✅ Teste Mobile - Select com Legendas:</h6>
-        <select class="form-select" id="testSelect">
-            <option value="">Selecione uma legenda...</option>
-        </select>
-        <small class="text-muted d-block mt-1">Se aparecerem aqui, o mobile funciona!</small>
-    `;
-    
-    document.getElementById('apiStatus').parentElement.appendChild(container);
-    
-    const select = document.getElementById('testSelect');
-    const cats = {
-        'Acabamentos': [],
-        'Estrutural': [],
-        'Geral': [],
-        'Segurança': []
-    };
-    
-    legendas.forEach(leg => {
-        if (cats[leg.categoria]) cats[leg.categoria].push(leg);
-    });
-    
-    Object.keys(cats).forEach(cat => {
-        if (cats[cat].length > 0) {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = `${cat} (${cats[cat].length})`;
-            
-            cats[cat].forEach(legenda => {
-                const option = document.createElement('option');
-                option.value = legenda.texto;
-                option.textContent = legenda.texto;
-                optgroup.appendChild(option);
-            });
-            
-            select.appendChild(optgroup);
-        }
-    });
-}
-
-// Sistema limpo - dados reais do PostgreSQL
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('📋 Página de legendas carregada - dados reais do PostgreSQL');
+    console.log('Página de legendas carregada');
 });
 </script>
 {% endblock %}
