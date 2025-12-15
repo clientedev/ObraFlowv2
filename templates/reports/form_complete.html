@@ -2889,6 +2889,12 @@ async function savePhotoData(photoId) {
     }
 
     console.log(`💾 Photo data saved for ${photoId}: category="${category}", local="${local}", caption="${manualCaption}"`);
+
+    // Trigger autosave when photo fields are updated
+    if (window.autoSaveInstance && typeof window.autoSaveInstance.triggerSave === 'function') {
+        console.log('🔄 Triggering autosave after photo data update');
+        window.autoSaveInstance.triggerSave();
+    }
 }
 
 // Populate category select for a photo card

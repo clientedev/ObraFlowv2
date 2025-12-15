@@ -297,6 +297,16 @@ class ReportsAutoSave {
         console.log(`🕒 AutoSave: Monitorando ${formElements.length} campos do formulário`);
     }
 
+    /**
+     * Public method to trigger autosave from external code
+     * Used when photo fields (categoria, local, legenda) are updated
+     */
+    triggerSave() {
+        console.log('📝 AutoSave: Triggered externally - iniciando debounce de 2s');
+        clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => this.performSave(), this.debounceTime);
+    }
+
     setupNetworkListeners() {
         window.addEventListener('online', () => {
             this.isConnected = true;
