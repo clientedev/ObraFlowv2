@@ -101,7 +101,7 @@
                                     </p>
 
                                     {% if relatorio.status == 'Aprovado' and relatorio.data_aprovacao %}
-                                    <p><strong>Aprovado em:</strong> {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }}
+                                    <p><strong>Aprovado em:</strong> {{ relatorio.data_aprovacao|format_datetime_br }}
                                     {% if relatorio.aprovador %}
                                         por {% if relatorio.aprovador is mapping %}{{ relatorio.aprovador.get('nome_completo', relatorio.aprovador.get('username', 'Aprovador')) }}{% else %}{{ relatorio.aprovador.nome_completo if relatorio.aprovador.nome_completo else relatorio.aprovador.username }}{% endif %}
                                     {% endif %}</p>
@@ -112,7 +112,7 @@
                                         <strong>Motivo da rejeição:</strong><br>
                                         <span style="display: block; word-break: break-all; overflow-wrap: anywhere; white-space: pre-wrap;">{{ relatorio.comentario_aprovacao }}</span>
                                         {% if relatorio.data_aprovacao %}
-                                        <br><small class="text-muted">Rejeitado em {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }}
+                                        <br><small class="text-muted">Rejeitado em {{ relatorio.data_aprovacao|format_datetime_br }}
                                         {% if relatorio.aprovador %}
                                             por {% if relatorio.aprovador is mapping %}{{ relatorio.aprovador.get('nome_completo', relatorio.aprovador.get('username', 'Aprovador')) }}{% else %}{{ relatorio.aprovador.nome_completo if relatorio.aprovador.nome_completo else relatorio.aprovador.username }}{% endif %}
                                         {% endif %}</small>
@@ -287,7 +287,7 @@
                                     <small>Este relatório foi aprovado e está em modo somente leitura.</small>
                                     {% if relatorio.data_aprovacao and relatorio.aprovador %}
                                     <br><small class="text-muted">
-                                        Aprovado em {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }} 
+                                        Aprovado em {{ relatorio.data_aprovacao|format_datetime_br }} 
                                         por {% if relatorio.aprovador is mapping %}{{ relatorio.aprovador.get('nome_completo', relatorio.aprovador.get('username', 'Aprovador')) }}{% else %}{{ relatorio.aprovador.nome_completo if relatorio.aprovador.nome_completo else relatorio.aprovador.username }}{% endif %}
                                     </small>
                                     {% endif %}

@@ -68,7 +68,7 @@
                             <span class="text-success">
                                 <i class="fas fa-check-circle me-1"></i>Relatório aprovado
                                 {% if relatorio.data_aprovacao %}
-                                    em {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }}
+                                    em {{ relatorio.data_aprovacao|format_datetime_br }}
                                 {% endif %}
                                 {% if relatorio.aprovador %}
                                     por {{ relatorio.aprovador.nome_completo }}
@@ -78,7 +78,7 @@
                             <span class="text-danger">
                                 <i class="fas fa-times-circle me-1"></i>Relatório rejeitado
                                 {% if relatorio.data_aprovacao %}
-                                    em {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }}
+                                    em {{ relatorio.data_aprovacao|format_datetime_br }}
                                 {% endif %}
                                 {% if relatorio.aprovador %}
                                     por {{ relatorio.aprovador.nome_completo }}
@@ -123,16 +123,16 @@
                             <p><strong>Aprovador:</strong> {{ relatorio.aprovador.nome_completo }}</p>
                         {% endif %}
                         {% if relatorio.visita %}
-                            <p><strong>Visita Relacionada:</strong> {{ relatorio.visita.data_agendada.strftime('%d/%m/%Y às %H:%M') }}</p>
+                            <p><strong>Visita Relacionada:</strong> {{ relatorio.visita.data_agendada|format_datetime_br }}</p>
                         {% endif %}
-                        <p><strong>Criado em:</strong> {{ relatorio.created_at.strftime('%d/%m/%Y às %H:%M') }}</p>
+                        <p><strong>Criado em:</strong> {{ relatorio.created_at|format_datetime_br }}</p>
                         {% if relatorio.lembrete_proxima_visita %}
                         <p><strong><i class="fas fa-bell me-1"></i>Lembrete Próxima Visita:</strong> 
                             <span class="badge bg-warning text-dark">
                                 {% if relatorio.lembrete_proxima_visita is string %}
                                     {{ relatorio.lembrete_proxima_visita }}
                                 {% else %}
-                                    {{ relatorio.lembrete_proxima_visita.strftime('%d/%m/%Y às %H:%M') }}
+                                    {{ relatorio.lembrete_proxima_visita|format_datetime_br }}
                                 {% endif %}
                             </span>
                         </p>
