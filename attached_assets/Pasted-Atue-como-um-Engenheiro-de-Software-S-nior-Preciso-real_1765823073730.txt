@@ -1,0 +1,65 @@
+Atue como um Engenheiro de Software Sênior. Preciso realizar 5 ajustes de UI e UX no fluxo de "Revisão de Relatórios" do sistema, com base no feedback de teste de aceitação.
+
+
+
+**Contexto:** O usuário logado é um "Aprovador Global". Ele acessa a lista de relatórios e entra na tela de revisão para aprovar, reprovar ou editar um relatório pendente.
+
+
+
+**Tarefas de Correção:**
+
+
+
+1.  **Ajustar Botões na Listagem (Card do Relatório):**
+
+    * *Local:* Componente de item da lista de relatórios (`ReportCard` ou similar).
+
+    * *Alteração:* Condicionalmente, se o status for "Aguardando Aprovação", REMOVA o botão "Abrir". Mantenha apenas o botão "Revisão" (Primary) e "Excluir" (Danger).
+
+
+
+2.  **Mover Bloco de Ações de Aprovação:**
+
+    * *Local:* Tela de Detalhes/Revisão do Relatório.
+
+    * *Alteração:* Mova o componente/seção "Ações de Aprovação" (que contém os botões Aprovar/Reprovar) para o rodapé da página. Ele deve ficar DEPOIS da "Galeria de Fotos", sendo o último elemento da tela.
+
+
+
+3.  **Adicionar Funcionalidade de "Edição Rápida":**
+
+    * *Local:* No bloco de "Ações de Aprovação" (agora no rodapé).
+
+    * *Alteração:* Adicione um terceiro botão chamado "Editar Relatório".
+
+    * *Comportamento:* Este botão deve permitir que o aprovador entre no modo de edição do formulário, para fazer correções simples sem precisar reprovar o item.
+
+
+
+4.  **Preencher Dados Faltantes em "Informações":**
+
+    * *Local:* Seção de metadados no topo da tela de revisão.
+
+    * *Alteração:* Renderize os seguintes campos que estão vindo do backend mas não estão sendo exibidos:
+
+        * `participantes` ou `acompanhantes` (Quem acompanhou).
+
+        * `lembretes` (Texto de lembretes).
+
+previamente adicionados em relatorio aprovado
+
+
+
+5.  **Melhorar Card da Galeria de Fotos:**
+
+    * *Local:* Componente que renderiza cada foto na grid.
+
+    * *Alteração:* Além da imagem e da legenda, adicione a exibição das propriedades:
+
+        * `categoria` (Ex: Pintura, Elétrica).
+
+        * `localizacao` (Ex: Quarto 01, Fachada).
+
+
+
+Por favor, analise os arquivos da página de Listagem de Relatórios e da página de Detalhes/Revisão para aplicar essas mudanças.
