@@ -95,22 +95,35 @@
     display: none !important;
   }
   
-  /* Dropdown menus no desktop */
+  /* Dropdown menus no desktop - z-index elevado para sobrepor conteúdo */
   #navbarELP .dropdown-menu {
     position: absolute;
     top: 100%;
     left: 0;
-    z-index: 1050;
+    z-index: 9999 !important;
   }
   
-  /* Garantir que dropdowns sejam clicáveis */
+  /* Garantir que dropdowns sejam clicáveis e fiquem acima do conteúdo */
   #navbarELP .dropdown {
     position: relative;
+    z-index: 9999 !important;
   }
   
   #navbarELP .dropdown-toggle {
     cursor: pointer;
     pointer-events: auto;
+  }
+  
+  /* Garantir que a navbar inteira fique acima do conteúdo da página */
+  #navbarELP {
+    z-index: 9999 !important;
+    position: relative;
+  }
+  
+  /* Dropdown menu aberto - garantir visibilidade */
+  #navbarELP .dropdown-menu.show {
+    z-index: 10000 !important;
+    display: block !important;
   }
   
   /* Logo e texto no desktop */

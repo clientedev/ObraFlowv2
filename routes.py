@@ -7857,66 +7857,36 @@ def api_visits_calendar():
                 else:
                     title = f"{visit.numero or f'Visita {visit.id}'} (Pessoal)"
 
-            # PARTE 3: Criar um card para cada participante
+            # PARTE 3: Criar UM ÚNICO evento por visita (corrige duplicação)
             total_participantes = len(participantes)
             has_multiple_participants = total_participantes > 1
             
-            # Se não houver participantes (visita antiga), criar ao menos um evento com o responsável
-            if not participantes:
-                visits_data.append({
-                    'id': f"{visit.id}-{visit.responsavel_id}",  # ID único: visit_id-participant_id
-                    'visit_id': visit.id,  # ID real da visita para navegação
-                    'numero': visit.numero or f"V{visit.id}",
-                    'title': title,
-                    'data_inicio': visit.data_inicio.isoformat() if visit.data_inicio else None,
-                    'data_fim': visit.data_fim.isoformat() if visit.data_fim else None,
-                    'data_realizada': visit.data_realizada.isoformat() if visit.data_realizada else None,
-                    'status': visit.status or 'Agendada',
-                    'projeto_nome': projeto_nome,
-                    'projeto_numero': projeto_numero,
-                    'responsavel_nome': responsavel_nome,
-                    'responsavel_cor': responsavel_cor,
-                    'observacoes': visit.observacoes or '',
-                    'atividades_realizadas': visit.atividades_realizadas or '',
-                    'participantes': [],
-                    'is_pessoal': visit.is_pessoal or False,
-                    'criado_por': visit.criado_por,
-                    'has_multiple_participants': False,
-                    'total_participants': 0,
-                    'participant_name': responsavel_nome,
-                    'participant_id': visit.responsavel_id
-                })
-            else:
-                # Criar um card para cada participante
-                for participante in participantes:
-                    # Criar título com nome do participante se houver múltiplos
-                    participant_title = title
-                    if has_multiple_participants:
-                        participant_title = f"{title} - {participante['nome']}"
-                    
-                    visits_data.append({
-                        'id': f"{visit.id}-{participante['id']}",  # ID único: visit_id-participant_id
-                        'visit_id': visit.id,  # ID real da visita para navegação
-                        'numero': visit.numero or f"V{visit.id}",
-                        'title': participant_title,
-                        'data_inicio': visit.data_inicio.isoformat() if visit.data_inicio else None,
-                        'data_fim': visit.data_fim.isoformat() if visit.data_fim else None,
-                        'data_realizada': visit.data_realizada.isoformat() if visit.data_realizada else None,
-                        'status': visit.status or 'Agendada',
-                        'projeto_nome': projeto_nome,
-                        'projeto_numero': projeto_numero,
-                        'responsavel_nome': responsavel_nome,
-                        'responsavel_cor': participante['cor_agenda'],  # Cor do participante específico
-                        'observacoes': visit.observacoes or '',
-                        'atividades_realizadas': visit.atividades_realizadas or '',
-                        'participantes': participantes,  # Manter lista completa para referência
-                        'is_pessoal': visit.is_pessoal or False,
-                        'criado_por': visit.criado_por,
-                        'has_multiple_participants': has_multiple_participants,  # Flag para mostrar ícone
-                        'total_participants': total_participantes,
-                        'participant_name': participante['nome'],  # Nome específico deste card
-                        'participant_id': participante['id']  # ID do participante deste card
-                    })
+            # Criar título melhorado com código da visita
+            display_title = visit.numero or f"VIS-{visit.id:04d}"
+            if has_multiple_participants:
+                display_title = f"{display_title} ({total_participantes})"
+            
+            visits_data.append({
+                'id': f"visit-{visit.id}",
+                'visit_id': visit.id,
+                'numero': visit.numero or f"VIS-{visit.id:04d}",
+                'title': display_title,
+                'data_inicio': visit.data_inicio.isoformat() if visit.data_inicio else None,
+                'data_fim': visit.data_fim.isoformat() if visit.data_fim else None,
+                'data_realizada': visit.data_realizada.isoformat() if visit.data_realizada else None,
+                'status': visit.status or 'Agendada',
+                'projeto_nome': projeto_nome,
+                'projeto_numero': projeto_numero,
+                'responsavel_nome': responsavel_nome,
+                'responsavel_cor': responsavel_cor,
+                'observacoes': visit.observacoes or '',
+                'atividades_realizadas': visit.atividades_realizadas or '',
+                'participantes': participantes,
+                'is_pessoal': visit.is_pessoal or False,
+                'criado_por': visit.criado_por,
+                'has_multiple_participants': has_multiple_participants,
+                'total_participants': total_participantes
+            })
 
         current_app.logger.info(f"✅ Calendário carregado com {len(visits_data)} eventos")
 

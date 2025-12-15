@@ -82,15 +82,33 @@
         }
         .fc-dayGridMonth-view .fc-daygrid-day-number {
             font-size: 14px !important;
-            padding: 8px !important;
+            padding: 4px !important;
         }
+        /* Melhorar exibição de eventos no mobile */
         .fc-event {
-            font-size: 12px !important;
-            padding: 2px 4px !important;
+            font-size: 11px !important;
+            padding: 3px 5px !important;
+            margin: 1px 0 !important;
+            border-radius: 4px !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            display: block !important;
+            line-height: 1.3 !important;
+        }
+        .fc-event-title {
+            font-weight: 600 !important;
         }
         .fc-col-header-cell {
             padding: 8px 4px !important;
             font-size: 12px !important;
+        }
+        /* Células do calendário com mais espaço */
+        .fc-daygrid-day {
+            min-height: 70px !important;
+        }
+        .fc-daygrid-day-events {
+            margin-bottom: 2px !important;
         }
     }
     
@@ -100,17 +118,26 @@
             font-size: 1rem !important;
         }
         .fc-button {
-            font-size: 12px !important;
-            padding: 8px 12px !important;
+            font-size: 11px !important;
+            padding: 6px 10px !important;
         }
         .fc-dayGridMonth-view .fc-daygrid-day-number {
-            font-size: 12px !important;
+            font-size: 11px !important;
         }
         .calendar-legend {
             justify-content: center !important;
         }
         .legend-item {
-            font-size: 12px !important;
+            font-size: 11px !important;
+        }
+        /* Evento no mobile extra pequeno */
+        .fc-event {
+            font-size: 10px !important;
+            padding: 2px 4px !important;
+            min-height: 18px !important;
+        }
+        .fc-daygrid-day {
+            min-height: 60px !important;
         }
     }
 </style>
@@ -417,33 +444,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 allEvents = visits.map(visit => {
-                    // Item 29: Criar título com participantes e cores melhorado
+                    // Título simplificado: código da visita + número de participantes
+                    let displayTitle = visit.numero || visit.title || `VIS-${visit.id}`;
                     let participantesNomes = visit.participantes ? visit.participantes.map(p => p.nome).join(', ') : '';
-                    let titleWithParticipants = visit.title || visit.numero;
                     
-                    // Adicionar indicador de múltiplos participantes
+                    // Indicador de participantes apenas se houver múltiplos
                     if (visit.participantes && visit.participantes.length > 1 && !visit.is_pessoal) {
-                        titleWithParticipants += ` 👥${visit.participantes.length}`;
-                    } else if (participantesNomes && !visit.is_pessoal) {
-                        titleWithParticipants += ` (${participantesNomes})`;
+                        displayTitle = `${displayTitle} (${visit.participantes.length})`;
                     }
                     
-                    // Item 29: Definir cor do evento baseada no responsável/participantes
+                    // Cor do evento baseada no status
                     let eventColor = visit.responsavel_cor || '#0EA5E9';
                     if (visit.participantes && visit.participantes.length > 0) {
-                        // Usar cor do responsável se estiver nos participantes
                         const responsavel = visit.participantes.find(p => p.is_responsavel);
                         if (responsavel) {
                             eventColor = responsavel.cor_agenda || eventColor;
                         } else {
-                            // Se responsável não está nos participantes, usar primeira cor
                             eventColor = visit.participantes[0].cor_agenda || eventColor;
                         }
                     }
 
                     return {
                         id: visit.id,
-                        title: titleWithParticipants,
+                        title: displayTitle,
                         start: visit.data_inicio,
                         end: visit.data_fim || visit.data_realizada,
                         backgroundColor: eventColor,
