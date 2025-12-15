@@ -92,102 +92,18 @@
     </div>
 </div>
 
-<!-- Checklist -->
+<!-- Ações -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-tasks me-2"></i>Checklist de Atividades
-                    </h5>
-                    {% if visit.status == 'Realizada' %}
-                        <span class="badge bg-info">
-                            {{ checklist_items|selectattr('concluido', 'equalto', True)|list|length }}/{{ checklist_items|length }} Concluídos
-                        </span>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="card-body">
-                {% if checklist_items %}
-                    <form method="POST">
-                        {% for item in checklist_items %}
-                        <div class="card mb-3 {% if item.obrigatorio %}border-warning{% endif %}">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-8">
-                                        <h6 class="card-title">
-                                            {{ item.pergunta }}
-                                            {% if item.obrigatorio %}
-                                                <span class="badge bg-warning text-dark ms-2">Obrigatório</span>
-                                            {% endif %}
-                                        </h6>
-                                        
-                                        <div class="mb-3">
-                                            <label for="resposta_{{ item.id }}" class="form-label">Resposta:</label>
-                                            <textarea name="resposta_{{ item.id }}" id="resposta_{{ item.id }}" class="form-control" rows="2" {% if visit.status != 'Realizada' %}readonly{% endif %}>{{ item.resposta or '' }}</textarea>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="col-md-4">
-                                        <div class="text-center">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="concluido_{{ item.id }}" id="concluido_{{ item.id }}" {% if item.concluido %}checked{% endif %} {% if visit.status != 'Realizada' %}disabled{% endif %}>
-                                                <label class="form-check-label" for="concluido_{{ item.id }}">
-                                                    Concluído
-                                                </label>
-                                            </div>
-                                            
-                                            {% if item.concluido %}
-                                                <div class="mt-2">
-                                                    <i class="fas fa-check-circle fa-2x text-success"></i>
-                                                </div>
-                                            {% else %}
-                                                <div class="mt-2">
-                                                    <i class="fas fa-circle fa-2x text-muted"></i>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                        
-                        <!-- Mandatory items warning -->
-                        {% set mandatory_incomplete = checklist_items|selectattr('obrigatorio', 'equalto', True)|selectattr('concluido', 'equalto', False)|list %}
-                        {% if mandatory_incomplete %}
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>Atenção:</strong> {{ mandatory_incomplete|length }} item(ns) obrigatório(s) ainda não foram concluído(s).
-                        </div>
-                        {% endif %}
-                        
-                        {% if visit.status == 'Realizada' %}
-                        <div class="d-flex justify-content-between">
-                            <button type="button" onclick="if(window.history.length > 1) window.history.back(); else window.location.href='{{ url_for('visits_list') }}';" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Voltar
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Salvar Checklist
-                            </button>
-                        </div>
-                        {% else %}
-                        <div class="text-center">
-                            <button type="button" onclick="if(window.history.length > 1) window.history.back(); else window.location.href='{{ url_for('visits_list') }}';" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Voltar
-                            </button>
-                        </div>
-                        {% endif %}
-                    </form>
-                {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">Nenhum item no checklist</h5>
-                        <p class="text-muted">Esta visita não possui itens de checklist configurados.</p>
-                    </div>
-                {% endif %}
-            </div>
+        <div class="d-flex justify-content-between">
+            <button type="button" onclick="if(window.history.length > 1) window.history.back(); else window.location.href='{{ url_for('visits_list') }}';" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar
+            </button>
+            {% if visit.status == 'Agendada' %}
+            <a href="{{ url_for('visit_realize', visit_id=visit.id) }}" class="btn btn-success">
+                <i class="fas fa-check me-2"></i>Realizar Visita
+            </a>
+            {% endif %}
         </div>
     </div>
 </div>
