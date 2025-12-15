@@ -91,11 +91,8 @@
                         {{ form.endereco.label(class="form-label") }}
                         {{ form.endereco(class="form-control", rows="2", id="endereco") }}
                         <div class="mt-2">
-                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="getGPSLocationAndAddress()" title="Capturar localização via GPS e preencher endereço">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="getGPSLocationAndAddress()" title="Capturar localização via GPS e preencher endereço">
                                 <i class="fas fa-location-crosshairs"></i> Capturar GPS + Endereço
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openMapModal()" title="Escolher localização no mapa">
-                                <i class="fas fa-map-marked-alt"></i> Escolher no Mapa
                             </button>
                         </div>
                         <small class="text-muted">
@@ -856,21 +853,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Adicionar botão para geocodificação com normalização
-        const buttonContainer = enderecoField.parentElement.querySelector('.mt-2');
-        if (buttonContainer) {
-            const geocodeBtn = document.createElement('button');
-            geocodeBtn.type = 'button';
-            geocodeBtn.className = 'btn btn-outline-info btn-sm ms-2';
-            geocodeBtn.title = 'Buscar coordenadas para este endereço';
-            geocodeBtn.innerHTML = '<i class="fas fa-search-location"></i> Buscar no Mapa';
-            
-            geocodeBtn.addEventListener('click', function() {
-                geocodeAddressToCoordinates();
-            });
-            
-            buttonContainer.appendChild(geocodeBtn);
-        }
     }
 });
 
