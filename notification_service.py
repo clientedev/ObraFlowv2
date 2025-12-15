@@ -232,19 +232,23 @@ class NotificationService:
             relatorio_id: ID do relatório reprovado
         """
         try:
-            from models import Relatorio
+            from models import Relatorio, Projeto
             
             relatorio = Relatorio.query.get(relatorio_id)
             if not relatorio:
                 logger.error(f"❌ Relatório {relatorio_id} não encontrado")
                 return {'success': False, 'error': 'Relatório não encontrado'}
             
+            projeto = Projeto.query.get(relatorio.projeto_id) if relatorio.projeto_id else None
+            projeto_nome = projeto.nome if projeto else "Sem projeto"
+            numero_rel = relatorio.numero or "S/N"
+            
             resultado = self.criar_notificacao(
                 user_id=relatorio.autor_id,
                 tipo='relatorio_reprovado',
                 titulo='Relatório reprovado',
-                mensagem=f'Seu relatório "{relatorio.titulo}" foi reprovado. Verifique as observações e corrija antes de reenviar.',
-                link_destino=f'/reports/{relatorio_id}/review'
+                mensagem=f'O relatório nº {numero_rel} da obra "{projeto_nome}" foi reprovado. Verifique as observações e corrija antes de reenviar.',
+                link_destino=f'/reports/{relatorio_id}/edit'
             )
             
             return resultado

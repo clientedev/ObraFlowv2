@@ -108,9 +108,9 @@
                                     {% endif %}
 
                                     {% if (relatorio.status == 'Rejeitado' or relatorio.status == 'Em edição') and relatorio.comentario_aprovacao %}
-                                    <div class="alert alert-warning mt-2">
+                                    <div class="alert alert-warning mt-2" style="word-wrap: break-word; overflow-wrap: break-word; word-break: break-word;">
                                         <strong>Motivo da rejeição:</strong><br>
-                                        {{ relatorio.comentario_aprovacao }}
+                                        <span style="white-space: pre-wrap; word-wrap: break-word;">{{ relatorio.comentario_aprovacao }}</span>
                                         {% if relatorio.data_aprovacao %}
                                         <br><small class="text-muted">Rejeitado em {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }}
                                         {% if relatorio.aprovador %}
