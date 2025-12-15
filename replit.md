@@ -2,6 +2,14 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, autosave functionality with real-time synchronization, and a comprehensive notification system. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes
+**December 15, 2025** - Google Calendar export improvements:
+- Added multi-select functionality with checkboxes to select multiple visits at once
+- Added "Selecionar Todas" option for bulk selection
+- Toggle between "Mostrar Apenas Novas" and "Mostrar Todas" (including already exported)
+- Visual indicator (badge) for visits already exported to Google Calendar
+- Visits are now marked as exported only after user confirms export
+- Re-export functionality: users can export the same visit multiple times if needed
+
 **December 15, 2025** - Temporary approver multi-project selection and permission improvements:
 - Updated temporary approver form to allow selecting multiple projects at once (Ctrl/Cmd + click)
 - Approver selection is now first, then project selection for better UX

@@ -894,7 +894,10 @@ function exportSelectedVisits() {
     
     fetch('/api/visits/export/google/mark', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
         body: JSON.stringify({ visit_ids: visitIds })
     }).catch(err => console.log('Erro ao marcar visitas:', err));
     
