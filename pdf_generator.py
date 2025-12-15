@@ -696,7 +696,7 @@ class ReportPDFGenerator:
     def _add_complete_project_visit_data(self, story, relatorio):
         """Add complete project and visit information"""
         # Project section
-        story.append(Paragraph("🏗️ INFORMAÇÕES DO PROJETO", self.styles['SectionHeader']))
+        story.append(Paragraph("🏗️ INFORMAÇÕES DA OBRA", self.styles['SectionHeader']))
         
         projeto = relatorio.projeto
         if projeto:
@@ -1120,7 +1120,7 @@ class ReportPDFGenerator:
     
     def _add_project_info(self, story, relatorio):
         """Add project information section"""
-        story.append(Paragraph("INFORMAÇÕES DO PROJETO", self.styles['Header']))
+        story.append(Paragraph("INFORMAÇÕES DA OBRA", self.styles['Header']))
         
         projeto = relatorio.projeto
         project_data = [

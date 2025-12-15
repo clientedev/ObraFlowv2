@@ -49,11 +49,11 @@ class ProjetoForm(FlaskForm):
     data_previsao_fim = DateField('Previsão de Término', validators=[Optional()])
     numeracao_inicial = IntegerField('Numeração Inicial dos Relatórios', validators=[Optional(), NumberRange(min=1)], default=1)
     status = SelectField('Status', choices=[
+        ('Não iniciado', 'Não iniciado'),
         ('Ativo', 'Ativo'),
         ('Pausado', 'Pausado'),
-        ('Concluído', 'Concluído'),
-        ('Cancelado', 'Cancelado')
-    ], default='Ativo')
+        ('Concluído', 'Concluído')
+    ], default='Não iniciado')
 
     def __init__(self, *args, **kwargs):
         super(ProjetoForm, self).__init__(*args, **kwargs)

@@ -5071,24 +5071,27 @@ def project_view(project_id):
                          relatorios_express=relatorios_express,
                          comunicacoes=comunicacoes[:10])  # Show last 10 communications
 
-@app.route('/projects/<int:project_id>/reactivate', methods=['POST'])
+@app.route('/projects/<int:project_id>/update-status', methods=['POST'])
 @login_required
-def reactivate_project(project_id):
+def update_project_status(project_id):
     project = Projeto.query.get_or_404(project_id)
     
-    # Permitir apenas usuário master
     if not current_user.is_master:
-        flash('Acesso negado. Apenas o usuário master pode reativar obras.', 'danger')
+        flash('Acesso negado. Apenas o usuário master pode alterar o status da obra.', 'danger')
         return redirect(url_for('project_view', project_id=project_id))
     
-    # Verifica status atual
-    if project.status.lower() == 'concluído':
-        project.status = 'Ativo'
-        db.session.commit()
-        flash('Obra reativada com sucesso!', 'success')
-    else:
-        flash('A obra já está ativa.', 'info')
+    new_status = request.form.get('status')
+    valid_statuses = ['Não iniciado', 'Ativo', 'Pausado', 'Concluído']
     
+    if new_status not in valid_statuses:
+        flash('Status inválido.', 'danger')
+        return redirect(url_for('project_view', project_id=project_id))
+    
+    old_status = project.status
+    project.status = new_status
+    db.session.commit()
+    
+    flash(f'Status da obra alterado de "{old_status}" para "{new_status}" com sucesso!', 'success')
     return redirect(url_for('project_view', project_id=project_id))
 
 @app.route('/projects/<int:project_id>/edit', methods=['GET', 'POST'])

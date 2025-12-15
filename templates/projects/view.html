@@ -19,14 +19,49 @@
                 <a href="{{ url_for('project_edit', project_id=project.id) }}" class="btn btn-primary me-2">
                     <i class="fas fa-edit me-2"></i>Editar Obra
                 </a>
-                    {% if project.status.lower() == 'concluído' %}
-                    <form action="{{ url_for('reactivate_project', project_id=project.id) }}" method="POST" style="display: inline;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <button type="submit" class="btn btn-warning me-2">
-                            <i class="fas fa-redo me-2"></i>Reativar Obra
-                        </button>
-                    </form>
-                    {% endif %}
+                <div class="dropdown d-inline-block me-2">
+                    <button class="btn btn-warning dropdown-toggle" type="button" id="statusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-exchange-alt me-2"></i>Alterar Status
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="statusDropdown">
+                        <li>
+                            <form action="{{ url_for('update_project_status', project_id=project.id) }}" method="POST" class="px-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input type="hidden" name="status" value="Não iniciado"/>
+                                <button type="submit" class="dropdown-item {% if project.status == 'Não iniciado' %}active{% endif %}">
+                                    <i class="fas fa-hourglass-start me-2 text-secondary"></i>Não iniciado
+                                </button>
+                            </form>
+                        </li>
+                        <li>
+                            <form action="{{ url_for('update_project_status', project_id=project.id) }}" method="POST" class="px-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input type="hidden" name="status" value="Ativo"/>
+                                <button type="submit" class="dropdown-item {% if project.status == 'Ativo' %}active{% endif %}">
+                                    <i class="fas fa-play-circle me-2 text-success"></i>Ativo
+                                </button>
+                            </form>
+                        </li>
+                        <li>
+                            <form action="{{ url_for('update_project_status', project_id=project.id) }}" method="POST" class="px-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input type="hidden" name="status" value="Pausado"/>
+                                <button type="submit" class="dropdown-item {% if project.status == 'Pausado' %}active{% endif %}">
+                                    <i class="fas fa-pause-circle me-2 text-warning"></i>Pausado
+                                </button>
+                            </form>
+                        </li>
+                        <li>
+                            <form action="{{ url_for('update_project_status', project_id=project.id) }}" method="POST" class="px-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input type="hidden" name="status" value="Concluído"/>
+                                <button type="submit" class="dropdown-item {% if project.status == 'Concluído' %}active{% endif %}">
+                                    <i class="fas fa-check-circle me-2 text-primary"></i>Concluído
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
                 {% endif %}
                 <a href="{{ url_for('projects_list') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left me-2"></i>Voltar
@@ -71,7 +106,7 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="fas fa-info-circle me-2"></i>Informações do Projeto
+                    <i class="fas fa-info-circle me-2"></i>Informações da Obra
                 </h5>
             </div>
             <div class="card-body">
@@ -88,8 +123,10 @@
                                 <span class="badge bg-warning">{{ project.status }}</span>
                             {% elif project.status == 'Concluído' %}
                                 <span class="badge bg-primary">{{ project.status }}</span>
-                            {% else %}
+                            {% elif project.status == 'Não iniciado' %}
                                 <span class="badge bg-secondary">{{ project.status }}</span>
+                            {% else %}
+                                <span class="badge bg-dark">{{ project.status }}</span>
                             {% endif %}
                         </p>
                     </div>
