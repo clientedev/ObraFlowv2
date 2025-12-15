@@ -377,12 +377,24 @@
                                     {% for foto in fotos %}
                                     <div class="col-md-3 mb-3" id="photo-{{ foto.id }}" data-photo-id="{{ foto.id }}">
                                         <div class="card">
-                                            <img src="{{ url_for('api_get_photo', foto_id=foto.id) }}" 
-                                                 class="card-img-top" 
-                                                 style="height: 200px; object-fit: cover;" 
-                                                 alt="{{ foto.legenda or 'Foto do relatório' }}"
-                                                 onerror="this.onerror=null; this.src='/static/img/no-image.png'; console.error('Erro ao carregar imagem ID {{ foto.id }}');">
+                                            <div class="position-relative">
+                                                <span class="badge bg-primary position-absolute" style="top: 8px; left: 8px; z-index: 10;">
+                                                    Foto {{ foto.ordem if foto.ordem else loop.index }}
+                                                </span>
+                                                <img src="{{ url_for('api_get_photo', foto_id=foto.id) }}" 
+                                                     class="card-img-top" 
+                                                     style="height: 200px; object-fit: cover;" 
+                                                     alt="{{ foto.legenda or 'Foto do relatório' }}"
+                                                     onerror="this.onerror=null; this.src='/static/img/no-image.png'; console.error('Erro ao carregar imagem ID {{ foto.id }}');">
+                                            </div>
                                             <div class="card-body p-2">
+                                                {% if foto.local %}
+                                                <div class="mb-2">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-map-marker-alt me-1"></i>{{ foto.local }}
+                                                    </small>
+                                                </div>
+                                                {% endif %}
                                                 <div class="mb-2">
                                                     <select class="form-select form-select-sm photo-legend legendas-select" 
                                                             data-photo-id="{{ foto.id }}"
@@ -396,6 +408,13 @@
                                                         {% endif %}
                                                     </select>
                                                 </div>
+                                                {% if foto.tipo_servico %}
+                                                <div>
+                                                    <span class="badge bg-secondary">
+                                                        <i class="fas fa-tag me-1"></i>{{ foto.tipo_servico }}
+                                                    </span>
+                                                </div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
@@ -616,22 +635,33 @@ function renderImages(imagens) {
     }
 
     // Renderizar cada foto
-    imagens.forEach(foto => {
+    imagens.forEach((foto, index) => {
         const fotoCard = document.createElement('div');
         fotoCard.className = 'col-md-4 col-lg-3 mb-3';
         fotoCard.setAttribute('id', `photo-${foto.id}`);
         fotoCard.setAttribute('data-photo-id', foto.id);
 
+        const fotoNumero = foto.ordem || (index + 1);
+        const localHtml = foto.local ? `<div class="mb-2"><small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>${foto.local}</small></div>` : '';
+        const categoriaHtml = foto.tipo_servico ? `<div><span class="badge bg-secondary"><i class="fas fa-tag me-1"></i>${foto.tipo_servico}</span></div>` : '';
+
         fotoCard.innerHTML = `
             <div class="card h-100">
-                <img src="/api/fotos/${foto.id}" 
-                     class="card-img-top" 
-                     style="height: 200px; object-fit: cover;"
-                     alt="${foto.legenda || 'Foto'}"
-                     onerror="this.src='/static/img/no-image.png'">
+                <div class="position-relative">
+                    <span class="badge bg-primary position-absolute" style="top: 8px; left: 8px; z-index: 10;">
+                        Foto ${fotoNumero}
+                    </span>
+                    <img src="/api/fotos/${foto.id}" 
+                         class="card-img-top" 
+                         style="height: 200px; object-fit: cover;"
+                         alt="${foto.legenda || 'Foto'}"
+                         onerror="this.src='/static/img/no-image.png'">
+                </div>
                 <div class="card-body p-2">
+                    ${localHtml}
                     <p class="card-text small mb-1"><strong>${foto.legenda || 'Sem legenda'}</strong></p>
                     ${foto.descricao ? `<p class="card-text small text-muted mb-2">${foto.descricao}</p>` : ''}
+                    ${categoriaHtml}
                 </div>
             </div>
         `;
