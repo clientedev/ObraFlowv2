@@ -1,0 +1,25 @@
+Atue como um Engenheiro de Software Full Stack experiente. Preciso corrigir 4 bugs de interface e lógica no módulo de "Visitas" do sistema, identificados durante um teste de usuário.
+
+Aqui está o contexto e as correções necessárias:
+
+**Contexto:** O sistema possui uma visualização de Calendário e uma visualização em Lista para agendamentos de visitas em obras. Uma visita pode ter múltiplos participantes.
+
+**Tarefas de Correção:**
+
+1.  **Corrigir Duplicação no Calendário (Renderização):**
+    * *Problema:* Quando uma visita (ex: VIS-0023) tem 2 participantes, o componente de calendário (ex: FullCalendar ou similar) está renderizando 2 eventos idênticos no mesmo dia.
+    * *Solução:* Refatore a lógica de mapeamento dos eventos do calendário. Agrupe os dados pelo `visit_id`. Independentemente de quantos participantes houver, deve haver apenas UM bloco de evento visual na grade do calendário para aquela visita.
+
+2.  **Melhorar Label/Título do Evento no Calendário:**
+    * *Problema:* O evento exibe "09 V" (provavelmente a hora). A usuária não consegue identificar a visita.
+    * *Solução:* Altere a propriedade `title` ou o componente de renderização do evento para exibir o código da visita (ex: "VIS-0023") e opcionalmente o nome do Projeto. Não mostre apenas a hora.
+
+3.  **Corrigir Fluxo de Navegação (Back Button):**
+    * *Problema:* Ao abrir os detalhes de uma visita via Calendário e depois fechar o modal ou voltar, o sistema perde o estado e não retorna para a visualização de "Calendário" (mês/semana).
+    * *Solução:* Garanta que o botão de "Fechar" ou "Voltar" no modal de detalhes preserve o estado da rota anterior. Se o usuário veio do Calendário, ele deve voltar para o Calendário.
+
+4.  **Exibir Participantes na Tela de Detalhes (View Mode):**
+    * *Problema:* Na visualização de "Lista de Visitas", ao clicar em "Ver" (detalhes/checklist), o componente exibe o "Responsável" mas omite a lista de "Participantes".
+    * *Solução:* No componente de visualização detalhada da visita (onde mostra Projeto, Data, Responsável), adicione a renderização do array de `participantes` (assim como já é feito no modal do calendário). Certifique-se de iterar sobre a lista e exibir os nomes de todos os envolvidos.
+
+Por favor, analise os arquivos relacionados ao componente de Calendário e ao componente de Detalhes da Visita e aplique essas correções.
