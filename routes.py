@@ -7733,7 +7733,7 @@ def report_submit_for_approval(report_id):
         current_app.logger.error(f"❌ Erro ao criar notificação para aprovador: {e}")
 
     flash('Relatório enviado para aprovação com sucesso!', 'success')
-    return redirect(url_for('report_view', report_id=report_id))
+    return redirect(url_for('reports'))
 
 @app.route('/visits/<int:visit_id>/communication', methods=['GET', 'POST'])
 @login_required
