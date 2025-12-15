@@ -3782,12 +3782,32 @@ def review_report(report_id):
             current_app.logger.error(f"❌ ERRO GERAL aprovador para relatório {report_id}: {str(e)}")
             user_is_approver = False
 
+        # Processar acompanhantes para exibição formatada
+        acompanhantes_formatados = []
+        try:
+            import json
+            acomp_data = report.acompanhantes
+            if acomp_data:
+                if isinstance(acomp_data, str):
+                    acomp_data = json.loads(acomp_data)
+                if isinstance(acomp_data, list):
+                    for acomp in acomp_data:
+                        if isinstance(acomp, dict):
+                            acompanhantes_formatados.append(acomp)
+                        elif isinstance(acomp, str):
+                            acompanhantes_formatados.append({'nome': acomp})
+                current_app.logger.info(f"✅ Acompanhantes formatados: {len(acompanhantes_formatados)}")
+        except Exception as e:
+            current_app.logger.warning(f"⚠️ Erro ao processar acompanhantes para review: {str(e)}")
+            acompanhantes_formatados = []
+
         return render_template('reports/review.html', 
                              report=report,  # Padronizado conforme especificação
                              relatorio=report,  # Manter compatibilidade
                              fotos=fotos, 
                              checklist=checklist,
-                             user_is_approver=user_is_approver)
+                             user_is_approver=user_is_approver,
+                             acompanhantes_formatados=acompanhantes_formatados)
 
     except Exception as e:
         current_app.logger.exception(f"ERRO GERAL REVIEW /reports/{report_id}/review: {str(e)}")
@@ -6324,6 +6344,7 @@ def report_edit(report_id):
                             current_app.logger.error(f"❌ Erro ao criar notificação para aprovador: {e}")
                         
                         flash('Relatório reenviado para aprovação!', 'success')
+                        return redirect(url_for('reports'))
                     else:
                         flash('Relatório não pode ser enviado para aprovação no status atual.', 'warning')
 

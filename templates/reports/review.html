@@ -107,16 +107,15 @@
                         <p><strong>Projeto:</strong> {{ relatorio.projeto.nome }} ({{ relatorio.projeto.numero }})</p>
                         <p><strong>Autor:</strong> {{ relatorio.autor.nome_completo }}</p>
                         <p><strong>Data do Relatório:</strong> {{ relatorio.data_relatorio.strftime('%d/%m/%Y') }}</p>
-                        {% if relatorio.acompanhantes %}
-                        <p><strong><i class="fas fa-users me-1"></i>Acompanhantes:</strong>
-                            {% if relatorio.acompanhantes is iterable and relatorio.acompanhantes is not string %}
-                                {% for acomp in relatorio.acompanhantes %}
-                                    <span class="badge bg-info me-1">{{ acomp.nome if acomp.nome else acomp }}</span>
-                                {% endfor %}
-                            {% else %}
-                                {{ relatorio.acompanhantes }}
-                            {% endif %}
-                        </p>
+                        {% if acompanhantes_formatados and acompanhantes_formatados|length > 0 %}
+                        <p><strong><i class="fas fa-users me-1"></i>Acompanhantes:</strong></p>
+                        <div class="ms-3">
+                            {% for acomp in acompanhantes_formatados %}
+                                <span class="badge bg-info me-1 mb-1">
+                                    {{ acomp.nome|default('Sem nome') }}{% if acomp.funcao %} ({{ acomp.funcao }}){% endif %}{% if acomp.origem %} - {{ acomp.origem }}{% endif %}
+                                </span>
+                            {% endfor %}
+                        </div>
                         {% endif %}
                     </div>
                     <div class="col-md-6">
@@ -129,7 +128,13 @@
                         <p><strong>Criado em:</strong> {{ relatorio.created_at.strftime('%d/%m/%Y às %H:%M') }}</p>
                         {% if relatorio.lembrete_proxima_visita %}
                         <p><strong><i class="fas fa-bell me-1"></i>Lembrete Próxima Visita:</strong> 
-                            <span class="badge bg-warning text-dark">{{ relatorio.lembrete_proxima_visita.strftime('%d/%m/%Y às %H:%M') }}</span>
+                            <span class="badge bg-warning text-dark">
+                                {% if relatorio.lembrete_proxima_visita is string %}
+                                    {{ relatorio.lembrete_proxima_visita }}
+                                {% else %}
+                                    {{ relatorio.lembrete_proxima_visita.strftime('%d/%m/%Y às %H:%M') }}
+                                {% endif %}
+                            </span>
                         </p>
                         {% endif %}
                     </div>
