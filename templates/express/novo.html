@@ -609,23 +609,10 @@ input, textarea, select {
 
                 <!-- CHECKLIST PADRÃO -->
                 <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="card-header">
                         <h5><i class="fas fa-tasks"></i> Checklist de Verificação</h5>
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-outline-info btn-sm" onclick="loadDefaultChecklist()">
-                                <i class="fas fa-list"></i> Carregar Padrão
-                            </button>
-                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="clearChecklist()">
-                                <i class="fas fa-trash"></i> Limpar
-                            </button>
-                        </div>
                     </div>
                     <div class="card-body">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> 
-                            <strong>Checklist automático:</strong> Itens padrão serão carregados automaticamente. 
-                            Você pode marcar os itens conforme a verificação da obra.
-                        </div>
 
                         <div id="checklistContainer">
                             <div class="text-center text-muted">
@@ -1745,10 +1732,7 @@ function showChecklistError() {
         <div class="alert alert-warning">
             <i class="fas fa-exclamation-triangle"></i>
             <strong>Erro ao carregar checklist:</strong> 
-            Não foi possível carregar os itens padrão. 
-            <button class="btn btn-sm btn-outline-primary ms-2" onclick="loadDefaultChecklist()">
-                Tentar Novamente
-            </button>
+            Não foi possível carregar os itens padrão.
         </div>
     `;
 }
@@ -1804,7 +1788,25 @@ function handleTouch(e) {
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     updatePhotoCounter();
+    
+    // Verificar se há dados de checklist existentes (duplicação ou edição)
+    {% if checklist_dados_existente %}
+    try {
+        const checklistExistente = {{ checklist_dados_existente|safe }};
+        if (checklistExistente && Array.isArray(checklistExistente) && checklistExistente.length > 0) {
+            loadChecklistWithExistingData(checklistExistente);
+            console.log('✅ Checklist carregado com dados existentes:', checklistExistente.length, 'itens');
+        } else {
+            loadDefaultChecklist();
+        }
+    } catch (e) {
+        console.error('Erro ao carregar checklist existente:', e);
+        loadDefaultChecklist();
+    }
+    {% else %}
     loadDefaultChecklist();
+    {% endif %}
+    
     // Sistema de categoria visual removido - agora usa campo de texto #photoCategory
     
     // Exibir fotos existentes se estiver em modo de edição
@@ -1817,6 +1819,50 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     {% endif %}
 });
+
+// Carregar checklist com dados existentes (de duplicação ou edição)
+function loadChecklistWithExistingData(existingData) {
+    checklistItems = existingData.map((item, index) => ({
+        texto: item.titulo || item.texto || 'Item ' + (index + 1),
+        descricao: item.descricao || '',
+        concluido: item.concluido || false
+    }));
+    displayChecklistWithState();
+}
+
+// Exibir checklist mantendo os estados de seleção
+function displayChecklistWithState() {
+    const container = document.getElementById('checklistContainer');
+
+    if (checklistItems.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted">Nenhum item de checklist encontrado.</div>';
+        return;
+    }
+
+    let html = '<div class="checklist-items">';
+
+    checklistItems.forEach((item, index) => {
+        const isChecked = item.concluido ? 'checked' : '';
+        html += `
+            <div class="card checklist-item-card mb-3">
+                <div class="card-body">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="check_${index}" ${isChecked} onchange="updateChecklistData()">
+                        <label class="form-check-label fw-bold" for="check_${index}">
+                            ${item.texto || item.titulo || 'Item ' + (index + 1)}
+                        </label>
+                    </div>
+                    ${item.descricao ? `<small class="text-muted">${item.descricao}</small>` : ''}
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    updateChecklistData();
+}
 
 function getCurrentLocation(btn) {
     const originalText = btn.innerHTML;

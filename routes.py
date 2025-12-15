@@ -10149,8 +10149,17 @@ def express_new():
 
     # SEMPRE usar template desktop para garantir estilização adequada
     template = 'express/novo.html'
+    
+    # Passar checklist_dados para o template (se houver duplicação)
+    checklist_dados_json = None
+    if 'relatorio_duplicado' in session:
+        dados = session['relatorio_duplicado']
+        if dados.get('checklist_dados'):
+            checklist_dados_json = dados['checklist_dados']
+    
     return render_template(template, form=form, is_mobile=is_mobile, 
-                         categorias=categorias_lista, projeto_id=projeto_id)
+                         categorias=categorias_lista, projeto_id=projeto_id,
+                         checklist_dados_existente=checklist_dados_json)
 
 @app.route('/express/<int:id>')
 @login_required
@@ -10544,7 +10553,11 @@ def express_edit(id):
         
         current_app.logger.info(f"📸 Carregadas {len(fotos_existentes)} fotos para edição do relatório {relatorio.id}")
 
-    return render_template('express/novo.html', form=form, relatorio=relatorio, editing=True, fotos_existentes=fotos_existentes)
+    # Passar checklist_dados existente para o template
+    checklist_dados_existente = relatorio.checklist_dados if relatorio.checklist_dados else None
+    
+    return render_template('express/novo.html', form=form, relatorio=relatorio, editing=True, 
+                         fotos_existentes=fotos_existentes, checklist_dados_existente=checklist_dados_existente)
 
 @app.route('/express/<int:id>/pdf')
 @login_required
