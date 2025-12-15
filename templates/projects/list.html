@@ -34,21 +34,37 @@
 <!-- Abas de Filtro por Status -->
 <div class="row">
     <div class="col-12">
-        <ul class="nav nav-tabs mb-3" role="tablist">
+        <ul class="nav nav-tabs nav-fill mb-3 flex-nowrap" role="tablist" style="overflow-x: auto; white-space: nowrap;">
             <li class="nav-item" role="presentation">
-                <a class="nav-link {% if status_filter == 'ativo' %}active{% endif %}" 
+                <a class="nav-link py-2 px-3 {% if status_filter == 'ativo' %}active{% endif %}" 
                    href="{{ url_for('projects_list', status='ativo', q=request.args.get('q', '')) }}"
                    role="tab">
-                    <i class="fas fa-hammer me-1"></i>
-                    Obras Ativas
+                    <span class="d-none d-sm-inline">Ativas</span>
+                    <span class="d-sm-none">Ativas</span>
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link {% if status_filter == 'concluido' %}active{% endif %}" 
+                <a class="nav-link py-2 px-3 {% if status_filter == 'nao_iniciado' %}active{% endif %}" 
+                   href="{{ url_for('projects_list', status='nao_iniciado', q=request.args.get('q', '')) }}"
+                   role="tab">
+                    <span class="d-none d-sm-inline">Não iniciadas</span>
+                    <span class="d-sm-none">N. Inic.</span>
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link py-2 px-3 {% if status_filter == 'pausado' %}active{% endif %}" 
+                   href="{{ url_for('projects_list', status='pausado', q=request.args.get('q', '')) }}"
+                   role="tab">
+                    <span class="d-none d-sm-inline">Pausadas</span>
+                    <span class="d-sm-none">Pausadas</span>
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link py-2 px-3 {% if status_filter == 'concluido' %}active{% endif %}" 
                    href="{{ url_for('projects_list', status='concluido', q=request.args.get('q', '')) }}"
                    role="tab">
-                    <i class="fas fa-check-circle me-1"></i>
-                    Obras Concluídas
+                    <span class="d-none d-sm-inline">Concluídas</span>
+                    <span class="d-sm-none">Concl.</span>
                 </a>
             </li>
         </ul>
@@ -103,10 +119,10 @@
                     <label class="form-label small fw-bold">Status:</label>
                     <select class="form-select form-select-sm" id="filterStatus">
                         <option value="">Todos os Status</option>
+                        <option value="Não iniciado">Não iniciado</option>
                         <option value="Ativo">Ativo</option>
                         <option value="Pausado">Pausado</option>
                         <option value="Concluído">Concluído</option>
-                        <option value="Cancelado">Cancelado</option>
                     </select>
                 </div>
                 <div class="col-md-2 col-sm-6">

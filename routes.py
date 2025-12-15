@@ -2344,14 +2344,12 @@ def projects_list():
     
     # Apply status filter
     if status_filter == 'ativo':
-        # Show only active projects (Ativo, Pausado)
-        from sqlalchemy import or_
-        query = query.filter(or_(
-            Projeto.status == 'Ativo',
-            Projeto.status == 'Pausado'
-        ))
+        query = query.filter(Projeto.status == 'Ativo')
+    elif status_filter == 'nao_iniciado':
+        query = query.filter(Projeto.status == 'Não iniciado')
+    elif status_filter == 'pausado':
+        query = query.filter(Projeto.status == 'Pausado')
     elif status_filter == 'concluido':
-        # Show only completed projects
         query = query.filter(Projeto.status == 'Concluído')
     # If status_filter is 'todos', show all projects (no filter)
 
