@@ -8138,16 +8138,16 @@ def api_visit_details(visit_id):
 @login_required
 def api_export_google_calendar():
     """
-    PARTE 4: Export all user visits to Google Calendar with duplicate prevention
-    Exporta TODAS as visitas do usuário (filtradas por próximos 3 meses)
+    Export all user visits to Google Calendar
+    Parâmetros:
+    - include_all=true: mostra todas as visitas (mesmo já exportadas)
+    - include_all=false (padrão): mostra apenas visitas não exportadas
     """
     try:
         from urllib.parse import urlencode, quote
         
-        # Buscar TODAS as visitas do usuário atual (como participante ou responsável)
-        # Sem filtro de data para permitir exportação de visitas passadas também
+        include_all = request.args.get('include_all', 'false').lower() == 'true'
         
-        # Buscar visitas onde o usuário é participante OU responsável
         visitas_participante = db.session.query(Visita).join(
             VisitaParticipante, Visita.id == VisitaParticipante.visita_id
         ).filter(
@@ -8158,7 +8158,6 @@ def api_export_google_calendar():
             Visita.responsavel_id == current_user.id
         ).all()
         
-        # Combinar e remover duplicatas
         visitas_ids = set([v.id for v in visitas_participante] + [v.id for v in visitas_responsavel])
         visits = Visita.query.filter(Visita.id.in_(visitas_ids)).order_by(Visita.data_inicio).all()
 
@@ -8168,27 +8167,25 @@ def api_export_google_calendar():
                 'error': 'Nenhuma visita encontrada para exportar'
             })
 
-        # Gerar URLs do Google Calendar para cada visita
         base_url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
         export_urls = []
-        novas_exportacoes = 0
-        duplicatas = 0
+        ja_exportadas = 0
+        total_visitas = len(visits)
 
         for visit in visits:
-            # PARTE 4: Verificar se já foi exportada (tem google_event_id)
-            if visit.google_event_id:
-                duplicatas += 1
-                continue  # Pular visitas já exportadas
+            is_exported = bool(visit.google_event_id)
             
-            # Formatar para Google Calendar
+            if is_exported:
+                ja_exportadas += 1
+                if not include_all:
+                    continue
+            
             start_time = visit.data_inicio.strftime('%Y%m%dT%H%M%S')
             end_time = (visit.data_fim or visit.data_inicio + timedelta(hours=2)).strftime('%Y%m%dT%H%M%S')
             
-            # Preparar título e descrição
             projeto_nome = visit.projeto_nome or "Sem projeto"
             title = f"Visita {visit.numero} - {projeto_nome}"
             
-            # Buscar participantes para incluir na descrição
             participantes_nomes = []
             try:
                 participantes_query = db.session.query(VisitaParticipante).filter_by(
@@ -8205,12 +8202,10 @@ def api_export_google_calendar():
             details += f"Responsável: {visit.responsavel.nome_completo}\\n"
             details += f"Participantes: {participantes_str}"
             
-            # Localização
             location = ""
             if visit.projeto and hasattr(visit.projeto, 'endereco'):
                 location = visit.projeto.endereco or ''
             
-            # Montar parâmetros
             params = {
                 'text': title,
                 'dates': f'{start_time}/{end_time}',
@@ -8220,32 +8215,21 @@ def api_export_google_calendar():
             
             google_url = base_url + '&' + urlencode(params, quote_via=quote)
             
-            # Gerar ID único para controle (baseado no ID da visita + timestamp)
-            # Quando houver integração API real, este ID será substituído pelo do Google
-            event_id = f"visit_{visit.id}_{int(datetime.now().timestamp())}"
-            visit.google_event_id = event_id
-            
             export_urls.append({
                 'visit_id': visit.id,
                 'visit_numero': visit.numero,
                 'url': google_url,
-                'title': title
+                'title': title,
+                'ja_exportada': is_exported
             })
-            
-            novas_exportacoes += 1
-        
-        # Salvar os google_event_id no banco
-        if novas_exportacoes > 0:
-            db.session.commit()
 
         return jsonify({
             'success': True,
-            'message': f'{novas_exportacoes} visitas prontas para exportação. {duplicatas} já exportadas anteriormente.',
-            'total_visits': len(visits),
-            'novas_exportacoes': novas_exportacoes,
-            'duplicatas': duplicatas,
-            'export_urls': export_urls,
-            'note': 'Clique em cada URL para adicionar ao Google Calendar. Para sincronização automática bidirecional, configure a integração do Google Calendar.'
+            'message': f'{len(export_urls)} visitas disponíveis para exportação.',
+            'total_visits': total_visitas,
+            'ja_exportadas': ja_exportadas,
+            'include_all': include_all,
+            'export_urls': export_urls
         })
 
     except Exception as e:
@@ -8254,6 +8238,33 @@ def api_export_google_calendar():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/visits/export/google/mark', methods=['POST'])
+@login_required
+def api_mark_visits_exported():
+    """Marca visitas como exportadas após o usuário confirmar a exportação"""
+    try:
+        data = request.get_json()
+        visit_ids = data.get('visit_ids', [])
+        
+        if not visit_ids:
+            return jsonify({'success': False, 'error': 'Nenhuma visita especificada'})
+        
+        count = 0
+        for visit_id in visit_ids:
+            visit = Visita.query.get(visit_id)
+            if visit and not visit.google_event_id:
+                visit.google_event_id = f"exported_{visit.id}_{int(datetime.now().timestamp())}"
+                count += 1
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'{count} visita(s) marcada(s) como exportada(s)'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/visits/<int:visit_id>/export/google')
 @login_required

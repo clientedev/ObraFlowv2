@@ -727,64 +727,104 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Funções de exportação
-function exportToGoogleCalendar() {
-    fetch('/api/visits/export/google')
+let currentIncludeAll = false;
+
+function exportToGoogleCalendar(includeAll = false) {
+    currentIncludeAll = includeAll;
+    fetch(`/api/visits/export/google?include_all=${includeAll}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (data.export_urls && data.export_urls.length > 0) {
-                    // Mostrar mensagem com estatísticas
-                    const message = data.message || `${data.novas_exportacoes} visitas prontas para exportação`;
-                    
-                    if (data.novas_exportacoes === 0) {
-                        alert(`${message}\n\nTodas as suas visitas já foram exportadas anteriormente.`);
-                        return;
+                const totalVisitas = data.export_urls ? data.export_urls.length : 0;
+                const jaExportadas = data.ja_exportadas || 0;
+                const totalGeral = data.total_visits || 0;
+                
+                if (totalVisitas === 0 && !includeAll && jaExportadas > 0) {
+                    if (confirm(`Todas as ${jaExportadas} visitas já foram exportadas anteriormente.\n\nDeseja ver todas as visitas para re-exportar?`)) {
+                        exportToGoogleCalendar(true);
                     }
-                    
-                    // Criar modal com lista de visitas para exportar
-                    const modalHtml = `
-                        <div class="modal fade" id="googleExportModal" tabindex="-1">
-                            <div class="modal-dialog modal-dialog-scrollable">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">📅 Exportar para Google Calendar</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <p class="text-muted">${message}</p>
-                                        <p class="small"><strong>Nota:</strong> Clique em cada visita para adicionar ao Google Calendar</p>
-                                        <div class="list-group">
-                                            ${data.export_urls.map(visit => `
-                                                <a href="${visit.url}" target="_blank" class="list-group-item list-group-item-action">
-                                                    <i class="fas fa-calendar-plus text-primary me-2"></i>
-                                                    ${visit.title}
-                                                </a>
-                                            `).join('')}
+                    return;
+                }
+                
+                if (totalVisitas === 0) {
+                    alert('Nenhuma visita encontrada para exportação.');
+                    return;
+                }
+                
+                const infoMessage = includeAll 
+                    ? `<strong>${totalVisitas} visitas</strong> disponíveis (incluindo já exportadas).`
+                    : `<strong>${totalVisitas} visitas novas</strong> para exportar. ${jaExportadas > 0 ? `(${jaExportadas} já exportadas)` : ''}`;
+                
+                const toggleBtn = includeAll
+                    ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="exportToGoogleCalendar(false)">
+                        <i class="fas fa-filter me-1"></i>Mostrar Apenas Novas
+                       </button>`
+                    : (jaExportadas > 0 ? `<button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportToGoogleCalendar(true)">
+                        <i class="fas fa-eye me-1"></i>Mostrar Todas (${totalGeral})
+                       </button>` : '');
+                
+                const modalHtml = `
+                    <div class="modal fade" id="googleExportModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header bg-success text-white">
+                                    <h5 class="modal-title"><i class="fab fa-google me-2"></i>Exportar para Google Calendar</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div class="alert alert-info mb-0 flex-grow-1 me-2">
+                                            <i class="fas fa-info-circle me-2"></i>${infoMessage}
                                         </div>
+                                        ${toggleBtn}
                                     </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAllVisits" onchange="toggleSelectAllVisits(this)">
+                                            <label class="form-check-label fw-bold" for="selectAllVisits">
+                                                Selecionar Todas
+                                            </label>
+                                        </div>
+                                        <span class="badge bg-primary" id="selectedCount">0 selecionadas</span>
                                     </div>
+                                    
+                                    <div class="list-group" id="visitExportList">
+                                        ${data.export_urls.map((visit, index) => `
+                                            <label class="list-group-item list-group-item-action d-flex align-items-center ${visit.ja_exportada ? 'list-group-item-light' : ''}" style="cursor: pointer;">
+                                                <input class="form-check-input me-3 visit-checkbox" type="checkbox" 
+                                                       data-url="${visit.url}" data-title="${visit.title}" data-id="${visit.visit_id}"
+                                                       onchange="updateSelectedCount()">
+                                                <div class="flex-grow-1">
+                                                    <i class="fas fa-calendar-check ${visit.ja_exportada ? 'text-secondary' : 'text-success'} me-2"></i>
+                                                    <span>${visit.title}</span>
+                                                    ${visit.ja_exportada ? '<span class="badge bg-secondary ms-2">Já exportada</span>' : ''}
+                                                </div>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                        <i class="fas fa-times me-1"></i>Cancelar
+                                    </button>
+                                    <button type="button" class="btn btn-success" onclick="exportSelectedVisits()" id="btnExportSelected" disabled>
+                                        <i class="fab fa-google me-1"></i>Exportar Selecionadas
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                    `;
-                    
-                    // Remover modal anterior se existir
-                    const existingModal = document.getElementById('googleExportModal');
-                    if (existingModal) {
-                        existingModal.remove();
-                    }
-                    
-                    // Adicionar e mostrar novo modal
-                    document.body.insertAdjacentHTML('beforeend', modalHtml);
-                    const modal = new bootstrap.Modal(document.getElementById('googleExportModal'));
-                    modal.show();
-                } else if (data.error) {
-                    alert(data.error);
-                } else {
-                    alert('Nenhuma visita encontrada para exportação.');
+                    </div>
+                `;
+                
+                const existingModal = document.getElementById('googleExportModal');
+                if (existingModal) {
+                    existingModal.remove();
                 }
+                
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                const modal = new bootstrap.Modal(document.getElementById('googleExportModal'));
+                modal.show();
             } else {
                 alert(data.error || 'Erro ao gerar link do Google Calendar.');
             }
@@ -793,6 +833,79 @@ function exportToGoogleCalendar() {
             console.error('Erro na exportação:', error);
             alert('Erro ao exportar para Google Calendar.');
         });
+}
+
+function toggleSelectAllVisits(checkbox) {
+    const allCheckboxes = document.querySelectorAll('.visit-checkbox');
+    allCheckboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.visit-checkbox');
+    const checkedCount = document.querySelectorAll('.visit-checkbox:checked').length;
+    const countBadge = document.getElementById('selectedCount');
+    const exportBtn = document.getElementById('btnExportSelected');
+    const selectAllCheckbox = document.getElementById('selectAllVisits');
+    
+    if (countBadge) {
+        countBadge.textContent = `${checkedCount} selecionada${checkedCount !== 1 ? 's' : ''}`;
+    }
+    
+    if (exportBtn) {
+        exportBtn.disabled = checkedCount === 0;
+        exportBtn.innerHTML = checkedCount > 0 
+            ? `<i class="fab fa-google me-1"></i>Exportar ${checkedCount} Visita${checkedCount !== 1 ? 's' : ''}`
+            : `<i class="fab fa-google me-1"></i>Exportar Selecionadas`;
+    }
+    
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = checkedCount === checkboxes.length && checkboxes.length > 0;
+        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+    }
+}
+
+function exportSelectedVisits() {
+    const selectedVisits = document.querySelectorAll('.visit-checkbox:checked');
+    
+    if (selectedVisits.length === 0) {
+        alert('Selecione pelo menos uma visita para exportar.');
+        return;
+    }
+    
+    const confirmMsg = selectedVisits.length === 1 
+        ? 'Será aberta 1 janela do Google Calendar.'
+        : `Serão abertas ${selectedVisits.length} janelas do Google Calendar.\n\nPermita pop-ups se necessário.`;
+    
+    if (!confirm(confirmMsg + '\n\nDeseja continuar?')) {
+        return;
+    }
+    
+    const visitIds = [];
+    selectedVisits.forEach((checkbox, index) => {
+        const url = checkbox.dataset.url;
+        const visitId = checkbox.dataset.id;
+        visitIds.push(parseInt(visitId));
+        
+        setTimeout(() => {
+            window.open(url, '_blank');
+        }, index * 500);
+    });
+    
+    fetch('/api/visits/export/google/mark', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visit_ids: visitIds })
+    }).catch(err => console.log('Erro ao marcar visitas:', err));
+    
+    setTimeout(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('googleExportModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        alert(`${selectedVisits.length} visita(s) enviada(s) para o Google Calendar!\n\nVerifique as novas abas do navegador.`);
+    }, selectedVisits.length * 500 + 500);
 }
 
 function exportToOutlook() {
