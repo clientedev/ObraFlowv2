@@ -4,13 +4,23 @@
 
 {% block extra_head %}
 <style>
-.stats-card {
-    overflow: hidden !important;
-}
+.stats-card,
 .stats-card .card-body {
     overflow: hidden !important;
     overflow-y: hidden !important;
     overflow-x: hidden !important;
+    max-height: none !important;
+    height: auto !important;
+}
+.stats-card::-webkit-scrollbar,
+.stats-card .card-body::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+.stats-card {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
 }
 </style>
 {% endblock %}
