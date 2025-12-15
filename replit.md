@@ -2,6 +2,14 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, autosave functionality with real-time synchronization, and a comprehensive notification system. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes
+**December 15, 2025** - Sistema de status de obras atualizado:
+- Adicionado status "Não iniciado" às opções disponíveis
+- Status agora são: "Não iniciado", "Ativo", "Pausado", "Concluído"
+- Botão "Reativar Obra" substituído por dropdown "Alterar Status" (apenas usuários master)
+- Dropdown permite alterar para qualquer status diretamente na tela da obra
+- Renomeado "Informações do Projeto" para "Informações da Obra" em todas as áreas do sistema
+- PDFs de relatório atualizados com nova nomenclatura
+
 **December 15, 2025** - Google Calendar export improvements:
 - Added multi-select functionality with checkboxes to select multiple visits at once
 - Added "Selecionar Todas" option for bulk selection
