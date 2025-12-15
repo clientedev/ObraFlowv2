@@ -362,9 +362,9 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label class="form-label" for="projeto_id">Projeto *</label>
+                                    <label class="form-label" for="projeto_id">Obra *</label>
                                     <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value); atualizarNumeroRelatorio(this.value); carregarChecklistProjeto(this.value); carregarLembrete(this.value);">
-                                        <option value="">Selecione um projeto</option>
+                                        <option value="">Selecione uma obra</option>
                                         {% for projeto in projetos %}
                                         <option value="{{ projeto.id }}" {% if selected_project and selected_project.id == projeto.id %}selected{% endif %}>
                                             {{ projeto.numero }} - {{ projeto.nome }}

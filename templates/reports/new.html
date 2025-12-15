@@ -31,9 +31,9 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label class="form-label">Projeto</label>
+                                    <label class="form-label">Obra *</label>
                                     <select name="projeto_id" class="form-control" required>
-                                        <option value="">Selecione um projeto</option>
+                                        <option value="">Selecione uma obra</option>
                                         {% for projeto in projetos %}
                                         <option value="{{ projeto.id }}">{{ projeto.numero }} - {{ projeto.nome }}</option>
                                         {% endfor %}

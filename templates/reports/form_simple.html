@@ -25,9 +25,9 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="projeto_id" class="form-label">Projeto *</label>
+                                    <label for="projeto_id" class="form-label">Obra *</label>
                                     <select class="form-select" id="projeto_id" name="projeto_id" required>
-                                        <option value="">Selecione um projeto</option>
+                                        <option value="">Selecione uma obra</option>
                                         {% for projeto in projetos %}
                                         <option value="{{ projeto.id }}">{{ projeto.nome }}</option>
                                         {% endfor %}

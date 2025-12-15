@@ -296,9 +296,9 @@
                         <div class="row mb-4">
                             <div class="col-md-12">
                                 <div class="form-group">
-                                    <label class="form-label" for="projeto_id">Projeto</label>
+                                    <label class="form-label" for="projeto_id">Obra *</label>
                                     <select name="projeto_id" id="projeto_id" class="form-control" required>
-                                        <option value="">Selecione um projeto</option>
+                                        <option value="">Selecione uma obra</option>
                                         {% for projeto in projetos %}
                                         <option value="{{ projeto.id }}">{{ projeto.numero }} - {{ projeto.nome }}</option>
                                         {% endfor %}
@@ -314,7 +314,7 @@
                                 <div class="card">
                                     <div class="card-header">
                                         <h6 class="mb-0">
-                                            <i class="fas fa-users me-2"></i>Funcionários do Projeto
+                                            <i class="fas fa-users me-2"></i>Funcionários da Obra
                                         </h6>
                                     </div>
                                     <div class="card-body">
@@ -531,8 +531,8 @@ function carregarFuncionariosEmails() {
     const emailsDiv = document.getElementById('emails-projeto');
     
     if (!projetoId) {
-        funcionariosDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os funcionários disponíveis</p>';
-        emailsDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os e-mails disponíveis</p>';
+        funcionariosDiv.innerHTML = '<p class="text-muted">Selecione uma obra para ver os funcionários disponíveis</p>';
+        emailsDiv.innerHTML = '<p class="text-muted">Selecione uma obra para ver os e-mails disponíveis</p>';
         return;
     }
     
@@ -565,7 +565,7 @@ function carregarFuncionariosEmails() {
                     `;
                 });
             } else {
-                funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
+                funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para esta obra</p>';
             }
             funcionariosDiv.innerHTML = funcionariosHtml;
             
@@ -585,7 +585,7 @@ function carregarFuncionariosEmails() {
                     `;
                 });
             } else {
-                emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para este projeto</p>';
+                emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para esta obra</p>';
             }
             emailsDiv.innerHTML = emailsHtml;
         } else {

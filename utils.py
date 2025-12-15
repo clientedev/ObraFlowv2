@@ -262,18 +262,25 @@ def generate_project_number():
     try:
         last_project = Projeto.query.order_by(Projeto.id.desc()).first()
         if last_project:
-            # Extract number from existing format like "PROJ-0001"
-            if last_project.numero and 'PROJ-' in last_project.numero:
-                try:
-                    last_num = int(last_project.numero.split('-')[1])
-                    return f"PROJ-{last_num + 1:04d}"
-                except:
-                    pass
+            # Extract number from existing format like "OBRA-0001" or legacy "PROJ-0001"
+            if last_project.numero:
+                if 'OBRA-' in last_project.numero:
+                    try:
+                        last_num = int(last_project.numero.split('-')[1])
+                        return f"OBRA-{last_num + 1:04d}"
+                    except:
+                        pass
+                elif 'PROJ-' in last_project.numero:
+                    try:
+                        last_num = int(last_project.numero.split('-')[1])
+                        return f"OBRA-{last_num + 1:04d}"
+                    except:
+                        pass
         
         # Default start
-        return "PROJ-0001"
+        return "OBRA-0001"
     except:
-        return "PROJ-0001"
+        return "OBRA-0001"
 
 def generate_report_number(projeto_id=None):
     """Generate sequential report number based on project's numeracao_inicial

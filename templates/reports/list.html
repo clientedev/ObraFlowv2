@@ -59,9 +59,9 @@
                                 </select>
                             </div>
                             <div class="col-md-3 col-sm-6">
-                                <label class="form-label small fw-bold">Projeto:</label>
+                                <label class="form-label small fw-bold">Obra:</label>
                                 <select class="form-select form-select-sm" id="filterProjeto">
-                                    <option value="">Todos os Projetos</option>
+                                    <option value="">Todas as Obras</option>
                                     <!-- Será preenchido dinamicamente -->
                                 </select>
                             </div>
@@ -110,7 +110,7 @@
                             {% for report in relatorios.items %}
                             <div class="report-card mb-2" 
                                  data-status="{{ report.status or 'Indefinido' }}" 
-                                 data-projeto="{{ report.projeto.nome if report.projeto else 'Sem projeto' }}"
+                                 data-projeto="{{ report.projeto.nome if report.projeto else 'Sem obra' }}"
                                  data-autor="{{ report.autor.nome_completo if report.autor else 'Sem autor' }}"
                                  data-search="{{ (report.numero + ' ' + (report.titulo or ''))|lower }}">
 
@@ -134,7 +134,7 @@
                                                     {% if report.projeto %}
                                                         {{ report.projeto.nome }}
                                                     {% else %}
-                                                        Sem projeto
+                                                        Sem obra
                                                     {% endif %}
                                                     {% if report.data_relatorio %} • {{ report.data_relatorio.strftime('%d/%m/%Y') }}{% endif %}
                                                 </div>
@@ -313,11 +313,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const projeto = card.getAttribute('data-projeto');
             const autor = card.getAttribute('data-autor');
 
-            if (projeto && projeto !== '-' && projeto !== 'Sem projeto') projetoSet.add(projeto);
+            if (projeto && projeto !== '-' && projeto !== 'Sem obra') projetoSet.add(projeto);
             if (autor && autor !== '-' && autor !== 'Sem autor') autorSet.add(autor);
         });
 
-        console.log('Projetos encontrados:', Array.from(projetoSet));
+        console.log('Obras encontradas:', Array.from(projetoSet));
         console.log('Autores encontrados:', Array.from(autorSet));
 
         // Preencher select de projetos

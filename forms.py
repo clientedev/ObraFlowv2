@@ -39,7 +39,7 @@ class UserForm(FlaskForm):
     password2 = PasswordField('Confirmar Nova Senha', validators=[EqualTo('password')])
 
 class ProjetoForm(FlaskForm):
-    nome = StringField('Nome do Projeto', validators=[DataRequired(), Length(max=200)])
+    nome = StringField('Nome da Obra', validators=[DataRequired(), Length(max=200)])
     endereco = TextAreaField('Endereço')
     latitude = HiddenField()
     longitude = HiddenField()
@@ -91,8 +91,8 @@ class EmailClienteForm(FlaskForm):
     ativo = BooleanField('Ativo', default=True)
 
 class VisitaForm(FlaskForm):
-    projeto_id = SelectField('Projeto', coerce=int, validators=[Optional()])
-    projeto_outros = StringField('Nome do Projeto (Outros)', validators=[Optional(), Length(max=300)])
+    projeto_id = SelectField('Obra', coerce=int, validators=[Optional()])
+    projeto_outros = StringField('Nome da Obra (Outros)', validators=[Optional(), Length(max=300)])
     responsavel_id = SelectField('Responsável', coerce=int, validators=[DataRequired()])
     data_inicio = StringField('Data e Hora de Início', validators=[DataRequired()])
     data_fim = StringField('Data e Hora de Fim', validators=[DataRequired()])

@@ -28,20 +28,20 @@
     
     <!-- Statistics Cards com Grid Layout -->
     <div class="dashboard-grid">
-        <!-- Card 1: Projetos Ativos -->
+        <!-- Card 1: Obras Ativas -->
         <div class="col-12">
-            <a href="{{ url_for('projects_list') }}" class="text-decoration-none" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver todos os projetos" aria-label="Acessar lista de projetos">
+            <a href="{{ url_for('projects_list') }}" class="text-decoration-none" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver todas as obras" aria-label="Acessar lista de obras">
                 <div class="dashboard-card border-left-primary" style="border-left: 4px solid #4e73df;">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="card-label text-primary">
-                                    🏗️ Projetos Ativos
+                                    🏗️ Obras Ativas
                                 </div>
                                 <div class="card-value">{{ stats.projetos_ativos }}</div>
                             </div>
                             <div class="col-auto">
-                                <i class="fas fa-project-diagram fa-3x text-gray-300"></i>
+                                <i class="fas fa-building fa-3x text-gray-300"></i>
                             </div>
                         </div>
                     </div>
@@ -105,7 +105,7 @@
                         <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <div>
                                 <h6 class="mb-1 fw-bold">{{ rel.numero }}</h6>
-                                <p class="mb-1 text-muted small">{{ rel.projeto.nome if rel.projeto else 'Projeto não informado' }}</p>
+                                <p class="mb-1 text-muted small">{{ rel.projeto.nome if rel.projeto else 'Obra não informada' }}</p>
                                 {% set status_lower = rel.status|lower %}
                                 {% if status_lower == 'aprovado' %}
                                     <span class="badge status-badge-aprovado">{{ rel.status }}</span>

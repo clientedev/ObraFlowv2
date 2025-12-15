@@ -81,7 +81,7 @@
                                 <div class="col-md-6">
                                     <p><strong>Número:</strong> {{ relatorio.numero or 'S/N' }}</p>
                                     <p><strong>Título:</strong> {{ relatorio.titulo or 'Sem título' }}</p>
-                                    <p><strong>Projeto:</strong> {{ relatorio.projeto.nome if relatorio.projeto else '-' }}</p>
+                                    <p><strong>Obra:</strong> {{ relatorio.projeto.nome if relatorio.projeto else '-' }}</p>
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>Autor:</strong> {{ relatorio.autor.nome_completo if relatorio.autor else '-' }}</p>
