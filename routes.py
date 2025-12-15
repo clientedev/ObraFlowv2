@@ -2371,6 +2371,7 @@ def reports():
         # Obter parâmetros de busca e paginação
         page = request.args.get('page', 1, type=int)
         search_query = request.args.get('q', '')
+        status_filter = request.args.get('status', '')
         per_page = 20  # Relatórios por página
 
         # Query básica com joins
@@ -2379,6 +2380,18 @@ def reports():
         ).outerjoin(
             Projeto, Relatorio.projeto_id == Projeto.id
         )
+
+        # Aplicar filtro de status se fornecido
+        if status_filter:
+            from sqlalchemy import or_
+            if status_filter == 'pendentes':
+                query = query.filter(or_(
+                    Relatorio.status == 'Aguardando Aprovação',
+                    Relatorio.status == 'Em Preenchimento',
+                    Relatorio.status == 'Rejeitado'
+                ))
+            else:
+                query = query.filter(Relatorio.status == status_filter)
 
         # Aplicar filtro de busca se fornecido
         if search_query and search_query.strip():
@@ -2401,8 +2414,8 @@ def reports():
             error_out=False
         )
 
-        current_app.logger.info(f"✅ Relatórios carregados: {relatorios.total} total, página {page}")
-        return render_template("reports/list.html", relatorios=relatorios)
+        current_app.logger.info(f"✅ Relatórios carregados: {relatorios.total} total, página {page}, filtro={status_filter}")
+        return render_template("reports/list.html", relatorios=relatorios, status_filter=status_filter)
 
     except Exception as e:
         current_app.logger.exception(f"❌ Erro ao carregar relatórios: {str(e)}")
