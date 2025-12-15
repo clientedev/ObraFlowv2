@@ -865,6 +865,9 @@ function updateSelectedCount() {
     }
 }
 
+let pendingExportUrls = [];
+let currentExportIndex = 0;
+
 function exportSelectedVisits() {
     const selectedVisits = document.querySelectorAll('.visit-checkbox:checked');
     
@@ -873,23 +876,16 @@ function exportSelectedVisits() {
         return;
     }
     
-    const confirmMsg = selectedVisits.length === 1 
-        ? 'Será aberta 1 janela do Google Calendar.'
-        : `Serão abertas ${selectedVisits.length} janelas do Google Calendar.\n\nPermita pop-ups se necessário.`;
-    
-    if (!confirm(confirmMsg + '\n\nDeseja continuar?')) {
-        return;
-    }
-    
+    pendingExportUrls = [];
+    currentExportIndex = 0;
     const visitIds = [];
-    selectedVisits.forEach((checkbox, index) => {
+    
+    selectedVisits.forEach((checkbox) => {
         const url = checkbox.dataset.url;
+        const title = checkbox.dataset.title;
         const visitId = checkbox.dataset.id;
+        pendingExportUrls.push({ url, title, visitId });
         visitIds.push(parseInt(visitId));
-        
-        setTimeout(() => {
-            window.open(url, '_blank');
-        }, index * 500);
     });
     
     fetch('/api/visits/export/google/mark', {
@@ -901,14 +897,128 @@ function exportSelectedVisits() {
         body: JSON.stringify({ visit_ids: visitIds })
     }).catch(err => console.log('Erro ao marcar visitas:', err));
     
-    setTimeout(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('googleExportModal'));
-        if (modal) {
-            modal.hide();
-        }
-        
-        alert(`${selectedVisits.length} visita(s) enviada(s) para o Google Calendar!\n\nVerifique as novas abas do navegador.`);
-    }, selectedVisits.length * 500 + 500);
+    const existingModal = document.getElementById('googleExportModal');
+    if (existingModal) {
+        const modal = bootstrap.Modal.getInstance(existingModal);
+        if (modal) modal.hide();
+    }
+    
+    showExportProgressModal();
+    openNextVisit();
+}
+
+function showExportProgressModal() {
+    const existingProgress = document.getElementById('exportProgressModal');
+    if (existingProgress) existingProgress.remove();
+    
+    const totalVisits = pendingExportUrls.length;
+    
+    const modalHtml = `
+        <div class="modal fade" id="exportProgressModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="fab fa-google me-2"></i>Exportando para Google Calendar</h5>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <div class="mb-3">
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
+                                     id="exportProgressBar" role="progressbar" style="width: 0%">
+                                    <span id="exportProgressText">0 / ${totalVisits}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="mb-3" id="exportCurrentVisit">Preparando exportação...</p>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Importante:</strong> Clique em "Abrir Próxima" para cada visita.<br>
+                            Salve cada evento no Google Calendar antes de continuar.
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-success btn-lg" id="btnOpenNext" onclick="openNextVisit()">
+                                <i class="fab fa-google me-2"></i>Abrir Visita 1 de ${totalVisits}
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="skipRemainingExports()">
+                                <i class="fas fa-times me-1"></i>Cancelar Restantes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('exportProgressModal'));
+    modal.show();
+}
+
+function openNextVisit() {
+    if (currentExportIndex >= pendingExportUrls.length) {
+        finishExport();
+        return;
+    }
+    
+    const visit = pendingExportUrls[currentExportIndex];
+    const totalVisits = pendingExportUrls.length;
+    
+    const progressBar = document.getElementById('exportProgressBar');
+    const progressText = document.getElementById('exportProgressText');
+    const currentVisitText = document.getElementById('exportCurrentVisit');
+    const btnOpenNext = document.getElementById('btnOpenNext');
+    
+    const popup = window.open(visit.url, '_blank');
+    
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        currentVisitText.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Pop-up bloqueado!</strong><br>
+                <a href="${visit.url}" target="_blank" class="btn btn-success btn-sm mt-2">
+                    <i class="fab fa-google me-1"></i>Clique aqui para abrir: ${visit.title}
+                </a>
+            </div>
+        `;
+    } else {
+        currentVisitText.innerHTML = `<i class="fas fa-check-circle text-success me-2"></i>Aberto: <strong>${visit.title}</strong>`;
+    }
+    
+    currentExportIndex++;
+    
+    const progress = Math.round((currentExportIndex / totalVisits) * 100);
+    progressBar.style.width = `${progress}%`;
+    progressText.textContent = `${currentExportIndex} / ${totalVisits}`;
+    
+    if (currentExportIndex >= totalVisits) {
+        btnOpenNext.innerHTML = '<i class="fas fa-check-circle me-2"></i>Concluir';
+        btnOpenNext.classList.remove('btn-success');
+        btnOpenNext.classList.add('btn-primary');
+        btnOpenNext.onclick = finishExport;
+    } else {
+        btnOpenNext.innerHTML = `<i class="fab fa-google me-2"></i>Abrir Visita ${currentExportIndex + 1} de ${totalVisits}`;
+    }
+}
+
+function skipRemainingExports() {
+    if (confirm('Deseja cancelar a exportação das visitas restantes?')) {
+        finishExport();
+    }
+}
+
+function finishExport() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('exportProgressModal'));
+    if (modal) modal.hide();
+    
+    const exported = currentExportIndex;
+    const total = pendingExportUrls.length;
+    
+    if (exported > 0) {
+        alert(`${exported} de ${total} visita(s) exportada(s) para o Google Calendar!`);
+    }
+    
+    pendingExportUrls = [];
+    currentExportIndex = 0;
 }
 
 function exportToOutlook() {
