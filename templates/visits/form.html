@@ -154,6 +154,51 @@
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
+                        
+                        <!-- Checklist de Atividades -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-tasks me-1"></i>Checklist de Atividades
+                            </label>
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    {% if checklist_templates and checklist_templates|length > 0 %}
+                                        <div class="form-text mb-3">
+                                            <i class="fas fa-info-circle text-info me-1"></i>
+                                            Os seguintes itens de checklist serão adicionados automaticamente à visita:
+                                        </div>
+                                        <div class="checklist-preview">
+                                            {% for template in checklist_templates %}
+                                            <div class="checklist-item d-flex align-items-center p-2 mb-2 rounded {% if template.obrigatorio %}border-warning bg-warning bg-opacity-10{% else %}bg-light{% endif %}">
+                                                <i class="fas fa-square me-2 text-muted"></i>
+                                                <div class="flex-grow-1">
+                                                    <span class="fw-medium">{{ template.nome }}</span>
+                                                    {% if template.descricao %}
+                                                        <br><small class="text-muted">{{ template.descricao }}</small>
+                                                    {% endif %}
+                                                </div>
+                                                {% if template.obrigatorio %}
+                                                    <span class="badge bg-warning text-dark ms-2">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>Obrigatório
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="form-text mt-2">
+                                            <i class="fas fa-check-circle text-success me-1"></i>
+                                            {{ checklist_templates|length }} item(ns) de checklist configurado(s)
+                                        </div>
+                                    {% else %}
+                                        <div class="text-center py-3">
+                                            <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
+                                            <p class="text-muted mb-0">Nenhum item de checklist configurado.</p>
+                                            <small class="text-muted">Configure os itens padrão na área de administração.</small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
                     {% else %}
                         <!-- Realize visit form -->
                         <div class="mb-3">

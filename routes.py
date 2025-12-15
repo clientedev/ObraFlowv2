@@ -5858,7 +5858,10 @@ def visit_new():
         except Exception as e:
             current_app.logger.error(f"Erro ao processar parâmetros de data: {e}")
 
-    return render_template('visits/form.html', form=form, form_data=form_data)
+    # Get checklist templates for display in form
+    checklist_templates = ChecklistTemplate.query.filter_by(ativo=True).order_by(ChecklistTemplate.ordem).all()
+    
+    return render_template('visits/form.html', form=form, form_data=form_data, checklist_templates=checklist_templates)
 
 
 @app.route('/visits/<int:visit_id>/realize', methods=['GET', 'POST'])
