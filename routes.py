@@ -10615,45 +10615,21 @@ def express_duplicate(id):
         return redirect(url_for('express_list'))
     
     try:
-        # Armazenar dados do relatório original na sessão para pré-preenchimento
-        # Excluindo campos únicos (id, numero, created_at, updated_at, finalizado_at)
+        # Armazenar APENAS dados do projeto e checklist na sessão para pré-preenchimento
+        # NÃO duplicar: datas, localização, observações, fotos, participantes
         session['relatorio_duplicado'] = {
-            # Dados da empresa
+            # Dados da empresa/projeto
             'empresa_nome': relatorio_original.empresa_nome,
             'empresa_endereco': relatorio_original.empresa_endereco,
             'empresa_telefone': relatorio_original.empresa_telefone,
             'empresa_email': relatorio_original.empresa_email,
             'empresa_responsavel': relatorio_original.empresa_responsavel,
             
-            # Dados da visita
-            'data_visita': relatorio_original.data_visita.isoformat() if relatorio_original.data_visita else None,
-            'periodo_inicio': relatorio_original.periodo_inicio.isoformat() if relatorio_original.periodo_inicio else None,
-            'periodo_fim': relatorio_original.periodo_fim.isoformat() if relatorio_original.periodo_fim else None,
-            'condicoes_climaticas': relatorio_original.condicoes_climaticas,
-            'temperatura': relatorio_original.temperatura,
-            
-            # Localização
-            'latitude': relatorio_original.latitude,
-            'longitude': relatorio_original.longitude,
-            'endereco_visita': relatorio_original.endereco_visita,
-            
-            # Observações e checklist
-            'observacoes_gerais': relatorio_original.observacoes_gerais,
-            'pendencias': relatorio_original.pendencias,
-            'recomendacoes': relatorio_original.recomendacoes,
-            'checklist_dados': relatorio_original.checklist_dados,
-            
-            # ID do relatório original para copiar fotos
-            'relatorio_original_id': id
+            # Checklist
+            'checklist_dados': relatorio_original.checklist_dados
         }
         
-        # Participantes
-        from models import RelatorioExpressParticipante
-        participantes = RelatorioExpressParticipante.query.filter_by(relatorio_express_id=id).all()
-        if participantes:
-            session['relatorio_duplicado']['participantes'] = [p.funcionario_id for p in participantes]
-        
-        flash(f'Relatório {relatorio_original.numero} duplicado como rascunho. Revise e salve as alterações.', 'info')
+        flash(f'Relatório {relatorio_original.numero} duplicado (apenas dados do projeto e checklist). Complete os demais campos.', 'info')
         return redirect(url_for('express_new'))
         
     except Exception as e:
