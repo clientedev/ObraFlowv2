@@ -3762,6 +3762,13 @@ def review_report(report_id):
             flash('Acesso negado ao relatório.', 'error')
             return redirect(url_for('reports'))
 
+        # Verificar se usuário é aprovador para este projeto (apenas aprovadores podem acessar revisão)
+        projeto_id_check = getattr(report, 'projeto_id', None)
+        if not current_user_is_aprovador(projeto_id_check):
+            current_app.logger.warning(f"⚠️ Usuário {current_user.id} não é aprovador para projeto {projeto_id_check}")
+            flash('Acesso negado. Apenas aprovadores podem revisar relatórios.', 'error')
+            return redirect(url_for('reports'))
+
         # Proteger contra JSON malformado no checklist com validação defensiva
         try:
             import json
@@ -3841,6 +3848,11 @@ def approve_report(id):
     relatorio = db.session.get(Relatorio, id)
     if not relatorio:
         flash('Relatório não encontrado.', 'error')
+        return redirect(url_for('reports'))
+
+    # Verificar se usuário é aprovador para este projeto
+    if not current_user_is_aprovador(relatorio.projeto_id):
+        flash('Acesso negado. Apenas usuários aprovadores podem aprovar relatórios.', 'error')
         return redirect(url_for('reports'))
 
     try:
@@ -11029,7 +11041,7 @@ def admin_aprovador_temporario_novo():
 
     if request.method == 'POST':
         try:
-            projeto_id = request.form.get('projeto_id')
+            projeto_ids = request.form.getlist('projeto_ids')
             aprovador_id = request.form.get('aprovador_id')
             observacoes = request.form.get('observacoes', '').strip()
 
@@ -11038,39 +11050,50 @@ def admin_aprovador_temporario_novo():
                 flash('Aprovador é obrigatório.', 'error')
                 return redirect(url_for('admin_aprovador_temporario_novo'))
 
-            if not projeto_id:
-                flash('Projeto é obrigatório para Aprovador Temporário.', 'error')
+            if not projeto_ids:
+                flash('Selecione pelo menos um projeto.', 'error')
                 return redirect(url_for('admin_aprovador_temporario_novo'))
 
             aprovador_id = int(aprovador_id)
-            projeto_id = int(projeto_id)
+            
+            projetos_adicionados = []
+            projetos_existentes = []
+            
+            for projeto_id_str in projeto_ids:
+                projeto_id = int(projeto_id_str)
+                
+                # Verificar se já existe aprovador temporário para este projeto
+                existing = AprovadorPadrao.query.filter_by(
+                    projeto_id=projeto_id,
+                    is_global=False,
+                    ativo=True
+                ).first()
 
-            # Verificar se já existe aprovador temporário para este projeto
-            existing = AprovadorPadrao.query.filter_by(
-                projeto_id=projeto_id,
-                is_global=False,
-                ativo=True
-            ).first()
+                if existing:
+                    projeto = Projeto.query.get(projeto_id)
+                    projetos_existentes.append(projeto.nome if projeto else f'ID {projeto_id}')
+                    continue
 
-            if existing:
+                # Criar Aprovador Temporário
+                novo_aprovador = AprovadorPadrao(
+                    is_global=False,
+                    projeto_id=projeto_id,
+                    aprovador_id=aprovador_id,
+                    observacoes=observacoes,
+                    criado_por=current_user.id
+                )
+                db.session.add(novo_aprovador)
+                
                 projeto = Projeto.query.get(projeto_id)
-                flash(f'Já existe um Aprovador Temporário configurado para {projeto.nome}.', 'warning')
-                return redirect(url_for('admin_aprovadores_padrao'))
-
-            # Criar Aprovador Temporário
-            novo_aprovador = AprovadorPadrao(
-                is_global=False,
-                projeto_id=projeto_id,
-                aprovador_id=aprovador_id,
-                observacoes=observacoes,
-                criado_por=current_user.id
-            )
-
-            db.session.add(novo_aprovador)
+                projetos_adicionados.append(projeto.nome if projeto else f'ID {projeto_id}')
+            
             db.session.commit()
 
-            projeto = Projeto.query.get(projeto_id)
-            flash(f'Aprovador Temporário configurado com sucesso para {projeto.nome}!', 'success')
+            if projetos_adicionados:
+                flash(f'Aprovador Temporário configurado com sucesso para: {", ".join(projetos_adicionados)}!', 'success')
+            if projetos_existentes:
+                flash(f'Já existia aprovador temporário para: {", ".join(projetos_existentes)}', 'warning')
+            
             return redirect(url_for('admin_aprovadores_padrao'))
 
         except ValueError:

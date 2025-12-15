@@ -143,12 +143,14 @@
 
                                                 <!-- Ações -->
                                                 <div class="d-flex flex-column gap-1">
-                                                    <!-- Botão Revisão (principal) -->
+                                                    <!-- Botão Revisão (principal) - apenas para aprovadores deste projeto -->
+                                                    {% if current_user_is_aprovador(report.projeto_id) %}
                                                     <a href="{{ url_for('review_report', report_id=report.id) }}" 
                                                        class="btn btn-sm btn-warning" 
                                                        title="Revisar relatório">
                                                         <i class="fas fa-search-plus me-1"></i>Revisão
                                                     </a>
+                                                    {% endif %}
 
                                                     <!-- Botão Ver -->
                                                     <a href="{{ url_for('view_report', report_id=report.id) }}" 
