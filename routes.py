@@ -635,11 +635,49 @@ def current_user_is_aprovador(projeto_id=None):
         current_app.logger.error(f"Erro geral na verificação de aprovador: {str(e)}")
         return False
 
+def current_user_is_aprovador_da_obra(projeto_id):
+    """Verifica se o usuário atual é o aprovador específico desta obra (SEM bypass de admin)"""
+    try:
+        if not current_user or not current_user.is_authenticated:
+            return False
+        
+        if not projeto_id:
+            return False
+
+        from models import AprovadorPadrao
+
+        # Primeiro verifica se há aprovador temporário específico para este projeto
+        aprovador_especifico = AprovadorPadrao.query.filter_by(
+            projeto_id=projeto_id,
+            ativo=True
+        ).first()
+        
+        if aprovador_especifico:
+            # Se há aprovador específico, só ele pode aprovar
+            return aprovador_especifico.aprovador_id == current_user.id
+
+        # Se não há aprovador específico, verifica o aprovador global
+        aprovador_global = AprovadorPadrao.query.filter_by(
+            projeto_id=None,
+            is_global=True,
+            ativo=True
+        ).first()
+        
+        if aprovador_global:
+            return aprovador_global.aprovador_id == current_user.id
+
+        return False
+
+    except Exception as e:
+        current_app.logger.error(f"Erro ao verificar aprovador da obra: {str(e)}")
+        return False
+
 # Context processor para disponibilizar função nos templates
 @app.context_processor
 def inject_approval_functions():
     return {
-        'current_user_is_aprovador': current_user_is_aprovador
+        'current_user_is_aprovador': current_user_is_aprovador,
+        'current_user_is_aprovador_da_obra': current_user_is_aprovador_da_obra
     }
 
 @app.route('/api/checklist-padrao')
@@ -11051,7 +11089,7 @@ def admin_aprovador_temporario_novo():
                 return redirect(url_for('admin_aprovador_temporario_novo'))
 
             if not projeto_ids:
-                flash('Selecione pelo menos um projeto.', 'error')
+                flash('Selecione pelo menos uma obra.', 'error')
                 return redirect(url_for('admin_aprovador_temporario_novo'))
 
             aprovador_id = int(aprovador_id)

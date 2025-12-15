@@ -11,7 +11,7 @@
                 <h1 class="h3 mb-1">
                     <i class="fas fa-user-plus"></i> Adicionar Aprovador Temporário
                 </h1>
-                <p class="text-muted">Definir aprovador específico para um projeto</p>
+                <p class="text-muted">Definir aprovador específico para uma obra</p>
             </div>
 
             <!-- Flash Messages -->
@@ -38,8 +38,8 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i> 
-                            <strong>Aprovadores Temporários</strong> substituem o Aprovador Global para projetos específicos.
-                            Apenas um aprovador temporário pode ser definido por projeto.
+                            <strong>Aprovadores Temporários</strong> substituem o Aprovador Global para obras específicas.
+                            Apenas um aprovador temporário pode ser definido por obra.
                         </div>
 
                         <div class="mb-3">
@@ -61,19 +61,19 @@
 
                         <div class="mb-3">
                             <label for="projeto_ids" class="form-label">
-                                <i class="fas fa-building"></i> Projetos: <span class="text-danger">*</span>
+                                <i class="fas fa-building"></i> Obras: <span class="text-danger">*</span>
                             </label>
-                            <select class="form-select" id="projeto_ids" name="projeto_ids" multiple required size="8" style="min-height: 200px;">
+                            <div class="obras-select-container" style="max-height: 250px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; padding: 0.5rem;">
                                 {% for projeto in projetos_ativos %}
-                                    <option value="{{ projeto.id }}">
+                                <div class="form-check">
+                                    <input class="form-check-input obra-checkbox" type="checkbox" name="projeto_ids" value="{{ projeto.id }}" id="obra_{{ projeto.id }}">
+                                    <label class="form-check-label" for="obra_{{ projeto.id }}">
                                         {{ projeto.numero }} - {{ projeto.nome }}
-                                    </option>
+                                    </label>
+                                </div>
                                 {% endfor %}
-                            </select>
-                            <div class="form-text">
-                                <i class="fas fa-info-circle text-info"></i> 
-                                Segure <kbd>Ctrl</kbd> (Windows) ou <kbd>Cmd</kbd> (Mac) para selecionar múltiplos projetos
                             </div>
+                            <input type="hidden" id="obras_required_check" required>
                         </div>
 
                         <div class="mb-3">
@@ -99,20 +99,37 @@
 
                     <script>
                     document.addEventListener('DOMContentLoaded', function() {
-                        const projetoSelect = document.getElementById('projeto_ids');
-                        const aprovadorSelect = document.getElementById('aprovador_id');
+                        const obraCheckboxes = document.querySelectorAll('.obra-checkbox');
+                        const hiddenRequired = document.getElementById('obras_required_check');
+                        const form = document.querySelector('form');
                         
                         function updateSelectedCount() {
-                            const selected = projetoSelect.selectedOptions.length;
+                            const selected = document.querySelectorAll('.obra-checkbox:checked').length;
                             const label = document.querySelector('label[for="projeto_ids"]');
                             if (selected > 0) {
-                                label.innerHTML = '<i class="fas fa-building"></i> Projetos: <span class="text-danger">*</span> <span class="badge bg-primary">' + selected + ' selecionado(s)</span>';
+                                label.innerHTML = '<i class="fas fa-building"></i> Obras: <span class="text-danger">*</span> <span class="badge bg-primary">' + selected + ' selecionada(s)</span>';
+                                hiddenRequired.setCustomValidity('');
                             } else {
-                                label.innerHTML = '<i class="fas fa-building"></i> Projetos: <span class="text-danger">*</span>';
+                                label.innerHTML = '<i class="fas fa-building"></i> Obras: <span class="text-danger">*</span>';
+                                hiddenRequired.setCustomValidity('Selecione pelo menos uma obra');
                             }
                         }
                         
-                        projetoSelect.addEventListener('change', updateSelectedCount);
+                        obraCheckboxes.forEach(function(checkbox) {
+                            checkbox.addEventListener('change', updateSelectedCount);
+                        });
+                        
+                        // Validação inicial
+                        updateSelectedCount();
+                        
+                        // Validação ao submeter
+                        form.addEventListener('submit', function(e) {
+                            const selected = document.querySelectorAll('.obra-checkbox:checked').length;
+                            if (selected === 0) {
+                                e.preventDefault();
+                                alert('Selecione pelo menos uma obra.');
+                            }
+                        });
                     });
                     </script>
                 </div>
@@ -126,10 +143,10 @@
                     </h6>
                     <ul class="small mb-0">
                         <li>Aprovadores Temporários têm prioridade sobre o Aprovador Global</li>
-                        <li>Se um projeto tiver aprovador temporário, apenas ele poderá aprovar relatórios desse projeto</li>
-                        <li>Você pode selecionar vários projetos de uma vez para atribuir ao mesmo aprovador</li>
+                        <li>Se uma obra tiver aprovador temporário, apenas ele poderá aprovar relatórios dessa obra</li>
+                        <li>Você pode selecionar várias obras de uma vez para atribuir ao mesmo aprovador</li>
                         <li>Você pode remover aprovadores temporários a qualquer momento</li>
-                        <li>Um projeto só pode ter um aprovador temporário por vez</li>
+                        <li>Uma obra só pode ter um aprovador temporário por vez</li>
                     </ul>
                 </div>
             </div>
