@@ -1674,15 +1674,22 @@ function updatePhotoCounter() {
 
 // Funções do checklist
 let checklistItems = [];
+let checklistLoaded = false;  // Flag para indicar que o checklist foi carregado
 
 function loadDefaultChecklist() {
+    console.log('🔄 Iniciando carregamento do checklist padrão...');
     fetch('/developer/api/checklist/default')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                checklistItems = data.items;
+                checklistItems = data.items.map((item, index) => ({
+                    texto: item.texto || item.titulo || 'Item ' + (index + 1),
+                    descricao: item.descricao || '',
+                    concluido: false  // Padrão: não selecionado
+                }));
                 displayChecklist();
-                console.log(`${checklistItems.length} itens do checklist padrão carregados`);
+                checklistLoaded = true;
+                console.log(`✅ ${checklistItems.length} itens do checklist padrão carregados`);
             } else {
                 console.error('Erro ao carregar checklist:', data.error);
                 showChecklistError();
@@ -1830,12 +1837,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Carregar checklist com dados existentes (de duplicação ou edição)
 function loadChecklistWithExistingData(existingData) {
+    console.log('📋 Carregando checklist com dados existentes:', existingData.length, 'itens');
     checklistItems = existingData.map((item, index) => ({
         texto: item.titulo || item.texto || 'Item ' + (index + 1),
         descricao: item.descricao || '',
         concluido: item.concluido || false
     }));
     displayChecklistWithState();
+    checklistLoaded = true;
+    console.log('✅ Checklist existente carregado:', checklistItems.filter(i => i.concluido).length, 'selecionados de', checklistItems.length);
 }
 
 // Exibir checklist mantendo os estados de seleção
@@ -2002,9 +2012,14 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', function(e) {
             console.log('📋 EXPRESS SUBMIT: Preparando dados antes de enviar...');
             console.log('📋 EXPRESS SUBMIT: checklistItems global tem', checklistItems ? checklistItems.length : 0, 'itens');
+            console.log('📋 EXPRESS SUBMIT: checklistLoaded =', checklistLoaded);
             
             // Atualizar configurações de fotos
             updateFotoConfiguracoesInput();
+            
+            // ✅ CRÍTICO: Sincronizar checklistItems com os checkboxes do DOM antes de gerar dados
+            // Isso garante que os estados atuais das checkboxes sejam capturados
+            syncChecklistItemsFromDOM();
             
             // Atualizar checklist - garantir que os dados estão no campo oculto
             collectChecklistData();
@@ -2036,6 +2051,12 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`📋 EXPRESS SUBMIT: ${checklistCount} itens de checklist total, ${checklistCheckedCount} marcados como concluídos`);
             console.log(`📋 EXPRESS SUBMIT: Valor do campo oculto checklist_completo: ${checklistValue.substring(0, 200)}...`);
             
+            // ⚠️ Verificar se o checklist foi carregado corretamente
+            if (!checklistLoaded || checklistItems.length === 0) {
+                console.warn('⚠️ EXPRESS SUBMIT: Checklist não carregado, tentando recuperar do DOM...');
+                recoverChecklistFromDOM();
+            }
+            
             // Permitir submit continuar
             return true;
         });
@@ -2045,6 +2066,53 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('❌ EXPRESS: Formulário não encontrado!');
     }
 });
+
+// ✅ FUNÇÃO CRÍTICA: Sincronizar checklistItems com estado atual do DOM
+function syncChecklistItemsFromDOM() {
+    const container = document.getElementById('checklistContainer');
+    const checkboxes = container.querySelectorAll('input[type="checkbox"][id^="check_"]');
+    
+    if (checkboxes.length > 0 && checkboxes.length !== checklistItems.length) {
+        console.log('🔧 Reconstruindo checklistItems do DOM:', checkboxes.length, 'checkboxes encontrados');
+        // Reconstruir a partir do DOM se houver inconsistência
+        checklistItems = [];
+        checkboxes.forEach((checkbox, index) => {
+            const label = checkbox.parentElement?.querySelector('label')?.textContent?.trim() || 'Item ' + (index + 1);
+            const descricao = checkbox.parentElement?.parentElement?.querySelector('small')?.textContent?.trim() || '';
+            checklistItems.push({
+                texto: label,
+                descricao: descricao,
+                concluido: checkbox.checked
+            });
+        });
+        checklistLoaded = true;
+    }
+}
+
+// ✅ Função de recuperação: Extrai checklist diretamente do DOM se checklistItems está vazio
+function recoverChecklistFromDOM() {
+    const container = document.getElementById('checklistContainer');
+    const checkboxes = container.querySelectorAll('input[type="checkbox"][id^="check_"]');
+    
+    if (checkboxes.length > 0) {
+        console.log('🔧 Recuperando checklist do DOM:', checkboxes.length, 'checkboxes');
+        const recoveredData = [];
+        
+        checkboxes.forEach((checkbox, index) => {
+            const label = checkbox.parentElement?.querySelector('label')?.textContent?.trim() || 'Item ' + (index + 1);
+            const descricao = checkbox.parentElement?.parentElement?.querySelector('small')?.textContent?.trim() || '';
+            recoveredData.push({
+                titulo: label,
+                descricao: descricao,
+                concluido: checkbox.checked
+            });
+        });
+        
+        // Atualizar o campo oculto diretamente
+        document.getElementById('checklistData').value = JSON.stringify(recoveredData);
+        console.log('✅ Checklist recuperado do DOM:', recoveredData.filter(i => i.concluido).length, 'itens selecionados');
+    }
+}
 </script>
 
 <!-- Fabric.js CDN -->
