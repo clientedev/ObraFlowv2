@@ -150,13 +150,16 @@
                         <p><strong>Tipo de Obra:</strong> {{ project.tipo_obra }}</p>
                         <p><strong>Construtora:</strong> {{ project.construtora }}</p>
                         <p><strong>Responsável:</strong> {{ project.responsavel.nome_completo }}</p>
-                        {% if project.funcionarios_projetos %}
                         <p><strong>Funcionários:</strong> 
-                            {% for func in project.funcionarios_projetos if func.ativo %}
-                                {{ func.nome_funcionario }}{% if not loop.last %}, {% endif %}
-                            {% endfor %}
+                            {% set funcionarios_ativos = project.funcionarios_projetos|selectattr('ativo')|list %}
+                            {% if funcionarios_ativos %}
+                                {% for func in funcionarios_ativos %}
+                                    {{ func.nome_funcionario }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">Nenhum funcionário cadastrado</span>
+                            {% endif %}
                         </p>
-                        {% endif %}
                         <p><strong>Status:</strong> 
                             {% if project.status == 'Ativo' %}
                                 <span class="badge bg-success">{{ project.status }}</span>
