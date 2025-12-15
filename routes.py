@@ -10289,6 +10289,10 @@ def express_edit(id):
 
     if form.validate_on_submit():
         try:
+            # DEBUG: Log all form keys received
+            current_app.logger.info(f"📋 DEBUG EXPRESS EDIT: Todas as chaves do request.form: {list(request.form.keys())}")
+            current_app.logger.info(f"📋 DEBUG EXPRESS EDIT: checklist_completo em request.form? {'checklist_completo' in request.form}")
+            
             action = request.form.get('action', 'save_draft')
 
             # Atualizar dados da empresa
@@ -10338,9 +10342,19 @@ def express_edit(id):
             relatorio.recomendacoes = form.recomendacoes.data
 
             # Atualizar checklist (sempre atualizar, mesmo se vazio para permitir deselecionar tudo)
-            checklist_value = form.checklist_completo.data or request.form.get('checklist_completo', '')
+            # DEBUG: Log all possible sources
+            form_checklist = form.checklist_completo.data
+            request_checklist = request.form.get('checklist_completo', '')
+            current_app.logger.info(f"📋 DEBUG CHECKLIST - form.checklist_completo.data: '{form_checklist}' (tipo: {type(form_checklist).__name__})")
+            current_app.logger.info(f"📋 DEBUG CHECKLIST - request.form.get: '{request_checklist[:200] if request_checklist else 'vazio'}...' (len: {len(request_checklist) if request_checklist else 0})")
+            
+            # Preferir request.form.get pois o campo hidden é atualizado via JavaScript
+            checklist_value = request_checklist if request_checklist else form_checklist
+            if not checklist_value:
+                checklist_value = ''
+                
             # Tratar "null", string vazia, ou lista vazia como checklist vazio
-            is_empty_checklist = not checklist_value or checklist_value.strip() in ('', '[]', 'null', 'undefined')
+            is_empty_checklist = not checklist_value or str(checklist_value).strip() in ('', '[]', 'null', 'undefined')
             if not is_empty_checklist:
                 relatorio.checklist_dados = checklist_value
                 current_app.logger.info(f"📋 Checklist atualizado na edição: {len(checklist_value)} chars")
