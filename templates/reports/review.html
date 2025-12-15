@@ -151,14 +151,6 @@
                 </div>
                 {% endif %}
 
-                {% if show_conteudo %}
-                <div class="mt-3">
-                    <strong>Conteúdo:</strong>
-                    <div class="mt-2 p-3 bg-light rounded">
-                        {{ relatorio.conteudo.replace('\n', '<br>')|safe }}
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -318,7 +310,7 @@
                         </form>
                     </div>
                     <div class="flex-fill">
-                        <a href="{{ url_for('report_edit_rel', report_id=relatorio.id) }}" class="btn btn-primary btn-lg w-100">
+                        <a href="{{ url_for('report_edit_complete', report_id=relatorio.id) }}" class="btn btn-primary btn-lg w-100">
                             <i class="fas fa-edit me-2"></i>Editar Relatório
                         </a>
                     </div>
