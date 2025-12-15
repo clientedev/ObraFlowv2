@@ -298,23 +298,6 @@
 
                                 {% elif relatorio.status == 'Rejeitado' or relatorio.status == 'Em edição' %}
                                 <!-- Relatório rejeitado/em edição - pode ser editado -->
-                                <div class="alert alert-warning mb-3">
-                                    <i class="fas fa-exclamation-triangle"></i> 
-                                    {% if relatorio.status == 'Em edição' %}Relatório Em Edição{% else %}Relatório Rejeitado{% endif %}
-                                    </strong><br>
-                                    {% if relatorio.comentario_aprovacao %}
-                                    <strong>Motivo da rejeição:</strong> {{ relatorio.comentario_aprovacao }}<br>
-                                    {% endif %}
-                                    {% if relatorio.data_aprovacao %}
-                                    <small class="text-muted">
-                                        {% if relatorio.status == 'Em edição' %}Rejeitado em{% else %}Rejeitado em{% endif %}
-                                        {{ relatorio.data_aprovacao.strftime('%d/%m/%Y às %H:%M') }}
-                                        {% if relatorio.aprovador %}
-                                            por {% if relatorio.aprovador is mapping %}{{ relatorio.aprovador.get('nome_completo', relatorio.aprovador.get('username', 'Aprovador')) }}{% else %}{{ relatorio.aprovador.nome_completo if relatorio.aprovador.nome_completo else relatorio.aprovador.username }}{% endif %}
-                                        {% endif %}
-                                    </small>
-                                    {% endif %}
-                                </div>
 
                                 <div class="d-grid gap-2">
                                     {% if user_can_edit %}
@@ -413,13 +396,6 @@
                                                         {% endif %}
                                                     </select>
                                                 </div>
-                                                {% if user_can_edit and relatorio.status != 'Aprovado' %}
-                                                <div class="btn-group w-100" role="group">
-                                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deletePhoto({{ foto.id }}, {{ relatorio.id }})">
-                                                        <i class="fas fa-trash"></i> Excluir
-                                                    </button>
-                                                </div>
-                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
@@ -656,11 +632,6 @@ function renderImages(imagens) {
                 <div class="card-body p-2">
                     <p class="card-text small mb-1"><strong>${foto.legenda || 'Sem legenda'}</strong></p>
                     ${foto.descricao ? `<p class="card-text small text-muted mb-2">${foto.descricao}</p>` : ''}
-                    <div class="d-grid gap-1">
-                        <button type="button" class="btn btn-sm btn-danger" onclick="deletePhoto(${foto.id})">
-                            <i class="fas fa-trash"></i> Excluir
-                        </button>
-                    </div>
                 </div>
             </div>
         `;
