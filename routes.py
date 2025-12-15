@@ -10150,16 +10150,21 @@ def express_new():
     # SEMPRE usar template desktop para garantir estilização adequada
     template = 'express/novo.html'
     
-    # Passar checklist_dados para o template (se houver duplicação)
-    checklist_dados_json = None
+    # Passar checklist_dados para o template (se houver duplicação) - como objeto Python
+    checklist_dados_parsed = None
     if 'relatorio_duplicado' in session:
         dados = session['relatorio_duplicado']
         if dados.get('checklist_dados'):
-            checklist_dados_json = dados['checklist_dados']
+            try:
+                checklist_dados_parsed = json.loads(dados['checklist_dados'])
+                current_app.logger.info(f"📋 Checklist carregado para duplicação: {len(checklist_dados_parsed)} itens")
+            except (json.JSONDecodeError, TypeError) as e:
+                current_app.logger.error(f"❌ Erro ao parsear checklist para duplicação: {e}")
+                checklist_dados_parsed = None
     
     return render_template(template, form=form, is_mobile=is_mobile, 
                          categorias=categorias_lista, projeto_id=projeto_id,
-                         checklist_dados_existente=checklist_dados_json)
+                         checklist_dados_existente=checklist_dados_parsed)
 
 @app.route('/express/<int:id>')
 @login_required
@@ -10560,8 +10565,15 @@ def express_edit(id):
         
         current_app.logger.info(f"📸 Carregadas {len(fotos_existentes)} fotos para edição do relatório {relatorio.id}")
 
-    # Passar checklist_dados existente para o template
-    checklist_dados_existente = relatorio.checklist_dados if relatorio.checklist_dados else None
+    # Passar checklist_dados existente para o template (como objeto Python, não string JSON)
+    checklist_dados_existente = None
+    if relatorio.checklist_dados:
+        try:
+            checklist_dados_existente = json.loads(relatorio.checklist_dados)
+            current_app.logger.info(f"📋 Checklist carregado para edição: {len(checklist_dados_existente)} itens")
+        except (json.JSONDecodeError, TypeError) as e:
+            current_app.logger.error(f"❌ Erro ao parsear checklist: {e}")
+            checklist_dados_existente = None
     
     return render_template('express/novo.html', form=form, relatorio=relatorio, editing=True, 
                          fotos_existentes=fotos_existentes, checklist_dados_existente=checklist_dados_existente)

@@ -1797,18 +1797,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Verificar se há dados de checklist existentes (duplicação ou edição)
     {% if checklist_dados_existente %}
     try {
-        const checklistExistente = {{ checklist_dados_existente|safe }};
+        const checklistExistente = {{ checklist_dados_existente | tojson | safe }};
+        console.log('📋 Dados de checklist existente carregados:', checklistExistente);
         if (checklistExistente && Array.isArray(checklistExistente) && checklistExistente.length > 0) {
             loadChecklistWithExistingData(checklistExistente);
             console.log('✅ Checklist carregado com dados existentes:', checklistExistente.length, 'itens');
         } else {
+            console.log('⚠️ Checklist existente vazio, carregando padrão');
             loadDefaultChecklist();
         }
     } catch (e) {
-        console.error('Erro ao carregar checklist existente:', e);
+        console.error('❌ Erro ao carregar checklist existente:', e);
         loadDefaultChecklist();
     }
     {% else %}
+    console.log('📋 Sem dados de checklist existente, carregando padrão');
     loadDefaultChecklist();
     {% endif %}
     
@@ -1998,19 +2001,40 @@ document.addEventListener('DOMContentLoaded', function() {
     if (form) {
         form.addEventListener('submit', function(e) {
             console.log('📋 EXPRESS SUBMIT: Preparando dados antes de enviar...');
+            console.log('📋 EXPRESS SUBMIT: checklistItems global tem', checklistItems ? checklistItems.length : 0, 'itens');
             
             // Atualizar configurações de fotos
             updateFotoConfiguracoesInput();
             
-            // Atualizar checklist
+            // Atualizar checklist - garantir que os dados estão no campo oculto
             collectChecklistData();
             
-            // Log para debug
+            // Log para debug detalhado
             const fotoConfigsValue = document.getElementById('fotoConfiguracoes')?.value || '';
             const checklistValue = document.getElementById('checklistData')?.value || '';
             
-            console.log(`📸 EXPRESS SUBMIT: ${fotoConfigsValue.length > 2 ? JSON.parse(fotoConfigsValue).length : 0} fotos no campo oculto`);
-            console.log(`📋 EXPRESS SUBMIT: ${checklistValue.length > 2 ? JSON.parse(checklistValue).length : 0} itens de checklist`);
+            let fotoCount = 0;
+            let checklistCount = 0;
+            let checklistCheckedCount = 0;
+            
+            try {
+                if (fotoConfigsValue && fotoConfigsValue.length > 2) {
+                    fotoCount = JSON.parse(fotoConfigsValue).length;
+                }
+            } catch(e) { console.error('Erro ao parsear fotos:', e); }
+            
+            try {
+                if (checklistValue && checklistValue.length > 2) {
+                    const checklistData = JSON.parse(checklistValue);
+                    checklistCount = checklistData.length;
+                    checklistCheckedCount = checklistData.filter(item => item.concluido).length;
+                    console.log('📋 EXPRESS SUBMIT: Dados do checklist:', JSON.stringify(checklistData.slice(0, 3)) + '...');
+                }
+            } catch(e) { console.error('Erro ao parsear checklist:', e); }
+            
+            console.log(`📸 EXPRESS SUBMIT: ${fotoCount} fotos no campo oculto`);
+            console.log(`📋 EXPRESS SUBMIT: ${checklistCount} itens de checklist total, ${checklistCheckedCount} marcados como concluídos`);
+            console.log(`📋 EXPRESS SUBMIT: Valor do campo oculto checklist_completo: ${checklistValue.substring(0, 200)}...`);
             
             // Permitir submit continuar
             return true;
