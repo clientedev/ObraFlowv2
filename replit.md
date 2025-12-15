@@ -2,6 +2,14 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, autosave functionality with real-time synchronization, and a comprehensive notification system. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes
+**December 15, 2025** - Temporary approver multi-project selection and permission improvements:
+- Updated temporary approver form to allow selecting multiple projects at once (Ctrl/Cmd + click)
+- Approver selection is now first, then project selection for better UX
+- Review button visibility now properly checks `current_user_is_aprovador(project_id)` for each report
+- Global approvers see all pending reports; temporary approvers only see reports from their assigned projects
+- Added permission check to `approve_report` and `review_report` routes to prevent direct URL access
+- Both global and temporary approvers can approve reports following the standard approval flow
+
 **November 29, 2025** - Checklist UI improvements:
 - Observation textareas now only display for checked checklist items (hidden by default, shown on check)
 - Approved report view (detail.html) correctly filters to show only selected checklist items
