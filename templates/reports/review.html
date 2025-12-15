@@ -107,6 +107,17 @@
                         <p><strong>Projeto:</strong> {{ relatorio.projeto.nome }} ({{ relatorio.projeto.numero }})</p>
                         <p><strong>Autor:</strong> {{ relatorio.autor.nome_completo }}</p>
                         <p><strong>Data do Relatório:</strong> {{ relatorio.data_relatorio.strftime('%d/%m/%Y') }}</p>
+                        {% if relatorio.acompanhantes %}
+                        <p><strong><i class="fas fa-users me-1"></i>Acompanhantes:</strong>
+                            {% if relatorio.acompanhantes is iterable and relatorio.acompanhantes is not string %}
+                                {% for acomp in relatorio.acompanhantes %}
+                                    <span class="badge bg-info me-1">{{ acomp.nome if acomp.nome else acomp }}</span>
+                                {% endfor %}
+                            {% else %}
+                                {{ relatorio.acompanhantes }}
+                            {% endif %}
+                        </p>
+                        {% endif %}
                     </div>
                     <div class="col-md-6">
                         {% if relatorio.aprovador %}
@@ -116,8 +127,24 @@
                             <p><strong>Visita Relacionada:</strong> {{ relatorio.visita.data_agendada.strftime('%d/%m/%Y às %H:%M') }}</p>
                         {% endif %}
                         <p><strong>Criado em:</strong> {{ relatorio.created_at.strftime('%d/%m/%Y às %H:%M') }}</p>
+                        {% if relatorio.lembrete_proxima_visita %}
+                        <p><strong><i class="fas fa-bell me-1"></i>Lembrete Próxima Visita:</strong> 
+                            <span class="badge bg-warning text-dark">{{ relatorio.lembrete_proxima_visita.strftime('%d/%m/%Y às %H:%M') }}</span>
+                        </p>
+                        {% endif %}
                     </div>
                 </div>
+                
+                {% if relatorio.observacoes_finais %}
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <p><strong><i class="fas fa-sticky-note me-1"></i>Lembretes/Observações Finais:</strong></p>
+                        <div class="p-2 bg-light rounded border-start border-warning border-3">
+                            {{ relatorio.observacoes_finais }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
 
                 {% if relatorio.conteudo %}
                 <div class="mt-3">
@@ -205,47 +232,6 @@
 </div>
 {% endif %}
 
-<!-- Approval Actions - Only visible to approvers -->
-{% if current_user.is_authenticated and (current_user.is_aprovador or current_user.is_master) and relatorio.status == 'Aguardando Aprovação' %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card border-warning">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-gavel me-2"></i>Ações de Aprovação
-                </h5>
-            </div>
-            <div class="card-body">
-                <!-- Mobile: Stack buttons vertically -->
-                <div class="d-grid gap-3 d-md-flex">
-                    <div class="flex-fill">
-                        <form method="POST" action="{{ url_for('approve_report', id=relatorio.id) }}" 
-                              onsubmit="return confirm('Tem certeza que deseja APROVAR este relatório? Ele será enviado automaticamente aos clientes.')">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                            <button type="submit" class="btn btn-success btn-lg w-100">
-                                <i class="fas fa-check me-2"></i>Aprovar Relatório
-                            </button>
-                        </form>
-                    </div>
-                    <div class="flex-fill">
-                        <button type="button" class="btn btn-danger btn-lg w-100" data-bs-toggle="modal" data-bs-target="#rejectModal">
-                            <i class="fas fa-times me-2"></i>Reprovar Relatório
-                        </button>
-                    </div>
-                </div>
-                <div class="mt-3">
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        <strong>Atenção:</strong> Ao aprovar, o relatório será enviado automaticamente aos clientes. 
-                        Ao reprovar, será necessário incluir um comentário e o relatório voltará para edição.
-                    </small>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
 <!-- Photos Gallery -->
 <div class="row">
     <div class="col-12">
@@ -279,7 +265,10 @@
                                         <h6 class="card-title small mb-1">{{ foto.titulo }}</h6>
                                     {% endif %}
                                     {% if foto.tipo_servico %}
-                                        <span class="badge bg-secondary mb-1">{{ foto.tipo_servico }}</span>
+                                        <span class="badge bg-info mb-1" title="Categoria"><i class="fas fa-tag me-1"></i>{{ foto.tipo_servico }}</span>
+                                    {% endif %}
+                                    {% if foto.local %}
+                                        <span class="badge bg-secondary mb-1" title="Localização"><i class="fas fa-map-marker-alt me-1"></i>{{ foto.local }}</span>
                                     {% endif %}
                                     {% if foto.descricao %}
                                         <p class="card-text small text-muted mb-0">{{ foto.descricao }}</p>
@@ -300,6 +289,52 @@
         </div>
     </div>
 </div>
+
+<!-- Approval Actions - Only visible to approvers (moved to footer after gallery) -->
+{% if current_user.is_authenticated and (current_user.is_aprovador or current_user.is_master) and relatorio.status == 'Aguardando Aprovação' %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-gavel me-2"></i>Ações de Aprovação
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Mobile: Stack buttons vertically -->
+                <div class="d-grid gap-3 d-md-flex">
+                    <div class="flex-fill">
+                        <form method="POST" action="{{ url_for('approve_report', id=relatorio.id) }}" 
+                              onsubmit="return confirm('Tem certeza que deseja APROVAR este relatório? Ele será enviado automaticamente aos clientes.')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-check me-2"></i>Aprovar Relatório
+                            </button>
+                        </form>
+                    </div>
+                    <div class="flex-fill">
+                        <a href="{{ url_for('report_edit', report_id=relatorio.id) }}" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-edit me-2"></i>Editar Relatório
+                        </a>
+                    </div>
+                    <div class="flex-fill">
+                        <button type="button" class="btn btn-danger btn-lg w-100" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                            <i class="fas fa-times me-2"></i>Reprovar Relatório
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Atenção:</strong> Ao aprovar, o relatório será enviado automaticamente aos clientes. 
+                        Ao reprovar, será necessário incluir um comentário e o relatório voltará para edição.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Rejection Modal -->
 <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
