@@ -160,6 +160,16 @@
                                 <span class="text-muted">Nenhum funcionário cadastrado</span>
                             {% endif %}
                         </p>
+                        <p><strong>E-mails do Cliente:</strong> 
+                            {% set emails_ativos = project.emails_clientes|selectattr('ativo')|list %}
+                            {% if emails_ativos %}
+                                {% for email in emails_ativos %}
+                                    {{ email.nome_contato }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">Nenhum e-mail cadastrado</span>
+                            {% endif %}
+                        </p>
                         <p><strong>Status:</strong> 
                             {% if project.status == 'Ativo' %}
                                 <span class="badge bg-success">{{ project.status }}</span>
