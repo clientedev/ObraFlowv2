@@ -4,7 +4,7 @@ import io
 import hashlib
 import mimetypes
 import traceback
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time
 from urllib.parse import urlparse
 from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response, session, Response, abort, send_file
 from flask_login import login_user, logout_user, login_required, current_user
@@ -1331,7 +1331,6 @@ def listar_notificacoes():
     """Listar notificações do usuário autenticado (filtrando expiradas)"""
     try:
         from notification_service import notification_service
-        from datetime import datetime
         
         try:
             # Filtrar notificações não expiradas (expires_at > agora OU expires_at é NULL)
@@ -5820,7 +5819,6 @@ def visit_new():
 
     if form.validate_on_submit():
         try:
-            from datetime import datetime
             from models import VisitaParticipante
 
             # Handle project selection - 'Others' option
@@ -5938,7 +5936,6 @@ def visit_new():
                 datetime_str = f"{data_param}T{hora_param}"
                 form_data['data_inicio'] = datetime_str
                 # Definir fim como 1 hora depois
-                from datetime import datetime, timedelta
                 dt = datetime.fromisoformat(datetime_str)
                 dt_fim = dt + timedelta(hours=1)
                 form_data['data_fim'] = dt_fim.strftime('%Y-%m-%dT%H:%M')
@@ -8145,7 +8142,6 @@ def api_export_google_calendar():
     Exporta TODAS as visitas do usuário (filtradas por próximos 3 meses)
     """
     try:
-        from datetime import datetime, timedelta
         from urllib.parse import urlencode, quote
         
         # Buscar TODAS as visitas do usuário atual (como participante ou responsável)
@@ -8303,8 +8299,6 @@ def api_export_outlook():
 def api_export_ics():
     """Export visits as ICS file"""
     try:
-        from datetime import datetime, timedelta
-
         visits = Visita.query.filter_by(status='Agendada').all()
 
         # Generate ICS content
@@ -9841,9 +9835,17 @@ def express_new():
             relatorio_express.pendencias = form.pendencias.data
             relatorio_express.recomendacoes = form.recomendacoes.data
 
-            # Checklist (salvar dados JSON)
-            if form.checklist_completo.data:
-                relatorio_express.checklist_dados = form.checklist_completo.data
+            # Checklist (salvar dados JSON - sempre atualizar, mesmo se vazio para permitir deselecionar tudo)
+            checklist_value = form.checklist_completo.data or request.form.get('checklist_completo', '')
+            # Tratar "null", string vazia, ou lista vazia como checklist vazio
+            is_empty_checklist = not checklist_value or checklist_value.strip() in ('', '[]', 'null', 'undefined')
+            if not is_empty_checklist:
+                relatorio_express.checklist_dados = checklist_value
+                current_app.logger.info(f"📋 Checklist salvo: {len(checklist_value)} chars")
+            else:
+                # Explicitamente salvar lista vazia quando nenhum item selecionado
+                relatorio_express.checklist_dados = '[]'
+                current_app.logger.info("📋 Checklist salvo como vazio (nenhum item selecionado)")
 
             # Status baseado na ação
             if action == 'finalize':
@@ -10102,8 +10104,6 @@ def express_new():
         dados = session['relatorio_duplicado']  # NÃO fazer pop aqui - manter para o POST
         
         try:
-            from datetime import datetime, date, time
-            
             # Dados da empresa
             form.empresa_nome.data = dados.get('empresa_nome')
             form.empresa_endereco.data = dados.get('empresa_endereco')
@@ -10213,7 +10213,6 @@ def relatorio_express_adicionar_foto(relatorio_id):
             
             # Salvar arquivo
             import uuid
-            from datetime import datetime
             
             unique_filename = f"express_{relatorio_id}_{uuid.uuid4().hex}{file_ext}"
             upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
@@ -10333,9 +10332,17 @@ def express_edit(id):
             relatorio.pendencias = form.pendencias.data
             relatorio.recomendacoes = form.recomendacoes.data
 
-            # Atualizar checklist
-            if form.checklist_completo.data:
-                relatorio.checklist_dados = form.checklist_completo.data
+            # Atualizar checklist (sempre atualizar, mesmo se vazio para permitir deselecionar tudo)
+            checklist_value = form.checklist_completo.data or request.form.get('checklist_completo', '')
+            # Tratar "null", string vazia, ou lista vazia como checklist vazio
+            is_empty_checklist = not checklist_value or checklist_value.strip() in ('', '[]', 'null', 'undefined')
+            if not is_empty_checklist:
+                relatorio.checklist_dados = checklist_value
+                current_app.logger.info(f"📋 Checklist atualizado na edição: {len(checklist_value)} chars")
+            else:
+                # Explicitamente salvar lista vazia quando nenhum item selecionado
+                relatorio.checklist_dados = '[]'
+                current_app.logger.info("📋 Checklist atualizado como vazio na edição (nenhum item selecionado)")
 
             # Atualizar participantes
             from models import RelatorioExpressParticipante
@@ -10628,9 +10635,12 @@ def express_duplicate(id):
         return redirect(url_for('express_list'))
     
     try:
-        # Armazenar APENAS dados do projeto e checklist na sessão para pré-preenchimento
-        # NÃO duplicar: datas, localização, observações, fotos, participantes
+        # Armazenar dados do projeto, checklist e ID original na sessão para pré-preenchimento
+        # NÃO duplicar: datas, localização, observações, participantes
         session['relatorio_duplicado'] = {
+            # ID original para cópia de fotos
+            'relatorio_original_id': relatorio_original.id,
+            
             # Dados da empresa/projeto
             'empresa_nome': relatorio_original.empresa_nome,
             'empresa_endereco': relatorio_original.empresa_endereco,
@@ -10638,11 +10648,13 @@ def express_duplicate(id):
             'empresa_email': relatorio_original.empresa_email,
             'empresa_responsavel': relatorio_original.empresa_responsavel,
             
-            # Checklist
+            # Checklist - garantir que os dados sejam preservados corretamente
             'checklist_dados': relatorio_original.checklist_dados
         }
         
-        flash(f'Relatório {relatorio_original.numero} duplicado (apenas dados do projeto e checklist). Complete os demais campos.', 'info')
+        current_app.logger.info(f"📋 Duplicando relatório {relatorio_original.id} com checklist: {relatorio_original.checklist_dados}")
+        
+        flash(f'Relatório {relatorio_original.numero} duplicado (dados do projeto, checklist e fotos). Complete os demais campos.', 'info')
         return redirect(url_for('express_new'))
         
     except Exception as e:
@@ -11661,7 +11673,6 @@ def reports_visits_monthly():
     - Permite filtrar por mês, ano e usuário
     - Gera PDF ou Excel conforme selecionado
     """
-    from datetime import datetime, timedelta
     from calendar import monthrange
     import io
     from openpyxl import Workbook

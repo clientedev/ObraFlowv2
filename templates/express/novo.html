@@ -1761,6 +1761,11 @@ function updateChecklistData() {
     });
 
     document.getElementById('checklistData').value = JSON.stringify(checklistData);
+    console.log('📋 Checklist atualizado:', checklistData.filter(i => i.concluido).length, 'itens selecionados de', checklistData.length);
+}
+
+function collectChecklistData() {
+    updateChecklistData();
 }
 
 // Funções de touch para mobile
