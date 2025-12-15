@@ -3801,13 +3801,21 @@ def review_report(report_id):
             current_app.logger.warning(f"⚠️ Erro ao processar acompanhantes para review: {str(e)}")
             acompanhantes_formatados = []
 
+        # Verificar se conteudo e observacoes_finais são duplicados (normalizado)
+        show_conteudo = False
+        if report.conteudo:
+            conteudo_norm = (report.conteudo or '').strip().lower().replace('<br>', '\n').replace('\r', '')
+            obs_norm = (report.observacoes_finais or '').strip().lower().replace('<br>', '\n').replace('\r', '')
+            show_conteudo = conteudo_norm != obs_norm
+
         return render_template('reports/review.html', 
                              report=report,  # Padronizado conforme especificação
                              relatorio=report,  # Manter compatibilidade
                              fotos=fotos, 
                              checklist=checklist,
                              user_is_approver=user_is_approver,
-                             acompanhantes_formatados=acompanhantes_formatados)
+                             acompanhantes_formatados=acompanhantes_formatados,
+                             show_conteudo=show_conteudo)
 
     except Exception as e:
         current_app.logger.exception(f"ERRO GERAL REVIEW /reports/{report_id}/review: {str(e)}")
