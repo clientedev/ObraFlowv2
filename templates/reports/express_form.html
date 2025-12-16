@@ -1129,20 +1129,46 @@ function saveEditedPhoto() {
 let expressReportId = {% if existing_report %}{{ existing_report.id }}{% else %}null{% endif %};
 let isSavingExpress = false;
 
+async function convertFileToBlob(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const arrayBuffer = reader.result;
+            const blob = new Blob([arrayBuffer], { type: file.type || 'image/jpeg' });
+            resolve(blob);
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
+}
+
 async function uploadPhotoTemp(photo) {
     try {
-        if (!photo || !photo.file) {
-            console.warn("⚠️ Foto inválida ou arquivo ausente:", photo);
+        let fileData = photo.file || photo.blob;
+        
+        if (!fileData) {
+            if (photo.editedSrc && photo.editedSrc.startsWith('data:')) {
+                const res = await fetch(photo.editedSrc);
+                fileData = await res.blob();
+            } else if (photo.originalSrc && photo.originalSrc.startsWith('data:')) {
+                const res = await fetch(photo.originalSrc);
+                fileData = await res.blob();
+            }
+        }
+        
+        if (!fileData) {
+            console.warn("⚠️ Foto inválida ou arquivo ausente:", photo.id);
             return null;
         }
         
         const caption = photo.metadata?.legenda || photo.manualCaption || '';
         const local = photo.metadata?.local || photo.local || '';
+        const filename = photo.filename || photo.name || `foto_${Date.now()}.jpg`;
         
-        console.log("📤 Express AutoSave - Preparando upload da foto:", photo.filename || photo.name);
+        console.log("📤 Express AutoSave - Preparando upload:", filename);
         
         const formData = new FormData();
-        formData.append("file", photo.file, photo.filename || photo.name || "imagem.jpg");
+        formData.append("file", fileData, filename);
         formData.append("category", photo.category || "");
         formData.append("local", local);
         formData.append("caption", caption);
@@ -1176,22 +1202,24 @@ async function uploadPhotoTemp(photo) {
 async function getExpressImageData() {
     const uploaded = [];
     
+    console.log(`📸 Express: Processando ${selectedPhotos.length} fotos`);
+    
     for (let i = 0; i < selectedPhotos.length; i++) {
         const photo = selectedPhotos[i];
-        console.log(`📸 Foto ${i}:`, photo.id, photo.savedId);
         
-        if (photo.savedId && photo.savedId > 0) {
+        const caption = photo.metadata?.legenda || photo.manualCaption || '';
+        const local = photo.metadata?.local || photo.local || '';
+        
+        console.log(`📸 Foto ${i}: id=${photo.id}, savedId=${photo.savedId}, caption="${caption}"`);
+        
+        if (photo.isExisting || (photo.savedId && photo.savedId > 0)) {
             uploaded.push({
-                id: photo.savedId,
-                caption: photo.metadata?.legenda || photo.manualCaption || '',
-                local: photo.metadata?.local || photo.local || '',
+                id: photo.savedId || photo.id,
+                caption: caption,
+                local: local,
                 ordem: i
             });
-            continue;
-        }
-        
-        if (!photo.file) {
-            console.warn("⚠️ Foto sem arquivo:", photo.id);
+            console.log(`📌 Foto já salva no banco: ID ${photo.savedId || photo.id}`);
             continue;
         }
         
@@ -1200,10 +1228,12 @@ async function getExpressImageData() {
             if (tempId) {
                 uploaded.push({
                     temp_id: tempId,
-                    caption: photo.metadata?.legenda || photo.manualCaption || '',
-                    local: photo.metadata?.local || photo.local || '',
+                    caption: caption,
+                    local: local,
                     ordem: i
                 });
+                photo.tempId = tempId;
+                console.log(`✅ Foto ${i} enviada com temp_id: ${tempId}`);
             }
         } catch (err) {
             console.error(`❌ Falha ao enviar foto ${i}:`, err);
@@ -1224,21 +1254,31 @@ function getExpressChecklistData() {
         const textarea = item.querySelector('textarea');
         
         if (checkbox) {
-            const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
+            let itemText = '';
+            if (label) {
+                itemText = label.textContent.trim();
+            } else if (customInput) {
+                itemText = customInput.value.trim();
+            }
+            
             if (itemText) {
                 checklistData.push({
                     item: itemText,
                     completed: checkbox.checked,
-                    observations: textarea ? textarea.value : ''
+                    observations: textarea ? textarea.value.trim() : ''
                 });
             }
         }
     });
     
+    console.log(`📋 Express Checklist: ${checklistData.length} itens`, checklistData);
     return checklistData;
 }
 
 async function collectExpressFormData() {
+    const fotos = await getExpressImageData();
+    const checklistData = getExpressChecklistData();
+    
     const data = {
         titulo: document.getElementById('titulo')?.value?.trim() || 'Relatório Express de Visita',
         numero: document.getElementById('numero')?.value?.trim() || '',
@@ -1253,26 +1293,32 @@ async function collectExpressFormData() {
         conteudo: document.getElementById('conteudo')?.value?.trim() || '',
         observacoes_finais: document.getElementById('lembrete_proxima_visita')?.value?.trim() || '',
         acompanhantes: acompanhantesExpress || [],
-        checklist_data: getExpressChecklistData(),
-        fotos: await getExpressImageData()
+        checklist_data: checklistData,
+        fotos: fotos
     };
     
     if (expressReportId) {
-        data.id = expressReportId;
+        data.id = parseInt(expressReportId, 10);
     }
     
-    console.log('📦 Express AutoSave - Dados coletados:', data);
+    console.log('📦 Express AutoSave - Dados coletados:', {
+        ...data,
+        fotos: `${fotos.length} fotos`,
+        acompanhantes: `${data.acompanhantes.length} pessoas`,
+        checklist: `${checklistData.length} itens`
+    });
     return data;
 }
 
 async function saveExpressDraft() {
     if (isSavingExpress) {
         console.log('⏸️ Express AutoSave: Salvamento já em progresso...');
-        return;
+        return false;
     }
     
     const btnSave = document.getElementById('btnSaveDraft');
     const originalText = btnSave.innerHTML;
+    let saveSuccess = false;
     
     try {
         isSavingExpress = true;
@@ -1282,14 +1328,17 @@ async function saveExpressDraft() {
         const obra_nome = document.getElementById('obra_nome')?.value?.trim();
         if (!obra_nome) {
             alert('O nome da obra é obrigatório.');
-            return;
+            btnSave.innerHTML = originalText;
+            btnSave.disabled = false;
+            isSavingExpress = false;
+            return false;
         }
         
         const payload = await collectExpressFormData();
         
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
         
-        console.log('📤 Express AutoSave: Enviando dados...', payload);
+        console.log('📤 Express AutoSave: Enviando dados ao servidor...');
         
         const response = await fetch('/api/relatorios-express/autosave', {
             method: 'POST',
@@ -1309,18 +1358,21 @@ async function saveExpressDraft() {
         const result = await response.json();
         console.log('✅ Express AutoSave concluído:', result);
         
-        if (result.relatorio_id && !expressReportId) {
+        if (result.relatorio_id) {
+            if (!expressReportId) {
+                console.log('📝 Novo relatório Express criado com ID:', result.relatorio_id);
+            }
             expressReportId = result.relatorio_id;
             document.getElementById('express_report_id').value = expressReportId;
-            console.log('📝 Novo relatório Express criado com ID:', expressReportId);
         }
         
         if (result.imagens && result.imagens.length > 0) {
             result.imagens.forEach(imgResult => {
                 if (imgResult.temp_id) {
-                    const photo = selectedPhotos.find(p => !p.savedId && p.file);
+                    const photo = selectedPhotos.find(p => p.tempId === imgResult.temp_id);
                     if (photo) {
                         photo.savedId = imgResult.id;
+                        photo.isExisting = true;
                         console.log(`📸 Foto associada: temp_id=${imgResult.temp_id} -> savedId=${imgResult.id}`);
                     }
                 }
@@ -1330,6 +1382,7 @@ async function saveExpressDraft() {
         btnSave.innerHTML = '<i class="fas fa-check"></i> Salvo!';
         btnSave.classList.remove('btn-outline-primary');
         btnSave.classList.add('btn-success');
+        saveSuccess = true;
         
         setTimeout(() => {
             btnSave.innerHTML = originalText;
@@ -1340,11 +1393,21 @@ async function saveExpressDraft() {
     } catch (err) {
         console.error('❌ Erro ao salvar rascunho Express:', err);
         alert('Erro ao salvar: ' + err.message);
-        btnSave.innerHTML = originalText;
+        btnSave.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro';
+        btnSave.classList.remove('btn-outline-primary');
+        btnSave.classList.add('btn-danger');
+        
+        setTimeout(() => {
+            btnSave.innerHTML = originalText;
+            btnSave.classList.remove('btn-danger');
+            btnSave.classList.add('btn-outline-primary');
+        }, 3000);
     } finally {
         isSavingExpress = false;
         btnSave.disabled = false;
     }
+    
+    return saveSuccess;
 }
 
 async function submitExpressForApproval() {
@@ -1352,14 +1415,25 @@ async function submitExpressForApproval() {
     const originalText = btnSubmit.innerHTML;
     
     try {
-        await saveExpressDraft();
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
         
-        if (!expressReportId) {
-            alert('Por favor, salve o relatório primeiro.');
+        const saveResult = await saveExpressDraft();
+        
+        if (!saveResult) {
+            console.log('❌ Falha ao salvar antes de enviar para aprovação');
+            btnSubmit.innerHTML = originalText;
+            btnSubmit.disabled = false;
             return;
         }
         
-        btnSubmit.disabled = true;
+        if (!expressReportId) {
+            alert('Por favor, salve o relatório primeiro.');
+            btnSubmit.innerHTML = originalText;
+            btnSubmit.disabled = false;
+            return;
+        }
+        
         btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
         
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
