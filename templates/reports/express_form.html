@@ -297,6 +297,17 @@
   const REPORT_DATA = {{ report_data | tojson | safe }};
   const EDIT_MODE = {{ edit_mode | tojson | safe }};
   console.log("📝 Dados carregados para Relatório Express:", REPORT_DATA);
+  
+  document.addEventListener('DOMContentLoaded', function() {
+    if (EDIT_MODE && REPORT_DATA.checklist_data && REPORT_DATA.checklist_data.length > 0) {
+      console.log("📋 Carregando checklist salvo...");
+      setTimeout(function() {
+        if (typeof loadChecklistData === 'function') {
+          loadChecklistData(REPORT_DATA.checklist_data);
+        }
+      }, 100);
+    }
+  });
 </script>
 <div class="container-fluid">
     <div class="row">
@@ -446,54 +457,54 @@
                         <div class="mb-4">
                             <h5><i class="fas fa-tasks"></i> Checklist da Obra</h5>
                             <div id="checklistItems">
-                                <div class="checklist-item mb-3">
+                                <div class="checklist-item mb-3" data-item-id="estrutura">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="estrutura">
+                                        <input class="form-check-input checklist-checkbox" type="checkbox" id="estrutura" data-item="Estrutura / Fundação">
                                         <label class="form-check-label fw-bold" for="estrutura">
                                             Estrutura / Fundação
                                         </label>
                                     </div>
-                                    <textarea class="form-control mt-2" name="obs_estrutura" placeholder="Observações sobre estrutura..."></textarea>
+                                    <textarea class="form-control mt-2 checklist-obs" name="obs_estrutura" placeholder="Observações sobre estrutura..." style="display: none;"></textarea>
                                 </div>
 
-                                <div class="checklist-item mb-3">
+                                <div class="checklist-item mb-3" data-item-id="alvenaria">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="alvenaria">
+                                        <input class="form-check-input checklist-checkbox" type="checkbox" id="alvenaria" data-item="Alvenaria / Vedação">
                                         <label class="form-check-label fw-bold" for="alvenaria">
                                             Alvenaria / Vedação
                                         </label>
                                     </div>
-                                    <textarea class="form-control mt-2" name="obs_alvenaria" placeholder="Observações sobre alvenaria..."></textarea>
+                                    <textarea class="form-control mt-2 checklist-obs" name="obs_alvenaria" placeholder="Observações sobre alvenaria..." style="display: none;"></textarea>
                                 </div>
 
-                                <div class="checklist-item mb-3">
+                                <div class="checklist-item mb-3" data-item-id="instalacoes">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="instalacoes">
+                                        <input class="form-check-input checklist-checkbox" type="checkbox" id="instalacoes" data-item="Instalações (Elétrica/Hidráulica)">
                                         <label class="form-check-label fw-bold" for="instalacoes">
                                             Instalações (Elétrica/Hidráulica)
                                         </label>
                                     </div>
-                                    <textarea class="form-control mt-2" name="obs_instalacoes" placeholder="Observações sobre instalações..."></textarea>
+                                    <textarea class="form-control mt-2 checklist-obs" name="obs_instalacoes" placeholder="Observações sobre instalações..." style="display: none;"></textarea>
                                 </div>
 
-                                <div class="checklist-item mb-3">
+                                <div class="checklist-item mb-3" data-item-id="acabamento">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="acabamento">
+                                        <input class="form-check-input checklist-checkbox" type="checkbox" id="acabamento" data-item="Acabamentos">
                                         <label class="form-check-label fw-bold" for="acabamento">
                                             Acabamentos
                                         </label>
                                     </div>
-                                    <textarea class="form-control mt-2" name="obs_acabamento" placeholder="Observações sobre acabamentos..."></textarea>
+                                    <textarea class="form-control mt-2 checklist-obs" name="obs_acabamento" placeholder="Observações sobre acabamentos..." style="display: none;"></textarea>
                                 </div>
 
-                                <div class="checklist-item mb-3">
+                                <div class="checklist-item mb-3" data-item-id="limpeza">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="limpeza">
+                                        <input class="form-check-input checklist-checkbox" type="checkbox" id="limpeza" data-item="Limpeza / Organização">
                                         <label class="form-check-label fw-bold" for="limpeza">
                                             Limpeza / Organização
                                         </label>
                                     </div>
-                                    <textarea class="form-control mt-2" name="obs_limpeza" placeholder="Observações sobre limpeza..."></textarea>
+                                    <textarea class="form-control mt-2 checklist-obs" name="obs_limpeza" placeholder="Observações sobre limpeza..." style="display: none;"></textarea>
                                 </div>
                             </div>
 
@@ -508,14 +519,6 @@
                             <label class="form-label" for="conteudo">Observações Gerais</label>
                             <textarea class="form-control" name="conteudo" id="conteudo" rows="4" 
                                     placeholder="Descreva detalhes gerais da visita, pontos importantes, etc."></textarea>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label" for="lembrete_proxima_visita">
-                                <i class="fas fa-bell me-2"></i>Lembrete para Próxima Visita (Opcional)
-                            </label>
-                            <textarea class="form-control" name="lembrete_proxima_visita" id="lembrete_proxima_visita" rows="3" 
-                                    placeholder="Deixe um lembrete ou ponto de atenção para a próxima visita..."></textarea>
                         </div>
 
                         <div class="mb-4">
@@ -1058,7 +1061,7 @@ function addCustomChecklistItem() {
     itemDiv.className = 'checklist-item mb-3';
     itemDiv.innerHTML = `
         <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="${itemId}">
+            <input class="form-check-input checklist-checkbox" type="checkbox" id="${itemId}">
             <input type="text" class="form-control d-inline-block fw-bold" style="width: 70%;" 
                    name="custom_item_${itemId}" placeholder="Digite o item do checklist..." required>
             <button type="button" class="btn btn-sm btn-outline-danger float-end" 
@@ -1066,7 +1069,7 @@ function addCustomChecklistItem() {
                 <i class="fas fa-trash"></i>
             </button>
         </div>
-        <textarea class="form-control mt-2" name="custom_obs_${itemId}" placeholder="Observações..." rows="2"></textarea>
+        <textarea class="form-control mt-2 checklist-obs" name="custom_obs_${itemId}" placeholder="Observações..." rows="2" style="display: none;"></textarea>
     `;
 
     checklistItems.appendChild(itemDiv);
@@ -1076,14 +1079,88 @@ document.addEventListener('change', function(e) {
     if (e.target.classList.contains('form-check-input') && e.target.type === 'checkbox') {
         const item = e.target.closest('.checklist-item');
         if (item) {
+            const textarea = item.querySelector('textarea');
             if (e.target.checked) {
                 item.classList.add('completed');
+                if (textarea) textarea.style.display = 'block';
             } else {
                 item.classList.remove('completed');
+                if (textarea) textarea.style.display = 'none';
             }
         }
     }
 });
+
+function loadChecklistData(checklistData) {
+    if (!checklistData || !Array.isArray(checklistData)) {
+        console.log('📋 Nenhum dado de checklist para carregar');
+        return;
+    }
+    
+    console.log('📋 Carregando checklist com', checklistData.length, 'itens');
+    
+    const predefinedItems = {
+        'Estrutura / Fundação': 'estrutura',
+        'Alvenaria / Vedação': 'alvenaria',
+        'Instalações (Elétrica/Hidráulica)': 'instalacoes',
+        'Acabamentos': 'acabamento',
+        'Limpeza / Organização': 'limpeza'
+    };
+    
+    checklistData.forEach(data => {
+        const itemName = data.item;
+        const isCompleted = data.completed;
+        const observations = data.observations || '';
+        
+        const itemId = predefinedItems[itemName];
+        
+        if (itemId) {
+            const checkbox = document.getElementById(itemId);
+            const itemDiv = checkbox?.closest('.checklist-item');
+            const textarea = itemDiv?.querySelector('textarea');
+            
+            if (checkbox) {
+                checkbox.checked = isCompleted;
+                if (isCompleted && itemDiv) {
+                    itemDiv.classList.add('completed');
+                }
+            }
+            if (textarea) {
+                textarea.value = observations;
+                if (isCompleted) {
+                    textarea.style.display = 'block';
+                }
+            }
+            console.log(`✅ Checklist item "${itemName}" carregado: checked=${isCompleted}`);
+        } else {
+            console.log(`➕ Item personalizado detectado: "${itemName}"`);
+            addCustomChecklistItemWithData(itemName, isCompleted, observations);
+        }
+    });
+}
+
+function addCustomChecklistItemWithData(itemName, isCompleted, observations) {
+    const checklistItems = document.getElementById('checklistItems');
+    const itemId = 'custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'checklist-item mb-3' + (isCompleted ? ' completed' : '');
+    itemDiv.innerHTML = `
+        <div class="form-check">
+            <input class="form-check-input checklist-checkbox" type="checkbox" id="${itemId}" ${isCompleted ? 'checked' : ''} data-item="${itemName}">
+            <input type="text" class="form-control d-inline-block fw-bold" style="width: 70%;" 
+                   name="custom_item_${itemId}" value="${itemName}" placeholder="Digite o item do checklist..." required>
+            <button type="button" class="btn btn-sm btn-outline-danger float-end" 
+                    onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <textarea class="form-control mt-2 checklist-obs" name="custom_obs_${itemId}" placeholder="Observações..." rows="2" style="display: ${isCompleted ? 'block' : 'none'};">${observations}</textarea>
+    `;
+
+    checklistItems.appendChild(itemDiv);
+    console.log(`✅ Item personalizado adicionado: "${itemName}"`);
+}
 
 function openPhotoEditor(photoId) {
     const card = document.querySelector(`[data-photo-id="${photoId}"]`);
@@ -1291,7 +1368,7 @@ async function collectExpressFormData() {
         obra_email: document.getElementById('obra_email')?.value?.trim() || '',
         obra_telefone: document.getElementById('obra_telefone')?.value?.trim() || '',
         conteudo: document.getElementById('conteudo')?.value?.trim() || '',
-        observacoes_finais: document.getElementById('lembrete_proxima_visita')?.value?.trim() || '',
+        observacoes_finais: '',
         acompanhantes: acompanhantesExpress || [],
         checklist_data: checklistData,
         fotos: fotos

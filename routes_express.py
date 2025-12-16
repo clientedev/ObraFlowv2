@@ -149,7 +149,6 @@ def create_express_report():
             autor_id=current_user.id,
             criado_por=current_user.id,
             conteudo=request.form.get('conteudo', ''),
-            observacoes_finais=request.form.get('lembrete_proxima_visita', ''),
             status='Em preenchimento'
         )
         
@@ -212,6 +211,13 @@ def edit_express_report(report_id):
         
         today = datetime.now().strftime('%Y-%m-%d')
         
+        checklist_data = []
+        if relatorio.checklist_data:
+            try:
+                checklist_data = json.loads(relatorio.checklist_data)
+            except:
+                checklist_data = []
+        
         report_data = {
             'id': relatorio.id,
             'numero': relatorio.numero,
@@ -226,6 +232,7 @@ def edit_express_report(report_id):
             'obra_telefone': relatorio.obra_telefone,
             'conteudo': relatorio.conteudo,
             'acompanhantes': relatorio.acompanhantes or [],
+            'checklist_data': checklist_data,
             'imagens': []
         }
         
@@ -276,7 +283,6 @@ def update_express_report(report_id):
         relatorio.obra_email = request.form.get('obra_email', '')
         relatorio.obra_telefone = request.form.get('obra_telefone', '')
         relatorio.conteudo = request.form.get('conteudo', '')
-        relatorio.observacoes_finais = request.form.get('lembrete_proxima_visita', '')
         relatorio.atualizado_por = current_user.id
         
         relatorio.empresa_nome = request.form.get('obra_nome', relatorio.empresa_nome)
