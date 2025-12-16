@@ -930,6 +930,13 @@ let currentChecklistType = {% if project and config %}'{{ config.tipo_checklist 
 let customChecklistItems = [];
 const isNewProject = {% if project %}false{% else %}true{% endif %};
 
+// Standard checklist items for pre-loading when switching to personalized
+const standardChecklistItems = [
+    {% for item in checklist_items_padrao %}
+    { id: {{ loop.index }}, texto: "{{ item.texto|e }}", ordem: {{ item.ordem }} }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
 // Initialize checklist on page load
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize hidden fields ONLY for new projects (form submission)
@@ -986,14 +993,19 @@ function selectChecklistType(tipo) {
         personalizadoEditor.style.display = 'block';
         if (currentDisplay) currentDisplay.style.display = 'none';
         
-        // Render items for new projects
+        // For new projects, pre-load standard checklist items if empty
         if (isNewProject) {
+            if (customChecklistItems.length === 0 && standardChecklistItems.length > 0) {
+                customChecklistItems = JSON.parse(JSON.stringify(standardChecklistItems));
+                updateChecklistItemsHiddenField();
+            }
             renderCustomChecklistItems();
         }
         
-        // Save configuration for existing projects
+        // Save configuration for existing projects and load items
         if (!isNewProject) {
             saveChecklistConfig('personalizado');
+            loadCustomChecklistItems();
         }
     }
     

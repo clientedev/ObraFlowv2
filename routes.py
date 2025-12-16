@@ -11763,7 +11763,7 @@ def project_checklist_delete_item(project_id, item_id):
 @app.route("/projects/<int:project_id>/checklist/items/list", methods=["GET"])
 @login_required
 def project_checklist_list_items(project_id):
-    """List all custom checklist items for a project"""
+    """List all custom checklist items for a project. If no custom items exist, copy standard items."""
     project = Projeto.query.get_or_404(project_id)
     
     try:
@@ -11772,6 +11772,30 @@ def project_checklist_list_items(project_id):
             projeto_id=project_id,
             ativo=True
         ).order_by(ChecklistObra.ordem).all()
+        
+        # If no custom items exist, copy from standard checklist
+        if not items:
+            standard_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+            
+            for std_item in standard_items:
+                new_item = ChecklistObra(
+                    projeto_id=project_id,
+                    texto=std_item.texto,
+                    ordem=std_item.ordem,
+                    criado_por=current_user.id,
+                    ativo=True
+                )
+                db.session.add(new_item)
+            
+            db.session.commit()
+            
+            # Reload items after creation
+            items = ChecklistObra.query.filter_by(
+                projeto_id=project_id,
+                ativo=True
+            ).order_by(ChecklistObra.ordem).all()
+            
+            current_app.logger.info(f"✅ Copied {len(standard_items)} standard checklist items to project {project_id}")
         
         items_data = [{
             "id": item.id,
@@ -11785,6 +11809,7 @@ def project_checklist_list_items(project_id):
         })
     
     except Exception as e:
+        db.session.rollback()
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
 
 
