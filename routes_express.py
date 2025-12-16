@@ -245,6 +245,7 @@ def edit_express_report(report_id):
                 'id': foto.id,
                 'url': foto.url,
                 'legenda': foto.legenda,
+                'local': foto.local or '',
                 'ordem': foto.ordem
             })
         
