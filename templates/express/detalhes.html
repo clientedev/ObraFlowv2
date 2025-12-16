@@ -58,7 +58,15 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3>
                     <i class="fas fa-bolt"></i> Relatório Express {{ relatorio.numero }}
-                    {% if relatorio.status == 'rascunho' %}
+                    {% if relatorio.status == 'preenchimento' %}
+                        <span class="badge bg-secondary ms-2">Em Preenchimento</span>
+                    {% elif relatorio.status == 'Aguardando Aprovação' %}
+                        <span class="badge bg-warning ms-2">Aguardando Aprovação</span>
+                    {% elif relatorio.status == 'Aprovado' %}
+                        <span class="badge bg-success ms-2">Aprovado</span>
+                    {% elif relatorio.status == 'Rejeitado' %}
+                        <span class="badge bg-danger ms-2">Rejeitado</span>
+                    {% elif relatorio.status == 'rascunho' %}
                         <span class="badge bg-warning ms-2">Rascunho</span>
                     {% elif relatorio.status == 'finalizado' %}
                         <span class="badge bg-success ms-2">Finalizado</span>
@@ -69,16 +77,31 @@
                         <i class="fas fa-arrow-left"></i> Voltar à Lista
                     </a>
                     
-                    {% if relatorio.status == 'rascunho' %}
+                    {% if relatorio.status in ['preenchimento', 'Rejeitado', 'rascunho'] %}
                     <a href="{{ url_for('express_edit', id=relatorio.id) }}" class="btn btn-primary">
                         <i class="fas fa-edit"></i> Editar
                     </a>
+                    <a href="{{ url_for('express_actions', id=relatorio.id) }}" class="btn btn-info">
+                        <i class="fas fa-cogs"></i> Ações
+                    </a>
                     {% endif %}
                     
-                    {% if relatorio.status == 'finalizado' %}
+                    {% if relatorio.status in ['Aprovado', 'finalizado'] %}
                     <a href="{{ url_for('express_pdf', id=relatorio.id) }}" class="btn btn-danger">
                         <i class="fas fa-file-pdf"></i> Baixar PDF
                     </a>
+                    <a href="{{ url_for('express_enviar_email_page', id=relatorio.id) }}" class="btn btn-success">
+                        <i class="fas fa-envelope"></i> Enviar E-mail
+                    </a>
+                    {% endif %}
+                    
+                    {% if relatorio.status == 'Aguardando Aprovação' and current_user.is_master %}
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#aprovarModal">
+                        <i class="fas fa-check"></i> Aprovar
+                    </button>
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejeitarModal">
+                        <i class="fas fa-times"></i> Rejeitar
+                    </button>
                     {% endif %}
                 </div>
             </div>
@@ -409,6 +432,63 @@
                     </button>
                 </form>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Aprovação -->
+<div class="modal fade" id="aprovarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-check-circle"></i> Aprovar Relatório</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('express_approve', id=relatorio.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <p>Confirma a aprovação do relatório <strong>{{ relatorio.numero }}</strong>?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Comentário (opcional)</label>
+                        <textarea name="comentario" class="form-control" rows="3" placeholder="Adicione um comentário sobre a aprovação..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Aprovar Relatório
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Rejeição -->
+<div class="modal fade" id="rejeitarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-times-circle"></i> Rejeitar Relatório</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('express_reject', id=relatorio.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <p>Rejeitar o relatório <strong>{{ relatorio.numero }}</strong>?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Motivo da Rejeição <span class="text-danger">*</span></label>
+                        <textarea name="comentario" class="form-control" rows="3" required placeholder="Informe o motivo da rejeição..."></textarea>
+                    </div>
+                    <p class="text-muted small"><i class="fas fa-info-circle"></i> O autor será notificado e poderá corrigir e reenviar o relatório.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times"></i> Rejeitar Relatório
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

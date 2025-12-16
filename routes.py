@@ -10186,9 +10186,9 @@ def express_new():
                 imagem_size_db = len(foto_verif.imagem) if foto_verif.imagem else 0
                 current_app.logger.info(f"   📸 Foto ID={foto_verif.id}, filename={foto_verif.filename}, imagem_size={imagem_size_db} bytes, legenda={foto_verif.legenda[:30] if foto_verif.legenda else 'N/A'}")
 
-            if action == 'finalize':
-                flash('Relatório Express finalizado com sucesso!', 'success')
-                return redirect(url_for('express_detail', id=relatorio_express.id))
+            if action == 'continue_to_actions':
+                flash('Relatório salvo! Configure as ações adicionais.', 'success')
+                return redirect(url_for('express_actions', id=relatorio_express.id))
             else:
                 flash('Rascunho de Relatório Express salvo com sucesso!', 'info')
                 return redirect(url_for('express_edit', id=relatorio_express.id))
@@ -10903,6 +10903,236 @@ def relatorio_express_remover_foto(relatorio_id, foto_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Erro ao remover foto: {str(e)}'}), 500
+
+# =============================================================================
+# FLUXO DE APROVAÇÃO - RELATÓRIO EXPRESS (IGUAL AO RELATÓRIO NORMAL)
+# =============================================================================
+
+@app.route('/express/<int:id>/acoes')
+@login_required
+def express_actions(id):
+    """Página de ações do relatório express - acompanhantes, funcionários, aprovação"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_list'))
+    
+    # Carregar usuários ativos para seleção
+    usuarios = User.query.filter_by(ativo=True).order_by(User.nome_completo).all()
+    
+    return render_template('express/acoes.html', relatorio=relatorio, usuarios=usuarios)
+
+@app.route('/express/<int:id>/enviar-aprovacao', methods=['POST'])
+@login_required
+def express_submit_for_approval(id):
+    """Enviar relatório express para aprovação"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    # Verificar acesso - apenas autor pode enviar
+    if relatorio.autor_id != current_user.id and not current_user.is_master:
+        flash('Apenas o autor pode enviar para aprovação.', 'error')
+        return redirect(url_for('express_actions', id=id))
+    
+    # Verificar se está em estado apropriado
+    if relatorio.status not in ['preenchimento', 'Rejeitado']:
+        flash('Este relatório não pode ser enviado para aprovação no estado atual.', 'warning')
+        return redirect(url_for('express_actions', id=id))
+    
+    try:
+        relatorio.status = 'Aguardando Aprovação'
+        relatorio.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        flash('Relatório enviado para aprovação com sucesso!', 'success')
+        current_app.logger.info(f"📤 Relatório Express {relatorio.numero} enviado para aprovação por {current_user.nome_completo}")
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao enviar para aprovação: {str(e)}', 'error')
+    
+    return redirect(url_for('express_actions', id=id))
+
+@app.route('/express/<int:id>/aprovar', methods=['POST'])
+@login_required
+def express_approve(id):
+    """Aprovar relatório express"""
+    if not current_user.is_master:
+        flash('Apenas usuários master podem aprovar relatórios.', 'error')
+        return redirect(url_for('express_detail', id=id))
+    
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    if relatorio.status != 'Aguardando Aprovação':
+        flash('Este relatório não está aguardando aprovação.', 'warning')
+        return redirect(url_for('express_detail', id=id))
+    
+    try:
+        comentario = request.form.get('comentario', '')
+        
+        relatorio.status = 'Aprovado'
+        relatorio.aprovador_id = current_user.id
+        relatorio.data_aprovacao = datetime.utcnow()
+        relatorio.comentario_aprovacao = comentario
+        relatorio.finalizado_at = datetime.utcnow()
+        db.session.commit()
+        
+        flash('Relatório aprovado com sucesso!', 'success')
+        current_app.logger.info(f"✅ Relatório Express {relatorio.numero} aprovado por {current_user.nome_completo}")
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao aprovar relatório: {str(e)}', 'error')
+    
+    return redirect(url_for('express_detail', id=id))
+
+@app.route('/express/<int:id>/rejeitar', methods=['POST'])
+@login_required
+def express_reject(id):
+    """Rejeitar relatório express"""
+    if not current_user.is_master:
+        flash('Apenas usuários master podem rejeitar relatórios.', 'error')
+        return redirect(url_for('express_detail', id=id))
+    
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    if relatorio.status != 'Aguardando Aprovação':
+        flash('Este relatório não está aguardando aprovação.', 'warning')
+        return redirect(url_for('express_detail', id=id))
+    
+    try:
+        comentario = request.form.get('comentario', '')
+        
+        if not comentario:
+            flash('Informe o motivo da rejeição.', 'error')
+            return redirect(url_for('express_detail', id=id))
+        
+        relatorio.status = 'Rejeitado'
+        relatorio.aprovador_id = current_user.id
+        relatorio.data_aprovacao = datetime.utcnow()
+        relatorio.comentario_aprovacao = comentario
+        db.session.commit()
+        
+        flash('Relatório rejeitado. O autor pode corrigir e reenviar.', 'warning')
+        current_app.logger.info(f"❌ Relatório Express {relatorio.numero} rejeitado por {current_user.nome_completo}: {comentario}")
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao rejeitar relatório: {str(e)}', 'error')
+    
+    return redirect(url_for('express_detail', id=id))
+
+@app.route('/express/<int:id>/add-funcionario', methods=['POST'])
+@login_required
+@csrf.exempt
+def express_add_funcionario(id):
+    """Adicionar funcionário ao relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        data = request.get_json()
+        funcionario_id = data.get('funcionario_id')
+        
+        if not funcionario_id:
+            return jsonify({'error': 'ID do funcionário não informado'}), 400
+        
+        # Verificar se já está adicionado
+        existing = RelatorioExpressParticipante.query.filter_by(
+            relatorio_express_id=id, 
+            funcionario_id=funcionario_id
+        ).first()
+        
+        if existing:
+            return jsonify({'error': 'Funcionário já adicionado'}), 400
+        
+        participante = RelatorioExpressParticipante()
+        participante.relatorio_express_id = id
+        participante.funcionario_id = funcionario_id
+        db.session.add(participante)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/express/<int:id>/update-acompanhantes', methods=['POST'])
+@login_required
+@csrf.exempt
+def express_update_acompanhantes(id):
+    """Atualizar acompanhantes do relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        data = request.get_json()
+        acompanhantes = data.get('acompanhantes', [])
+        
+        relatorio.acompanhantes = acompanhantes
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/express/<int:id>/update-lembrete', methods=['POST'])
+@login_required
+@csrf.exempt
+def express_update_lembrete(id):
+    """Atualizar lembrete de próxima visita do relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    # Verificar acesso
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        data = request.get_json()
+        lembrete_str = data.get('lembrete', '')
+        
+        if lembrete_str:
+            relatorio.lembrete_proxima_visita = datetime.fromisoformat(lembrete_str)
+        else:
+            relatorio.lembrete_proxima_visita = None
+        
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/express/<int:id>/enviar-email')
+@login_required
+def express_enviar_email_page(id):
+    """Página de envio de e-mail do relatório express"""
+    relatorio = RelatorioExpress.query.get_or_404(id)
+    
+    # Verificar acesso e status
+    if not current_user.is_master and relatorio.autor_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('express_list'))
+    
+    if relatorio.status != 'Aprovado':
+        flash('Apenas relatórios aprovados podem ser enviados por e-mail.', 'warning')
+        return redirect(url_for('express_actions', id=id))
+    
+    # Buscar configuração de e-mail ativa
+    config = EmailConfig.query.filter_by(ativo=True).first()
+    
+    return render_template('express/enviar_email.html', relatorio=relatorio, config=config)
 
 @app.route('/relatorio-express/<int:relatorio_id>/gerar-pdf')
 @login_required

@@ -582,21 +582,30 @@ class RelatorioExpress(db.Model):
     
     # Campos idênticos ao relatório padrão
     autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    aprovador_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     data_visita = db.Column(db.Date, nullable=False)
     periodo_inicio = db.Column(db.Time)
     periodo_fim = db.Column(db.Time)
     condicoes_climaticas = db.Column(db.String(200))
     temperatura = db.Column(db.String(50))
     
-    # Checklist e observações
-    checklist_completo = db.Column(db.Text)  # JSON com itens do checklist (compatibilidade)
-    checklist_dados = db.Column(db.Text)      # JSON com dados do checklist
+    # Observações (removido checklist)
     observacoes_gerais = db.Column(db.Text)
     pendencias = db.Column(db.Text)
     recomendacoes = db.Column(db.Text)
+    conteudo = db.Column(db.Text)
     
-    # Status e controle
-    status = db.Column(db.String(50), default='rascunho')  # rascunho, finalizado
+    # Status e controle - fluxo de aprovação igual ao relatório normal
+    # preenchimento, Aguardando Aprovação, Aprovado, Rejeitado
+    status = db.Column(db.String(50), default='preenchimento')
+    comentario_aprovacao = db.Column(db.Text)
+    data_aprovacao = db.Column(db.DateTime, nullable=True)
+    
+    # Acompanhantes (JSONB igual ao relatório normal)
+    acompanhantes = db.Column(JSONB, nullable=True)
+    
+    # Lembrete para próxima visita
+    lembrete_proxima_visita = db.Column(db.DateTime, nullable=True)
     
     # Dados de localização
     latitude = db.Column(db.Float)
@@ -609,7 +618,8 @@ class RelatorioExpress(db.Model):
     finalizado_at = db.Column(db.DateTime)
     
     # Relacionamentos
-    autor = db.relationship('User', backref='relatorios_express_criados')
+    autor = db.relationship('User', foreign_keys=[autor_id], backref='relatorios_express_criados')
+    aprovador = db.relationship('User', foreign_keys=[aprovador_id], backref='relatorios_express_aprovados')
     
     @property
     def fotos(self):
@@ -626,7 +636,6 @@ class RelatorioExpress(db.Model):
     @property
     def titulo(self):
         """Gera título fixo do relatório express com numeração automática"""
-        # Extrai o número sequencial do campo numero (ex: EXP-001 -> 001)
         numero_sequencial = self.numero.split('-')[-1] if '-' in self.numero else self.numero
         return f"Relatório Fotográfico - {numero_sequencial}"
     

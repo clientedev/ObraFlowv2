@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}Ações - Relatório Express {{ relatorio.numero }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.action-card {
+    border: 2px solid #dee2e6;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+.action-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+}
+.participant-badge {
+    background: #e9ecef;
+    border-radius: 20px;
+    padding: 8px 16px;
+    margin: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.participant-badge .remove-btn {
+    cursor: pointer;
+    color: #dc3545;
+}
+.acompanhante-item {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+@media (max-width: 768px) {
+    .action-card {
+        margin-bottom: 16px;
+    }
+    .btn-lg {
+        font-size: 16px !important;
+        padding: 12px 20px !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>
+                    <i class="fas fa-cogs"></i> Ações - Relatório Express {{ relatorio.numero }}
+                </h3>
+                <a href="{{ url_for('express_edit', id=relatorio.id) }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar à Edição
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Resumo do Relatório -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-file-alt"></i> Resumo do Relatório</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Empresa:</strong> {{ relatorio.empresa_nome }}<br>
+                            <strong>Data da Visita:</strong> {{ relatorio.data_visita.strftime('%d/%m/%Y') if relatorio.data_visita else 'N/A' }}<br>
+                            <strong>Status:</strong> 
+                            {% if relatorio.status == 'preenchimento' %}
+                                <span class="badge bg-secondary">Em Preenchimento</span>
+                            {% elif relatorio.status == 'Aguardando Aprovação' %}
+                                <span class="badge bg-warning">Aguardando Aprovação</span>
+                            {% elif relatorio.status == 'Aprovado' %}
+                                <span class="badge bg-success">Aprovado</span>
+                            {% elif relatorio.status == 'Rejeitado' %}
+                                <span class="badge bg-danger">Rejeitado</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ relatorio.status }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Autor:</strong> {{ relatorio.autor.nome_completo }}<br>
+                            <strong>Fotos:</strong> {{ relatorio.fotos|length }} foto(s)<br>
+                            <strong>Criado em:</strong> {{ relatorio.created_at.strftime('%d/%m/%Y %H:%M') }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Funcionários Participantes -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-users"></i> Funcionários Participantes</h5>
+                </div>
+                <div class="card-body">
+                    <div id="funcionariosList">
+                        {% if relatorio.participantes %}
+                            {% for participante in relatorio.participantes %}
+                            <div class="participant-badge">
+                                <i class="fas fa-user"></i>
+                                <span>{{ participante.nome_completo }} ({{ participante.cargo }})</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">Nenhum funcionário participante selecionado.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <hr>
+                    
+                    <form id="addFuncionarioForm">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <select class="form-select" id="funcionarioSelect">
+                                    <option value="">Selecione um funcionário...</option>
+                                    {% for user in usuarios %}
+                                    <option value="{{ user.id }}">{{ user.nome_completo }} ({{ user.cargo }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-outline-primary w-100" onclick="addFuncionario()">
+                                    <i class="fas fa-plus"></i> Adicionar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Acompanhantes -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-user-friends"></i> Acompanhantes da Visita</h5>
+                </div>
+                <div class="card-body">
+                    <div id="acompanhantesList">
+                        {% if relatorio.acompanhantes %}
+                            {% for acomp in relatorio.acompanhantes %}
+                            <div class="acompanhante-item" data-index="{{ loop.index0 }}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ acomp.nome }}</strong><br>
+                                        <small class="text-muted">{{ acomp.cargo or '' }} - {{ acomp.empresa or '' }}</small>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeAcompanhante({{ loop.index0 }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted" id="noAcompanhantes">Nenhum acompanhante adicionado.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <hr>
+                    
+                    <form id="addAcompanhanteForm">
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="acompNome" placeholder="Nome do acompanhante">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="acompCargo" placeholder="Cargo">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="acompEmpresa" placeholder="Empresa">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-outline-primary w-100" onclick="addAcompanhante()">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lembrete Próxima Visita -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-bell"></i> Lembrete para Próxima Visita</h5>
+                </div>
+                <div class="card-body">
+                    <form id="lembreteForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Data e Hora do Lembrete</label>
+                                <input type="datetime-local" class="form-control" id="lembreteData" 
+                                       value="{{ relatorio.lembrete_proxima_visita.strftime('%Y-%m-%dT%H:%M') if relatorio.lembrete_proxima_visita else '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="button" class="btn btn-outline-success w-100" onclick="salvarLembrete()">
+                                    <i class="fas fa-save"></i> Salvar Lembrete
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar de Ações -->
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header">
+                    <h6><i class="fas fa-paper-plane"></i> Ações Finais</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-3">
+                        {% if relatorio.status == 'preenchimento' or relatorio.status == 'Rejeitado' %}
+                        <form action="{{ url_for('express_submit_for_approval', id=relatorio.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-paper-plane"></i> Enviar para Aprovação
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        {% if relatorio.status == 'Aprovado' %}
+                        <a href="{{ url_for('express_pdf', id=relatorio.id) }}" class="btn btn-danger btn-lg w-100">
+                            <i class="fas fa-file-pdf"></i> Baixar PDF
+                        </a>
+                        <a href="{{ url_for('express_enviar_email_page', id=relatorio.id) }}" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-envelope"></i> Enviar por E-mail
+                        </a>
+                        {% endif %}
+                        
+                        <hr>
+                        
+                        <a href="{{ url_for('express_detail', id=relatorio.id) }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-eye"></i> Visualizar Relatório
+                        </a>
+                        
+                        <a href="{{ url_for('express_edit', id=relatorio.id) }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-edit"></i> Continuar Editando
+                        </a>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6>ℹ️ Fluxo de Aprovação:</h6>
+                        <ol class="small">
+                            <li>Preencher relatório</li>
+                            <li>Enviar para aprovação</li>
+                            <li>Aprovador analisa</li>
+                            <li>Aprovado → Enviar por e-mail</li>
+                            <li>Rejeitado → Corrigir e reenviar</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let acompanhantes = {{ (relatorio.acompanhantes or [])|tojson }};
+
+function addFuncionario() {
+    const select = document.getElementById('funcionarioSelect');
+    const funcionarioId = select.value;
+    if (!funcionarioId) {
+        alert('Selecione um funcionário');
+        return;
+    }
+    
+    fetch('{{ url_for("express_add_funcionario", id=relatorio.id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ funcionario_id: parseInt(funcionarioId) })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Erro ao adicionar funcionário');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao adicionar funcionário');
+    });
+}
+
+function addAcompanhante() {
+    const nome = document.getElementById('acompNome').value.trim();
+    const cargo = document.getElementById('acompCargo').value.trim();
+    const empresa = document.getElementById('acompEmpresa').value.trim();
+    
+    if (!nome) {
+        alert('Informe o nome do acompanhante');
+        return;
+    }
+    
+    acompanhantes.push({ nome, cargo, empresa });
+    salvarAcompanhantes();
+}
+
+function removeAcompanhante(index) {
+    acompanhantes.splice(index, 1);
+    salvarAcompanhantes();
+}
+
+function salvarAcompanhantes() {
+    fetch('{{ url_for("express_update_acompanhantes", id=relatorio.id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ acompanhantes: acompanhantes })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Erro ao salvar acompanhantes');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao salvar acompanhantes');
+    });
+}
+
+function salvarLembrete() {
+    const lembreteData = document.getElementById('lembreteData').value;
+    
+    fetch('{{ url_for("express_update_lembrete", id=relatorio.id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ lembrete: lembreteData })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Lembrete salvo com sucesso!');
+        } else {
+            alert(data.error || 'Erro ao salvar lembrete');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao salvar lembrete');
+    });
+}
+</script>
+{% endblock %}

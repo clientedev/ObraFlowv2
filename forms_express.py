@@ -1,11 +1,11 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, MultipleFileField
-from wtforms import StringField, TextAreaField, SelectField, DateField, TimeField, FloatField, HiddenField, SelectMultipleField
+from wtforms import StringField, TextAreaField, SelectField, DateField, TimeField, FloatField, HiddenField, SelectMultipleField, DateTimeLocalField
 from wtforms.validators import DataRequired, Email, Optional, Length
 
 class RelatorioExpressForm(FlaskForm):
     """
-    Formulário para Relatório Express - replica exatamente o relatório padrão
+    Formulário para Relatório Express - estrutura idêntica ao relatório normal
     mas com dados da empresa ao invés de projeto
     """
     
@@ -60,26 +60,25 @@ class RelatorioExpressForm(FlaskForm):
     latitude = HiddenField()
     longitude = HiddenField()
     
-    # Observações e relatório (idênticos ao padrão)
+    # Observações e relatório
     observacoes_gerais = TextAreaField('Observações Gerais', 
                                      validators=[Optional()],
                                      render_kw={'rows': 4, 'placeholder': 'Observações gerais sobre a visita'})
     
-    pendencias = TextAreaField('Pendências', 
-                             validators=[Optional()],
-                             render_kw={'rows': 3, 'placeholder': 'Pendências identificadas'})
+    conteudo = TextAreaField('Conteúdo do Relatório', 
+                           validators=[Optional()],
+                           render_kw={'rows': 6, 'placeholder': 'Descrição detalhada da visita'})
     
-    recomendacoes = TextAreaField('Recomendações', 
-                                validators=[Optional()],
-                                render_kw={'rows': 3, 'placeholder': 'Recomendações técnicas'})
+    # Lembrete para próxima visita
+    lembrete_proxima_visita = DateTimeLocalField('Lembrete para Próxima Visita', validators=[Optional()])
     
-    # Checklist (campo oculto para armazenar dados JSON)
-    checklist_completo = HiddenField('Checklist Completo')
-    
-    # Participantes da visita
+    # Participantes da visita (funcionários)
     participantes = SelectMultipleField('Funcionários Participantes', coerce=int, validators=[Optional()])
     
-    # Upload de fotos (idêntico ao padrão)
+    # Acompanhantes (campo oculto para armazenar dados JSON)
+    acompanhantes_data = HiddenField('Acompanhantes')
+    
+    # Upload de fotos
     fotos = MultipleFileField('Fotos', 
                              validators=[FileAllowed(['jpg', 'jpeg', 'png'], 'Apenas imagens JPG e PNG são permitidas.')],
                              render_kw={'accept': 'image/*', 'multiple': True})

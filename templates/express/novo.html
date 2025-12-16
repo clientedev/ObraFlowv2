@@ -607,47 +607,28 @@ input, textarea, select {
                 </div>
                 </div>
 
-                <!-- CHECKLIST PADRÃO -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5><i class="fas fa-tasks"></i> Checklist de Verificação</h5>
-                    </div>
-                    <div class="card-body">
+                <!-- Campo oculto para configurações das fotos -->
+                <input type="hidden" id="fotoConfiguracoes" name="foto_configuracoes">
+                
+                <!-- Campo oculto para fotos existentes (apenas metadados) -->
+                <input type="hidden" id="fotosExistentesData" name="fotos_existentes_data">
+                
+                <!-- Campo oculto para acompanhantes -->
+                <input type="hidden" id="acompanhantesData" name="acompanhantes_data">
 
-                        <div id="checklistContainer">
-                            <div class="text-center text-muted">
-                                <i class="fas fa-spinner fa-spin"></i> Carregando checklist padrão...
-                            </div>
-                        </div>
-
-                        <!-- Campo oculto para armazenar dados do checklist -->
-                        <input type="hidden" id="checklistData" name="checklist_completo">
-
-                        <!-- Campo oculto para configurações das fotos -->
-                        <input type="hidden" id="fotoConfiguracoes" name="foto_configuracoes">
-                        
-                        <!-- Campo oculto para fotos existentes (apenas metadados) -->
-                        <input type="hidden" id="fotosExistentesData" name="fotos_existentes_data">
-                    </div>
-                </div>
-
-                <!-- OBSERVAÇÕES E RELATÓRIO -->
+                <!-- CONTEÚDO DO RELATÓRIO -->
                 <div class="card mb-4">
                     <div class="card-header">
                         <h5><i class="fas fa-clipboard-list"></i> Relatório da Visita</h5>
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
+                            {{ form.conteudo.label(class="form-label") }}
+                            {{ form.conteudo(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
                             {{ form.observacoes_gerais.label(class="form-label") }}
                             {{ form.observacoes_gerais(class="form-control") }}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.pendencias.label(class="form-label") }}
-                            {{ form.pendencias(class="form-control") }}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.recomendacoes.label(class="form-label") }}
-                            {{ form.recomendacoes(class="form-control") }}
                         </div>
                     </div>
                 </div>
@@ -656,38 +637,29 @@ input, textarea, select {
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5><i class="fas fa-camera"></i> Fotos <span class="badge bg-info ms-2" id="photoCount">(0/200 fotos)</span></h5>
-                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="resetPhotoCategories()">
-                            <i class="fas fa-undo"></i> Limpar Seleção
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="resetPhotoCategories()">
+                            <i class="fas fa-trash"></i> Limpar Todas
                         </button>
                     </div>
                     <div class="card-body">
-                        <!-- Campo de Categoria (Opcional) - Campo de texto livre -->
-                        <div class="mb-3">
-                            <label class="form-label"><strong>Categoria (Opcional):</strong> Você pode selecionar uma categoria para organizar suas fotos, ou deixar em branco:</label>
-                            <input type="text" class="form-control" id="photoCategory" placeholder="Digite a categoria (ex: Fundação, Estrutura, Acabamento...)" maxlength="100">
-                            <small class="form-text text-muted">Campo opcional. Digite manualmente a categoria desejada.</small>
-                        </div>
-
-                        <!-- Upload de Fotos -->
-                        <div class="mb-3">
-                            <label class="form-label">Fotos</label>
-                            <div class="d-flex gap-2 mb-2">
-                                <button type="button" class="btn btn-outline-primary" onclick="selectFromGallery()">
-                                    <i class="fas fa-images"></i> Galeria
-                                </button>
-                                <button type="button" class="btn btn-outline-success" onclick="captureFromCamera()">
-                                    <i class="fas fa-camera"></i> Câmera
-                                </button>
-                            </div>
-                            <input type="file" id="photoInput" class="form-control" multiple accept="image/*" style="display: none;" onchange="handlePhotoUpload(this)">
-                            <input type="file" id="cameraInput" class="form-control" accept="image/*" capture="environment" style="display: none;" onchange="handleCameraCapture(this)">
-                            <small class="form-text text-muted">
-                                Adicione fotos ao seu relatório. A categoria é opcional. Máximo 200 fotos - Limite total: 3GB.
-                            </small>
-                        </div>
-
                         <!-- Preview das Fotos Selecionadas -->
-                        <div id="selectedPhotosPreview" class="mt-4"></div>
+                        <div id="selectedPhotosPreview" class="mb-3"></div>
+
+                        <!-- Botões de adicionar fotos (abaixo da primeira foto) -->
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="button" class="btn btn-success btn-lg flex-fill" onclick="captureFromCamera()">
+                                <i class="fas fa-camera"></i> Adicionar da câmera
+                            </button>
+                            <button type="button" class="btn btn-primary btn-lg flex-fill" onclick="selectFromGallery()">
+                                <i class="fas fa-images"></i> Adicionar da galeria
+                            </button>
+                        </div>
+                        
+                        <input type="file" id="photoInput" class="form-control" multiple accept="image/*" style="display: none;" onchange="handlePhotoUpload(this)">
+                        <input type="file" id="cameraInput" class="form-control" accept="image/*" capture="environment" style="display: none;" onchange="handleCameraCapture(this)">
+                        <small class="form-text text-muted">
+                            Adicione fotos ao seu relatório. Máximo 200 fotos - Limite total: 3GB.
+                        </small>
 
                         <!-- Lista de Fotos Configuradas -->
                         <div id="configuredPhotosList" class="mt-4"></div>
@@ -706,8 +678,8 @@ input, textarea, select {
                             <button type="submit" name="action" value="save_draft" class="btn btn-outline-primary">
                                 <i class="fas fa-save"></i> Salvar Rascunho
                             </button>
-                            <button type="submit" name="action" value="finalize" class="btn btn-success">
-                                <i class="fas fa-check"></i> Finalizar Relatório
+                            <button type="submit" name="action" value="continue_to_actions" class="btn btn-success btn-lg">
+                                <i class="fas fa-arrow-right"></i> Continuar
                             </button>
                             <hr>
                             <a href="{{ url_for('express_list') }}" class="btn btn-secondary">
@@ -719,7 +691,7 @@ input, textarea, select {
                             <h6>ℹ️ Informações:</h6>
                             <ul class="list-unstyled small">
                                 <li>• <strong>Rascunho:</strong> Pode ser editado</li>
-                                <li>• <strong>Finalizado:</strong> Gera PDF automaticamente</li>
+                                <li>• <strong>Continuar:</strong> Abre página de ações</li>
                                 <li>• Use fotos de qualidade para melhor resultado</li>
                             </ul>
                         </div>
