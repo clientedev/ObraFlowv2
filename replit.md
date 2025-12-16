@@ -2,6 +2,17 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, autosave functionality with real-time synchronization, and a comprehensive notification system. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes
+**December 16, 2025** - Express Report (Relatório Express) Feature:
+- Implemented new independent report type that doesn't require pre-registered projects
+- Express Reports include inline project/obra fields: nome, endereço, tipo, construtora, responsável, email, telefone
+- Same status flow as Common Report: Em preenchimento → Aguardando Aprovação → Aprovado/Rejeitado
+- New database models: RelatorioExpress and FotoRelatorioExpress in models.py
+- New routes in routes_express.py with complete CRUD operations (create, read, update, delete)
+- Templates: express_form.html, express_list.html, express_view.html
+- Navigation menu updated with "Relatório Express" and "Listar Express" links
+- Support for checklist, photos, acompanhantes, and all standard report fields
+- Full approval workflow with approve/reject actions and comments
+
 **December 16, 2025** - PDF Report Generation Adjustments:
 - Increased logo size in PDF header from 150x55px to 200x75px
 - Fixed date/time display to use report creation date (data_relatorio) instead of PDF generation time

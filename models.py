@@ -664,3 +664,100 @@ class Notificacao(db.Model):
     
     def __repr__(self):
         return f'<Notificacao {self.tipo} - ID {self.id}>'
+
+
+class RelatorioExpress(db.Model):
+    """
+    Relatório Express - Relatório independente criado junto com os dados da obra
+    Clone completo do Relatório Comum, porém sem dependência de Projeto existente
+    """
+    __tablename__ = 'relatorios_express'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    numero = db.Column(db.String(20), nullable=False, unique=True)
+    
+    # Dados da Obra (inline - não depende de projeto existente)
+    obra_nome = db.Column(db.String(200), nullable=False)
+    obra_endereco = db.Column(db.Text, nullable=True)
+    obra_tipo = db.Column(db.String(100), nullable=True)
+    obra_construtora = db.Column(db.String(200), nullable=True)
+    obra_responsavel = db.Column(db.String(200), nullable=True)
+    obra_email = db.Column(db.String(255), nullable=True)
+    obra_telefone = db.Column(db.String(50), nullable=True)
+    
+    # Dados do Relatório (idênticos ao Relatório Comum)
+    titulo = db.Column(db.String(300), nullable=False, default='Relatório Express de Visita')
+    autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    aprovador_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    data_relatorio = db.Column(db.DateTime, default=datetime.utcnow)
+    data_aprovacao = db.Column(db.DateTime, nullable=True)
+    conteudo = db.Column(db.Text)
+    descricao = db.Column(db.Text, nullable=True)
+    checklist_data = db.Column(db.Text)  # JSON string for checklist data
+    
+    # Campos de metadados (idênticos ao Relatório Comum)
+    categoria = db.Column(db.String(100), nullable=True)
+    local = db.Column(db.String(255), nullable=True)
+    lembrete_proxima_visita = db.Column(db.DateTime, nullable=True)
+    observacoes_finais = db.Column(db.Text, nullable=True)
+    
+    # Status - EXATAMENTE iguais ao Relatório Comum
+    # Em preenchimento → Aguardando Aprovação → Aprovado / Rejeitado
+    status = db.Column(db.String(50), default='Em preenchimento')
+    comentario_aprovacao = db.Column(db.Text)
+    
+    # Funcionários/Acompanhantes
+    acompanhantes = db.Column(JSONB, nullable=True)
+    
+    # Auditoria
+    criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    atualizado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relacionamentos
+    autor = db.relationship('User', foreign_keys=[autor_id], backref='relatorios_express_criados', lazy='select')
+    aprovador = db.relationship('User', foreign_keys=[aprovador_id], backref='relatorios_express_aprovados', lazy='select')
+    
+    def __repr__(self):
+        return f'<RelatorioExpress {self.numero}>'
+
+
+class FotoRelatorioExpress(db.Model):
+    """
+    Fotos do Relatório Express - Idêntico ao FotoRelatorio
+    """
+    __tablename__ = 'fotos_relatorio_express'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    relatorio_express_id = db.Column(db.Integer, db.ForeignKey('relatorios_express.id', ondelete='CASCADE'), nullable=False)
+    
+    # Campos de URL e filesystem
+    url = db.Column(db.Text, nullable=True)
+    filename = db.Column(db.String(255), nullable=True)
+    filename_original = db.Column(db.String(255))
+    filename_anotada = db.Column(db.String(255))
+    
+    # Metadados da foto
+    titulo = db.Column(db.String(500))
+    legenda = db.Column(db.Text, nullable=True)
+    descricao = db.Column(db.Text)
+    tipo_servico = db.Column(db.String(100))
+    local = db.Column(db.String(300))
+    anotacoes_dados = db.Column(db.JSON)
+    ordem = db.Column(db.Integer, default=0)
+    coordenadas_anotacao = db.Column(db.JSON)
+    
+    # Armazenamento binário (legacy)
+    imagem = db.Column(db.LargeBinary, nullable=True)
+    imagem_hash = db.Column(db.String(64), nullable=True)
+    content_type = db.Column(db.String(100), nullable=True)
+    imagem_size = db.Column(db.Integer, nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relacionamento
+    relatorio_express = db.relationship('RelatorioExpress', backref=db.backref('imagens', lazy='dynamic', order_by='FotoRelatorioExpress.ordem', cascade='all, delete-orphan'))
+    
+    def __repr__(self):
+        return f'<FotoRelatorioExpress {self.id} - Relatório {self.relatorio_express_id}>'

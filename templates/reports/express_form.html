@@ -1,0 +1,1017 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório Express{% endblock %}
+
+{% block head %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.checklist-item {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #ffc107;
+}
+
+.checklist-item.completed {
+    border-left-color: #28a745;
+    background-color: #d4edda;
+}
+
+.photo-preview {
+    max-width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.photo-category {
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.photo-category.selected {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+}
+
+.photo-category:hover {
+    border-color: #007bff;
+}
+
+@media (max-width: 768px) {
+    .photo-category {
+        min-height: 60px;
+        min-width: 60px;
+        touch-action: auto !important;
+        -webkit-user-select: none;
+        user-select: none;
+        cursor: pointer;
+        pointer-events: auto !important;
+        transition: all 0.15s ease;
+    }
+
+    .photo-category.touching {
+        transform: scale(0.95);
+        background-color: rgba(0, 123, 255, 0.1);
+        border-color: #007bff;
+    }
+
+    input[type="text"],
+    input[type="date"], 
+    input[type="file"],
+    input[type="email"],
+    input[type="tel"],
+    textarea,
+    select,
+    .form-control {
+        touch-action: auto !important;
+        -webkit-user-select: auto;
+        user-select: auto;
+    }
+
+    .container-fluid,
+    .row,
+    .card-body,
+    body,
+    html {
+        touch-action: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        overflow: auto !important;
+    }
+
+    #data_relatorio {
+        font-size: 16px;
+        font-weight: 400;
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        box-shadow: none;
+    }
+}
+
+.mobile-photo-btn {
+    border-radius: 12px !important;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.mobile-photo-btn:hover, .mobile-photo-btn:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.mobile-photo-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.mobile-photo-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+.photo-card-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    background: #f8f9fa;
+}
+
+.photo-card-content {
+    padding: 16px;
+}
+
+.caption-input {
+    width: 100%;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 16px;
+    margin-bottom: 12px;
+    min-height: 48px;
+    transition: all 0.3s ease;
+}
+
+.caption-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+}
+
+.caption-select {
+    width: 100%;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 16px;
+    margin-bottom: 12px;
+    min-height: 48px;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.caption-select:focus {
+    outline: none;
+    border-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40,167,69,0.1);
+}
+
+.photo-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.photo-card-btn {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    min-height: 42px;
+    border: 2px solid;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.photo-card-btn.edit {
+    background: white;
+    color: #007bff;
+    border-color: #007bff;
+}
+
+.photo-card-btn.edit:hover {
+    background: #007bff;
+    color: white;
+}
+
+.photo-card-btn.delete {
+    background: white;
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.photo-card-btn.delete:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.category-badge {
+    display: inline-block;
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.photo-count-badge {
+    background: #28a745;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.caption-status {
+    font-size: 12px;
+    margin-top: 8px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.caption-status.complete {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.caption-status.pending {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.fixed-photo-buttons {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+    .mobile-photo-card {
+        margin-bottom: 20px;
+    }
+
+    .photo-card-image {
+        height: 160px;
+    }
+
+    .photo-card-content {
+        padding: 12px;
+    }
+
+    .caption-input, .caption-select {
+        font-size: 16px !important;
+    }
+}
+
+.obra-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+}
+
+.obra-section .form-label {
+    color: white;
+    font-weight: 600;
+}
+
+.obra-section .form-control {
+    background: rgba(255,255,255,0.95);
+    border: none;
+    border-radius: 8px;
+}
+
+.obra-section .form-control:focus {
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<script>
+  const REPORT_DATA = {{ report_data | tojson | safe }};
+  const EDIT_MODE = {{ edit_mode | tojson | safe }};
+  console.log("📝 Dados carregados para Relatório Express:", REPORT_DATA);
+</script>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3><i class="fas fa-bolt text-warning"></i> Relatório Express</h3>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge bg-warning" id="status-badge">
+                                <i class="fas fa-edit me-1"></i>Em preenchimento
+                            </span>
+                            <div id="autosave-status"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{% if existing_report %}{{ url_for('update_express_report', report_id=existing_report.id) }}{% else %}{{ url_for('create_express_report') }}{% endif %}" enctype="multipart/form-data" id="expressReportForm" {% if existing_report %}data-report-id="{{ existing_report.id }}"{% endif %}>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        {% if existing_report %}
+                        <input type="hidden" name="edit_report_id" value="{{ existing_report.id }}">
+                        {% endif %}
+
+                        <div class="obra-section">
+                            <h5 class="mb-3"><i class="fas fa-building me-2"></i>Dados da Obra</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="obra_nome">Nome da Obra *</label>
+                                    <input type="text" name="obra_nome" id="obra_nome" class="form-control" 
+                                           value="{% if existing_report %}{{ existing_report.obra_nome }}{% endif %}" 
+                                           placeholder="Ex: Edifício Residencial Aurora" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="obra_construtora">Construtora</label>
+                                    <input type="text" name="obra_construtora" id="obra_construtora" class="form-control" 
+                                           value="{% if existing_report %}{{ existing_report.obra_construtora }}{% endif %}"
+                                           placeholder="Nome da construtora">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label" for="obra_endereco">Endereço da Obra</label>
+                                    <input type="text" name="obra_endereco" id="obra_endereco" class="form-control" 
+                                           value="{% if existing_report %}{{ existing_report.obra_endereco }}{% endif %}"
+                                           placeholder="Rua, número, bairro, cidade">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label" for="obra_tipo">Tipo de Obra</label>
+                                    <select name="obra_tipo" id="obra_tipo" class="form-control">
+                                        <option value="">Selecione...</option>
+                                        <option value="Residencial" {% if existing_report and existing_report.obra_tipo == 'Residencial' %}selected{% endif %}>Residencial</option>
+                                        <option value="Comercial" {% if existing_report and existing_report.obra_tipo == 'Comercial' %}selected{% endif %}>Comercial</option>
+                                        <option value="Industrial" {% if existing_report and existing_report.obra_tipo == 'Industrial' %}selected{% endif %}>Industrial</option>
+                                        <option value="Mista" {% if existing_report and existing_report.obra_tipo == 'Mista' %}selected{% endif %}>Mista</option>
+                                        <option value="Reforma" {% if existing_report and existing_report.obra_tipo == 'Reforma' %}selected{% endif %}>Reforma</option>
+                                        <option value="Infraestrutura" {% if existing_report and existing_report.obra_tipo == 'Infraestrutura' %}selected{% endif %}>Infraestrutura</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label" for="obra_responsavel">Responsável</label>
+                                    <input type="text" name="obra_responsavel" id="obra_responsavel" class="form-control" 
+                                           value="{% if existing_report %}{{ existing_report.obra_responsavel }}{% endif %}"
+                                           placeholder="Nome do responsável">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label" for="obra_telefone">Telefone</label>
+                                    <input type="tel" name="obra_telefone" id="obra_telefone" class="form-control" 
+                                           value="{% if existing_report %}{{ existing_report.obra_telefone }}{% endif %}"
+                                           placeholder="(00) 00000-0000">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="obra_email">E-mail de Contato</label>
+                                    <input type="email" name="obra_email" id="obra_email" class="form-control" 
+                                           value="{% if existing_report %}{{ existing_report.obra_email }}{% endif %}"
+                                           placeholder="email@empresa.com">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="data_relatorio">
+                                Data do Relatório *
+                            </label>
+                            <input type="date" name="data_relatorio" id="data_relatorio" class="form-control" value="{{ today }}" required>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label" for="titulo">Título do Relatório *</label>
+                                    <input type="text" name="titulo" id="titulo" class="form-control" 
+                                           value="{% if existing_report %}{{ existing_report.titulo }}{% else %}Relatório Express de Visita{% endif %}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label" for="numero">
+                                        Número do Relatório
+                                        <i class="fas fa-info-circle text-info ms-1" data-bs-toggle="tooltip" 
+                                           title="O número é gerado automaticamente"></i>
+                                    </label>
+                                    {% if existing_report %}
+                                        <input type="text" name="numero" id="numero" class="form-control" 
+                                               value="{{ existing_report.numero }}" readonly>
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-lock me-1"></i>O número não pode ser alterado após a criação
+                                        </small>
+                                    {% else %}
+                                        <input type="text" name="numero" id="numero" class="form-control" 
+                                               value="{{ next_numero }}" placeholder="EXP-0001">
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-pencil-alt me-1"></i>Número pré-preenchido automaticamente
+                                        </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-user-friends me-2"></i>Funcionários da Visita
+                                        </h6>
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="abrirModalAcompanhantesExpress()">
+                                            <i class="fas fa-plus me-1"></i>Adicionar
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="lista-acompanhantes">
+                                            <p class="text-muted text-center py-3">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Nenhum funcionário adicionado ainda.
+                                            </p>
+                                        </div>
+                                        <input type="hidden" id="acompanhantes-data" name="acompanhantes" value="[]">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h5><i class="fas fa-tasks"></i> Checklist da Obra</h5>
+                            <div id="checklistItems">
+                                <div class="checklist-item mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="estrutura">
+                                        <label class="form-check-label fw-bold" for="estrutura">
+                                            Estrutura / Fundação
+                                        </label>
+                                    </div>
+                                    <textarea class="form-control mt-2" name="obs_estrutura" placeholder="Observações sobre estrutura..."></textarea>
+                                </div>
+
+                                <div class="checklist-item mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="alvenaria">
+                                        <label class="form-check-label fw-bold" for="alvenaria">
+                                            Alvenaria / Vedação
+                                        </label>
+                                    </div>
+                                    <textarea class="form-control mt-2" name="obs_alvenaria" placeholder="Observações sobre alvenaria..."></textarea>
+                                </div>
+
+                                <div class="checklist-item mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="instalacoes">
+                                        <label class="form-check-label fw-bold" for="instalacoes">
+                                            Instalações (Elétrica/Hidráulica)
+                                        </label>
+                                    </div>
+                                    <textarea class="form-control mt-2" name="obs_instalacoes" placeholder="Observações sobre instalações..."></textarea>
+                                </div>
+
+                                <div class="checklist-item mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="acabamento">
+                                        <label class="form-check-label fw-bold" for="acabamento">
+                                            Acabamentos
+                                        </label>
+                                    </div>
+                                    <textarea class="form-control mt-2" name="obs_acabamento" placeholder="Observações sobre acabamentos..."></textarea>
+                                </div>
+
+                                <div class="checklist-item mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="limpeza">
+                                        <label class="form-check-label fw-bold" for="limpeza">
+                                            Limpeza / Organização
+                                        </label>
+                                    </div>
+                                    <textarea class="form-control mt-2" name="obs_limpeza" placeholder="Observações sobre limpeza..."></textarea>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-3">
+                                <button type="button" class="btn btn-outline-primary" onclick="addCustomChecklistItem()">
+                                    <i class="fas fa-plus"></i> Adicionar Item Personalizado
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label" for="conteudo">Observações Gerais</label>
+                            <textarea class="form-control" name="conteudo" id="conteudo" rows="4" 
+                                    placeholder="Descreva detalhes gerais da visita, pontos importantes, etc."></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label" for="lembrete_proxima_visita">
+                                <i class="fas fa-bell me-2"></i>Lembrete para Próxima Visita (Opcional)
+                            </label>
+                            <textarea class="form-control" name="lembrete_proxima_visita" id="lembrete_proxima_visita" rows="3" 
+                                    placeholder="Deixe um lembrete ou ponto de atenção para a próxima visita..."></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <h5><i class="fas fa-camera"></i> Fotos (Até 200 fotos) <span id="photoCount" class="badge bg-primary ms-2">0</span></h5>
+
+                            <div class="fixed-photo-buttons sticky-top bg-white p-3 mb-3 border rounded" style="z-index: 10;">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button type="button" class="btn btn-outline-primary w-100 mobile-photo-btn" 
+                                                id="mobileCameraBtn" onclick="mobileCaptureFromCamera()" style="min-height: 56px;">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-camera fa-lg mb-1"></i>
+                                                <small>Câmera</small>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button type="button" class="btn btn-outline-success w-100 mobile-photo-btn" 
+                                                id="mobileGalleryBtn" onclick="mobileSelectFromGallery()" style="min-height: 56px;">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-images fa-lg mb-1"></i>
+                                                <small>Galeria</small>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <input type="file" id="mobilePhotoInput" class="form-control" multiple accept="image/*" style="display: none;">
+                                <input type="file" id="mobileCameraInput" class="form-control" accept="image/*" capture="environment" style="display: none;">
+                                <div class="text-center mt-2">
+                                    <small class="text-muted"><strong>Máximo 200 fotos - Limite total: 3GB</strong></small>
+                                </div>
+                            </div>
+
+                            <div id="mobilePhotoCards" class="row g-3"></div>
+
+                            <div id="quickPhotoActions" class="text-center mt-3 p-3 bg-light rounded" style="display: none;">
+                                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                    <button type="button" class="btn btn-success" onclick="mobileCaptureFromCamera()" style="min-height: 48px; border-radius: 24px;">
+                                        <i class="fas fa-camera me-2"></i>Adicionar da Câmera
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success" onclick="mobileSelectFromGallery()" style="min-height: 48px; border-radius: 24px;">
+                                        <i class="fas fa-images me-2"></i>Adicionar da Galeria
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mt-2">Total: <span id="quickPhotoCount">0</span> fotos (máximo 200)</small>
+                            </div>
+
+                            <div id="photoPreview" class="row" style="display: none;"></div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('express_reports_list') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <div class="btn-group">
+                                <button type="submit" name="action" value="save_draft" class="btn btn-outline-primary">
+                                    <i class="fas fa-save"></i> Salvar Rascunho
+                                </button>
+                                <button type="submit" name="action" value="submit_approval" class="btn btn-success">
+                                    <i class="fas fa-paper-plane"></i> Enviar para Aprovação
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="acompanhantesExpressModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Adicionar Funcionário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nome *</label>
+                    <input type="text" id="acomp_nome" class="form-control" placeholder="Nome completo">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Cargo/Função</label>
+                    <input type="text" id="acomp_cargo" class="form-control" placeholder="Ex: Engenheiro, Mestre de Obras">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Empresa</label>
+                    <input type="text" id="acomp_empresa" class="form-control" placeholder="Nome da empresa">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="adicionarAcompanhanteExpress()">Adicionar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="photoEditorModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editor de Foto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-9">
+                        <div style="overflow: auto; max-height: 500px;">
+                            <canvas id="photoCanvas" style="border: 1px solid #ddd; cursor: crosshair;"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <h6>Ferramentas</h6>
+                        <div class="btn-group-vertical w-100 mb-3">
+                            <button type="button" class="btn btn-outline-primary tool-btn" data-tool="pen">
+                                <i class="fas fa-pen"></i> Caneta
+                            </button>
+                            <button type="button" class="btn btn-outline-primary tool-btn" data-tool="arrow">
+                                <i class="fas fa-arrow-right"></i> Seta
+                            </button>
+                            <button type="button" class="btn btn-outline-primary tool-btn" data-tool="rectangle">
+                                <i class="fas fa-square"></i> Retângulo
+                            </button>
+                            <button type="button" class="btn btn-outline-primary tool-btn" data-tool="circle">
+                                <i class="fas fa-circle"></i> Círculo
+                            </button>
+                            <button type="button" class="btn btn-outline-primary tool-btn" data-tool="text">
+                                <i class="fas fa-font"></i> Texto
+                            </button>
+                        </div>
+
+                        <h6>Cores</h6>
+                        <div class="mb-3">
+                            <input type="color" id="colorPicker" value="#ff0000" class="form-control">
+                        </div>
+
+                        <h6>Espessura</h6>
+                        <div class="mb-3">
+                            <input type="range" id="lineWidth" min="1" max="10" value="3" class="form-range">
+                        </div>
+
+                        <button type="button" class="btn btn-warning w-100 mb-2" onclick="clearCanvas()">
+                            <i class="fas fa-eraser"></i> Limpar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveEditedPhoto()">Salvar Edição</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedPhotos = [];
+let currentEditingPhoto = null;
+let canvas, ctx;
+let isDrawing = false;
+let currentTool = 'pen';
+let startX, startY;
+let acompanhantesExpress = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    canvas = document.getElementById('photoCanvas');
+    if (canvas) {
+        ctx = canvas.getContext('2d');
+    }
+
+    const mobilePhotoInput = document.getElementById('mobilePhotoInput');
+    const mobileCameraInput = document.getElementById('mobileCameraInput');
+
+    if (mobilePhotoInput) {
+        mobilePhotoInput.addEventListener('change', handlePhotoUpload);
+    }
+
+    if (mobileCameraInput) {
+        mobileCameraInput.addEventListener('change', handlePhotoUpload);
+    }
+
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentTool = this.dataset.tool;
+        });
+    });
+
+    if (REPORT_DATA && REPORT_DATA.acompanhantes) {
+        try {
+            acompanhantesExpress = typeof REPORT_DATA.acompanhantes === 'string' 
+                ? JSON.parse(REPORT_DATA.acompanhantes) 
+                : REPORT_DATA.acompanhantes;
+            renderAcompanhantesExpress();
+        } catch (e) {
+            console.error('Erro ao carregar acompanhantes:', e);
+        }
+    }
+});
+
+function abrirModalAcompanhantesExpress() {
+    document.getElementById('acomp_nome').value = '';
+    document.getElementById('acomp_cargo').value = '';
+    document.getElementById('acomp_empresa').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('acompanhantesExpressModal'));
+    modal.show();
+}
+
+function adicionarAcompanhanteExpress() {
+    const nome = document.getElementById('acomp_nome').value.trim();
+    const cargo = document.getElementById('acomp_cargo').value.trim();
+    const empresa = document.getElementById('acomp_empresa').value.trim();
+
+    if (!nome) {
+        alert('Por favor, informe o nome do funcionário.');
+        return;
+    }
+
+    acompanhantesExpress.push({
+        id: Date.now(),
+        nome: nome,
+        cargo: cargo,
+        empresa: empresa
+    });
+
+    renderAcompanhantesExpress();
+    bootstrap.Modal.getInstance(document.getElementById('acompanhantesExpressModal')).hide();
+}
+
+function renderAcompanhantesExpress() {
+    const container = document.getElementById('lista-acompanhantes');
+    const hiddenInput = document.getElementById('acompanhantes-data');
+
+    if (acompanhantesExpress.length === 0) {
+        container.innerHTML = `
+            <p class="text-muted text-center py-3">
+                <i class="fas fa-info-circle me-1"></i>
+                Nenhum funcionário adicionado ainda.
+            </p>
+        `;
+    } else {
+        container.innerHTML = acompanhantesExpress.map((acomp, index) => `
+            <div class="d-flex justify-content-between align-items-center p-2 border rounded mb-2">
+                <div>
+                    <strong>${acomp.nome}</strong>
+                    ${acomp.cargo ? `<small class="text-muted"> - ${acomp.cargo}</small>` : ''}
+                    ${acomp.empresa ? `<small class="text-muted"> (${acomp.empresa})</small>` : ''}
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerAcompanhanteExpress(${index})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+
+    hiddenInput.value = JSON.stringify(acompanhantesExpress);
+}
+
+function removerAcompanhanteExpress(index) {
+    acompanhantesExpress.splice(index, 1);
+    renderAcompanhantesExpress();
+}
+
+function mobileCaptureFromCamera() {
+    const input = document.getElementById('mobileCameraInput');
+    if (input) input.click();
+}
+
+function mobileSelectFromGallery() {
+    const input = document.getElementById('mobilePhotoInput');
+    if (input) input.click();
+}
+
+function handlePhotoUpload(event) {
+    const files = event.target.files;
+    if (files.length + selectedPhotos.length > 200) {
+        alert('Máximo de 200 fotos permitido.');
+        return;
+    }
+
+    for (let file of files) {
+        if (selectedPhotos.length >= 200) break;
+        addPhotoPreview(file, '');
+    }
+
+    event.target.value = '';
+    updatePhotoCount();
+}
+
+function addPhotoPreview(file, category) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        const src = e.target.result;
+
+        const cardsContainer = document.getElementById('mobilePhotoCards');
+        const photoDiv = document.createElement('div');
+        photoDiv.className = 'col-md-4 col-6';
+        photoDiv.id = photoId;
+        photoDiv.setAttribute('data-photo-id', photoId);
+        photoDiv.innerHTML = `
+            <div class="mobile-photo-card">
+                <img src="${src}" class="photo-card-image" alt="Preview">
+                <div class="photo-card-content">
+                    <select class="caption-select" id="legenda_${photoId}" name="photo_caption_${photoId}">
+                        <option value="">Selecione uma legenda...</option>
+                    </select>
+                    <div class="photo-card-actions">
+                        <button type="button" class="photo-card-btn edit" onclick="openPhotoEditor('${photoId}')">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button type="button" class="photo-card-btn delete" onclick="removePhoto('${photoId}')">
+                            <i class="fas fa-trash"></i> Excluir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        cardsContainer.appendChild(photoDiv);
+
+        selectedPhotos.push({
+            id: photoId,
+            file: file,
+            category: category,
+            element: photoDiv,
+            originalSrc: src,
+            previewUrl: src,
+            name: file.name,
+            filename: file.name,
+            isExisting: false,
+            savedId: null,
+            metadata: {
+                legenda: '',
+                categoria: category,
+                local: ''
+            }
+        });
+
+        loadPredefinedCaptionsForPhoto(photoId, category);
+        updatePhotoCount();
+        
+        document.getElementById('quickPhotoActions').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removePhoto(photoId) {
+    const element = document.getElementById(photoId);
+    if (element) {
+        element.remove();
+    }
+    selectedPhotos = selectedPhotos.filter(p => p.id !== photoId);
+    updatePhotoCount();
+    
+    if (selectedPhotos.length === 0) {
+        document.getElementById('quickPhotoActions').style.display = 'none';
+    }
+}
+
+function updatePhotoCount() {
+    const count = selectedPhotos.length;
+    document.getElementById('photoCount').textContent = count;
+    const quickCount = document.getElementById('quickPhotoCount');
+    if (quickCount) quickCount.textContent = count;
+}
+
+function loadPredefinedCaptionsForPhoto(photoId, category) {
+    const select = document.getElementById(`legenda_${photoId}`);
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Carregando legendas...</option>';
+
+    fetch('/api/legendas?categoria=all')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.legendas && data.legendas.length > 0) {
+                select.innerHTML = '<option value="">Selecione uma legenda...</option>';
+
+                const cats = {
+                    'Acabamentos': [],
+                    'Estrutural': [],
+                    'Geral': [],
+                    'Segurança': []
+                };
+
+                data.legendas.forEach(leg => {
+                    if (cats[leg.categoria]) {
+                        cats[leg.categoria].push(leg);
+                    }
+                });
+
+                Object.keys(cats).forEach(cat => {
+                    if (cats[cat].length > 0) {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = cat + ' (' + cats[cat].length + ' itens)';
+
+                        cats[cat].forEach(legenda => {
+                            const option = document.createElement('option');
+                            option.value = legenda.texto;
+                            option.textContent = legenda.texto;
+                            optgroup.appendChild(option);
+                        });
+
+                        select.appendChild(optgroup);
+                    }
+                });
+            } else {
+                select.innerHTML = '<option value="">Nenhuma legenda disponível</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar legendas:', error);
+            select.innerHTML = '<option value="">Erro ao carregar legendas</option>';
+        });
+}
+
+function addCustomChecklistItem() {
+    const checklistItems = document.getElementById('checklistItems');
+    const itemId = 'custom_' + Date.now();
+
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'checklist-item mb-3';
+    itemDiv.innerHTML = `
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="${itemId}">
+            <input type="text" class="form-control d-inline-block fw-bold" style="width: 70%;" 
+                   name="custom_item_${itemId}" placeholder="Digite o item do checklist..." required>
+            <button type="button" class="btn btn-sm btn-outline-danger float-end" 
+                    onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <textarea class="form-control mt-2" name="custom_obs_${itemId}" placeholder="Observações..." rows="2"></textarea>
+    `;
+
+    checklistItems.appendChild(itemDiv);
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('form-check-input') && e.target.type === 'checkbox') {
+        const item = e.target.closest('.checklist-item');
+        if (item) {
+            if (e.target.checked) {
+                item.classList.add('completed');
+            } else {
+                item.classList.remove('completed');
+            }
+        }
+    }
+});
+
+function openPhotoEditor(photoId) {
+    const card = document.querySelector(`[data-photo-id="${photoId}"]`);
+    if (!card) return;
+
+    const img = card.querySelector('img');
+    if (!img || !img.src) return;
+
+    if (window.fabricPhotoEditorModal) {
+        const saveCallback = async (data) => {
+            img.src = data.imageData;
+            img.dataset.edited = 'true';
+            img.dataset.legend = data.legend;
+            card.classList.add('edited');
+        };
+        window.fabricPhotoEditorModal.openEditor(img.src, photoId, saveCallback);
+    } else {
+        alert('Editor de fotos não disponível. Recarregue a página.');
+    }
+}
+
+function clearCanvas() {
+    if (ctx && canvas) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
+function saveEditedPhoto() {
+    if (currentEditingPhoto && canvas) {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const photo = selectedPhotos.find(p => p.id === currentEditingPhoto);
+        if (photo) {
+            photo.editedSrc = dataUrl;
+            const img = photo.element.querySelector('img');
+            if (img) {
+                img.src = dataUrl;
+            }
+        }
+        bootstrap.Modal.getInstance(document.getElementById('photoEditorModal')).hide();
+    }
+}
+</script>
+
+<script src="{{ url_for('static', filename='js/fabric-photo-editor-modal.js') }}"></script>
+{% endblock %}

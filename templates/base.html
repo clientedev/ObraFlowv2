@@ -153,6 +153,9 @@ img[src*="no-image"] {
                         <ul class="dropdown-menu" aria-labelledby="relatoriosDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('create_report') }}">Novo Relatório</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('reports') }}">Listar Relatórios</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('new_express_report') }}"><i class="fas fa-bolt text-warning me-1"></i>Relatório Express</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('express_reports_list') }}">Listar Express</a></li>
                             {% if current_user_is_aprovador() %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('pending_reports') }}">Aguardando Aprovação</a></li>

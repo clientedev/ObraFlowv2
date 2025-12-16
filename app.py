@@ -142,6 +142,27 @@ def format_datetime_br(dt, format='%d/%m/%Y às %H:%M'):
     dt_brazil = dt.astimezone(BRAZIL_TZ)
     return dt_brazil.strftime(format)
 
+@app.template_filter('nl2br')
+def nl2br(value):
+    """Convert newlines to HTML <br> tags"""
+    if value is None:
+        return ''
+    import re
+    return re.sub(r'\n', '<br>\n', str(value))
+
+@app.template_filter('from_json')
+def from_json(value):
+    """Parse JSON string to Python object"""
+    import json
+    if value is None:
+        return []
+    if isinstance(value, (list, dict)):
+        return value
+    try:
+        return json.loads(value)
+    except:
+        return []
+
 @login_manager.user_loader
 def load_user(user_id):
     from models import User
