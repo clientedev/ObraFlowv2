@@ -2,6 +2,14 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, autosave functionality with real-time synchronization, and a comprehensive notification system. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes
+**December 16, 2025** - PDF Report Generation Adjustments:
+- Increased logo size in PDF header from 150x55px to 200x75px
+- Fixed date/time display to use report creation date (data_relatorio) instead of PDF generation time
+- Fixed company field to use projeto.construtora instead of projeto.nome
+- Enhanced photo captions to include category (tipo_servico) and location (local) metadata
+- Fixed "Responsável pelo acompanhamento" field to show all participant names from acompanhantes JSONB array
+- Fixed signatures section positioning: appears on first page when 0-2 photos, moves to last photo page when more photos
+
 **December 15, 2025** - Melhorias na interface de obras:
 - Listagem de obras (/projects) agora tem 4 abas: Ativas, Não iniciadas, Pausadas, Concluídas
 - Tela da obra (/projects/{id}) recebeu menu hambúrguer ao lado do nome com acesso rápido às seções
