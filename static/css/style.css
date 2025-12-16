@@ -1,5 +1,14 @@
 /* Custom CSS for Construction Site Visit Tracking System */
 
+/* Notifications Offcanvas - garantir z-index acima de outros elementos */
+#notificationsDrawer {
+    z-index: 10500 !important;
+}
+
+.offcanvas-backdrop.show {
+    z-index: 10400 !important;
+}
+
 /* ELP Consultoria e Engenharia brand colors */
 :root {
     --primary-color: #343a40;     /* Dark gray like logo */
