@@ -38,6 +38,11 @@
   color: white;
 }
 
+#navbarELP .dropdown-item-text {
+  color: #a0a0a0;
+  font-size: 0.9rem;
+}
+
 /* Desktop apenas - min-width 1024px */
 @media (min-width: 1024px) {
   /* Garantir que a navbar sempre expanda horizontalmente */
