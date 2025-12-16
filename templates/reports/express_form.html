@@ -571,14 +571,15 @@
                                 <i class="fas fa-times"></i> Cancelar
                             </a>
                             <div class="btn-group">
-                                <button type="submit" name="action" value="save_draft" class="btn btn-outline-primary">
+                                <button type="button" id="btnSaveDraft" class="btn btn-outline-primary" onclick="saveExpressDraft()">
                                     <i class="fas fa-save"></i> Salvar Rascunho
                                 </button>
-                                <button type="submit" name="action" value="submit_approval" class="btn btn-success">
+                                <button type="button" id="btnSubmitApproval" class="btn btn-success" onclick="submitExpressForApproval()">
                                     <i class="fas fa-paper-plane"></i> Enviar para Aprovação
                                 </button>
                             </div>
                         </div>
+                        <input type="hidden" id="express_report_id" name="report_id" value="{% if existing_report %}{{ existing_report.id }}{% endif %}">
                     </form>
                 </div>
             </div>
@@ -1122,6 +1123,271 @@ function saveEditedPhoto() {
             }
         }
         bootstrap.Modal.getInstance(document.getElementById('photoEditorModal')).hide();
+    }
+}
+
+let expressReportId = {% if existing_report %}{{ existing_report.id }}{% else %}null{% endif %};
+let isSavingExpress = false;
+
+async function uploadPhotoTemp(photo) {
+    try {
+        if (!photo || !photo.file) {
+            console.warn("⚠️ Foto inválida ou arquivo ausente:", photo);
+            return null;
+        }
+        
+        const caption = photo.metadata?.legenda || photo.manualCaption || '';
+        const local = photo.metadata?.local || photo.local || '';
+        
+        console.log("📤 Express AutoSave - Preparando upload da foto:", photo.filename || photo.name);
+        
+        const formData = new FormData();
+        formData.append("file", photo.file, photo.filename || photo.name || "imagem.jpg");
+        formData.append("category", photo.category || "");
+        formData.append("local", local);
+        formData.append("caption", caption);
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+        const headers = csrfToken ? { "X-CSRFToken": csrfToken } : {};
+        
+        const response = await fetch("/api/uploads/temp", {
+            method: "POST",
+            headers,
+            body: formData,
+            credentials: "include"
+        });
+        
+        if (!response.ok) {
+            const msg = await response.text();
+            console.error("❌ Erro HTTP no upload:", response.status, msg);
+            throw new Error(`Upload falhou: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("✅ Upload temporário bem-sucedido:", data);
+        
+        return data.temp_id || data.id || null;
+    } catch (err) {
+        console.error("❌ Erro no upload temporário:", err);
+        return null;
+    }
+}
+
+async function getExpressImageData() {
+    const uploaded = [];
+    
+    for (let i = 0; i < selectedPhotos.length; i++) {
+        const photo = selectedPhotos[i];
+        console.log(`📸 Foto ${i}:`, photo.id, photo.savedId);
+        
+        if (photo.savedId && photo.savedId > 0) {
+            uploaded.push({
+                id: photo.savedId,
+                caption: photo.metadata?.legenda || photo.manualCaption || '',
+                local: photo.metadata?.local || photo.local || '',
+                ordem: i
+            });
+            continue;
+        }
+        
+        if (!photo.file) {
+            console.warn("⚠️ Foto sem arquivo:", photo.id);
+            continue;
+        }
+        
+        try {
+            const tempId = await uploadPhotoTemp(photo);
+            if (tempId) {
+                uploaded.push({
+                    temp_id: tempId,
+                    caption: photo.metadata?.legenda || photo.manualCaption || '',
+                    local: photo.metadata?.local || photo.local || '',
+                    ordem: i
+                });
+            }
+        } catch (err) {
+            console.error(`❌ Falha ao enviar foto ${i}:`, err);
+        }
+    }
+    
+    console.log(`📸 Express AutoSave - Total de ${uploaded.length} fotos processadas`);
+    return uploaded;
+}
+
+function getExpressChecklistData() {
+    const checklistData = [];
+    
+    document.querySelectorAll('.checklist-item').forEach(item => {
+        const checkbox = item.querySelector('.form-check-input[type="checkbox"]');
+        const label = item.querySelector('.form-check-label');
+        const customInput = item.querySelector('input[type="text"]');
+        const textarea = item.querySelector('textarea');
+        
+        if (checkbox) {
+            const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
+            if (itemText) {
+                checklistData.push({
+                    item: itemText,
+                    completed: checkbox.checked,
+                    observations: textarea ? textarea.value : ''
+                });
+            }
+        }
+    });
+    
+    return checklistData;
+}
+
+async function collectExpressFormData() {
+    const data = {
+        titulo: document.getElementById('titulo')?.value?.trim() || 'Relatório Express de Visita',
+        numero: document.getElementById('numero')?.value?.trim() || '',
+        data_relatorio: document.getElementById('data_relatorio')?.value || null,
+        obra_nome: document.getElementById('obra_nome')?.value?.trim() || '',
+        obra_endereco: document.getElementById('obra_endereco')?.value?.trim() || '',
+        obra_tipo: document.getElementById('obra_tipo')?.value?.trim() || '',
+        obra_construtora: document.getElementById('obra_construtora')?.value?.trim() || '',
+        obra_responsavel: document.getElementById('obra_responsavel')?.value?.trim() || '',
+        obra_email: document.getElementById('obra_email')?.value?.trim() || '',
+        obra_telefone: document.getElementById('obra_telefone')?.value?.trim() || '',
+        conteudo: document.getElementById('conteudo')?.value?.trim() || '',
+        observacoes_finais: document.getElementById('lembrete_proxima_visita')?.value?.trim() || '',
+        acompanhantes: acompanhantesExpress || [],
+        checklist_data: getExpressChecklistData(),
+        fotos: await getExpressImageData()
+    };
+    
+    if (expressReportId) {
+        data.id = expressReportId;
+    }
+    
+    console.log('📦 Express AutoSave - Dados coletados:', data);
+    return data;
+}
+
+async function saveExpressDraft() {
+    if (isSavingExpress) {
+        console.log('⏸️ Express AutoSave: Salvamento já em progresso...');
+        return;
+    }
+    
+    const btnSave = document.getElementById('btnSaveDraft');
+    const originalText = btnSave.innerHTML;
+    
+    try {
+        isSavingExpress = true;
+        btnSave.disabled = true;
+        btnSave.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        
+        const obra_nome = document.getElementById('obra_nome')?.value?.trim();
+        if (!obra_nome) {
+            alert('O nome da obra é obrigatório.');
+            return;
+        }
+        
+        const payload = await collectExpressFormData();
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+        
+        console.log('📤 Express AutoSave: Enviando dados...', payload);
+        
+        const response = await fetch('/api/relatorios-express/autosave', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            console.error('❌ Express AutoSave erro:', response.status, err);
+            throw new Error(err.error || `Falha ao salvar (HTTP ${response.status})`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Express AutoSave concluído:', result);
+        
+        if (result.relatorio_id && !expressReportId) {
+            expressReportId = result.relatorio_id;
+            document.getElementById('express_report_id').value = expressReportId;
+            console.log('📝 Novo relatório Express criado com ID:', expressReportId);
+        }
+        
+        if (result.imagens && result.imagens.length > 0) {
+            result.imagens.forEach(imgResult => {
+                if (imgResult.temp_id) {
+                    const photo = selectedPhotos.find(p => !p.savedId && p.file);
+                    if (photo) {
+                        photo.savedId = imgResult.id;
+                        console.log(`📸 Foto associada: temp_id=${imgResult.temp_id} -> savedId=${imgResult.id}`);
+                    }
+                }
+            });
+        }
+        
+        btnSave.innerHTML = '<i class="fas fa-check"></i> Salvo!';
+        btnSave.classList.remove('btn-outline-primary');
+        btnSave.classList.add('btn-success');
+        
+        setTimeout(() => {
+            btnSave.innerHTML = originalText;
+            btnSave.classList.remove('btn-success');
+            btnSave.classList.add('btn-outline-primary');
+        }, 2000);
+        
+    } catch (err) {
+        console.error('❌ Erro ao salvar rascunho Express:', err);
+        alert('Erro ao salvar: ' + err.message);
+        btnSave.innerHTML = originalText;
+    } finally {
+        isSavingExpress = false;
+        btnSave.disabled = false;
+    }
+}
+
+async function submitExpressForApproval() {
+    const btnSubmit = document.getElementById('btnSubmitApproval');
+    const originalText = btnSubmit.innerHTML;
+    
+    try {
+        await saveExpressDraft();
+        
+        if (!expressReportId) {
+            alert('Por favor, salve o relatório primeiro.');
+            return;
+        }
+        
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+        
+        const response = await fetch(`/api/relatorios-express/${expressReportId}/submit-approval`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error || `Falha ao enviar (HTTP ${response.status})`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Relatório enviado para aprovação:', result);
+        
+        alert('Relatório enviado para aprovação com sucesso!');
+        window.location.href = '/relatorios-express';
+        
+    } catch (err) {
+        console.error('❌ Erro ao enviar para aprovação:', err);
+        alert('Erro ao enviar para aprovação: ' + err.message);
+        btnSubmit.innerHTML = originalText;
+        btnSubmit.disabled = false;
     }
 }
 </script>
