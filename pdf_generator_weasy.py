@@ -477,21 +477,20 @@ body {
 
 /* Cabeçalho - layout exato da imagem */
 .header-section {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    position: relative;
     margin-bottom: 1.2cm;
     padding-bottom: 0.3cm;
     border-bottom: 1px solid #e0e0e0;
+    min-height: 90px;
 }
 
 .logo-container {
-    width: 280px;
-    height: 110px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 120px;
+    height: 60px;
 }
 
 .elp-logo {
@@ -506,16 +505,18 @@ body {
     color: #333333;
     text-align: center;
     margin: 0;
-    flex: 1;
-    padding: 0 20px;
-    align-self: center;
+    padding-top: 20px;
+    white-space: nowrap;
 }
 
 .date-info {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
     font-size: 10pt;
     color: #666666;
     white-space: nowrap;
-    align-self: center;
 }
 
 /* Seções com fundo cinza - proporções exatas da imagem */
