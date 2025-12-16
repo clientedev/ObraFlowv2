@@ -2419,12 +2419,14 @@ def reports():
 
         # Aplicar filtro de status se fornecido
         if status_filter:
-            from sqlalchemy import or_
+            from sqlalchemy import or_, func
             if status_filter == 'pendentes':
                 query = query.filter(or_(
                     Relatorio.status == 'Aguardando Aprovação',
                     Relatorio.status == 'Em Preenchimento',
-                    Relatorio.status == 'Rejeitado'
+                    func.lower(Relatorio.status) == 'preenchimento',
+                    Relatorio.status == 'Rejeitado',
+                    Relatorio.status == 'Rascunho'
                 ))
             else:
                 query = query.filter(Relatorio.status == status_filter)
