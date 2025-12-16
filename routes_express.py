@@ -409,38 +409,214 @@ def delete_express_report(report_id):
         return redirect(url_for('express_reports_list'))
 
 
-@app.route('/api/relatorios-express/<int:report_id>/autosave', methods=['POST'])
+@app.route('/api/relatorios-express/autosave', methods=['POST'])
 @login_required
-def autosave_express_report(report_id):
-    """API para autosave do Relatório Express"""
+def autosave_express_report_api():
+    """API completa para autosave do Relatório Express - cria ou atualiza"""
     try:
         data = request.get_json()
         
+        if not data:
+            return jsonify({'success': False, 'error': 'Nenhum dado fornecido'}), 400
+        
+        relatorio_id = data.get('id')
+        logger.info(f"📦 Express AutoSave - ID: {relatorio_id}, dados recebidos")
+        
+        if not relatorio_id:
+            obra_nome = data.get('obra_nome', '').strip()
+            if not obra_nome:
+                return jsonify({'success': False, 'error': 'Nome da obra é obrigatório'}), 400
+            
+            numero = data.get('numero') or generate_express_number()
+            existing = RelatorioExpress.query.filter_by(numero=numero).first()
+            if existing:
+                numero = generate_express_number()
+            
+            acompanhantes = data.get('acompanhantes', [])
+            if isinstance(acompanhantes, str):
+                try:
+                    acompanhantes = json.loads(acompanhantes)
+                except:
+                    acompanhantes = []
+            
+            checklist_data = data.get('checklist_data')
+            if checklist_data and not isinstance(checklist_data, str):
+                checklist_data = json.dumps(checklist_data)
+            
+            relatorio = RelatorioExpress(
+                numero=numero,
+                titulo=data.get('titulo', 'Relatório Express de Visita'),
+                obra_nome=obra_nome,
+                obra_endereco=data.get('obra_endereco', ''),
+                obra_tipo=data.get('obra_tipo', ''),
+                obra_construtora=data.get('obra_construtora', ''),
+                obra_responsavel=data.get('obra_responsavel', ''),
+                obra_email=data.get('obra_email', ''),
+                obra_telefone=data.get('obra_telefone', ''),
+                autor_id=current_user.id,
+                criado_por=current_user.id,
+                conteudo=data.get('conteudo', ''),
+                observacoes_finais=data.get('observacoes_finais', ''),
+                checklist_data=checklist_data,
+                acompanhantes=acompanhantes,
+                status='Em preenchimento'
+            )
+            
+            if data.get('data_relatorio'):
+                try:
+                    relatorio.data_relatorio = datetime.strptime(data['data_relatorio'], '%Y-%m-%d')
+                except:
+                    relatorio.data_relatorio = datetime.now()
+            
+            db.session.add(relatorio)
+            db.session.flush()
+            relatorio_id = relatorio.id
+            logger.info(f"✅ Express AutoSave: Novo relatório criado com ID {relatorio_id}")
+        else:
+            relatorio = RelatorioExpress.query.get(relatorio_id)
+            if not relatorio:
+                return jsonify({'success': False, 'error': 'Relatório não encontrado'}), 404
+            
+            campos = ['titulo', 'obra_nome', 'obra_endereco', 'obra_tipo', 'obra_construtora',
+                      'obra_responsavel', 'obra_email', 'obra_telefone', 'conteudo', 'observacoes_finais']
+            for campo in campos:
+                if campo in data:
+                    setattr(relatorio, campo, data[campo])
+            
+            if 'acompanhantes' in data:
+                acompanhantes = data['acompanhantes']
+                if isinstance(acompanhantes, str):
+                    try:
+                        acompanhantes = json.loads(acompanhantes)
+                    except:
+                        acompanhantes = []
+                relatorio.acompanhantes = acompanhantes
+            
+            if 'checklist_data' in data:
+                checklist_data = data['checklist_data']
+                if checklist_data and not isinstance(checklist_data, str):
+                    checklist_data = json.dumps(checklist_data)
+                relatorio.checklist_data = checklist_data
+            
+            relatorio.atualizado_por = current_user.id
+            relatorio.updated_at = datetime.now()
+            logger.info(f"✅ Express AutoSave: Relatório {relatorio_id} atualizado")
+        
+        imagens_resultado = []
+        if 'fotos' in data and data['fotos']:
+            TEMP_UPLOAD_FOLDER = os.path.join(app.config.get('UPLOAD_FOLDER', 'uploads'), 'temp')
+            import glob as globlib
+            import hashlib
+            
+            for foto_info in data['fotos']:
+                if foto_info.get('deletar'):
+                    foto_id = foto_info.get('id')
+                    if foto_id:
+                        foto = FotoRelatorioExpress.query.get(foto_id)
+                        if foto and foto.relatorio_express_id == relatorio_id:
+                            db.session.delete(foto)
+                            logger.info(f"📸 Express AutoSave: Foto {foto_id} removida")
+                    continue
+                
+                if not foto_info.get('id') and foto_info.get('temp_id'):
+                    temp_id = foto_info['temp_id']
+                    temp_pattern = os.path.join(TEMP_UPLOAD_FOLDER, f"{temp_id}.*")
+                    matching_files = globlib.glob(temp_pattern)
+                    
+                    if matching_files:
+                        temp_filepath = matching_files[0]
+                        extension = temp_filepath.rsplit('.', 1)[1].lower() if '.' in temp_filepath else 'jpg'
+                        
+                        with open(temp_filepath, 'rb') as f:
+                            imagem_data = f.read()
+                        
+                        imagem_hash = hashlib.sha256(imagem_data).hexdigest()
+                        
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S%f')
+                        filename = f"express_{relatorio_id}_{timestamp}.{extension}"
+                        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                        filepath = os.path.join(upload_folder, filename)
+                        
+                        import shutil
+                        shutil.copy(temp_filepath, filepath)
+                        
+                        max_ordem = db.session.query(db.func.max(FotoRelatorioExpress.ordem)).filter_by(
+                            relatorio_express_id=relatorio_id
+                        ).scalar() or 0
+                        
+                        nova_foto = FotoRelatorioExpress(
+                            relatorio_express_id=relatorio_id,
+                            filename=filename,
+                            url=f"/uploads/{filename}",
+                            legenda=foto_info.get('caption', ''),
+                            local=foto_info.get('local', ''),
+                            ordem=max_ordem + 1,
+                            imagem=imagem_data,
+                            imagem_hash=imagem_hash,
+                            content_type=f"image/{extension}",
+                            imagem_size=len(imagem_data)
+                        )
+                        db.session.add(nova_foto)
+                        db.session.flush()
+                        
+                        imagens_resultado.append({
+                            'id': nova_foto.id,
+                            'temp_id': temp_id,
+                            'url': nova_foto.url,
+                            'legenda': nova_foto.legenda
+                        })
+                        
+                        try:
+                            os.remove(temp_filepath)
+                        except:
+                            pass
+                        
+                        logger.info(f"📸 Express AutoSave: Nova foto salva ID {nova_foto.id}")
+                
+                elif foto_info.get('id'):
+                    foto_id = foto_info['id']
+                    foto = FotoRelatorioExpress.query.get(foto_id)
+                    if foto and foto.relatorio_express_id == relatorio_id:
+                        if 'caption' in foto_info:
+                            foto.legenda = foto_info['caption']
+                        if 'local' in foto_info:
+                            foto.local = foto_info['local']
+                        if 'ordem' in foto_info:
+                            foto.ordem = foto_info['ordem']
+                        
+                        imagens_resultado.append({
+                            'id': foto.id,
+                            'url': foto.url,
+                            'legenda': foto.legenda
+                        })
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Salvo automaticamente',
+            'relatorio_id': relatorio_id,
+            'imagens': imagens_resultado,
+            'saved_at': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"❌ Erro no Express AutoSave: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/relatorios-express/<int:report_id>/submit-approval', methods=['POST'])
+@login_required
+def submit_express_for_approval(report_id):
+    """Envia Relatório Express para aprovação via API"""
+    try:
         relatorio = RelatorioExpress.query.get_or_404(report_id)
         
-        if data.get('titulo'):
-            relatorio.titulo = data['titulo']
-        if data.get('obra_nome'):
-            relatorio.obra_nome = data['obra_nome']
-        if data.get('obra_endereco'):
-            relatorio.obra_endereco = data['obra_endereco']
-        if data.get('obra_tipo'):
-            relatorio.obra_tipo = data['obra_tipo']
-        if data.get('obra_construtora'):
-            relatorio.obra_construtora = data['obra_construtora']
-        if data.get('obra_responsavel'):
-            relatorio.obra_responsavel = data['obra_responsavel']
-        if data.get('obra_email'):
-            relatorio.obra_email = data['obra_email']
-        if data.get('obra_telefone'):
-            relatorio.obra_telefone = data['obra_telefone']
-        if data.get('conteudo'):
-            relatorio.conteudo = data['conteudo']
-        if data.get('acompanhantes'):
-            relatorio.acompanhantes = data['acompanhantes']
-        if data.get('checklist_data'):
-            relatorio.checklist_data = json.dumps(data['checklist_data'])
+        if relatorio.status == 'Aprovado':
+            return jsonify({'success': False, 'error': 'Relatório já está aprovado'}), 400
         
+        relatorio.status = 'Aguardando Aprovação'
         relatorio.atualizado_por = current_user.id
         relatorio.updated_at = datetime.now()
         
@@ -448,17 +624,14 @@ def autosave_express_report(report_id):
         
         return jsonify({
             'success': True,
-            'message': 'Salvo automaticamente',
-            'saved_at': datetime.now().isoformat()
+            'message': f'Relatório {relatorio.numero} enviado para aprovação',
+            'status': relatorio.status
         })
         
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Erro no autosave Express: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        logger.error(f"Erro ao enviar Express para aprovação: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 logger.info("✅ Rotas de Relatório Express carregadas com sucesso")
