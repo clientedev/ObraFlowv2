@@ -2,6 +2,14 @@
 This project is a comprehensive Flask-based construction site visit tracking system designed to streamline site management, improve communication, and ensure efficient documentation and oversight within the construction industry. It offers advanced project management, robust user authentication, visit scheduling, professional report generation with photo annotation, approval workflows, expense tracking, autosave functionality with real-time synchronization, and a comprehensive notification system. The system provides complete oversight for construction projects, with market potential in civil engineering and facade specialization.
 
 # Recent Changes
+**December 16, 2025** - Express Report Image Template Update:
+- Updated Express Report image cards to match Common Report template structure
+- Image cards now include: Local (optional text input), Legenda manual (required text input), Legenda pré-definida (dropdown)
+- Added visual status indicator for legenda validation (warning/success)
+- Removed Category field from Express Reports as they don't require project categories
+- Added setupPhotoCardEventsExpress() and savePhotoDataExpress() functions for proper data handling
+- Predefined legendas load dynamically from API with category grouping
+
 **December 16, 2025** - Express Report (Relatório Express) Feature:
 - Implemented new independent report type that doesn't require pre-registered projects
 - Express Reports include inline project/obra fields: nome, endereço, tipo, construtora, responsável, email, telefone

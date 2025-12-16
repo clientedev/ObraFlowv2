@@ -816,24 +816,59 @@ function addPhotoPreview(file, category) {
 
         const cardsContainer = document.getElementById('mobilePhotoCards');
         const photoDiv = document.createElement('div');
-        photoDiv.className = 'col-md-4 col-6';
+        photoDiv.className = 'col-12 col-md-6 col-lg-4';
         photoDiv.id = photoId;
         photoDiv.setAttribute('data-photo-id', photoId);
         photoDiv.innerHTML = `
-            <div class="mobile-photo-card">
-                <img src="${src}" class="photo-card-image" alt="Preview">
-                <div class="photo-card-content">
-                    <select class="caption-select" id="legenda_${photoId}" name="photo_caption_${photoId}">
-                        <option value="">Selecione uma legenda...</option>
+            <div class="mobile-photo-card enhanced" data-photo-id="${photoId}" style="border: 2px solid #007bff; border-radius: 12px; padding: 12px; background: white; box-shadow: 0 4px 12px rgba(0,123,255,0.15); margin-bottom: 16px;">
+                <div class="text-center mb-3">
+                    <img src="${src}" 
+                         alt="${file.name}" 
+                         data-photo-id="${photoId}"
+                         style="width: 100%; max-width: 200px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef; cursor: pointer;">
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label fw-bold mb-1" style="font-size: 12px;">📍 Local</label>
+                    <input type="text" 
+                           class="form-control form-control-sm local-input" 
+                           id="local_${photoId}" 
+                           placeholder="Ex: Sala principal, Fachada norte..."
+                           data-photo-id="${photoId}"
+                           style="border: 2px solid #ff9800; font-size: 13px; padding: 6px;">
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label fw-bold mb-1" style="font-size: 12px;">📝 Legenda *</label>
+                    <input type="text" 
+                           class="form-control caption-input" 
+                           id="manual_caption_${photoId}" 
+                           placeholder="Digite uma legenda..."
+                           data-photo-id="${photoId}"
+                           required
+                           style="border: 2px solid #28a745; font-size: 13px; padding: 6px; background-color: #f8fff9;">
+                </div>
+
+                <div class="mb-2">
+                    <select class="form-select form-select-sm caption-select" 
+                            id="predefined_caption_${photoId}" 
+                            data-photo-id="${photoId}"
+                            style="font-size: 12px;">
+                        <option value="">📋 Ou escolha uma legenda pré-definida...</option>
                     </select>
-                    <div class="photo-card-actions">
-                        <button type="button" class="photo-card-btn edit" onclick="openPhotoEditor('${photoId}')">
-                            <i class="fas fa-edit"></i> Editar
-                        </button>
-                        <button type="button" class="photo-card-btn delete" onclick="removePhoto('${photoId}')">
-                            <i class="fas fa-trash"></i> Excluir
-                        </button>
-                    </div>
+                </div>
+
+                <div class="caption-status pending alert alert-warning py-1 px-2 mb-2" id="caption_status_${photoId}" style="font-size: 12px; margin: 0;">
+                    ⚠️ Legenda obrigatória - preencha o campo acima
+                </div>
+
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="openPhotoEditor('${photoId}')">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePhoto('${photoId}')">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
                 </div>
             </div>
         `;
@@ -859,11 +894,89 @@ function addPhotoPreview(file, category) {
         });
 
         loadPredefinedCaptionsForPhoto(photoId, category);
+        setupPhotoCardEventsExpress(photoId);
         updatePhotoCount();
         
         document.getElementById('quickPhotoActions').style.display = 'block';
+        
+        setTimeout(() => {
+            const newCard = photoDiv.querySelector('.mobile-photo-card');
+            if (newCard) {
+                newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const captionInput = newCard.querySelector('.caption-input');
+                if (captionInput) {
+                    setTimeout(() => {
+                        captionInput.focus();
+                    }, 600);
+                }
+            }
+        }, 300);
     };
     reader.readAsDataURL(file);
+}
+
+function setupPhotoCardEventsExpress(photoId) {
+    const manualInput = document.getElementById(`manual_caption_${photoId}`);
+    const predefinedSelect = document.getElementById(`predefined_caption_${photoId}`);
+    const localInput = document.getElementById(`local_${photoId}`);
+
+    if (manualInput) {
+        manualInput.addEventListener('input', () => savePhotoDataExpress(photoId));
+        manualInput.addEventListener('blur', () => savePhotoDataExpress(photoId));
+    }
+
+    if (localInput) {
+        localInput.addEventListener('input', () => savePhotoDataExpress(photoId));
+        localInput.addEventListener('blur', () => savePhotoDataExpress(photoId));
+    }
+
+    if (predefinedSelect) {
+        predefinedSelect.addEventListener('change', function() {
+            if (this.value && manualInput) {
+                manualInput.value = this.value;
+                savePhotoDataExpress(photoId);
+                setTimeout(() => {
+                    this.selectedIndex = 0;
+                }, 500);
+            }
+        });
+    }
+}
+
+function savePhotoDataExpress(photoId) {
+    const manualInput = document.getElementById(`manual_caption_${photoId}`);
+    const predefinedSelect = document.getElementById(`predefined_caption_${photoId}`);
+    const localInput = document.getElementById(`local_${photoId}`);
+    const statusDiv = document.getElementById(`caption_status_${photoId}`);
+
+    const manualCaption = manualInput ? manualInput.value.trim() : '';
+    const predefinedCaption = predefinedSelect ? predefinedSelect.value.trim() : '';
+    const local = localInput ? localInput.value.trim() : '';
+
+    const photoData = selectedPhotos.find(p => p.id === photoId);
+    if (photoData) {
+        photoData.metadata.legenda = manualCaption || predefinedCaption;
+        photoData.metadata.local = local;
+        photoData.manualCaption = manualCaption;
+        photoData.predefinedCaption = predefinedCaption;
+        photoData.local = local;
+    }
+
+    const hasCaption = manualCaption || predefinedCaption;
+
+    if (statusDiv) {
+        if (hasCaption) {
+            statusDiv.className = 'caption-status complete alert alert-success py-1 px-2 mb-2';
+            statusDiv.innerHTML = '✅ Legenda preenchida';
+            statusDiv.style.fontSize = '12px';
+        } else {
+            statusDiv.className = 'caption-status pending alert alert-warning py-1 px-2 mb-2';
+            statusDiv.innerHTML = '⚠️ Legenda obrigatória - preencha o campo acima';
+            statusDiv.style.fontSize = '12px';
+        }
+    }
+
+    console.log(`💾 Express Photo data saved for ${photoId}: local="${local}", caption="${manualCaption}"`);
 }
 
 function removePhoto(photoId) {
@@ -887,7 +1000,7 @@ function updatePhotoCount() {
 }
 
 function loadPredefinedCaptionsForPhoto(photoId, category) {
-    const select = document.getElementById(`legenda_${photoId}`);
+    const select = document.getElementById(`predefined_caption_${photoId}`);
     if (!select) return;
 
     select.innerHTML = '<option value="">Carregando legendas...</option>';
@@ -896,7 +1009,7 @@ function loadPredefinedCaptionsForPhoto(photoId, category) {
         .then(response => response.json())
         .then(data => {
             if (data.success && data.legendas && data.legendas.length > 0) {
-                select.innerHTML = '<option value="">Selecione uma legenda...</option>';
+                select.innerHTML = '<option value="">📋 Ou escolha uma legenda pré-definida...</option>';
 
                 const cats = {
                     'Acabamentos': [],
