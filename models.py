@@ -676,8 +676,16 @@ class RelatorioExpress(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     numero = db.Column(db.String(20), nullable=False, unique=True)
     
+    # Campos legados (mantidos para compatibilidade com DB existente)
+    empresa_nome = db.Column(db.String(200), nullable=False)
+    empresa_endereco = db.Column(db.Text, nullable=True)
+    empresa_telefone = db.Column(db.String(50), nullable=True)
+    empresa_email = db.Column(db.String(255), nullable=True)
+    empresa_responsavel = db.Column(db.String(200), nullable=True)
+    data_visita = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    
     # Dados da Obra (inline - não depende de projeto existente)
-    obra_nome = db.Column(db.String(200), nullable=False)
+    obra_nome = db.Column(db.String(200), nullable=True)
     obra_endereco = db.Column(db.Text, nullable=True)
     obra_tipo = db.Column(db.String(100), nullable=True)
     obra_construtora = db.Column(db.String(200), nullable=True)

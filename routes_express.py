@@ -133,6 +133,12 @@ def create_express_report():
         relatorio = RelatorioExpress(
             numero=numero,
             titulo=request.form.get('titulo', 'Relatório Express de Visita'),
+            empresa_nome=obra_nome,
+            empresa_endereco=request.form.get('obra_endereco', ''),
+            empresa_telefone=request.form.get('obra_telefone', ''),
+            empresa_email=request.form.get('obra_email', ''),
+            empresa_responsavel=request.form.get('obra_responsavel', ''),
+            data_visita=datetime.now().date(),
             obra_nome=obra_nome,
             obra_endereco=request.form.get('obra_endereco', ''),
             obra_tipo=request.form.get('obra_tipo', ''),
@@ -272,6 +278,12 @@ def update_express_report(report_id):
         relatorio.conteudo = request.form.get('conteudo', '')
         relatorio.observacoes_finais = request.form.get('lembrete_proxima_visita', '')
         relatorio.atualizado_por = current_user.id
+        
+        relatorio.empresa_nome = request.form.get('obra_nome', relatorio.empresa_nome)
+        relatorio.empresa_endereco = request.form.get('obra_endereco', '')
+        relatorio.empresa_telefone = request.form.get('obra_telefone', '')
+        relatorio.empresa_email = request.form.get('obra_email', '')
+        relatorio.empresa_responsavel = request.form.get('obra_responsavel', '')
         
         acompanhantes_str = request.form.get('acompanhantes', '[]')
         try:
@@ -446,6 +458,12 @@ def autosave_express_report_api():
             relatorio = RelatorioExpress(
                 numero=numero,
                 titulo=data.get('titulo', 'Relatório Express de Visita'),
+                empresa_nome=obra_nome,
+                empresa_endereco=data.get('obra_endereco', ''),
+                empresa_telefone=data.get('obra_telefone', ''),
+                empresa_email=data.get('obra_email', ''),
+                empresa_responsavel=data.get('obra_responsavel', ''),
+                data_visita=datetime.now().date(),
                 obra_nome=obra_nome,
                 obra_endereco=data.get('obra_endereco', ''),
                 obra_tipo=data.get('obra_tipo', ''),
@@ -482,6 +500,17 @@ def autosave_express_report_api():
             for campo in campos:
                 if campo in data:
                     setattr(relatorio, campo, data[campo])
+            
+            if 'obra_nome' in data:
+                relatorio.empresa_nome = data['obra_nome']
+            if 'obra_endereco' in data:
+                relatorio.empresa_endereco = data['obra_endereco']
+            if 'obra_telefone' in data:
+                relatorio.empresa_telefone = data['obra_telefone']
+            if 'obra_email' in data:
+                relatorio.empresa_email = data['obra_email']
+            if 'obra_responsavel' in data:
+                relatorio.empresa_responsavel = data['obra_responsavel']
             
             if 'acompanhantes' in data:
                 acompanhantes = data['acompanhantes']
