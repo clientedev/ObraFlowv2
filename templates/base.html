@@ -161,16 +161,6 @@ img[src*="no-image"] {
                     </li>
 
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="expressDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-bolt"></i> Express
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="expressDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('express_new') }}">Novo</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('express_list') }}">Histórico</a></li>
-                        </ul>
-                    </li>
-
-                    <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="reembolsosDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-money-bill-wave"></i> Reembolsos
                         </a>
@@ -404,8 +394,7 @@ img[src*="no-image"] {
 • Existem fisicamente: ${data.existem_fisicamente}
 • Em attached_assets: ${data.em_attached_assets}
 • Perdidas: ${data.nao_existem_fisicamente}
-• Relatórios normais: ${data.fotos_normais}
-• Relatórios express: ${data.fotos_express}`;
+• Relatórios: ${data.fotos_normais}`;
 
                 showToast(message, data.nao_existem_fisicamente > 0 ? 'warning' : 'success', 10000);
 
