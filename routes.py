@@ -1328,18 +1328,19 @@ def get_nearby_projects():
 @app.route('/api/notificacoes')
 @login_required
 def listar_notificacoes():
-    """Listar notificações do usuário autenticado (filtrando expiradas)"""
+    """Listar notificações do usuário autenticado (48h ou não lidas)"""
     try:
         from notification_service import notification_service
         
         try:
-            # Filtrar notificações não expiradas (expires_at > agora OU expires_at é NULL)
             agora = datetime.utcnow()
+            limite_48h = agora - timedelta(hours=48)
+            
             notificacoes = Notificacao.query.filter(
                 Notificacao.user_id == current_user.id,
                 db.or_(
-                    Notificacao.expires_at > agora,
-                    Notificacao.expires_at == None
+                    Notificacao.created_at >= limite_48h,
+                    Notificacao.status == 'nova'
                 )
             ).order_by(Notificacao.created_at.desc()).all()
         except Exception as db_error:
