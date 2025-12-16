@@ -67,9 +67,16 @@ body {
 }
 
 /* Prevent specific elements from causing horizontal overflow */
-.btn-group, .btn-toolbar, .input-group, .form-control, .form-select, .navbar-nav {
+.btn-group, .btn-toolbar, .input-group, .form-control, .form-select {
     max-width: 100%;
     overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* Navbar-nav precisa de overflow visible para exibir dropdowns corretamente */
+.navbar-nav {
+    max-width: 100%;
+    overflow: visible;
     box-sizing: border-box;
 }
 
