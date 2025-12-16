@@ -1,0 +1,128 @@
+Objetivo:
+Criar a funcionalidade “Relatório Express” como um formulário independente, criado junto de sua obra, sem dependência de outras funcionalidades do sistema, reutilizando integralmente o template, os componentes, os campos, a lógica e o fluxo do Relatório Comum.
+
+O Relatório Express deve se comportar exatamente como o Relatório Comum, mudando apenas o fato de ser independente e mais rápido, com os dados da obra sendo preenchidos no mesmo formulário.
+
+Regra principal:
+Copiar completamente o template do Relatório Comum.
+Não recriar componentes.
+Não alterar lógica.
+Não simplificar campos.
+Não renomear status.
+Tudo deve funcionar exatamente igual.
+
+--------------------------------
+PASSO 1 — CRIAÇÃO DA BASE
+--------------------------------
+Criar um novo formulário chamado “Relatório Express”.
+Este formulário deve ser totalmente independente de outras funcionalidades.
+Ele não deve depender de uma obra previamente cadastrada.
+
+--------------------------------
+PASSO 2 — CLONAGEM DO RELATÓRIO COMUM
+--------------------------------
+Copiar integralmente o template do Relatório Comum, incluindo:
+- Estrutura do formulário
+- Campos
+- Layout
+- Componentes
+- Lógica de preenchimento
+- Lógica de salvamento
+- Lógica de edição
+- Lógica de exibição
+- Lógica de imagens
+- Lógica de autosave
+- Lógica de status
+
+Nenhuma lógica nova deve ser criada.
+
+--------------------------------
+PASSO 3 — CAMPOS DE OBRA
+--------------------------------
+Como o Relatório Express é criado junto da obra:
+- Incluir no mesmo formulário todos os campos existentes no cadastro de Obra
+- Esses campos devem ser obrigatórios
+- Os dados da obra devem ser salvos junto com o Relatório Express
+- Não criar cadastro separado de obra
+
+--------------------------------
+PASSO 4 — FUNCIONÁRIOS
+--------------------------------
+Como não existe obra previamente cadastrada:
+- Manter o campo de funcionários
+- Utilizar exatamente o mesmo componente do Relatório Comum
+- Os funcionários selecionados devem ficar vinculados ao Relatório Express
+
+--------------------------------
+PASSO 5 — IMAGENS
+--------------------------------
+Copiar exatamente o comportamento de imagens do Relatório Comum:
+- Mesma interface
+- Mesma lógica de upload
+- Mesma lógica de exibição
+- Mesma lógica de salvamento
+- Mesmas validações
+
+--------------------------------
+PASSO 6 — AUTOSAVE
+--------------------------------
+Implementar autosave utilizando exatamente a mesma lógica do Relatório Comum.
+O autosave deve salvar:
+- Dados do relatório
+- Dados da obra
+- Imagens
+- Funcionários
+- Status atual
+
+--------------------------------
+PASSO 7 — STATUS E FLUXO (OBRIGATÓRIO)
+--------------------------------
+O Relatório Express deve possuir exatamente os mesmos STATUS do Relatório Comum, com os mesmos nomes e comportamento:
+
+STATUS EXISTENTES:
+- Em preenchimento
+- Aguardando Aprovação
+- Aprovado
+- Rejeitado
+
+Não criar novos status.
+Não renomear status.
+Não alterar regras de transição.
+
+FLUXOS PERMITIDOS (IGUAIS AO RELATÓRIO COMUM):
+
+Fluxo 1:
+Em preenchimento → Aguardando Aprovação → Aprovado → Envio por e-mail
+
+Fluxo 2:
+Em preenchimento → Aguardando Aprovação → Rejeitado → Revisão → Correção → Aguardando Aprovação → Aprovado → Envio por e-mail
+
+Os filtros de listagem devem reconhecer esses status exatamente como no Relatório Comum.
+
+--------------------------------
+PASSO 8 — PÁGINA DE AÇÕES
+--------------------------------
+Após o preenchimento, utilizar exatamente a mesma página de ações do Relatório Comum:
+- Mesma estrutura
+- Mesmos botões
+- Mesmas regras de permissão
+- Mesma lógica de envio para aprovação e aprovação
+
+--------------------------------
+PASSO 9 — SALVAMENTO, EDIÇÃO E EXIBIÇÃO
+--------------------------------
+Garantir que o Relatório Express:
+- Seja salvo corretamente em todos os status
+- Possa ser editado quando permitido
+- Seja exibido corretamente em todas as telas
+- Apareça corretamente nos filtros por status (“Todos os Status”, “Em preenchimento”, “Aguardando Aprovação”, “Aprovado”, “Rejeitado”)
+
+--------------------------------
+RESULTADO ESPERADO
+--------------------------------
+O Relatório Express deve ser funcionalmente idêntico ao Relatório Comum:
+- Mesmos campos
+- Mesmos status
+- Mesmo fluxo
+- Mesma lógica
+A única diferença é ser um relatório independente, criado junto da obra, com preenchimento rápido.
