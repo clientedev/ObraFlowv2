@@ -129,17 +129,40 @@ class WeasyPrintReportGenerator:
             # Converter para timezone do Brasil
             return dt.astimezone(brazil_tz)
         
+        # Processar acompanhantes - lista de nomes dos participantes
+        acompanhantes_nomes = []
+        if hasattr(relatorio, 'acompanhantes') and relatorio.acompanhantes:
+            try:
+                acomp_data = relatorio.acompanhantes
+                if isinstance(acomp_data, str):
+                    import json
+                    acomp_data = json.loads(acomp_data)
+                
+                if isinstance(acomp_data, list):
+                    for acomp in acomp_data:
+                        if isinstance(acomp, dict):
+                            nome = acomp.get('nome') or acomp.get('nome_completo') or acomp.get('name', '')
+                            if nome:
+                                acompanhantes_nomes.append(nome)
+                        elif isinstance(acomp, str):
+                            acompanhantes_nomes.append(acomp)
+            except Exception as e:
+                print(f"⚠️ Erro ao processar acompanhantes: {e}")
+        
+        # Formatar lista de acompanhantes como string
+        responsavel_acompanhamento = ', '.join(acompanhantes_nomes) if acompanhantes_nomes else "Não informado"
+        
         data = {
             'titulo': 'Relatório de Visita',
-            'data_atual': now_brazil.strftime('%d/%m/%Y %H:%M'),
+            'data_atual': to_brazil_tz(relatorio.data_relatorio).strftime('%d/%m/%Y %H:%M'),
             'numero_relatorio': relatorio.numero,
-            'empresa': projeto.nome if projeto else "ELP Consultoria",
-            'obra': projeto.nome,
+            'empresa': projeto.construtora if projeto and hasattr(projeto, 'construtora') and projeto.construtora else (projeto.nome if projeto else "ELP Consultoria"),
+            'obra': projeto.nome if projeto else "Não informado",
             'endereco': projeto.endereco or "Não informado",
             'observacoes': observacoes_filtradas,
             'preenchido_por': relatorio.autor.nome_completo if relatorio.autor else "Não informado",
             'liberado_por': "Eng. José Leopoldo Pugliese",
-            'responsavel': projeto.responsavel.nome_completo if projeto.responsavel else "Não informado",
+            'responsavel': responsavel_acompanhamento,
             'data_relatorio': to_brazil_tz(relatorio.data_relatorio).strftime('%d/%m/%Y %H:%M'),
             'logo_base64': logo_base64,
             'fotos': []
@@ -196,12 +219,33 @@ class WeasyPrintReportGenerator:
                 if not foto_base64:
                     print(f"❌ ERRO: Foto {foto.ordem} NÃO CARREGADA - não encontrada no PostgreSQL nem no filesystem")
                 
-                # Criar legenda completa - PRIORIDADE: descricao > legenda
-                legenda_completa = f"Foto {foto.ordem}"
+                # Criar legenda completa - incluir categoria e local
+                legenda_texto = ""
                 if hasattr(foto, 'descricao') and foto.descricao:
-                    legenda_completa = foto.descricao
+                    legenda_texto = foto.descricao
                 elif hasattr(foto, 'legenda') and foto.legenda:
-                    legenda_completa = foto.legenda
+                    legenda_texto = foto.legenda
+                
+                # Obter categoria da foto
+                categoria = ""
+                if hasattr(foto, 'tipo_servico') and foto.tipo_servico:
+                    categoria = foto.tipo_servico
+                
+                # Obter local da foto
+                local = ""
+                if hasattr(foto, 'local') and foto.local:
+                    local = foto.local
+                
+                # Construir legenda completa com categoria e local
+                legenda_partes = []
+                if categoria:
+                    legenda_partes.append(f"[{categoria}]")
+                if local:
+                    legenda_partes.append(f"Local: {local}")
+                if legenda_texto:
+                    legenda_partes.append(legenda_texto)
+                
+                legenda_completa = " - ".join(legenda_partes) if legenda_partes else f"Foto {foto.ordem}"
                 
                 print(f"📝 Foto {foto.ordem} - Legenda: {legenda_completa}")
                 
@@ -209,6 +253,8 @@ class WeasyPrintReportGenerator:
                 data['fotos'].append({
                     'base64': foto_base64,
                     'legenda': legenda_completa,
+                    'categoria': categoria,
+                    'local': local,
                     'ordem': foto.ordem,
                     'not_found': not foto_base64
                 })
@@ -278,6 +324,9 @@ class WeasyPrintReportGenerator:
     <!-- PRIMEIRA PÁGINA: 2 IMAGENS LADO A LADO ABAIXO DE "ITENS OBSERVADOS" -->
     {% if data.fotos %}
     {% set first_page_photos = data.fotos[:2] %}
+    {% set remaining_photos = data.fotos[2:] %}
+    {% set has_remaining = remaining_photos|length > 0 %}
+    
     {% if first_page_photos %}
     <div class="first-page-photos-grid">
         {% for foto in first_page_photos %}
@@ -293,8 +342,26 @@ class WeasyPrintReportGenerator:
     </div>
     {% endif %}
     
+    <!-- ASSINATURAS NA PRIMEIRA PÁGINA: Se só tem até 2 fotos, mostrar assinaturas aqui -->
+    {% if not has_remaining %}
+    <div class="assinaturas-section first-page-signatures">
+        <div class="section-header">Assinaturas</div>
+        <div class="assinaturas-table">
+            <div class="assin-row header-row">
+                <div class="assin-cell">Preenchido por:</div>
+                <div class="assin-cell">Liberado por:</div>
+                <div class="assin-cell">Responsável pelo acompanhamento</div>
+            </div>
+            <div class="assin-row value-row">
+                <div class="assin-cell">{{ data.preenchido_por }}</div>
+                <div class="assin-cell">{{ data.liberado_por }}</div>
+                <div class="assin-cell">{{ data.responsavel }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- DEMAIS PÁGINAS: 4 IMAGENS POR PÁGINA EM GRID 2x2 -->
-    {% set remaining_photos = data.fotos[2:] %}
     {% set total_batches = ((remaining_photos|length - 1) // 4) + 1 if remaining_photos|length > 0 else 0 %}
     {% for batch_index in range(total_batches) %}
     {% set batch_start = batch_index * 4 %}
@@ -316,7 +383,7 @@ class WeasyPrintReportGenerator:
             {% endfor %}
         </div>
         
-        <!-- ASSINATURAS: Aparecem APÓS as últimas 4 fotos, na mesma página -->
+        <!-- ASSINATURAS: Aparecem APÓS as últimas fotos, na mesma página -->
         {% if is_last_batch %}
         <div class="assinaturas-inline">
             <div class="assinaturas-section">
@@ -338,6 +405,24 @@ class WeasyPrintReportGenerator:
         {% endif %}
     </div>
     {% endfor %}
+    
+    {% else %}
+    <!-- SEM FOTOS: Mostrar assinaturas na primeira página -->
+    <div class="assinaturas-section first-page-signatures">
+        <div class="section-header">Assinaturas</div>
+        <div class="assinaturas-table">
+            <div class="assin-row header-row">
+                <div class="assin-cell">Preenchido por:</div>
+                <div class="assin-cell">Liberado por:</div>
+                <div class="assin-cell">Responsável pelo acompanhamento</div>
+            </div>
+            <div class="assin-row value-row">
+                <div class="assin-cell">{{ data.preenchido_por }}</div>
+                <div class="assin-cell">{{ data.liberado_por }}</div>
+                <div class="assin-cell">{{ data.responsavel }}</div>
+            </div>
+        </div>
+    </div>
     {% endif %}
 
     <!-- Rodapé ELP -->
@@ -401,8 +486,8 @@ body {
 }
 
 .logo-container {
-    width: 150px;
-    height: 55px;
+    width: 200px;
+    height: 75px;
     flex-shrink: 0;
 }
 
@@ -439,6 +524,11 @@ body {
     margin-bottom: 6px;
     padding: 0;
     break-inside: avoid;
+}
+
+/* Assinaturas na primeira página - garante espaçamento adequado */
+.first-page-signatures {
+    margin-top: 15px;
 }
 
 .section-header {
