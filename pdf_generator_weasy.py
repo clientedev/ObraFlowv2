@@ -239,7 +239,7 @@ class WeasyPrintReportGenerator:
                 # Construir legenda completa com categoria e local
                 legenda_partes = []
                 if categoria:
-                    legenda_partes.append(f"[{categoria}]")
+                    legenda_partes.append(categoria)
                 if local:
                     legenda_partes.append(f"Local: {local}")
                 if legenda_texto:
@@ -336,7 +336,7 @@ class WeasyPrintReportGenerator:
             {% else %}
                 <div class="photo-placeholder-first">Foto não disponível</div>
             {% endif %}
-            <div class="first-photo-caption">Foto {{ foto.ordem }} - {{ foto.legenda }}</div>
+            <div class="first-photo-caption">Foto {{ foto.ordem + 1 }} - {{ foto.legenda }}</div>
         </div>
         {% endfor %}
     </div>
@@ -377,7 +377,7 @@ class WeasyPrintReportGenerator:
                 {% else %}
                     <div class="photo-placeholder-grid">Foto não disponível</div>
                 {% endif %}
-                <div class="grid-photo-caption">Foto {{ foto.ordem }} - {{ foto.legenda }}</div>
+                <div class="grid-photo-caption">Foto {{ foto.ordem + 1 }} - {{ foto.legenda }}</div>
             </div>
             {% endif %}
             {% endfor %}
@@ -478,7 +478,7 @@ body {
 /* Cabeçalho - layout exato da imagem */
 .header-section {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     margin-bottom: 1.2cm;
     padding-bottom: 0.3cm;
@@ -486,9 +486,12 @@ body {
 }
 
 .logo-container {
-    width: 200px;
-    height: 75px;
+    width: 280px;
+    height: 110px;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .elp-logo {
@@ -505,13 +508,14 @@ body {
     margin: 0;
     flex: 1;
     padding: 0 20px;
+    align-self: center;
 }
 
 .date-info {
     font-size: 10pt;
     color: #666666;
     white-space: nowrap;
-    align-self: flex-end;
+    align-self: center;
 }
 
 /* Seções com fundo cinza - proporções exatas da imagem */
