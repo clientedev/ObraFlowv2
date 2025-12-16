@@ -245,7 +245,7 @@
                             <ul class="pagination justify-content-center">
                                 {% if relatorios.has_prev %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('reports', page=relatorios.page-1, q=request.args.get('q')) }}">Anterior</a>
+                                    <a class="page-link" href="{{ url_for('reports', page=relatorios.page-1, q=request.args.get('q'), status=request.args.get('status')) }}">Anterior</a>
                                 </li>
                                 {% endif %}
 
@@ -253,7 +253,7 @@
                                     {% if page_num %}
                                         {% if page_num != relatorios.page %}
                                         <li class="page-item">
-                                            <a class="page-link" href="{{ url_for('reports', page=page_num, q=request.args.get('q')) }}">{{ page_num }}</a>
+                                            <a class="page-link" href="{{ url_for('reports', page=page_num, q=request.args.get('q'), status=request.args.get('status')) }}">{{ page_num }}</a>
                                         </li>
                                         {% else %}
                                         <li class="page-item active">
@@ -269,7 +269,7 @@
 
                                 {% if relatorios.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('reports', page=relatorios.page+1, q=request.args.get('q')) }}">Próxima</a>
+                                    <a class="page-link" href="{{ url_for('reports', page=relatorios.page+1, q=request.args.get('q'), status=request.args.get('status')) }}">Próxima</a>
                                 </li>
                                 {% endif %}
                             </ul>
