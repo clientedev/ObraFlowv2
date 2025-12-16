@@ -2402,12 +2402,14 @@ def projects_list():
 @app.route('/reports')
 @login_required  
 def reports():
-    """Listar relatórios de obra - versão corrigida com paginação"""
+    """Listar relatórios de obra - versão corrigida com paginação e filtros avançados"""
     try:
         # Obter parâmetros de busca e paginação
         page = request.args.get('page', 1, type=int)
         search_query = request.args.get('q', '')
         status_filter = request.args.get('status', '')
+        projeto_filter = request.args.get('projeto_id', '', type=str)
+        autor_filter = request.args.get('autor_id', '', type=str)
         per_page = 20  # Relatórios por página
 
         # Query básica com joins
@@ -2428,8 +2430,36 @@ def reports():
                     Relatorio.status == 'Rejeitado',
                     Relatorio.status == 'Rascunho'
                 ))
+            elif status_filter == 'preenchimento':
+                query = query.filter(or_(
+                    Relatorio.status == 'preenchimento',
+                    Relatorio.status == 'Em Preenchimento',
+                    Relatorio.status == 'Em preenchimento',
+                    func.lower(Relatorio.status) == 'preenchimento'
+                ))
+            elif status_filter == 'Aguardando Aprovação':
+                query = query.filter(or_(
+                    Relatorio.status == 'Aguardando Aprovação',
+                    Relatorio.status == 'Aguardando Aprovacao'
+                ))
             else:
                 query = query.filter(Relatorio.status == status_filter)
+
+        # Aplicar filtro de projeto se fornecido
+        if projeto_filter:
+            try:
+                projeto_id = int(projeto_filter)
+                query = query.filter(Relatorio.projeto_id == projeto_id)
+            except (ValueError, TypeError):
+                pass
+
+        # Aplicar filtro de autor se fornecido
+        if autor_filter:
+            try:
+                autor_id = int(autor_filter)
+                query = query.filter(Relatorio.autor_id == autor_id)
+            except (ValueError, TypeError):
+                pass
 
         # Aplicar filtro de busca se fornecido
         if search_query and search_query.strip():
@@ -2452,8 +2482,19 @@ def reports():
             error_out=False
         )
 
-        current_app.logger.info(f"✅ Relatórios carregados: {relatorios.total} total, página {page}, filtro={status_filter}")
-        return render_template("reports/list.html", relatorios=relatorios, status_filter=status_filter)
+        # Buscar listas para os selects de filtros
+        projetos_list = Projeto.query.order_by(Projeto.nome).all()
+        autores_list = User.query.filter_by(ativo=True).order_by(User.nome_completo).all()
+
+        current_app.logger.info(f"✅ Relatórios carregados: {relatorios.total} total, página {page}, filtro={status_filter}, projeto={projeto_filter}, autor={autor_filter}")
+        return render_template("reports/list.html", 
+                               relatorios=relatorios, 
+                               status_filter=status_filter,
+                               projeto_filter=projeto_filter,
+                               autor_filter=autor_filter,
+                               search_query=search_query,
+                               projetos_list=projetos_list,
+                               autores_list=autores_list)
 
     except Exception as e:
         current_app.logger.exception(f"❌ Erro ao carregar relatórios: {str(e)}")

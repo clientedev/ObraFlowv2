@@ -15,79 +15,83 @@
                     </a>
                 </div>
 
-                <!-- Busca Simples -->
+                <!-- Filtros Unificados -->
                 <div class="card-body border-bottom">
-                    <form method="GET" action="{{ url_for('reports') }}">
+                    <form method="GET" action="{{ url_for('reports') }}" id="reportFiltersForm">
                         <div class="row g-3 align-items-end">
-                            <div class="col-md-8">
-                                <label class="form-label fw-bold">🔍 Busca Rápida</label>
-                                <input type="text" class="form-control" name="q" value="{{ request.args.get('q', '') }}" 
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Busca Rápida</label>
+                                <input type="text" class="form-control" name="q" value="{{ search_query or '' }}" 
                                        placeholder="Digite o número, título ou projeto do relatório...">
                             </div>
-                            <div class="col-md-4">
-                                <div class="d-flex gap-2">
+                            <div class="col-md-6">
+                                <div class="d-flex gap-2 flex-wrap">
                                     <button type="submit" class="btn btn-primary">
                                         <i class="fas fa-search me-1"></i>Buscar
                                     </button>
-                                    {% if request.args.get('q') %}
+                                    {% if search_query or status_filter or projeto_filter or autor_filter %}
                                     <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary">
-                                        <i class="fas fa-times me-1"></i>Limpar
+                                        <i class="fas fa-times me-1"></i>Limpar Tudo
                                     </a>
                                     {% endif %}
                                     <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#filtrosAvancadosReports">
-                                        <i class="fas fa-filter me-1"></i>Busca Avançada
+                                        <i class="fas fa-filter me-1"></i>Filtros Avançados
+                                        {% if status_filter or projeto_filter or autor_filter %}
+                                        <span class="badge bg-warning text-dark ms-1">Ativos</span>
+                                        {% endif %}
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    </form>
-                </div>
 
-                <!-- Filtros Avançados (Colapsáveis) -->
-                <div class="collapse" id="filtrosAvancadosReports">
-                    <div class="card-body border-bottom">
-                        <h6 class="mb-3"><i class="fas fa-filter me-2"></i>Filtros Avançados</h6>
-                        <div class="row g-3">
-                            <div class="col-md-3 col-sm-6">
-                                <label class="form-label small fw-bold">Status:</label>
-                                <select class="form-select form-select-sm" id="filterStatus">
-                                    <option value="">Todos os Status</option>
-                                    <option value="preenchimento">Em preenchimento</option>
-                                    <option value="Aprovado">Aprovado</option>
-                                    <option value="Rejeitado">Rejeitado</option>
-                                    <option value="Aguardando Aprovação">Aguardando Aprovação</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <label class="form-label small fw-bold">Obra:</label>
-                                <select class="form-select form-select-sm" id="filterProjeto">
-                                    <option value="">Todas as Obras</option>
-                                    <!-- Será preenchido dinamicamente -->
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <label class="form-label small fw-bold">Autor:</label>
-                                <select class="form-select form-select-sm" id="filterAutor">
-                                    <option value="">Todos Autores</option>
-                                    <!-- Será preenchido dinamicamente -->
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <label class="form-label small fw-bold">Pesquisar nos filtros:</label>
-                                <input type="text" class="form-control form-control-sm" id="searchReport" placeholder="Número ou título">
+                        <!-- Filtros Avançados (Colapsáveis) -->
+                        <div class="collapse {% if status_filter or projeto_filter or autor_filter %}show{% endif %}" id="filtrosAvancadosReports">
+                            <div class="border-top mt-3 pt-3">
+                                <h6 class="mb-3"><i class="fas fa-filter me-2"></i>Filtros Avançados</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-4 col-sm-6">
+                                        <label class="form-label small fw-bold">Status:</label>
+                                        <select class="form-select form-select-sm" name="status" id="filterStatus" onchange="this.form.submit()">
+                                            <option value="">Todos os Status</option>
+                                            <option value="preenchimento" {% if status_filter == 'preenchimento' %}selected{% endif %}>Em preenchimento</option>
+                                            <option value="Aprovado" {% if status_filter == 'Aprovado' %}selected{% endif %}>Aprovado</option>
+                                            <option value="Rejeitado" {% if status_filter == 'Rejeitado' %}selected{% endif %}>Rejeitado</option>
+                                            <option value="Aguardando Aprovação" {% if status_filter == 'Aguardando Aprovação' %}selected{% endif %}>Aguardando Aprovação</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 col-sm-6">
+                                        <label class="form-label small fw-bold">Obra:</label>
+                                        <select class="form-select form-select-sm" name="projeto_id" id="filterProjeto" onchange="this.form.submit()">
+                                            <option value="">Todas as Obras</option>
+                                            {% if projetos_list %}
+                                                {% for projeto in projetos_list %}
+                                                <option value="{{ projeto.id }}" {% if projeto_filter == projeto.id|string %}selected{% endif %}>{{ projeto.nome }}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 col-sm-6">
+                                        <label class="form-label small fw-bold">Autor:</label>
+                                        <select class="form-select form-select-sm" name="autor_id" id="filterAutor" onchange="this.form.submit()">
+                                            <option value="">Todos Autores</option>
+                                            {% if autores_list %}
+                                                {% for autor in autores_list %}
+                                                <option value="{{ autor.id }}" {% if autor_filter == autor.id|string %}selected{% endif %}>{{ autor.nome_completo }}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <small class="text-muted">
+                                            <strong>{{ relatorios.total if relatorios else 0 }}</strong> relatório(s) encontrado(s)
+                                        </small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="row mt-2">
-                            <div class="col-12">
-                                <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearReportFilters()">
-                                    <i class="fas fa-times"></i> Limpar Filtros Avançados
-                                </button>
-                                <small class="text-muted">
-                                    <span id="reportFilteredCount">{{ relatorios.items|length if relatorios and relatorios.items else 0 }}</span> relatório(s) encontrado(s)
-                                </small>
-                            </div>
-                        </div>
-                    </div>
+                    </form>
                 </div>
                 <div class="card-body">
                     {% if error %}
@@ -245,7 +249,7 @@
                             <ul class="pagination justify-content-center">
                                 {% if relatorios.has_prev %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('reports', page=relatorios.page-1, q=request.args.get('q'), status=request.args.get('status')) }}">Anterior</a>
+                                    <a class="page-link" href="{{ url_for('reports', page=relatorios.page-1, q=search_query or '', status=status_filter or '', projeto_id=projeto_filter or '', autor_id=autor_filter or '') }}">Anterior</a>
                                 </li>
                                 {% endif %}
 
@@ -253,7 +257,7 @@
                                     {% if page_num %}
                                         {% if page_num != relatorios.page %}
                                         <li class="page-item">
-                                            <a class="page-link" href="{{ url_for('reports', page=page_num, q=request.args.get('q'), status=request.args.get('status')) }}">{{ page_num }}</a>
+                                            <a class="page-link" href="{{ url_for('reports', page=page_num, q=search_query or '', status=status_filter or '', projeto_id=projeto_filter or '', autor_id=autor_filter or '') }}">{{ page_num }}</a>
                                         </li>
                                         {% else %}
                                         <li class="page-item active">
@@ -269,7 +273,7 @@
 
                                 {% if relatorios.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('reports', page=relatorios.page+1, q=request.args.get('q'), status=request.args.get('status')) }}">Próxima</a>
+                                    <a class="page-link" href="{{ url_for('reports', page=relatorios.page+1, q=search_query or '', status=status_filter or '', projeto_id=projeto_filter or '', autor_id=autor_filter or '') }}">Próxima</a>
                                 </li>
                                 {% endif %}
                             </ul>
@@ -294,120 +298,10 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const reportsList = document.getElementById('reportsTable');
-    if (!reportsList) return;
-
-    const reportCards = reportsList.querySelectorAll('.report-card');
-    console.log('Relatórios: encontrados', reportCards.length, 'cards');
-
-    // Preencher filtros dinamicamente
-    fillReportFilterOptions();
-
-    // Configurar eventos dos filtros
-    setupReportFilters();
-
-    function fillReportFilterOptions() {
-        const projetoSet = new Set();
-        const autorSet = new Set();
-
-        reportCards.forEach(card => {
-            const projeto = card.getAttribute('data-projeto');
-            const autor = card.getAttribute('data-autor');
-
-            if (projeto && projeto !== '-' && projeto !== 'Sem obra') projetoSet.add(projeto);
-            if (autor && autor !== '-' && autor !== 'Sem autor') autorSet.add(autor);
-        });
-
-        console.log('Obras encontradas:', Array.from(projetoSet));
-        console.log('Autores encontrados:', Array.from(autorSet));
-
-        // Preencher select de projetos
-        const projetoSelect = document.getElementById('filterProjeto');
-        if (projetoSelect) {
-            projetoSet.forEach(projeto => {
-                const option = document.createElement('option');
-                option.value = projeto;
-                option.textContent = projeto;
-                projetoSelect.appendChild(option);
-            });
-        }
-
-        // Preencher select de autores
-        const autorSelect = document.getElementById('filterAutor');
-        if (autorSelect) {
-            autorSet.forEach(autor => {
-                const option = document.createElement('option');
-                option.value = autor;
-                option.textContent = autor;
-                autorSelect.appendChild(option);
-            });
-        }
+    if (reportsList) {
+        const reportCards = reportsList.querySelectorAll('.report-card');
+        console.log('Relatórios: encontrados', reportCards.length, 'cards na página atual');
     }
-
-    function setupReportFilters() {
-        const filterStatus = document.getElementById('filterStatus');
-        const filterProjeto = document.getElementById('filterProjeto');
-        const filterAutor = document.getElementById('filterAutor');
-        const searchInput = document.getElementById('searchReport');
-
-        [filterStatus, filterProjeto, filterAutor].forEach(filter => {
-            if (filter) filter.addEventListener('change', applyReportFilters);
-        });
-
-        if (searchInput) searchInput.addEventListener('input', applyReportFilters);
-    }
-
-    function applyReportFilters() {
-        const statusFilter = document.getElementById('filterStatus')?.value || '';
-        const projetoFilter = document.getElementById('filterProjeto')?.value || '';
-        const autorFilter = document.getElementById('filterAutor')?.value || '';
-        const searchText = (document.getElementById('searchReport')?.value || '').toLowerCase();
-
-        console.log('Aplicando filtros de relatórios:', { statusFilter, projetoFilter, autorFilter, searchText });
-
-        let visibleCount = 0;
-
-        reportCards.forEach(card => {
-            const status = card.getAttribute('data-status') || '';
-            const projeto = card.getAttribute('data-projeto') || '';
-            const autor = card.getAttribute('data-autor') || '';
-            const searchData = card.getAttribute('data-search') || '';
-
-            const statusMatch = !statusFilter || status.includes(statusFilter);
-            const projetoMatch = !projetoFilter || projeto === projetoFilter;
-            const autorMatch = !autorFilter || autor === autorFilter;
-            const searchMatch = !searchText || searchData.includes(searchText);
-
-            if (statusMatch && projetoMatch && autorMatch && searchMatch) {
-                card.style.display = '';
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
-        });
-
-        const countElement = document.getElementById('reportFilteredCount');
-        if (countElement) countElement.textContent = visibleCount;
-
-        console.log('Filtros aplicados. Visíveis:', visibleCount);
-    }
-
-    // Expor função global para o botão de limpar
-    window.clearReportFilters = function() {
-        console.log('Limpando filtros de relatórios');
-
-        const filters = ['filterStatus', 'filterProjeto', 'filterAutor', 'searchReport'];
-        filters.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.value = '';
-        });
-
-        reportCards.forEach(card => {
-            card.style.display = '';
-        });
-
-        const countElement = document.getElementById('reportFilteredCount');
-        if (countElement) countElement.textContent = reportCards.length;
-    };
 });
 </script>
 {% endblock %}
