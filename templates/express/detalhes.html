@@ -66,10 +66,6 @@
                         <span class="badge bg-success ms-2">Aprovado</span>
                     {% elif relatorio.status == 'Rejeitado' %}
                         <span class="badge bg-danger ms-2">Rejeitado</span>
-                    {% elif relatorio.status == 'rascunho' %}
-                        <span class="badge bg-warning ms-2">Rascunho</span>
-                    {% elif relatorio.status == 'finalizado' %}
-                        <span class="badge bg-success ms-2">Finalizado</span>
                     {% endif %}
                 </h3>
                 <div class="btn-group">
@@ -77,7 +73,7 @@
                         <i class="fas fa-arrow-left"></i> Voltar à Lista
                     </a>
                     
-                    {% if relatorio.status in ['preenchimento', 'Rejeitado', 'rascunho'] %}
+                    {% if relatorio.status in ['preenchimento', 'Rejeitado'] %}
                     <a href="{{ url_for('express_edit', id=relatorio.id) }}" class="btn btn-primary">
                         <i class="fas fa-edit"></i> Editar
                     </a>
@@ -86,7 +82,7 @@
                     </a>
                     {% endif %}
                     
-                    {% if relatorio.status in ['Aprovado', 'finalizado'] %}
+                    {% if relatorio.status == 'Aprovado' %}
                     <a href="{{ url_for('express_pdf', id=relatorio.id) }}" class="btn btn-danger">
                         <i class="fas fa-file-pdf"></i> Baixar PDF
                     </a>
@@ -339,13 +335,21 @@
                     
                     <div class="mb-3">
                         <small class="text-muted">Status:</small><br>
-                        {% if relatorio.status == 'rascunho' %}
-                            <span class="badge bg-warning">
-                                <i class="fas fa-edit"></i> Rascunho
+                        {% if relatorio.status == 'preenchimento' %}
+                            <span class="badge bg-secondary">
+                                <i class="fas fa-pen"></i> Em Preenchimento
                             </span>
-                        {% elif relatorio.status == 'finalizado' %}
+                        {% elif relatorio.status == 'Aguardando Aprovação' %}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-clock"></i> Aguardando Aprovação
+                            </span>
+                        {% elif relatorio.status == 'Aprovado' %}
                             <span class="badge bg-success">
-                                <i class="fas fa-check"></i> Finalizado
+                                <i class="fas fa-check"></i> Aprovado
+                            </span>
+                        {% elif relatorio.status == 'Rejeitado' %}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-times"></i> Rejeitado
                             </span>
                         {% endif %}
                     </div>
@@ -378,18 +382,21 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        {% if relatorio.status == 'rascunho' %}
+                        {% if relatorio.status in ['preenchimento', 'Rejeitado'] %}
                         <a href="{{ url_for('express_edit', id=relatorio.id) }}" class="btn btn-primary">
                             <i class="fas fa-edit"></i> Editar Relatório
                         </a>
-                        <a href="{{ url_for('relatorio_express_adicionar_foto', relatorio_id=relatorio.id) }}" class="btn btn-success">
-                            <i class="fas fa-camera"></i> Adicionar Foto
+                        <a href="{{ url_for('express_actions', id=relatorio.id) }}" class="btn btn-info">
+                            <i class="fas fa-cogs"></i> Página de Ações
                         </a>
                         {% endif %}
                         
-                        {% if relatorio.status == 'finalizado' %}
+                        {% if relatorio.status == 'Aprovado' %}
                         <a href="{{ url_for('express_pdf', id=relatorio.id) }}" class="btn btn-danger">
                             <i class="fas fa-file-pdf"></i> Baixar PDF
+                        </a>
+                        <a href="{{ url_for('express_enviar_email_page', id=relatorio.id) }}" class="btn btn-success">
+                            <i class="fas fa-envelope"></i> Enviar E-mail
                         </a>
                         {% endif %}
                         

@@ -75,15 +75,23 @@
 
                                             <!-- Coluna lateral com status e ações -->
                                             <div class="col-4 text-end">
-                                                <!-- Status -->
+                                                <!-- Status (alinhado com Relatório Normal) -->
                                                 <div class="mb-2">
-                                                    {% if relatorio.status == 'rascunho' %}
-                                                        <span class="badge bg-warning" style="font-size: 0.7rem;">
-                                                            <i class="fas fa-edit me-1"></i>Rascunho
+                                                    {% if relatorio.status == 'preenchimento' %}
+                                                        <span class="badge bg-secondary" style="font-size: 0.7rem;">
+                                                            <i class="fas fa-pen me-1"></i>Preenchimento
                                                         </span>
-                                                    {% elif relatorio.status == 'finalizado' %}
+                                                    {% elif relatorio.status == 'Aguardando Aprovação' %}
+                                                        <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">
+                                                            <i class="fas fa-clock me-1"></i>Aguardando
+                                                        </span>
+                                                    {% elif relatorio.status == 'Aprovado' %}
                                                         <span class="badge bg-success" style="font-size: 0.7rem;">
-                                                            <i class="fas fa-check me-1"></i>Finalizado
+                                                            <i class="fas fa-check me-1"></i>Aprovado
+                                                        </span>
+                                                    {% elif relatorio.status == 'Rejeitado' %}
+                                                        <span class="badge bg-danger" style="font-size: 0.7rem;">
+                                                            <i class="fas fa-times me-1"></i>Rejeitado
                                                         </span>
                                                     {% else %}
                                                         <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ relatorio.status|title }}</span>
@@ -99,17 +107,26 @@
                                                         <i class="fas fa-eye me-1"></i>Ver
                                                     </a>
 
-                                                    <!-- Botão Editar (apenas rascunhos) -->
-                                                    {% if relatorio.status == 'rascunho' %}
+                                                    <!-- Botão Editar (preenchimento ou rejeitados) -->
+                                                    {% if relatorio.status in ['preenchimento', 'Rejeitado'] %}
                                                     <a href="{{ url_for('express_edit', id=relatorio.id) }}" 
                                                        class="btn btn-sm btn-outline-secondary" 
                                                        title="Editar">
                                                         <i class="fas fa-edit me-1"></i>Editar
                                                     </a>
                                                     {% endif %}
+                                                    
+                                                    <!-- Botão Ações (preenchimento ou rejeitado) -->
+                                                    {% if relatorio.status in ['preenchimento', 'Rejeitado'] %}
+                                                    <a href="{{ url_for('express_actions', id=relatorio.id) }}" 
+                                                       class="btn btn-sm btn-outline-info" 
+                                                       title="Ações">
+                                                        <i class="fas fa-cogs me-1"></i>Ações
+                                                    </a>
+                                                    {% endif %}
 
-                                                    <!-- Botão PDF (apenas finalizados) -->
-                                                    {% if relatorio.status == 'finalizado' %}
+                                                    <!-- Botão PDF (apenas aprovados) -->
+                                                    {% if relatorio.status == 'Aprovado' %}
                                                     <a href="{{ url_for('express_pdf', id=relatorio.id) }}" 
                                                        class="btn btn-sm btn-outline-danger" 
                                                        title="Baixar PDF">

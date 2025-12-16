@@ -9785,13 +9785,17 @@ def express_list():
     relatorios = RelatorioExpress.query.order_by(RelatorioExpress.created_at.desc()).all()
 
     # Estatísticas
-    relatorios_rascunho = len([r for r in relatorios if r.status == 'rascunho'])
-    relatorios_finalizados = len([r for r in relatorios if r.status == 'finalizado'])
+    relatorios_em_preenchimento = len([r for r in relatorios if r.status == 'preenchimento'])
+    relatorios_aguardando = len([r for r in relatorios if r.status == 'Aguardando Aprovação'])
+    relatorios_aprovados = len([r for r in relatorios if r.status == 'Aprovado'])
+    relatorios_rejeitados = len([r for r in relatorios if r.status == 'Rejeitado'])
 
     return render_template('express/list.html', 
                          relatorios=relatorios,
-                         relatorios_rascunho=relatorios_rascunho,
-                         relatorios_finalizados=relatorios_finalizados)
+                         relatorios_em_preenchimento=relatorios_em_preenchimento,
+                         relatorios_aguardando=relatorios_aguardando,
+                         relatorios_aprovados=relatorios_aprovados,
+                         relatorios_rejeitados=relatorios_rejeitados)
 
 def calcular_hash_imagem(image_data):
     """Calcula SHA256 hash de dados de imagem"""
@@ -9946,12 +9950,9 @@ def express_new():
                 relatorio_express.checklist_dados = '[]'
                 current_app.logger.info("📋 Checklist salvo como vazio (nenhum item selecionado)")
 
-            # Status baseado na ação
-            if action == 'finalize':
-                relatorio_express.status = 'finalizado'
-                relatorio_express.finalizado_at = datetime.utcnow()
-            else:
-                relatorio_express.status = 'rascunho'
+            # Status inicial - sempre começa em preenchimento
+            # O relatório só pode ser aprovado/rejeitado após passar pelo fluxo de aprovação
+            relatorio_express.status = 'preenchimento'
 
             db.session.add(relatorio_express)
             db.session.flush()  # Para obter o ID
@@ -10190,7 +10191,7 @@ def express_new():
                 flash('Relatório salvo! Configure as ações adicionais.', 'success')
                 return redirect(url_for('express_actions', id=relatorio_express.id))
             else:
-                flash('Rascunho de Relatório Express salvo com sucesso!', 'info')
+                flash('Relatório Express salvo com sucesso!', 'info')
                 return redirect(url_for('express_edit', id=relatorio_express.id))
 
         except Exception as e:
@@ -10289,9 +10290,9 @@ def relatorio_express_adicionar_foto(relatorio_id):
         flash('Acesso negado.', 'error')
         return redirect(url_for('express_list'))
     
-    # Apenas rascunhos podem ter fotos adicionadas
-    if relatorio.status != 'rascunho':
-        flash('Apenas rascunhos podem ter fotos adicionadas.', 'warning')
+    # Apenas relatórios em preenchimento ou rejeitados podem ter fotos adicionadas
+    if relatorio.status not in ['preenchimento', 'Rejeitado']:
+        flash('Apenas relatórios em edição podem ter fotos adicionadas.', 'warning')
         return redirect(url_for('express_detail', id=relatorio_id))
     
     form = FotoExpressForm()
@@ -10371,7 +10372,7 @@ def relatorio_express_adicionar_foto(relatorio_id):
 @app.route('/express/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def express_edit(id):
-    """Editar relatório express (apenas rascunhos)"""
+    """Editar relatório express (preenchimento ou rejeitados)"""
     relatorio = RelatorioExpress.query.get_or_404(id)
 
     # Verificar acesso
@@ -10379,9 +10380,9 @@ def express_edit(id):
         flash('Acesso negado.', 'error')
         return redirect(url_for('express_list'))
 
-    # Apenas rascunhos podem ser editados
-    if relatorio.status != 'rascunho':
-        flash('Apenas rascunhos podem ser editados.', 'warning')
+    # Apenas relatórios em preenchimento ou rejeitados podem ser editados
+    if relatorio.status not in ['preenchimento', 'Rejeitado']:
+        flash('Apenas relatórios em edição podem ser modificados.', 'warning')
         return redirect(url_for('express_detail', id=id))
 
     form = RelatorioExpressForm()
@@ -10611,17 +10612,14 @@ def express_edit(id):
                 except Exception as e:
                     current_app.logger.error(f"❌ Erro ao processar fotos novas na edição: {str(e)}")
 
-            # Atualizar status se finalizar
-            if action == 'finalize':
-                relatorio.status = 'finalizado'
-                relatorio.finalizado_at = datetime.utcnow()
-
+            # Manter status como preenchimento durante edição
+            # A finalização/aprovação é feita apenas pelo fluxo de aprovação
             relatorio.updated_at = datetime.utcnow()
             db.session.commit()
 
-            if action == 'finalize':
-                flash('Relatório Express finalizado com sucesso!', 'success')
-                return redirect(url_for('express_detail', id=id))
+            if action == 'continue_to_actions':
+                flash('Relatório salvo! Configure as ações adicionais.', 'success')
+                return redirect(url_for('express_actions', id=id))
             else:
                 flash('Relatório Express atualizado com sucesso!', 'info')
 
@@ -10702,9 +10700,9 @@ def express_pdf(id):
         flash('Acesso negado.', 'error')
         return redirect(url_for('express_list'))
 
-    # Apenas relatórios finalizados geram PDF
-    if relatorio.status != 'finalizado':
-        flash('Apenas relatórios finalizados podem gerar PDF.', 'warning')
+    # Apenas relatórios aprovados geram PDF
+    if relatorio.status != 'Aprovado':
+        flash('Apenas relatórios aprovados podem gerar PDF.', 'warning')
         return redirect(url_for('express_detail', id=id))
 
     try:

@@ -217,7 +217,7 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-3">
-                        {% if relatorio.status == 'preenchimento' or relatorio.status == 'Rejeitado' %}
+                        {% if relatorio.status in ['preenchimento', 'Rejeitado'] %}
                         <form action="{{ url_for('express_submit_for_approval', id=relatorio.id) }}" method="POST">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-primary btn-lg w-100">
