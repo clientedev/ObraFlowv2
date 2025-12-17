@@ -1,402 +1,451 @@
 """
 Sistema de backup automático para Google Drive
-Integração com pasta compartilhada para salvar relatórios e imagens
+Integração com OAuth 2.0 para salvar relatórios em pastas organizadas
 """
 
 import os
+import io
 import json
-import requests
+import tempfile
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-import mimetypes
-from urllib.parse import urlencode
 
-class GoogleDriveBackup:
-    """Sistema de backup para Google Drive usando API REST"""
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload, MediaIoBaseUpload
+
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+
+class GoogleDriveBackupOAuth:
+    """Sistema de backup para Google Drive usando OAuth 2.0"""
     
-    # ID da pasta compartilhada fornecida
-    SHARED_FOLDER_ID = "1DasfSDL0832tx6AQcQGMFMlOm4JMboAx"
-    
-    # URLs da API do Google Drive
-    DRIVE_API_BASE = "https://www.googleapis.com/drive/v3"
-    UPLOAD_API_BASE = "https://www.googleapis.com/upload/drive/v3"
-    
-    def __init__(self, access_token: Optional[str] = None):
+    def __init__(self):
+        self.credentials = None
+        self.service = None
+        
+    def get_oauth_flow(self, redirect_uri: str) -> Flow:
         """
-        Inicializar sistema de backup
+        Criar flow de autenticação OAuth 2.0
         
         Args:
-            access_token: Token de acesso OAuth 2.0 (se disponível)
+            redirect_uri: URL de callback após autenticação
+            
+        Returns:
+            Flow object para autenticação
         """
-        self.access_token = access_token or os.environ.get("GOOGLE_DRIVE_ACCESS_TOKEN")
+        client_config = self._get_client_config()
         
-        # Fallback: Se não tiver token OAuth, tenta usar Service Account
-        if not self.access_token:
-            try:
-                service_account_info = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
-                if service_account_info:
-                    import json
-                    from google.oauth2 import service_account
-                    from google.auth.transport.requests import Request
-                    
-                    creds_dict = json.loads(service_account_info)
-                    credentials = service_account.Credentials.from_service_account_info(
-                        creds_dict, scopes=['https://www.googleapis.com/auth/drive']
-                    )
-                    credentials.refresh(Request())
-                    self.access_token = credentials.token
-            except Exception as e:
-                print(f"Erro ao usar Service Account: {e}")
+        flow = Flow.from_client_config(
+            client_config,
+            scopes=SCOPES,
+            redirect_uri=redirect_uri
+        )
         
-        self.headers = {
-            "Authorization": f"Bearer {self.access_token}" if self.access_token else None,
-            "Content-Type": "application/json"
+        return flow
+    
+    def _get_client_config(self) -> Dict:
+        """Obter configuração do cliente OAuth"""
+        credentials_json = os.environ.get('GOOGLE_OAUTH_CREDENTIALS_JSON')
+        
+        if not credentials_json:
+            raise Exception("GOOGLE_OAUTH_CREDENTIALS_JSON não configurado")
+        
+        return json.loads(credentials_json)
+    
+    def authorize_with_code(self, code: str, redirect_uri: str) -> Dict[str, Any]:
+        """
+        Trocar código de autorização por tokens
+        
+        Args:
+            code: Código de autorização do Google
+            redirect_uri: URL de callback
+            
+        Returns:
+            Token de acesso e refresh token (sem secrets sensíveis)
+        """
+        flow = self.get_oauth_flow(redirect_uri)
+        flow.fetch_token(code=code)
+        
+        credentials = flow.credentials
+        
+        return {
+            'token': credentials.token,
+            'refresh_token': credentials.refresh_token,
+            'expiry': credentials.expiry.isoformat() if credentials.expiry else None
         }
     
-    def _make_request(self, method: str, url: str, **kwargs) -> requests.Response:
+    def set_credentials_from_token(self, token_info: Dict[str, Any]):
         """
-        Fazer requisição para API do Google Drive
+        Configurar credenciais a partir de token salvo
         
         Args:
-            method: Método HTTP (GET, POST, etc.)
-            url: URL da requisição
-            **kwargs: Argumentos adicionais para requests
-            
-        Returns:
-            Response object
+            token_info: Dicionário com informações do token
         """
-        if not self.access_token:
-            raise Exception("Token de acesso não configurado")
-            
-        headers = kwargs.pop('headers', {})
-        headers.update(self.headers)
+        client_config = self._get_client_config()
+        web_config = client_config.get('web', {})
         
-        response = requests.request(method, url, headers=headers, **kwargs)
+        self.credentials = Credentials(
+            token=token_info.get('token'),
+            refresh_token=token_info.get('refresh_token'),
+            token_uri=web_config.get('token_uri', 'https://oauth2.googleapis.com/token'),
+            client_id=web_config.get('client_id'),
+            client_secret=web_config.get('client_secret'),
+            scopes=SCOPES
+        )
         
-        if response.status_code == 401:
-            raise Exception("Token de acesso expirado ou inválido")
-        elif response.status_code >= 400:
-            raise Exception(f"Erro na API do Google Drive: {response.status_code} - {response.text}")
-            
-        return response
+        self.service = build('drive', 'v3', credentials=self.credentials)
     
-    def create_project_folder(self, project_name: str) -> Optional[str]:
+    def clear_credentials(self):
+        """Limpar credenciais armazenadas"""
+        self.credentials = None
+        self.service = None
+    
+    def find_or_create_folder(self, folder_name: str, parent_id: str = None) -> str:
         """
-        Criar pasta para o projeto dentro da pasta compartilhada
+        Encontrar ou criar pasta no Drive
         
         Args:
-            project_name: Nome do projeto
+            folder_name: Nome da pasta
+            parent_id: ID da pasta pai (opcional)
             
         Returns:
-            ID da pasta criada ou None se houve erro
+            ID da pasta
         """
-        try:
-            # Verificar se pasta já existe
-            existing_folder = self.find_project_folder(project_name)
-            if existing_folder:
-                print(f"Pasta '{project_name}' já existe: {existing_folder}")
-                return existing_folder
-            
-            # Criar nova pasta
-            folder_metadata = {
-                "name": project_name,
-                "mimeType": "application/vnd.google-apps.folder",
-                "parents": [self.SHARED_FOLDER_ID]
-            }
-            
-            url = f"{self.DRIVE_API_BASE}/files"
-            response = self._make_request("POST", url, json=folder_metadata)
-            
-            if response.status_code == 200:
-                folder_data = response.json()
-                folder_id = folder_data.get('id')
-                print(f"Pasta '{project_name}' criada com sucesso: {folder_id}")
-                return folder_id
-            else:
-                print(f"Erro ao criar pasta: {response.status_code} - {response.text}")
-                return None
-                
-        except Exception as e:
-            print(f"Erro ao criar pasta do projeto: {str(e)}")
-            return None
+        if not self.service:
+            raise Exception("Serviço não inicializado. Faça login primeiro.")
+        
+        query = f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+        if parent_id:
+            query += f" and '{parent_id}' in parents"
+        
+        results = self.service.files().list(
+            q=query,
+            spaces='drive',
+            fields='files(id, name)'
+        ).execute()
+        
+        files = results.get('files', [])
+        
+        if files:
+            return files[0]['id']
+        
+        file_metadata = {
+            'name': folder_name,
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+        
+        if parent_id:
+            file_metadata['parents'] = [parent_id]
+        
+        folder = self.service.files().create(
+            body=file_metadata,
+            fields='id'
+        ).execute()
+        
+        return folder.get('id')
     
-    def find_project_folder(self, project_name: str) -> Optional[str]:
+    def upload_pdf_bytes(self, pdf_bytes: bytes, filename: str, folder_id: str) -> Dict[str, Any]:
         """
-        Encontrar pasta existente do projeto
+        Upload de PDF em bytes para o Drive
         
         Args:
-            project_name: Nome do projeto
+            pdf_bytes: Conteúdo do PDF em bytes
+            filename: Nome do arquivo
+            folder_id: ID da pasta de destino
             
         Returns:
-            ID da pasta se encontrada, None caso contrário
+            Informações do arquivo enviado
         """
-        try:
-            # Buscar pasta dentro da pasta compartilhada
-            query = f"name='{project_name}' and mimeType='application/vnd.google-apps.folder' and '{self.SHARED_FOLDER_ID}' in parents"
-            params = {
-                "q": query,
-                "fields": "files(id, name)"
-            }
-            
-            url = f"{self.DRIVE_API_BASE}/files"
-            response = self._make_request("GET", url, params=params)
-            
-            if response.status_code == 200:
-                files = response.json().get('files', [])
-                if files:
-                    folder_id = files[0]['id']
-                    print(f"Pasta '{project_name}' encontrada: {folder_id}")
-                    return folder_id
-            
-            return None
-            
-        except Exception as e:
-            print(f"Erro ao buscar pasta do projeto: {str(e)}")
-            return None
+        if not self.service:
+            raise Exception("Serviço não inicializado. Faça login primeiro.")
+        
+        file_metadata = {
+            'name': filename,
+            'parents': [folder_id]
+        }
+        
+        media = MediaIoBaseUpload(
+            io.BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            resumable=True
+        )
+        
+        file = self.service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, name, webViewLink'
+        ).execute()
+        
+        return {
+            'id': file.get('id'),
+            'name': file.get('name'),
+            'link': file.get('webViewLink')
+        }
     
-    def upload_file(self, file_path: str, project_name: str, file_name: Optional[str] = None) -> bool:
+    def upload_file(self, file_path: str, folder_id: str, filename: str = None) -> Dict[str, Any]:
         """
-        Fazer upload de arquivo para pasta do projeto
+        Upload de arquivo para o Drive
         
         Args:
             file_path: Caminho do arquivo local
-            project_name: Nome do projeto
-            file_name: Nome do arquivo no Drive (opcional, usa nome do arquivo se não especificado)
+            folder_id: ID da pasta de destino
+            filename: Nome do arquivo (opcional)
             
         Returns:
-            True se upload foi bem sucedido, False caso contrário
+            Informações do arquivo enviado
         """
-        try:
-            # Verificar se arquivo existe
-            if not os.path.exists(file_path):
-                print(f"Arquivo não encontrado: {file_path}")
-                return False
-            
-            # Obter ou criar pasta do projeto
-            folder_id = self.find_project_folder(project_name)
-            if not folder_id:
-                folder_id = self.create_project_folder(project_name)
-                if not folder_id:
-                    print(f"Não foi possível criar/encontrar pasta para projeto: {project_name}")
-                    return False
-            
-            # Preparar metadados do arquivo
-            if not file_name:
-                file_name = os.path.basename(file_path)
-            
-            # Detectar tipo MIME
-            mime_type, _ = mimetypes.guess_type(file_path)
-            if not mime_type:
-                mime_type = 'application/octet-stream'
-            
-            file_metadata = {
-                "name": file_name,
-                "parents": [folder_id]
-            }
-            
-            # Upload do arquivo usando multipart
-            url = f"{self.UPLOAD_API_BASE}/files?uploadType=multipart"
-            
-            # Preparar dados multipart manualmente
-            boundary = f"----formdata-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            
-            # Parte 1: Metadados JSON
-            metadata_part = f'--{boundary}\r\nContent-Type: application/json\r\n\r\n{json.dumps(file_metadata)}\r\n'
-            
-            # Parte 2: Conteúdo do arquivo
-            file_part_header = f'--{boundary}\r\nContent-Type: {mime_type}\r\n\r\n'
-            file_part_footer = f'\r\n--{boundary}--\r\n'
-            
-            # Ler arquivo
-            with open(file_path, 'rb') as f:
-                file_content = f.read()
-            
-            # Combinar todas as partes
-            body = (metadata_part.encode('utf-8') + 
-                   file_part_header.encode('utf-8') + 
-                   file_content + 
-                   file_part_footer.encode('utf-8'))
-            
-            # Headers para upload multipart
-            upload_headers = {
-                "Authorization": f"Bearer {self.access_token}",
-                "Content-Type": f"multipart/related; boundary={boundary}",
-                "Content-Length": str(len(body))
-            }
-            
-            # Fazer upload
-            response = requests.post(url, headers=upload_headers, data=body)
-            
-            if response.status_code == 200:
-                file_data = response.json()
-                file_id = file_data.get('id')
-                print(f"Upload bem sucedido: {file_name} -> {file_id}")
-                return True
-            else:
-                print(f"Erro no upload: {response.status_code} - {response.text}")
-                return False
-                
-        except Exception as e:
-            print(f"Erro no upload do arquivo: {str(e)}")
-            return False
+        if not self.service:
+            raise Exception("Serviço não inicializado. Faça login primeiro.")
+        
+        if not os.path.exists(file_path):
+            raise Exception(f"Arquivo não encontrado: {file_path}")
+        
+        if not filename:
+            filename = os.path.basename(file_path)
+        
+        file_metadata = {
+            'name': filename,
+            'parents': [folder_id]
+        }
+        
+        media = MediaFileUpload(file_path, resumable=True)
+        
+        file = self.service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, name, webViewLink'
+        ).execute()
+        
+        return {
+            'id': file.get('id'),
+            'name': file.get('name'),
+            'link': file.get('webViewLink')
+        }
     
-    def backup_report_files(self, report_data: Dict[str, Any], project_name: str) -> Dict[str, bool]:
+    def test_connection(self) -> Dict[str, Any]:
         """
-        Fazer backup de todos os arquivos relacionados a um relatório
+        Testar conexão com Google Drive
         
-        Args:
-            report_data: Dados do relatório incluindo caminhos de arquivos
-            project_name: Nome do projeto
-            
         Returns:
-            Dict com status do upload de cada arquivo
+            Status da conexão
         """
-        results = {}
-        
-        try:
-            # Upload do PDF do relatório
-            if 'pdf_path' in report_data and report_data['pdf_path']:
-                pdf_name = f"relatorio_{report_data.get('id', 'unknown')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                results['pdf'] = self.upload_file(report_data['pdf_path'], project_name, pdf_name)
-            
-            # Upload de imagens anexadas
-            if 'images' in report_data and report_data['images']:
-                results['images'] = []
-                for i, image_path in enumerate(report_data['images']):
-                    if os.path.exists(image_path):
-                        image_name = f"imagem_{i+1}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-                        upload_success = self.upload_file(image_path, project_name, image_name)
-                        results['images'].append({
-                            'path': image_path,
-                            'success': upload_success
-                        })
-            
-            return {
-                'success': len(results) > 0,
-                'results': results,
-                'total_files': len(results),
-                'successful_uploads': sum(1 for r in results if r.get('success')),
-                'failed_uploads': sum(1 for r in results if not r.get('success'))
-            }
-            
-        except Exception as e:
-            print(f"Erro no backup dos arquivos do relatório: {str(e)}")
+        if not self.service:
             return {
                 'success': False,
-                'error': str(e),
-                'results': [],
-                'total_files': 0,
-                'successful_uploads': 0,
-                'failed_uploads': 0
+                'message': 'Não autenticado. Faça login primeiro.'
             }
+        
+        try:
+            about = self.service.about().get(fields='user').execute()
+            user = about.get('user', {})
+            
+            return {
+                'success': True,
+                'message': f"Conectado como: {user.get('displayName', 'Usuário')} ({user.get('emailAddress', '')})",
+                'user': user
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Erro na conexão: {str(e)}'
+            }
+
+
+drive_backup = GoogleDriveBackupOAuth()
+
+
+def get_authorization_url(redirect_uri: str) -> str:
+    """
+    Obter URL de autorização do Google
+    
+    Args:
+        redirect_uri: URL de callback
+        
+    Returns:
+        URL para redirecionar o usuário
+    """
+    flow = drive_backup.get_oauth_flow(redirect_uri)
+    authorization_url, state = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true',
+        prompt='consent'
+    )
+    
+    return authorization_url, state
+
+
+def exchange_code_for_token(code: str, redirect_uri: str) -> Dict[str, Any]:
+    """
+    Trocar código por token
+    
+    Args:
+        code: Código de autorização
+        redirect_uri: URL de callback
+        
+    Returns:
+        Informações do token
+    """
+    return drive_backup.authorize_with_code(code, redirect_uri)
+
+
+def backup_all_reports_to_drive(token_info: Dict[str, Any], db_session, Relatorio, FotoRelatorio, RelatorioExpress, FotoRelatorioExpress, WeasyPrintReportGenerator) -> Dict[str, Any]:
+    """
+    Fazer backup de todos os relatórios para o Google Drive
+    
+    Args:
+        token_info: Token de autenticação
+        db_session: Sessão do banco de dados
+        Relatorio: Model de relatório
+        FotoRelatorio: Model de fotos
+        RelatorioExpress: Model de relatório express
+        FotoRelatorioExpress: Model de fotos express
+        WeasyPrintReportGenerator: Gerador de PDF
+        
+    Returns:
+        Resultado do backup
+    """
+    backup_instance = GoogleDriveBackupOAuth()
+    backup_instance.set_credentials_from_token(token_info)
+    
+    relatorio_folder_id = backup_instance.find_or_create_folder('Relatorio')
+    express_folder_id = backup_instance.find_or_create_folder('Relatorio Express')
+    
+    results = {
+        'relatorios': {'total': 0, 'success': 0, 'failed': 0, 'files': []},
+        'express': {'total': 0, 'success': 0, 'failed': 0, 'files': []}
+    }
+    
+    generator = WeasyPrintReportGenerator()
+    
+    relatorios = Relatorio.query.filter_by(status='aprovado').all()
+    results['relatorios']['total'] = len(relatorios)
+    
+    for relatorio in relatorios:
+        try:
+            fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
+            
+            pdf_bytes = generator.generate_report_pdf(relatorio, fotos)
+            
+            projeto_nome = relatorio.projeto.nome if relatorio.projeto else 'Sem_Projeto'
+            projeto_nome = ''.join(c for c in projeto_nome if c.isalnum() or c in (' ', '-', '_'))[:50]
+            
+            filename = f"Relatorio_{relatorio.numero.replace('/', '_')}_{projeto_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
+            
+            file_info = backup_instance.upload_pdf_bytes(pdf_bytes, filename, relatorio_folder_id)
+            
+            results['relatorios']['success'] += 1
+            results['relatorios']['files'].append({
+                'numero': relatorio.numero,
+                'filename': filename,
+                'link': file_info.get('link')
+            })
+            
+        except Exception as e:
+            results['relatorios']['failed'] += 1
+            print(f"Erro ao fazer backup do relatório {relatorio.id}: {str(e)}")
+    
+    relatorios_express = RelatorioExpress.query.filter_by(status='aprovado').all()
+    results['express']['total'] = len(relatorios_express)
+    
+    for express in relatorios_express:
+        try:
+            fotos = FotoRelatorioExpress.query.filter_by(
+                relatorio_express_id=express.id
+            ).order_by(FotoRelatorioExpress.ordem).all()
+            
+            class VirtualProject:
+                def __init__(self, obra_nome, obra_endereco, obra_construtora, obra_responsavel):
+                    self.nome = obra_nome or 'Obra Express'
+                    self.endereco = obra_endereco or ''
+                    self.construtora = obra_construtora or ''
+                    self.cliente = obra_construtora or ''
+                    self.responsavel = obra_responsavel or ''
+            
+            class VirtualAuthor:
+                def __init__(self, nome='Não informado'):
+                    self.nome_completo = nome
+            
+            class ExpressReportAdapter:
+                def __init__(self, express_report):
+                    self.id = express_report.id
+                    self.numero = express_report.numero
+                    self.data_visita = express_report.data_visita
+                    self.hora_chegada = express_report.hora_chegada
+                    self.hora_saida = express_report.hora_saida
+                    self.descricao = express_report.descricao_servico or ''
+                    self.observacoes = express_report.observacoes or ''
+                    self.atividades_realizadas = express_report.atividades_realizadas or ''
+                    self.pendencias = express_report.pendencias or ''
+                    self.etapa_atual = express_report.etapa_atual or ''
+                    self.items_observados = ''
+                    self.status = express_report.status
+                    self.created_at = express_report.created_at
+                    self.clima = express_report.clima or 'Não informado'
+                    self.condicao_tempo = express_report.clima or 'Não informado'
+                    self.projeto = VirtualProject(
+                        express_report.obra_nome,
+                        express_report.obra_endereco,
+                        express_report.obra_construtora,
+                        express_report.obra_responsavel
+                    )
+                    
+                    if express_report.autor:
+                        self.autor = express_report.autor
+                    else:
+                        self.autor = VirtualAuthor()
+            
+            adapter = ExpressReportAdapter(express)
+            
+            pdf_bytes = generator.generate_report_pdf(adapter, fotos)
+            
+            obra_nome = express.obra_nome or 'Express'
+            obra_nome = ''.join(c for c in obra_nome if c.isalnum() or c in (' ', '-', '_'))[:50]
+            
+            filename = f"Express_{express.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
+            
+            file_info = backup_instance.upload_pdf_bytes(pdf_bytes, filename, express_folder_id)
+            
+            results['express']['success'] += 1
+            results['express']['files'].append({
+                'numero': express.numero,
+                'filename': filename,
+                'link': file_info.get('link')
+            })
+            
+        except Exception as e:
+            results['express']['failed'] += 1
+            print(f"Erro ao fazer backup do relatório express {express.id}: {str(e)}")
+    
+    return {
+        'success': True,
+        'message': f"Backup concluído! Relatórios: {results['relatorios']['success']}/{results['relatorios']['total']}, Express: {results['express']['success']}/{results['express']['total']}",
+        'results': results
+    }
+
+
+def test_drive_connection() -> Dict[str, Any]:
+    """
+    Testar conexão com Google Drive (função de compatibilidade)
+    
+    Returns:
+        Status da conexão
+    """
+    return drive_backup.test_connection()
+
 
 def backup_to_drive(report_data: Dict[str, Any], project_name: str) -> Dict[str, Any]:
     """
-    Função principal para backup automático no Google Drive
+    Função de compatibilidade para backup individual
     
     Args:
         report_data: Dados do relatório
         project_name: Nome do projeto
         
     Returns:
-        Resultado do backup com status de cada arquivo
+        Resultado do backup
     """
-    try:
-        # Verificar se token está disponível
-        access_token = os.environ.get("GOOGLE_DRIVE_ACCESS_TOKEN")
-        if not access_token:
-            return {
-                'success': False,
-                'error': 'Token de acesso ao Google Drive não configurado',
-                'message': 'Configure GOOGLE_DRIVE_ACCESS_TOKEN nas variáveis de ambiente'
-            }
-        
-        # Inicializar sistema de backup
-        backup_system = GoogleDriveBackup(access_token)
-        
-        # Fazer backup dos arquivos
-        results = backup_system.backup_report_files(report_data, project_name)
-        
-        # Verificar se houve algum erro
-        if 'error' in results:
-            return {
-                'success': False,
-                'error': results['error'],
-                'message': 'Erro durante o backup'
-            }
-        
-        # Contar sucessos e falhas
-        total_files = 0
-        successful_uploads = 0
-        
-        if 'pdf' in results:
-            total_files += 1
-            if results['pdf']:
-                successful_uploads += 1
-        
-        if 'images' in results:
-            for img_result in results['images']:
-                total_files += 1
-                if img_result['success']:
-                    successful_uploads += 1
-        
-        return {
-            'success': successful_uploads > 0,
-            'total_files': total_files,
-            'successful_uploads': successful_uploads,
-            'failed_uploads': total_files - successful_uploads,
-            'results': results,
-            'message': f'Backup concluído: {successful_uploads}/{total_files} arquivos enviados com sucesso'
-        }
-        
-    except Exception as e:
-        return {
-            'success': False,
-            'error': str(e),
-            'message': 'Erro durante o backup para Google Drive'
-        }
-
-# Função de teste para verificar conectividade
-def test_drive_connection() -> Dict[str, Any]:
-    """
-    Testar conexão com Google Drive
-    
-    Returns:
-        Status da conexão
-    """
-    try:
-        access_token = os.environ.get("GOOGLE_DRIVE_ACCESS_TOKEN")
-        if not access_token:
-            return {
-                'success': False,
-                'error': 'Token não configurado',
-                'message': 'GOOGLE_DRIVE_ACCESS_TOKEN não encontrado'
-            }
-        
-        backup_system = GoogleDriveBackup(access_token)
-        
-        # Testar acesso à pasta compartilhada
-        url = f"{backup_system.DRIVE_API_BASE}/files/{backup_system.SHARED_FOLDER_ID}"
-        response = backup_system._make_request("GET", url, params={"fields": "id,name,capabilities"})
-        
-        if response.status_code == 200:
-            folder_data = response.json()
-            return {
-                'success': True,
-                'folder_name': folder_data.get('name'),
-                'folder_id': folder_data.get('id'),
-                'message': 'Conexão com Google Drive estabelecida com sucesso'
-            }
-        else:
-            return {
-                'success': False,
-                'error': f'Erro HTTP {response.status_code}',
-                'message': 'Falha ao acessar pasta compartilhada'
-            }
-            
-    except Exception as e:
-        return {
-            'success': False,
-            'error': str(e),
-            'message': 'Erro ao testar conexão com Google Drive'
-        }
+    return {
+        'success': False,
+        'message': 'Use a funcionalidade de Salvar Backup na área de administração'
+    }

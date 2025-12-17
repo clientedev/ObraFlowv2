@@ -20,7 +20,7 @@ from models import (
     ComunicacaoVisita, EmailCliente, ChecklistPadrao,
     ChecklistObra, FuncionarioProjeto, AprovadorPadrao, ProjetoChecklistConfig,
     LogEnvioEmail, ConfiguracaoEmail,
-    VisitaParticipante, TipoObra, CategoriaObra, Notificacao
+    VisitaParticipante, TipoObra, CategoriaObra, Notificacao, GoogleDriveToken
 )
 
 # ==========================================================================================
@@ -9148,21 +9148,177 @@ def api_get_project_checklist(project_id):
 @app.route('/admin/drive/test')
 @login_required
 def admin_drive_test():
-    """Testar conexão com Google Drive - apenas administradores"""
+    """Página de backup para Google Drive - apenas administradores"""
     if not current_user.is_master:
-        flash('Acesso negado. Apenas administradores podem testar a conexão.', 'error')
+        flash('Acesso negado. Apenas administradores podem acessar esta página.', 'error')
         return redirect(url_for('index'))
+    
+    is_authenticated = False
+    connection_info = ''
+    
+    stored_token = GoogleDriveToken.query.filter_by(user_id=current_user.id).first()
+    if stored_token:
+        try:
+            from google_drive_backup import GoogleDriveBackupOAuth
+            backup_instance = GoogleDriveBackupOAuth()
+            token_info = {
+                'token': stored_token.get_access_token(),
+                'refresh_token': stored_token.get_refresh_token()
+            }
+            backup_instance.set_credentials_from_token(token_info)
+            result = backup_instance.test_connection()
+            if result['success']:
+                is_authenticated = True
+                connection_info = result.get('message', 'Conectado')
+            backup_instance.clear_credentials()
+        except Exception as e:
+            logging.error(f"Erro ao verificar token Google Drive: {e}")
+    
+    relatorios_aprovados = Relatorio.query.filter_by(status='aprovado').count()
+    express_aprovados = RelatorioExpress.query.filter_by(status='aprovado').count()
+    
+    stats = {
+        'relatorios_aprovados': relatorios_aprovados,
+        'express_aprovados': express_aprovados
+    }
+    
+    return render_template('admin/drive_test.html',
+                          is_authenticated=is_authenticated,
+                          connection_info=connection_info,
+                          stats=stats)
 
+
+@app.route('/admin/drive/oauth/start')
+@login_required
+def drive_oauth_start():
+    """Iniciar autenticação OAuth com Google Drive"""
+    if not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
     try:
-        result = test_drive_connection()
-        if result['success']:
-            flash(f'Conexão OK: {result["message"]}', 'success')
-        else:
-            flash(f'Erro na conexão: {result["message"]}', 'error')
+        from google_drive_backup import get_authorization_url
+        
+        redirect_uri = url_for('drive_oauth_callback', _external=True)
+        
+        authorization_url, state = get_authorization_url(redirect_uri)
+        
+        session['oauth_state'] = state
+        
+        return redirect(authorization_url)
+        
     except Exception as e:
-        flash(f'Erro ao testar conexão: {str(e)}', 'error')
+        logging.error(f"Erro ao iniciar OAuth: {e}")
+        flash(f'Erro ao iniciar autenticação: {str(e)}', 'error')
+        return redirect(url_for('admin_drive_test'))
 
-    return redirect(url_for('index'))
+
+@app.route('/admin/drive/oauth/callback')
+@login_required
+def drive_oauth_callback():
+    """Callback do OAuth Google Drive"""
+    if not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        from google_drive_backup import exchange_code_for_token
+        from datetime import datetime
+        
+        code = request.args.get('code')
+        if not code:
+            flash('Código de autorização não recebido.', 'error')
+            return redirect(url_for('admin_drive_test'))
+        
+        redirect_uri = url_for('drive_oauth_callback', _external=True)
+        
+        token_info = exchange_code_for_token(code, redirect_uri)
+        
+        stored_token = GoogleDriveToken.query.filter_by(user_id=current_user.id).first()
+        if not stored_token:
+            stored_token = GoogleDriveToken(user_id=current_user.id)
+        
+        stored_token.set_tokens(
+            access_token=token_info.get('token'),
+            refresh_token=token_info.get('refresh_token')
+        )
+        
+        if token_info.get('expiry'):
+            stored_token.token_expiry = datetime.fromisoformat(token_info.get('expiry'))
+        
+        db.session.add(stored_token)
+        db.session.commit()
+        
+        flash('Conectado ao Google Drive com sucesso!', 'success')
+        return redirect(url_for('admin_drive_test'))
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Erro no callback OAuth: {e}")
+        flash(f'Erro na autenticação: {str(e)}', 'error')
+        return redirect(url_for('admin_drive_test'))
+
+
+@app.route('/admin/drive/oauth/logout')
+@login_required
+def drive_oauth_logout():
+    """Desconectar do Google Drive"""
+    if not current_user.is_master:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        stored_token = GoogleDriveToken.query.filter_by(user_id=current_user.id).first()
+        if stored_token:
+            db.session.delete(stored_token)
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Erro ao remover token: {e}")
+    
+    flash('Desconectado do Google Drive.', 'info')
+    return redirect(url_for('admin_drive_test'))
+
+
+@app.route('/admin/drive/backup-all-pdfs', methods=['POST'])
+@login_required
+@csrf.exempt
+def drive_backup_all_pdfs():
+    """Fazer backup de todos os PDFs dos relatórios aprovados"""
+    if not current_user.is_master:
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    
+    stored_token = GoogleDriveToken.query.filter_by(user_id=current_user.id).first()
+    if not stored_token:
+        return jsonify({'success': False, 'message': 'Não autenticado. Faça login no Google Drive primeiro.'}), 401
+    
+    try:
+        from google_drive_backup import backup_all_reports_to_drive
+        from pdf_generator_weasy import WeasyPrintReportGenerator
+        
+        token_info = {
+            'token': stored_token.get_access_token(),
+            'refresh_token': stored_token.get_refresh_token()
+        }
+        
+        result = backup_all_reports_to_drive(
+            token_info=token_info,
+            db_session=db.session,
+            Relatorio=Relatorio,
+            FotoRelatorio=FotoRelatorio,
+            RelatorioExpress=RelatorioExpress,
+            FotoRelatorioExpress=FotoRelatorioExpress,
+            WeasyPrintReportGenerator=WeasyPrintReportGenerator
+        )
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logging.error(f"Erro no backup de PDFs: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao fazer backup: {str(e)}'
+        }), 500
 
 @app.route('/admin/drive/force-backup/<int:report_id>')
 @login_required

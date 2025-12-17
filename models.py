@@ -85,6 +85,54 @@ class UserEmailConfig(db.Model):
     def __repr__(self):
         return f'<UserEmailConfig {self.email_address} for user {self.user_id}>'
 
+class GoogleDriveToken(db.Model):
+    """Armazenamento seguro de tokens OAuth do Google Drive"""
+    __tablename__ = 'google_drive_tokens'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True)
+    encrypted_token = db.Column(db.Text, nullable=False)
+    encrypted_refresh_token = db.Column(db.Text, nullable=True)
+    token_expiry = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref='google_drive_token')
+    
+    def _get_encryption_key(self):
+        """Get encryption key - uses same key as email config or generates one"""
+        key = os.environ.get('EMAIL_PASSWORD_ENCRYPTION_KEY')
+        if not key:
+            key = os.environ.get('SECRET_KEY', 'default-key-for-development-only')
+            import hashlib
+            key = hashlib.sha256(key.encode()).digest()
+            import base64
+            key = base64.urlsafe_b64encode(key)
+        return key.encode() if isinstance(key, str) else key
+    
+    def set_tokens(self, access_token: str, refresh_token: str = None):
+        """Encrypt and store tokens"""
+        key = self._get_encryption_key()
+        f = Fernet(key)
+        self.encrypted_token = f.encrypt(access_token.encode()).decode()
+        if refresh_token:
+            self.encrypted_refresh_token = f.encrypt(refresh_token.encode()).decode()
+    
+    def get_access_token(self) -> str:
+        """Decrypt and return access token"""
+        key = self._get_encryption_key()
+        f = Fernet(key)
+        return f.decrypt(self.encrypted_token.encode()).decode()
+    
+    def get_refresh_token(self) -> str:
+        """Decrypt and return refresh token"""
+        if not self.encrypted_refresh_token:
+            return None
+        key = self._get_encryption_key()
+        f = Fernet(key)
+        return f.decrypt(self.encrypted_refresh_token.encode()).decode()
+
+
 class TipoObra(db.Model):
     __tablename__ = 'tipos_obra'
     
