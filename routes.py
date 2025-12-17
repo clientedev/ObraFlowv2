@@ -20,7 +20,8 @@ from models import (
     ComunicacaoVisita, EmailCliente, ChecklistPadrao,
     ChecklistObra, FuncionarioProjeto, AprovadorPadrao, ProjetoChecklistConfig,
     LogEnvioEmail, ConfiguracaoEmail,
-    VisitaParticipante, TipoObra, CategoriaObra, Notificacao, GoogleDriveToken
+    VisitaParticipante, TipoObra, CategoriaObra, Notificacao, GoogleDriveToken,
+    RelatorioExpress, FotoRelatorioExpress
 )
 
 # ==========================================================================================
