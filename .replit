@@ -72,3 +72,5 @@ expertMode = true
 
 [userenv.shared]
 DATABASE_URL = "postgresql://postgres:KgyYkEmMztCNMSPHVbOpWLTiKZFXYwpB@switchback.proxy.rlwy.net:17107/railway"
+GOOGLE_CLIENT_ID = "94376096098-rghkj8oi39vgf8p2cpf3j73dverl7gds.apps.googleusercontent.com"
+GOOGLE_PROJECT_ID = "deft-orb-481501-m1"
