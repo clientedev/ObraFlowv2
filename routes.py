@@ -9199,10 +9199,13 @@ def drive_oauth_start():
     
     try:
         from google_drive_backup import get_authorization_url
+        import logging
         
         redirect_uri = url_for('drive_oauth_callback', _external=True)
+        logging.info(f"🔐 OAuth redirect_uri: {redirect_uri}")
         
         authorization_url, state = get_authorization_url(redirect_uri)
+        logging.info(f"🔐 OAuth authorization_url: {authorization_url}")
         
         session['oauth_state'] = state
         
