@@ -584,6 +584,194 @@ class NotificationService:
             logger.error(f"❌ Erro ao limpar notificações expiradas: {e}")
             return {'success': False, 'error': str(e)}
     
+    def criar_notificacao_express_pendente(self, relatorio_express_id):
+        """
+        Cria notificação para o aprovador quando Relatório Express é enviado para aprovação
+        Busca aprovador global (Relatório Express não tem projeto vinculado)
+        
+        Args:
+            relatorio_express_id: ID do relatório express pendente
+        """
+        try:
+            from models import RelatorioExpress, AprovadorPadrao
+            
+            relatorio = RelatorioExpress.query.get(relatorio_express_id)
+            if not relatorio:
+                logger.error(f"❌ Relatório Express {relatorio_express_id} não encontrado")
+                return {'success': False, 'error': 'Relatório Express não encontrado'}
+            
+            aprovador_id = None
+            
+            aprovador_global = AprovadorPadrao.query.filter_by(
+                is_global=True,
+                ativo=True
+            ).order_by(AprovadorPadrao.prioridade).first()
+            
+            if aprovador_global:
+                aprovador_id = aprovador_global.aprovador_id
+                logger.info(f"✅ Aprovador global encontrado: user {aprovador_id}")
+            
+            if not aprovador_id:
+                aprovador_padrao = AprovadorPadrao.query.filter_by(
+                    projeto_id=None,
+                    ativo=True
+                ).order_by(AprovadorPadrao.prioridade).first()
+                
+                if aprovador_padrao:
+                    aprovador_id = aprovador_padrao.aprovador_id
+                    logger.info(f"✅ Aprovador padrão encontrado: user {aprovador_id}")
+            
+            if not aprovador_id and hasattr(relatorio, 'aprovador_id') and relatorio.aprovador_id:
+                aprovador_id = relatorio.aprovador_id
+                logger.info(f"✅ Usando aprovador_id do relatório: user {aprovador_id}")
+            
+            if not aprovador_id:
+                logger.warning(f"⚠️ Nenhum aprovador encontrado para Relatório Express {relatorio_express_id}")
+                return {'success': False, 'error': 'Nenhum aprovador configurado'}
+            
+            resultado = self.criar_notificacao(
+                user_id=aprovador_id,
+                tipo='relatorio_express_pendente',
+                titulo='Novo Relatório Express aguardando aprovação',
+                mensagem=f'O Relatório Express "{relatorio.numero}" da obra "{relatorio.obra_nome}" está aguardando sua aprovação.',
+                link_destino=f'/relatorio-express/{relatorio_express_id}'
+            )
+            
+            return resultado
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao criar notificação de Relatório Express pendente: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    def criar_notificacao_express_aprovado(self, relatorio_express_id, aprovador_id):
+        """
+        Cria notificação para o autor quando Relatório Express é aprovado
+        
+        Args:
+            relatorio_express_id: ID do relatório express aprovado
+            aprovador_id: ID do aprovador que aprovou
+        """
+        try:
+            from models import RelatorioExpress, User
+            
+            relatorio = RelatorioExpress.query.get(relatorio_express_id)
+            if not relatorio:
+                logger.error(f"❌ Relatório Express {relatorio_express_id} não encontrado")
+                return {'success': False, 'error': 'Relatório Express não encontrado'}
+            
+            aprovador = User.query.get(aprovador_id)
+            aprovador_nome = aprovador.nome_completo if aprovador else "Aprovador"
+            
+            resultado = self.criar_notificacao(
+                user_id=relatorio.autor_id,
+                tipo='relatorio_express_aprovado',
+                titulo='Relatório Express aprovado',
+                mensagem=f'Seu Relatório Express "{relatorio.numero}" da obra "{relatorio.obra_nome}" foi aprovado por {aprovador_nome}.',
+                link_destino=f'/relatorio-express/{relatorio_express_id}'
+            )
+            
+            return resultado
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao criar notificação de Relatório Express aprovado: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    def criar_notificacao_express_reprovado(self, relatorio_express_id):
+        """
+        Cria notificação para o autor quando Relatório Express é rejeitado
+        
+        Args:
+            relatorio_express_id: ID do relatório express rejeitado
+        """
+        try:
+            from models import RelatorioExpress
+            
+            relatorio = RelatorioExpress.query.get(relatorio_express_id)
+            if not relatorio:
+                logger.error(f"❌ Relatório Express {relatorio_express_id} não encontrado")
+                return {'success': False, 'error': 'Relatório Express não encontrado'}
+            
+            resultado = self.criar_notificacao(
+                user_id=relatorio.autor_id,
+                tipo='relatorio_express_reprovado',
+                titulo='Relatório Express rejeitado',
+                mensagem=f'O Relatório Express "{relatorio.numero}" da obra "{relatorio.obra_nome}" foi rejeitado. Verifique as observações e corrija antes de reenviar.',
+                link_destino=f'/relatorio-express/{relatorio_express_id}/editar'
+            )
+            
+            return resultado
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao criar notificação de Relatório Express rejeitado: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    def criar_notificacao_express_editado(self, relatorio_express_id, editor_id):
+        """
+        Cria notificação quando Relatório Express é editado (se estiver aguardando aprovação)
+        
+        Args:
+            relatorio_express_id: ID do relatório express editado
+            editor_id: ID do usuário que editou
+        """
+        try:
+            from models import RelatorioExpress, AprovadorPadrao, User
+            
+            relatorio = RelatorioExpress.query.get(relatorio_express_id)
+            if not relatorio:
+                logger.error(f"❌ Relatório Express {relatorio_express_id} não encontrado")
+                return {'success': False, 'error': 'Relatório Express não encontrado'}
+            
+            if relatorio.status != 'Aguardando Aprovação':
+                logger.debug(f"ℹ️ Relatório Express {relatorio_express_id} não está aguardando aprovação")
+                return {'success': True, 'message': 'Relatório não está aguardando aprovação'}
+            
+            aprovador_id = None
+            
+            aprovador_global = AprovadorPadrao.query.filter_by(
+                is_global=True,
+                ativo=True
+            ).order_by(AprovadorPadrao.prioridade).first()
+            
+            if aprovador_global:
+                aprovador_id = aprovador_global.aprovador_id
+            
+            if not aprovador_id:
+                aprovador_padrao = AprovadorPadrao.query.filter_by(
+                    projeto_id=None,
+                    ativo=True
+                ).order_by(AprovadorPadrao.prioridade).first()
+                
+                if aprovador_padrao:
+                    aprovador_id = aprovador_padrao.aprovador_id
+            
+            if not aprovador_id and hasattr(relatorio, 'aprovador_id') and relatorio.aprovador_id:
+                aprovador_id = relatorio.aprovador_id
+            
+            if not aprovador_id:
+                logger.warning(f"⚠️ Nenhum aprovador encontrado para Relatório Express {relatorio_express_id}")
+                return {'success': False, 'error': 'Nenhum aprovador encontrado'}
+            
+            if editor_id == aprovador_id:
+                logger.debug(f"ℹ️ Editor é o aprovador - notificação não criada")
+                return {'success': True, 'message': 'Editor é o aprovador'}
+            
+            editor = User.query.get(editor_id)
+            editor_nome = editor.nome_completo if editor else "Um usuário"
+            
+            resultado = self.criar_notificacao(
+                user_id=aprovador_id,
+                tipo='relatorio_express_editado',
+                titulo='Relatório Express pendente foi editado',
+                mensagem=f'{editor_nome} editou o Relatório Express "{relatorio.numero}" da obra "{relatorio.obra_nome}" que está aguardando sua aprovação.',
+                link_destino=f'/relatorio-express/{relatorio_express_id}'
+            )
+            
+            return resultado
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao criar notificação de Relatório Express editado: {e}")
+            return {'success': False, 'error': str(e)}
+    
     def get_icone_tipo(self, tipo):
         icones = {
             'obra_criada': '🏗️',
@@ -594,7 +782,11 @@ class NotificationService:
             'relatorio_editado': '✏️',
             'aprovado': '✅',
             'rejeitado': '⚠️',
-            'enviado_para_aprovacao': '📤'
+            'enviado_para_aprovacao': '📤',
+            'relatorio_express_pendente': '⚡',
+            'relatorio_express_aprovado': '✅',
+            'relatorio_express_reprovado': '❌',
+            'relatorio_express_editado': '✏️'
         }
         return icones.get(tipo, '🔔')
 

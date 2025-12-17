@@ -231,7 +231,7 @@
                             </div>
                             {% endif %}
                             
-                            {% if relatorio.status == 'Aguardando Aprovação' and current_user.is_master %}
+                            {% if relatorio.status == 'Aguardando Aprovação' and pode_aprovar %}
                             <form action="{{ url_for('approve_express_report', report_id=relatorio.id) }}" method="POST" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-success">
@@ -250,7 +250,7 @@
     </div>
 </div>
 
-{% if relatorio.status == 'Aguardando Aprovação' and current_user.is_master %}
+{% if relatorio.status == 'Aguardando Aprovação' and pode_aprovar %}
 <div class="modal fade" id="rejectModalView" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">

@@ -185,6 +185,12 @@ def create_express_report():
         db.session.commit()
         
         if action == 'submit_approval':
+            try:
+                from notification_service import notification_service
+                notification_service.criar_notificacao_express_pendente(relatorio.id)
+                logger.info(f"✅ Notificação de aprovação pendente enviada para Relatório Express {numero}")
+            except Exception as notif_error:
+                logger.error(f"⚠️ Erro ao criar notificação: {notif_error}")
             flash(f'Relatório Express {numero} enviado para aprovação!', 'success')
         else:
             flash(f'Relatório Express {numero} salvo com sucesso!', 'success')
@@ -311,13 +317,31 @@ def update_express_report(report_id):
                     })
         relatorio.checklist_data = json.dumps(checklist_data)
         
+        status_anterior = relatorio.status
+        
         if action == 'submit_approval':
             relatorio.status = 'Aguardando Aprovação'
-            flash(f'Relatório Express {relatorio.numero} enviado para aprovação!', 'success')
-        else:
-            flash(f'Relatório Express {relatorio.numero} atualizado!', 'success')
         
         db.session.commit()
+        
+        if action == 'submit_approval':
+            try:
+                from notification_service import notification_service
+                notification_service.criar_notificacao_express_pendente(relatorio.id)
+                logger.info(f"✅ Notificação de aprovação pendente enviada para Relatório Express {relatorio.numero}")
+            except Exception as notif_error:
+                logger.error(f"⚠️ Erro ao criar notificação: {notif_error}")
+            flash(f'Relatório Express {relatorio.numero} enviado para aprovação!', 'success')
+        else:
+            if status_anterior == 'Aguardando Aprovação':
+                try:
+                    from notification_service import notification_service
+                    notification_service.criar_notificacao_express_editado(relatorio.id, current_user.id)
+                    logger.info(f"✅ Notificação de edição enviada para Relatório Express {relatorio.numero}")
+                except Exception as notif_error:
+                    logger.error(f"⚠️ Erro ao criar notificação de edição: {notif_error}")
+            flash(f'Relatório Express {relatorio.numero} atualizado!', 'success')
+        
         return redirect(url_for('express_reports_list'))
         
     except Exception as e:
@@ -325,6 +349,29 @@ def update_express_report(report_id):
         logger.error(f"Erro ao atualizar Relatório Express: {e}")
         flash('Erro ao atualizar relatório.', 'error')
         return redirect(url_for('edit_express_report', report_id=report_id))
+
+
+def is_aprovador_global():
+    """Verifica se o usuário atual é aprovador global"""
+    try:
+        if not current_user or not current_user.is_authenticated:
+            return False
+        
+        if current_user.is_master:
+            return True
+        
+        from models import AprovadorPadrao
+        
+        aprovador_global = AprovadorPadrao.query.filter_by(
+            projeto_id=None,
+            aprovador_id=current_user.id,
+            ativo=True
+        ).first()
+        
+        return aprovador_global is not None
+    except Exception as e:
+        logger.error(f"Erro ao verificar aprovador global: {e}")
+        return False
 
 
 @app.route('/relatorio-express/<int:report_id>')
@@ -338,9 +385,12 @@ def view_express_report(report_id):
             relatorio_express_id=report_id
         ).order_by(FotoRelatorioExpress.ordem).all()
         
+        pode_aprovar = is_aprovador_global()
+        
         return render_template('reports/express_view.html',
             relatorio=relatorio,
-            fotos=fotos
+            fotos=fotos,
+            pode_aprovar=pode_aprovar
         )
     except Exception as e:
         logger.error(f"Erro ao visualizar Relatório Express: {e}")
@@ -353,6 +403,10 @@ def view_express_report(report_id):
 def approve_express_report(report_id):
     """Aprova um Relatório Express"""
     try:
+        if not is_aprovador_global():
+            flash('Apenas aprovadores podem aprovar relatórios.', 'error')
+            return redirect(url_for('express_reports_list'))
+        
         relatorio = RelatorioExpress.query.get_or_404(report_id)
         
         if relatorio.status != 'Aguardando Aprovação':
@@ -364,6 +418,14 @@ def approve_express_report(report_id):
         relatorio.data_aprovacao = datetime.now()
         
         db.session.commit()
+        
+        try:
+            from notification_service import notification_service
+            notification_service.criar_notificacao_express_aprovado(relatorio.id, current_user.id)
+            logger.info(f"✅ Notificação de aprovação enviada ao autor do Relatório Express {relatorio.numero}")
+        except Exception as notif_error:
+            logger.error(f"⚠️ Erro ao criar notificação de aprovação: {notif_error}")
+        
         flash(f'Relatório Express {relatorio.numero} aprovado com sucesso!', 'success')
         return redirect(url_for('express_reports_list'))
         
@@ -379,6 +441,10 @@ def approve_express_report(report_id):
 def reject_express_report(report_id):
     """Rejeita um Relatório Express"""
     try:
+        if not is_aprovador_global():
+            flash('Apenas aprovadores podem rejeitar relatórios.', 'error')
+            return redirect(url_for('express_reports_list'))
+        
         relatorio = RelatorioExpress.query.get_or_404(report_id)
         
         if relatorio.status != 'Aguardando Aprovação':
@@ -392,6 +458,14 @@ def reject_express_report(report_id):
         relatorio.comentario_aprovacao = comentario
         
         db.session.commit()
+        
+        try:
+            from notification_service import notification_service
+            notification_service.criar_notificacao_express_reprovado(relatorio.id)
+            logger.info(f"✅ Notificação de rejeição enviada ao autor do Relatório Express {relatorio.numero}")
+        except Exception as notif_error:
+            logger.error(f"⚠️ Erro ao criar notificação de rejeição: {notif_error}")
+        
         flash(f'Relatório Express {relatorio.numero} rejeitado.', 'info')
         return redirect(url_for('express_reports_list'))
         
