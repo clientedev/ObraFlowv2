@@ -298,11 +298,42 @@
 <script>
   const REPORT_DATA = {{ report_data | tojson | safe }};
   const EDIT_MODE = {{ edit_mode | tojson | safe }};
+  const IS_DUPLICATE = {{ is_duplicate | default(false) | tojson | safe }};
   console.log("📝 Dados carregados para Relatório Express:", REPORT_DATA);
+  console.log("📋 Modo duplicação:", IS_DUPLICATE);
   
   document.addEventListener('DOMContentLoaded', function() {
-    if (EDIT_MODE && REPORT_DATA.checklist_data && REPORT_DATA.checklist_data.length > 0) {
-      console.log("📋 Carregando checklist salvo...");
+    // Preencher campos quando duplicando (existing_report é null)
+    if (IS_DUPLICATE && REPORT_DATA) {
+      console.log("📋 Preenchendo campos com dados duplicados...");
+      
+      // Campos da obra
+      if (REPORT_DATA.obra_nome) document.getElementById('obra_nome').value = REPORT_DATA.obra_nome;
+      if (REPORT_DATA.obra_construtora) document.getElementById('obra_construtora').value = REPORT_DATA.obra_construtora;
+      if (REPORT_DATA.obra_endereco) document.getElementById('obra_endereco').value = REPORT_DATA.obra_endereco;
+      if (REPORT_DATA.obra_tipo) document.getElementById('obra_tipo').value = REPORT_DATA.obra_tipo;
+      if (REPORT_DATA.obra_responsavel) document.getElementById('obra_responsavel').value = REPORT_DATA.obra_responsavel;
+      if (REPORT_DATA.obra_telefone) document.getElementById('obra_telefone').value = REPORT_DATA.obra_telefone;
+      if (REPORT_DATA.obra_email) document.getElementById('obra_email').value = REPORT_DATA.obra_email;
+      if (REPORT_DATA.titulo) document.getElementById('titulo').value = REPORT_DATA.titulo;
+      if (REPORT_DATA.numero) document.getElementById('numero').value = REPORT_DATA.numero;
+      
+      // Carregar acompanhantes duplicados
+      if (REPORT_DATA.acompanhantes && REPORT_DATA.acompanhantes.length > 0) {
+        try {
+          acompanhantesExpress = REPORT_DATA.acompanhantes;
+          if (typeof renderAcompanhantesExpress === 'function') {
+            setTimeout(renderAcompanhantesExpress, 150);
+          }
+        } catch (e) {
+          console.error('Erro ao carregar acompanhantes duplicados:', e);
+        }
+      }
+    }
+    
+    // Carregar checklist em modo edição OU duplicação
+    if ((EDIT_MODE || IS_DUPLICATE) && REPORT_DATA.checklist_data && REPORT_DATA.checklist_data.length > 0) {
+      console.log("📋 Carregando checklist salvo/duplicado...");
       setTimeout(function() {
         if (typeof loadChecklistData === 'function') {
           loadChecklistData(REPORT_DATA.checklist_data);

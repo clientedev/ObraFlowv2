@@ -217,6 +217,20 @@
                             </a>
                             {% endif %}
                             
+                            {% if relatorio.status == 'Aprovado' %}
+                            <a href="{{ url_for('duplicate_express_report', report_id=relatorio.id) }}" class="btn btn-info">
+                                <i class="fas fa-copy me-1"></i>Duplicar Relatório
+                            </a>
+                            <div class="btn-group">
+                                <a href="{{ url_for('generate_express_pdf', report_id=relatorio.id) }}" class="btn btn-success" target="_blank">
+                                    <i class="fas fa-file-pdf me-1"></i>Visualizar PDF
+                                </a>
+                                <a href="{{ url_for('download_express_pdf', report_id=relatorio.id) }}" class="btn btn-success">
+                                    <i class="fas fa-download me-1"></i>Baixar PDF
+                                </a>
+                            </div>
+                            {% endif %}
+                            
                             {% if relatorio.status == 'Aguardando Aprovação' and current_user.is_master %}
                             <form action="{{ url_for('approve_express_report', report_id=relatorio.id) }}" method="POST" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
