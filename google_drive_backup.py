@@ -431,6 +431,9 @@ def backup_all_reports_to_drive(token_info: Dict[str, Any], db_session, Relatori
     # Obter lista de arquivos existentes na pasta para verificar duplicados
     existing_files_express = backup_instance.list_files_in_folder(express_folder_id)
     
+    # Importar função de geração de PDF Express (mesma usada no botão "Baixar PDF")
+    from pdf_generator_express import gerar_pdf_relatorio_express
+    
     for express in relatorios_express:
         try:
             obra_nome = express.obra_nome or 'Express'
@@ -447,57 +450,16 @@ def backup_all_reports_to_drive(token_info: Dict[str, Any], db_session, Relatori
                 results['express']['skipped'] += 1
                 continue
             
-            fotos = FotoRelatorioExpress.query.filter_by(
-                relatorio_express_id=express.id
-            ).order_by(FotoRelatorioExpress.ordem).all()
+            # Usar a mesma função de geração de PDF do botão "Baixar PDF"
+            pdf_result = gerar_pdf_relatorio_express(express.id, salvar_arquivo=False)
             
-            class VirtualProject:
-                def __init__(self, obra_nome, obra_endereco, obra_construtora, obra_responsavel):
-                    self.nome = obra_nome or 'Obra Express'
-                    self.endereco = obra_endereco or ''
-                    self.construtora = obra_construtora or ''
-                    self.cliente = obra_construtora or ''
-                    self.responsavel = obra_responsavel or ''
-            
-            class VirtualAuthor:
-                def __init__(self, nome='Não informado'):
-                    self.nome_completo = nome
-            
-            class ExpressReportAdapter:
-                def __init__(self, express_report):
-                    self.id = express_report.id
-                    self.numero = express_report.numero
-                    self.data_visita = express_report.data_visita
-                    self.data_relatorio = express_report.data_visita
-                    self.hora_chegada = express_report.hora_chegada
-                    self.hora_saida = express_report.hora_saida
-                    self.descricao = express_report.descricao_servico or ''
-                    self.observacoes = express_report.observacoes or ''
-                    self.atividades_realizadas = express_report.atividades_realizadas or ''
-                    self.pendencias = express_report.pendencias or ''
-                    self.etapa_atual = express_report.etapa_atual or ''
-                    self.items_observados = ''
-                    self.status = express_report.status
-                    self.created_at = express_report.created_at
-                    self.clima = express_report.clima or 'Não informado'
-                    self.condicao_tempo = express_report.clima or 'Não informado'
-                    self.conteudo = express_report.observacoes or ''
-                    self.acompanhantes = getattr(express_report, 'acompanhantes', None)
-                    self.projeto = VirtualProject(
-                        express_report.obra_nome,
-                        express_report.obra_endereco,
-                        express_report.obra_construtora,
-                        express_report.obra_responsavel
-                    )
-                    
-                    if express_report.autor:
-                        self.autor = express_report.autor
-                    else:
-                        self.autor = VirtualAuthor()
-            
-            adapter = ExpressReportAdapter(express)
-            
-            pdf_bytes = generator.generate_report_pdf(adapter, fotos)
+            # Verificar se retornou bytes ou BytesIO
+            if hasattr(pdf_result, 'read'):
+                pdf_bytes = pdf_result.read()
+            elif isinstance(pdf_result, bytes):
+                pdf_bytes = pdf_result
+            else:
+                raise Exception(f"Formato de PDF inesperado: {type(pdf_result)}")
             
             filename = f"{filename_base}_{datetime.now().strftime('%Y%m%d')}.pdf"
             
@@ -509,6 +471,8 @@ def backup_all_reports_to_drive(token_info: Dict[str, Any], db_session, Relatori
                 'filename': filename,
                 'link': file_info.get('link')
             })
+            
+            print(f"✅ Relatório Express {express.numero} salvo no Drive")
             
         except Exception as e:
             results['express']['failed'] += 1
