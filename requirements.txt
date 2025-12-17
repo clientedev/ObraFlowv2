@@ -143,3 +143,5 @@ SQLAlchemy
 weasyprint
 Werkzeug
 WTForms
+google-api-python-client
+google-auth-oauthlib
