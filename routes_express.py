@@ -461,7 +461,7 @@ def reject_express_report(report_id):
         
         try:
             from notification_service import notification_service
-            notification_service.criar_notificacao_express_reprovado(relatorio.id)
+            notification_service.criar_notificacao_express_reprovado(relatorio.id, comentario)
             logger.info(f"✅ Notificação de rejeição enviada ao autor do Relatório Express {relatorio.numero}")
         except Exception as notif_error:
             logger.error(f"⚠️ Erro ao criar notificação de rejeição: {notif_error}")
@@ -731,6 +731,14 @@ def submit_express_for_approval(report_id):
         relatorio.updated_at = datetime.now()
         
         db.session.commit()
+        
+        # Enviar notificação para o aprovador global
+        try:
+            from notification_service import notification_service
+            notification_service.criar_notificacao_express_pendente(relatorio.id)
+            logger.info(f"✅ Notificação de aprovação pendente enviada para Relatório Express {relatorio.numero}")
+        except Exception as notif_error:
+            logger.error(f"⚠️ Erro ao criar notificação: {notif_error}")
         
         return jsonify({
             'success': True,

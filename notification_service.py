@@ -224,12 +224,13 @@ class NotificationService:
             logger.error(f"❌ Erro ao criar notificação de relatório pendente: {e}")
             return {'success': False, 'error': str(e)}
     
-    def criar_notificacao_relatorio_reprovado(self, relatorio_id):
+    def criar_notificacao_relatorio_reprovado(self, relatorio_id, motivo_rejeicao=None):
         """
         Cria notificação para o autor de um relatório reprovado
         
         Args:
             relatorio_id: ID do relatório reprovado
+            motivo_rejeicao: Motivo/comentário da rejeição (opcional)
         """
         try:
             from models import Relatorio, Projeto
@@ -243,11 +244,19 @@ class NotificationService:
             projeto_nome = projeto.nome if projeto else "Sem projeto"
             numero_rel = relatorio.numero or "S/N"
             
+            # Usar motivo passado ou buscar do relatório
+            motivo = motivo_rejeicao or getattr(relatorio, 'comentario_aprovacao', None)
+            
+            if motivo:
+                mensagem = f'O relatório nº {numero_rel} da obra "{projeto_nome}" foi reprovado. Motivo: {motivo}'
+            else:
+                mensagem = f'O relatório nº {numero_rel} da obra "{projeto_nome}" foi reprovado. Verifique as observações e corrija antes de reenviar.'
+            
             resultado = self.criar_notificacao(
                 user_id=relatorio.autor_id,
                 tipo='relatorio_reprovado',
                 titulo='Relatório reprovado',
-                mensagem=f'O relatório nº {numero_rel} da obra "{projeto_nome}" foi reprovado. Verifique as observações e corrija antes de reenviar.',
+                mensagem=mensagem,
                 link_destino=f'/reports/{relatorio_id}/edit'
             )
             
@@ -676,12 +685,13 @@ class NotificationService:
             logger.error(f"❌ Erro ao criar notificação de Relatório Express aprovado: {e}")
             return {'success': False, 'error': str(e)}
     
-    def criar_notificacao_express_reprovado(self, relatorio_express_id):
+    def criar_notificacao_express_reprovado(self, relatorio_express_id, motivo_rejeicao=None):
         """
         Cria notificação para o autor quando Relatório Express é rejeitado
         
         Args:
             relatorio_express_id: ID do relatório express rejeitado
+            motivo_rejeicao: Motivo/comentário da rejeição (opcional)
         """
         try:
             from models import RelatorioExpress
@@ -691,11 +701,19 @@ class NotificationService:
                 logger.error(f"❌ Relatório Express {relatorio_express_id} não encontrado")
                 return {'success': False, 'error': 'Relatório Express não encontrado'}
             
+            # Usar motivo passado ou buscar do relatório
+            motivo = motivo_rejeicao or getattr(relatorio, 'comentario_aprovacao', None)
+            
+            if motivo:
+                mensagem = f'O Relatório Express "{relatorio.numero}" da obra "{relatorio.obra_nome}" foi rejeitado. Motivo: {motivo}'
+            else:
+                mensagem = f'O Relatório Express "{relatorio.numero}" da obra "{relatorio.obra_nome}" foi rejeitado. Verifique as observações e corrija antes de reenviar.'
+            
             resultado = self.criar_notificacao(
                 user_id=relatorio.autor_id,
                 tipo='relatorio_express_reprovado',
                 titulo='Relatório Express rejeitado',
-                mensagem=f'O Relatório Express "{relatorio.numero}" da obra "{relatorio.obra_nome}" foi rejeitado. Verifique as observações e corrija antes de reenviar.',
+                mensagem=mensagem,
                 link_destino=f'/relatorio-express/{relatorio_express_id}/editar'
             )
             
