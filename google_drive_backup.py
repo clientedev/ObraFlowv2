@@ -145,6 +145,61 @@ class GoogleDriveBackupOAuth:
         
         return folder.get('id')
     
+    def list_files_in_folder(self, folder_id: str) -> List[str]:
+        """
+        Listar nomes de arquivos em uma pasta
+        
+        Args:
+            folder_id: ID da pasta
+            
+        Returns:
+            Lista de nomes de arquivos
+        """
+        if not self.service:
+            return []
+        
+        try:
+            query = f"'{folder_id}' in parents and trashed=false"
+            results = self.service.files().list(
+                q=query,
+                spaces='drive',
+                fields='files(name)',
+                pageSize=1000
+            ).execute()
+            
+            files = results.get('files', [])
+            return [f['name'] for f in files]
+        except Exception as e:
+            print(f"Erro ao listar arquivos: {e}")
+            return []
+    
+    def file_exists_in_folder(self, filename: str, folder_id: str) -> bool:
+        """
+        Verificar se arquivo existe na pasta
+        
+        Args:
+            filename: Nome do arquivo
+            folder_id: ID da pasta
+            
+        Returns:
+            True se existe
+        """
+        if not self.service:
+            return False
+        
+        try:
+            query = f"name='{filename}' and '{folder_id}' in parents and trashed=false"
+            results = self.service.files().list(
+                q=query,
+                spaces='drive',
+                fields='files(id)'
+            ).execute()
+            
+            return len(results.get('files', [])) > 0
+        except Exception as e:
+            print(f"Erro ao verificar arquivo: {e}")
+            return False
+    
     def upload_pdf_bytes(self, pdf_bytes: bytes, filename: str, folder_id: str) -> Dict[str, Any]:
         """
         Upload de PDF em bytes para o Drive
@@ -318,19 +373,41 @@ def backup_all_reports_to_drive(token_info: Dict[str, Any], db_session, Relatori
     
     generator = WeasyPrintReportGenerator()
     
-    relatorios = Relatorio.query.filter_by(status='aprovado').all()
+    # Usar case-insensitive para capturar todas as variações de status
+    from sqlalchemy import func
+    relatorios = Relatorio.query.filter(
+        func.lower(Relatorio.status).in_(['aprovado', 'finalizado', 'aprovado final'])
+    ).all()
     results['relatorios']['total'] = len(relatorios)
+    
+    # Obter lista de arquivos existentes na pasta para verificar duplicados
+    existing_files_relatorio = backup_instance.list_files_in_folder(relatorio_folder_id)
+    
+    # Adicionar contadores de duplicados
+    results['relatorios']['skipped'] = 0
+    results['express']['skipped'] = 0
     
     for relatorio in relatorios:
         try:
+            projeto_nome = relatorio.projeto.nome if relatorio.projeto else 'Sem_Projeto'
+            projeto_nome = ''.join(c for c in projeto_nome if c.isalnum() or c in (' ', '-', '_'))[:50]
+            
+            # Usar nome base para verificar duplicados (sem data)
+            filename_base = f"Relatorio_{relatorio.numero.replace('/', '_')}_{projeto_nome}"
+            
+            # Verificar se já existe um arquivo com este nome base
+            duplicado = any(f.startswith(filename_base) for f in existing_files_relatorio)
+            
+            if duplicado:
+                print(f"⏭️ Relatório {relatorio.numero} já existe no Drive - pulando")
+                results['relatorios']['skipped'] += 1
+                continue
+            
             fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
             
             pdf_bytes = generator.generate_report_pdf(relatorio, fotos)
             
-            projeto_nome = relatorio.projeto.nome if relatorio.projeto else 'Sem_Projeto'
-            projeto_nome = ''.join(c for c in projeto_nome if c.isalnum() or c in (' ', '-', '_'))[:50]
-            
-            filename = f"Relatorio_{relatorio.numero.replace('/', '_')}_{projeto_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
+            filename = f"{filename_base}_{datetime.now().strftime('%Y%m%d')}.pdf"
             
             file_info = backup_instance.upload_pdf_bytes(pdf_bytes, filename, relatorio_folder_id)
             
@@ -345,11 +422,31 @@ def backup_all_reports_to_drive(token_info: Dict[str, Any], db_session, Relatori
             results['relatorios']['failed'] += 1
             print(f"Erro ao fazer backup do relatório {relatorio.id}: {str(e)}")
     
-    relatorios_express = RelatorioExpress.query.filter_by(status='aprovado').all()
+    # Usar case-insensitive para capturar todas as variações de status
+    relatorios_express = RelatorioExpress.query.filter(
+        func.lower(RelatorioExpress.status).in_(['aprovado', 'finalizado', 'aprovado final'])
+    ).all()
     results['express']['total'] = len(relatorios_express)
+    
+    # Obter lista de arquivos existentes na pasta para verificar duplicados
+    existing_files_express = backup_instance.list_files_in_folder(express_folder_id)
     
     for express in relatorios_express:
         try:
+            obra_nome = express.obra_nome or 'Express'
+            obra_nome = ''.join(c for c in obra_nome if c.isalnum() or c in (' ', '-', '_'))[:50]
+            
+            # Usar nome base para verificar duplicados (sem data)
+            filename_base = f"Express_{express.numero.replace('/', '_')}_{obra_nome}"
+            
+            # Verificar se já existe um arquivo com este nome base
+            duplicado = any(f.startswith(filename_base) for f in existing_files_express)
+            
+            if duplicado:
+                print(f"⏭️ Relatório Express {express.numero} já existe no Drive - pulando")
+                results['express']['skipped'] += 1
+                continue
+            
             fotos = FotoRelatorioExpress.query.filter_by(
                 relatorio_express_id=express.id
             ).order_by(FotoRelatorioExpress.ordem).all()
@@ -399,10 +496,7 @@ def backup_all_reports_to_drive(token_info: Dict[str, Any], db_session, Relatori
             
             pdf_bytes = generator.generate_report_pdf(adapter, fotos)
             
-            obra_nome = express.obra_nome or 'Express'
-            obra_nome = ''.join(c for c in obra_nome if c.isalnum() or c in (' ', '-', '_'))[:50]
-            
-            filename = f"Express_{express.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
+            filename = f"{filename_base}_{datetime.now().strftime('%Y%m%d')}.pdf"
             
             file_info = backup_instance.upload_pdf_bytes(pdf_bytes, filename, express_folder_id)
             

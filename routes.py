@@ -9175,8 +9175,13 @@ def admin_drive_test():
         except Exception as e:
             logging.error(f"Erro ao verificar token Google Drive: {e}")
     
-    relatorios_aprovados = Relatorio.query.filter_by(status='aprovado').count()
-    express_aprovados = RelatorioExpress.query.filter_by(status='aprovado').count()
+    # Usar case-insensitive para capturar todas as variações de status
+    relatorios_aprovados = Relatorio.query.filter(
+        db.func.lower(Relatorio.status).in_(['aprovado', 'finalizado', 'aprovado final'])
+    ).count()
+    express_aprovados = RelatorioExpress.query.filter(
+        db.func.lower(RelatorioExpress.status).in_(['aprovado', 'finalizado', 'aprovado final'])
+    ).count()
     
     stats = {
         'relatorios_aprovados': relatorios_aprovados,
