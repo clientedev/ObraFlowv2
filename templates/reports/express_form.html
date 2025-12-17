@@ -268,26 +268,28 @@
 }
 
 .obra-section {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #212529;
     padding: 20px;
     border-radius: 12px;
     margin-bottom: 24px;
 }
 
 .obra-section .form-label {
-    color: white;
+    color: #212529;
     font-weight: 600;
 }
 
 .obra-section .form-control {
-    background: rgba(255,255,255,0.95);
-    border: none;
+    background: white;
+    border: 1px solid #ced4da;
     border-radius: 8px;
 }
 
 .obra-section .form-control:focus {
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.15);
+    border-color: #80bdff;
 }
 </style>
 {% endblock %}
@@ -574,12 +576,18 @@
                                 <i class="fas fa-times"></i> Cancelar
                             </a>
                             <div class="btn-group">
+                                {% if existing_report and existing_report.status == 'Aguardando Aprovação' %}
+                                <button type="button" id="btnSaveDraft" class="btn btn-primary" onclick="saveExpressDraft()">
+                                    <i class="fas fa-save"></i> Salvar
+                                </button>
+                                {% else %}
                                 <button type="button" id="btnSaveDraft" class="btn btn-outline-primary" onclick="saveExpressDraft()">
                                     <i class="fas fa-save"></i> Salvar Rascunho
                                 </button>
                                 <button type="button" id="btnSubmitApproval" class="btn btn-success" onclick="submitExpressForApproval()">
                                     <i class="fas fa-paper-plane"></i> Enviar para Aprovação
                                 </button>
+                                {% endif %}
                             </div>
                         </div>
                         <input type="hidden" id="express_report_id" name="report_id" value="{% if existing_report %}{{ existing_report.id }}{% endif %}">

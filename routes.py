@@ -7269,7 +7269,7 @@ def uploaded_file(filename):
         current_app.logger.info(f"🔍 INICIANDO BUSCA: {filename}")
 
         # Buscar no banco PostgreSQL primeiro
-        from models import FotoRelatorio
+        from models import FotoRelatorio, FotoRelatorioExpress
 
         # Definir diretórios de busca (priorizar uploads)
         search_directories = [
@@ -7278,11 +7278,22 @@ def uploaded_file(filename):
             ('static_uploads', os.path.join('static', 'uploads'))
         ]
 
-        # Tentar encontrar nos relatórios
+        # Tentar encontrar nos relatórios normais
         try:
             foto_normal = FotoRelatorio.query.filter_by(filename=filename).first()
+            
+            # Se não encontrou em FotoRelatorio, tentar em FotoRelatorioExpress
+            if not foto_normal:
+                foto_normal = FotoRelatorioExpress.query.filter_by(filename=filename).first()
+                if foto_normal:
+                    current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Relatório Express {foto_normal.relatorio_express_id}): {filename}")
+            
             if foto_normal:
-                current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Relatório {foto_normal.relatorio_id}): {filename}")
+                # Log info - determina se é relatório normal ou express
+                if hasattr(foto_normal, 'relatorio_id') and foto_normal.relatorio_id:
+                    current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Relatório {foto_normal.relatorio_id}): {filename}")
+                elif hasattr(foto_normal, 'relatorio_express_id') and foto_normal.relatorio_express_id:
+                    current_app.logger.info(f"✅ ENCONTRADA NO BANCO (Relatório Express {foto_normal.relatorio_express_id}): {filename}")
 
                 # Verificar se tem dados binários salvos no banco
                 if hasattr(foto_normal, 'imagem') and foto_normal.imagem:
