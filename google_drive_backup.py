@@ -468,6 +468,7 @@ def backup_all_reports_to_drive(token_info: Dict[str, Any], db_session, Relatori
                     self.id = express_report.id
                     self.numero = express_report.numero
                     self.data_visita = express_report.data_visita
+                    self.data_relatorio = express_report.data_visita
                     self.hora_chegada = express_report.hora_chegada
                     self.hora_saida = express_report.hora_saida
                     self.descricao = express_report.descricao_servico or ''
@@ -480,6 +481,8 @@ def backup_all_reports_to_drive(token_info: Dict[str, Any], db_session, Relatori
                     self.created_at = express_report.created_at
                     self.clima = express_report.clima or 'Não informado'
                     self.condicao_tempo = express_report.clima or 'Não informado'
+                    self.conteudo = express_report.observacoes or ''
+                    self.acompanhantes = getattr(express_report, 'acompanhantes', None)
                     self.projeto = VirtualProject(
                         express_report.obra_nome,
                         express_report.obra_endereco,
@@ -509,7 +512,9 @@ def backup_all_reports_to_drive(token_info: Dict[str, Any], db_session, Relatori
             
         except Exception as e:
             results['express']['failed'] += 1
-            print(f"Erro ao fazer backup do relatório express {express.id}: {str(e)}")
+            import traceback
+            print(f"❌ Erro ao fazer backup do relatório express {express.id} ({express.numero}): {str(e)}")
+            print(f"   Traceback: {traceback.format_exc()}")
     
     return {
         'success': True,
