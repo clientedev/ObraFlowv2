@@ -109,18 +109,23 @@
                             <h5><i class="fas fa-tasks me-2 text-primary"></i>Checklist</h5>
                             <div class="border rounded p-3">
                                 {% set checklist = relatorio.checklist_data | from_json if relatorio.checklist_data else [] %}
-                                {% set has_checked = checklist | selectattr('checked') | list | length > 0 %}
+                                {% set has_checked = namespace(value=false) %}
+                                {% for item in checklist %}
+                                    {% if item.checked or item.completed %}
+                                        {% set has_checked.value = true %}
+                                    {% endif %}
+                                {% endfor %}
                                 
-                                {% if has_checked %}
+                                {% if has_checked.value %}
                                     {% for item in checklist %}
-                                        {% if item.checked %}
+                                        {% if item.checked or item.completed %}
                                         <div class="mb-2 p-2 bg-success bg-opacity-10 border border-success rounded">
                                             <div class="d-flex align-items-start">
                                                 <i class="fas fa-check-circle text-success me-2 mt-1"></i>
                                                 <div>
                                                     <span class="fw-bold">{{ item.item | replace('_', ' ') | title }}</span>
-                                                    {% if item.observacao %}
-                                                    <p class="mb-0 text-muted small mt-1">{{ item.observacao }}</p>
+                                                    {% if item.observacao or item.observations %}
+                                                    <p class="mb-0 text-muted small mt-1">{{ item.observacao or item.observations }}</p>
                                                     {% endif %}
                                                 </div>
                                             </div>

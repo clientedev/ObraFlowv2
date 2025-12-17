@@ -1807,11 +1807,10 @@ async function saveExpressDraft() {
         btnSave.classList.add('btn-success');
         saveSuccess = true;
         
+        // Redirect to express reports list after successful save
         setTimeout(() => {
-            btnSave.innerHTML = originalText;
-            btnSave.classList.remove('btn-success');
-            btnSave.classList.add('btn-outline-primary');
-        }, 2000);
+            window.location.href = '/relatorios-express';
+        }, 500);
         
     } catch (err) {
         console.error('❌ Erro ao salvar rascunho Express:', err);
