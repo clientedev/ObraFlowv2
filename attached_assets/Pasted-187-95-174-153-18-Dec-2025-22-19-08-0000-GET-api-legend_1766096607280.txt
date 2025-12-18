@@ -1,0 +1,121 @@
+187.95.174.153 - - [18/Dec/2025:22:19:08 +0000] "GET /api/legendas?categoria=all&_t=1766096346232&sync=realtime HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorio-express/35" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:08 +0000] "POST /relatorio-express/35/aprovar HTTP/1.1" 302 225 "https://elpconsultoria.pro/relatorio-express/35" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /relatorios-express HTTP/1.1" 200 91182 "https://elpconsultoria.pro/relatorio-express/35" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/css/style.css HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/css/mobile.css HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/css/mobile-accessibility.css HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/css/desktop-navbar-fix.css HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/js/image-error-handler.js HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/js/geolocation-enhanced.js HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/js/notifications.js HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/js/notifications-manager.js HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/logo_elp_navbar.png HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/js/main.js HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/js/navbar-interactions.js HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/js/pwa-install-only.js HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/js/legendas-selector.js HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/js/realtime-sync.js HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/js/fix-all-images.js HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/js/mobile-utils.js HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /api/legendas?categoria=all&_t=1766096347003 HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /api/notificacoes HTTP/1.1" 200 24260 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/manifest.json HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:09 +0000] "GET /static/icons/icon-144x144.png HTTP/1.1" 304 0 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)
+187.95.174.153 - - [18/Dec/2025:22:19:10 +0000] "GET /api/legendas?categoria=all&_t=1766096348009&sync=realtime HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)
+187.95.174.153 - - [18/Dec/2025:22:19:15 +0000] "GET /api/legendas?categoria=all&_t=1766096353010&sync=realtime HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)
+187.95.174.153 - - [18/Dec/2025:22:19:21 +0000] "GET /api/legendas?categoria=all&_t=1766096358954&sync=realtime HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)
+187.95.174.153 - - [18/Dec/2025:22:19:26 +0000] "GET /api/legendas?categoria=all&_t=1766096363967&sync=realtime HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)
+187.95.174.153 - - [18/Dec/2025:22:19:31 +0000] "GET /api/legendas?categoria=all&_t=1766096368957&sync=realtime HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)
+187.95.174.153 - - [18/Dec/2025:22:19:36 +0000] "GET /api/legendas?categoria=all&_t=1766096373959&sync=realtime HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+187.95.174.153 - - [18/Dec/2025:22:19:40 +0000] "GET /api/notificacoes HTTP/1.1" 200 24260 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)
+187.95.174.153 - - [18/Dec/2025:22:19:41 +0000] "GET /api/legendas?categoria=all&_t=1766096378957&sync=realtime HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)
+187.95.174.153 - - [18/Dec/2025:22:19:46 +0000] "GET /api/legendas?categoria=all&_t=1766096383962&sync=realtime HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)
+187.95.174.153 - - [18/Dec/2025:22:19:51 +0000] "GET /api/legendas?categoria=all&_t=1766096388957&sync=realtime HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)
+187.95.174.153 - - [18/Dec/2025:22:19:56 +0000] "GET /api/legendas?categoria=all&_t=1766096393958&sync=realtime HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)
+187.95.174.153 - - [18/Dec/2025:22:20:01 +0000] "GET /api/legendas?categoria=all&_t=1766096398960&sync=realtime HTTP/1.1" 200 4994 "https://elpconsultoria.pro/relatorios-express" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+[2025-12-18 22:20:04 +0000] [1] [CRITICAL] WORKER TIMEOUT (pid:10)
+[2025-12-18 22:20:04 +0000] [10] [ERROR] Error handling request /relatorio-express/35/aprovar
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/werkzeug/middleware/proxy_fix.py", line 183, in __call__
+    return self.app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/usr/local/lib/python3.11/site-packages/yagmail/sender.py", line 217, in _login
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    self.smtp = self.connection(self.host, self.port, **self.kwargs)
+  File "/usr/local/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/smtplib.py", line 1050, in __init__
+  File "/app/routes_express.py", line 460, in approve_express_report
+    SMTP.__init__(self, host, port, local_hostname, timeout,
+    resultado_email = email_service.send_approval_email(relatorio, pdf_path)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/email_service_yagmail.py", line 361, in send_approval_email
+    yag.send(
+  File "/usr/local/lib/python3.11/site-packages/yagmail/sender.py", line 156, in send
+    self.login()
+  File "/usr/local/lib/python3.11/site-packages/yagmail/sender.py", line 210, in login
+    self._login(self.credentials)
+  File "/usr/local/lib/python3.11/smtplib.py", line 255, in __init__
+    (code, msg) = self.connect(host, port)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/smtplib.py", line 341, in connect
+    self.sock = self._get_socket(host, port, self.timeout)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/smtplib.py", line 1056, in _get_socket
+    new_socket = super()._get_socket(host, port, timeout)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/smtplib.py", line 312, in _get_socket
+    return socket.create_connection((host, port), timeout,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/socket.py", line 848, in create_connection
+    sock.connect(sa)
+  File "/usr/local/lib/python3.11/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+100.64.0.3 - - [18/Dec/2025:22:20:04 +0000] "POST /relatorio-express/35/aprovar HTTP/1.1" 500 0 "-" "-"
+[2025-12-18 22:20:04 +0000] [10] [INFO] Worker exiting (pid: 10)
+[2025-12-18 22:20:04 +0000] [93] [INFO] Booting worker with pid: 93
+INFO:app:📋 API LEGENDAS: Buscando categoria='all'
+INFO:app:✅ API LEGENDAS: 43 legendas retornadas (categoria=all)

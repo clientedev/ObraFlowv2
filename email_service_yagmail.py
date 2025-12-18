@@ -321,7 +321,6 @@ Por favor, não responda este e-mail.
             def enviar_emails_com_timeout():
                 try:
                     current_app.logger.info(f"[THREAD] 🧵 Thread iniciada - tentando conectar SMTP...")
-                    current_app.logger.info(f"[THREAD] Email: {self.from_email}, Porta: 587")
                     
                     yag = self._get_yag_connection()
                     current_app.logger.info(f"[THREAD] ✅ Conexão SMTP OK")
@@ -344,14 +343,16 @@ Por favor, não responda este e-mail.
                             enviados += 1
                             current_app.logger.info(f"[THREAD] ✅ Email enviado para {recipient_email}")
                         except Exception as e:
-                            current_app.logger.error(f"[THREAD] ❌ Erro ao enviar para {recipient_email}: {type(e).__name__}: {e}")
+                            current_app.logger.warning(f"[THREAD] ⚠️ Não foi possível enviar para {recipient_email}: {type(e).__name__}")
                     
-                    current_app.logger.info(f"[THREAD] ✅ SUCESSO: {enviados}/{len(recipients)} emails enviados")
+                    if enviados > 0:
+                        current_app.logger.info(f"[THREAD] ✅ SUCESSO: {enviados}/{len(recipients)} emails enviados")
                 
+                except OSError as e:
+                    # Network is unreachable - Railway bloqueia SMTP, não tentar novamente
+                    current_app.logger.warning(f"[THREAD] ⚠️ Rede SMTP indisponível (Railway bloqueia SMTP): {e}")
                 except Exception as e:
-                    current_app.logger.error(f"[THREAD] ❌ FALHA CRÍTICA: {type(e).__name__}: {e}")
-                    import traceback
-                    current_app.logger.error(f"[THREAD] Traceback:\n{traceback.format_exc()}")
+                    current_app.logger.warning(f"[THREAD] ⚠️ Não foi possível enviar emails: {type(e).__name__}")
             
             # Executar em thread daemon (não bloqueia)
             thread = threading.Thread(target=enviar_emails_com_timeout, daemon=True)
