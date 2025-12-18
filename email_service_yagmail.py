@@ -37,6 +37,7 @@ class ReportApprovalEmailService:
         Destinatários:
         - Pessoa que criou o relatório (autor)
         - Aprovador global
+        - Contato de email da obra
         - Todos os acompanhantes da visita vinculados ao relatório
         
         NÃO inclui funcionários da obra, apenas os envolvidos no relatório.
@@ -60,7 +61,20 @@ class ReportApprovalEmailService:
             else:
                 current_app.logger.warning(f"⚠️ [APROVADOR] Sem email ou não atribuído")
             
-            # 3. Acompanhantes da visita vinculados ao relatório
+            # 3. Contato de email da obra
+            obra_email = None
+            if hasattr(relatorio, 'obra_email'):
+                obra_email = (relatorio.obra_email or '').strip()
+            elif hasattr(relatorio, 'projeto') and relatorio.projeto and hasattr(relatorio.projeto, 'email'):
+                obra_email = (relatorio.projeto.email or '').strip()
+            
+            if obra_email:
+                recipients.add(obra_email)
+                current_app.logger.info(f"✉️ [OBRA] Contato da obra ({obra_email})")
+            else:
+                current_app.logger.info(f"ℹ️ [OBRA] Sem email de contato registrado")
+            
+            # 4. Acompanhantes da visita vinculados ao relatório
             if relatorio.acompanhantes:
                 current_app.logger.info(f"🔍 Processando acompanhantes: {type(relatorio.acompanhantes)}")
                 acompanhantes_list = []
