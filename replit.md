@@ -58,6 +58,23 @@ Report forms: Location section removed from report creation/editing interface (g
 - **Access Control**: Route protection based on login status and user roles. Centralized `can_edit_report()` helper function.
 - **Aprovador Global Permission System**: Strict permission controls for global and temporary approver management.
 
+# Recent Changes (Dezembro 2025)
+
+## Implementação de Envio de E-mails (18/12/2025)
+- **Novo arquivo**: `email_service_smtp.py` - Serviço SMTP para aprovação de relatórios
+- **Rotas atualizadas**: 
+  - `/reports/<id>/approve` (linha 3922)
+  - `/reports/<report_id>/approve` (linha 7555)
+- **Funcionalidade**: Envio automático de e-mails quando um relatório é aprovado
+- **Destinatários automáticos**:
+  - Autor do relatório
+  - Aprovador global
+  - Todos os acompanhantes da visita
+  - Responsável da obra
+- **Conteúdo**: Template padronizado com nome, obra, data de aprovação
+- **Anexo**: PDF do relatório gerado automaticamente
+- **Tratamento de erros**: E-mails inválidos não quebram o fluxo de aprovação
+
 # External Dependencies
 
 ## Core Flask Ecosystem
@@ -76,8 +93,13 @@ Report forms: Location section removed from report creation/editing interface (g
 - **PostgreSQL**: Production database.
 - **SQLite**: Development database.
 
-## Email Integration
-- **SMTP**: Configurable mail server.
+## Email Integration (Aprovação de Relatórios)
+- **SMTP**: Gmail SMTP (smtp.gmail.com:587)
+- **Credenciais**: relatorios@elpconsultoria.eng.br / 1234567890 (hardcoded conforme especificação)
+- **Disparo**: Automático ao aprovar relatório (normal ou express)
+- **Destinatários**: Autor, aprovador, acompanhantes e responsável da obra
+- **Anexo**: PDF do relatório aprovado
+- **Implementação**: `email_service_smtp.py` com tratamento robusto de erros
 
 ## PDF and Media Processing
 - **WeasyPrint**: Primary PDF generation.
