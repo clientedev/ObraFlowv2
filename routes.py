@@ -3987,14 +3987,15 @@ def approve_report(id):
             
             if resultado_email.get('success'):
                 enviados = resultado_email.get('enviados', 0)
-                current_app.logger.info(f"✅ E-mail enviado com sucesso para {enviados} destinatário(s)")
-                flash(f'✅ Relatório aprovado com sucesso! E-mail enviado para {enviados} destinatário(s).', 'success')
+                total = resultado_email.get('total', enviados)
+                current_app.logger.info(f"✅ E-mails enviados com sucesso para {enviados}/{total} destinatário(s)")
+                flash(f'✅ Relatório aprovado com sucesso! E-mails enviados para {enviados} destinatário(s).', 'success')
             else:
-                current_app.logger.warning(f"⚠️ Falha ao enviar e-mail: {resultado_email.get('error')}")
-                flash('✅ Relatório aprovado com sucesso! Não foi possível enviar o e-mail de notificação.', 'warning')
+                current_app.logger.warning(f"⚠️ Falha ao enviar e-mails: {resultado_email.get('error')}")
+                flash('✅ Relatório aprovado com sucesso! Não foi possível enviar os e-mails de notificação.', 'warning')
         except Exception as e:
-            current_app.logger.warning(f"⚠️ Erro ao enviar e-mail de aprovação: {e}")
-            flash('✅ Relatório aprovado com sucesso! Não foi possível enviar o e-mail de notificação.', 'warning')
+            current_app.logger.warning(f"⚠️ Erro ao enviar e-mails de aprovação: {e}")
+            flash('✅ Relatório aprovado com sucesso! Não foi possível enviar os e-mails de notificação.', 'warning')
         
         return redirect(url_for('report_edit', report_id=id))
             

@@ -401,7 +401,7 @@ def view_express_report(report_id):
 @app.route('/relatorio-express/<int:report_id>/aprovar', methods=['POST'])
 @login_required
 def approve_express_report(report_id):
-    """Aprova um Relatório Express"""
+    """Aprova um Relatório Express e envia e-mails para os envolvidos"""
     try:
         if not is_aprovador_global():
             flash('Apenas aprovadores podem aprovar relatórios.', 'error')
@@ -426,7 +426,45 @@ def approve_express_report(report_id):
         except Exception as notif_error:
             logger.error(f"⚠️ Erro ao criar notificação de aprovação: {notif_error}")
         
-        flash(f'Relatório Express {relatorio.numero} aprovado com sucesso!', 'success')
+        # Gerar PDF para o Relatório Express
+        try:
+            from pdf_generator_express import ExpressReportGenerator
+            from utils import sanitize_filename
+            
+            generator = ExpressReportGenerator()
+            fotos = FotoRelatorioExpress.query.filter_by(
+                relatorio_express_id=relatorio.id
+            ).order_by(FotoRelatorioExpress.ordem).all()
+            
+            obra_nome = sanitize_filename(relatorio.obra_nome or "Obra")
+            pdf_filename = f"relatorio_express_{relatorio.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
+            pdf_path = os.path.join('static', 'reports', pdf_filename)
+            os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+            
+            generator.generate_report_pdf(relatorio, fotos, output_path=pdf_path)
+            logger.info(f"📄 PDF gerado para Relatório Express: {pdf_path}")
+            
+            # Enviar e-mails de aprovação
+            try:
+                from email_service_yagmail import ReportApprovalEmailService
+                email_service = ReportApprovalEmailService()
+                resultado_email = email_service.send_approval_email(relatorio, pdf_path)
+                
+                if resultado_email.get('success'):
+                    enviados = resultado_email.get('enviados', 0)
+                    logger.info(f"✅ E-mails enviados com sucesso para {enviados} destinatário(s)")
+                    flash(f'✅ Relatório Express {relatorio.numero} aprovado! E-mail enviado para {enviados} destinatário(s).', 'success')
+                else:
+                    logger.warning(f"⚠️ Falha ao enviar e-mails: {resultado_email.get('error')}")
+                    flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso! Não foi possível enviar os e-mails.', 'warning')
+            except Exception as email_error:
+                logger.error(f"❌ Erro ao enviar e-mails: {email_error}")
+                flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso! Não foi possível enviar os e-mails.', 'warning')
+        
+        except Exception as pdf_error:
+            logger.error(f"⚠️ Erro ao gerar PDF ou enviar e-mails: {pdf_error}")
+            flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso! Não foi possível gerar o PDF.', 'warning')
+        
         return redirect(url_for('express_reports_list'))
         
     except Exception as e:

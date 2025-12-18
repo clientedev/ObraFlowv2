@@ -1,9 +1,10 @@
 """
 Serviço de envio de e-mail via yagmail para relatórios aprovados.
-Usa conta Gmail fixa: relatorioselp@gmail.com
+Usa conta Gmail fixa: relatorioselpconsultoria@gmail.com
 Envia e-mails para os envolvidos quando um relatório é aprovado.
 """
 import os
+import json
 import yagmail
 from datetime import datetime
 from flask import current_app
@@ -14,7 +15,6 @@ class ReportApprovalEmailService:
     
     def __init__(self):
         self.from_email = "relatorioselpconsultoria@gmail.com"
-        # App Password gerada em https://myaccount.google.com/apppasswords
         self.from_password = "ipbs dkwc osyn vixg"
         self.yag = None
     
@@ -32,7 +32,7 @@ class ReportApprovalEmailService:
     def _get_recipients_for_report(self, relatorio):
         """
         Coleta APENAS os destinatários relacionados ao relatório.
-        Retorna lista de emails únicos.
+        Retorna lista de emails únicos com logs detalhados.
         
         Destinatários:
         - Pessoa que criou o relatório (autor)
@@ -41,52 +41,85 @@ class ReportApprovalEmailService:
         
         NÃO inclui funcionários da obra, apenas os envolvidos no relatório.
         """
-        recipients = set()  # usar set para evitar duplicatas
+        recipients = set()
         
         try:
+            current_app.logger.info(f"🔍 Coletando destinatários para relatório {relatorio.numero}")
+            
             # 1. Autor do relatório
             if relatorio.autor and relatorio.autor.email:
                 recipients.add(relatorio.autor.email)
-                current_app.logger.info(f"✉️ Autor adicionado: {relatorio.autor.email}")
+                current_app.logger.info(f"✉️ [AUTOR] {relatorio.autor.nome_completo or relatorio.autor.username} ({relatorio.autor.email})")
+            else:
+                current_app.logger.warning(f"⚠️ [AUTOR] Sem email encontrado")
             
             # 2. Aprovador global
             if relatorio.aprovador and relatorio.aprovador.email:
                 recipients.add(relatorio.aprovador.email)
-                current_app.logger.info(f"✉️ Aprovador adicionado: {relatorio.aprovador.email}")
+                current_app.logger.info(f"✉️ [APROVADOR] {relatorio.aprovador.nome_completo or relatorio.aprovador.username} ({relatorio.aprovador.email})")
+            else:
+                current_app.logger.warning(f"⚠️ [APROVADOR] Sem email ou não atribuído")
             
             # 3. Acompanhantes da visita vinculados ao relatório
             if relatorio.acompanhantes:
-                try:
-                    from models import User
-                    acompanhantes_list = relatorio.acompanhantes if isinstance(relatorio.acompanhantes, list) else []
-                    for acomp in acompanhantes_list:
+                current_app.logger.info(f"🔍 Processando acompanhantes: {type(relatorio.acompanhantes)}")
+                acompanhantes_list = []
+                
+                # Converter para lista se necessário
+                if isinstance(relatorio.acompanhantes, list):
+                    acompanhantes_list = relatorio.acompanhantes
+                elif isinstance(relatorio.acompanhantes, str):
+                    try:
+                        acompanhantes_list = json.loads(relatorio.acompanhantes)
+                        if not isinstance(acompanhantes_list, list):
+                            acompanhantes_list = []
+                    except json.JSONDecodeError:
+                        current_app.logger.warning(f"⚠️ Erro ao fazer parse de acompanhantes JSON: {relatorio.acompanhantes}")
+                        acompanhantes_list = []
+                elif isinstance(relatorio.acompanhantes, dict):
+                    acompanhantes_list = []
+                
+                current_app.logger.info(f"📋 Total de acompanhantes para processar: {len(acompanhantes_list)}")
+                
+                for idx, acomp in enumerate(acompanhantes_list):
+                    try:
+                        email = None
+                        nome = "Desconhecido"
+                        
                         if isinstance(acomp, dict):
-                            # Tentar obter email diretamente do acompanhante
                             email = acomp.get('email', '').strip() if acomp.get('email') else None
-                            nome = acomp.get('nome', '').strip()
+                            nome = acomp.get('nome', '').strip() if acomp.get('nome') else 'Desconhecido'
                             
                             # Se não tiver email no dicionário, buscar na tabela User pelo nome
-                            if not email and nome:
+                            if not email and nome and nome != 'Desconhecido':
                                 try:
+                                    from models import User
                                     user = User.query.filter_by(nome_completo=nome).first()
                                     if user and user.email:
                                         email = user.email
-                                        current_app.logger.info(f"🔍 Email do acompanhante '{nome}' encontrado na base: {email}")
+                                        current_app.logger.info(f"🔍 Email de '{nome}' encontrado na base: {email}")
                                 except Exception as e:
-                                    current_app.logger.warning(f"⚠️ Erro ao buscar email do acompanhante '{nome}': {e}")
-                            
-                            # Adicionar email se encontrou
-                            if email:
-                                recipients.add(email)
-                                current_app.logger.info(f"✉️ Acompanhante adicionado: {nome} ({email})")
-                            else:
-                                current_app.logger.warning(f"⚠️ Acompanhante '{nome}' sem email encontrado")
-                                
-                except Exception as e:
-                    current_app.logger.warning(f"⚠️ Erro ao processar acompanhantes: {e}")
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar email de '{nome}': {e}")
+                        
+                        # Adicionar email se encontrou
+                        if email:
+                            recipients.add(email)
+                            current_app.logger.info(f"✉️ [ACOMPANHANTE {idx+1}] {nome} ({email})")
+                        else:
+                            current_app.logger.warning(f"⚠️ [ACOMPANHANTE {idx+1}] '{nome}' - sem email")
+                    
+                    except Exception as e:
+                        current_app.logger.warning(f"⚠️ Erro ao processar acompanhante {idx}: {e}")
+            
+            else:
+                current_app.logger.info(f"ℹ️ Nenhum acompanhante registrado para este relatório")
+            
+            current_app.logger.info(f"📊 RESUMO: Total de {len(recipients)} destinatário(s) coletado(s)")
+            for email in recipients:
+                current_app.logger.info(f"   - {email}")
         
         except Exception as e:
-            current_app.logger.error(f"❌ Erro ao coletar destinatários: {e}")
+            current_app.logger.error(f"❌ Erro ao coletar destinatários: {e}", exc_info=True)
         
         return list(recipients)
     
@@ -122,12 +155,19 @@ Por favor, não responda este e-mail.
                     'error': 'Nenhum destinatário válido encontrado'
                 }
             
-            obra_nome = relatorio.projeto.nome if relatorio.projeto else "Obra"
+            # Obter nome da obra
+            if hasattr(relatorio, 'projeto') and relatorio.projeto:
+                obra_nome = relatorio.projeto.nome
+            elif hasattr(relatorio, 'obra_nome'):
+                obra_nome = relatorio.obra_nome or "Obra"
+            else:
+                obra_nome = "Obra"
+            
             assunto = f"Relatório aprovado – Obra {obra_nome}"
             
-            current_app.logger.info(f"📧 Iniciando envio de e-mail para relatório {relatorio.numero}")
-            current_app.logger.info(f"📧 Destinatários: {recipients}")
-            current_app.logger.info(f"📧 PDF path: {pdf_path}")
+            current_app.logger.info(f"📧 Iniciando envio de {len(recipients)} e-mail(s) para relatório {relatorio.numero}")
+            current_app.logger.info(f"📧 Obra: {obra_nome}")
+            current_app.logger.info(f"📧 PDF: {pdf_path}")
             
             # Verificar se PDF existe
             if not os.path.exists(pdf_path):
@@ -142,24 +182,29 @@ Por favor, não responda este e-mail.
             yag = self._get_yag_connection()
             
             enviados = 0
+            erros = []
             
             # Enviar e-mail individual para cada destinatário
             for recipient_email in recipients:
                 try:
                     # Obter nome do destinatário
-                    destinatario_nome = recipient_email.split('@')[0]  # fallback
+                    destinatario_nome = recipient_email.split('@')[0]
                     
                     # Tentar encontrar nome completo do usuário
-                    from models import User
-                    user = User.query.filter_by(email=recipient_email).first()
-                    if user:
-                        destinatario_nome = user.nome_completo or user.username
+                    try:
+                        from models import User
+                        user = User.query.filter_by(email=recipient_email).first()
+                        if user:
+                            destinatario_nome = user.nome_completo or user.username
+                    except:
+                        pass
                     
                     # Corpo do e-mail
                     corpo = self._format_email_body(destinatario_nome, obra_nome, relatorio.data_aprovacao)
                     
+                    current_app.logger.info(f"📤 Enviando email para {recipient_email}...")
+                    
                     # Enviar via yagmail
-                    # yagmail.send(to, subject, contents, attachments)
                     yag.send(
                         to=recipient_email,
                         subject=assunto,
@@ -168,29 +213,33 @@ Por favor, não responda este e-mail.
                     )
                     
                     enviados += 1
-                    current_app.logger.info(f"✅ E-mail enviado com sucesso para {recipient_email}")
+                    current_app.logger.info(f"✅ E-mail {enviados}/{len(recipients)} enviado: {recipient_email}")
                 
                 except Exception as e:
-                    current_app.logger.error(f"❌ Erro ao enviar e-mail para {recipient_email}: {e}")
-                    # Continua tentando os outros destinatários
+                    erro_msg = f"Erro ao enviar para {recipient_email}: {str(e)}"
+                    erros.append(erro_msg)
+                    current_app.logger.error(f"❌ {erro_msg}")
             
             if enviados > 0:
-                current_app.logger.info(f"✅ Sucesso: {enviados} e-mail(s) enviado(s) para relatório {relatorio.numero}")
+                current_app.logger.info(f"✅ SUCESSO: {enviados}/{len(recipients)} e-mail(s) enviado(s)")
                 return {
                     'success': True,
                     'enviados': enviados,
+                    'total': len(recipients),
                     'error': None
                 }
             else:
-                current_app.logger.error(f"❌ Falha ao enviar e-mails para relatório {relatorio.numero}")
+                erro_final = "Falha ao enviar e-mails para todos os destinatários: " + "; ".join(erros)
+                current_app.logger.error(f"❌ {erro_final}")
                 return {
                     'success': False,
                     'enviados': 0,
-                    'error': 'Falha ao enviar e-mails para todos os destinatários'
+                    'total': len(recipients),
+                    'error': erro_final
                 }
         
         except Exception as e:
-            current_app.logger.error(f"💥 Erro geral ao enviar e-mail para relatório: {e}")
+            current_app.logger.error(f"💥 Erro geral ao enviar e-mails: {e}", exc_info=True)
             return {
                 'success': False,
                 'enviados': 0,
