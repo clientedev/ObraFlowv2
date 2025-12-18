@@ -2948,23 +2948,33 @@ def create_report():
                     import json
                     acompanhantes_list = json.loads(acompanhantes_data)
                     if isinstance(acompanhantes_list, list):
-                        # Tentar adicionar emails dos acompanhantes buscando na tabela User
+                        # Tentar adicionar emails dos acompanhantes buscando na tabela
                         for acomp in acompanhantes_list:
                             if isinstance(acomp, dict):
                                 # Se não tem email, buscar na base de dados
                                 if not acomp.get('email') and acomp.get('nome'):
                                     try:
-                                        # 1. Busca exata por nome completo
-                                        user = User.query.filter_by(nome_completo=acomp['nome']).first()
-                                        # 2. Se não encontrar, fazer busca LIKE fuzzy (CASE INSENSITIVE)
-                                        if not user:
-                                            user = User.query.filter(
-                                                User.nome_completo.ilike(f'%{acomp["nome"]}%')
-                                            ).first()
+                                        # 1. BUSCAR NA TABELA user_email_config (PRIORIDADE)
+                                        from models import UserEmailConfig
+                                        email_config = UserEmailConfig.query.filter(
+                                            UserEmailConfig.nome_contato.ilike(f'%{acomp["nome"]}%')
+                                        ).first()
                                         
-                                        if user and user.email:
-                                            acomp['email'] = user.email
-                                            current_app.logger.info(f"📧 Email do acompanhante '{acomp['nome']}' adicionado: {user.email}")
+                                        if email_config and email_config.email:
+                                            acomp['email'] = email_config.email
+                                            current_app.logger.info(f"✅ Email de '{acomp['nome']}' encontrado em user_email_config: {email_config.email}")
+                                        else:
+                                            # 2. Fallback: Busca na tabela User
+                                            user = User.query.filter_by(nome_completo=acomp['nome']).first()
+                                            # 3. Se não encontrar, fazer busca LIKE fuzzy (CASE INSENSITIVE)
+                                            if not user:
+                                                user = User.query.filter(
+                                                    User.nome_completo.ilike(f'%{acomp["nome"]}%')
+                                                ).first()
+                                            
+                                            if user and user.email:
+                                                acomp['email'] = user.email
+                                                current_app.logger.info(f"📧 Email de '{acomp['nome']}' encontrado em User: {user.email}")
                                     except Exception as e:
                                         current_app.logger.warning(f"⚠️ Erro ao buscar email do acompanhante '{acomp.get('nome')}': {e}")
                         

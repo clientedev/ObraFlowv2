@@ -109,7 +109,23 @@ class ReportApprovalEmailService:
                             if not email and acomp.get('email'):
                                 email = acomp.get('email', '').strip()
                             
-                            # 3. Se tem nome, buscar com LIKE (CASE INSENSITIVE - MAIS FLEXÍVEL)
+                            # 3. BUSCAR NA TABELA user_email_config (por nome de contato)
+                            if not email and nome and nome != 'Desconhecido':
+                                try:
+                                    from models import UserEmailConfig
+                                    # Busca por nome_contato (LIKE fuzzy)
+                                    email_config = UserEmailConfig.query.filter(
+                                        UserEmailConfig.nome_contato.ilike(f'%{nome}%')
+                                    ).first()
+                                    
+                                    if email_config and email_config.email:
+                                        email = email_config.email
+                                        nome = email_config.nome_contato or email_config.email
+                                        current_app.logger.info(f"✅ Busca user_email_config: '{nome}' -> {email}")
+                                except Exception as e:
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar em user_email_config: {e}")
+                            
+                            # 4. Se ainda não encontrou, buscar na tabela User (fallback)
                             if not email and nome and nome != 'Desconhecido':
                                 try:
                                     from models import User
@@ -124,9 +140,9 @@ class ReportApprovalEmailService:
                                     if user and user.email:
                                         email = user.email
                                         nome = user.nome_completo or user.username
-                                        current_app.logger.info(f"🔍 Busca por nome '{nome}' encontrou: {email}")
+                                        current_app.logger.info(f"🔍 Busca User: '{nome}' -> {email}")
                                 except Exception as e:
-                                    current_app.logger.warning(f"⚠️ Erro ao buscar email de '{nome}': {e}")
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar em User: {e}")
                         
                         # Adicionar email se encontrou
                         if email:
