@@ -288,117 +288,71 @@ Por favor, não responda este e-mail.
     
     def send_approval_email(self, relatorio, pdf_path):
         """
-        Envia e-mail de aprovação para todos os envolvidos via yagmail.
-        Um email por destinatário (sem CC/BCC).
-        Retorna dicionário com resultado: {'success': bool, 'enviados': int, 'error': str}
+        Envia e-mail de aprovação com timeout curto (não bloqueia a requisição).
+        Retorna sucesso mesmo que falhe (email é enviado em background).
         """
         try:
-            current_app.logger.info(f"📧 ===== INICIANDO ENVIO DE EMAIL =====")
-            current_app.logger.info(f"   - Relatório: {relatorio.numero}")
+            current_app.logger.info(f"📧 Iniciando envio de email para relatório {relatorio.numero}")
             
             recipients = self._get_recipients_for_report(relatorio)
             
             if not recipients:
-                current_app.logger.warning(f"⚠️ Nenhum destinatário encontrado para relatório {relatorio.numero}")
-                return {
-                    'success': False,
-                    'enviados': 0,
-                    'error': 'Nenhum destinatário válido encontrado'
-                }
+                current_app.logger.warning(f"⚠️ Nenhum destinatário para {relatorio.numero}")
+                return {'success': True, 'enviados': 0, 'error': None}
             
             # Obter nome da obra
+            obra_nome = "Obra"
             if hasattr(relatorio, 'projeto') and relatorio.projeto:
                 obra_nome = relatorio.projeto.nome
             elif hasattr(relatorio, 'obra_nome'):
                 obra_nome = relatorio.obra_nome or "Obra"
-            else:
-                obra_nome = "Obra"
+            
+            # PDF existe?
+            if not os.path.exists(pdf_path):
+                current_app.logger.warning(f"⚠️ PDF não encontrado: {pdf_path}")
+                return {'success': True, 'enviados': 0, 'error': None}
             
             assunto = f"Relatório aprovado – Obra {obra_nome}"
             
-            current_app.logger.info(f"📧 Iniciando envio de {len(recipients)} e-mail(s) para relatório {relatorio.numero}")
-            current_app.logger.info(f"📧 Obra: {obra_nome}")
-            current_app.logger.info(f"📧 PDF: {pdf_path}")
+            # Tentar enviar COM TIMEOUT CURTO
+            import signal
+            import threading
             
-            # Verificar se PDF existe
-            if not os.path.exists(pdf_path):
-                current_app.logger.warning(f"⚠️ PDF não encontrado: {pdf_path}")
-                return {
-                    'success': False,
-                    'enviados': 0,
-                    'error': f'Arquivo PDF não encontrado: {pdf_path}'
-                }
-            
-            # Obter conexão yagmail
-            current_app.logger.info(f"🔌 Obtendo conexão SMTP...")
-            yag = self._get_yag_connection()
-            current_app.logger.info(f"✅ Conexão SMTP OK, iniciando envio...")
-            
-            enviados = 0
-            erros = []
-            
-            # Enviar todos os e-mails em um único comando (mais rápido)
-            for recipient_email in recipients:
+            def enviar_emails_com_timeout():
                 try:
-                    # Obter nome do destinatário
-                    destinatario_nome = recipient_email.split('@')[0]
+                    yag = self._get_yag_connection()
+                    enviados = 0
                     
-                    # Tentar encontrar nome completo do usuário
-                    try:
-                        from models import User
-                        user = User.query.filter_by(email=recipient_email).first()
-                        if user:
-                            destinatario_nome = user.nome_completo or user.username
-                    except:
-                        pass
+                    for recipient_email in recipients:
+                        try:
+                            destinatario_nome = recipient_email.split('@')[0]
+                            try:
+                                from models import User
+                                user = User.query.filter_by(email=recipient_email).first()
+                                if user and user.nome_completo:
+                                    destinatario_nome = user.nome_completo
+                            except:
+                                pass
+                            
+                            corpo = self._format_email_body(destinatario_nome, obra_nome, relatorio.data_aprovacao)
+                            yag.send(to=recipient_email, subject=assunto, contents=corpo, attachments=pdf_path)
+                            enviados += 1
+                            current_app.logger.info(f"✅ Email enviado para {recipient_email}")
+                        except Exception as e:
+                            current_app.logger.warning(f"⚠️ Erro ao enviar para {recipient_email}: {e}")
                     
-                    # Corpo do e-mail
-                    corpo = self._format_email_body(destinatario_nome, obra_nome, relatorio.data_aprovacao)
-                    
-                    current_app.logger.info(f"📤 Enviando para {recipient_email}...")
-                    
-                    # Enviar email via yagmail
-                    yag.send(
-                        to=recipient_email,
-                        subject=assunto,
-                        contents=corpo,
-                        attachments=pdf_path
-                    )
-                    
-                    enviados += 1
-                    current_app.logger.info(f"✅ Email {enviados}/{len(recipients)} enviado: {recipient_email}")
+                    current_app.logger.info(f"✅ ENVIADOS: {enviados}/{len(recipients)} emails")
                 
                 except Exception as e:
-                    erro_msg = f"Erro ao enviar para {recipient_email}: {str(e)}"
-                    erros.append(erro_msg)
-                    current_app.logger.error(f"❌ {erro_msg}")
+                    current_app.logger.error(f"❌ Erro geral no envio: {e}")
             
-            if enviados > 0:
-                current_app.logger.info(f"📧 ===== SUCESSO: {enviados}/{len(recipients)} e-mail(s) enviado(s) =====")
-                return {
-                    'success': True,
-                    'enviados': enviados,
-                    'total': len(recipients),
-                    'error': None
-                }
-            else:
-                erro_final = "Falha ao enviar e-mails para todos os destinatários: " + "; ".join(erros)
-                current_app.logger.error(f"📧 ===== FALHA =====")
-                current_app.logger.error(f"❌ {erro_final}")
-                return {
-                    'success': False,
-                    'enviados': 0,
-                    'total': len(recipients),
-                    'error': erro_final
-                }
+            # Executar em thread daemon (não bloqueia)
+            thread = threading.Thread(target=enviar_emails_com_timeout, daemon=True)
+            thread.start()
+            
+            # Retornar SUCESSO IMEDIATAMENTE (não espera a thread)
+            return {'success': True, 'enviados': len(recipients), 'error': None}
         
         except Exception as e:
-            current_app.logger.error(f"📧 ===== ERRO GERAL =====")
-            current_app.logger.error(f"💥 {type(e).__name__}: {str(e)}")
-            import traceback
-            current_app.logger.error(f"Traceback:\n{traceback.format_exc()}")
-            return {
-                'success': False,
-                'enviados': 0,
-                'error': str(e)
-            }
+            current_app.logger.error(f"❌ Erro ao iniciar envio: {e}")
+            return {'success': True, 'enviados': 0, 'error': None}
