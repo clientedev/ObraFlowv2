@@ -3966,79 +3966,21 @@ def approve_report(id):
         generator.generate_report_pdf(relatorio, fotos, output_path=pdf_path)
         current_app.logger.info(f"📄 PDF gerado: {pdf_path}")
 
-        # Coletar destinatários de e-mail
-        destinatarios = []
-        
-        # Adicionar autor do relatório
-        if relatorio.autor and relatorio.autor.email:
-            destinatarios.append(relatorio.autor.email)
-        
-        # Adicionar responsável do projeto
-        if relatorio.projeto and relatorio.projeto.responsavel:
-            if relatorio.projeto.responsavel.email and relatorio.projeto.responsavel.email not in destinatarios:
-                destinatarios.append(relatorio.projeto.responsavel.email)
-        
-        # Adicionar acompanhantes (JSONB array)
-        if relatorio.acompanhantes:
-            try:
-                acompanhantes_list = relatorio.acompanhantes if isinstance(relatorio.acompanhantes, list) else []
-                for acomp in acompanhantes_list:
-                    if isinstance(acomp, dict) and acomp.get('email'):
-                        if acomp['email'] not in destinatarios:
-                            destinatarios.append(acomp['email'])
-            except Exception as e:
-                current_app.logger.warning(f"⚠️ Erro ao processar acompanhantes: {e}")
-        
-        # Adicionar clientes da obra que devem receber relatórios
+        # Enviar e-mail de aprovação via novo serviço SMTP
         try:
-            clientes = EmailCliente.query.filter_by(
-                projeto_id=relatorio.projeto_id,
-                ativo=True,
-                receber_relatorios=True
-            ).all()
+            from email_service_smtp import ReportApprovalEmailService
+            email_service = ReportApprovalEmailService()
+            resultado_email = email_service.send_approval_email(relatorio, pdf_path)
             
-            for cliente in clientes:
-                if cliente.email and cliente.email not in destinatarios:
-                    destinatarios.append(cliente.email)
+            if resultado_email.get('success'):
+                enviados = resultado_email.get('enviados', 0)
+                current_app.logger.info(f"✅ E-mail enviado com sucesso para {enviados} destinatário(s)")
+                flash(f'✅ Relatório aprovado com sucesso! E-mail enviado para {enviados} destinatário(s).', 'success')
+            else:
+                current_app.logger.warning(f"⚠️ Falha ao enviar e-mail: {resultado_email.get('error')}")
+                flash('✅ Relatório aprovado com sucesso! Não foi possível enviar o e-mail de notificação.', 'warning')
         except Exception as e:
-            current_app.logger.warning(f"⚠️ Erro ao buscar clientes: {e}")
-
-        if not destinatarios:
-            current_app.logger.warning(f"⚠️ Nenhum destinatário encontrado para relatório {relatorio.numero}")
-            flash('✅ Relatório aprovado com sucesso! Nenhum destinatário de e-mail configurado.', 'warning')
-            return redirect(url_for('report_edit', report_id=id))
-
-        current_app.logger.info(f"📧 Destinatários: {destinatarios}")
-
-        # Preparar assunto e corpo do e-mail
-        assunto = f"Relatório {relatorio.numero} - {relatorio.projeto.nome}"
-        responsavel_email = relatorio.projeto.responsavel.email if relatorio.projeto and relatorio.projeto.responsavel else "elp@elpconsultoria.eng.br"
-        
-        corpo_html = f"""
-        <html>
-        <body>
-            <p>Olá,</p>
-            <p>O relatório <strong>{relatorio.numero}</strong> referente à obra <strong>{relatorio.projeto.nome}</strong> foi aprovado.</p>
-            <p>O PDF está anexado a este e-mail.</p>
-            <p>Qualquer dúvida, entre em contato com <strong>{responsavel_email}</strong>.</p>
-            <br>
-            <p>Atenciosamente,<br><strong>ELP Consultoria</strong></p>
-        </body>
-        </html>
-        """
-
-        # Enviar e-mail via Resend
-        from email_service import EmailServiceRelatorio
-        email_service = EmailServiceRelatorio()
-        enviado = email_service.enviar_relatorio_por_email(
-            relatorio.id, destinatarios, assunto, corpo_html, pdf_path
-        )
-
-        if enviado:
-            current_app.logger.info(f"✅ E-mail enviado com sucesso para {len(destinatarios)} destinatário(s)")
-            flash(f'✅ Relatório aprovado com sucesso! E-mail enviado para {len(destinatarios)} destinatário(s).', 'success')
-        else:
-            current_app.logger.warning(f"⚠️ Falha ao enviar e-mail")
+            current_app.logger.warning(f"⚠️ Erro ao enviar e-mail de aprovação: {e}")
             flash('✅ Relatório aprovado com sucesso! Não foi possível enviar o e-mail de notificação.', 'warning')
         
         return redirect(url_for('report_edit', report_id=id))
@@ -7613,9 +7555,23 @@ def report_approve(report_id):
     # Enviar e-mail de aprovação para todos os envolvidos (após commit)
     if action == 'approve':
         try:
-            from email_service import EmailService
-            email_service = EmailService()
-            resultado_email = email_service.send_report_approval_email(report_id)
+            # Gerar PDF
+            from pdf_generator_weasy import WeasyPrintReportGenerator
+            generator = WeasyPrintReportGenerator()
+            fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).order_by(FotoRelatorio.ordem).all()
+            
+            obra_nome = sanitize_filename(relatorio.projeto.nome if relatorio.projeto else "Obra")
+            pdf_filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
+            pdf_path = os.path.join('static', 'reports', pdf_filename)
+            os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+            
+            generator.generate_report_pdf(relatorio, fotos, output_path=pdf_path)
+            current_app.logger.info(f"📄 PDF gerado para aprovação: {pdf_path}")
+            
+            # Enviar e-mail via novo serviço SMTP
+            from email_service_smtp import ReportApprovalEmailService
+            email_service = ReportApprovalEmailService()
+            resultado_email = email_service.send_approval_email(relatorio, pdf_path)
             
             if resultado_email.get('success'):
                 enviados = resultado_email.get('enviados', 0)

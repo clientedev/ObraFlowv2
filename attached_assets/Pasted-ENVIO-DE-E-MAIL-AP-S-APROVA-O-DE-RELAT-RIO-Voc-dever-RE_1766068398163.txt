@@ -1,0 +1,116 @@
+ENVIO DE E-MAIL APÓS APROVAÇÃO DE RELATÓRIO
+
+Você deverá REMOVER COMPLETAMENTE qualquer lógica existente de envio de e-mails no projeto antes de iniciar esta implementação.
+⚠️ Não altere nenhuma outra funcionalidade do sistema, apenas a lógica de envio de e-mail relacionada a relatórios.
+
+🎯 OBJETIVO DA FUNCIONALIDADE
+
+Implementar um envio automático de e-mail simples e unidirecional (não-reply) sempre que um relatório for APROVADO, independentemente de ser:
+
+Relatório Normal
+
+Relatório Express
+
+A aprovação é o único gatilho para o envio.
+
+🔁 MOMENTO DO DISPARO
+
+O envio de e-mail deve ocorrer imediatamente após a confirmação da aprovação do relatório, dentro do fluxo já existente de aprovação, sem duplicar eventos ou gerar múltiplos envios.
+
+👥 DESTINATÁRIOS DO E-MAIL
+
+O sistema deve identificar e enviar o e-mail para TODAS as pessoas relacionadas ao relatório, incluindo obrigatoriamente:
+
+Pessoa que criou o relatório
+
+Aprovador global
+
+Todos os acompanhantes da visita vinculados à obra/relatório
+
+➡️ Cada destinatário deve receber um e-mail individual (não usar CC ou BCC).
+
+✉️ CONTA DE ENVIO (FIXA)
+
+O e-mail será enviado sempre a partir da seguinte conta:
+
+E-mail: relatorios@elpconsultoria.eng.br
+
+Senha: 1234567890
+
+Essa conta deve ser usada apenas para envio (no-reply).
+
+🧾 CONTEÚDO DO E-MAIL (PADRÃO)
+
+O conteúdo deve ser padronizado, simples e profissional.
+
+Assunto:
+Relatório aprovado – Obra {NOME_DA_OBRA}
+
+Corpo do e-mail (texto simples):
+Olá {NOME_DO_DESTINATÁRIO},
+
+O relatório da obra "{NOME_DA_OBRA}" foi aprovado em {DATA_DA_APROVAÇÃO}.
+
+Segue em anexo o arquivo PDF do relatório aprovado.
+
+Este é um e-mail automático.  
+Por favor, não responda este e-mail.
+
+
+🔹 O sistema deve puxar dinamicamente:
+
+Nome do destinatário
+
+Nome da obra
+
+Data da aprovação
+
+📎 ANEXO OBRIGATÓRIO
+
+Anexar obrigatoriamente o PDF do relatório aprovado
+
+O PDF deve ser o mesmo arquivo oficial gerado pelo sistema
+
+Nome do arquivo deve ser claro e relacionado à obra
+
+⚙️ REGRAS DE IMPLEMENTAÇÃO
+
+Não exigir resposta do usuário
+
+Não permitir reply (e-mail informativo)
+
+Garantir que:
+
+Um relatório aprovado → um envio por destinatário
+
+Não haja envio duplicado
+
+Caso algum destinatário não possua e-mail válido:
+
+O envio para os demais não deve falhar
+
+O sistema não deve quebrar o fluxo de aprovação
+
+🚫 O QUE NÃO FAZER
+
+Não alterar fluxo de aprovação
+
+Não alterar geração de PDF
+
+Não alterar regras de negócio existentes
+
+Não reutilizar nenhuma lógica antiga de e-mail
+
+Não criar novas telas ou campos
+
+✅ RESULTADO ESPERADO
+
+Ao final da implementação:
+
+Toda aprovação de relatório (normal ou express) dispara corretamente o envio
+
+Todos os envolvidos recebem seu e-mail personalizado
+
+O PDF correto é enviado em anexo
+
+Nenhuma outra funcionalidade do sistema é impactada
