@@ -320,7 +320,11 @@ Por favor, não responda este e-mail.
             
             def enviar_emails_com_timeout():
                 try:
+                    current_app.logger.info(f"[THREAD] 🧵 Thread iniciada - tentando conectar SMTP...")
+                    current_app.logger.info(f"[THREAD] Email: {self.from_email}, Porta: 587")
+                    
                     yag = self._get_yag_connection()
+                    current_app.logger.info(f"[THREAD] ✅ Conexão SMTP OK")
                     enviados = 0
                     
                     for recipient_email in recipients:
@@ -335,16 +339,19 @@ Por favor, não responda este e-mail.
                                 pass
                             
                             corpo = self._format_email_body(destinatario_nome, obra_nome, relatorio.data_aprovacao)
+                            current_app.logger.info(f"[THREAD] 📤 Enviando para {recipient_email}...")
                             yag.send(to=recipient_email, subject=assunto, contents=corpo, attachments=pdf_path)
                             enviados += 1
-                            current_app.logger.info(f"✅ Email enviado para {recipient_email}")
+                            current_app.logger.info(f"[THREAD] ✅ Email enviado para {recipient_email}")
                         except Exception as e:
-                            current_app.logger.warning(f"⚠️ Erro ao enviar para {recipient_email}: {e}")
+                            current_app.logger.error(f"[THREAD] ❌ Erro ao enviar para {recipient_email}: {type(e).__name__}: {e}")
                     
-                    current_app.logger.info(f"✅ ENVIADOS: {enviados}/{len(recipients)} emails")
+                    current_app.logger.info(f"[THREAD] ✅ SUCESSO: {enviados}/{len(recipients)} emails enviados")
                 
                 except Exception as e:
-                    current_app.logger.error(f"❌ Erro geral no envio: {e}")
+                    current_app.logger.error(f"[THREAD] ❌ FALHA CRÍTICA: {type(e).__name__}: {e}")
+                    import traceback
+                    current_app.logger.error(f"[THREAD] Traceback:\n{traceback.format_exc()}")
             
             # Executar em thread daemon (não bloqueia)
             thread = threading.Thread(target=enviar_emails_com_timeout, daemon=True)
