@@ -429,6 +429,54 @@ def approve_express_report(report_id):
         except Exception as notif_error:
             logger.error(f"⚠️ Erro ao criar notificação de aprovação: {notif_error}")
         
+        # Gerar PDF e enviar email em background (não bloqueia aprovação)
+        import threading
+        
+        def processar_pdf_e_email_background(relatorio_id):
+            """Processa PDF e email em thread separada com timeout"""
+            try:
+                with app.app_context():
+                    from pdf_generator_express import gerar_pdf_relatorio_express
+                    from email_service_yagmail import ReportApprovalEmailService
+                    
+                    relatorio_bg = RelatorioExpress.query.get(relatorio_id)
+                    if not relatorio_bg:
+                        logger.error(f"❌ Relatório {relatorio_id} não encontrado em background")
+                        return
+                    
+                    # Gerar PDF
+                    try:
+                        resultado_pdf = gerar_pdf_relatorio_express(relatorio_id, salvar_arquivo=True)
+                        if resultado_pdf.get('success'):
+                            pdf_path = resultado_pdf.get('path')
+                            logger.info(f"📄 PDF gerado: {pdf_path}")
+                            
+                            # Enviar emails
+                            try:
+                                email_service = ReportApprovalEmailService()
+                                resultado_email = email_service.send_approval_email(relatorio_bg, pdf_path)
+                                
+                                if resultado_email.get('success'):
+                                    logger.info(f"✅ {resultado_email.get('enviados', 0)} email(s) enviado(s)")
+                                else:
+                                    logger.warning(f"⚠️ Erro ao enviar emails: {resultado_email.get('error')}")
+                            except Exception as email_err:
+                                logger.error(f"❌ Erro ao enviar email: {email_err}", exc_info=True)
+                        else:
+                            logger.warning(f"⚠️ Erro ao gerar PDF: {resultado_pdf.get('error')}")
+                    except Exception as pdf_err:
+                        logger.error(f"❌ Erro ao processar PDF/Email: {pdf_err}", exc_info=True)
+            except Exception as e:
+                logger.error(f"❌ Erro em thread background: {e}", exc_info=True)
+        
+        # Iniciar thread com timeout
+        thread = threading.Thread(
+            target=processar_pdf_e_email_background,
+            args=(relatorio.id,),
+            daemon=True
+        )
+        thread.start()
+        
         flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso!', 'success')
         return redirect(url_for('express_reports_list'))
         

@@ -19,10 +19,13 @@ class ReportApprovalEmailService:
         self.yag = None
     
     def _get_yag_connection(self):
-        """Obter conexão yagmail (lazy connection)"""
+        """Obter conexão yagmail (lazy connection) com timeout"""
         if self.yag is None:
             try:
-                self.yag = yagmail.SMTP(self.from_email, self.from_password)
+                import socket
+                # Configurar timeout para evitar travamentos
+                socket.setdefaulttimeout(10)  # 10 segundos de timeout
+                self.yag = yagmail.SMTP(self.from_email, self.from_password, timeout=10)
                 current_app.logger.info(f"✅ Conexão yagmail estabelecida com {self.from_email}")
             except Exception as e:
                 current_app.logger.error(f"❌ Erro ao conectar com yagmail: {e}")
