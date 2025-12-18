@@ -88,50 +88,48 @@ class ReportApprovalEmailService:
                         user_id = None
                         
                         if isinstance(acomp, dict):
-                            # Tentar extrair informações do acompanhante
-                            email = acomp.get('email', '').strip() if acomp.get('email') else None
-                            nome = acomp.get('nome', '').strip() if acomp.get('nome') else 'Desconhecido'
-                            user_id = acomp.get('id', acomp.get('user_id', None))
+                            # Extrair informações do acompanhante
+                            email = (acomp.get('email', '') or '').strip()
+                            nome = (acomp.get('nome', '') or '').strip() or 'Desconhecido'
+                            user_id = acomp.get('id') or acomp.get('user_id')
                             
-                            # 1. Se tem ID de usuário, buscar por ID (MAIS RÁPIDO)
-                            if not email and user_id:
+                            current_app.logger.info(f"🔍 [ACOMPANHANTE {idx+1}] nome='{nome}' id={user_id} email_salvo='{email}'")
+                            
+                            # 1. SE JÁ TEM EMAIL SALVO, USAR DIRETO (PRIORIDADE!)
+                            if email:
+                                current_app.logger.info(f"✅ Email já salvo: {email}")
+                            
+                            # 2. Se tem ID, buscar por ID
+                            elif user_id:
                                 try:
                                     from models import User
                                     user = User.query.filter_by(id=user_id).first()
                                     if user and user.email:
                                         email = user.email
                                         nome = user.nome_completo or user.username
-                                        current_app.logger.info(f"🔍 [ID={user_id}] Email encontrado: {email}")
+                                        current_app.logger.info(f"✅ Email encontrado por ID {user_id}: {email}")
                                 except Exception as e:
-                                    current_app.logger.warning(f"⚠️ Erro ao buscar user ID {user_id}: {e}")
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar User por ID {user_id}: {e}")
                             
-                            # 2. Se tem email direto, usar (SEM VALIDAÇÃO)
-                            if not email and acomp.get('email'):
-                                email = acomp.get('email', '').strip()
-                            
-                            # 3. BUSCAR NA TABELA user_email_config (por nome de contato)
-                            if not email and nome and nome != 'Desconhecido':
+                            # 3. Se nome é válido, buscar na user_email_config por nome
+                            if not email and nome != 'Desconhecido':
                                 try:
                                     from models import UserEmailConfig
-                                    # Busca por nome_contato (LIKE fuzzy)
                                     email_config = UserEmailConfig.query.filter(
                                         UserEmailConfig.nome_contato.ilike(f'%{nome}%')
                                     ).first()
                                     
                                     if email_config and email_config.email:
                                         email = email_config.email
-                                        nome = email_config.nome_contato or email_config.email
-                                        current_app.logger.info(f"✅ Busca user_email_config: '{nome}' -> {email}")
+                                        current_app.logger.info(f"✅ Email encontrado em user_email_config: {email}")
                                 except Exception as e:
                                     current_app.logger.warning(f"⚠️ Erro ao buscar em user_email_config: {e}")
                             
-                            # 4. Se ainda não encontrou, buscar na tabela User (fallback)
-                            if not email and nome and nome != 'Desconhecido':
+                            # 4. Fallback: buscar na tabela User por nome
+                            if not email and nome != 'Desconhecido':
                                 try:
                                     from models import User
-                                    # Busca exata primeiro
                                     user = User.query.filter_by(nome_completo=nome).first()
-                                    # Se não encontrar, fazer busca parcial (LIKE)
                                     if not user:
                                         user = User.query.filter(
                                             User.nome_completo.ilike(f'%{nome}%')
@@ -139,17 +137,16 @@ class ReportApprovalEmailService:
                                     
                                     if user and user.email:
                                         email = user.email
-                                        nome = user.nome_completo or user.username
-                                        current_app.logger.info(f"🔍 Busca User: '{nome}' -> {email}")
+                                        current_app.logger.info(f"✅ Email encontrado em User por nome: {email}")
                                 except Exception as e:
-                                    current_app.logger.warning(f"⚠️ Erro ao buscar em User: {e}")
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar em User por nome: {e}")
                         
                         # Adicionar email se encontrou
                         if email:
                             recipients.add(email)
                             current_app.logger.info(f"✉️ [ACOMPANHANTE {idx+1}] {nome} ({email})")
                         else:
-                            current_app.logger.warning(f"⚠️ [ACOMPANHANTE {idx+1}] '{nome}' - sem email encontrado")
+                            current_app.logger.warning(f"⚠️ [ACOMPANHANTE {idx+1}] '{nome}' - SEM EMAIL ENCONTRADO")
                     
                     except Exception as e:
                         current_app.logger.warning(f"⚠️ Erro ao processar acompanhante {idx}: {e}")
