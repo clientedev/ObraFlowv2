@@ -1,0 +1,133 @@
+MIGRAÇÃO DE ENVIO DE E-MAIL PARA YAGMAIL
+⚠️ ETAPA OBRIGATÓRIA INICIAL
+
+Antes de qualquer implementação nova, REMOVA COMPLETAMENTE todas as APIs, serviços, integrações e lógicas atuais de envio de e-mail existentes no sistema.
+
+Apagar chamadas para APIs externas (SendGrid, Mailjet, SMTP customizado, etc.)
+
+Remover serviços auxiliares relacionados a e-mail
+
+Não deixar código legado, fallback ou lógica paralela
+
+Não alterar nenhuma outra funcionalidade do sistema
+
+Essa remoção deve ser isolada apenas ao envio de e-mails.
+
+🎯 OBJETIVO DA NOVA IMPLEMENTAÇÃO
+
+Implementar um envio de e-mail simples, direto e automático, utilizando exclusivamente a biblioteca yagmail, conectada a uma conta Google comum (Gmail).
+
+Não será utilizado:
+
+API externa
+
+Configuração de domínio
+
+DNS, SPF, DKIM
+
+OAuth complexo
+
+📧 CONTA DE ENVIO (FIXA)
+
+O sistema deve utilizar sempre a seguinte conta Gmail para envio:
+
+E-mail: relatorioselp@gmail.com
+
+Senha: Relatorios#2025
+
+⚠️ A autenticação deve ser feita diretamente via yagmail.
+⚠️ Não implementar fluxo de resposta (no-reply).
+
+🔁 GATILHO DE ENVIO
+
+O envio de e-mail deve acontecer exclusivamente quando um relatório for APROVADO, independentemente do tipo:
+
+Relatório Normal
+
+Relatório Express
+
+A aprovação é o único evento que dispara o envio.
+
+👥 DESTINATÁRIOS
+
+Para cada aprovação de relatório, enviar um e-mail individual para:
+
+Pessoa que criou o relatório
+
+Aprovador global
+
+Todos os acompanhantes da visita vinculados ao relatório
+
+❗ Não utilizar CC ou BCC
+❗ Cada destinatário recebe seu próprio e-mail
+
+✉️ CONTEÚDO PADRÃO DO E-MAIL
+Assunto:
+Relatório aprovado – Obra {NOME_DA_OBRA}
+
+Corpo do e-mail (texto simples):
+Olá {NOME_DO_DESTINATÁRIO},
+
+O relatório da obra "{NOME_DA_OBRA}" foi aprovado em {DATA_DA_APROVAÇÃO}.
+
+Segue em anexo o arquivo PDF do relatório aprovado.
+
+Este é um e-mail automático.
+Por favor, não responda este e-mail.
+
+
+🔹 Todas as variáveis devem ser preenchidas dinamicamente pelo sistema.
+
+📎 ANEXO
+
+Anexar obrigatoriamente o PDF oficial do relatório aprovado
+
+O PDF deve ser o mesmo arquivo já gerado pelo sistema
+
+Nome do arquivo deve ser claro e relacionado à obra
+
+⚙️ REGRAS DE IMPLEMENTAÇÃO
+
+Utilizar apenas yagmail
+
+Criar uma camada única e centralizada de envio de e-mail
+
+Garantir:
+
+Um envio por destinatário
+
+Nenhum envio duplicado
+
+Se um destinatário não possuir e-mail válido:
+
+Ignorar apenas aquele envio
+
+Não interromper o fluxo geral
+
+🚫 O QUE NÃO FAZER
+
+Não reutilizar lógica antiga
+
+Não manter APIs antigas como fallback
+
+Não alterar fluxo de aprovação
+
+Não criar novas telas
+
+Não alterar geração de PDF
+
+Não alterar regras de negócio existentes
+
+✅ RESULTADO ESPERADO
+
+Ao final da implementação:
+
+Todo relatório aprovado dispara corretamente o envio
+
+Todos os envolvidos recebem e-mail personalizado
+
+O PDF correto é enviado em anexo
+
+O sistema permanece estável
+
+Não existe nenhuma dependência de API externa

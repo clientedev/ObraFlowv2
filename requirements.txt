@@ -63,3 +63,4 @@ weasyprint
 Werkzeug
 WTForms
 sendgrid
+yagmail

@@ -3966,9 +3966,9 @@ def approve_report(id):
         generator.generate_report_pdf(relatorio, fotos, output_path=pdf_path)
         current_app.logger.info(f"📄 PDF gerado: {pdf_path}")
 
-        # Enviar e-mail de aprovação via Gmail SMTP
+        # Enviar e-mail de aprovação via yagmail
         try:
-            from email_service_gmail import ReportApprovalEmailService
+            from email_service_yagmail import ReportApprovalEmailService
             email_service = ReportApprovalEmailService()
             resultado_email = email_service.send_approval_email(relatorio, pdf_path)
             
@@ -7568,8 +7568,8 @@ def report_approve(report_id):
             generator.generate_report_pdf(relatorio, fotos, output_path=pdf_path)
             current_app.logger.info(f"📄 PDF gerado para aprovação: {pdf_path}")
             
-            # Enviar e-mail via Gmail SMTP
-            from email_service_gmail import ReportApprovalEmailService
+            # Enviar e-mail via yagmail
+            from email_service_yagmail import ReportApprovalEmailService
             email_service = ReportApprovalEmailService()
             resultado_email = email_service.send_approval_email(relatorio, pdf_path)
             

@@ -1,30 +1,44 @@
 """
-Serviço de envio de e-mail SMTP para relatórios aprovados.
-Envia e-mails para todos os envolvidos quando um relatório é aprovado.
+Serviço de envio de e-mail via yagmail para relatórios aprovados.
+Usa conta Gmail fixa: relatorioselp@gmail.com
+Envia e-mails para os envolvidos quando um relatório é aprovado.
 """
 import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
+import yagmail
 from datetime import datetime
 from flask import current_app
 
 
 class ReportApprovalEmailService:
-    """Serviço de envio de e-mails após aprovação de relatório"""
+    """Serviço de envio de e-mails via yagmail"""
     
     def __init__(self):
-        self.smtp_host = "smtp.elpconsultoria.eng.br"
-        self.smtp_port = 587
-        self.from_email = "relatorios@elpconsultoria.eng.br"
-        self.from_password = "ugZ32b9ayCgu5uK="
+        self.from_email = "relatorioselp@gmail.com"
+        self.from_password = "Relatorios#2025"
+        self.yag = None
+    
+    def _get_yag_connection(self):
+        """Obter conexão yagmail (lazy connection)"""
+        if self.yag is None:
+            try:
+                self.yag = yagmail.SMTP(self.from_email, self.from_password)
+                current_app.logger.info(f"✅ Conexão yagmail estabelecida com {self.from_email}")
+            except Exception as e:
+                current_app.logger.error(f"❌ Erro ao conectar com yagmail: {e}")
+                raise
+        return self.yag
     
     def _get_recipients_for_report(self, relatorio):
         """
-        Coleta todos os destinatários relacionados ao relatório.
+        Coleta APENAS os destinatários relacionados ao relatório.
         Retorna lista de emails únicos.
+        
+        Destinatários:
+        - Pessoa que criou o relatório (autor)
+        - Aprovador global
+        - Todos os acompanhantes da visita vinculados ao relatório
+        
+        NÃO inclui funcionários da obra, apenas os envolvidos no relatório.
         """
         recipients = set()  # usar set para evitar duplicatas
         
@@ -32,12 +46,12 @@ class ReportApprovalEmailService:
             # 1. Autor do relatório
             if relatorio.autor and relatorio.autor.email:
                 recipients.add(relatorio.autor.email)
-                current_app.logger.info(f"✉️ Adicionado autor: {relatorio.autor.email}")
+                current_app.logger.info(f"✉️ Autor adicionado: {relatorio.autor.email}")
             
             # 2. Aprovador global
             if relatorio.aprovador and relatorio.aprovador.email:
                 recipients.add(relatorio.aprovador.email)
-                current_app.logger.info(f"✉️ Adicionado aprovador: {relatorio.aprovador.email}")
+                current_app.logger.info(f"✉️ Aprovador adicionado: {relatorio.aprovador.email}")
             
             # 3. Acompanhantes da visita vinculados ao relatório
             if relatorio.acompanhantes:
@@ -48,15 +62,10 @@ class ReportApprovalEmailService:
                             email = acomp['email'].strip()
                             if email:
                                 recipients.add(email)
-                                current_app.logger.info(f"✉️ Adicionado acompanhante: {email}")
+                                current_app.logger.info(f"✉️ Acompanhante adicionado: {email}")
                 except Exception as e:
                     current_app.logger.warning(f"⚠️ Erro ao processar acompanhantes: {e}")
-            
-            # 4. Responsável da obra (se existir projeto)
-            if relatorio.projeto and relatorio.projeto.responsavel and relatorio.projeto.responsavel.email:
-                recipients.add(relatorio.projeto.responsavel.email)
-                current_app.logger.info(f"✉️ Adicionado responsável da obra: {relatorio.projeto.responsavel.email}")
-            
+        
         except Exception as e:
             current_app.logger.error(f"❌ Erro ao coletar destinatários: {e}")
         
@@ -74,16 +83,13 @@ Segue em anexo o arquivo PDF do relatório aprovado.
 
 Este é um e-mail automático.
 Por favor, não responda este e-mail.
-
----
-ELP Consultoria
-relatorios@elpconsultoria.eng.br
 """
         return corpo
     
     def send_approval_email(self, relatorio, pdf_path):
         """
-        Envia e-mail de aprovação para todos os envolvidos.
+        Envia e-mail de aprovação para todos os envolvidos via yagmail.
+        Um email por destinatário (sem CC/BCC).
         Retorna dicionário com resultado: {'success': bool, 'enviados': int, 'error': str}
         """
         try:
@@ -113,9 +119,12 @@ relatorios@elpconsultoria.eng.br
                     'error': f'Arquivo PDF não encontrado: {pdf_path}'
                 }
             
+            # Obter conexão yagmail
+            yag = self._get_yag_connection()
+            
             enviados = 0
             
-            # Enviar e-mail para cada destinatário individualmente
+            # Enviar e-mail individual para cada destinatário
             for recipient_email in recipients:
                 try:
                     # Obter nome do destinatário
@@ -127,50 +136,24 @@ relatorios@elpconsultoria.eng.br
                     if user:
                         destinatario_nome = user.nome_completo or user.username
                     
-                    # Preparar e-mail
-                    msg = MIMEMultipart()
-                    msg['From'] = self.from_email
-                    msg['To'] = recipient_email
-                    msg['Subject'] = assunto
-                    
                     # Corpo do e-mail
                     corpo = self._format_email_body(destinatario_nome, obra_nome, relatorio.data_aprovacao)
-                    msg.attach(MIMEText(corpo, 'plain', 'utf-8'))
                     
-                    # Anexar PDF se existir
-                    if os.path.exists(pdf_path):
-                        try:
-                            with open(pdf_path, 'rb') as attachment:
-                                part = MIMEBase('application', 'octet-stream')
-                                part.set_payload(attachment.read())
-                            
-                            encoders.encode_base64(part)
-                            pdf_filename = os.path.basename(pdf_path)
-                            part.add_header('Content-Disposition', f'attachment; filename= {pdf_filename}')
-                            msg.attach(part)
-                        except Exception as e:
-                            current_app.logger.warning(f"⚠️ Erro ao anexar PDF: {e}")
+                    # Enviar via yagmail
+                    # yagmail.send(to, subject, contents, attachments)
+                    yag.send(
+                        to=recipient_email,
+                        subject=assunto,
+                        contents=corpo,
+                        attachments=pdf_path
+                    )
                     
-                    # Enviar e-mail via SMTP
-                    try:
-                        server = smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10)
-                        server.starttls()
-                        server.login(self.from_email, self.from_password)
-                        server.send_message(msg)
-                        server.quit()
-                        
-                        enviados += 1
-                        current_app.logger.info(f"✅ E-mail enviado para {recipient_email}")
-                    
-                    except smtplib.SMTPAuthenticationError:
-                        current_app.logger.error(f"❌ Erro de autenticação SMTP para {recipient_email}")
-                    except smtplib.SMTPException as e:
-                        current_app.logger.error(f"❌ Erro SMTP para {recipient_email}: {e}")
-                    except Exception as e:
-                        current_app.logger.error(f"❌ Erro ao enviar e-mail para {recipient_email}: {e}")
+                    enviados += 1
+                    current_app.logger.info(f"✅ E-mail enviado com sucesso para {recipient_email}")
                 
                 except Exception as e:
-                    current_app.logger.error(f"❌ Erro ao processar destinatário {recipient_email}: {e}")
+                    current_app.logger.error(f"❌ Erro ao enviar e-mail para {recipient_email}: {e}")
+                    # Continua tentando os outros destinatários
             
             if enviados > 0:
                 current_app.logger.info(f"✅ Sucesso: {enviados} e-mail(s) enviado(s) para relatório {relatorio.numero}")
