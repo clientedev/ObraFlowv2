@@ -121,13 +121,17 @@ class ReportApprovalEmailService:
                             
                             # 2. Se tem ID tipo 'ec_XXX', buscar na tabela emails_clientes (EmailCliente)
                             elif acomp_id and isinstance(acomp_id, str) and acomp_id.startswith('ec_'):
+                                current_app.logger.info(f"🔎 Tentando buscar em EmailCliente: id={acomp_id}")
                                 try:
                                     from models import EmailCliente
-                                    from extensions import db
+                                    from app import db
                                     db.session.rollback()  # Limpar transação abortada
                                     
                                     ec_id = int(acomp_id.replace('ec_', ''))
+                                    current_app.logger.info(f"🔎 Convertido para ec_id: {ec_id}")
+                                    
                                     email_cliente = EmailCliente.query.filter_by(id=ec_id).first()
+                                    current_app.logger.info(f"🔎 Resultado da query: {email_cliente is not None}")
                                     
                                     if email_cliente and email_cliente.email:
                                         email = email_cliente.email
@@ -136,13 +140,13 @@ class ReportApprovalEmailService:
                                     else:
                                         current_app.logger.warning(f"⚠️ EmailCliente ID={ec_id} não encontrado ou sem email")
                                 except Exception as e:
-                                    current_app.logger.warning(f"⚠️ Erro ao buscar EmailCliente por ID {acomp_id}: {e}")
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar EmailCliente por ID {acomp_id}: {e}", exc_info=True)
                             
                             # 3. Se tem ID tipo 'fp_XXX', buscar na tabela funcionarios_projetos
                             elif acomp_id and isinstance(acomp_id, str) and acomp_id.startswith('fp_'):
                                 try:
                                     from models import FuncionarioProjeto, User
-                                    from extensions import db
+                                    from app import db
                                     db.session.rollback()
                                     
                                     fp_id = int(acomp_id.replace('fp_', ''))
@@ -161,7 +165,7 @@ class ReportApprovalEmailService:
                             elif acomp_id and isinstance(acomp_id, int):
                                 try:
                                     from models import User
-                                    from extensions import db
+                                    from app import db
                                     db.session.rollback()
                                     
                                     user = User.query.filter_by(id=acomp_id).first()
@@ -176,7 +180,7 @@ class ReportApprovalEmailService:
                             if not email and nome != 'Desconhecido':
                                 try:
                                     from models import User
-                                    from extensions import db
+                                    from app import db
                                     db.session.rollback()
                                     
                                     user = User.query.filter_by(nome_completo=nome).first()
