@@ -76,3 +76,4 @@ GOOGLE_CLIENT_ID = "94376096098-rghkj8oi39vgf8p2cpf3j73dverl7gds.apps.googleuser
 GOOGLE_PROJECT_ID = "deft-orb-481501-m1"
 GMAIL_EMAIL = "relatorioselpconsultoria@gmail.com"
 GMAIL_PASSWORD = "ipbs dkwc osyn vixg"
+RESEND_API_KEY = "re_KBL5z16g_8CKfLhWgFJxwvGUiX6XroKBg"

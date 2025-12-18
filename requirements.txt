@@ -200,3 +200,4 @@ weasyprint
 Werkzeug
 WTForms
 yagmail
+requests

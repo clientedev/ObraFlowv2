@@ -431,7 +431,7 @@ def approve_express_report(report_id):
         
         # ========== GERAR PDF E ENVIAR EMAIL SÍNCRONO NA MESMA TELA ==========
         from pdf_generator_express import gerar_pdf_relatorio_express
-        from email_service_yagmail import ReportApprovalEmailService
+        from email_service_resend import ReportApprovalEmailService
         
         pdf_path = None
         email_enviado = False
