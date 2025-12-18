@@ -62,3 +62,4 @@ SQLAlchemy
 weasyprint
 Werkzeug
 WTForms
+sendgrid
