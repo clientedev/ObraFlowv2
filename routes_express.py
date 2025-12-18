@@ -431,9 +431,13 @@ def approve_express_report(report_id):
         
         # Gerar PDF e enviar email em background (não bloqueia aprovação)
         import threading
+        import time
         
         def processar_pdf_e_email_background(relatorio_id):
-            """Processa PDF e email em thread separada com timeout"""
+            """Processa PDF e email em thread separada COM RETRY GARANTIDO"""
+            max_tentativas_pdf = 3
+            max_tentativas_email = 5
+            
             try:
                 with app.app_context():
                     from pdf_generator_express import gerar_pdf_relatorio_express
@@ -444,36 +448,71 @@ def approve_express_report(report_id):
                         logger.error(f"❌ Relatório {relatorio_id} não encontrado em background")
                         return
                     
-                    # Gerar PDF
-                    try:
-                        resultado_pdf = gerar_pdf_relatorio_express(relatorio_id, salvar_arquivo=True)
-                        if resultado_pdf.get('success'):
-                            pdf_path = resultado_pdf.get('path')
-                            logger.info(f"📄 PDF gerado: {pdf_path}")
+                    # ========== GERAR PDF COM RETRY ==========
+                    pdf_path = None
+                    for tentativa_pdf in range(1, max_tentativas_pdf + 1):
+                        try:
+                            logger.info(f"📄 Gerando PDF - Tentativa {tentativa_pdf}/{max_tentativas_pdf}")
+                            resultado_pdf = gerar_pdf_relatorio_express(relatorio_id, salvar_arquivo=True)
                             
-                            # Enviar emails
-                            try:
-                                email_service = ReportApprovalEmailService()
-                                resultado_email = email_service.send_approval_email(relatorio_bg, pdf_path)
-                                
-                                if resultado_email.get('success'):
-                                    logger.info(f"✅ {resultado_email.get('enviados', 0)} email(s) enviado(s)")
-                                else:
-                                    logger.warning(f"⚠️ Erro ao enviar emails: {resultado_email.get('error')}")
-                            except Exception as email_err:
-                                logger.error(f"❌ Erro ao enviar email: {email_err}", exc_info=True)
-                        else:
-                            logger.warning(f"⚠️ Erro ao gerar PDF: {resultado_pdf.get('error')}")
-                    except Exception as pdf_err:
-                        logger.error(f"❌ Erro ao processar PDF/Email: {pdf_err}", exc_info=True)
+                            if resultado_pdf.get('success'):
+                                pdf_path = resultado_pdf.get('path')
+                                logger.info(f"✅ PDF gerado com sucesso: {pdf_path}")
+                                break
+                            else:
+                                erro = resultado_pdf.get('error', 'Erro desconhecido')
+                                logger.warning(f"⚠️ Falha ao gerar PDF (tentativa {tentativa_pdf}): {erro}")
+                                if tentativa_pdf < max_tentativas_pdf:
+                                    time.sleep(2 ** tentativa_pdf)  # Backoff exponencial: 2s, 4s, 8s
+                        except Exception as pdf_err:
+                            logger.error(f"❌ Erro ao gerar PDF (tentativa {tentativa_pdf}): {pdf_err}", exc_info=True)
+                            if tentativa_pdf < max_tentativas_pdf:
+                                time.sleep(2 ** tentativa_pdf)
+                    
+                    if not pdf_path:
+                        logger.error(f"❌ FALHA PERMANENTE: Não foi possível gerar PDF após {max_tentativas_pdf} tentativas")
+                        return
+                    
+                    # ========== ENVIAR EMAIL COM RETRY GARANTIDO ==========
+                    email_enviado = False
+                    for tentativa_email in range(1, max_tentativas_email + 1):
+                        try:
+                            logger.info(f"📧 Enviando email - Tentativa {tentativa_email}/{max_tentativas_email}")
+                            email_service = ReportApprovalEmailService()
+                            resultado_email = email_service.send_approval_email(relatorio_bg, pdf_path)
+                            
+                            if resultado_email.get('success'):
+                                enviados = resultado_email.get('enviados', 0)
+                                logger.info(f"✅✅✅ EMAIL ENVIADO COM SUCESSO: {enviados} destinatário(s)")
+                                email_enviado = True
+                                break
+                            else:
+                                erro = resultado_email.get('error', 'Erro desconhecido')
+                                logger.warning(f"⚠️ Falha ao enviar email (tentativa {tentativa_email}/{max_tentativas_email}): {erro}")
+                                if tentativa_email < max_tentativas_email:
+                                    tempo_espera = 3 * (2 ** (tentativa_email - 1))  # 3s, 6s, 12s, 24s...
+                                    logger.info(f"⏳ Aguardando {tempo_espera}s antes de tentar novamente...")
+                                    time.sleep(tempo_espera)
+                        except Exception as email_err:
+                            logger.error(f"❌ Erro ao enviar email (tentativa {tentativa_email}): {email_err}", exc_info=True)
+                            if tentativa_email < max_tentativas_email:
+                                tempo_espera = 3 * (2 ** (tentativa_email - 1))
+                                logger.info(f"⏳ Aguardando {tempo_espera}s antes de tentar novamente...")
+                                time.sleep(tempo_espera)
+                    
+                    if not email_enviado:
+                        logger.error(f"❌❌❌ FALHA PERMANENTE: Email NÃO foi enviado após {max_tentativas_email} tentativas!")
+                    else:
+                        logger.info(f"🎉 PROCESSO COMPLETO: PDF gerado e email enviado com sucesso!")
+                        
             except Exception as e:
-                logger.error(f"❌ Erro em thread background: {e}", exc_info=True)
+                logger.error(f"❌ Erro CRÍTICO em thread background: {e}", exc_info=True)
         
-        # Iniciar thread com timeout
+        # Iniciar thread (NÃO daemon para garantir execução)
         thread = threading.Thread(
             target=processar_pdf_e_email_background,
             args=(relatorio.id,),
-            daemon=True
+            daemon=False  # Thread não-daemon: executa mesmo que app feche
         )
         thread.start()
         
