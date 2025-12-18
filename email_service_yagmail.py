@@ -14,6 +14,8 @@ class ReportApprovalEmailService:
     
     def __init__(self):
         self.from_email = "relatorioselp@gmail.com"
+        # Use App Password gerada em https://myaccount.google.com/apppasswords
+        # Se 2FA estiver ativado, a senha comum NÃO funciona
         self.from_password = "Relatorios#2025"
         self.yag = None
     
