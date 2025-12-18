@@ -2954,7 +2954,14 @@ def create_report():
                                 # Se não tem email, buscar na base de dados
                                 if not acomp.get('email') and acomp.get('nome'):
                                     try:
+                                        # 1. Busca exata por nome completo
                                         user = User.query.filter_by(nome_completo=acomp['nome']).first()
+                                        # 2. Se não encontrar, fazer busca LIKE fuzzy (CASE INSENSITIVE)
+                                        if not user:
+                                            user = User.query.filter(
+                                                User.nome_completo.ilike(f'%{acomp["nome"]}%')
+                                            ).first()
+                                        
                                         if user and user.email:
                                             acomp['email'] = user.email
                                             current_app.logger.info(f"📧 Email do acompanhante '{acomp['nome']}' adicionado: {user.email}")

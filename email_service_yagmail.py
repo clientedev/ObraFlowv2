@@ -85,19 +85,46 @@ class ReportApprovalEmailService:
                     try:
                         email = None
                         nome = "Desconhecido"
+                        user_id = None
                         
                         if isinstance(acomp, dict):
+                            # Tentar extrair informações do acompanhante
                             email = acomp.get('email', '').strip() if acomp.get('email') else None
                             nome = acomp.get('nome', '').strip() if acomp.get('nome') else 'Desconhecido'
+                            user_id = acomp.get('id', acomp.get('user_id', None))
                             
-                            # Se não tiver email no dicionário, buscar na tabela User pelo nome
+                            # 1. Se tem ID de usuário, buscar por ID (MAIS RÁPIDO)
+                            if not email and user_id:
+                                try:
+                                    from models import User
+                                    user = User.query.filter_by(id=user_id).first()
+                                    if user and user.email:
+                                        email = user.email
+                                        nome = user.nome_completo or user.username
+                                        current_app.logger.info(f"🔍 [ID={user_id}] Email encontrado: {email}")
+                                except Exception as e:
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar user ID {user_id}: {e}")
+                            
+                            # 2. Se tem email direto, usar (SEM VALIDAÇÃO)
+                            if not email and acomp.get('email'):
+                                email = acomp.get('email', '').strip()
+                            
+                            # 3. Se tem nome, buscar com LIKE (CASE INSENSITIVE - MAIS FLEXÍVEL)
                             if not email and nome and nome != 'Desconhecido':
                                 try:
                                     from models import User
+                                    # Busca exata primeiro
                                     user = User.query.filter_by(nome_completo=nome).first()
+                                    # Se não encontrar, fazer busca parcial (LIKE)
+                                    if not user:
+                                        user = User.query.filter(
+                                            User.nome_completo.ilike(f'%{nome}%')
+                                        ).first()
+                                    
                                     if user and user.email:
                                         email = user.email
-                                        current_app.logger.info(f"🔍 Email de '{nome}' encontrado na base: {email}")
+                                        nome = user.nome_completo or user.username
+                                        current_app.logger.info(f"🔍 Busca por nome '{nome}' encontrou: {email}")
                                 except Exception as e:
                                     current_app.logger.warning(f"⚠️ Erro ao buscar email de '{nome}': {e}")
                         
@@ -106,7 +133,7 @@ class ReportApprovalEmailService:
                             recipients.add(email)
                             current_app.logger.info(f"✉️ [ACOMPANHANTE {idx+1}] {nome} ({email})")
                         else:
-                            current_app.logger.warning(f"⚠️ [ACOMPANHANTE {idx+1}] '{nome}' - sem email")
+                            current_app.logger.warning(f"⚠️ [ACOMPANHANTE {idx+1}] '{nome}' - sem email encontrado")
                     
                     except Exception as e:
                         current_app.logger.warning(f"⚠️ Erro ao processar acompanhante {idx}: {e}")
