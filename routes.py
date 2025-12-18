@@ -2949,39 +2949,58 @@ def create_report():
                     acompanhantes_list = json.loads(acompanhantes_data)
                     if isinstance(acompanhantes_list, list):
                         # Tentar adicionar emails dos acompanhantes buscando na tabela
-                        for acomp in acompanhantes_list:
+                        for idx, acomp in enumerate(acompanhantes_list):
                             if isinstance(acomp, dict):
                                 # Se não tem email, buscar na base de dados
                                 if not acomp.get('email') and acomp.get('nome'):
+                                    email_encontrado = False
                                     try:
-                                        # 1. BUSCAR NA TABELA user_email_config (PRIORIDADE)
-                                        from models import UserEmailConfig
-                                        email_config = UserEmailConfig.query.filter(
-                                            UserEmailConfig.nome_contato.ilike(f'%{acomp["nome"]}%')
+                                        # 1. BUSCAR NA TABELA EmailCliente (emails_clientes) COM PROJETO ID (PRIORIDADE)
+                                        from models import EmailCliente
+                                        email_cliente = EmailCliente.query.filter_by(projeto_id=projeto_id).filter(
+                                            EmailCliente.nome_contato.ilike(f'%{acomp["nome"]}%')
                                         ).first()
                                         
-                                        if email_config and email_config.email:
-                                            acomp['email'] = email_config.email
-                                            current_app.logger.info(f"✅ Email de '{acomp['nome']}' encontrado em user_email_config: {email_config.email}")
-                                        else:
-                                            # 2. Fallback: Busca na tabela User
+                                        if email_cliente and email_cliente.email:
+                                            acomp['email'] = email_cliente.email
+                                            current_app.logger.info(f"✅ [{idx+1}/{len(acompanhantes_list)}] Email de '{acomp['nome']}' encontrado em EmailCliente: {email_cliente.email}")
+                                            email_encontrado = True
+                                    except Exception as e:
+                                        current_app.logger.warning(f"⚠️ Erro ao buscar em EmailCliente: {e}")
+                                    
+                                    # 2. Se não encontrou, buscar na tabela User por nome EXATO
+                                    if not email_encontrado:
+                                        try:
                                             user = User.query.filter_by(nome_completo=acomp['nome']).first()
-                                            # 3. Se não encontrar, fazer busca LIKE fuzzy (CASE INSENSITIVE)
-                                            if not user:
-                                                user = User.query.filter(
-                                                    User.nome_completo.ilike(f'%{acomp["nome"]}%')
-                                                ).first()
-                                            
                                             if user and user.email:
                                                 acomp['email'] = user.email
-                                                current_app.logger.info(f"📧 Email de '{acomp['nome']}' encontrado em User: {user.email}")
-                                    except Exception as e:
-                                        current_app.logger.warning(f"⚠️ Erro ao buscar email do acompanhante '{acomp.get('nome')}': {e}")
+                                                current_app.logger.info(f"✅ [{idx+1}/{len(acompanhantes_list)}] Email de '{acomp['nome']}' encontrado em User (EXATO): {user.email}")
+                                                email_encontrado = True
+                                        except Exception as e:
+                                            current_app.logger.warning(f"⚠️ Erro ao buscar em User por nome exato: {e}")
+                                    
+                                    # 3. Se não encontrou, fazer busca LIKE fuzzy (CASE INSENSITIVE)
+                                    if not email_encontrado:
+                                        try:
+                                            user = User.query.filter(
+                                                User.nome_completo.ilike(f'%{acomp["nome"]}%')
+                                            ).first()
+                                            if user and user.email:
+                                                acomp['email'] = user.email
+                                                current_app.logger.info(f"✅ [{idx+1}/{len(acompanhantes_list)}] Email de '{acomp['nome']}' encontrado em User (FUZZY): {user.email}")
+                                                email_encontrado = True
+                                        except Exception as e:
+                                            current_app.logger.warning(f"⚠️ Erro ao buscar em User por nome fuzzy: {e}")
+                                    
+                                    if not email_encontrado:
+                                        current_app.logger.warning(f"⚠️ [{idx+1}/{len(acompanhantes_list)}] Email não encontrado para '{acomp['nome']}' - será enviado email apenas para autor e aprovador")
                         
                         relatorio.acompanhantes = acompanhantes_list
-                        current_app.logger.info(f"✅ Acompanhantes salvos: {len(acompanhantes_list)} registros")
+                        current_app.logger.info(f"✅ Acompanhantes processados: {len(acompanhantes_list)} registros salvos")
+                        for acomp_data in acompanhantes_list:
+                            current_app.logger.info(f"   - {acomp_data.get('nome')} ({acomp_data.get('email', 'SEM EMAIL')})")
                 except Exception as e:
-                    current_app.logger.error(f"❌ Erro ao processar acompanhantes: {e}")
+                    current_app.logger.error(f"❌ Erro ao processar acompanhantes: {e}", exc_info=True)
                     relatorio.acompanhantes = None
 
             # Set approver automatically based on project

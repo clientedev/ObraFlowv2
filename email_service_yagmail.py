@@ -68,16 +68,35 @@ class ReportApprovalEmailService:
                 # Converter para lista se necessário
                 if isinstance(relatorio.acompanhantes, list):
                     acompanhantes_list = relatorio.acompanhantes
+                    current_app.logger.info(f"✅ Acompanhantes é uma lista")
                 elif isinstance(relatorio.acompanhantes, str):
                     try:
                         acompanhantes_list = json.loads(relatorio.acompanhantes)
                         if not isinstance(acompanhantes_list, list):
                             acompanhantes_list = []
+                        current_app.logger.info(f"✅ Acompanhantes parseado de JSON string")
                     except json.JSONDecodeError:
                         current_app.logger.warning(f"⚠️ Erro ao fazer parse de acompanhantes JSON: {relatorio.acompanhantes}")
                         acompanhantes_list = []
                 elif isinstance(relatorio.acompanhantes, dict):
-                    acompanhantes_list = []
+                    # Se for dict, pode ser um array embutido ou um objeto único
+                    # Tenta converter para lista se tiver chave 'acompanhantes'
+                    if 'acompanhantes' in relatorio.acompanhantes:
+                        acompanhantes_list = relatorio.acompanhantes.get('acompanhantes', [])
+                        if not isinstance(acompanhantes_list, list):
+                            acompanhantes_list = [relatorio.acompanhantes]
+                    else:
+                        # Se não tem 'acompanhantes', é um único item
+                        acompanhantes_list = [relatorio.acompanhantes]
+                    current_app.logger.info(f"✅ Acompanhantes convertido de dict")
+                else:
+                    # Tentar converter qualquer outro tipo iterable para lista
+                    try:
+                        acompanhantes_list = list(relatorio.acompanhantes)
+                        current_app.logger.info(f"✅ Acompanhantes convertido de iterable")
+                    except (TypeError, ValueError):
+                        current_app.logger.warning(f"⚠️ Tipo de acompanhantes não tratado: {type(relatorio.acompanhantes)}")
+                        acompanhantes_list = []
                 
                 current_app.logger.info(f"📋 Total de acompanhantes para processar: {len(acompanhantes_list)}")
                 
@@ -93,11 +112,12 @@ class ReportApprovalEmailService:
                             nome = (acomp.get('nome', '') or '').strip() or 'Desconhecido'
                             acomp_id = acomp.get('id') or acomp.get('user_id')
                             
-                            current_app.logger.info(f"🔍 [ACOMPANHANTE {idx+1}] nome='{nome}' id={acomp_id} email_salvo='{email}'")
+                            current_app.logger.info(f"🔍 [ACOMPANHANTE {idx+1}/{len(acompanhantes_list)}] nome='{nome}' id={acomp_id} email_salvo='{email}'")
                             
                             # 1. SE JÁ TEM EMAIL SALVO, USAR DIRETO (PRIORIDADE!)
-                            if email:
-                                current_app.logger.info(f"✅ Email já salvo: {email}")
+                            if email and email.strip():
+                                recipients.add(email)
+                                current_app.logger.info(f"✅ [ACOMPANHANTE {idx+1}] Email já salvo e adicionado: {email}")
                             
                             # 2. Se tem ID tipo 'ec_XXX', buscar na tabela emails_clientes (EmailCliente)
                             elif acomp_id and isinstance(acomp_id, str) and acomp_id.startswith('ec_'):
