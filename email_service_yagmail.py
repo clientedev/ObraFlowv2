@@ -24,16 +24,31 @@ class ReportApprovalEmailService:
         self.yag = None
     
     def _get_yag_connection(self):
-        """Obter conexão yagmail (lazy connection) com timeout"""
+        """Obter conexão yagmail (lazy connection) com retry e debug"""
         if self.yag is None:
             try:
                 import socket
-                # Configurar timeout para evitar travamentos
-                socket.setdefaulttimeout(10)  # 10 segundos de timeout
-                self.yag = yagmail.SMTP(self.from_email, self.from_password, timeout=10)
-                current_app.logger.info(f"✅ Conexão yagmail estabelecida com {self.from_email}")
+                # Configurar timeout
+                socket.setdefaulttimeout(20)  # 20 segundos
+                
+                current_app.logger.info(f"🔌 Iniciando conexão SMTP com {self.from_email}...")
+                current_app.logger.info(f"   - Email: {self.from_email}")
+                current_app.logger.info(f"   - Senha configurada: {'Sim' if self.from_password else 'Não'}")
+                
+                # Usar porta SSL 465 (mais confiável que TLS 587)
+                self.yag = yagmail.SMTP(
+                    self.from_email, 
+                    self.from_password,
+                    host='smtp.gmail.com',
+                    port=465,
+                    timeout=20
+                )
+                current_app.logger.info(f"✅ Conexão SMTP estabelecida com sucesso!")
             except Exception as e:
-                current_app.logger.error(f"❌ Erro ao conectar com yagmail: {e}")
+                current_app.logger.error(f"❌ FALHA na conexão SMTP:")
+                current_app.logger.error(f"   - Email: {self.from_email}")
+                current_app.logger.error(f"   - Erro: {type(e).__name__}: {str(e)}")
+                current_app.logger.error(f"   - Verifique: credenciais, autenticação 2FA, senha de app")
                 raise
         return self.yag
     
