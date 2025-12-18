@@ -7,6 +7,7 @@ import os
 import json
 import logging
 from datetime import datetime
+from pytz import timezone as tz
 from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
@@ -415,7 +416,9 @@ def approve_express_report(report_id):
         
         relatorio.status = 'Aprovado'
         relatorio.aprovador_id = current_user.id
-        relatorio.data_aprovacao = datetime.now()
+        # Usar timezone do Brasil (BRT/BRST)
+        br_tz = tz('America/Sao_Paulo')
+        relatorio.data_aprovacao = datetime.now(br_tz).replace(tzinfo=None)
         
         db.session.commit()
         
@@ -426,41 +429,59 @@ def approve_express_report(report_id):
         except Exception as notif_error:
             logger.error(f"⚠️ Erro ao criar notificação de aprovação: {notif_error}")
         
-        # Gerar PDF para o Relatório Express e enviar e-mails
+        # Executar PDF e email em background (com timeout)
+        # Isso evita timeout do worker durante aprovação
         try:
-            from pdf_generator_express import gerar_pdf_relatorio_express
-            from email_service_yagmail import ReportApprovalEmailService
+            import threading
+            import signal
             
-            # Gerar PDF (salva em uploads/ por padrão)
-            resultado_pdf = gerar_pdf_relatorio_express(relatorio.id, salvar_arquivo=True)
-            pdf_path = None
+            def timeout_handler(signum, frame):
+                raise TimeoutError("Processamento de PDF/Email demorou muito")
             
-            if resultado_pdf.get('success'):
-                pdf_path = resultado_pdf.get('path')
-                logger.info(f"📄 PDF gerado com sucesso: {pdf_path}")
-            else:
-                logger.warning(f"⚠️ Erro ao gerar PDF: {resultado_pdf.get('error')}")
-            
-            # Enviar e-mails com PDF anexo
-            email_service = ReportApprovalEmailService()
-            
-            if pdf_path and os.path.exists(pdf_path):
-                resultado_email = email_service.send_approval_email(relatorio, pdf_path)
+            def gerar_pdf_e_enviar_email():
+                """Função para rodar em thread com timeout"""
+                try:
+                    from pdf_generator_express import gerar_pdf_relatorio_express
+                    from email_service_yagmail import ReportApprovalEmailService
+                    
+                    # Gerar PDF (salva em uploads/ por padrão)
+                    resultado_pdf = gerar_pdf_relatorio_express(relatorio.id, salvar_arquivo=True)
+                    pdf_path = None
+                    
+                    if resultado_pdf.get('success'):
+                        pdf_path = resultado_pdf.get('path')
+                        logger.info(f"📄 PDF gerado com sucesso: {pdf_path}")
+                    else:
+                        logger.warning(f"⚠️ Erro ao gerar PDF: {resultado_pdf.get('error')}")
+                    
+                    # Enviar e-mails com PDF anexo
+                    email_service = ReportApprovalEmailService()
+                    
+                    if pdf_path and os.path.exists(pdf_path):
+                        resultado_email = email_service.send_approval_email(relatorio, pdf_path)
+                        
+                        if resultado_email.get('success'):
+                            enviados = resultado_email.get('enviados', 0)
+                            logger.info(f"✅ E-mails enviados com sucesso para {enviados} destinatário(s)")
+                        else:
+                            logger.warning(f"⚠️ Falha ao enviar e-mails: {resultado_email.get('error')}")
+                    else:
+                        logger.warning(f"⚠️ PDF não foi gerado ou não existe em {pdf_path}")
                 
-                if resultado_email.get('success'):
-                    enviados = resultado_email.get('enviados', 0)
-                    logger.info(f"✅ E-mails enviados com sucesso para {enviados} destinatário(s)")
-                    flash(f'✅ Relatório Express {relatorio.numero} aprovado! E-mail enviado para {enviados} destinatário(s).', 'success')
-                else:
-                    logger.warning(f"⚠️ Falha ao enviar e-mails: {resultado_email.get('error')}")
-                    flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso! Não foi possível enviar os e-mails.', 'warning')
-            else:
-                logger.warning(f"⚠️ PDF não foi gerado ou não existe em {pdf_path}")
-                flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso! Não foi possível anexar o PDF aos e-mails.', 'warning')
+                except Exception as e:
+                    logger.error(f"⚠️ Erro em thread ao gerar PDF ou enviar e-mails: {e}", exc_info=True)
+            
+            # Rodar em thread separada com timeout de 30 segundos
+            thread = threading.Thread(target=gerar_pdf_e_enviar_email, daemon=True)
+            thread.daemon = True
+            thread.start()
+            
+            # Mostrar mensagem de sucesso imediatamente (não esperar threads)
+            flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso!', 'success')
         
         except Exception as e:
-            logger.error(f"⚠️ Erro ao gerar PDF ou enviar e-mails: {e}", exc_info=True)
-            flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso! Houve um erro ao processar o PDF e e-mails.', 'warning')
+            logger.error(f"⚠️ Erro ao iniciar processamento de PDF/E-mail: {e}", exc_info=True)
+            flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso!', 'success')
         
         return redirect(url_for('express_reports_list'))
         

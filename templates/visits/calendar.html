@@ -819,11 +819,30 @@ function exportToGoogleCalendar(includeAll = false) {
                 
                 const existingModal = document.getElementById('googleExportModal');
                 if (existingModal) {
+                    // Garantir que modal anterior é destruído corretamente
+                    const existingInstance = bootstrap.Modal.getInstance(existingModal);
+                    if (existingInstance) {
+                        existingInstance.dispose();
+                    }
                     existingModal.remove();
                 }
                 
+                // Remover qualquer backdrop dangling
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(bd => bd.remove());
+                
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
-                const modal = new bootstrap.Modal(document.getElementById('googleExportModal'));
+                const newModal = document.getElementById('googleExportModal');
+                const modal = new bootstrap.Modal(newModal);
+                
+                // Remover backdrop ao fechar
+                newModal.addEventListener('hidden.bs.modal', function() {
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                });
+                
                 modal.show();
             } else {
                 alert(data.error || 'Erro ao gerar link do Google Calendar.');
@@ -900,11 +919,21 @@ function exportSelectedVisits() {
     const existingModal = document.getElementById('googleExportModal');
     if (existingModal) {
         const modal = bootstrap.Modal.getInstance(existingModal);
-        if (modal) modal.hide();
+        if (modal) {
+            modal.hide();
+            // Aguardar fechamento da modal
+            setTimeout(() => {
+                showExportProgressModal();
+                openNextVisit();
+            }, 300);
+        } else {
+            showExportProgressModal();
+            openNextVisit();
+        }
+    } else {
+        showExportProgressModal();
+        openNextVisit();
     }
-    
-    showExportProgressModal();
-    openNextVisit();
 }
 
 function showExportProgressModal() {
@@ -1007,8 +1036,18 @@ function skipRemainingExports() {
 }
 
 function finishExport() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('exportProgressModal'));
-    if (modal) modal.hide();
+    const modalEl = document.getElementById('exportProgressModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) {
+        modal.hide();
+        setTimeout(() => {
+            if (modalEl) modalEl.remove();
+            // Remover backdrop dangling e resetar body
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(bd => bd.remove());
+            document.body.classList.remove('modal-open');
+        }, 300);
+    }
     
     const exported = currentExportIndex;
     const total = pendingExportUrls.length;
