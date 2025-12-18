@@ -3260,7 +3260,8 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
             data.funcionarios.forEach(func => {
                 const nome = func.nome_funcionario || 'Sem nome';
                 const cargo = func.cargo || 'Não informado';
-                options += `<option value="${func.id}" data-nome="${nome}" data-cargo="${cargo}">${nome} – ${cargo}</option>`;
+                const email = data.emails.find(e => e.id == func.id)?.email || '';
+                options += `<option value="${func.id}" data-nome="${nome}" data-cargo="${cargo}" data-email="${email}" data-id="${func.id}">${nome} – ${cargo}</option>`;
             });
             select.innerHTML = options;
         } else {
@@ -3302,6 +3303,8 @@ function adicionarAcompanhante() {
     let nome = '';
     let funcao = '';
     let origem = '';
+    let id = null;
+    let email = '';
 
     if (tipo === 'funcionario') {
         const select = document.getElementById('funcionario-select');
@@ -3314,6 +3317,8 @@ function adicionarAcompanhante() {
 
         nome = selectedOption.getAttribute('data-nome');
         funcao = selectedOption.getAttribute('data-cargo') || '';
+        email = selectedOption.getAttribute('data-email') || '';
+        id = selectedOption.getAttribute('data-id');
         origem = 'Funcionário da obra';
     } else {
         nome = document.getElementById('nome-manual').value.trim();
@@ -3327,11 +3332,13 @@ function adicionarAcompanhante() {
         origem = 'Inserido manualmente';
     }
 
-    // Adicionar ao array
+    // Adicionar ao array - COM ID e EMAIL
     const acompanhante = {
         nome: nome,
         funcao: funcao,
-        origem: origem
+        origem: origem,
+        id: id,
+        email: email
     };
 
     acompanhantes.push(acompanhante);
