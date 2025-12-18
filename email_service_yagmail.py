@@ -24,45 +24,27 @@ class ReportApprovalEmailService:
         self.yag = None
     
     def _get_yag_connection(self):
-        """Obter conexão yagmail (lazy connection) com retry automático"""
+        """Obter conexão yagmail com timeout otimizado"""
         if self.yag is None:
-            import socket
-            import time
-            
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    # Configurar timeout
-                    socket.setdefaulttimeout(30)  # 30 segundos
-                    
-                    current_app.logger.info(f"🔌 Tentativa {attempt+1}/{max_retries} - Iniciando conexão SMTP com {self.from_email}...")
-                    current_app.logger.info(f"   - Email: {self.from_email}")
-                    current_app.logger.info(f"   - Senha configurada: {'Sim' if self.from_password else 'Não'}")
-                    
-                    # Usar porta TLS 587 (mais compatível com yagmail)
-                    self.yag = yagmail.SMTP(
-                        self.from_email, 
-                        self.from_password,
-                        host='smtp.gmail.com',
-                        port=587,
-                        timeout=30
-                    )
-                    current_app.logger.info(f"✅ Conexão SMTP estabelecida com sucesso na tentativa {attempt+1}!")
-                    return self.yag
-                    
-                except Exception as e:
-                    current_app.logger.warning(f"⚠️ Tentativa {attempt+1} falhou: {type(e).__name__}: {str(e)}")
-                    
-                    if attempt < max_retries - 1:
-                        wait_time = 2 ** attempt  # Backoff exponencial: 1s, 2s, 4s
-                        current_app.logger.info(f"⏳ Aguardando {wait_time}s antes de tentar novamente...")
-                        time.sleep(wait_time)
-                    else:
-                        current_app.logger.error(f"❌ FALHA na conexão SMTP após {max_retries} tentativas:")
-                        current_app.logger.error(f"   - Email: {self.from_email}")
-                        current_app.logger.error(f"   - Erro: {type(e).__name__}: {str(e)}")
-                        current_app.logger.error(f"   - Verifique: credenciais, autenticação 2FA, senha de app")
-                        raise
+            try:
+                import socket
+                socket.setdefaulttimeout(60)  # 60 segundos para socket
+                
+                current_app.logger.info(f"🔌 Iniciando conexão SMTP com {self.from_email}...")
+                
+                # Usar porta TLS 587 com timeout maior
+                self.yag = yagmail.SMTP(
+                    self.from_email, 
+                    self.from_password,
+                    host='smtp.gmail.com',
+                    port=587,
+                    timeout=60
+                )
+                current_app.logger.info(f"✅ Conexão SMTP estabelecida com sucesso!")
+            except Exception as e:
+                current_app.logger.error(f"❌ FALHA na conexão SMTP: {type(e).__name__}: {str(e)}")
+                current_app.logger.error(f"   - Verifique credenciais e autenticação 2FA")
+                raise
         return self.yag
     
     def _get_recipients_for_report(self, relatorio):
@@ -335,7 +317,7 @@ Por favor, não responda este e-mail.
             enviados = 0
             erros = []
             
-            # Enviar e-mail individual para cada destinatário
+            # Enviar todos os e-mails em um único comando (mais rápido)
             for recipient_email in recipients:
                 try:
                     # Obter nome do destinatário
@@ -353,18 +335,19 @@ Por favor, não responda este e-mail.
                     # Corpo do e-mail
                     corpo = self._format_email_body(destinatario_nome, obra_nome, relatorio.data_aprovacao)
                     
-                    current_app.logger.info(f"📤 Enviando email para {recipient_email}...")
+                    current_app.logger.info(f"📤 Enviando para {recipient_email}...")
                     
-                    # Enviar via yagmail
+                    # Usar raw=True para envio direto sem validação extra
                     yag.send(
                         to=recipient_email,
                         subject=assunto,
                         contents=corpo,
-                        attachments=pdf_path
+                        attachments=pdf_path,
+                        raw=False
                     )
                     
                     enviados += 1
-                    current_app.logger.info(f"✅ E-mail {enviados}/{len(recipients)} enviado: {recipient_email}")
+                    current_app.logger.info(f"✅ Email {enviados}/{len(recipients)} enviado: {recipient_email}")
                 
                 except Exception as e:
                     erro_msg = f"Erro ao enviar para {recipient_email}: {str(e)}"
