@@ -641,7 +641,7 @@ function renderImages(imagens) {
         fotoCard.setAttribute('id', `photo-${foto.id}`);
         fotoCard.setAttribute('data-photo-id', foto.id);
 
-        const fotoNumero = foto.ordem || (index + 1);
+        const fotoNumero = index + 1; // Usar sempre o índice sequencial
         const localHtml = foto.local ? `<div class="mb-2"><small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>${foto.local}</small></div>` : '';
         const categoriaHtml = foto.tipo_servico ? `<div><span class="badge bg-secondary"><i class="fas fa-tag me-1"></i>${foto.tipo_servico}</span></div>` : '';
 
