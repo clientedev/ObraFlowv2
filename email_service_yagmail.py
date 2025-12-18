@@ -57,13 +57,31 @@ class ReportApprovalEmailService:
             # 3. Acompanhantes da visita vinculados ao relatório
             if relatorio.acompanhantes:
                 try:
+                    from models import User
                     acompanhantes_list = relatorio.acompanhantes if isinstance(relatorio.acompanhantes, list) else []
                     for acomp in acompanhantes_list:
-                        if isinstance(acomp, dict) and acomp.get('email'):
-                            email = acomp['email'].strip()
+                        if isinstance(acomp, dict):
+                            # Tentar obter email diretamente do acompanhante
+                            email = acomp.get('email', '').strip() if acomp.get('email') else None
+                            nome = acomp.get('nome', '').strip()
+                            
+                            # Se não tiver email no dicionário, buscar na tabela User pelo nome
+                            if not email and nome:
+                                try:
+                                    user = User.query.filter_by(nome_completo=nome).first()
+                                    if user and user.email:
+                                        email = user.email
+                                        current_app.logger.info(f"🔍 Email do acompanhante '{nome}' encontrado na base: {email}")
+                                except Exception as e:
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar email do acompanhante '{nome}': {e}")
+                            
+                            # Adicionar email se encontrou
                             if email:
                                 recipients.add(email)
-                                current_app.logger.info(f"✉️ Acompanhante adicionado: {email}")
+                                current_app.logger.info(f"✉️ Acompanhante adicionado: {nome} ({email})")
+                            else:
+                                current_app.logger.warning(f"⚠️ Acompanhante '{nome}' sem email encontrado")
+                                
                 except Exception as e:
                     current_app.logger.warning(f"⚠️ Erro ao processar acompanhantes: {e}")
         

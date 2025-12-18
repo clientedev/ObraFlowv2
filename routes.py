@@ -2941,13 +2941,26 @@ def create_report():
                 relatorio.lembrete_proxima_visita = lembrete
                 current_app.logger.info(f"✅ Lembrete para próxima visita salvo: {lembrete[:50]}...")
 
-            # Process acompanhantes (visit attendees)
+            # Process acompanhantes (visit attendees) - Add emails if available
             acompanhantes_data = request.form.get('acompanhantes')
             if acompanhantes_data:
                 try:
                     import json
                     acompanhantes_list = json.loads(acompanhantes_data)
                     if isinstance(acompanhantes_list, list):
+                        # Tentar adicionar emails dos acompanhantes buscando na tabela User
+                        for acomp in acompanhantes_list:
+                            if isinstance(acomp, dict):
+                                # Se não tem email, buscar na base de dados
+                                if not acomp.get('email') and acomp.get('nome'):
+                                    try:
+                                        user = User.query.filter_by(nome_completo=acomp['nome']).first()
+                                        if user and user.email:
+                                            acomp['email'] = user.email
+                                            current_app.logger.info(f"📧 Email do acompanhante '{acomp['nome']}' adicionado: {user.email}")
+                                    except Exception as e:
+                                        current_app.logger.warning(f"⚠️ Erro ao buscar email do acompanhante '{acomp.get('nome')}': {e}")
+                        
                         relatorio.acompanhantes = acompanhantes_list
                         current_app.logger.info(f"✅ Acompanhantes salvos: {len(acompanhantes_list)} registros")
                 except Exception as e:
