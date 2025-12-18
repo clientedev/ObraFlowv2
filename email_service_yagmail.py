@@ -13,10 +13,9 @@ class ReportApprovalEmailService:
     """Serviço de envio de e-mails via yagmail"""
     
     def __init__(self):
-        self.from_email = "relatorioselp@gmail.com"
-        # Use App Password gerada em https://myaccount.google.com/apppasswords
-        # Se 2FA estiver ativado, a senha comum NÃO funciona
-        self.from_password = "Relatorios#2025"
+        self.from_email = "relatorioselpconsultoria@gmail.com"
+        # App Password gerada em https://myaccount.google.com/apppasswords
+        self.from_password = "ipbs dkwc osyn vixg"
         self.yag = None
     
     def _get_yag_connection(self):
