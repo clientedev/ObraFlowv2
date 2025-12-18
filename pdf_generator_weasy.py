@@ -315,8 +315,7 @@ class WeasyPrintReportGenerator:
             {% if data.observacoes %}
                 <div class="obs-text">{{ data.observacoes }}</div>
             {% else %}
-                <div class="obs-text">..</div>
-                <div class="obs-text">Vide fotos.</div>
+                <div class="obs-text">Nenhuma observação</div>
             {% endif %}
         </div>
     </div>
