@@ -85,64 +85,80 @@ class ReportApprovalEmailService:
                     try:
                         email = None
                         nome = "Desconhecido"
-                        user_id = None
+                        acomp_id = None
                         
                         if isinstance(acomp, dict):
                             # Extrair informações do acompanhante
                             email = (acomp.get('email', '') or '').strip()
                             nome = (acomp.get('nome', '') or '').strip() or 'Desconhecido'
-                            user_id = acomp.get('id') or acomp.get('user_id')
+                            acomp_id = acomp.get('id') or acomp.get('user_id')
                             
-                            current_app.logger.info(f"🔍 [ACOMPANHANTE {idx+1}] nome='{nome}' id={user_id} email_salvo='{email}'")
+                            current_app.logger.info(f"🔍 [ACOMPANHANTE {idx+1}] nome='{nome}' id={acomp_id} email_salvo='{email}'")
                             
                             # 1. SE JÁ TEM EMAIL SALVO, USAR DIRETO (PRIORIDADE!)
                             if email:
                                 current_app.logger.info(f"✅ Email já salvo: {email}")
                             
-                            # 2. Se tem ID, buscar por ID
-                            elif user_id:
+                            # 2. Se tem ID tipo 'ec_XXX', buscar na tabela emails_clientes (EmailCliente)
+                            elif acomp_id and isinstance(acomp_id, str) and acomp_id.startswith('ec_'):
+                                try:
+                                    from models import EmailCliente
+                                    from extensions import db
+                                    db.session.rollback()  # Limpar transação abortada
+                                    
+                                    ec_id = int(acomp_id.replace('ec_', ''))
+                                    email_cliente = EmailCliente.query.filter_by(id=ec_id).first()
+                                    
+                                    if email_cliente and email_cliente.email:
+                                        email = email_cliente.email
+                                        nome = email_cliente.nome_contato or nome
+                                        current_app.logger.info(f"✅ Email encontrado em emails_clientes (ID={ec_id}): {email}")
+                                    else:
+                                        current_app.logger.warning(f"⚠️ EmailCliente ID={ec_id} não encontrado ou sem email")
+                                except Exception as e:
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar EmailCliente por ID {acomp_id}: {e}")
+                            
+                            # 3. Se tem ID tipo 'fp_XXX', buscar na tabela funcionarios_projetos
+                            elif acomp_id and isinstance(acomp_id, str) and acomp_id.startswith('fp_'):
+                                try:
+                                    from models import FuncionarioProjeto, User
+                                    from extensions import db
+                                    db.session.rollback()
+                                    
+                                    fp_id = int(acomp_id.replace('fp_', ''))
+                                    func = FuncionarioProjeto.query.filter_by(id=fp_id).first()
+                                    
+                                    if func and func.user_id:
+                                        user = User.query.filter_by(id=func.user_id).first()
+                                        if user and user.email:
+                                            email = user.email
+                                            nome = user.nome_completo or nome
+                                            current_app.logger.info(f"✅ Email encontrado via FuncionarioProjeto (ID={fp_id}): {email}")
+                                except Exception as e:
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar FuncionarioProjeto por ID {acomp_id}: {e}")
+                            
+                            # 4. Se tem ID numérico (integer), buscar na tabela User
+                            elif acomp_id and isinstance(acomp_id, int):
                                 try:
                                     from models import User
-                                    user = User.query.filter_by(id=user_id).first()
+                                    from extensions import db
+                                    db.session.rollback()
+                                    
+                                    user = User.query.filter_by(id=acomp_id).first()
                                     if user and user.email:
                                         email = user.email
                                         nome = user.nome_completo or user.username
-                                        current_app.logger.info(f"✅ Email encontrado por ID {user_id}: {email}")
+                                        current_app.logger.info(f"✅ Email encontrado por User ID {acomp_id}: {email}")
                                 except Exception as e:
-                                    current_app.logger.warning(f"⚠️ Erro ao buscar User por ID {user_id}: {e}")
-                            
-                            # 3. Se tem ID tipo 'ec_123' ou 'ec_133', é um email_config_id direto
-                            if not email and user_id and isinstance(user_id, str) and user_id.startswith('ec_'):
-                                try:
-                                    from models import UserEmailConfig
-                                    ec_id = int(user_id.replace('ec_', ''))
-                                    email_config = UserEmailConfig.query.filter_by(id=ec_id).first()
-                                    
-                                    if email_config and email_config.email_address:
-                                        email = email_config.email_address
-                                        current_app.logger.info(f"✅ Email encontrado em user_email_config (ID={ec_id}): {email}")
-                                except Exception as e:
-                                    current_app.logger.warning(f"⚠️ Erro ao buscar email_config por ID {user_id}: {e}")
-                            
-                            # 4. Se nome é válido, buscar na user_email_config por nome
-                            if not email and nome != 'Desconhecido':
-                                try:
-                                    from models import UserEmailConfig
-                                    # Buscar por nome_funcionario (nome do funcionário responsável)
-                                    email_config = UserEmailConfig.query.filter(
-                                        UserEmailConfig.nome_funcionario.ilike(f'%{nome}%')
-                                    ).first()
-                                    
-                                    if email_config and email_config.email_address:
-                                        email = email_config.email_address
-                                        current_app.logger.info(f"✅ Email encontrado em user_email_config por nome: {email}")
-                                except Exception as e:
-                                    current_app.logger.warning(f"⚠️ Erro ao buscar em user_email_config por nome: {e}")
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar User por ID {acomp_id}: {e}")
                             
                             # 5. Fallback: buscar na tabela User por nome
                             if not email and nome != 'Desconhecido':
                                 try:
                                     from models import User
+                                    from extensions import db
+                                    db.session.rollback()
+                                    
                                     user = User.query.filter_by(nome_completo=nome).first()
                                     if not user:
                                         user = User.query.filter(
