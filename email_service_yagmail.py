@@ -24,32 +24,45 @@ class ReportApprovalEmailService:
         self.yag = None
     
     def _get_yag_connection(self):
-        """Obter conexão yagmail (lazy connection) com retry e debug"""
+        """Obter conexão yagmail (lazy connection) com retry automático"""
         if self.yag is None:
-            try:
-                import socket
-                # Configurar timeout
-                socket.setdefaulttimeout(20)  # 20 segundos
-                
-                current_app.logger.info(f"🔌 Iniciando conexão SMTP com {self.from_email}...")
-                current_app.logger.info(f"   - Email: {self.from_email}")
-                current_app.logger.info(f"   - Senha configurada: {'Sim' if self.from_password else 'Não'}")
-                
-                # Usar porta SSL 465 (mais confiável que TLS 587)
-                self.yag = yagmail.SMTP(
-                    self.from_email, 
-                    self.from_password,
-                    host='smtp.gmail.com',
-                    port=465,
-                    timeout=20
-                )
-                current_app.logger.info(f"✅ Conexão SMTP estabelecida com sucesso!")
-            except Exception as e:
-                current_app.logger.error(f"❌ FALHA na conexão SMTP:")
-                current_app.logger.error(f"   - Email: {self.from_email}")
-                current_app.logger.error(f"   - Erro: {type(e).__name__}: {str(e)}")
-                current_app.logger.error(f"   - Verifique: credenciais, autenticação 2FA, senha de app")
-                raise
+            import socket
+            import time
+            
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    # Configurar timeout
+                    socket.setdefaulttimeout(30)  # 30 segundos
+                    
+                    current_app.logger.info(f"🔌 Tentativa {attempt+1}/{max_retries} - Iniciando conexão SMTP com {self.from_email}...")
+                    current_app.logger.info(f"   - Email: {self.from_email}")
+                    current_app.logger.info(f"   - Senha configurada: {'Sim' if self.from_password else 'Não'}")
+                    
+                    # Usar porta TLS 587 (mais compatível com yagmail)
+                    self.yag = yagmail.SMTP(
+                        self.from_email, 
+                        self.from_password,
+                        host='smtp.gmail.com',
+                        port=587,
+                        timeout=30
+                    )
+                    current_app.logger.info(f"✅ Conexão SMTP estabelecida com sucesso na tentativa {attempt+1}!")
+                    return self.yag
+                    
+                except Exception as e:
+                    current_app.logger.warning(f"⚠️ Tentativa {attempt+1} falhou: {type(e).__name__}: {str(e)}")
+                    
+                    if attempt < max_retries - 1:
+                        wait_time = 2 ** attempt  # Backoff exponencial: 1s, 2s, 4s
+                        current_app.logger.info(f"⏳ Aguardando {wait_time}s antes de tentar novamente...")
+                        time.sleep(wait_time)
+                    else:
+                        current_app.logger.error(f"❌ FALHA na conexão SMTP após {max_retries} tentativas:")
+                        current_app.logger.error(f"   - Email: {self.from_email}")
+                        current_app.logger.error(f"   - Erro: {type(e).__name__}: {str(e)}")
+                        current_app.logger.error(f"   - Verifique: credenciais, autenticação 2FA, senha de app")
+                        raise
         return self.yag
     
     def _get_recipients_for_report(self, relatorio):

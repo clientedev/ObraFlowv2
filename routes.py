@@ -4017,7 +4017,7 @@ def approve_report(id):
 
         # Enviar e-mail de aprovação
         try:
-            from email_service_fixed import ReportApprovalEmailService
+            from email_service_yagmail import ReportApprovalEmailService
             email_service = ReportApprovalEmailService()
             resultado_email = email_service.send_approval_email(relatorio, pdf_path)
             
@@ -7619,7 +7619,7 @@ def report_approve(report_id):
             current_app.logger.info(f"📄 PDF gerado para aprovação: {pdf_path}")
             
             # Enviar e-mail
-            from email_service_fixed import ReportApprovalEmailService
+            from email_service_yagmail import ReportApprovalEmailService
             email_service = ReportApprovalEmailService()
             resultado_email = email_service.send_approval_email(relatorio, pdf_path)
             
