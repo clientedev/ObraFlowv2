@@ -357,13 +357,12 @@ Por favor, não responda este e-mail.
                     
                     current_app.logger.info(f"📤 Enviando para {recipient_email}...")
                     
-                    # Usar raw=True para envio direto sem validação extra
+                    # Enviar email via yagmail
                     yag.send(
                         to=recipient_email,
                         subject=assunto,
                         contents=corpo,
-                        attachments=pdf_path,
-                        raw=False
+                        attachments=pdf_path
                     )
                     
                     enviados += 1
