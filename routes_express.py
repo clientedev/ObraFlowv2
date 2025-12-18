@@ -429,38 +429,6 @@ def approve_express_report(report_id):
         except Exception as notif_error:
             logger.error(f"⚠️ Erro ao criar notificação de aprovação: {notif_error}")
         
-        # Gerar PDF e enviar e-mails de forma síncrona
-        try:
-            from pdf_generator_express import gerar_pdf_relatorio_express
-            from email_service_yagmail import ReportApprovalEmailService
-            
-            # Gerar PDF (salva em uploads/ por padrão)
-            resultado_pdf = gerar_pdf_relatorio_express(relatorio.id, salvar_arquivo=True)
-            pdf_path = None
-            
-            if resultado_pdf.get('success'):
-                pdf_path = resultado_pdf.get('path')
-                logger.info(f"📄 PDF gerado com sucesso: {pdf_path}")
-            else:
-                logger.warning(f"⚠️ Erro ao gerar PDF: {resultado_pdf.get('error')}")
-            
-            # Enviar e-mails com PDF anexo
-            email_service = ReportApprovalEmailService()
-            
-            if pdf_path and os.path.exists(pdf_path):
-                resultado_email = email_service.send_approval_email(relatorio, pdf_path)
-                
-                if resultado_email.get('success'):
-                    enviados = resultado_email.get('enviados', 0)
-                    logger.info(f"✅ E-mails enviados com sucesso para {enviados} destinatário(s)")
-                else:
-                    logger.warning(f"⚠️ Falha ao enviar e-mails: {resultado_email.get('error')}")
-            else:
-                logger.warning(f"⚠️ PDF não foi gerado ou não existe em {pdf_path}")
-        
-        except Exception as e:
-            logger.error(f"⚠️ Erro ao gerar PDF ou enviar e-mails: {e}", exc_info=True)
-        
         flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso!', 'success')
         return redirect(url_for('express_reports_list'))
         
