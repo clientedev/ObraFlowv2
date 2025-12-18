@@ -14,8 +14,13 @@ class ReportApprovalEmailService:
     """Serviço de envio de e-mails via yagmail"""
     
     def __init__(self):
-        self.from_email = "relatorioselpconsultoria@gmail.com"
-        self.from_password = "ipbs dkwc osyn vixg"
+        import os
+        self.from_email = os.getenv('GMAIL_EMAIL', "relatorioselpconsultoria@gmail.com")
+        self.from_password = os.getenv('GMAIL_PASSWORD', "ipbs dkwc osyn vixg")
+        
+        # Log para debug
+        current_app.logger.info(f"📧 Email Service inicializado com: {self.from_email}")
+        
         self.yag = None
     
     def _get_yag_connection(self):
