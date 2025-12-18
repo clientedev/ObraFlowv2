@@ -31,6 +31,9 @@ class ReportApprovalEmailService:
                 socket.setdefaulttimeout(60)  # 60 segundos para socket
                 
                 current_app.logger.info(f"🔌 Iniciando conexão SMTP com {self.from_email}...")
+                current_app.logger.info(f"   - Host: smtp.gmail.com")
+                current_app.logger.info(f"   - Porta: 587 (TLS)")
+                current_app.logger.info(f"   - Timeout: 60s")
                 
                 # Usar porta TLS 587 com timeout maior
                 self.yag = yagmail.SMTP(
@@ -41,9 +44,21 @@ class ReportApprovalEmailService:
                     timeout=60
                 )
                 current_app.logger.info(f"✅ Conexão SMTP estabelecida com sucesso!")
+            except socket.timeout as e:
+                current_app.logger.error(f"❌ TIMEOUT na conexão SMTP (pode estar bloqueado pelo firewall)")
+                current_app.logger.error(f"   - Detalhes: {str(e)}")
+                raise
+            except ConnectionRefusedError as e:
+                current_app.logger.error(f"❌ CONEXÃO RECUSADA pelo servidor SMTP")
+                current_app.logger.error(f"   - Railway pode estar bloqueando SMTP")
+                current_app.logger.error(f"   - Detalhes: {str(e)}")
+                raise
             except Exception as e:
-                current_app.logger.error(f"❌ FALHA na conexão SMTP: {type(e).__name__}: {str(e)}")
-                current_app.logger.error(f"   - Verifique credenciais e autenticação 2FA")
+                current_app.logger.error(f"❌ FALHA na conexão SMTP: {type(e).__name__}")
+                current_app.logger.error(f"   - Mensagem: {str(e)}")
+                current_app.logger.error(f"   - Verifique: credenciais, 2FA, acesso à rede SMTP")
+                import traceback
+                current_app.logger.error(f"   - Traceback:\n{traceback.format_exc()}")
                 raise
         return self.yag
     
@@ -278,6 +293,9 @@ Por favor, não responda este e-mail.
         Retorna dicionário com resultado: {'success': bool, 'enviados': int, 'error': str}
         """
         try:
+            current_app.logger.info(f"📧 ===== INICIANDO ENVIO DE EMAIL =====")
+            current_app.logger.info(f"   - Relatório: {relatorio.numero}")
+            
             recipients = self._get_recipients_for_report(relatorio)
             
             if not recipients:
@@ -312,7 +330,9 @@ Por favor, não responda este e-mail.
                 }
             
             # Obter conexão yagmail
+            current_app.logger.info(f"🔌 Obtendo conexão SMTP...")
             yag = self._get_yag_connection()
+            current_app.logger.info(f"✅ Conexão SMTP OK, iniciando envio...")
             
             enviados = 0
             erros = []
@@ -355,7 +375,7 @@ Por favor, não responda este e-mail.
                     current_app.logger.error(f"❌ {erro_msg}")
             
             if enviados > 0:
-                current_app.logger.info(f"✅ SUCESSO: {enviados}/{len(recipients)} e-mail(s) enviado(s)")
+                current_app.logger.info(f"📧 ===== SUCESSO: {enviados}/{len(recipients)} e-mail(s) enviado(s) =====")
                 return {
                     'success': True,
                     'enviados': enviados,
@@ -364,6 +384,7 @@ Por favor, não responda este e-mail.
                 }
             else:
                 erro_final = "Falha ao enviar e-mails para todos os destinatários: " + "; ".join(erros)
+                current_app.logger.error(f"📧 ===== FALHA =====")
                 current_app.logger.error(f"❌ {erro_final}")
                 return {
                     'success': False,
@@ -373,7 +394,10 @@ Por favor, não responda este e-mail.
                 }
         
         except Exception as e:
-            current_app.logger.error(f"💥 Erro geral ao enviar e-mails: {e}", exc_info=True)
+            current_app.logger.error(f"📧 ===== ERRO GERAL =====")
+            current_app.logger.error(f"💥 {type(e).__name__}: {str(e)}")
+            import traceback
+            current_app.logger.error(f"Traceback:\n{traceback.format_exc()}")
             return {
                 'success': False,
                 'enviados': 0,
