@@ -111,21 +111,35 @@ class ReportApprovalEmailService:
                                 except Exception as e:
                                     current_app.logger.warning(f"⚠️ Erro ao buscar User por ID {user_id}: {e}")
                             
-                            # 3. Se nome é válido, buscar na user_email_config por nome
+                            # 3. Se tem ID tipo 'ec_123' ou 'ec_133', é um email_config_id direto
+                            if not email and user_id and isinstance(user_id, str) and user_id.startswith('ec_'):
+                                try:
+                                    from models import UserEmailConfig
+                                    ec_id = int(user_id.replace('ec_', ''))
+                                    email_config = UserEmailConfig.query.filter_by(id=ec_id).first()
+                                    
+                                    if email_config and email_config.email_address:
+                                        email = email_config.email_address
+                                        current_app.logger.info(f"✅ Email encontrado em user_email_config (ID={ec_id}): {email}")
+                                except Exception as e:
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar email_config por ID {user_id}: {e}")
+                            
+                            # 4. Se nome é válido, buscar na user_email_config por nome
                             if not email and nome != 'Desconhecido':
                                 try:
                                     from models import UserEmailConfig
+                                    # Buscar por nome_funcionario (nome do funcionário responsável)
                                     email_config = UserEmailConfig.query.filter(
-                                        UserEmailConfig.nome_contato.ilike(f'%{nome}%')
+                                        UserEmailConfig.nome_funcionario.ilike(f'%{nome}%')
                                     ).first()
                                     
-                                    if email_config and email_config.email:
-                                        email = email_config.email
-                                        current_app.logger.info(f"✅ Email encontrado em user_email_config: {email}")
+                                    if email_config and email_config.email_address:
+                                        email = email_config.email_address
+                                        current_app.logger.info(f"✅ Email encontrado em user_email_config por nome: {email}")
                                 except Exception as e:
-                                    current_app.logger.warning(f"⚠️ Erro ao buscar em user_email_config: {e}")
+                                    current_app.logger.warning(f"⚠️ Erro ao buscar em user_email_config por nome: {e}")
                             
-                            # 4. Fallback: buscar na tabela User por nome
+                            # 5. Fallback: buscar na tabela User por nome
                             if not email and nome != 'Desconhecido':
                                 try:
                                     from models import User

@@ -3409,6 +3409,34 @@ function removerAcompanhante(index) {
 }
 
 // Carregar acompanhantes existentes ao editar relatório
+function carregarAcompanhantesExistentes(dados) {
+    if (!dados) return;
+    
+    acompanhantes.length = 0;
+    
+    if (typeof dados === 'string') {
+        try {
+            dados = JSON.parse(dados);
+        } catch (e) {
+            console.error('Erro ao fazer parse de acompanhantes:', e);
+            return;
+        }
+    }
+    
+    if (Array.isArray(dados)) {
+        dados.forEach(a => {
+            acompanhantes.push({
+                id: a.id,
+                nome: a.nome || 'Nome não informado',
+                funcao: a.funcao || a.cargo || '',
+                origem: a.origem || 'Carregado do relatório',
+                email: a.email || ''
+            });
+        });
+    }
+    
+    atualizarListaAcompanhantes();
+}
 {% if existing_acompanhantes and existing_acompanhantes|length > 0 %}
 try {
     const acompanhantesExistentes = {{ existing_acompanhantes | tojson | safe }};
