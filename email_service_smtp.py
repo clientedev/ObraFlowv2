@@ -16,10 +16,10 @@ class ReportApprovalEmailService:
     """Serviço de envio de e-mails após aprovação de relatório"""
     
     def __init__(self):
-        self.smtp_host = "smtp.gmail.com"
+        self.smtp_host = "smtp.elpconsultoria.eng.br"
         self.smtp_port = 587
         self.from_email = "relatorios@elpconsultoria.eng.br"
-        self.from_password = "1234567890"
+        self.from_password = "ugZ32b9ayCgu5uK="
     
     def _get_recipients_for_report(self, relatorio):
         """
@@ -153,7 +153,7 @@ relatorios@elpconsultoria.eng.br
                     
                     # Enviar e-mail via SMTP
                     try:
-                        server = smtplib.SMTP(self.smtp_host, self.smtp_port)
+                        server = smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10)
                         server.starttls()
                         server.login(self.from_email, self.from_password)
                         server.send_message(msg)
