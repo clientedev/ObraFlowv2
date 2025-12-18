@@ -219,7 +219,14 @@ class ReportApprovalEmailService:
     
     def _format_email_body(self, destinatario_nome, nome_obra, data_aprovacao):
         """Formata o corpo do e-mail de aprovação"""
-        data_formatada = data_aprovacao.strftime("%d/%m/%Y às %H:%M") if data_aprovacao else "data não disponível"
+        if data_aprovacao:
+            from datetime import timezone, timedelta
+            # Converter de UTC para Brasília (UTC-3)
+            brasilia_tz = timezone(timedelta(hours=-3))
+            data_brasilia = data_aprovacao.replace(tzinfo=timezone.utc).astimezone(brasilia_tz)
+            data_formatada = data_brasilia.strftime("%d/%m/%Y às %H:%M")
+        else:
+            data_formatada = "data não disponível"
         
         corpo = f"""Olá {destinatario_nome},
 
