@@ -23,87 +23,156 @@ class ReportApprovalEmailService:
     
     def _get_recipients_for_report(self, relatorio):
         """
-        Coleta APENAS os destinatários relacionados ao relatório.
+        Coleta TODOS os destinatários relacionados ao relatório.
         Retorna lista de emails únicos com logs detalhados.
         
-        Destinatários:
-        - Pessoa que criou o relatório (autor)
-        - Aprovador global
-        - Contato de email da obra
-        - Todos os acompanhantes da visita vinculados ao relatório
-        
-        NÃO inclui funcionários da obra, apenas os envolvidos no relatório.
+        Destinatários OBRIGATÓRIOS:
+        - Pessoa que criou o relatório (autor) ✅
+        - Aprovador global ✅
+        - Contato de email da obra ✅
+        - Todos os acompanhantes da visita vinculados ao relatório ✅
         """
         recipients = set()
         
         try:
             current_app.logger.info(f"🔍 Coletando destinatários para relatório {relatorio.numero}")
+            relatorio_type = type(relatorio).__name__
+            current_app.logger.info(f"📋 Tipo de relatório: {relatorio_type}")
             
-            # 1. Autor do relatório
-            if relatorio.autor and relatorio.autor.email:
-                recipients.add(relatorio.autor.email)
-                current_app.logger.info(f"✉️ [AUTOR] {relatorio.autor.nome_completo or relatorio.autor.username} ({relatorio.autor.email})")
-            else:
-                current_app.logger.warning(f"⚠️ [AUTOR] Sem email encontrado")
+            # ===== 1. AUTOR DO RELATÓRIO (OBRIGATÓRIO) =====
+            try:
+                # Forçar carregamento da relação
+                autor = relatorio.autor
+                if not autor:
+                    from models import User
+                    if hasattr(relatorio, 'autor_id') and relatorio.autor_id:
+                        autor = User.query.get(relatorio.autor_id)
+                
+                if autor and autor.email:
+                    recipients.add(autor.email)
+                    current_app.logger.info(f"✅ [AUTOR] {autor.nome_completo or autor.username} ({autor.email})")
+                else:
+                    current_app.logger.warning(f"⚠️ [AUTOR] Sem email encontrado para autor_id={relatorio.autor_id}")
+            except Exception as autor_err:
+                current_app.logger.warning(f"⚠️ [AUTOR] Erro ao processar: {autor_err}")
             
-            # 2. Aprovador global
-            if relatorio.aprovador and relatorio.aprovador.email:
-                recipients.add(relatorio.aprovador.email)
-                current_app.logger.info(f"✉️ [APROVADOR] {relatorio.aprovador.nome_completo or relatorio.aprovador.username} ({relatorio.aprovador.email})")
-            else:
-                current_app.logger.warning(f"⚠️ [APROVADOR] Sem email ou não atribuído")
+            # ===== 2. APROVADOR GLOBAL (OBRIGATÓRIO) =====
+            try:
+                # Forçar carregamento da relação
+                aprovador = relatorio.aprovador
+                if not aprovador:
+                    from models import User
+                    if hasattr(relatorio, 'aprovador_id') and relatorio.aprovador_id:
+                        aprovador = User.query.get(relatorio.aprovador_id)
+                
+                if aprovador and aprovador.email:
+                    recipients.add(aprovador.email)
+                    current_app.logger.info(f"✅ [APROVADOR] {aprovador.nome_completo or aprovador.username} ({aprovador.email})")
+                else:
+                    current_app.logger.warning(f"⚠️ [APROVADOR] Sem email para aprovador_id={relatorio.aprovador_id}")
+            except Exception as apr_err:
+                current_app.logger.warning(f"⚠️ [APROVADOR] Erro ao processar: {apr_err}")
             
-            # 3. Contato de email da obra
-            obra_email = None
-            if hasattr(relatorio, 'obra_email'):
-                obra_email = (relatorio.obra_email or '').strip()
-            elif hasattr(relatorio, 'projeto') and relatorio.projeto and hasattr(relatorio.projeto, 'email'):
-                obra_email = (relatorio.projeto.email or '').strip()
+            # ===== 3. CONTATO DE EMAIL DA OBRA (OBRIGATÓRIO) =====
+            try:
+                obra_email = None
+                
+                # Para RelatorioExpress - email direto
+                if hasattr(relatorio, 'obra_email'):
+                    obra_email = (relatorio.obra_email or '').strip()
+                    if obra_email:
+                        current_app.logger.info(f"📧 [OBRA EXPRESS] Email direto encontrado: {obra_email}")
+                
+                # Para Relatório Normal - via projeto
+                if not obra_email and hasattr(relatorio, 'projeto') and relatorio.projeto:
+                    projeto = relatorio.projeto
+                    if hasattr(projeto, 'email') and projeto.email:
+                        obra_email = (projeto.email or '').strip()
+                        current_app.logger.info(f"📧 [OBRA PROJETO] Email via projeto: {obra_email}")
+                
+                if obra_email:
+                    recipients.add(obra_email)
+                    current_app.logger.info(f"✅ [OBRA] Contato registrado: {obra_email}")
+                else:
+                    current_app.logger.warning(f"⚠️ [OBRA] Sem email de contato registrado")
+            except Exception as obra_err:
+                current_app.logger.warning(f"⚠️ [OBRA] Erro ao processar: {obra_err}")
             
-            if obra_email:
-                recipients.add(obra_email)
-                current_app.logger.info(f"✉️ [OBRA] Contato da obra ({obra_email})")
-            else:
-                current_app.logger.info(f"ℹ️ [OBRA] Sem email de contato registrado")
-            
-            # 4. Acompanhantes da visita vinculados ao relatório
-            if relatorio.acompanhantes:
-                current_app.logger.info(f"🔍 Processando acompanhantes: {type(relatorio.acompanhantes)}")
+            # ===== 4. ACOMPANHANTES DA VISITA (TODOS!) =====
+            try:
+                acompanhantes_data = relatorio.acompanhantes
+                current_app.logger.info(f"🔍 Processando acompanhantes - Tipo: {type(acompanhantes_data)}, Valor: {acompanhantes_data}")
+                
                 acompanhantes_list = []
                 
-                # Converter para lista se necessário
-                if isinstance(relatorio.acompanhantes, list):
-                    acompanhantes_list = relatorio.acompanhantes
-                    current_app.logger.info(f"✅ Acompanhantes é uma lista")
-                elif isinstance(relatorio.acompanhantes, str):
-                    try:
-                        acompanhantes_list = json.loads(relatorio.acompanhantes)
-                        if not isinstance(acompanhantes_list, list):
-                            acompanhantes_list = []
-                        current_app.logger.info(f"✅ Acompanhantes parseado de JSON string")
-                    except json.JSONDecodeError:
-                        current_app.logger.warning(f"⚠️ Falha ao parsear acompanhantes JSON")
+                if acompanhantes_data:
+                    # Se for lista
+                    if isinstance(acompanhantes_data, list):
+                        acompanhantes_list = acompanhantes_data
+                        current_app.logger.info(f"✅ Acompanhantes já é lista: {len(acompanhantes_list)} itens")
+                    # Se for string JSON
+                    elif isinstance(acompanhantes_data, str):
+                        try:
+                            parsed = json.loads(acompanhantes_data)
+                            if isinstance(parsed, list):
+                                acompanhantes_list = parsed
+                                current_app.logger.info(f"✅ Acompanhantes parseado de JSON: {len(acompanhantes_list)} itens")
+                            else:
+                                current_app.logger.warning(f"⚠️ JSON parseado não é lista: {type(parsed)}")
+                        except json.JSONDecodeError as je:
+                            current_app.logger.warning(f"⚠️ Falha ao parsear JSON: {je}")
+                    else:
+                        current_app.logger.warning(f"⚠️ Tipo inesperado de acompanhantes: {type(acompanhantes_data)}")
                 
-                for acompanhante_id in acompanhantes_list:
-                    try:
-                        from models import VisitaAcompanhante
-                        acompanhante = VisitaAcompanhante.query.get(acompanhante_id)
-                        if acompanhante and acompanhante.email:
-                            email = acompanhante.email.strip()
-                            if email:
+                if acompanhantes_list:
+                    current_app.logger.info(f"📋 Total de acompanhantes para processar: {len(acompanhantes_list)}")
+                    
+                    from models import VisitaAcompanhante
+                    acompanhantes_email_count = 0
+                    
+                    for idx, acompanhante_id in enumerate(acompanhantes_list, 1):
+                        try:
+                            acompanhante = VisitaAcompanhante.query.get(acompanhante_id)
+                            
+                            if not acompanhante:
+                                current_app.logger.warning(f"⚠️ [ACOMP {idx}] VisitaAcompanhante ID {acompanhante_id} não encontrado")
+                                continue
+                            
+                            email = (acompanhante.email or '').strip() if hasattr(acompanhante, 'email') else ''
+                            
+                            if email and '@' in email:
                                 recipients.add(email)
-                                current_app.logger.info(f"✉️ [ACOMPANHANTE] {acompanhante.nome or acompanhante_id} ({email})")
-                    except Exception as e:
-                        current_app.logger.warning(f"⚠️ Erro ao processar acompanhante {acompanhante_id}: {e}")
+                                acompanhantes_email_count += 1
+                                current_app.logger.info(f"✅ [ACOMP {idx}] {acompanhante.nome or f'ID {acompanhante_id}'} → {email}")
+                            else:
+                                current_app.logger.warning(f"⚠️ [ACOMP {idx}] {acompanhante.nome or f'ID {acompanhante_id}'} - Sem email válido")
+                        
+                        except Exception as acomp_err:
+                            current_app.logger.warning(f"⚠️ [ACOMP {idx}] ID {acompanhante_id} - Erro: {acomp_err}")
+                    
+                    current_app.logger.info(f"📊 Acompanhantes com email: {acompanhantes_email_count}/{len(acompanhantes_list)}")
+                else:
+                    current_app.logger.info(f"ℹ️ [ACOMPANHANTES] Nenhum acompanhante registrado")
             
-            # Filtrar emails inválidos
-            recipients = set(email.strip() for email in recipients if email and '@' in email)
+            except Exception as acomp_general_err:
+                current_app.logger.warning(f"⚠️ [ACOMPANHANTES] Erro geral: {acomp_general_err}", exc_info=True)
+            
+            # ===== LIMPEZA E RESULTADO FINAL =====
+            # Filtrar emails válidos
+            recipients = set(email.strip().lower() for email in recipients if email and '@' in email)
+            
+            current_app.logger.info(f"\n{'='*60}")
+            current_app.logger.info(f"📨 RESUMO FINAL DE DESTINATÁRIOS")
+            current_app.logger.info(f"{'='*60}")
             current_app.logger.info(f"✅ Total de destinatários únicos: {len(recipients)}")
+            for idx, email in enumerate(sorted(recipients), 1):
+                current_app.logger.info(f"  {idx}. {email}")
+            current_app.logger.info(f"{'='*60}\n")
             
             return list(recipients)
         
         except Exception as e:
-            current_app.logger.error(f"❌ Erro ao coletar destinatários: {e}", exc_info=True)
+            current_app.logger.error(f"❌ ERRO CRÍTICO ao coletar destinatários: {e}", exc_info=True)
             return []
     
     def _format_email_body(self, nome_destinatario, obra_nome, data_aprovacao):
