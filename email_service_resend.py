@@ -15,11 +15,20 @@ class ReportApprovalEmailService:
     """Serviço de envio de e-mails via Resend API"""
     
     def __init__(self):
+        # Tentar carregar da variável de ambiente primeiro
         self.api_key = os.getenv('RESEND_API_KEY')
+        
+        # Se não encontrar, usar como fallback (será removido após verificação)
+        if not self.api_key:
+            self.api_key = 're_Y7ESk4Tk_3oyhaqCqWTPWTVMcy8TtfVje'
+            current_app.logger.warning(f"⚠️ Usando chave Resend como fallback (env var não carregada)")
+        
         self.from_email = os.getenv('RESEND_FROM_EMAIL', 'relatorios@elpconsultoria.eng.br')
         self.resend_endpoint = "https://api.resend.com/emails"
         
-        current_app.logger.info(f"📧 Resend Service inicializado com: {self.from_email}")
+        current_app.logger.info(f"📧 Resend Service inicializado")
+        current_app.logger.info(f"📮 Email FROM: {self.from_email}")
+        current_app.logger.info(f"🔑 API KEY PREVIEW: {self.api_key[:15]}...")
     
     def _get_recipients_for_report(self, relatorio):
         """
