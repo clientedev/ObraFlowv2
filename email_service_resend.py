@@ -84,14 +84,15 @@ class ReportApprovalEmailService:
                 
                 if acompanhantes:
                     current_app.logger.info(f"✅ [3] ACOMPANHANTES: Encontrados {len(acompanhantes)}")
-                    for idx, acomp in enumerate(acompanhantes, 1):
+                    for acomp in acompanhantes:
                         if acomp.email:
-                            recipients.add(acomp.email.strip().lower())
-                            current_app.logger.info(f"    {idx}. {acomp.nome_contato or 'N/A'} - {acomp.email}")
+                            email_lower = acomp.email.strip().lower()
+                            recipients.add(email_lower)
+                            current_app.logger.info(f"    ✅ {acomp.nome_contato} - {acomp.email}")
                 else:
-                    current_app.logger.info(f"ℹ️ [3] ACOMPANHANTES: Nenhum registrado para este projeto")
+                    current_app.logger.info(f"ℹ️ [3] ACOMPANHANTES: Nenhum registrado")
             except Exception as e:
-                current_app.logger.warning(f"⚠️ [3] ACOMPANHANTES: Erro - {e}")
+                current_app.logger.error(f"❌ [3] ACOMPANHANTES: Erro - {e}", exc_info=True)
             
             # ===== RESULTADO FINAL =====
             recipients = set(email for email in recipients if '@' in email)
