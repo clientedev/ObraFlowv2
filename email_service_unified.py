@@ -62,7 +62,7 @@ class UnifiedReportEmailService:
                         nome = getattr(autor, 'nome_completo', None) or getattr(autor, 'username', 'Autor')
                         logger.info(f"✅ [AUTOR] {nome} → {email_clean}")
                     else:
-                        logger.warning(f"⚠️ [AUTOR] Email inválido: {author.email}")
+                        logger.warning(f"⚠️ [AUTOR] Email inválido: {autor.email}")
                 else:
                     logger.warning(f"⚠️ [AUTOR] Sem email - autor_id={getattr(relatorio, 'autor_id', None)}")
             except Exception as e:
@@ -184,10 +184,10 @@ class UnifiedReportEmailService:
             
             logger.info(f"\n{'='*70}")
             logger.info(f"📊 RESUMO - Total: {resultado['total']} destinatários únicos")
-            logger.info(f"   - Autor: {len(resultado_by_type']['autor'])}")
-            logger.info(f"   - Aprovador: {len(resultado_by_type']['aprovador'])}")
-            logger.info(f"   - Obra: {len(resultado_by_type']['obra'])}")
-            logger.info(f"   - Acompanhantes: {len(resultado_by_type']['acompanhantes'])}")
+            logger.info(f"   - Autor: {len(resultado['por_tipo']['autor'])}")
+            logger.info(f"   - Aprovador: {len(resultado['por_tipo']['aprovador'])}")
+            logger.info(f"   - Obra: {len(resultado['por_tipo']['obra'])}")
+            logger.info(f"   - Acompanhantes: {len(resultado['por_tipo']['acompanhantes'])}")
             for email in sorted(resultado['emails']):
                 logger.info(f"   • {email}")
             logger.info(f"{'='*70}\n")
