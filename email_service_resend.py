@@ -241,6 +241,187 @@ class ReportApprovalEmailService:
         """
         return corpo_html
     
+    def _send_email_with_resend(self, recipient_email, assunto, corpo_html, pdf_base64, pdf_filename):
+        """
+        Envia um email individual via Resend API.
+        Retorna True se sucesso, False caso contrário.
+        """
+        try:
+            payload = {
+                "from": self.from_email,
+                "to": recipient_email,
+                "subject": assunto,
+                "html": corpo_html,
+                "attachments": [
+                    {
+                        "filename": pdf_filename,
+                        "content": pdf_base64
+                    }
+                ]
+            }
+            
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            response = requests.post(
+                self.resend_endpoint,
+                json=payload,
+                headers=headers,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                email_id = response_data.get('id', 'N/A')
+                current_app.logger.info(f"✅ Email enviado para {recipient_email} - ID: {email_id}")
+                return True
+            else:
+                error_msg = response.text if response.text else f"HTTP {response.status_code}"
+                current_app.logger.error(f"❌ ERRO ao enviar para {recipient_email}: {error_msg}")
+                return False
+        
+        except Exception as e:
+            current_app.logger.error(f"❌ EXCEÇÃO ao enviar para {recipient_email}: {str(e)}", exc_info=True)
+            return False
+    
+    def enviar_relatorio_normal(self, relatorio, pdf_path):
+        """
+        Envia relatório normal via Resend API para:
+        - Criador do relatório (autor)
+        - Aprovador global
+        - Acompanhantes da visita
+        
+        Retorna dicionário com resultado do envio.
+        """
+        try:
+            current_app.logger.info(f"\n{'='*60}")
+            current_app.logger.info(f"📧 ENVIO DE RELATÓRIO NORMAL via RESEND")
+            current_app.logger.info(f"Relatório: {relatorio.numero}")
+            current_app.logger.info(f"{'='*60}\n")
+            
+            # Coleta os destinatários (criador, aprovador, acompanhantes)
+            recipients = self._get_recipients_for_report(relatorio)
+            
+            if not recipients:
+                current_app.logger.warning(f"⚠️ Nenhum destinatário para relatório {relatorio.numero}")
+                return {
+                    'success': False,
+                    'sucessos': 0,
+                    'falhas': 0,
+                    'error': 'Nenhum destinatário encontrado'
+                }
+            
+            # Obter nome da obra
+            obra_nome = "Obra"
+            if hasattr(relatorio, 'projeto') and relatorio.projeto:
+                obra_nome = relatorio.projeto.nome
+            elif hasattr(relatorio, 'obra_nome'):
+                obra_nome = relatorio.obra_nome or "Obra"
+            
+            # Verificar PDF
+            if not os.path.exists(pdf_path):
+                current_app.logger.warning(f"⚠️ PDF não encontrado: {pdf_path}")
+                return {
+                    'success': False,
+                    'sucessos': 0,
+                    'falhas': 0,
+                    'error': 'PDF não encontrado'
+                }
+            
+            # Ler PDF e converter para base64
+            with open(pdf_path, 'rb') as pdf_file:
+                pdf_base64 = base64.b64encode(pdf_file.read()).decode('utf-8')
+            
+            pdf_filename = os.path.basename(pdf_path)
+            assunto = f"Relatório da Obra {obra_nome}"
+            
+            sucessos = 0
+            falhas = 0
+            
+            # Enviar para cada destinatário
+            for recipient_email in recipients:
+                try:
+                    destinatario_nome = recipient_email.split('@')[0]
+                    try:
+                        from models import User
+                        user = User.query.filter_by(email=recipient_email).first()
+                        if user and user.nome_completo:
+                            destinatario_nome = user.nome_completo
+                    except:
+                        pass
+                    
+                    # Corpo do email
+                    corpo_html = f"""
+                    <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>
+                                body {{ font-family: Arial, sans-serif; background-color: #f5f5f5; }}
+                                .container {{ max-width: 600px; margin: 20px auto; background-color: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+                                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 5px; text-align: center; }}
+                                .content {{ padding: 20px; line-height: 1.6; color: #333; }}
+                                .footer {{ background-color: #f9f9f9; padding: 10px; font-size: 12px; text-align: center; color: #666; border-top: 1px solid #ddd; margin-top: 20px; }}
+                                .highlight {{ color: #667eea; font-weight: bold; }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <div class="header">
+                                    <h2>📋 Relatório da Obra</h2>
+                                </div>
+                                <div class="content">
+                                    <p>Olá <span class="highlight">{destinatario_nome}</span>,</p>
+                                    <p>Segue em anexo o relatório da obra <span class="highlight">{obra_nome}</span>.</p>
+                                    <p>O documento contém todas as informações da visita realizada em nossa obra.</p>
+                                    <p>Em caso de dúvidas ou necessidade de informações adicionais, por favor entre em contato conosco.</p>
+                                    <p>Atenciosamente,<br><strong>ELP Consultoria e Engenharia</strong></p>
+                                </div>
+                                <div class="footer">
+                                    <p>Por favor, não responda este e-mail. Este é um e-mail automático.</p>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                    """
+                    
+                    current_app.logger.info(f"📤 Enviando para {recipient_email}...")
+                    
+                    if self._send_email_with_resend(recipient_email, assunto, corpo_html, pdf_base64, pdf_filename):
+                        sucessos += 1
+                    else:
+                        falhas += 1
+                
+                except Exception as e:
+                    falhas += 1
+                    current_app.logger.error(f"❌ EXCEÇÃO ao enviar para {recipient_email}: {str(e)}", exc_info=True)
+            
+            resultado_final = {
+                'success': sucessos > 0,
+                'sucessos': sucessos,
+                'falhas': falhas,
+                'error': None if sucessos > 0 else f'Falha ao enviar para {falhas} destinatários'
+            }
+            
+            current_app.logger.info(f"\n{'='*60}")
+            current_app.logger.info(f"📊 RESULTADO FINAL")
+            current_app.logger.info(f"{'='*60}")
+            current_app.logger.info(f"✅ Sucessos: {sucessos}")
+            current_app.logger.info(f"❌ Falhas: {falhas}")
+            current_app.logger.info(f"{'='*60}\n")
+            
+            return resultado_final
+        
+        except Exception as e:
+            current_app.logger.error(f"❌ ERRO CRÍTICO ao enviar relatório: {e}", exc_info=True)
+            return {
+                'success': False,
+                'sucessos': 0,
+                'falhas': 0,
+                'error': str(e)
+            }
+    
     def send_approval_email(self, relatorio, pdf_path):
         """
         Envia e-mail de aprovação com Resend SÍNCRONAMENTE (aguarda resposta).

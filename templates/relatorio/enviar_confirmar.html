@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Enviar Relatório por E-mail</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Relatório: <strong>{{ relatorio.numero }}</strong></p>
+                    <p>Projeto: <strong>{{ relatorio.projeto.nome }}</strong></p>
+                    <p class="text-muted">Data da Visita: {{ relatorio.data_visita.strftime('%d/%m/%Y') if relatorio.data_visita else 'N/A' }}</p>
+                    
+                    <hr>
+                    
+                    <div class="alert alert-info">
+                        <strong>ℹ️ Informação:</strong> O relatório será enviado automaticamente via Resend para:
+                        <ul class="mb-0 mt-2">
+                            <li>Criador do relatório</li>
+                            <li>Aprovador global</li>
+                            <li>Acompanhantes da visita</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="POST" class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-envelope"></i> Enviar Relatório
+                        </button>
+                        <a href="{{ url_for('report_view', report_id=relatorio.id) }}" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

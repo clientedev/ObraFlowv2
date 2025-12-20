@@ -9710,7 +9710,7 @@ def configuracao_email_nova():
 @app.route('/relatorio/<int:relatorio_id>/enviar-email', methods=['GET', 'POST'])
 @login_required
 def relatorio_enviar_email(relatorio_id):
-    """Enviar relatório por e-mail"""
+    """Enviar relatório por e-mail via Resend API"""
     relatorio = Relatorio.query.get_or_404(relatorio_id)
 
     # Verificar se o usuário tem acesso ao projeto
@@ -9718,66 +9718,22 @@ def relatorio_enviar_email(relatorio_id):
         flash('Acesso negado.', 'error')
         return redirect(url_for('index'))
 
-    # Buscar e-mails do projeto
-    emails_projeto = email_service.buscar_emails_projeto(relatorio.projeto.id)
-
-    if not emails_projeto:
-        flash('Nenhuma e-mail cadastrado para esta obra. Cadastre e-mails na seção de clientes.', 'warning')
-        return redirect(url_for('report_view', report_id=relatorio_id))
-
-    # Configurar escolhas do formulário
-    form = EnvioEmailForm()
-    form.destinatarios.choices = [
-        (email.email, f"{email.nome_contato} ({email.email}) - {email.cargo or 'N/A'}")
-        for email in emails_projeto
-    ]
-
-    # Buscar configuração ativa
-    config_ativa = email_service.get_configuracao_ativa()
-    if not config_ativa:
-        flash('Nenhuma configuração de e-mail ativa. Configure o sistema de e-mail primeiro.', 'error')
-        return redirect(url_for('report_view', report_id=relatorio_id))
-
-    if request.method == 'POST' and form.validate_on_submit():
+    if request.method == 'POST':
         try:
-            # Processar e-mails (mesmo processo do relatório normal)
-            def processar_emails(texto_emails):
-                if not texto_emails:
-                    return []
-                emails = []
-                for linha in texto_emails.split('\n'):
-                    for email in linha.split(','):
-                        email = email.strip()
-                        if email:
-                            emails.append(email)
-                return emails
-
-            cc_emails = processar_emails(form.cc_emails.data)
-            bcc_emails = processar_emails(form.bcc_emails.data)
-
-            # Validar e-mails
-            todos_emails = form.destinatarios.data + cc_emails + bcc_emails
-            emails_validos, emails_invalidos = email_service.validar_emails(todos_emails)
-
-            if emails_invalidos:
-                flash(f'E-mails inválidos encontrados: {", ".join(emails_invalidos)}', 'error')
-                return render_template('email/enviar_relatorio.html', 
-                                     form=form, relatorio=relatorio, config=config_ativa)
-
-            # Preparar dados para envio
-            destinatarios_data = {
-                'destinatarios': form.destinatarios.data,
-                'cc': cc_emails,
-                'bcc': bcc_emails,
-                'assunto_custom': form.assunto_personalizado.data,
-                'corpo_custom': form.corpo_personalizado.data
-            }
-
-            # Enviar e-mails
-            resultado = email_service.enviar_relatorio_por_email(
-                relatorio, destinatarios_data, current_user.id
-            )
-
+            # Gerar PDF do relatório
+            pdf_generator = PDFGenerator()
+            pdf_path = pdf_generator.generate_report_pdf(relatorio)
+            
+            if not pdf_path or not os.path.exists(pdf_path):
+                flash('Erro ao gerar PDF do relatório.', 'error')
+                return redirect(url_for('report_view', report_id=relatorio_id))
+            
+            # Enviar via Resend API
+            from email_service_resend import ReportApprovalEmailService
+            email_service_resend = ReportApprovalEmailService()
+            
+            resultado = email_service_resend.enviar_relatorio_normal(relatorio, pdf_path)
+            
             if resultado['success']:
                 if resultado['falhas'] > 0:
                     flash(f'E-mails enviados parcialmente: {resultado["sucessos"]} sucessos, {resultado["falhas"]} falhas.', 'warning')
@@ -9789,10 +9745,11 @@ def relatorio_enviar_email(relatorio_id):
             return redirect(url_for('report_view', report_id=relatorio_id))
 
         except Exception as e:
+            current_app.logger.error(f"❌ Erro ao enviar relatório: {str(e)}", exc_info=True)
             flash(f'Erro ao enviar e-mails: {str(e)}', 'error')
+            return redirect(url_for('report_view', report_id=relatorio_id))
 
-    return render_template('email/enviar_relatorio.html', 
-                         form=form, relatorio=relatorio, config=config_ativa)
+    return render_template('relatorio/enviar_confirmar.html', relatorio=relatorio)
 
 @app.route('/relatorio/<int:relatorio_id>/preview-email')
 @login_required
