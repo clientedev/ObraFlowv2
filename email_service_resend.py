@@ -336,14 +336,18 @@ class ReportApprovalEmailService:
         Retorna o resultado real do envio.
         """
         try:
-            current_app.logger.info(f"📧 Iniciando envio SÍNCRONO de email para relatório {relatorio.numero}")
-            current_app.logger.info(f"🔐 Usando API Key (primeiros 10 chars): {self.api_key[:10]}...")
-            current_app.logger.info(f"📮 Email FROM: {self.from_email}")
+            current_app.logger.info(f"\n{'='*70}")
+            current_app.logger.info(f"📧 INICIANDO ENVIO DE EMAIL - RELATÓRIO {relatorio.numero}")
+            current_app.logger.info(f"{'='*70}")
             
             recipients = self._get_recipients_for_report(relatorio)
+            current_app.logger.info(f"\n📊 RECIPIENTS COLETADOS NA FUNÇÃO send_approval_email:")
+            current_app.logger.info(f"   Total: {len(recipients)}")
+            for i, email in enumerate(recipients, 1):
+                current_app.logger.info(f"   {i}. {email}")
             
             if not recipients:
-                current_app.logger.warning(f"⚠️ Nenhum destinatário para {relatorio.numero}")
+                current_app.logger.warning(f"⚠️ NENHUM DESTINATÁRIO! Retornando sucesso vazio")
                 return {'success': True, 'enviados': 0, 'error': None}
             
             # Obter nome da obra
@@ -367,8 +371,13 @@ class ReportApprovalEmailService:
             enviados = 0
             erros = []
             
-            for recipient_email in recipients:
+            for idx, recipient_email in enumerate(recipients):
                 try:
+                    # DELAY para respeitar rate limit de 2 requests/segundo (500ms entre requisições)
+                    if idx > 0:
+                        import time
+                        time.sleep(0.6)
+                    
                     destinatario_nome = recipient_email.split('@')[0]
                     try:
                         from models import User
@@ -380,7 +389,7 @@ class ReportApprovalEmailService:
                     
                     corpo_html = self._format_email_body(destinatario_nome, obra_nome, relatorio.data_aprovacao)
                     
-                    current_app.logger.info(f"📤 Enviando AGORA para {recipient_email}...")
+                    current_app.logger.info(f"📤 [{idx+1}/{len(recipients)}] Enviando para {recipient_email}...")
                     
                     # Payload para Resend
                     payload = {
@@ -403,7 +412,6 @@ class ReportApprovalEmailService:
                     }
                     
                     # Fazer POST para Resend - SÍNCRONO
-                    current_app.logger.info(f"🌐 Fazendo POST para Resend API...")
                     response = requests.post(
                         self.resend_endpoint,
                         json=payload,
