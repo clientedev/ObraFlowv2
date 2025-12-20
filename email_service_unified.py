@@ -23,8 +23,8 @@ class UnifiedReportEmailService:
     """Serviço centralizado de envio de emails para relatórios"""
     
     def __init__(self):
-        # API key vem das variáveis de ambiente ou fallback
-        self.api_key = os.getenv('RESEND_API_KEY') or 're_Y7ESk4Tk_3oyhaqCqWTPWTVMcy8TtfVje'
+        # API key vem das variáveis de ambiente ou usa a chave fornecida
+        self.api_key = os.getenv('RESEND_API_KEY', 're_Y7ESk4Tk_3oyhaqCqWTPWTVMcy8TtfVje')
         self.from_email = os.getenv('RESEND_FROM_EMAIL', 'relatorios@elpconsultoria.eng.br')
         self.resend_endpoint = "https://api.resend.com/emails"
         
