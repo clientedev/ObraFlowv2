@@ -9,8 +9,14 @@ import requests
 import logging
 from datetime import datetime
 from flask import current_app
+from difflib import SequenceMatcher
 
 logger = logging.getLogger(__name__)
+
+
+def _similarity(a, b):
+    """Calcula similaridade entre duas strings (0-1)"""
+    return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
 
 class UnifiedReportEmailService:
@@ -25,6 +31,52 @@ class UnifiedReportEmailService:
         logger.info(f"📧 Serviço Unified de Email inicializado")
         logger.info(f"📮 De: {self.from_email}")
         logger.info(f"🔑 API KEY: {self.api_key[:15]}...")
+    
+    def _find_email_by_name(self, nome):
+        """
+        Procura email de uma pessoa pelo nome em múltiplas tabelas.
+        Retorna o email encontrado ou None.
+        """
+        if not nome or not isinstance(nome, str):
+            return None
+        
+        nome_clean = nome.strip().lower()
+        best_match = None
+        best_score = 0.6  # Threshold mínimo
+        
+        try:
+            from models import User, EmailCliente
+            
+            # 1. Procurar em User por nome_completo ou username
+            users = User.query.all()
+            for user in users:
+                score = 0
+                # Tentar nome_completo
+                if hasattr(user, 'nome_completo') and user.nome_completo:
+                    score = _similarity(nome_clean, user.nome_completo.strip().lower())
+                # Tentar username
+                if hasattr(user, 'username') and user.username:
+                    score = max(score, _similarity(nome_clean, user.username.strip().lower()))
+                
+                if score > best_score and user.email:
+                    best_score = score
+                    best_match = user.email.strip()
+                    logger.info(f"      ✅ Encontrado em User: {nome} → {best_match} (score: {score:.2f})")
+            
+            # 2. Procurar em EmailCliente
+            emails = EmailCliente.query.all()
+            for email_cliente in emails:
+                if hasattr(email_cliente, 'nome') and email_cliente.nome:
+                    score = _similarity(nome_clean, email_cliente.nome.strip().lower())
+                    if score > best_score and email_cliente.email:
+                        best_score = score
+                        best_match = email_cliente.email.strip()
+                        logger.info(f"      ✅ Encontrado em EmailCliente: {nome} → {best_match} (score: {score:.2f})")
+        
+        except Exception as e:
+            logger.debug(f"      ⚠️ Erro ao procurar email para '{nome}': {e}")
+        
+        return best_match if best_score > 0.6 else None
     
     def _collect_all_recipients(self, relatorio):
         """
@@ -71,7 +123,7 @@ class UnifiedReportEmailService:
             # 2. APROVADOR
             try:
                 aprovador = getattr(relatorio, 'aprovador', None)
-                if not aprovador and hasattr(relatorio, 'aprovador_id'):
+                if not aprovador and hasattr(relatorio, 'aprovador_id') and relatorio.aprovador_id:
                     from models import User
                     aprovador = User.query.get(relatorio.aprovador_id)
                 
@@ -85,7 +137,7 @@ class UnifiedReportEmailService:
                     else:
                         logger.warning(f"⚠️ [APROVADOR] Email inválido: {aprovador.email}")
                 else:
-                    logger.warning(f"⚠️ [APROVADOR] Sem email - aprovador_id={getattr(relatorio, 'aprovador_id', None)}")
+                    logger.info(f"ℹ️ [APROVADOR] Sem aprovador designado")
             except Exception as e:
                 logger.warning(f"⚠️ [APROVADOR] Erro: {e}")
             
@@ -115,7 +167,7 @@ class UnifiedReportEmailService:
             except Exception as e:
                 logger.warning(f"⚠️ [OBRA] Erro: {e}")
             
-            # 4. ACOMPANHANTES
+            # 4. ACOMPANHANTES - CORRIGIDO PARA PROCURAR EMAIL PELO NOME
             try:
                 acompanhantes_data = getattr(relatorio, 'acompanhantes', None)
                 acompanhantes_list = []
@@ -130,50 +182,81 @@ class UnifiedReportEmailService:
                             parsed = json.loads(acompanhantes_data)
                             if isinstance(parsed, list):
                                 acompanhantes_list = parsed
-                        except:
-                            pass
+                        except Exception as json_err:
+                            logger.warning(f"⚠️ [ACOMPANHANTES] Erro ao parsear JSON: {json_err}")
                 
-                if acompanhantes_list:
-                    logger.info(f"📋 Processando {len(acompanhantes_list)} acompanhantes...")
+                if acompanhantes_list and len(acompanhantes_list) > 0:
+                    logger.info(f"📋 Processando {len(acompanhantes_list)} acompanhante(s)...")
                     
                     for idx, acomp in enumerate(acompanhantes_list, 1):
                         try:
                             email = None
-                            nome = None
+                            nome = "Acompanhante"
                             
-                            # Dict com email
+                            # ===== CASO 1: É um dicionário =====
                             if isinstance(acomp, dict):
-                                email = (acomp.get('email') or '').strip()
-                                nome = acomp.get('nome') or acomp.get('name', f'Acompanhante {idx}')
-                            # Objeto com atributo email
+                                # Procurar nome
+                                nome = (acomp.get('nome') or acomp.get('name') or acomp.get('Nome') or f'Acompanhante {idx}')
+                                
+                                # PRIMEIRO: Procurar email direto nos campos
+                                email = (acomp.get('email') or 
+                                        acomp.get('Email') or 
+                                        acomp.get('EMAIL') or
+                                        acomp.get('e-mail') or
+                                        acomp.get('E-mail') or
+                                        '').strip()
+                                
+                                # SEGUNDO: Se não tem email direto, procurar pelo nome nas tabelas
+                                if not email and nome and nome != f'Acompanhante {idx}':
+                                    logger.info(f"   [ACOMP {idx}] Procurando email para '{nome}'...")
+                                    email = self._find_email_by_name(nome)
+                                
+                                # TERCEIRO: Tentar ID de usuário
+                                if not email:
+                                    user_id = acomp.get('id') or acomp.get('user_id') or acomp.get('userId')
+                                    if user_id and str(user_id).isdigit():
+                                        try:
+                                            from models import User
+                                            user = User.query.get(int(user_id))
+                                            if user and hasattr(user, 'email') and user.email:
+                                                email = user.email.strip()
+                                                nome = getattr(user, 'nome_completo', nome) or getattr(user, 'username', nome)
+                                                logger.info(f"   [ACOMP {idx}] Email recuperado via User ID: {user_id}")
+                                        except Exception as user_err:
+                                            logger.debug(f"   [ACOMP {idx}] ID não é usuário válido")
+                            
+                            # ===== CASO 2: É um objeto com atributos =====
                             elif hasattr(acomp, 'email'):
                                 email = (getattr(acomp, 'email', '') or '').strip()
                                 nome = getattr(acomp, 'nome', None) or getattr(acomp, 'name', f'Acompanhante {idx}')
-                            # ID de usuário
-                            elif isinstance(acomp, (int, str)):
+                            
+                            # ===== CASO 3: É ID de usuário (int ou str) =====
+                            elif isinstance(acomp, (int, str)) and str(acomp).isdigit():
                                 try:
                                     from models import User
                                     user = User.query.get(int(acomp))
                                     if user and hasattr(user, 'email') and user.email:
                                         email = user.email.strip()
                                         nome = getattr(user, 'nome_completo', None) or getattr(user, 'username', f'Acompanhante {idx}')
-                                except:
-                                    pass
+                                        logger.info(f"   [ACOMP {idx}] Email recuperado via User ID: {acomp}")
+                                except Exception as user_err:
+                                    logger.debug(f"   [ACOMP {idx}] ID de usuário inválido")
                             
+                            # ===== VALIDAR E ADICIONAR =====
                             if email and '@' in email:
                                 email_clean = email.lower()
                                 recipients.add(email_clean)
                                 recipients_by_type['acompanhantes'].append(email_clean)
                                 logger.info(f"✅ [ACOMP {idx}] {nome} → {email_clean}")
                             else:
-                                logger.warning(f"⚠️ [ACOMP {idx}] {nome or str(acomp)[:30]} - Sem email válido")
+                                logger.info(f"ℹ️ [ACOMP {idx}] {nome} - Email não encontrado")
                         
                         except Exception as e:
-                            logger.warning(f"⚠️ [ACOMP {idx}] Erro ao processar: {e}")
+                            logger.warning(f"⚠️ [ACOMP {idx}] Erro ao processar: {type(e).__name__}: {e}")
                 else:
                     logger.info(f"ℹ️ [ACOMPANHANTES] Nenhum registrado")
             except Exception as e:
-                logger.warning(f"⚠️ [ACOMPANHANTES] Erro geral: {e}")
+                logger.warning(f"⚠️ [ACOMPANHANTES] Erro geral: {type(e).__name__}: {e}")
             
             # Resultado final
             resultado = {
@@ -222,7 +305,6 @@ class UnifiedReportEmailService:
         .highlight {{ color: #667eea; font-weight: bold; }}
         .info-box {{ background: #f9f9f9; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; }}
         .footer {{ background: #f5f5f5; padding: 20px; font-size: 12px; text-align: center; color: #666; border-top: 1px solid #ddd; }}
-        .button {{ display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin-top: 20px; }}
     </style>
 </head>
 <body>
@@ -264,9 +346,6 @@ class UnifiedReportEmailService:
     def send_approval_email(self, relatorio, pdf_path):
         """
         Envia email de aprovação de forma SÍNCRONA para TODOS os destinatários.
-        
-        Retorna:
-            dict com 'success', 'enviados', 'total', 'erros'
         """
         try:
             logger.info(f"\n{'='*70}")
