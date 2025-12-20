@@ -219,11 +219,13 @@ class ReportApprovalEmailService:
     
     def send_approval_email(self, relatorio, pdf_path):
         """
-        Envia e-mail de aprovação com Resend (não bloqueia a requisição).
-        Retorna sucesso mesmo que falhe (email é enviado em background).
+        Envia e-mail de aprovação com Resend SÍNCRONAMENTE (aguarda resposta).
+        Retorna o resultado real do envio.
         """
         try:
-            current_app.logger.info(f"📧 Iniciando envio de email para relatório {relatorio.numero}")
+            current_app.logger.info(f"📧 Iniciando envio SÍNCRONO de email para relatório {relatorio.numero}")
+            current_app.logger.info(f"🔐 Usando API Key (primeiros 10 chars): {self.api_key[:10]}...")
+            current_app.logger.info(f"📮 Email FROM: {self.from_email}")
             
             recipients = self._get_recipients_for_report(relatorio)
             
@@ -245,82 +247,92 @@ class ReportApprovalEmailService:
             
             assunto = f"Relatório aprovado – Obra {obra_nome}"
             
-            # Executar em thread daemon (não bloqueia)
-            def enviar_emails_resend():
+            # Ler PDF e converter para base64
+            with open(pdf_path, 'rb') as pdf_file:
+                pdf_base64 = base64.b64encode(pdf_file.read()).decode('utf-8')
+            
+            enviados = 0
+            erros = []
+            
+            for recipient_email in recipients:
                 try:
-                    current_app.logger.info(f"[THREAD] 🧵 Thread iniciada - Resend API")
+                    destinatario_nome = recipient_email.split('@')[0]
+                    try:
+                        from models import User
+                        user = User.query.filter_by(email=recipient_email).first()
+                        if user and user.nome_completo:
+                            destinatario_nome = user.nome_completo
+                    except:
+                        pass
                     
-                    # Ler PDF e converter para base64
-                    with open(pdf_path, 'rb') as pdf_file:
-                        pdf_base64 = base64.b64encode(pdf_file.read()).decode('utf-8')
+                    corpo_html = self._format_email_body(destinatario_nome, obra_nome, relatorio.data_aprovacao)
                     
-                    enviados = 0
+                    current_app.logger.info(f"📤 Enviando AGORA para {recipient_email}...")
                     
-                    for recipient_email in recipients:
-                        try:
-                            destinatario_nome = recipient_email.split('@')[0]
-                            try:
-                                from models import User
-                                user = User.query.filter_by(email=recipient_email).first()
-                                if user and user.nome_completo:
-                                    destinatario_nome = user.nome_completo
-                            except:
-                                pass
-                            
-                            corpo_html = self._format_email_body(destinatario_nome, obra_nome, relatorio.data_aprovacao)
-                            
-                            current_app.logger.info(f"[THREAD] 📤 Enviando para {recipient_email}...")
-                            
-                            # Payload para Resend
-                            payload = {
-                                "from": self.from_email,
-                                "to": recipient_email,
-                                "subject": assunto,
-                                "html": corpo_html,
-                                "attachments": [
-                                    {
-                                        "filename": os.path.basename(pdf_path),
-                                        "content": pdf_base64
-                                    }
-                                ]
+                    # Payload para Resend
+                    payload = {
+                        "from": self.from_email,
+                        "to": recipient_email,
+                        "subject": assunto,
+                        "html": corpo_html,
+                        "attachments": [
+                            {
+                                "filename": os.path.basename(pdf_path),
+                                "content": pdf_base64
                             }
-                            
-                            # Headers com API key
-                            headers = {
-                                "Authorization": f"Bearer {self.api_key}",
-                                "Content-Type": "application/json"
-                            }
-                            
-                            # Fazer POST para Resend
-                            response = requests.post(
-                                self.resend_endpoint,
-                                json=payload,
-                                headers=headers,
-                                timeout=10
-                            )
-                            
-                            if response.status_code == 200:
-                                enviados += 1
-                                current_app.logger.info(f"[THREAD] ✅ Email enviado para {recipient_email}")
-                            else:
-                                error_msg = response.text if response.text else "Status " + str(response.status_code)
-                                current_app.logger.warning(f"[THREAD] ⚠️ Erro ao enviar para {recipient_email}: {error_msg}")
-                        
-                        except Exception as e:
-                            current_app.logger.warning(f"[THREAD] ⚠️ Erro ao enviar para {recipient_email}: {type(e).__name__}: {e}")
+                        ]
+                    }
                     
-                    if enviados > 0:
-                        current_app.logger.info(f"[THREAD] ✅ SUCESSO: {enviados}/{len(recipients)} emails enviados")
+                    # Headers com API key
+                    headers = {
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    }
+                    
+                    # Fazer POST para Resend - SÍNCRONO
+                    current_app.logger.info(f"🌐 Fazendo POST para Resend API...")
+                    response = requests.post(
+                        self.resend_endpoint,
+                        json=payload,
+                        headers=headers,
+                        timeout=30
+                    )
+                    
+                    current_app.logger.info(f"📨 Resposta Resend - Status: {response.status_code}")
+                    current_app.logger.info(f"📨 Resposta Body: {response.text[:500]}")
+                    
+                    if response.status_code == 200:
+                        enviados += 1
+                        response_data = response.json()
+                        email_id = response_data.get('id', 'N/A')
+                        current_app.logger.info(f"✅ Email enviado com sucesso para {recipient_email} - ID: {email_id}")
+                    else:
+                        error_msg = response.text if response.text else f"HTTP {response.status_code}"
+                        erros.append(f"{recipient_email}: {error_msg}")
+                        current_app.logger.error(f"❌ ERRO ao enviar para {recipient_email}: {error_msg}")
                 
                 except Exception as e:
-                    current_app.logger.warning(f"[THREAD] ⚠️ Erro geral no envio: {type(e).__name__}: {e}")
+                    erro_msg = f"{recipient_email}: {type(e).__name__}: {str(e)}"
+                    erros.append(erro_msg)
+                    current_app.logger.error(f"❌ EXCEÇÃO ao enviar para {recipient_email}: {erro_msg}", exc_info=True)
             
-            thread = threading.Thread(target=enviar_emails_resend, daemon=True)
-            thread.start()
+            resultado_final = {
+                'success': enviados > 0,
+                'enviados': enviados,
+                'total': len(recipients),
+                'error': "; ".join(erros) if erros else None
+            }
             
-            # Retornar SUCESSO IMEDIATAMENTE (não espera a thread)
-            return {'success': True, 'enviados': len(recipients), 'error': None}
+            current_app.logger.info(f"\n{'='*60}")
+            current_app.logger.info(f"📊 RESULTADO FINAL DO ENVIO")
+            current_app.logger.info(f"{'='*60}")
+            current_app.logger.info(f"✅ Enviados: {enviados}/{len(recipients)}")
+            if erros:
+                current_app.logger.info(f"❌ Erros: {'; '.join(erros)}")
+            current_app.logger.info(f"{'='*60}\n")
+            
+            return resultado_final
         
         except Exception as e:
-            current_app.logger.error(f"❌ Erro ao iniciar envio: {e}")
-            return {'success': True, 'enviados': 0, 'error': None}
+            current_app.logger.error(f"❌ ERRO CRÍTICO ao enviar emails: {e}", exc_info=True)
+            return {'success': False, 'enviados': 0, 'error': str(e)}
