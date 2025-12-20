@@ -431,7 +431,7 @@ def approve_express_report(report_id):
         
         # ========== GERAR PDF E ENVIAR EMAIL SÍNCRONO NA MESMA TELA ==========
         from pdf_generator_express import gerar_pdf_relatorio_express
-        from email_service_resend import ReportApprovalEmailService
+        from email_service_unified import get_email_service
         
         pdf_path = None
         email_enviado = False
@@ -456,24 +456,28 @@ def approve_express_report(report_id):
         if pdf_path and os.path.exists(pdf_path):
             try:
                 logger.info(f"📧 Enviando email para {relatorio.numero}...")
-                email_service = ReportApprovalEmailService()
+                email_service = get_email_service()
                 resultado_email = email_service.send_approval_email(relatorio, pdf_path)
                 
-                if resultado_email.get('success'):
+                if resultado_email.get('enviados', 0) > 0:
                     enviados = resultado_email.get('enviados', 0)
-                    flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso! 📧 Email enviado para {enviados} destinatário(s).', 'success')
-                    logger.info(f"✅ Email enviado com sucesso para {enviados} destinatário(s)")
+                    total = resultado_email.get('total', 0)
+                    flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso! 📧 Email enviado para {enviados}/{total} destinatário(s).', 'success')
+                    logger.info(f"✅ Email enviado com sucesso para {enviados}/{total} destinatário(s)")
                     email_enviado = True
                 else:
-                    mensagem_erro = resultado_email.get('error', 'Erro desconhecido ao enviar email')
+                    mensagem_erro = f"Nenhum email enviado - verifique os destinatários"
                     flash(f'✅ Relatório aprovado! ⚠️ {mensagem_erro}', 'warning')
-                    logger.warning(f"Falha ao enviar email: {mensagem_erro}")
+                    logger.warning(mensagem_erro)
             except Exception as email_err:
                 mensagem_erro = f"Erro ao enviar email: {str(email_err)}"
                 flash(f'✅ Relatório aprovado! ⚠️ {mensagem_erro}', 'warning')
                 logger.error(mensagem_erro, exc_info=True)
         else:
-            flash(f'✅ Relatório aprovado! ⚠️ {mensagem_erro}', 'warning')
+            if mensagem_erro:
+                flash(f'✅ Relatório aprovado! ⚠️ {mensagem_erro}', 'warning')
+            else:
+                flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso!', 'success')
         
         return redirect(url_for('express_reports_list'))
         

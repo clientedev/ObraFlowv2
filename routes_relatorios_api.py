@@ -1464,3 +1464,48 @@ def detectar_content_type(filename, image_data=None):
     return 'image/jpeg'
 
 logger.info("✅ API de relatórios carregada com sucesso")
+
+# ===== ENDPOINT DE APROVAÇÃO DE RELATÓRIO =====
+@app.route('/api/relatorios/<int:relatorio_id>/aprovar', methods=['POST'])
+@login_required
+def approve_relatorio_api(relatorio_id):
+    """Aprova relatório normal e envia emails para TODOS"""
+    try:
+        relatorio = Relatorio.query.get(relatorio_id)
+        if not relatorio:
+            return jsonify({'success': False, 'error': 'Relatório não encontrado'}), 404
+        
+        relatorio.status = 'Aprovado'
+        relatorio.aprovador_id = current_user.id
+        relatorio.data_aprovacao = datetime.utcnow()
+        db.session.commit()
+        
+        logger.info(f"✅ Relatório {relatorio.numero} aprovado")
+        
+        # Gerar PDF
+        pdf_path = None
+        try:
+            from pdf_generator import gerar_pdf_relatorio
+            resultado_pdf = gerar_pdf_relatorio(relatorio_id, salvar_arquivo=True)
+            if resultado_pdf.get('success'):
+                pdf_path = resultado_pdf.get('path')
+        except Exception as e:
+            logger.error(f"⚠️ Erro ao gerar PDF: {e}")
+        
+        # Enviar emails
+        emails_enviados = 0
+        if pdf_path and os.path.exists(pdf_path):
+            try:
+                from email_service_unified import get_email_service
+                email_service = get_email_service()
+                resultado = email_service.send_approval_email(relatorio, pdf_path)
+                emails_enviados = resultado.get('enviados', 0)
+            except Exception as e:
+                logger.error(f"⚠️ Erro ao enviar emails: {e}")
+        
+        return jsonify({'success': True, 'emails_enviados': emails_enviados}), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"❌ Erro ao aprovar: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
