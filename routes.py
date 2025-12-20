@@ -9707,49 +9707,6 @@ def configuracao_email_nova():
 
     return render_template('admin/configuracao_email_form.html', form=form, title='Nova Configuração de E-mail')
 
-@app.route('/relatorio/<int:relatorio_id>/enviar-email', methods=['GET', 'POST'])
-@login_required
-def relatorio_enviar_email(relatorio_id):
-    """Enviar relatório por e-mail via Resend API"""
-    relatorio = Relatorio.query.get_or_404(relatorio_id)
-
-    # Verificar se o usuário tem acesso ao projeto
-    if not current_user.is_master and relatorio.projeto.responsavel_id != current_user.id:
-        flash('Acesso negado.', 'error')
-        return redirect(url_for('index'))
-
-    if request.method == 'POST':
-        try:
-            # Gerar PDF do relatório
-            pdf_generator = PDFGenerator()
-            pdf_path = pdf_generator.generate_report_pdf(relatorio)
-            
-            if not pdf_path or not os.path.exists(pdf_path):
-                flash('Erro ao gerar PDF do relatório.', 'error')
-                return redirect(url_for('report_view', report_id=relatorio_id))
-            
-            # Enviar via Resend API
-            from email_service_resend import ReportApprovalEmailService
-            email_service_resend = ReportApprovalEmailService()
-            
-            resultado = email_service_resend.enviar_relatorio_normal(relatorio, pdf_path)
-            
-            if resultado['success']:
-                if resultado['falhas'] > 0:
-                    flash(f'E-mails enviados parcialmente: {resultado["sucessos"]} sucessos, {resultado["falhas"]} falhas.', 'warning')
-                else:
-                    flash(f'E-mails enviados com sucesso para {resultado["sucessos"]} destinatários!', 'success')
-            else:
-                flash(f'Erro ao enviar e-mails: {resultado.get("error", "Erro desconhecido")}', 'error')
-
-            return redirect(url_for('report_view', report_id=relatorio_id))
-
-        except Exception as e:
-            current_app.logger.error(f"❌ Erro ao enviar relatório: {str(e)}", exc_info=True)
-            flash(f'Erro ao enviar e-mails: {str(e)}', 'error')
-            return redirect(url_for('report_view', report_id=relatorio_id))
-
-    return render_template('relatorio/enviar_confirmar.html', relatorio=relatorio)
 
 @app.route('/relatorio/<int:relatorio_id>/preview-email')
 @login_required
