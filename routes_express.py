@@ -429,12 +429,12 @@ def approve_express_report(report_id):
         except Exception as notif_error:
             logger.error(f"⚠️ Erro ao criar notificação de aprovação: {notif_error}")
         
-        # ========== GERAR PDF E ENVIAR EMAIL SÍNCRONO NA MESMA TELA ==========
+        # ========== GERAR PDF E ADICIONAR À FILA DE ENVIO (DELAY SYSTEM) ==========
         from pdf_generator_express import gerar_pdf_relatorio_express
-        from email_service_unified import get_email_service
+        from models import EmailQueue
         
         pdf_path = None
-        email_enviado = False
+        email_na_fila = False
         mensagem_erro = ""
         
         # Gerar PDF
@@ -452,25 +452,23 @@ def approve_express_report(report_id):
             mensagem_erro = f"Erro ao gerar PDF: {str(pdf_err)}"
             logger.error(mensagem_erro, exc_info=True)
         
-        # Enviar email se PDF foi gerado
+        # Adicionar email à fila para envio atrasado (delay system)
         if pdf_path and os.path.exists(pdf_path):
             try:
-                logger.info(f"📧 Enviando email para {relatorio.numero}...")
-                email_service = get_email_service()
-                resultado_email = email_service.send_approval_email(relatorio, pdf_path)
+                fila_email = EmailQueue(
+                    relatorio_express_id=relatorio.id,
+                    relatorio_type='express',
+                    pdf_path=pdf_path,
+                    status='pending'
+                )
+                db.session.add(fila_email)
+                db.session.commit()
                 
-                if resultado_email.get('enviados', 0) > 0:
-                    enviados = resultado_email.get('enviados', 0)
-                    total = resultado_email.get('total', 0)
-                    flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso! 📧 Email enviado para {enviados}/{total} destinatário(s).', 'success')
-                    logger.info(f"✅ Email enviado com sucesso para {enviados}/{total} destinatário(s)")
-                    email_enviado = True
-                else:
-                    mensagem_erro = f"Nenhum email enviado - verifique os destinatários"
-                    flash(f'✅ Relatório aprovado! ⚠️ {mensagem_erro}', 'warning')
-                    logger.warning(mensagem_erro)
+                flash(f'✅ Relatório Express {relatorio.numero} aprovado com sucesso! 📧 Email será enviado em breve...', 'success')
+                logger.info(f"✅ Email adicionado à fila para {relatorio.numero} (ID Fila: {fila_email.id})")
+                email_na_fila = True
             except Exception as email_err:
-                mensagem_erro = f"Erro ao enviar email: {str(email_err)}"
+                mensagem_erro = f"Erro ao adicionar email à fila: {str(email_err)}"
                 flash(f'✅ Relatório aprovado! ⚠️ {mensagem_erro}', 'warning')
                 logger.error(mensagem_erro, exc_info=True)
         else:
