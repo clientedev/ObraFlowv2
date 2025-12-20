@@ -135,29 +135,44 @@ class ReportApprovalEmailService:
                 
                 if acompanhantes_list:
                     current_app.logger.info(f"📋 Total de acompanhantes para processar: {len(acompanhantes_list)}")
-                    
-                    from models import VisitaAcompanhante
                     acompanhantes_email_count = 0
                     
-                    for idx, acompanhante_id in enumerate(acompanhantes_list, 1):
+                    for idx, acompanhante_data in enumerate(acompanhantes_list, 1):
                         try:
-                            acompanhante = VisitaAcompanhante.query.get(acompanhante_id)
+                            # Os acompanhantes já são dicts/objetos com email direto!
+                            # Não tentar fazer query em VisitaAcompanhante (não existe ou não é necessário)
                             
-                            if not acompanhante:
-                                current_app.logger.warning(f"⚠️ [ACOMP {idx}] VisitaAcompanhante ID {acompanhante_id} não encontrado")
-                                continue
+                            email = None
+                            nome = None
                             
-                            email = (acompanhante.email or '').strip() if hasattr(acompanhante, 'email') else ''
+                            # Se for dict (Express reports ou JSON estruturado)
+                            if isinstance(acompanhante_data, dict):
+                                email = (acompanhante_data.get('email') or '').strip()
+                                nome = acompanhante_data.get('nome') or acompanhante_data.get('name')
+                            # Se for objeto com atributo email
+                            elif hasattr(acompanhante_data, 'email'):
+                                email = (acompanhante_data.email or '').strip()
+                                nome = getattr(acompanhante_data, 'nome', None) or getattr(acompanhante_data, 'name', None)
+                            # Se for ID inteiro, tentar buscar na tabela User ou outro modelo
+                            elif isinstance(acompanhante_data, (int, str)):
+                                try:
+                                    from models import User
+                                    user = User.query.get(int(acompanhante_data))
+                                    if user and user.email:
+                                        email = user.email.strip()
+                                        nome = user.nome_completo or user.username
+                                except:
+                                    pass
                             
                             if email and '@' in email:
                                 recipients.add(email)
                                 acompanhantes_email_count += 1
-                                current_app.logger.info(f"✅ [ACOMP {idx}] {acompanhante.nome or f'ID {acompanhante_id}'} → {email}")
+                                current_app.logger.info(f"✅ [ACOMP {idx}] {nome or 'Acompanhante'} → {email}")
                             else:
-                                current_app.logger.warning(f"⚠️ [ACOMP {idx}] {acompanhante.nome or f'ID {acompanhante_id}'} - Sem email válido")
+                                current_app.logger.warning(f"⚠️ [ACOMP {idx}] {nome or str(acompanhante_data)[:50]} - Sem email válido")
                         
                         except Exception as acomp_err:
-                            current_app.logger.warning(f"⚠️ [ACOMP {idx}] ID {acompanhante_id} - Erro: {acomp_err}")
+                            current_app.logger.warning(f"⚠️ [ACOMP {idx}] Erro ao processar: {acomp_err}")
                     
                     current_app.logger.info(f"📊 Acompanhantes com email: {acompanhantes_email_count}/{len(acompanhantes_list)}")
                 else:
