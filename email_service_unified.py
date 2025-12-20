@@ -143,29 +143,38 @@ class UnifiedReportEmailService:
             
             # 3. CONTATO DA OBRA
             try:
-                obra_email = None
-                
-                # Express: email direto
+                # Express: email direto do campo obra_email
                 if hasattr(relatorio, 'obra_email'):
                     obra_email = (getattr(relatorio, 'obra_email', '') or '').strip()
+                    if obra_email and '@' in obra_email:
+                        email_clean = obra_email.lower()
+                        recipients.add(email_clean)
+                        recipients_by_type['obra'].append(email_clean)
+                        logger.info(f"✅ [OBRA] {email_clean}")
+                    elif obra_email:
+                        logger.warning(f"⚠️ [OBRA] Email inválido: {obra_email}")
                 
-                # Normal: via projeto
-                if not obra_email and hasattr(relatorio, 'projeto'):
-                    projeto = getattr(relatorio, 'projeto', None)
-                    if projeto and hasattr(projeto, 'email'):
-                        obra_email = (getattr(projeto, 'email', '') or '').strip()
-                
-                if obra_email and '@' in obra_email:
-                    email_clean = obra_email.lower()
-                    recipients.add(email_clean)
-                    recipients_by_type['obra'].append(email_clean)
-                    logger.info(f"✅ [OBRA] {email_clean}")
-                elif obra_email:
-                    logger.warning(f"⚠️ [OBRA] Email inválido: {obra_email}")
+                # Normal: procurar em EmailCliente (contatos da obra)
+                if hasattr(relatorio, 'projeto_id') and relatorio.projeto_id:
+                    try:
+                        from models import EmailCliente
+                        contatos = EmailCliente.query.filter_by(projeto_id=relatorio.projeto_id).all()
+                        if contatos:
+                            logger.info(f"📧 Procurando contatos em EmailCliente (projeto_id={relatorio.projeto_id})...")
+                            for contato in contatos:
+                                if contato.email and '@' in contato.email:
+                                    email_clean = contato.email.strip().lower()
+                                    recipients.add(email_clean)
+                                    recipients_by_type['obra'].append(email_clean)
+                                    logger.info(f"✅ [OBRA] {contato.nome_contato} → {email_clean}")
+                        else:
+                            logger.info(f"ℹ️ [OBRA] Nenhum contato em EmailCliente")
+                    except Exception as email_cliente_err:
+                        logger.debug(f"ℹ️ [OBRA] Erro ao procurar EmailCliente: {email_cliente_err}")
                 else:
-                    logger.info(f"ℹ️ [OBRA] Sem email de contato")
+                    logger.info(f"ℹ️ [OBRA] Sem projeto_id")
             except Exception as e:
-                logger.warning(f"⚠️ [OBRA] Erro: {e}")
+                logger.warning(f"⚠️ [OBRA] Erro geral: {e}")
             
             # 4. ACOMPANHANTES - CORRIGIDO PARA PROCURAR EMAIL PELO NOME
             try:
