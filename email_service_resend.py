@@ -15,8 +15,8 @@ class ReportApprovalEmailService:
     """Serviço de envio de e-mails via Resend API"""
     
     def __init__(self):
-        self.api_key = os.getenv('RESEND_API_KEY', 're_KBL5z16g_8CKfLhWgFJxwvGUiX6XroKBg')
-        self.from_email = "noreply@elpconsultoria.pro"
+        self.api_key = os.getenv('RESEND_API_KEY')
+        self.from_email = os.getenv('RESEND_FROM_EMAIL', 'relatorios@elpconsultoria.eng.br')
         self.resend_endpoint = "https://api.resend.com/emails"
         
         current_app.logger.info(f"📧 Resend Service inicializado com: {self.from_email}")
