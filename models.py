@@ -779,22 +779,6 @@ class RelatorioExpress(db.Model):
         return f'<RelatorioExpress {self.numero}>'
 
 
-class EmailQueue(db.Model):
-    """Fila de emails para envio atrasado (delay system)"""
-    __tablename__ = 'email_queue'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    relatorio_id = db.Column(db.Integer, nullable=True)
-    relatorio_express_id = db.Column(db.Integer, nullable=True)
-    relatorio_type = db.Column(db.String(50))  # 'comum' ou 'express'
-    pdf_path = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(20), default='pending')  # pending, enviado, erro
-    tentativas = db.Column(db.Integer, default=0)
-    erro_mensagem = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    processado_at = db.Column(db.DateTime, nullable=True)
-
-
 class FotoRelatorioExpress(db.Model):
     """
     Fotos do Relatório Express - Idêntico ao FotoRelatorio
