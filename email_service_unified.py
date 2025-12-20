@@ -7,6 +7,7 @@ import json
 import base64
 import requests
 import logging
+import time
 from datetime import datetime
 from flask import current_app
 from difflib import SequenceMatcher
@@ -460,6 +461,10 @@ class UnifiedReportEmailService:
                     }
                     
                     logger.info(f"   Enviando via Resend API...")
+                    
+                    # ⏰ Delay para respeitar rate limit de 2 req/seg (0.5s = 2 req/seg)
+                    if idx > 1:
+                        time.sleep(0.5)
                     
                     # POST para Resend
                     response = requests.post(
