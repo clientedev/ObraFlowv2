@@ -148,11 +148,16 @@ class UnifiedReportEmailService:
                     obra_email = (getattr(relatorio, 'obra_email', '') or '').strip()
                     if obra_email and '@' in obra_email:
                         email_clean = obra_email.lower()
-                        recipients.add(email_clean)
-                        recipients_by_type['obra'].append(email_clean)
-                        logger.info(f"✅ [OBRA] {email_clean}")
+                        if email_clean and '@' in email_clean:
+                            recipients.add(email_clean)
+                            recipients_by_type['obra'].append(email_clean)
+                            logger.info(f"✅ [OBRA] {email_clean}")
+                        else:
+                            logger.warning(f"⚠️ [OBRA] Email inválido após limpeza: {obra_email}")
                     elif obra_email:
-                        logger.warning(f"⚠️ [OBRA] Email inválido: {obra_email}")
+                        logger.warning(f"⚠️ [OBRA] Email inválido (sem @): {obra_email}")
+                    else:
+                        logger.info(f"ℹ️ [OBRA] Campo obra_email vazio")
                 
                 # Normal: procurar em EmailCliente (contatos da obra)
                 if hasattr(relatorio, 'projeto_id') and relatorio.projeto_id:
@@ -252,13 +257,16 @@ class UnifiedReportEmailService:
                                     logger.debug(f"   [ACOMP {idx}] ID de usuário inválido")
                             
                             # ===== VALIDAR E ADICIONAR =====
-                            if email and '@' in email:
-                                email_clean = email.lower()
-                                recipients.add(email_clean)
-                                recipients_by_type['acompanhantes'].append(email_clean)
-                                logger.info(f"✅ [ACOMP {idx}] {nome} → {email_clean}")
+                            if email and '@' in email and email.strip():
+                                email_clean = email.lower().strip()
+                                if email_clean and '@' in email_clean:
+                                    recipients.add(email_clean)
+                                    recipients_by_type['acompanhantes'].append(email_clean)
+                                    logger.info(f"✅ [ACOMP {idx}] {nome} → {email_clean}")
+                                else:
+                                    logger.info(f"ℹ️ [ACOMP {idx}] {nome} - Email inválido após limpeza: '{email}'")
                             else:
-                                logger.info(f"ℹ️ [ACOMP {idx}] {nome} - Email não encontrado")
+                                logger.info(f"ℹ️ [ACOMP {idx}] {nome} - Email não encontrado ou vazio")
                         
                         except Exception as e:
                             logger.warning(f"⚠️ [ACOMP {idx}] Erro ao processar: {type(e).__name__}: {e}")
@@ -267,21 +275,26 @@ class UnifiedReportEmailService:
             except Exception as e:
                 logger.warning(f"⚠️ [ACOMPANHANTES] Erro geral: {type(e).__name__}: {e}")
             
-            # Resultado final
+            # Resultado final - Filtrar emails vazios
+            emails_finais = [e for e in recipients if e and '@' in e]
             resultado = {
-                'emails': sorted(list(recipients)),
+                'emails': sorted(list(emails_finais)),
                 'por_tipo': recipients_by_type,
-                'total': len(recipients)
+                'total': len(emails_finais)
             }
             
             logger.info(f"\n{'='*70}")
-            logger.info(f"📊 RESUMO - Total: {resultado['total']} destinatários únicos")
-            logger.info(f"   - Autor: {len(resultado['por_tipo']['autor'])}")
-            logger.info(f"   - Aprovador: {len(resultado['por_tipo']['aprovador'])}")
-            logger.info(f"   - Obra: {len(resultado['por_tipo']['obra'])}")
-            logger.info(f"   - Acompanhantes: {len(resultado['por_tipo']['acompanhantes'])}")
-            for email in sorted(resultado['emails']):
-                logger.info(f"   • {email}")
+            logger.info(f"📊 RESUMO FINAL - Total: {resultado['total']} destinatários únicos")
+            logger.info(f"   - Autor: {len(resultado['por_tipo']['autor'])} - {resultado['por_tipo']['autor']}")
+            logger.info(f"   - Aprovador: {len(resultado['por_tipo']['aprovador'])} - {resultado['por_tipo']['aprovador']}")
+            logger.info(f"   - Obra: {len(resultado['por_tipo']['obra'])} - {resultado['por_tipo']['obra']}")
+            logger.info(f"   - Acompanhantes: {len(resultado['por_tipo']['acompanhantes'])} - {resultado['por_tipo']['acompanhantes']}")
+            if emails_finais:
+                logger.info(f"📧 Emails válidos para envio:")
+                for email in sorted(emails_finais):
+                    logger.info(f"   • {email}")
+            else:
+                logger.warning(f"⚠️ NENHUM EMAIL VÁLIDO ENCONTRADO!")
             logger.info(f"{'='*70}\n")
             
             return resultado
@@ -400,8 +413,20 @@ class UnifiedReportEmailService:
             enviados = 0
             erros = []
             
-            for recipient_email in recipients:
+            logger.info(f"\n{'='*70}")
+            logger.info(f"📤 ENVIANDO EMAILS - {len(recipients)} destinatário(s)")
+            logger.info(f"{'='*70}")
+            
+            for idx, recipient_email in enumerate(recipients, 1):
                 try:
+                    # Validação básica
+                    if not recipient_email or '@' not in recipient_email:
+                        logger.warning(f"❌ [{idx}/{len(recipients)}] Email inválido: {recipient_email}")
+                        erros.append(f"{recipient_email}: Email inválido")
+                        continue
+                    
+                    logger.info(f"📤 [{idx}/{len(recipients)}] Preparando email para: {recipient_email}")
+                    
                     # Obter nome do destinatário
                     destinatario_nome = recipient_email.split('@')[0].title()
                     try:
@@ -434,7 +459,7 @@ class UnifiedReportEmailService:
                         "Content-Type": "application/json"
                     }
                     
-                    logger.info(f"📤 Enviando para {recipient_email}...")
+                    logger.info(f"   Enviando via Resend API...")
                     
                     # POST para Resend
                     response = requests.post(
@@ -448,11 +473,11 @@ class UnifiedReportEmailService:
                         response_data = response.json()
                         email_id = response_data.get('id', 'N/A')
                         enviados += 1
-                        logger.info(f"✅ Email enviado para {recipient_email} (ID: {email_id})")
+                        logger.info(f"✅ [{idx}/{len(recipients)}] Email enviado com sucesso! ID: {email_id}")
                     else:
                         erro = f"HTTP {response.status_code}: {response.text[:100]}"
                         erros.append(f"{recipient_email}: {erro}")
-                        logger.error(f"❌ Erro ao enviar para {recipient_email}: {erro}")
+                        logger.error(f"❌ [{idx}/{len(recipients)}] Erro ao enviar para {recipient_email}: {erro}")
                 
                 except Exception as e:
                     erro = f"{type(e).__name__}: {str(e)}"
