@@ -122,7 +122,7 @@
                                                name="participantes" 
                                                value="{{ value }}"
                                                id="participant_{{ value }}"
-                                               {% if form.participantes.data and str(value) in form.participantes.data %}checked{% endif %}>
+                                               {% if form.participantes.data and (value|string) in form.participantes.data %}checked{% endif %}>
                                         <div class="participant-content">
                                             <i class="bi bi-person-circle participant-icon"></i>
                                             <div class="participant-info">
