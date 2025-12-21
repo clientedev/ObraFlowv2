@@ -424,7 +424,7 @@ class ReportsAutoSave {
     getChecklistData() {
         const checklistData = [];
 
-        // Coletar itens do checklist EXATAMENTE como o botão concluir faz
+        // Coletar itens do checklist EXATAMENTE como o botão concluir faz (linhas 1521-1542 de form_complete.html)
         document.querySelectorAll('.checklist-item').forEach(item => {
             const checkbox = item.querySelector('.form-check-input[type="checkbox"]');
             const label = item.querySelector('.form-check-label');
@@ -435,9 +435,9 @@ class ReportsAutoSave {
                 const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
                 if (itemText) {
                     checklistData.push({
-                        item: itemText,
-                        completed: checkbox.checked,
-                        observations: textarea ? textarea.value : ''
+                        texto: itemText,
+                        concluido: checkbox.checked,
+                        observacao: textarea ? textarea.value : ''
                     });
                 }
             }
