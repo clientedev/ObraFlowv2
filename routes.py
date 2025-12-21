@@ -4961,8 +4961,6 @@ def project_new():
                 projeto.nome_funcionario = contatos[0].get('nome', '') if contatos else ''  # Primeiro contato como funcionário padrão
                 projeto.responsavel_id = form.responsavel_id.data
                 projeto.email_principal = contatos[0].get('email', '') if contatos else ''  # Primeiro contato como email padrão
-                projeto.data_inicio = form.data_inicio.data
-                projeto.data_previsao_fim = form.data_previsao_fim.data
                 projeto.status = form.status.data
                 projeto.numeracao_inicial = form.numeracao_inicial.data or 1
 
@@ -5167,8 +5165,6 @@ def project_edit(project_id):
             project.tipo_obra = 'Geral'  # Default value since field was removed
             project.construtora = form.construtora.data
             project.responsavel_id = form.responsavel_id.data
-            project.data_inicio = form.data_inicio.data
-            project.data_previsao_fim = form.data_previsao_fim.data
             project.status = form.status.data
             project.numeracao_inicial = form.numeracao_inicial.data or 1
             
