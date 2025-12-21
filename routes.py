@@ -2823,59 +2823,6 @@ def create_report():
                 relatorio.titulo = titulo
                 relatorio.projeto_id = projeto_id
                 relatorio.autor_id = current_user.id
-            # Process checklist data from form
-            checklist_text = ""
-            checklist_items = []
-
-            # Check for standard checklist items from form_complete.html
-            checklist_fields = [
-                ('estrutura', 'Estrutura / Fundação', 'obs_estrutura'),
-                ('alvenaria', 'Alvenaria / Vedação', 'obs_alvenaria'), 
-                ('instalacoes', 'Instalações (Elétrica/Hidráulica)', 'obs_instalacoes'),
-                ('acabamento', 'Acabamentos', 'obs_acabamento'),
-                ('limpeza', 'Limpeza / Organização', 'obs_limpeza')
-            ]
-
-            checklist_has_items = False
-            for field_name, field_label, obs_field in checklist_fields:
-                is_checked = request.form.get(field_name) == 'on'
-                observation = request.form.get(obs_field, '').strip()
-
-                if is_checked or observation:
-                    checklist_has_items = True
-                    status = "✓" if is_checked else "○"
-                    checklist_items.append({
-                        'status': status,
-                        'item': field_label,
-                        'observation': observation
-                    })
-
-            # Also check for JSON checklist data (legacy support)
-            json_checklist = request.form.get('checklist_data')
-            if json_checklist and not checklist_has_items:
-                try:
-                    import json
-                    legacy_items = json.loads(json_checklist)
-                    for item_data in legacy_items:
-                        status = "✓" if item_data.get('completed') else "○"
-                        checklist_items.append({
-                            'status': status,
-                            'item': item_data.get('item', ''),
-                            'observation': item_data.get('observations', '')
-                        })
-                    checklist_has_items = True
-                except Exception as e:
-                    print(f"Error parsing JSON checklist data: {e}")
-
-            # Format checklist text for PDF
-            if checklist_has_items:
-                checklist_text = "CHECKLIST DA OBRA:\n\n"
-                for item in checklist_items:
-                    checklist_text += f"{item['status']} {item['item']}\n"
-                    if item['observation']:
-                        checklist_text += f"   Observações: {item['observation']}\n"
-                    checklist_text += "\n"
-
             # Process location data with address conversion
             latitude = request.form.get('latitude')
             longitude = request.form.get('longitude')
@@ -2917,15 +2864,10 @@ def create_report():
 
                 location_text = f"\n\nLOCALIZAÇÃO DO RELATÓRIO:\n{location_display}\nCoordenadas GPS capturadas durante a visita."
 
-            # Combine content with checklist and location
+            # Combine content with location
             final_content = ""
             if conteudo:
                 final_content += conteudo
-            if checklist_text:
-                if final_content:
-                    final_content += "\n\n" + checklist_text
-                else:
-                    final_content = checklist_text
             if location_text:
                 final_content += location_text
 
@@ -3012,6 +2954,19 @@ def create_report():
                 current_app.logger.info(f"✅ Aprovador automático definido: {aprovador.nome_completo} (ID={aprovador.id})")
             else:
                 current_app.logger.warning(f"⚠️ Nenhum aprovador configurado para projeto {projeto_id}")
+
+            # Process checklist data from form (COPY LOGIC FROM /api/reports/<id>/update)
+            checklist_data = request.form.get('checklist')
+            if checklist_data:
+                try:
+                    import json
+                    if isinstance(checklist_data, str):
+                        checklist_data = json.loads(checklist_data)
+                    relatorio.checklist_data = json.dumps(checklist_data)
+                    current_app.logger.info(f"✅ Checklist processado e salvo: {len(checklist_data) if isinstance(checklist_data, list) else 'objeto'}")
+                except Exception as e:
+                    current_app.logger.error(f"❌ Erro ao processar checklist: {e}")
+                    relatorio.checklist_data = None
 
             db.session.add(relatorio)
             db.session.flush()  # Get the ID
