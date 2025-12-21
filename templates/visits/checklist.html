@@ -63,27 +63,20 @@
                     </div>
                 </div>
                 
+                {% if visit.observacoes %}
                 <div class="row mt-3">
                     <div class="col-12">
                         <h6>Observações da Visita:</h6>
-                        <p class="mb-0">{{ visit.observacoes or 'Nenhuma observação' }}</p>
+                        <p class="mb-0">{{ visit.observacoes }}</p>
                     </div>
                 </div>
+                {% endif %}
                 
                 {% if visit.atividades_realizadas %}
                 <div class="row mt-3">
                     <div class="col-12">
                         <h6>Atividades Realizadas:</h6>
                         <p class="mb-0">{{ visit.atividades_realizadas }}</p>
-                    </div>
-                </div>
-                {% endif %}
-                
-                {% if visit.observacoes %}
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <h6>Observações:</h6>
-                        <p class="mb-0">{{ visit.observacoes }}</p>
                     </div>
                 </div>
                 {% endif %}
