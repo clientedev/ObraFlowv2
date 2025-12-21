@@ -220,8 +220,6 @@
                                             <!-- Informações adicionais -->
                                             <div class="text-muted" style="font-size: 0.8rem;">
                                                 {% if project.construtora %}{{ project.construtora }}{% endif %}
-                                                {% if project.data_inicio and project.construtora %} • {% endif %}
-                                                {% if project.data_inicio %}{{ project.data_inicio.strftime('%d/%m/%Y') }}{% endif %}
                                             </div>
                                         </div>
                                         

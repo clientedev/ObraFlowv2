@@ -175,8 +175,6 @@
                         </p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Data de Início:</strong> {{ project.data_inicio.strftime('%d/%m/%Y') if project.data_inicio else 'Não definida' }}</p>
-                        <p><strong>Previsão de Término:</strong> {{ project.data_previsao_fim.strftime('%d/%m/%Y') if project.data_previsao_fim else 'Não definida' }}</p>
                         <p><strong>Criado em:</strong> {{ project.created_at.strftime('%d/%m/%Y às %H:%M') }}</p>
                     </div>
                 </div>

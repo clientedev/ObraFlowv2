@@ -217,21 +217,7 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                {{ form.data_inicio.label(class="form-label") }}
-                                {{ form.data_inicio(class="form-control") }}
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                {{ form.data_previsao_fim.label(class="form-label") }}
-                                {{ form.data_previsao_fim(class="form-control") }}
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 {{ form.numeracao_inicial.label(class="form-label") }}
                                 {{ form.numeracao_inicial(class="form-control", type="number", min="1") }}
@@ -239,7 +225,7 @@
                             </div>
                         </div>
                         
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 {{ form.status.label(class="form-label") }}
                                 {{ form.status(class="form-select") }}

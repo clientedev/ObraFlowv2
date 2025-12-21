@@ -45,8 +45,6 @@ class ProjetoForm(FlaskForm):
     longitude = HiddenField()
     construtora = StringField('Construtora', validators=[DataRequired(), Length(max=200)])
     responsavel_id = SelectField('Responsável', coerce=int, validators=[DataRequired()])
-    data_inicio = DateField('Data de Início', validators=[Optional()])
-    data_previsao_fim = DateField('Previsão de Término', validators=[Optional()])
     numeracao_inicial = IntegerField('Numeração Inicial dos Relatórios', validators=[Optional(), NumberRange(min=1)], default=1)
     status = SelectField('Status', choices=[
         ('Não iniciado', 'Não iniciado'),
