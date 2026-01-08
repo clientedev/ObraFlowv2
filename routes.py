@@ -5195,13 +5195,13 @@ def project_edit(project_id):
             # Process categorias from form - Item 16 (Fix)
             import json
             categorias_json = request.form.get('categorias_json')
+            categorias_adicionadas = 0
             if categorias_json:
                 try:
                     categorias_data = json.loads(categorias_json)
                     
                     # 1. Identificar categorias atuais no banco
                     categorias_atuais = CategoriaObra.query.filter_by(projeto_id=project.id).all()
-                    ids_manter = []
                     
                     for cat_data in categorias_data:
                         nome = cat_data.get('nome') or cat_data.get('nome_categoria')
@@ -5211,25 +5211,29 @@ def project_edit(project_id):
                         if not nome: continue
                         
                         # Se tem ID real (não temporário de JS), tenta atualizar
-                        if cat_id and str(cat_id).isdigit():
-                            categoria = CategoriaObra.query.get(int(cat_id))
-                            if categoria and categoria.projeto_id == project.id:
-                                categoria.nome_categoria = nome
-                                categoria.ordem = ordem
-                                ids_manter.append(categoria.id)
-                        else:
-                            # Nova categoria
+                        if cat_id and str(cat_id).isdigit() and int(cat_id) > 1000000000: # IDs de timestamp são grandes
+                             # É um ID temporário do JS (Date.now())
                             nova_cat = CategoriaObra(
                                 projeto_id=project.id,
                                 nome_categoria=nome,
                                 ordem=ordem
                             )
                             db.session.add(nova_cat)
-                            # Não adicionamos ao ids_manter pois ainda não tem ID definitivo
-                    
-                    # 2. (Opcional) Se quiser deletar categorias que não vieram no JSON
-                    # Mas no seu código JS o botão de deletar já chama a API de delete direto.
-                    # Então talvez não seja necessário remover aqui para não causar conflitos.
+                            categorias_adicionadas += 1
+                        elif cat_id and str(cat_id).isdigit():
+                            categoria = CategoriaObra.query.get(int(cat_id))
+                            if categoria and categoria.projeto_id == project.id:
+                                categoria.nome_categoria = nome
+                                categoria.ordem = ordem
+                        else:
+                            # Nova categoria sem ID
+                            nova_cat = CategoriaObra(
+                                projeto_id=project.id,
+                                nome_categoria=nome,
+                                ordem=ordem
+                            )
+                            db.session.add(nova_cat)
+                            categorias_adicionadas += 1
                     
                 except Exception as je:
                     print(f"Erro ao processar categorias_json: {je}")
