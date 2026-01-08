@@ -785,6 +785,11 @@ container.addEventListener("input", (e) => {
   }
 });
 
+// Garantir que os dados sejam atualizados antes da submissão
+document.getElementById('projectForm').addEventListener('submit', function(e) {
+  updateCategoriasHiddenField();
+});
+
 function updateCategoriasHiddenField() {
   let hiddenField = document.getElementById('categoriasHidden');
   if (!hiddenField) {
@@ -794,6 +799,15 @@ function updateCategoriasHiddenField() {
     hiddenField.name = 'categorias_json';
     document.getElementById('projectForm').appendChild(hiddenField);
   }
+  
+  // Sincronizar dados atuais dos inputs antes de salvar no JSON
+  categoriasExistentes.forEach(cat => {
+    const nomeInput = document.querySelector(`.nome-categoria[data-id='${cat.id}']`);
+    const ordemInput = document.querySelector(`.ordem-categoria[data-id='${cat.id}']`);
+    if (nomeInput) cat.nome = nomeInput.value;
+    if (ordemInput) cat.ordem = ordemInput.value;
+  });
+  
   hiddenField.value = JSON.stringify(categoriasExistentes);
 }
 

@@ -5193,37 +5193,47 @@ def project_edit(project_id):
                 project.email_principal = ''
 
             # Process categorias from form - Item 16 (Fix)
-            categorias_adicionais = []
-            for key in request.form.keys():
-                if key.startswith('categorias[') and key.endswith('][nome]'):
-                    index = key.split('[')[1].split(']')[0]
-                    nome_categoria = request.form.get(f'categorias[{index}][nome]')
-                    ordem = request.form.get(f'categorias[{index}][ordem]', 0)
+            import json
+            categorias_json = request.form.get('categorias_json')
+            if categorias_json:
+                try:
+                    categorias_data = json.loads(categorias_json)
+                    
+                    # 1. Identificar categorias atuais no banco
+                    categorias_atuais = CategoriaObra.query.filter_by(projeto_id=project.id).all()
+                    ids_manter = []
+                    
+                    for cat_data in categorias_data:
+                        nome = cat_data.get('nome') or cat_data.get('nome_categoria')
+                        ordem = int(cat_data.get('ordem', 0))
+                        cat_id = cat_data.get('id')
+                        
+                        if not nome: continue
+                        
+                        # Se tem ID real (não temporário de JS), tenta atualizar
+                        if cat_id and str(cat_id).isdigit():
+                            categoria = CategoriaObra.query.get(int(cat_id))
+                            if categoria and categoria.projeto_id == project.id:
+                                categoria.nome_categoria = nome
+                                categoria.ordem = ordem
+                                ids_manter.append(categoria.id)
+                        else:
+                            # Nova categoria
+                            nova_cat = CategoriaObra(
+                                projeto_id=project.id,
+                                nome_categoria=nome,
+                                ordem=ordem
+                            )
+                            db.session.add(nova_cat)
+                            # Não adicionamos ao ids_manter pois ainda não tem ID definitivo
+                    
+                    # 2. (Opcional) Se quiser deletar categorias que não vieram no JSON
+                    # Mas no seu código JS o botão de deletar já chama a API de delete direto.
+                    # Então talvez não seja necessário remover aqui para não causar conflitos.
+                    
+                except Exception as je:
+                    print(f"Erro ao processar categorias_json: {je}")
 
-                    if nome_categoria:
-                        categorias_adicionais.append({
-                            'nome': nome_categoria.strip(),
-                            'ordem': int(ordem) if ordem else 0
-                        })
-
-            # Add new categorias to the project
-            categorias_adicionadas = 0
-            for categoria_data in categorias_adicionais:
-                # Check if category already exists (by name)
-                existing_categoria = CategoriaObra.query.filter_by(
-                    projeto_id=project.id,
-                    nome_categoria=categoria_data['nome']
-                ).first()
-
-                if not existing_categoria:
-                    nova_categoria = CategoriaObra(
-                        projeto_id=project.id,
-                        nome_categoria=categoria_data['nome'],
-                        ordem=categoria_data['ordem']
-                    )
-                    db.session.add(nova_categoria)
-                    categorias_adicionadas += 1
-            
             # Note: Checklist updates for existing projects are handled via API routes only
             # This prevents form submission issues and maintains consistency
 
