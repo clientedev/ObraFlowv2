@@ -763,8 +763,7 @@ function renderCategorias() {
         <input type="number" class="form-control ordem-categoria" data-id="${cat.id}" value="${cat.ordem || 0}">
 
         <div class="mt-3 d-flex gap-2">
-          <button class="btn btn-success btn-save" data-id="${cat.id}">💾 Salvar</button>
-          <button class="btn btn-danger btn-delete" data-id="${cat.id}">🗑️ Excluir</button>
+          <button type="button" class="btn btn-danger btn-delete" data-id="${cat.id}">🗑️ Excluir</button>
         </div>
       </div>
     `;
@@ -773,22 +772,32 @@ function renderCategorias() {
 }
 renderCategorias();
 
-// Salvando alterações
-container.addEventListener("click", async (e) => {
-  if (e.target.classList.contains("btn-save")) {
+// Remover botão salvar e lidar com atualização via formulário principal
+container.addEventListener("input", (e) => {
+  if (e.target.classList.contains("nome-categoria") || e.target.classList.contains("ordem-categoria")) {
     const id = e.target.dataset.id;
-    const nome = document.querySelector(`.nome-categoria[data-id='${id}']`).value;
-    const ordem = document.querySelector(`.ordem-categoria[data-id='${id}']`).value;
-
-    const res = await fetch(`/api/categorias/${id}/update`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, ordem })
-    });
-    const data = await res.json();
-    alert(data.message || "Categoria atualizada!");
+    const cat = categoriasExistentes.find(c => c.id == id);
+    if (cat) {
+      if (e.target.classList.contains("nome-categoria")) cat.nome = e.target.value;
+      if (e.target.classList.contains("ordem-categoria")) cat.ordem = e.target.value;
+      updateCategoriasHiddenField();
+    }
   }
+});
 
+function updateCategoriasHiddenField() {
+  let hiddenField = document.getElementById('categoriasHidden');
+  if (!hiddenField) {
+    hiddenField = document.createElement('input');
+    hiddenField.type = 'hidden';
+    hiddenField.id = 'categoriasHidden';
+    hiddenField.name = 'categorias_json';
+    document.getElementById('projectForm').appendChild(hiddenField);
+  }
+  hiddenField.value = JSON.stringify(categoriasExistentes);
+}
+
+container.addEventListener("click", async (e) => {
   if (e.target.classList.contains("btn-delete")) {
     const id = e.target.dataset.id;
     if (!confirm("Deseja realmente excluir esta categoria?")) return;
@@ -811,6 +820,7 @@ document.getElementById("btnAddCategoria").addEventListener("click", () => {
   };
   categoriasExistentes.push(nova);
   renderCategorias();
+  updateCategoriasHiddenField();
 });
 {% endif %}
 
