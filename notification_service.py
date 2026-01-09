@@ -424,7 +424,7 @@ class NotificationService:
                 tipo='relatorio_aprovado',
                 titulo='Relatório aprovado',
                 mensagem=f'Seu relatório "{relatorio.titulo or relatorio.numero}" da obra "{projeto_nome}" foi aprovado por {aprovador_nome}.',
-                link_destino=f'/reports/{relatorio_id}'
+                link_destino=f'/reports/{relatorio_id}/edit'
             )
             
             return resultado
