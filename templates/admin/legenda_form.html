@@ -24,14 +24,9 @@
                             {{ form.categoria.label(class="form-label") }}
                             <select name="categoria" class="form-select{{ ' is-invalid' if form.categoria.errors else '' }}" required>
                                 <option value="">Selecione uma categoria...</option>
-                                <option value="Geral" {{ 'selected' if form.categoria.data == 'Geral' else '' }}>Geral</option>
-                                <option value="Estrutural" {{ 'selected' if form.categoria.data == 'Estrutural' else '' }}>Estrutural</option>
-                                <option value="Hidráulica" {{ 'selected' if form.categoria.data == 'Hidráulica' else '' }}>Hidráulica</option>
-                                <option value="Elétrica" {{ 'selected' if form.categoria.data == 'Elétrica' else '' }}>Elétrica</option>
-                                <option value="Acabamentos" {{ 'selected' if form.categoria.data == 'Acabamentos' else '' }}>Acabamentos</option>
-                                <option value="Segurança" {{ 'selected' if form.categoria.data == 'Segurança' else '' }}>Segurança</option>
-                                <option value="Fachada" {{ 'selected' if form.categoria.data == 'Fachada' else '' }}>Fachada</option>
-                                <option value="Impermeabilização" {{ 'selected' if form.categoria.data == 'Impermeabilização' else '' }}>Impermeabilização</option>
+                                {% for value, label in form.categoria.choices %}
+                                <option value="{{ value }}" {{ 'selected' if form.categoria.data == value else '' }}>{{ label }}</option>
+                                {% endfor %}
                             </select>
                             {% if form.categoria.errors %}
                                 <div class="invalid-feedback">

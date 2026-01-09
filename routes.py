@@ -8701,6 +8701,20 @@ def admin_legenda_nova():
     from models import LegendaPredefinida
     form = LegendaPredefinidaForm()
 
+    # Buscar categorias existentes no banco para preencher o select
+    # Isso garante que categorias renomeadas (ex: "1.Limpeza") apareçam na lista
+    categorias_db = db.session.query(LegendaPredefinida.categoria).distinct().all()
+    categorias_existentes = sorted([c[0] for c in categorias_db if c[0]])
+    
+    # Categorias padrão que sempre devem existir
+    categorias_padrao = ['Geral', 'Estrutural', 'Hidráulica', 'Elétrica', 'Acabamentos', 'Segurança', 'Fachada', 'Impermeabilização']
+    
+    # Combinar e remover duplicatas
+    todas_categorias = sorted(list(set(categorias_existentes + categorias_padrao)))
+    
+    # Atualizar choices do formulário
+    form.categoria.choices = [(c, c) for c in todas_categorias]
+
     if form.validate_on_submit():
         try:
             legenda = LegendaPredefinida()
@@ -8734,6 +8748,20 @@ def admin_legenda_editar(id):
 
     legenda = LegendaPredefinida.query.get_or_404(id)
     form = LegendaPredefinidaForm(obj=legenda)
+
+    # Buscar categorias existentes no banco para preencher o select
+    # Isso garante que categorias renomeadas (ex: "1.Limpeza") apareçam na lista
+    categorias_db = db.session.query(LegendaPredefinida.categoria).distinct().all()
+    categorias_existentes = sorted([c[0] for c in categorias_db if c[0]])
+    
+    # Categorias padrão que sempre devem existir
+    categorias_padrao = ['Geral', 'Estrutural', 'Hidráulica', 'Elétrica', 'Acabamentos', 'Segurança', 'Fachada', 'Impermeabilização']
+    
+    # Combinar e remover duplicatas
+    todas_categorias = sorted(list(set(categorias_existentes + categorias_padrao)))
+    
+    # Atualizar choices do formulário
+    form.categoria.choices = [(c, c) for c in todas_categorias]
 
     if form.validate_on_submit():
         try:
