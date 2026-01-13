@@ -934,11 +934,10 @@ function carregarFuncionariosEmailsPorId(projetoId) {
     });
 }
 
+// Novo handler específico para garantir salvamento imediato após captura/seleção
 function handlePhotoUpload(event) {
-    // Upload de fotos iniciado
-
+    console.log("📸 Foto capturada/selecionada!");
     const files = event.target.files;
-    // Processando arquivos selecionados
 
     if (files.length + selectedPhotos.length > 200) {
         alert('Máximo de 200 fotos permitido.');
@@ -947,22 +946,40 @@ function handlePhotoUpload(event) {
 
     // Processar cada arquivo
     for (let file of files) {
-        if (selectedPhotos.length >= 200) {
-            // Limite de fotos atingido
-            break;
-        }
-        // Processando arquivo
+        if (selectedPhotos.length >= 200) break;
+
+        // 1. Gera o preview no sistema
         addPhotoPreview(file, '');
         
-        // SALVAMENTO LOCAL: Chama a função global definida em main.js
+        // 2. SALVAMENTO LOCAL IMEDIATO
+        // Garante que o download aconteça exatamente agora
         if (typeof saveImageToLocal === 'function') {
             saveImageToLocal(file);
         }
     }
 
-    event.target.value = ''; // Reset input
-    // Upload concluído
+    event.target.value = ''; // Reset input para permitir nova captura
 }
+
+// Funções de disparo
+function mobileCaptureFromCamera() {
+    const input = document.getElementById('mobileCameraInput');
+    if (input) input.click();
+}
+
+function mobileSelectFromGallery() {
+    const input = document.getElementById('mobilePhotoInput');
+    if (input) input.click();
+}
+
+// Registrar os novos listeners
+document.addEventListener('DOMContentLoaded', function() {
+    const camInput = document.getElementById('mobileCameraInput');
+    const galInput = document.getElementById('mobilePhotoInput');
+    
+    if (camInput) camInput.addEventListener('change', handlePhotoUpload);
+    if (galInput) galInput.addEventListener('change', handlePhotoUpload);
+});
 
 // Camera and gallery functions with error handling
 function selectFromGallery() {
