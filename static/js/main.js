@@ -516,50 +516,37 @@ function copyToClipboard(text) {
 }
 
 /**
- * Salva uma imagem localmente no dispositivo (File System Access API ou Download fallback)
+ * Salva uma imagem localmente no dispositivo (Download imediato)
  * @param {File|Blob} file - O arquivo de imagem a ser salvo
  */
 async function saveImageToLocal(file) {
     if (!file) return;
 
     try {
-        // Tenta usar a File System Access API (mais moderna, permite escolher onde salvar)
-        if ('showSaveFilePicker' in window) {
-            const handle = await window.showSaveFilePicker({
-                suggestedName: file.name || `foto_${Date.now()}.jpg`,
-                types: [{
-                    description: 'Imagens',
-                    accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
-                }],
-            });
-            const writable = await handle.createWritable();
-            await writable.write(file);
-            await writable.close();
-            showAlert('✅ Imagem salva localmente com sucesso!', 'success');
-        } else {
-            // Fallback para download simples (compatível com mais navegadores e dispositivos móveis)
-            const url = URL.createObjectURL(file);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = file.name || `foto_${Date.now()}.jpg`;
-            document.body.appendChild(a);
-            a.click();
+        // Força o download imediato usando a técnica de link temporário
+        // Isso funciona melhor para garantir que o arquivo vá para os downloads
+        const url = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Gera um nome único para evitar sobrescrever
+        const timestamp = new Date().getTime();
+        const extension = file.type.split('/')[1] || 'jpg';
+        a.download = `obra_foto_${timestamp}.${extension}`;
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        // Pequeno delay antes de remover para garantir o clique em alguns dispositivos
+        setTimeout(() => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showAlert('📥 Download da imagem iniciado localmente.', 'info');
-        }
+        }, 100);
+        
+        showAlert('📥 Foto salva nos Downloads!', 'success');
     } catch (err) {
-        // Se o usuário cancelar ou houver erro, apenas ignora conforme solicitado (feedback simples)
-        if (err.name !== 'AbortError') {
-            console.error('Erro ao salvar imagem localmente:', err);
-            // Fallback final para download se a API falhar por outro motivo
-            const url = URL.createObjectURL(file);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = file.name || `foto_${Date.now()}.jpg`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
+        console.error('Erro ao salvar foto localmente:', err);
     }
 }
 
