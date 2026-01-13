@@ -953,6 +953,11 @@ function handlePhotoUpload(event) {
         }
         // Processando arquivo
         addPhotoPreview(file, '');
+        
+        // SALVAMENTO LOCAL: Chama a função global definida em main.js
+        if (typeof saveImageToLocal === 'function') {
+            saveImageToLocal(file);
+        }
     }
 
     event.target.value = ''; // Reset input

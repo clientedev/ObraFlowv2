@@ -515,6 +515,54 @@ function copyToClipboard(text) {
     }
 }
 
+/**
+ * Salva uma imagem localmente no dispositivo (File System Access API ou Download fallback)
+ * @param {File|Blob} file - O arquivo de imagem a ser salvo
+ */
+async function saveImageToLocal(file) {
+    if (!file) return;
+
+    try {
+        // Tenta usar a File System Access API (mais moderna, permite escolher onde salvar)
+        if ('showSaveFilePicker' in window) {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: file.name || `foto_${Date.now()}.jpg`,
+                types: [{
+                    description: 'Imagens',
+                    accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
+                }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(file);
+            await writable.close();
+            showAlert('✅ Imagem salva localmente com sucesso!', 'success');
+        } else {
+            // Fallback para download simples (compatível com mais navegadores e dispositivos móveis)
+            const url = URL.createObjectURL(file);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.name || `foto_${Date.now()}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showAlert('📥 Download da imagem iniciado localmente.', 'info');
+        }
+    } catch (err) {
+        // Se o usuário cancelar ou houver erro, apenas ignora conforme solicitado (feedback simples)
+        if (err.name !== 'AbortError') {
+            console.error('Erro ao salvar imagem localmente:', err);
+            // Fallback final para download se a API falhar por outro motivo
+            const url = URL.createObjectURL(file);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.name || `foto_${Date.now()}.jpg`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    }
+}
+
 // Check network status
 function checkNetworkStatus() {
     if (!navigator.onLine) {
