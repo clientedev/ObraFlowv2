@@ -963,13 +963,31 @@ function handlePhotoUpload(event) {
 
 // Funções de disparo
 function mobileCaptureFromCamera() {
+    console.log('📷 Disparando câmera...');
+    if (typeof selectedCategory === 'undefined' || !selectedCategory) {
+        alert('Por favor, selecione uma categoria primeiro.');
+        return;
+    }
     const input = document.getElementById('mobileCameraInput');
-    if (input) input.click();
+    if (input) {
+        input.click();
+    } else {
+        console.error('Input de câmera não encontrado');
+    }
 }
 
 function mobileSelectFromGallery() {
+    console.log('📸 Disparando galeria...');
+    if (typeof selectedCategory === 'undefined' || !selectedCategory) {
+        alert('Por favor, selecione uma categoria primeiro.');
+        return;
+    }
     const input = document.getElementById('mobilePhotoInput');
-    if (input) input.click();
+    if (input) {
+        input.click();
+    } else {
+        console.error('Input de galeria não encontrado');
+    }
 }
 
 // Registrar os novos listeners
@@ -2600,7 +2618,7 @@ function setupMobilePhotoSystem() {
 }
 
 // Mobile gallery selection
-function mobileSelectFromGallery() {
+function mobileSelectFromGallery_Legacy() {
     console.log('📸 Selecionando da galeria (mobile)...');
     if (!selectedCategory) {
         alert('Por favor, selecione uma categoria primeiro.');
@@ -2613,7 +2631,7 @@ function mobileSelectFromGallery() {
 }
 
 // Mobile camera capture
-function mobileCaptureFromCamera() {
+function mobileCaptureFromCamera_Legacy() {
     console.log('📷 Capturando da câmera (mobile)...');
     if (!selectedCategory) {
         alert('Por favor, selecione uma categoria primeiro.');
