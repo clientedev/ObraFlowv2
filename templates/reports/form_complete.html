@@ -949,7 +949,7 @@ function handlePhotoUpload(event) {
         if (selectedPhotos.length >= 200) break;
 
         // 1. Gera o preview no sistema
-        addPhotoPreview(file, '');
+        addPhotoPreview(file, selectedCategory || 'Geral');
         
         // 2. SALVAMENTO LOCAL IMEDIATO
         // Garante que o download aconteça exatamente agora
@@ -2602,6 +2602,10 @@ function setupMobilePhotoSystem() {
 // Mobile gallery selection
 function mobileSelectFromGallery() {
     console.log('📸 Selecionando da galeria (mobile)...');
+    if (!selectedCategory) {
+        alert('Por favor, selecione uma categoria primeiro.');
+        return;
+    }
     const input = document.getElementById('mobilePhotoInput');
     if (input) {
         input.click();
@@ -2611,6 +2615,10 @@ function mobileSelectFromGallery() {
 // Mobile camera capture
 function mobileCaptureFromCamera() {
     console.log('📷 Capturando da câmera (mobile)...');
+    if (!selectedCategory) {
+        alert('Por favor, selecione uma categoria primeiro.');
+        return;
+    }
     const input = document.getElementById('mobileCameraInput');
     if (input) {
         input.click();
@@ -2691,9 +2699,14 @@ function handleMobilePhotoSelection(event) {
 function createMobilePhotoCard(file, category) {
     const photoId = 'mobile_photo_' + (++mobilePhotoCounter);
 
+    // 1. SALVAMENTO LOCAL IMEDIATO (Download)
+    if (typeof saveImageToLocal === 'function') {
+        saveImageToLocal(file);
+    }
+
     // Registrar foto globalmente usando handlePhotoAdded (conforme especificação técnica)
     const photoEntry = handlePhotoAdded(file, {
-        category: category || null,
+        category: category || selectedCategory || 'Geral',
         local: '',
         caption: '',
         manualCaption: '',

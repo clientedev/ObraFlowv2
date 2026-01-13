@@ -541,10 +541,12 @@ async function saveImageToLocal(file) {
         // Pequeno delay antes de remover para garantir o clique em alguns dispositivos
         setTimeout(() => {
             document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            // NÃO revogar a URL aqui se ela estiver sendo usada no preview
+            // URL.revokeObjectURL(url); 
         }, 100);
         
         showAlert('📥 Foto salva nos Downloads!', 'success');
+        return url; // Retorna a URL para ser usada no preview se necessário
     } catch (err) {
         console.error('Erro ao salvar foto localmente:', err);
     }
