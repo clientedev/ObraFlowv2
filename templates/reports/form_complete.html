@@ -961,26 +961,52 @@ function handlePhotoUpload(event) {
     event.target.value = ''; // Reset input para permitir nova captura
 }
 
-// Funções de disparo
-function mobileCaptureFromCamera() {
-    console.log('📷 Disparando câmera...');
-    const input = document.getElementById('mobileCameraInput');
-    if (input) {
-        input.click();
-    } else {
-        console.error('Input de câmera não encontrado');
+// NOVO: Handler global para capturar/selecionar fotos e garantir download
+async function handlePhotoUpload(event) {
+    console.log("📸 Foto capturada/selecionada!");
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Processar cada arquivo
+    for (let file of files) {
+        // 1. Download Local imediato (Como solicitado)
+        if (typeof saveImageToLocal === 'function') {
+            await saveImageToLocal(file);
+        }
+        
+        // 2. Chama o fluxo original do sistema para criar o card, permitir edição e preenchimento
+        handleMobilePhotoSelection({ target: { files: [file] } });
     }
+
+    event.target.value = ''; // Reset input
+}
+
+// Funções de disparo simplificadas (Apenas clicam nos inputs)
+function mobileCaptureFromCamera() {
+    const input = document.getElementById('mobileCameraInput');
+    if (input) input.click();
 }
 
 function mobileSelectFromGallery() {
-    console.log('📸 Disparando galeria...');
     const input = document.getElementById('mobilePhotoInput');
-    if (input) {
-        input.click();
-    } else {
-        console.error('Input de galeria não encontrado');
-    }
+    if (input) input.click();
 }
+
+// Registrar os listeners no DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    const camInput = document.getElementById('mobileCameraInput');
+    const galInput = document.getElementById('mobilePhotoInput');
+    
+    // Removemos o listener original handleMobilePhotoSelection para usar o nosso que inclui download
+    if (camInput) {
+        camInput.removeEventListener('change', handleMobilePhotoSelection);
+        camInput.addEventListener('change', handlePhotoUpload);
+    }
+    if (galInput) {
+        galInput.removeEventListener('change', handleMobilePhotoSelection);
+        galInput.addEventListener('change', handlePhotoUpload);
+    }
+});
 
 // Registrar os novos listeners
 document.addEventListener('DOMContentLoaded', function() {
