@@ -684,12 +684,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const photoInput = document.getElementById('photoInput');
     if (photoInput) {
         photoInput.addEventListener('change', function(e) {
-            if (!selectedCategory) {
-                alert('Por favor, selecione uma categoria primeiro.');
-                this.value = '';
-                return;
-            }
-            
             handlePhotoSelection(e.target.files);
         });
     }
