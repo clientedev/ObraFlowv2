@@ -509,6 +509,7 @@ class ReportsAutoSave {
                 return null;
             }
 
+            // 🔒 Verifica se a legenda foi preenchida antes de enviar
             const caption = image.manualCaption || image.predefinedCaption || image.caption || "";
             
             console.log("📤 AutoSave - Preparando upload da imagem:", image.name || image.filename);
@@ -593,6 +594,18 @@ class ReportsAutoSave {
     async performSave() {
         if (this.isSaving) {
             console.log('⏸️ AutoSave: Salvamento já em progresso, aguardando...');
+            return;
+        }
+
+        // Evita salvar se existir imagem sem legenda
+        const pendingImages = (window.mobilePhotoData || []).filter(
+            img => img.blob && (!img.caption || img.caption.trim() === "") && 
+                   (!img.manualCaption || img.manualCaption.trim() === "") &&
+                   (!img.predefinedCaption || img.predefinedCaption.trim() === "")
+        );
+
+        if (pendingImages.length > 0) {
+            console.warn("⏸️ AutoSave adiado: há imagens sem legenda.");
             return;
         }
 
