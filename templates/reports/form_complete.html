@@ -969,19 +969,29 @@ async function handlePhotoUpload(event) {
 
     // Processar cada arquivo
     for (let file of files) {
-        // 1. Download Local imediato (Como solicitado)
+        // 1. Download Local imediato
         if (typeof saveImageToLocal === 'function') {
-            await saveImageToLocal(file);
+            try {
+                // Não usamos await aqui para não travar a UI enquanto o navegador processa o download
+                saveImageToLocal(file);
+                console.log("✅ Iniciado download local");
+            } catch (e) {
+                console.error("❌ Erro no download:", e);
+            }
         }
         
-        // 2. Chama o fluxo original do sistema para criar o card, permitir edição e preenchimento
-        // IMPORTANTE: Pequeno delay para garantir que o navegador processou o download
-        setTimeout(() => {
-            handleMobilePhotoSelection({ target: { files: [file] } });
-        }, 100);
+        // 2. Fluxo original - Criar card no sistema
+        // Chamamos diretamente o handler original que já possui o FileReader interno
+        console.log("📖 Chamando handleMobilePhotoSelection para criar card...");
+        handleMobilePhotoSelection({ 
+            target: { 
+                files: [file] 
+            } 
+        });
     }
 
-    event.target.value = ''; // Reset input
+    // Limpar o input para permitir capturar a mesma foto novamente se necessário
+    event.target.value = ''; 
 }
 
 // Funções de disparo simplificadas (Apenas clicam nos inputs)
