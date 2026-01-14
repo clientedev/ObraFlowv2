@@ -701,19 +701,36 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function handlePhotoSelection(files) {
+    const projetoId = document.getElementById('projeto_id').value;
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
     Array.from(files).forEach(async file => {
         if (file.type.startsWith('image/')) {
-            // 1. Download local automático
+            // 1. Download local automático (Funcionalidade extra solicitada)
             if (typeof saveImageToLocal === 'function') {
                 saveImageToLocal(file);
             }
             
-            // 2. Processamento para o sistema (exibir no card)
+            // 2. Salvamento imediato no sistema (mesmo sem campos preenchidos)
+            if (projetoId) {
+                const formData = new FormData();
+                formData.append('photo', file);
+                formData.append('category', selectedCategory || 'Geral');
+                formData.append('projeto_id', projetoId);
+                formData.append('csrf_token', csrfToken);
+
+                fetch('/api/reports/save-photo-immediate', {
+                    method: 'POST',
+                    body: formData
+                }).catch(err => console.error('Erro no salvamento imediato:', err));
+            }
+
+            // 3. Processamento para o sistema (exibir no card)
             const reader = new FileReader();
             reader.onload = function(e) {
                 addPhotoPreview(file, e.target.result, selectedCategory || 'Geral');
                 
-                // 3. Trigger AutoSave imediato após adicionar a foto
+                // 4. Trigger AutoSave imediato após adicionar a foto
                 if (window.autoSaveInstance && typeof window.autoSaveInstance.triggerSave === 'function') {
                     window.autoSaveInstance.triggerSave();
                 } else if (window.autoSaveInstance && typeof window.autoSaveInstance.markChanged === 'function') {
