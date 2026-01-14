@@ -480,14 +480,19 @@ class ReportsAutoSave {
             }
 
             try {
+                // Forçar "falta preencher" no objeto antes do upload
+                img.category = img.category || "falta preencher";
+                img.local = img.local || "falta preencher";
+                img.caption = img.manualCaption || img.predefinedCaption || img.caption || "falta preencher";
+
                 const tempId = await this.uploadImageTemp(img);
                 if (tempId) {
                     uploaded.push({
                         temp_id: tempId,
                         filename: img.name || img.filename,
-                        category: img.category || "falta preencher",
-                        local: img.local || "falta preencher",
-                        caption: img.manualCaption || img.predefinedCaption || img.caption || "falta preencher",
+                        category: img.category,
+                        local: img.local,
+                        caption: img.caption,
                         ordem: i
                     });
                 }
@@ -511,15 +516,17 @@ class ReportsAutoSave {
                 return null;
             }
 
-            // 🔒 Define legenda padrão se estiver vazia
+            // 🔒 Define valores padrão se estiverem vazios
+            const category = image.category || "falta preencher";
+            const local = image.local || "falta preencher";
             const caption = image.manualCaption || image.predefinedCaption || image.caption || "falta preencher";
             
             console.log("📤 AutoSave - Preparando upload da imagem:", image.name || image.filename);
 
             const formData = new FormData();
             formData.append("file", image.blob, image.name || image.filename || "imagem.jpg");
-            formData.append("category", image.category || "falta preencher");
-            formData.append("local", image.local || "falta preencher");
+            formData.append("category", category);
+            formData.append("local", local);
             formData.append("caption", caption);
 
             // 🔐 Inclui CSRF token se necessário
