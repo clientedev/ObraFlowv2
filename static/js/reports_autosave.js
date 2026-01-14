@@ -509,7 +509,6 @@ class ReportsAutoSave {
                 return null;
             }
 
-            // 🔒 Verifica se a legenda foi preenchida antes de enviar
             const caption = image.manualCaption || image.predefinedCaption || image.caption || "";
             
             console.log("📤 AutoSave - Preparando upload da imagem:", image.name || image.filename);
