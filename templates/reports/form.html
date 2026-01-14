@@ -701,32 +701,26 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function handlePhotoSelection(files) {
-    console.log(`📸 Processando ${files.length} arquivos...`);
     Array.from(files).forEach(async file => {
         if (file.type.startsWith('image/')) {
-            console.log(`🖼️ Arquivo detectado: ${file.name}`);
-            
-            // 1. Download local automático (comportamento desejado)
+            // 1. Download local automático
             if (typeof saveImageToLocal === 'function') {
-                console.log('📥 Iniciando download local...');
                 saveImageToLocal(file);
-            } else {
-                console.warn('⚠️ Função saveImageToLocal não encontrada');
             }
             
             // 2. Processamento para o sistema (exibir no card)
-            console.log('🃏 Adicionando ao card do relatório...');
             const reader = new FileReader();
             reader.onload = function(e) {
-                console.log('✅ FileReader carregado, chamando addPhotoPreview');
-                addPhotoPreview(file, e.target.result, selectedCategory);
-            };
-            reader.onerror = function(err) {
-                console.error('❌ Erro no FileReader:', err);
+                addPhotoPreview(file, e.target.result, selectedCategory || 'Geral');
+                
+                // 3. Trigger AutoSave imediato após adicionar a foto
+                if (window.autoSaveInstance && typeof window.autoSaveInstance.triggerSave === 'function') {
+                    window.autoSaveInstance.triggerSave();
+                } else if (window.autoSaveInstance && typeof window.autoSaveInstance.markChanged === 'function') {
+                    window.autoSaveInstance.markChanged();
+                }
             };
             reader.readAsDataURL(file);
-        } else {
-            console.warn(`⚠️ Arquivo ignorado (não é imagem): ${file.name}`);
         }
     });
 }
