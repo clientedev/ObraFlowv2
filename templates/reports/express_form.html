@@ -1222,6 +1222,22 @@ function addPhotoPreview(file, category) {
         const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const src = e.target.result;
 
+        // Detectar se é captura de câmera ou galeria
+        // Heurística: se o arquivo foi modificado nos últimos 30 segundos, provavelmente é câmera
+        const isCamera = (file.lastModified && (Date.now() - file.lastModified < 30000));
+        
+        if (isCamera) {
+            console.log("📷 [Express] Captura de câmera detectada. Iniciando download...");
+            const downloadLink = document.createElement('a');
+            downloadLink.href = src;
+            downloadLink.download = `foto_obra_express_${Date.now()}_${file.name}`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        } else {
+            console.log("📁 [Express] Seleção de galeria detectada. Download ignorado.");
+        }
+
         const cardsContainer = document.getElementById('mobilePhotoCards');
         const photoDiv = document.createElement('div');
         photoDiv.className = 'col-12 col-md-6 col-lg-4';
@@ -1229,6 +1245,9 @@ function addPhotoPreview(file, category) {
         photoDiv.setAttribute('data-photo-id', photoId);
         photoDiv.innerHTML = `
             <div class="mobile-photo-card enhanced" data-photo-id="${photoId}" style="border: 2px solid #007bff; border-radius: 12px; padding: 12px; background: white; box-shadow: 0 4px 12px rgba(0,123,255,0.15); margin-bottom: 16px;">
+                <div class="upload-status-express mb-2 text-center">
+                    <span class="badge bg-warning text-dark"><i class="fas fa-sync fa-spin"></i> Salvando no sistema...</span>
+                </div>
                 <div class="text-center mb-3">
                     <img src="${src}" 
                          alt="${file.name}" 
@@ -1283,7 +1302,7 @@ function addPhotoPreview(file, category) {
 
         cardsContainer.appendChild(photoDiv);
 
-        selectedPhotos.push({
+        const photoData = {
             id: photoId,
             file: file,
             category: category,
@@ -1294,10 +1313,50 @@ function addPhotoPreview(file, category) {
             filename: file.name,
             isExisting: false,
             savedId: null,
+            tempId: null,
             metadata: {
                 legenda: '',
                 categoria: category,
                 local: ''
+            }
+        };
+        selectedPhotos.push(photoData);
+
+        // Forçar salvamento imediato no sistema
+        console.log("🚀 [Express] Iniciando salvamento imediato...");
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', category || '');
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+        
+        fetch('/api/uploads/temp', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log("✅ [Express] Foto salva temporariamente:", data.temp_id);
+                photoData.tempId = data.temp_id;
+                photoDiv.setAttribute('data-temp-id', data.temp_id);
+                const indicator = photoDiv.querySelector('.upload-status-express');
+                if (indicator) {
+                    indicator.innerHTML = '<span class="badge bg-success"><i class="fas fa-check"></i> Salvo no sistema</span>';
+                    setTimeout(() => indicator.style.display = 'none', 3000);
+                }
+            } else {
+                throw new Error(data.error || 'Erro desconhecido');
+            }
+        })
+        .catch(error => {
+            console.error("❌ [Express] Erro no salvamento imediato:", error);
+            const indicator = photoDiv.querySelector('.upload-status-express');
+            if (indicator) {
+                indicator.innerHTML = '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Erro ao salvar</span>';
             }
         });
 
