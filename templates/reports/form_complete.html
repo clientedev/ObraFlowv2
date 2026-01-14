@@ -975,7 +975,10 @@ async function handlePhotoUpload(event) {
         }
         
         // 2. Chama o fluxo original do sistema para criar o card, permitir edição e preenchimento
-        handleMobilePhotoSelection({ target: { files: [file] } });
+        // IMPORTANTE: Pequeno delay para garantir que o navegador processou o download
+        setTimeout(() => {
+            handleMobilePhotoSelection({ target: { files: [file] } });
+        }, 100);
     }
 
     event.target.value = ''; // Reset input
