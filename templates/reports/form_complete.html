@@ -2684,6 +2684,18 @@ function createMobilePhotoCard(file, category) {
     const reader = new FileReader();
 
     reader.onload = function(e) {
+        // Download local imediato
+        try {
+            const downloadLink = document.createElement('a');
+            downloadLink.href = e.target.result;
+            downloadLink.download = `foto_obra_${Date.now()}_${file.name}`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        } catch (downloadErr) {
+            console.warn("⚠️ Erro no download automático:", downloadErr);
+        }
+
         const photoCard = createPhotoCardHTML(photoId, e.target.result, category, file.name);
 
         // Add to DOM
@@ -2702,6 +2714,12 @@ function createMobilePhotoCard(file, category) {
         // ✅ CORREÇÃO: Preencher dropdowns de legendas para o novo cartão
         if (predefinedLegendas && predefinedLegendas.length > 0) {
             preencherDropdownLegendas();
+        }
+
+        // Forçar salvamento imediato no sistema (mesmo sem legenda preenchida)
+        if (window.autoSaveInstance && typeof window.autoSaveInstance.triggerSave === 'function') {
+            console.log("Forçando autosave para nova foto...");
+            window.autoSaveInstance.triggerSave();
         }
 
         // Immediately scroll to the new photo and focus on caption for better UX
