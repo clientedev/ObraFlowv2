@@ -934,33 +934,6 @@ function carregarFuncionariosEmailsPorId(projetoId) {
     });
 }
 
-// Novo handler específico para garantir salvamento imediato após captura/seleção
-function handlePhotoUpload(event) {
-    console.log("📸 Foto capturada/selecionada!");
-    const files = event.target.files;
-
-    if (files.length + selectedPhotos.length > 200) {
-        alert('Máximo de 200 fotos permitido.');
-        return;
-    }
-
-    // Processar cada arquivo
-    for (let file of files) {
-        if (selectedPhotos.length >= 200) break;
-
-        // 1. Gera o preview no sistema
-        addPhotoPreview(file, selectedCategory || 'Geral');
-        
-        // 2. SALVAMENTO LOCAL IMEDIATO
-        // Garante que o download aconteça exatamente agora
-        if (typeof saveImageToLocal === 'function') {
-            saveImageToLocal(file);
-        }
-    }
-
-    event.target.value = ''; // Reset input para permitir nova captura
-}
-
 // NOVO: Handler global para capturar/selecionar fotos e garantir download
 async function handlePhotoUpload(event) {
     console.log("📸 Foto capturada/selecionada!");
@@ -972,9 +945,8 @@ async function handlePhotoUpload(event) {
         // 1. Download Local imediato
         if (typeof saveImageToLocal === 'function') {
             try {
-                // Não usamos await aqui para não travar a UI enquanto o navegador processa o download
                 saveImageToLocal(file);
-                console.log("✅ Iniciado download local");
+                console.log("✅ Download local disparado");
             } catch (e) {
                 console.error("❌ Erro no download:", e);
             }
@@ -985,7 +957,6 @@ async function handlePhotoUpload(event) {
         reader.onload = function(e) {
             console.log("📖 FileReader carregado, criando card...");
             
-            // Gerar um ID único para a foto
             const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             const imageSrc = e.target.result;
             
@@ -1006,27 +977,95 @@ async function handlePhotoUpload(event) {
             cardCol.className = 'col-md-6 col-lg-4 mb-4 photo-card-container';
             cardCol.setAttribute('data-photo-id', photoId);
             
-            // Gerar o HTML do card exatamente como configurado
-            cardCol.innerHTML = createPhotoCardHTML(photoId, imageSrc, '', file.name);
+            // Gerar o HTML do card com as configurações exatas do print
+            cardCol.innerHTML = `
+                <div class="mobile-photo-card enhanced" data-photo-id="${photoId}" style="border: 2px solid #007bff; border-radius: 12px; padding: 12px; background: white; box-shadow: 0 4px 12px rgba(0,123,255,0.15); margin-bottom: 16px;">
+                    <!-- Layout Vertical: IMAGEM EM CIMA -->
+                    <div class="text-center mb-3">
+                        <img src="${imageSrc}" 
+                             alt="${file.name}" 
+                             data-photo-id="${photoId}"
+                             style="width: 100%; max-width: 300px; height: auto; object-fit: cover; border-radius: 12px; border: 2px solid #e9ecef; cursor: pointer;">
+                    </div>
+
+                    <!-- Categoria -->
+                    <div class="mb-2">
+                        <label class="form-label fw-bold mb-1" style="font-size: 12px;"><i class="fas fa-folder text-warning me-1"></i> Categoria</label>
+                        <select class="form-select form-select-sm categoria-select" 
+                                id="category_${photoId}" 
+                                data-photo-id="${photoId}"
+                                style="border: 2px solid #007bff; font-size: 13px; border-radius: 8px;">
+                            <option value="">Sem categoria</option>
+                        </select>
+                    </div>
+
+                    <!-- Local -->
+                    <div class="mb-2">
+                        <label class="form-label fw-bold mb-1" style="font-size: 12px;"><i class="fas fa-map-marker-alt text-danger me-1"></i> Local</label>
+                        <input type="text" 
+                               class="form-control form-control-sm local-input" 
+                               id="local_${photoId}" 
+                               placeholder="Ex: Sala principal, Fachada norte..."
+                               data-photo-id="${photoId}"
+                               style="border: 2px solid #ff9800; font-size: 13px; padding: 10px; border-radius: 8px;">
+                    </div>
+
+                    <!-- Legenda Manual -->
+                    <div class="mb-2">
+                        <label class="form-label fw-bold mb-1" style="font-size: 12px;"><i class="fas fa-edit text-success me-1"></i> Legenda *</label>
+                        <input type="text" 
+                               class="form-control caption-input" 
+                               id="manual_caption_${photoId}" 
+                               placeholder="Digite uma legenda..."
+                               data-photo-id="${photoId}"
+                               required
+                               style="border: 2px solid #28a745; font-size: 13px; padding: 10px; background-color: #f8fff9; border-radius: 8px;">
+                    </div>
+
+                    <!-- Legenda Pré-definida -->
+                    <div class="mb-2">
+                        <select class="form-select form-select-sm caption-select" 
+                                id="predefined_caption_${photoId}" 
+                                data-photo-id="${photoId}"
+                                style="font-size: 12px; border: 2px solid #007bff; border-radius: 8px; padding: 10px;">
+                            <option value="">📋 Ou escolha uma legenda pré-d</option>
+                        </select>
+                    </div>
+
+                    <!-- Status da Legenda -->
+                    <div class="caption-status pending alert alert-warning py-2 px-3 mb-3" id="caption_status_${photoId}" style="font-size: 12px; border-radius: 8px; background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404;">
+                        <i class="fas fa-exclamation-triangle me-1"></i> Legenda obrigatória - preencha o campo acima
+                    </div>
+
+                    <!-- Ações -->
+                    <div class="photo-card-actions d-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button type="button" class="btn btn-outline-primary photo-card-btn edit" onclick="editMobilePhoto('${photoId}')" style="border-radius: 8px; border: 2px solid #007bff;">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button type="button" class="btn btn-outline-danger photo-card-btn delete" onclick="deleteMobilePhoto('${photoId}')" style="border-radius: 8px; border: 2px solid #dc3545;">
+                            <i class="fas fa-trash"></i> Excluir
+                        </button>
+                    </div>
+                </div>
+            `;
             
             // Adicionar ao grid do sistema
             const photoGrid = document.getElementById('photoGrid');
             if (photoGrid) {
                 photoGrid.appendChild(cardCol);
                 
-                // Configurar eventos do card (legenda, categoria, etc)
+                // Configurar eventos do card
                 setupPhotoCardEvents(photoId);
                 
-                // Atualizar contador de fotos
+                // Atualizar contador
                 const photoCount = document.getElementById('photoCount');
                 if (photoCount) photoCount.textContent = window.mobilePhotoData.length;
 
-                // Preencher legendas pré-definidas se existirem
-                if (typeof preencherDropdownLegendas === 'function') {
-                    preencherDropdownLegendas();
-                }
+                // Forçar preenchimento das legendas e categorias
+                if (typeof preencherDropdownLegendas === 'function') preencherDropdownLegendas();
+                if (typeof populateCategorySelect === 'function') populateCategorySelect(photoId);
 
-                // Scroll suave para o novo card
+                // Scroll para o novo card
                 setTimeout(() => {
                     cardCol.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 100);
@@ -1035,7 +1074,6 @@ async function handlePhotoUpload(event) {
         reader.readAsDataURL(file);
     }
 
-    // Limpar o input para permitir capturar a mesma foto novamente se necessário
     event.target.value = ''; 
 }
 
