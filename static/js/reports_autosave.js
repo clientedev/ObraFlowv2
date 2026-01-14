@@ -509,15 +509,15 @@ class ReportsAutoSave {
                 return null;
             }
 
-            // 🔒 Verifica se a legenda foi preenchida antes de enviar
-            const caption = image.manualCaption || image.predefinedCaption || image.caption || "";
+            // 🔒 Define legenda padrão se estiver vazia
+            const caption = image.manualCaption || image.predefinedCaption || image.caption || "falta preencher";
             
             console.log("📤 AutoSave - Preparando upload da imagem:", image.name || image.filename);
 
             const formData = new FormData();
             formData.append("file", image.blob, image.name || image.filename || "imagem.jpg");
-            formData.append("category", image.category || "");
-            formData.append("local", image.local || "");
+            formData.append("category", image.category || "falta preencher");
+            formData.append("local", image.local || "falta preencher");
             formData.append("caption", caption);
 
             // 🔐 Inclui CSRF token se necessário
@@ -597,7 +597,8 @@ class ReportsAutoSave {
             return;
         }
 
-        // Evita salvar se existir imagem sem legenda
+        // Evita salvar se existir imagem sem legenda (DESATIVADO: Permitir salvar sem legenda)
+        /*
         const pendingImages = (window.mobilePhotoData || []).filter(
             img => img.blob && (!img.caption || img.caption.trim() === "") && 
                    (!img.manualCaption || img.manualCaption.trim() === "") &&
@@ -608,6 +609,7 @@ class ReportsAutoSave {
             console.warn("⏸️ AutoSave adiado: há imagens sem legenda.");
             return;
         }
+        */
 
         this.isSaving = true;
 
