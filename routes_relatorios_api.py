@@ -234,7 +234,7 @@ def api_criar_relatorio():
         novo_relatorio = Relatorio(
             numero=numero_formatado,
             numero_projeto=proximo_numero,
-            titulo=data.get('titulo', 'Relatório de visita'),
+            titulo=data.get('titulo') or 'Relatório sem título',
             descricao=data.get('descricao'),
             projeto_id=data['projeto_id'],
             visita_id=data.get('visita_id'),
@@ -243,8 +243,8 @@ def api_criar_relatorio():
             atualizado_por=current_user.id,
 
             # Novos campos conforme especificação
-            categoria=data.get('categoria'),
-            local=data.get('local'),
+            categoria=data.get('categoria') or 'falta preencher',
+            local=data.get('local') or 'falta preencher',
             observacoes_finais=data.get('observacoes_finais'),
 
             # Data/hora
@@ -524,13 +524,13 @@ def api_atualizar_relatorio(relatorio_id):
 
         # Atualizar campos do relatório
         if 'titulo' in data:
-            relatorio.titulo = data['titulo']
+            relatorio.titulo = data['titulo'] or 'Relatório sem título'
         if 'descricao' in data:
             relatorio.descricao = data['descricao']
         if 'categoria' in data:
-            relatorio.categoria = data['categoria']
+            relatorio.categoria = data['categoria'] or 'falta preencher'
         if 'local' in data:
-            relatorio.local = data['local']
+            relatorio.local = data['local'] or 'falta preencher'
         if 'observacoes_finais' in data:
             relatorio.observacoes_finais = data['observacoes_finais']
         if 'conteudo' in data:
