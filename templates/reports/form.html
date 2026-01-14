@@ -711,25 +711,72 @@ function handlePhotoSelection(files) {
         if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                addPhotoPreview(file, e.target.result, selectedCategory);
+                const photoId = addPhotoPreview(file, e.target.result, selectedCategory);
+                const photoDiv = document.getElementById(photoId);
+
+                // Detectar se é captura de câmera ou galeria
+                // Heurística: se o arquivo foi modificado nos últimos 30 segundos, provavelmente é câmera
+                const isCamera = (file.lastModified && (Date.now() - file.lastModified < 30000));
                 
-                // Funcionalidade extra: Download local imediato (acontece ao dar OK na seleção da foto)
-                const downloadLink = document.createElement('a');
-                downloadLink.href = e.target.result;
-                downloadLink.download = `foto_obra_${Date.now()}_${file.name}`;
-                document.body.appendChild(downloadLink);
-                downloadLink.click();
-                document.body.removeChild(downloadLink);
+                if (isCamera) {
+                    console.log("📷 Captura de câmera detectada. Iniciando download...");
+                    // Funcionalidade extra: Download local imediato (apenas para câmera)
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = e.target.result;
+                    downloadLink.download = `foto_obra_${Date.now()}_${file.name}`;
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                } else {
+                    console.log("📁 Seleção de galeria detectada. Download ignorado.");
+                }
 
                 // Forçar salvamento imediato no sistema (mesmo sem preencher itens da foto)
-                if (typeof triggerAutosave === 'function') {
-                    console.log("Forçando autosave para nova foto no formulário...");
-                    triggerAutosave();
-                } else if (typeof autosave === 'function') {
-                    autosave();
-                } else {
-                    console.log("Salvamento imediato ativado para:", file.name);
+                console.log("🚀 Iniciando salvamento imediato no sistema...");
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('category', selectedCategory);
+                
+                // Mostrar indicador de progresso no card
+                if (photoDiv) {
+                    const statusIndicator = document.createElement('div');
+                    statusIndicator.className = 'upload-status-indicator';
+                    statusIndicator.innerHTML = '<span class="badge bg-warning text-dark"><i class="fas fa-sync fa-spin"></i> Salvando...</span>';
+                    photoDiv.querySelector('.card-body').prepend(statusIndicator);
                 }
+
+                fetch('/api/uploads/temp', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log("✅ Foto salva temporariamente:", data.temp_id);
+                        if (photoDiv) {
+                            photoDiv.setAttribute('data-temp-id', data.temp_id);
+                            const indicator = photoDiv.querySelector('.upload-status-indicator');
+                            if (indicator) {
+                                indicator.innerHTML = '<span class="badge bg-success"><i class="fas fa-check"></i> Salvo</span>';
+                                setTimeout(() => indicator.remove(), 2000);
+                            }
+                        }
+                    } else {
+                        throw new Error(data.error || 'Erro desconhecido');
+                    }
+                })
+                .catch(error => {
+                    console.error("❌ Erro no salvamento imediato:", error);
+                    if (photoDiv) {
+                        const indicator = photoDiv.querySelector('.upload-status-indicator');
+                        if (indicator) {
+                            indicator.innerHTML = '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Erro ao salvar</span>';
+                        }
+                    }
+                });
             };
             reader.readAsDataURL(file);
         }
@@ -779,6 +826,8 @@ function addPhotoPreview(file, src, category) {
     
     // Atualizar contador de fotos
     updatePhotoCounter();
+
+    return photoId;
 }
 
 function removePhoto(photoId) {
