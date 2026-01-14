@@ -294,37 +294,7 @@ class ReportsAutoSave {
             el.addEventListener('change', saveHandler);
         });
 
-        // 🔄 Tentar restaurar rascunho offline se existir
-        this.restoreFromLocalStorage();
-
         console.log(`🕒 AutoSave: Monitorando ${formElements.length} campos do formulário`);
-    }
-
-    restoreFromLocalStorage() {
-        const reportId = this.reportId || 'new';
-        const draftStr = localStorage.getItem(`report_draft_${reportId}`);
-        if (draftStr) {
-            try {
-                const draft = JSON.parse(draftStr);
-                const age = (new Date().getTime() - draft.timestamp) / 1000;
-                
-                // Só restaurar se for recente (menos de 24h)
-                if (age < 86400) {
-                    console.log(`📦 Restaurando rascunho offline (${Math.round(age)}s atrás)`);
-                    this.populateForm(draft.data);
-                    
-                    if (draft.data.checklist_data) {
-                        this.preencherChecklist(draft.data.checklist_data);
-                    }
-                    
-                    if (draft.data.acompanhantes) {
-                        this.preencherAcompanhantes(draft.data.acompanhantes);
-                    }
-                }
-            } catch (e) {
-                console.error('❌ Erro ao restaurar rascunho:', e);
-            }
-        }
     }
 
     /**
@@ -636,24 +606,24 @@ class ReportsAutoSave {
             return;
         }
 
+        // Evita salvar se existir imagem sem legenda (DESATIVADO: Permitir salvar sem legenda)
+        /*
+        const pendingImages = (window.mobilePhotoData || []).filter(
+            img => img.blob && (!img.caption || img.caption.trim() === "") && 
+                   (!img.manualCaption || img.manualCaption.trim() === "") &&
+                   (!img.predefinedCaption || img.predefinedCaption.trim() === "")
+        );
+
+        if (pendingImages.length > 0) {
+            console.warn("⏸️ AutoSave adiado: há imagens sem legenda.");
+            return;
+        }
+        */
+
         this.isSaving = true;
-        this.updateStatus('salvando', 'Salvando dados...');
 
         // Coletar dados do formulário de forma assíncrona (aguardar upload de imagens)
         const payload = await this.collectFormDataAsync();
-        
-        // 💾 PERSISTÊNCIA OFFLINE: Salvar rascunho no LocalStorage
-        const reportId = this.reportId || 'new';
-        localStorage.setItem(`report_draft_${reportId}`, JSON.stringify({
-            data: payload,
-            timestamp: new Date().getTime()
-        }));
-
-        if (!navigator.onLine) {
-            this.updateStatus('offline', 'Você está offline. Dados salvos localmente.');
-            this.isSaving = false;
-            return;
-        }
 
         try {
             console.log('📤 AutoSave: Enviando dados...', payload);
@@ -669,79 +639,39 @@ class ReportsAutoSave {
 
             if (!response.ok) {
                 const err = await response.json().catch(() => ({}));
+                console.error('❌ AutoSave erro HTTP:', response.status);
+                console.error('   Mensagem do servidor:', err.error || err.detail || 'Sem mensagem');
+                console.error('   Detalhes completos:', err);
                 throw new Error(err.error || err.detail || `Falha no autosave (HTTP ${response.status})`);
             }
 
             const result = await response.json();
             console.log('✅ AutoSave concluído com sucesso:', result);
-            this.updateStatus('sucesso', `Salvo automaticamente às ${new Date().toLocaleTimeString()}`);
-            
-            // ✅ Limpar rascunho local após sucesso no servidor
-            localStorage.removeItem(`report_draft_${reportId}`);
 
             // Atualizar reportId se foi criado novo relatório
-            if (result.relatorio_id) {
-                this.reportId = result.relatorio_id;
-                window.currentReportId = result.relatorio_id;
+                if (result.relatorio_id) {
+                    if (!this.reportId) {
+                        console.log(`📌 AutoSave: Novo relatório criado com ID ${result.relatorio_id}`);
+                    }
+                    this.reportId = result.relatorio_id;
+                    window.currentReportId = result.relatorio_id;
 
-                const reportIdInputs = [
-                    document.querySelector('input[name="report_id"]'),
-                    document.getElementById('relatorio_id'),
-                    document.querySelector('input[name="relatorio_id"]')
-                ];
+                    // Atualizar TODOS os campos hidden possíveis
+                    const reportIdInputs = [
+                        document.querySelector('input[name="report_id"]'),
+                        document.getElementById('relatorio_id'),
+                        document.querySelector('input[name="relatorio_id"]')
+                    ];
 
-                reportIdInputs.forEach(input => {
-                    if (input) input.value = this.reportId;
-                });
-            }
+                    reportIdInputs.forEach(input => {
+                        if (input) {
+                            input.value = this.reportId;
+                        }
+                    });
+                }
 
             // Mapear temp_ids para IDs reais das imagens salvas
             if (result.imagens && Array.isArray(result.imagens) && window.mobilePhotoData) {
-                this.updatePhotoIds(result.imagens);
-            }
-
-        } catch (err) {
-            console.error('❌ AutoSave: Erro ao salvar:', err);
-            if (!navigator.onLine) {
-                this.updateStatus('offline', 'Sem conexão. Dados protegidos no dispositivo.');
-            } else {
-                this.updateStatus('erro', `Erro: ${err.message}`);
-            }
-        } finally {
-            this.isSaving = false;
-        }
-    }
-
-    updateStatus(type, message) {
-        const statusEl = document.getElementById('autosave-status');
-        if (!statusEl) return;
-
-        const icons = {
-            'salvando': 'fa-spinner fa-spin',
-            'sucesso': 'fa-check-circle',
-            'erro': 'fa-exclamation-circle',
-            'offline': 'fa-wifi-slash'
-        };
-
-        const colors = {
-            'salvando': 'text-primary',
-            'sucesso': 'text-success',
-            'erro': 'text-danger',
-            'offline': 'text-warning'
-        };
-
-        statusEl.className = `small mb-0 ${colors[type] || 'text-muted'}`;
-        statusEl.innerHTML = `<i class="fas ${icons[type] || 'fa-info-circle'} me-1"></i> ${message}`;
-    }
-
-    retrySaveFromLocalStorage() {
-        const reportId = this.reportId || 'new';
-        const draft = localStorage.getItem(`report_draft_${reportId}`);
-        if (draft && navigator.onLine) {
-            console.log('🔄 Sincronizando rascunho offline...');
-            this.performSave();
-        }
-    }
                 console.log(`📸 AutoSave: Mapeando ${result.imagens.length} imagens salvas`);
                 result.imagens.forEach(img => {
                     if (img.temp_id) {
