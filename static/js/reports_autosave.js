@@ -596,18 +596,6 @@ class ReportsAutoSave {
             return;
         }
 
-        // Evita salvar se existir imagem sem legenda
-        const pendingImages = (window.mobilePhotoData || []).filter(
-            img => img.blob && (!img.caption || img.caption.trim() === "") && 
-                   (!img.manualCaption || img.manualCaption.trim() === "") &&
-                   (!img.predefinedCaption || img.predefinedCaption.trim() === "")
-        );
-
-        if (pendingImages.length > 0) {
-            console.warn("⏸️ AutoSave adiado: há imagens sem legenda.");
-            return;
-        }
-
         this.isSaving = true;
 
         // Coletar dados do formulário de forma assíncrona (aguardar upload de imagens)

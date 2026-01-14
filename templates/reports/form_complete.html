@@ -2582,6 +2582,8 @@ function mobileSelectFromGallery() {
     console.log('📸 Selecionando da galeria (mobile)...');
     const input = document.getElementById('mobilePhotoInput');
     if (input) {
+        // Marcar que a próxima seleção virá da galeria
+        window.nextPhotoSource = 'gallery';
         input.click();
     }
 }
@@ -2591,6 +2593,8 @@ function mobileCaptureFromCamera() {
     console.log('📷 Capturando da câmera (mobile)...');
     const input = document.getElementById('mobileCameraInput');
     if (input) {
+        // Marcar que a próxima seleção virá da câmera
+        window.nextPhotoSource = 'camera';
         input.click();
     }
 }
@@ -2605,15 +2609,10 @@ function handlePhotoAdded(file, metadata = {}) {
     // Garantir que o array global existe
     if (!window.mobilePhotoData) window.mobilePhotoData = [];
 
-    // Determinar previewUrl: usar metadata primeiro, senão criar de File se disponível
-    let previewUrl = metadata.previewUrl || metadata.url;
-    if (!previewUrl && file) {
-        try {
-            previewUrl = URL.createObjectURL(file);
-        } catch (e) {
-            console.warn("⚠️ Erro ao criar preview URL:", e);
-            previewUrl = null;
-        }
+    // Atribuir fonte à foto
+    if (file && !file.source) {
+        file.source = window.nextPhotoSource || 'gallery';
+        window.nextPhotoSource = null; // Reset para a próxima
     }
 
     // Determinar filename e name
@@ -2684,16 +2683,21 @@ function createMobilePhotoCard(file, category) {
     const reader = new FileReader();
 
     reader.onload = function(e) {
-        // Download local imediato
-        try {
-            const downloadLink = document.createElement('a');
-            downloadLink.href = e.target.result;
-            downloadLink.download = `foto_obra_${Date.now()}_${file.name}`;
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-        } catch (downloadErr) {
-            console.warn("⚠️ Erro no download automático:", downloadErr);
+        // Download local imediato - APENAS PARA FOTOS DA CÂMERA
+        if (file.source === 'camera' || (file.name && file.name.includes('image.jpg'))) {
+            try {
+                const downloadLink = document.createElement('a');
+                downloadLink.href = e.target.result;
+                downloadLink.download = `foto_obra_${Date.now()}_${file.name}`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                console.log("📸 Download automático realizado (fonte: câmera)");
+            } catch (downloadErr) {
+                console.warn("⚠️ Erro no download automático:", downloadErr);
+            }
+        } else {
+            console.log("📁 Download automático pulado (fonte: galeria/arquivo)");
         }
 
         const photoCard = createPhotoCardHTML(photoId, e.target.result, category, file.name);
