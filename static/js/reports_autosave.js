@@ -464,9 +464,9 @@ class ReportsAutoSave {
                 uploaded.push({
                     id: img.savedId,
                     filename: img.name || img.filename,
-                    category: img.category,
-                    local: img.local,
-                    caption: img.manualCaption || img.predefinedCaption || img.caption,
+                    category: img.category || "falta preencher",
+                    local: img.local || "falta preencher",
+                    caption: img.manualCaption || img.predefinedCaption || img.caption || "falta preencher",
                     ordem: i
                 });
                 console.log(`📌 AutoSave - Imagem já salva no banco: ID ${img.savedId}`);
@@ -481,14 +481,16 @@ class ReportsAutoSave {
 
             try {
                 const tempId = await this.uploadImageTemp(img);
-                uploaded.push({
-                    temp_id: tempId,
-                    filename: img.name || img.filename,
-                    category: img.category,
-                    local: img.local,
-                    caption: img.manualCaption || img.predefinedCaption || img.caption,
-                    ordem: i
-                });
+                if (tempId) {
+                    uploaded.push({
+                        temp_id: tempId,
+                        filename: img.name || img.filename,
+                        category: img.category || "falta preencher",
+                        local: img.local || "falta preencher",
+                        caption: img.manualCaption || img.predefinedCaption || img.caption || "falta preencher",
+                        ordem: i
+                    });
+                }
             } catch (err) {
                 console.error(`❌ Falha ao enviar imagem ${i}:`, err);
             }
