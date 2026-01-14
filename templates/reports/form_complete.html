@@ -2802,41 +2802,41 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
                 <img src="${imageSrc}" 
                      alt="${filename}" 
                      data-photo-id="${photoId}"
-                     style="width: 100%; max-width: 200px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef; cursor: pointer;">
+                     style="width: 100%; max-width: 300px; height: auto; object-fit: cover; border-radius: 12px; border: 2px solid #e9ecef; cursor: pointer;">
             </div>
 
             <!-- Categoria (Seleção dentro do card) -->
             <div class="mb-2">
-                <label class="form-label fw-bold mb-1" style="font-size: 12px;">📁 Categoria</label>
+                <label class="form-label fw-bold mb-1" style="font-size: 12px;"><i class="fas fa-folder text-warning me-1"></i> Categoria</label>
                 <select class="form-select form-select-sm categoria-select" 
                         id="category_${photoId}" 
                         data-photo-id="${photoId}"
-                        style="border: 2px solid #007bff; font-size: 13px;">
-                    <option value="">${category ? category : 'Selecione...'}</option>
+                        style="border: 2px solid #007bff; font-size: 13px; border-radius: 8px;">
+                    <option value="">${category ? category : 'Sem categoria'}</option>
                 </select>
             </div>
 
             <!-- Local -->
             <div class="mb-2">
-                <label class="form-label fw-bold mb-1" style="font-size: 12px;">📍 Local</label>
+                <label class="form-label fw-bold mb-1" style="font-size: 12px;"><i class="fas fa-map-marker-alt text-danger me-1"></i> Local</label>
                 <input type="text" 
                        class="form-control form-control-sm local-input" 
                        id="local_${photoId}" 
                        placeholder="Ex: Sala principal, Fachada norte..."
                        data-photo-id="${photoId}"
-                       style="border: 2px solid #ff9800; font-size: 13px; padding: 6px;">
+                       style="border: 2px solid #ff9800; font-size: 13px; padding: 10px; border-radius: 8px;">
             </div>
 
             <!-- Legenda Manual -->
             <div class="mb-2">
-                <label class="form-label fw-bold mb-1" style="font-size: 12px;">📝 Legenda *</label>
+                <label class="form-label fw-bold mb-1" style="font-size: 12px;"><i class="fas fa-edit text-success me-1"></i> Legenda *</label>
                 <input type="text" 
                        class="form-control caption-input" 
                        id="manual_caption_${photoId}" 
                        placeholder="Digite uma legenda..."
                        data-photo-id="${photoId}"
                        required
-                       style="border: 2px solid #28a745; font-size: 13px; padding: 6px; background-color: #f8fff9;">
+                       style="border: 2px solid #28a745; font-size: 13px; padding: 10px; background-color: #f8fff9; border-radius: 8px;">
             </div>
 
             <!-- Legenda Pré-definida -->
@@ -2844,23 +2844,23 @@ function createPhotoCardHTML(photoId, imageSrc, category, filename) {
                 <select class="form-select form-select-sm caption-select" 
                         id="predefined_caption_${photoId}" 
                         data-photo-id="${photoId}"
-                        style="font-size: 12px;">
-                    <option value="">📋 Ou escolha uma legenda pré-definida...</option>
+                        style="font-size: 12px; border: 2px solid #007bff; border-radius: 8px; padding: 10px;">
+                    <option value="">📋 Ou escolha uma legenda pré-d</option>
                     ${legendaSelectHTML}
                 </select>
             </div>
 
             <!-- Status da Legenda -->
-            <div class="caption-status pending alert alert-warning py-1 px-2 mb-2" id="caption_status_${photoId}" style="font-size: 12px; margin: 0;">
-                ⚠️ Legenda obrigatória - preencha o campo acima
+            <div class="caption-status pending alert alert-warning py-2 px-3 mb-3" id="caption_status_${photoId}" style="font-size: 12px; border-radius: 8px; background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404;">
+                <i class="fas fa-exclamation-triangle me-1"></i> Legenda obrigatória - preencha o campo acima
             </div>
 
             <!-- Ações -->
-            <div class="d-flex gap-2 justify-content-center">
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editMobilePhoto('${photoId}')">
+            <div class="photo-card-actions d-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button type="button" class="btn btn-outline-primary photo-card-btn edit" onclick="editMobilePhoto('${photoId}')" style="border-radius: 8px; border: 2px solid #007bff;">
                     <i class="fas fa-edit"></i> Editar
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMobilePhoto('${photoId}')">
+                <button type="button" class="btn btn-outline-danger photo-card-btn delete" onclick="deleteMobilePhoto('${photoId}')" style="border-radius: 8px; border: 2px solid #dc3545;">
                     <i class="fas fa-trash"></i> Excluir
                 </button>
             </div>
