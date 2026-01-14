@@ -2684,16 +2684,24 @@ function createMobilePhotoCard(file, category) {
     const reader = new FileReader();
 
     reader.onload = function(e) {
-        // Download local imediato
-        try {
-            const downloadLink = document.createElement('a');
-            downloadLink.href = e.target.result;
-            downloadLink.download = `foto_obra_${Date.now()}_${file.name}`;
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-        } catch (downloadErr) {
-            console.warn("⚠️ Erro no download automático:", downloadErr);
+        // Download local imediato - APENAS se for captura de câmera direta
+        // Em dispositivos móveis, arquivos de câmera geralmente têm nomes específicos ou podemos detectar pela origem
+        const isCamera = file.name.startsWith('image') || file.name.includes('camera') || !file.lastModified;
+        
+        if (isCamera) {
+            try {
+                const downloadLink = document.createElement('a');
+                downloadLink.href = e.target.result;
+                downloadLink.download = `foto_obra_${Date.now()}_${file.name}`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                console.log("📸 Download automático acionado (Captura de Câmera)");
+            } catch (downloadErr) {
+                console.warn("⚠️ Erro no download automático:", downloadErr);
+            }
+        } else {
+            console.log("📁 Download automático pulado (Arquivo da Galeria)");
         }
 
         const photoCard = createPhotoCardHTML(photoId, e.target.result, category, file.name);
