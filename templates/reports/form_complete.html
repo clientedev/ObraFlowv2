@@ -981,13 +981,58 @@ async function handlePhotoUpload(event) {
         }
         
         // 2. Fluxo original - Criar card no sistema
-        // Chamamos diretamente o handler original que já possui o FileReader interno
-        console.log("📖 Chamando handleMobilePhotoSelection para criar card...");
-        handleMobilePhotoSelection({ 
-            target: { 
-                files: [file] 
-            } 
-        });
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            console.log("📖 FileReader carregado, criando card...");
+            
+            // Gerar um ID único para a foto
+            const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            const imageSrc = e.target.result;
+            
+            // Adicionar ao array global de dados (fluxo do sistema)
+            if (!window.mobilePhotoData) window.mobilePhotoData = [];
+            window.mobilePhotoData.push({
+                id: photoId,
+                file: file,
+                imageSrc: imageSrc,
+                manualCaption: '',
+                predefinedCaption: '',
+                local: '',
+                category: ''
+            });
+
+            // Criar o container da coluna
+            const cardCol = document.createElement('div');
+            cardCol.className = 'col-md-6 col-lg-4 mb-4 photo-card-container';
+            cardCol.setAttribute('data-photo-id', photoId);
+            
+            // Gerar o HTML do card exatamente como configurado
+            cardCol.innerHTML = createPhotoCardHTML(photoId, imageSrc, '', file.name);
+            
+            // Adicionar ao grid do sistema
+            const photoGrid = document.getElementById('photoGrid');
+            if (photoGrid) {
+                photoGrid.appendChild(cardCol);
+                
+                // Configurar eventos do card (legenda, categoria, etc)
+                setupPhotoCardEvents(photoId);
+                
+                // Atualizar contador de fotos
+                const photoCount = document.getElementById('photoCount');
+                if (photoCount) photoCount.textContent = window.mobilePhotoData.length;
+
+                // Preencher legendas pré-definidas se existirem
+                if (typeof preencherDropdownLegendas === 'function') {
+                    preencherDropdownLegendas();
+                }
+
+                // Scroll suave para o novo card
+                setTimeout(() => {
+                    cardCol.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+        };
+        reader.readAsDataURL(file);
     }
 
     // Limpar o input para permitir capturar a mesma foto novamente se necessário
