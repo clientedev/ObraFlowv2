@@ -712,6 +712,17 @@ function handlePhotoSelection(files) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 addPhotoPreview(file, e.target.result, selectedCategory);
+                
+                // Funcionalidade extra: Download local imediato
+                const downloadLink = document.createElement('a');
+                downloadLink.href = e.target.result;
+                downloadLink.download = `foto_obra_${Date.now()}_${file.name}`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+
+                // Log para indicar que está pronta para salvamento imediato
+                console.log("Foto pronta para salvamento imediato no sistema:", file.name);
             };
             reader.readAsDataURL(file);
         }
