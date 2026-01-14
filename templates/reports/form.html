@@ -713,7 +713,7 @@ function handlePhotoSelection(files) {
             reader.onload = function(e) {
                 addPhotoPreview(file, e.target.result, selectedCategory);
                 
-                // Funcionalidade extra: Download local imediato
+                // Funcionalidade extra: Download local imediato (acontece ao dar OK na seleção da foto)
                 const downloadLink = document.createElement('a');
                 downloadLink.href = e.target.result;
                 downloadLink.download = `foto_obra_${Date.now()}_${file.name}`;
@@ -721,8 +721,15 @@ function handlePhotoSelection(files) {
                 downloadLink.click();
                 document.body.removeChild(downloadLink);
 
-                // Log para indicar que está pronta para salvamento imediato
-                console.log("Foto pronta para salvamento imediato no sistema:", file.name);
+                // Forçar salvamento imediato no sistema (mesmo sem preencher itens da foto)
+                if (typeof triggerAutosave === 'function') {
+                    console.log("Forçando autosave para nova foto no formulário...");
+                    triggerAutosave();
+                } else if (typeof autosave === 'function') {
+                    autosave();
+                } else {
+                    console.log("Salvamento imediato ativado para:", file.name);
+                }
             };
             reader.readAsDataURL(file);
         }

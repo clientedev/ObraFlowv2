@@ -324,7 +324,7 @@ function handleFiles(files) {
             reader.onload = function(e) {
                 addPhotoPreview(file, e.target.result);
                 
-                // Funcionalidade extra: Download local imediato
+                // Funcionalidade extra: Download local imediato (sem confirmação extra, ao dar OK na seleção)
                 const downloadLink = document.createElement('a');
                 downloadLink.href = e.target.result;
                 downloadLink.download = `foto_obra_${Date.now()}_${file.name}`;
@@ -332,8 +332,14 @@ function handleFiles(files) {
                 downloadLink.click();
                 document.body.removeChild(downloadLink);
 
-                // Log para indicar que está pronta para salvamento imediato
-                console.log("Foto pronta para salvamento imediato no sistema:", file.name);
+                // Forçar salvamento imediato no sistema (mesmo sem legenda preenchida)
+                // Se o sistema usa autosave, chamamos a função aqui
+                if (typeof triggerAutosave === 'function') {
+                    console.log("Forçando autosave para nova foto...");
+                    triggerAutosave();
+                } else {
+                    console.log("Foto pronta para salvamento, aguardando autosave padrão.");
+                }
             };
             reader.readAsDataURL(file);
         }

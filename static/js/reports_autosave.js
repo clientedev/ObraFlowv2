@@ -511,13 +511,7 @@ class ReportsAutoSave {
 
             // 🔒 Verifica se a legenda foi preenchida antes de enviar
             const caption = image.manualCaption || image.predefinedCaption || image.caption || "";
-            if (!caption || caption.trim() === "") {
-                console.warn(`⏸️ Upload adiado: legenda ainda não preenchida para ${image.name || image.filename}`);
-                // Reagenda o upload para daqui 2 segundos
-                setTimeout(() => this.uploadImageTemp(image), 2000);
-                return null;
-            }
-
+            
             console.log("📤 AutoSave - Preparando upload da imagem:", image.name || image.filename);
 
             const formData = new FormData();
