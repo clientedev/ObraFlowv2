@@ -1036,10 +1036,10 @@ def api_autosave_relatorio():
                 print(f"📸 Imagem {idx}: {foto_info}")
                 logger.info(f"📸 Imagem {idx}: {foto_info}")
 
-                # Normalizar metadados para garantir "falta preencher"
-                category = foto_info.get('category') or foto_info.get('tipo_servico') or "falta preencher"
-                local = foto_info.get('local') or "falta preencher"
-                caption = foto_info.get('caption') or foto_info.get('legenda') or "falta preencher"
+                # Normalizar metadados para garantir "em branco"
+                category = foto_info.get('category') or foto_info.get('tipo_servico') or "em branco"
+                local = foto_info.get('local') or "em branco"
+                caption = foto_info.get('caption') or foto_info.get('legenda') or "em branco"
                 
                 # Deletar imagem marcada para remoção
                 if foto_info.get('deletar'):

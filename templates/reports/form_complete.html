@@ -2625,11 +2625,11 @@ function handlePhotoAdded(file, metadata = {}) {
         name: name,
         path: metadata.path || (file ? file.path : null) || null,
         previewUrl: previewUrl,
-        category: metadata.category || null,
-        local: metadata.local || null,
-        caption: metadata.caption || "",
-        manualCaption: metadata.manualCaption || "",
-        predefinedCaption: metadata.predefinedCaption || "",
+        category: metadata.category || "em branco",
+        local: metadata.local || "em branco",
+        caption: metadata.caption || "em branco",
+        manualCaption: metadata.manualCaption || "em branco",
+        predefinedCaption: metadata.predefinedCaption || "em branco",
         filename: filename,
         file: file || null,  // Pode ser null para fotos existentes
         blob: file || null,  // 🔥 Campo blob para compatibilidade com AutoSave
@@ -3924,18 +3924,18 @@ document.addEventListener("DOMContentLoaded", () => {
         file: null,  // Fotos existentes não têm file
         previewUrl: foto.url,
         url: foto.url,
-        category: foto.categoria || '',
-        local: foto.local || '',
-        caption: foto.legenda || '',
-        manualCaption: foto.legenda || '',
-        predefinedCaption: foto.legenda || '',
+        category: foto.categoria || 'em branco',
+        local: foto.local || 'em branco',
+        caption: foto.legenda || 'em branco',
+        manualCaption: foto.legenda || 'em branco',
+        predefinedCaption: foto.legenda || 'em branco',
         ordem: foto.ordem || index,
         isExisting: true,  // IMPORTANTE: marcar como existente
         metadata: {
-          legenda: foto.legenda || '',
-          categoria: foto.categoria || '',
-          tipo_servico: foto.categoria || '',
-          local: foto.local || ''
+          legenda: foto.legenda || 'em branco',
+          categoria: foto.categoria || 'em branco',
+          tipo_servico: foto.categoria || 'em branco',
+          local: foto.local || 'em branco'
         }
       };
       window.mobilePhotoData.push(photoData);

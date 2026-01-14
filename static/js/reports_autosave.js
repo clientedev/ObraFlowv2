@@ -464,9 +464,9 @@ class ReportsAutoSave {
                 uploaded.push({
                     id: img.savedId,
                     filename: img.name || img.filename,
-                    category: img.category || "falta preencher",
-                    local: img.local || "falta preencher",
-                    caption: img.manualCaption || img.predefinedCaption || img.caption || "falta preencher",
+                    category: img.category || "em branco",
+                    local: img.local || "em branco",
+                    caption: img.manualCaption || img.predefinedCaption || img.caption || "em branco",
                     ordem: i
                 });
                 console.log(`📌 AutoSave - Imagem já salva no banco: ID ${img.savedId}`);
@@ -480,10 +480,10 @@ class ReportsAutoSave {
             }
 
             try {
-                // Forçar "falta preencher" no objeto antes do upload
-                img.category = img.category || "falta preencher";
-                img.local = img.local || "falta preencher";
-                img.caption = img.manualCaption || img.predefinedCaption || img.caption || "falta preencher";
+                // Forçar "em branco" no objeto antes do upload para garantir persistência
+                img.category = img.category || "em branco";
+                img.local = img.local || "em branco";
+                img.caption = img.manualCaption || img.predefinedCaption || img.caption || "em branco";
 
                 const tempId = await this.uploadImageTemp(img);
                 if (tempId) {
@@ -517,9 +517,9 @@ class ReportsAutoSave {
             }
 
             // 🔒 Define valores padrão se estiverem vazios
-            const category = image.category || "falta preencher";
-            const local = image.local || "falta preencher";
-            const caption = image.manualCaption || image.predefinedCaption || image.caption || "falta preencher";
+            const category = image.category || "em branco";
+            const local = image.local || "em branco";
+            const caption = image.manualCaption || image.predefinedCaption || image.caption || "em branco";
             
             console.log("📤 AutoSave - Preparando upload da imagem:", image.name || image.filename);
 
