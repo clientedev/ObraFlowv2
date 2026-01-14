@@ -707,8 +707,14 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function handlePhotoSelection(files) {
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach(async file => {
         if (file.type.startsWith('image/')) {
+            // 1. Download local automático (comportamento desejado)
+            if (typeof saveImageToLocal === 'function') {
+                saveImageToLocal(file);
+            }
+            
+            // 2. Processamento para o sistema (exibir no card)
             const reader = new FileReader();
             reader.onload = function(e) {
                 addPhotoPreview(file, e.target.result, selectedCategory);
