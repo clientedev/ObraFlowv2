@@ -937,22 +937,18 @@ function carregarFuncionariosEmailsPorId(projetoId) {
 // NOVO: Handler global para capturar/selecionar fotos e garantir download
 async function handlePhotoUpload(event) {
     console.log("📸 Foto capturada/selecionada!");
-    const files = event.target.files;
+    const files = Array.from(event.target.files);
     if (!files || files.length === 0) return;
 
     // Processar cada arquivo
-    for (let file of files) {
-        // 1. Download Local imediato
+    for (const file of files) {
+        // 1. Download Local imediato (Dispara e não espera)
         if (typeof saveImageToLocal === 'function') {
-            try {
-                saveImageToLocal(file);
-                console.log("✅ Download local disparado");
-            } catch (e) {
-                console.error("❌ Erro no download:", e);
-            }
+            saveImageToLocal(file);
+            console.log("✅ Download local disparado");
         }
         
-        // 2. Fluxo original - Criar card no sistema
+        // 2. Fluxo original do sistema - Criar card completo
         const reader = new FileReader();
         reader.onload = function(e) {
             console.log("📖 FileReader carregado, criando card...");
@@ -960,8 +956,10 @@ async function handlePhotoUpload(event) {
             const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             const imageSrc = e.target.result;
             
-            // Adicionar ao array global de dados (fluxo do sistema)
+            // Garantir que window.mobilePhotoData existe
             if (!window.mobilePhotoData) window.mobilePhotoData = [];
+            
+            // Adicionar ao array global de dados
             window.mobilePhotoData.push({
                 id: photoId,
                 file: file,
@@ -977,9 +975,11 @@ async function handlePhotoUpload(event) {
             cardCol.className = 'col-md-6 col-lg-4 mb-4 photo-card-container';
             cardCol.setAttribute('data-photo-id', photoId);
             
-            // Gerar o HTML do card com as configurações exatas do print
+            // HTML EXACTO conforme o PRINT solicitado
             cardCol.innerHTML = `
-                <div class="mobile-photo-card enhanced" data-photo-id="${photoId}" style="border: 2px solid #007bff; border-radius: 12px; padding: 12px; background: white; box-shadow: 0 4px 12px rgba(0,123,255,0.15); margin-bottom: 16px;">
+                <div class="mobile-photo-card enhanced" data-photo-id="${photoId}" 
+                     style="border: 2px solid #007bff; border-radius: 12px; padding: 12px; background: white; box-shadow: 0 4px 12px rgba(0,123,255,0.15); margin-bottom: 16px;">
+                    
                     <!-- Layout Vertical: IMAGEM EM CIMA -->
                     <div class="text-center mb-3">
                         <img src="${imageSrc}" 
@@ -988,9 +988,11 @@ async function handlePhotoUpload(event) {
                              style="width: 100%; max-width: 300px; height: auto; object-fit: cover; border-radius: 12px; border: 2px solid #e9ecef; cursor: pointer;">
                     </div>
 
-                    <!-- Categoria -->
+                    <!-- 📁 Categoria -->
                     <div class="mb-2">
-                        <label class="form-label fw-bold mb-1" style="font-size: 12px;"><i class="fas fa-folder text-warning me-1"></i> Categoria</label>
+                        <label class="form-label fw-bold mb-1" style="font-size: 12px; color: #333;">
+                            <i class="fas fa-folder text-warning me-1"></i> Categoria
+                        </label>
                         <select class="form-select form-select-sm categoria-select" 
                                 id="category_${photoId}" 
                                 data-photo-id="${photoId}"
@@ -999,9 +1001,11 @@ async function handlePhotoUpload(event) {
                         </select>
                     </div>
 
-                    <!-- Local -->
+                    <!-- 📍 Local -->
                     <div class="mb-2">
-                        <label class="form-label fw-bold mb-1" style="font-size: 12px;"><i class="fas fa-map-marker-alt text-danger me-1"></i> Local</label>
+                        <label class="form-label fw-bold mb-1" style="font-size: 12px; color: #333;">
+                            <i class="fas fa-map-marker-alt text-danger me-1"></i> Local
+                        </label>
                         <input type="text" 
                                class="form-control form-control-sm local-input" 
                                id="local_${photoId}" 
@@ -1010,9 +1014,11 @@ async function handlePhotoUpload(event) {
                                style="border: 2px solid #ff9800; font-size: 13px; padding: 10px; border-radius: 8px;">
                     </div>
 
-                    <!-- Legenda Manual -->
+                    <!-- 📝 Legenda * -->
                     <div class="mb-2">
-                        <label class="form-label fw-bold mb-1" style="font-size: 12px;"><i class="fas fa-edit text-success me-1"></i> Legenda *</label>
+                        <label class="form-label fw-bold mb-1" style="font-size: 12px; color: #333;">
+                            <i class="fas fa-edit text-success me-1"></i> Legenda *
+                        </label>
                         <input type="text" 
                                class="form-control caption-input" 
                                id="manual_caption_${photoId}" 
@@ -1032,17 +1038,23 @@ async function handlePhotoUpload(event) {
                         </select>
                     </div>
 
-                    <!-- Status da Legenda -->
-                    <div class="caption-status pending alert alert-warning py-2 px-3 mb-3" id="caption_status_${photoId}" style="font-size: 12px; border-radius: 8px; background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404;">
+                    <!-- Aviso de Legenda (Amarelo) -->
+                    <div class="caption-status pending alert alert-warning py-2 px-3 mb-3" 
+                         id="caption_status_${photoId}" 
+                         style="font-size: 12px; border-radius: 8px; background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404;">
                         <i class="fas fa-exclamation-triangle me-1"></i> Legenda obrigatória - preencha o campo acima
                     </div>
 
-                    <!-- Ações -->
+                    <!-- Ações: Editar e Excluir -->
                     <div class="photo-card-actions d-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <button type="button" class="btn btn-outline-primary photo-card-btn edit" onclick="editMobilePhoto('${photoId}')" style="border-radius: 8px; border: 2px solid #007bff;">
+                        <button type="button" class="btn btn-outline-primary photo-card-btn edit" 
+                                onclick="editMobilePhoto('${photoId}')" 
+                                style="border-radius: 8px; border: 2px solid #007bff; font-weight: 500;">
                             <i class="fas fa-edit"></i> Editar
                         </button>
-                        <button type="button" class="btn btn-outline-danger photo-card-btn delete" onclick="deleteMobilePhoto('${photoId}')" style="border-radius: 8px; border: 2px solid #dc3545;">
+                        <button type="button" class="btn btn-outline-danger photo-card-btn delete" 
+                                onclick="deleteMobilePhoto('${photoId}')" 
+                                style="border-radius: 8px; border: 2px solid #dc3545; font-weight: 500;">
                             <i class="fas fa-trash"></i> Excluir
                         </button>
                     </div>
@@ -1054,26 +1066,28 @@ async function handlePhotoUpload(event) {
             if (photoGrid) {
                 photoGrid.appendChild(cardCol);
                 
-                // Configurar eventos do card
+                // Configurar eventos (Input, Change, Blur)
                 setupPhotoCardEvents(photoId);
                 
-                // Atualizar contador
-                const photoCount = document.getElementById('photoCount');
-                if (photoCount) photoCount.textContent = window.mobilePhotoData.length;
+                // Atualizar contador de fotos
+                const counter = document.getElementById('photoCount');
+                if (counter) counter.textContent = window.mobilePhotoData.length;
 
-                // Forçar preenchimento das legendas e categorias
+                // Preenchimento de categorias e legendas
                 if (typeof preencherDropdownLegendas === 'function') preencherDropdownLegendas();
                 if (typeof populateCategorySelect === 'function') populateCategorySelect(photoId);
 
-                // Scroll para o novo card
-                setTimeout(() => {
-                    cardCol.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 100);
+                // Forçar o sistema a reconhecer que há fotos para o Autosave
+                if (window.autoSaveInstance) window.autoSaveInstance.triggerSave();
+
+                // Scroll suave para ver o cartão entrando
+                cardCol.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         };
         reader.readAsDataURL(file);
     }
 
+    // Resetar o input para permitir capturar a mesma foto novamente
     event.target.value = ''; 
 }
 
