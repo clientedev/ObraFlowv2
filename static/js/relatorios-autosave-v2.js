@@ -351,9 +351,9 @@ class RelatorioAutoSave {
         const payload = {
             id: this.relatorioId,
             projeto_id: this.projetoId,
-            titulo: this.getFieldValue('titulo'),
-            categoria: this.getFieldValue('categoria'),
-            local: this.getFieldValue('local'),
+            titulo: this.getFieldValue('titulo') || 'Relatório sem título',
+            categoria: this.getFieldValue('categoria') || 'falta preencher',
+            local: this.getFieldValue('local') || 'falta preencher',
             observacoes_finais: this.getFieldValue('observacoes_finais'),
             lembrete_proxima_visita: this.getFieldValue('lembrete_proxima_visita'),
             conteudo: this.getFieldValue('conteudo'),
@@ -366,10 +366,10 @@ class RelatorioAutoSave {
                 extension: img.extension,
                 url: img.url,
                 filename: img.filename,
-                legenda: img.legenda,
+                legenda: img.legenda || 'falta preencher',
                 titulo: img.titulo,
-                tipo_servico: img.tipo_servico,
-                local: img.local,
+                tipo_servico: img.tipo_servico || 'falta preencher',
+                local: img.local || 'falta preencher',
                 ordem: img.ordem,
                 deletar: img.deletar || false
             }))

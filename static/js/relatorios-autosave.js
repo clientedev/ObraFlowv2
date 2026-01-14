@@ -610,9 +610,9 @@ class ReportAutoSave {
             
             imagens.push({
                 id: imageId ? parseInt(imageId) : null,
-                legenda: legendaInput ? legendaInput.value : '',
-                category: categoriaInput ? categoriaInput.value : '',
-                local: localInput ? localInput.value : '',
+                legenda: (legendaInput && legendaInput.value) ? legendaInput.value : 'falta preencher',
+                category: (categoriaInput && categoriaInput.value) ? categoriaInput.value : 'falta preencher',
+                local: (localInput && localInput.value) ? localInput.value : 'falta preencher',
                 ordem: index
             });
         });
