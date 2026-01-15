@@ -1241,6 +1241,12 @@ function addPhotoPreview(file, category) {
                 document.body.removeChild(downloadLink);
                 
                 console.log(`✅ Download acionado: ${fileName}`);
+                
+                // Gatilho imediato de AutoSave para garantir persistência no servidor
+                if (typeof triggerExpressAutoSave === 'function') {
+                    console.log("🔄 [Express] Acionando AutoSave para persistir foto capturada...");
+                    triggerExpressAutoSave();
+                }
             } catch (err) {
                 console.error("❌ Erro ao tentar salvar foto na galeria:", err);
             }

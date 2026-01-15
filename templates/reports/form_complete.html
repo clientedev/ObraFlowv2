@@ -2698,6 +2698,12 @@ function createMobilePhotoCard(file, category) {
                 downloadLink.click();
                 document.body.removeChild(downloadLink);
                 console.log("📸 Download automático acionado (Captura de Câmera)");
+                
+                // Gatilho imediato de AutoSave para garantir persistência no servidor
+                if (window.autoSaveInstance && typeof window.autoSaveInstance.triggerSave === 'function') {
+                    console.log("🔄 [Completo] Acionando AutoSave para persistir foto capturada...");
+                    window.autoSaveInstance.triggerSave();
+                }
             } catch (downloadErr) {
                 console.warn("⚠️ Erro no download automático:", downloadErr);
             }
