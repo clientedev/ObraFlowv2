@@ -1550,18 +1550,44 @@ function savePhotoDataExpress(photoId) {
 }
 
 function removePhoto(photoId) {
-    const element = document.getElementById(photoId);
-    if (element) {
-        element.remove();
+    const photoIndex = selectedPhotos.findIndex(p => p.id === photoId);
+    if (photoIndex === -1) {
+        // Fallback para quando o ID não é encontrado no array (pode acontecer com IDs temporários sincronizados)
+        const element = document.getElementById(photoId);
+        if (element) element.remove();
+        triggerExpressAutoSave();
+        return;
     }
-    selectedPhotos = selectedPhotos.filter(p => p.id !== photoId);
-    updatePhotoCount();
+
+    const photo = selectedPhotos[photoIndex];
     
-    if (selectedPhotos.length === 0) {
-        document.getElementById('quickPhotoActions').style.display = 'none';
+    if (confirm('Deseja excluir esta foto?')) {
+        // Se a foto já foi salva (tem savedId), marcar para exclusão no servidor
+        if (photo.savedId) {
+            if (!window.deletedPhotos) window.deletedPhotos = [];
+            window.deletedPhotos.push({
+                id: photo.savedId,
+                deletar: true
+            });
+            console.log(`🗑️ [Express] Foto ID ${photo.savedId} marcada para exclusão`);
+        }
+        
+        // Remover do array local e do DOM
+        selectedPhotos.splice(photoIndex, 1);
+        const element = document.getElementById(photoId);
+        if (element) element.remove();
+        
+        updatePhotoCount();
+        
+        if (selectedPhotos.length === 0) {
+            const quickActions = document.getElementById('quickPhotoActions');
+            if (quickActions) quickActions.style.display = 'none';
+        }
+        
+        // Gatilho imediato de AutoSave para persistir a exclusão
+        console.log("🔄 [Express] Forçando AutoSave para persistir exclusão...");
+        performExpressAutoSave();
     }
-    
-    triggerExpressAutoSave();
 }
 
 function updatePhotoCount() {
