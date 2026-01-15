@@ -926,7 +926,7 @@ function removeExistingPhoto(photoId, dbId) {
 
 let expressAutoSaveTimer = null;
 let expressAutoSaveInterval = null;
-const EXPRESS_AUTOSAVE_DELAY = 3000;
+const EXPRESS_AUTOSAVE_DELAY = 300; // Reduzido de 3000 para 300ms para salvamento quase instantâneo
 
 function initExpressAutoSave() {
     const form = document.getElementById('expressReportForm');
