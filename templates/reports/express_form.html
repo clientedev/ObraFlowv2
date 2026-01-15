@@ -1209,16 +1209,22 @@ function handlePhotoUpload(event) {
 
     for (let file of files) {
         if (selectedPhotos.length >= 200) break;
-        addPhotoPreview(file, '');
+        await addPhotoPreview(file, '');
     }
+
+    // Forçar AutoSave IMEDIATO após processar todas as fotos
+    console.log("📸 [Express] Todas as fotos processadas, forçando AutoSave imediato...");
+    if (expressAutoSaveTimer) clearTimeout(expressAutoSaveTimer);
+    performExpressAutoSave();
 
     event.target.value = '';
     updatePhotoCount();
 }
 
-function addPhotoPreview(file, category) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
+async function addPhotoPreview(file, category) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
         const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const src = e.target.result;
 
@@ -1317,8 +1323,12 @@ function addPhotoPreview(file, category) {
         `;
 
         cardsContainer.appendChild(photoDiv);
-
-        const photoData = {
+        
+        // ... (resto do código de criação do photoData)
+        resolve();
+    };
+    reader.readAsDataURL(file);
+}
             id: photoId,
             file: file,
             category: category,
