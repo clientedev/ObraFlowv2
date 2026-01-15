@@ -253,15 +253,17 @@ class RelatorioAutoSave {
     }
 
     removeImage(imageObj) {
-        // Marcar para deletar no próximo autosave
+        // Se a imagem já existe no banco (tem id), marcar para deletar no próximo autosave
         if (imageObj.id) {
             imageObj.deletar = true;
+            console.log(`🗑️ AutoSave: Marcando imagem ID ${imageObj.id} para exclusão`);
         } else {
-            // Se ainda não tem id, apenas remover da lista
+            // Se ainda não tem id (apenas temp), remover da lista local
             const index = this.imagens.indexOf(imageObj);
             if (index > -1) {
                 this.imagens.splice(index, 1);
             }
+            console.log(`🗑️ AutoSave: Removendo imagem temporária ${imageObj.temp_id}`);
         }
 
         // Remover do DOM
@@ -272,8 +274,10 @@ class RelatorioAutoSave {
             if (card) card.remove();
         }
 
+        // Marcar como alterado e SALVAR IMEDIATAMENTE para persistir a exclusão
         this.markChanged();
-        this.debouncedSave();
+        console.log("🔄 AutoSave: Forçando salvamento para persistir exclusão...");
+        this.executeSave();
     }
 
     markChanged() {
