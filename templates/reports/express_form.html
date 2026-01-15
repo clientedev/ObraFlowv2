@@ -1324,11 +1324,7 @@ async function addPhotoPreview(file, category) {
 
         cardsContainer.appendChild(photoDiv);
         
-        // ... (resto do código de criação do photoData)
-        resolve();
-    };
-    reader.readAsDataURL(file);
-}
+        const photoData = {
             id: photoId,
             file: file,
             category: category,
@@ -1356,15 +1352,15 @@ async function addPhotoPreview(file, category) {
         
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
         
-        fetch('/api/uploads/temp', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': csrfToken
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
+        try {
+            const response = await fetch('/api/uploads/temp', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            });
+            const data = await response.json();
             if (data.success) {
                 console.log("✅ [Express] Foto salva temporariamente:", data.temp_id);
                 photoData.tempId = data.temp_id;
@@ -1377,14 +1373,13 @@ async function addPhotoPreview(file, category) {
             } else {
                 throw new Error(data.error || 'Erro desconhecido');
             }
-        })
-        .catch(error => {
+        } catch (error) {
             console.error("❌ [Express] Erro no salvamento imediato:", error);
             const indicator = photoDiv.querySelector('.upload-status-express');
             if (indicator) {
                 indicator.innerHTML = '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Erro ao salvar</span>';
             }
-        });
+        }
 
         loadPredefinedCaptionsForPhoto(photoId, category);
         setupPhotoCardEventsExpress(photoId);
@@ -1404,6 +1399,8 @@ async function addPhotoPreview(file, category) {
                 }
             }
         }, 300);
+
+        resolve();
     };
     reader.readAsDataURL(file);
 }
