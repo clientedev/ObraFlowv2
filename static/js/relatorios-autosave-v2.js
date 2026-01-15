@@ -465,8 +465,14 @@ class RelatorioAutoSave {
             }
         });
 
-        // Remover imagens marcadas para deletar
+        // ✅ CORREÇÃO CRÍTICA: Filtrar a lista de imagens para remover permanentemente as marcadas como deletar
+        // Isso impede que elas sejam reenviadas no próximo payload do AutoSave
+        const antes = this.imagens.length;
         this.imagens = this.imagens.filter(img => !img.deletar);
+        const depois = this.imagens.length;
+        if (antes !== depois) {
+            console.log(`🧹 AutoSave: ${antes - depois} imagem(ns) removida(s) da lista de sincronização após exclusão confirmada.`);
+        }
     }
 
     async handleSaveError(error) {

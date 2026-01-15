@@ -1053,7 +1053,12 @@ async function performExpressAutoSave() {
             });
         }
         
-        window.deletedPhotos = [];
+        // ✅ CORREÇÃO CRÍTICA: Limpar permanentemente as fotos deletadas após o sucesso do AutoSave
+        // Isso garante que no próximo ciclo elas não existam nem na lista de pendentes
+        if (window.deletedPhotos && window.deletedPhotos.length > 0) {
+            console.log(`🧹 [Express] Limpando ${window.deletedPhotos.length} fotos confirmadas para exclusão.`);
+            window.deletedPhotos = [];
+        }
         
         showExpressAutoSaveStatus('Salvo automaticamente', 'success');
         
