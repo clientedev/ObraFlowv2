@@ -961,6 +961,25 @@ function initExpressAutoSave() {
             performExpressAutoSave();
         }
     });
+
+    // Garantia Final com Beacon API e Visibility API
+    const handleExpressUnload = () => {
+        if (expressReportId && !isSavingExpress) {
+            console.log('⚠️ Express AutoSave: Saindo... Usando Beacon API para garantir persistência.');
+            collectExpressFormData().then(payload => {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+                const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+                // Nota: Beacon não suporta headers customizados como X-CSRFToken facilmente
+                // Mas muitas APIs aceitam o token no payload ou cookies
+                navigator.sendBeacon('/api/relatorios-express/autosave', blob);
+            });
+        }
+    };
+
+    window.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') handleExpressUnload();
+    });
+    window.addEventListener('pagehide', handleExpressUnload);
     
     console.log("✅ Express AutoSave inicializado");
 }

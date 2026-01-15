@@ -54,7 +54,26 @@ class RelatorioAutoSave {
         // Iniciar intervalo periódico
         this.startPeriodicSave();
 
+        // Persistência ao sair (Garantia Final)
+        this.setupUnloadPersistence();
+
         console.log('✅ AutoSave: Sistema inicializado');
+    }
+
+    setupUnloadPersistence() {
+        const handleUnload = () => {
+            if (this.alteracoesPendentes && this.relatorioId) {
+                console.log('⚠️ AutoSave: Navegação detectada com alterações pendentes. Usando Beacon API...');
+                const payload = this.collectFormData();
+                const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+                navigator.sendBeacon('/api/relatorios/autosave', blob);
+            }
+        };
+
+        window.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') handleUnload();
+        });
+        window.addEventListener('pagehide', handleUnload);
     }
 
     loadFormData() {
