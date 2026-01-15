@@ -1227,13 +1227,23 @@ function addPhotoPreview(file, category) {
         const isCamera = (file.lastModified && (Date.now() - file.lastModified < 30000));
         
         if (isCamera) {
-            console.log("📷 [Express] Captura de câmera detectada. Iniciando download...");
-            const downloadLink = document.createElement('a');
-            downloadLink.href = src;
-            downloadLink.download = `foto_obra_express_${Date.now()}_${file.name}`;
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
+            console.log("📷 [Express] Captura de câmera detectada. Iniciando salvamento...");
+            try {
+                const timestamp = new Date().getTime();
+                const fileName = `foto_obra_express_${timestamp}.jpg`;
+                
+                // Forçar download para salvar na galeria
+                const downloadLink = document.createElement('a');
+                downloadLink.href = src;
+                downloadLink.download = fileName;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                
+                console.log(`✅ Download acionado: ${fileName}`);
+            } catch (err) {
+                console.error("❌ Erro ao tentar salvar foto na galeria:", err);
+            }
         } else {
             console.log("📁 [Express] Seleção de galeria detectada. Download ignorado.");
         }

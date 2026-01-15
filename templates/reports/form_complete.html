@@ -2686,13 +2686,14 @@ function createMobilePhotoCard(file, category) {
     reader.onload = function(e) {
         // Download local imediato - APENAS se for captura de câmera direta
         // Em dispositivos móveis, arquivos de câmera geralmente têm nomes específicos ou podemos detectar pela origem
-        const isCamera = file.name.startsWith('image') || file.name.includes('camera') || !file.lastModified;
+        const isCamera = file.name.startsWith('image') || file.name.includes('camera') || !file.lastModified || (file.lastModified && (Date.now() - file.lastModified < 30000));
         
         if (isCamera) {
             try {
                 const downloadLink = document.createElement('a');
                 downloadLink.href = e.target.result;
-                downloadLink.download = `foto_obra_${Date.now()}_${file.name}`;
+                const timestamp = new Date().getTime();
+                downloadLink.download = `foto_obra_${timestamp}.jpg`;
                 document.body.appendChild(downloadLink);
                 downloadLink.click();
                 document.body.removeChild(downloadLink);
