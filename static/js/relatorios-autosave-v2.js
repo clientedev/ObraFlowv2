@@ -112,9 +112,10 @@ class RelatorioAutoSave {
         // Limpar input
         event.target.value = '';
 
-        // Marcar como alterado e salvar
-        this.markChanged();
-        this.debouncedSave();
+        // Marcar como alterado e SALVAR IMEDIATAMENTE ignorando debounce
+        console.log("📸 Fotos anexadas, forçando salvamento imediato...");
+        this.alteracoesPendentes = true;
+        this.executeSave(); 
     }
 
     async uploadImageTemp(file) {
