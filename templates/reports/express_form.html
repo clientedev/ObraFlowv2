@@ -1109,6 +1109,53 @@ function updatePhotoDataExpress(photoId) {
     }
 }
 
+/**
+ * Compacta imagem no lado do cliente (Express)
+ */
+async function compressImageClient(file) {
+    if (!file.type.startsWith('image/')) return file;
+    
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const max_size = 1600;
+                
+                if (width > height) {
+                    if (width > max_size) {
+                        height *= max_size / width;
+                        width = max_size;
+                    }
+                } else {
+                    if (height > max_size) {
+                        width *= max_size / height;
+                        height = max_size;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                canvas.toBlob((blob) => {
+                    const compressedFile = new File([blob], file.name, {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    resolve(compressedFile);
+                }, 'image/jpeg', 0.7);
+            };
+        };
+    });
+}
+
 function applyPredefinedCaptionExpress(photoId) {
     const select = document.getElementById('predefined_caption_' + photoId);
     const captionInput = document.getElementById('manual_caption_' + photoId);
@@ -1353,9 +1400,13 @@ async function addPhotoPreview(file, category) {
         selectedPhotos.push(photoData);
 
         // Forçar salvamento imediato no sistema
-        console.log("🚀 [Express] Iniciando salvamento imediato...");
+        console.log("🚀 [Express] Iniciando salvamento imediato com compactação...");
+        
+        // Compactação cliente-side
+        const compressedFile = await compressImageClient(file);
+        
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', compressedFile);
         formData.append('category', category || '');
         
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";

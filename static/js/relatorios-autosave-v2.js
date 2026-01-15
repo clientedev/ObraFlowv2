@@ -128,10 +128,15 @@ class RelatorioAutoSave {
 
     async uploadImageTemp(file) {
         try {
+            this.showStatus('Compactando imagem...', 'uploading');
+            
+            // Compactação no lado do cliente
+            const compressedFile = await this.compressImage(file);
+            
             this.showStatus('Enviando imagem...', 'uploading');
 
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', compressedFile);
 
             const response = await fetch('/api/uploads/temp', {
                 method: 'POST',
@@ -511,6 +516,54 @@ class RelatorioAutoSave {
         if (this.intervalTimer) clearInterval(this.intervalTimer);
 
         console.log('🛑 AutoSave: Sistema destruído');
+    }
+
+    /**
+     * Compacta imagem no lado do cliente
+     */
+    async compressImage(file) {
+        if (!file.type.startsWith('image/')) return file;
+        
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Redimensionar se for muito grande (max 1600px)
+                    const max_size = 1600;
+                    if (width > height) {
+                        if (width > max_size) {
+                            height *= max_size / width;
+                            width = max_size;
+                        }
+                    } else {
+                        if (height > max_size) {
+                            width *= max_size / height;
+                            height = max_size;
+                        }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    canvas.toBlob((blob) => {
+                        const compressedFile = new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        resolve(compressedFile);
+                    }, 'image/jpeg', 0.7); // 70% de qualidade
+                };
+            };
+        });
     }
 }
 
