@@ -113,9 +113,17 @@ class RelatorioAutoSave {
         event.target.value = '';
 
         // Marcar como alterado e SALVAR IMEDIATAMENTE ignorando debounce
-        console.log("📸 Fotos anexadas, forçando salvamento imediato...");
+        console.log("📸 Fotos anexadas, forçando salvamento imediato e persistente...");
         this.alteracoesPendentes = true;
-        this.executeSave(); 
+        
+        // Pequeno delay para garantir que o DOM de preview foi atualizado se houver dependência
+        setTimeout(async () => {
+            await this.executeSave();
+            // Salva uma segunda vez após um pequeno intervalo para garantir a última imagem
+            setTimeout(() => {
+                if (this.alteracoesPendentes) this.executeSave();
+            }, 1000);
+        }, 300);
     }
 
     async uploadImageTemp(file) {

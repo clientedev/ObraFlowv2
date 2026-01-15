@@ -1213,9 +1213,17 @@ function handlePhotoUpload(event) {
     }
 
     // Forçar AutoSave IMEDIATO após processar todas as fotos
-    console.log("📸 [Express] Todas as fotos processadas, forçando AutoSave imediato...");
+    console.log("📸 [Express] Todas as fotos processadas, forçando salvamento final...");
     if (expressAutoSaveTimer) clearTimeout(expressAutoSaveTimer);
-    performExpressAutoSave();
+    
+    // Primeiro salvamento imediato
+    await performExpressAutoSave();
+    
+    // Segundo salvamento de segurança após 1.5s para garantir que a última foto foi incluída no payload
+    setTimeout(() => {
+        console.log("🔄 [Express] Salvamento de segurança para garantir última foto...");
+        performExpressAutoSave();
+    }, 1500);
 
     event.target.value = '';
     updatePhotoCount();
