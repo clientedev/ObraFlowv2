@@ -14,10 +14,10 @@
 class RelatorioAutoSave {
     constructor(config = {}) {
         // Configurações
-        this.debounceDelay = config.debounceDelay || 800;  // 800ms para typing
-        this.saveInterval = config.saveInterval || 5000;  // 5s intervalo periódico
-        this.maxRetries = config.maxRetries || 3;
-        this.retryDelays = config.retryDelays || [2000, 5000, 10000];  // Backoff: 2s, 5s, 10s
+        this.debounceDelay = config.debounceDelay || 300;  // Reduzido de 800ms para 300ms
+        this.saveInterval = config.saveInterval || 3000;  // Reduzido de 5s para 3s
+        this.maxRetries = config.maxRetries || 5;         // Aumentado retentativas
+        this.retryDelays = config.retryDelays || [1000, 2000, 5000, 10000]; // Backoff mais agressivo no início
 
         // Estado
         this.relatorioId = null;
@@ -270,7 +270,7 @@ class RelatorioAutoSave {
         }, this.saveInterval);
     }
 
-    async executeSave() {
+    executeSave() {
         // Evitar concorrência
         if (this.salvando) {
             this.pendentePosSave = true;
@@ -285,6 +285,10 @@ class RelatorioAutoSave {
         this.salvando = true;
         this.showStatus('Salvando...', 'saving');
 
+        this._performSave();
+    }
+
+    async _performSave() {
         try {
             // Coletar dados do formulário
             const payload = this.collectFormData();
