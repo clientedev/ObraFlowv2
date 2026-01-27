@@ -164,6 +164,20 @@ class Projeto(db.Model):
     numeracao_inicial = db.Column(db.Integer, default=1, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Informações Técnicas (todos opcionais)
+    elementos_construtivos_base = db.Column(db.Text, nullable=True)
+    especificacao_chapisco_colante = db.Column(db.Text, nullable=True)
+    especificacao_chapisco_alvenaria = db.Column(db.Text, nullable=True)
+    especificacao_argamassa_emboco = db.Column(db.Text, nullable=True)
+    forma_aplicacao_argamassa = db.Column(db.Text, nullable=True)
+    acabamentos_revestimento = db.Column(db.Text, nullable=True)
+    acabamento_peitoris = db.Column(db.Text, nullable=True)
+    acabamento_muretas = db.Column(db.Text, nullable=True)
+    definicao_frisos_cor = db.Column(db.Text, nullable=True)
+    definicao_face_inferior_abas = db.Column(db.Text, nullable=True)
+    observacoes_projeto_fachada = db.Column(db.Text, nullable=True)
+    outras_observacoes = db.Column(db.Text, nullable=True)
+    
     @property
     def responsavel(self):
         return db.session.get(User, self.responsavel_id)

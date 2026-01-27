@@ -5047,7 +5047,22 @@ def project_new():
                 projeto.responsavel_id = form.responsavel_id.data
                 projeto.email_principal = contatos[0].get('email', '') if contatos else ''  # Primeiro contato como email padrão
                 projeto.status = form.status.data
+                projeto.status = form.status.data
                 projeto.numeracao_inicial = form.numeracao_inicial.data or 1
+
+                # Informações Técnicas
+                projeto.elementos_construtivos_base = form.elementos_construtivos_base.data
+                projeto.especificacao_chapisco_colante = form.especificacao_chapisco_colante.data
+                projeto.especificacao_chapisco_alvenaria = form.especificacao_chapisco_alvenaria.data
+                projeto.especificacao_argamassa_emboco = form.especificacao_argamassa_emboco.data
+                projeto.forma_aplicacao_argamassa = form.forma_aplicacao_argamassa.data
+                projeto.acabamentos_revestimento = form.acabamentos_revestimento.data
+                projeto.acabamento_peitoris = form.acabamento_peitoris.data
+                projeto.acabamento_muretas = form.acabamento_muretas.data
+                projeto.definicao_frisos_cor = form.definicao_frisos_cor.data
+                projeto.definicao_face_inferior_abas = form.definicao_face_inferior_abas.data
+                projeto.observacoes_projeto_fachada = form.observacoes_projeto_fachada.data
+                projeto.outras_observacoes = form.outras_observacoes.data
 
                 db.session.add(projeto)
                 db.session.flush()  # Get the project ID
@@ -5252,6 +5267,20 @@ def project_edit(project_id):
             project.responsavel_id = form.responsavel_id.data
             project.status = form.status.data
             project.numeracao_inicial = form.numeracao_inicial.data or 1
+
+            # Informações Técnicas
+            project.elementos_construtivos_base = form.elementos_construtivos_base.data
+            project.especificacao_chapisco_colante = form.especificacao_chapisco_colante.data
+            project.especificacao_chapisco_alvenaria = form.especificacao_chapisco_alvenaria.data
+            project.especificacao_argamassa_emboco = form.especificacao_argamassa_emboco.data
+            project.forma_aplicacao_argamassa = form.forma_aplicacao_argamassa.data
+            project.acabamentos_revestimento = form.acabamentos_revestimento.data
+            project.acabamento_peitoris = form.acabamento_peitoris.data
+            project.acabamento_muretas = form.acabamento_muretas.data
+            project.definicao_frisos_cor = form.definicao_frisos_cor.data
+            project.definicao_face_inferior_abas = form.definicao_face_inferior_abas.data
+            project.observacoes_projeto_fachada = form.observacoes_projeto_fachada.data
+            project.outras_observacoes = form.outras_observacoes.data
             
             # Processar exclusões de contatos
             contatos_excluidos = request.form.getlist('contatos_excluidos[]')

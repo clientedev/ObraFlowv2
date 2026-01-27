@@ -61,6 +61,20 @@ class ProjetoForm(FlaskForm):
         ('Pausado', 'Pausado'),
         ('Concluído', 'Concluído')
     ], default='Não iniciado')
+    
+    # Informações Técnicas (todos opcionais)
+    elementos_construtivos_base = TextAreaField('Elementos construtivos da base', validators=[Optional()])
+    especificacao_chapisco_colante = TextAreaField('Especificação chapisco colante', validators=[Optional()])
+    especificacao_chapisco_alvenaria = TextAreaField('Especificação chapisco da alvenaria', validators=[Optional()])
+    especificacao_argamassa_emboco = TextAreaField('Especificação da argamassa de emboço', validators=[Optional()])
+    forma_aplicacao_argamassa = TextAreaField('Forma da aplicação da argamassa de emboço', validators=[Optional()])
+    acabamentos_revestimento = TextAreaField('Acabamentos do revestimento', validators=[Optional()])
+    acabamento_peitoris = TextAreaField('Acabamento em peitoris de janela', validators=[Optional()])
+    acabamento_muretas = TextAreaField('Acabamento em muretas de terraços', validators=[Optional()])
+    definicao_frisos_cor = TextAreaField('Definição sobre frisos de mudança de cor de textura', validators=[Optional()])
+    definicao_face_inferior_abas = TextAreaField('Definição sobre face inferior das abas (friso pingadeira ou cimento invertido)', validators=[Optional()])
+    observacoes_projeto_fachada = TextAreaField('Caso haja projeto de fachada, especificar o projetista e fazer observações sobre procedimentos específicos ou divergências de orientações', validators=[Optional()])
+    outras_observacoes = TextAreaField('Outras observações', validators=[Optional()])
 
     def __init__(self, *args, **kwargs):
         super(ProjetoForm, self).__init__(*args, **kwargs)

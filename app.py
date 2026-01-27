@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import logging
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
