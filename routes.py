@@ -925,6 +925,7 @@ def api_projeto_funcionarios_emails(projeto_id):
                 'observacoes_projeto_fachada': projeto.observacoes_projeto_fachada or '',
                 'outras_observacoes': projeto.outras_observacoes or ''
             }
+        }
 
         current_app.logger.info(f"✅ API retornando: {len(funcionarios_data)} funcionários, {len(emails_data)} e-mails")
         current_app.logger.info(f"📤 Response completo: {response_data}")
