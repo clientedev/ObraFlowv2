@@ -928,42 +928,15 @@ function saveTechnicalInfo() {
 
 // Initial setup
 document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('projeto_id').value) {
+    const projetoId = document.getElementById('projeto_id').value;
+    if (projetoId) {
         setupTechnicalInfoAutosave();
-        // Carregar dados técnicos e emails SE houver projeto selecionado (edit mode ou url param)
-        // Isso garante que os campos técnicos sejam preenchidos ao carregar a página
-        carregarFuncionariosEmails();
+        // Carregar dados técnicos e emails SE houver projeto selecionado
+        carregarFuncionariosParaAcompanhantes(projetoId);
     }
 });
 
-// Atualizar carregarFuncionariosEmailsPorId para preencher dados técnicos
-function carregarFuncionariosEmailsPorId(projetoId) {
-    if (!projetoId) return;
 
-    fetch(`/api/projeto/${projetoId}/funcionarios-emails`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Popular status (já existente) e e-mails...
-                // (código existente para funcionários/emails - vamos assumir que está em outro lugar ou aqui?)
-                
-                // POPULAR INFORMAÇÕES TÉCNICAS
-                if (data.technical_info) {
-                    console.log("🏗️ Dados técnicos recebidos:", data.technical_info);
-                    Object.keys(data.technical_info).forEach(key => {
-                        const field = document.getElementById(key);
-                        if (field) {
-                            field.value = data.technical_info[key] || '';
-                            // Disparar evento de input manualmente? Não, pois acabamos de carregar do servidor.
-                        }
-                    });
-                    // Ativar autosave agora que temos dados
-                    setupTechnicalInfoAutosave();
-                }
-            }
-        })
-        .catch(error => console.error('Erro ao carregar dados do projeto:', error));
-}
 
 // Função para carregar categorias do projeto
 function carregarCategoriasProjeto(projetoId) {
@@ -3468,7 +3441,7 @@ document.getElementById('projeto_id')?.addEventListener('change', function() {
     carregarFuncionariosParaAcompanhantes(this.value);
 });
 
-// Carregar funcionários da obra
+// Carregar funcionários da obra e informações técnicas
 function carregarFuncionariosParaAcompanhantes(projetoId) {
     const select = document.getElementById('funcionario-select');
 
@@ -3485,17 +3458,38 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success && data.funcionarios && data.funcionarios.length > 0) {
-            let options = '<option value="">Selecione um funcionário...</option>';
-            data.funcionarios.forEach(func => {
-                const nome = func.nome_funcionario || 'Sem nome';
-                const cargo = func.cargo || 'Não informado';
-                const email = data.emails.find(e => e.id == func.id)?.email || '';
-                options += `<option value="${func.id}" data-nome="${nome}" data-cargo="${cargo}" data-email="${email}" data-id="${func.id}">${nome} – ${cargo}</option>`;
-            });
-            select.innerHTML = options;
+        if (data.success) {
+            // 1. Popular dropdown de funcionários (Lógica original)
+            if (data.funcionarios && data.funcionarios.length > 0) {
+                let options = '<option value="">Selecione um funcionário...</option>';
+                data.funcionarios.forEach(func => {
+                    const nome = func.nome_funcionario || 'Sem nome';
+                    const cargo = func.cargo || 'Não informado';
+                    const email = data.emails.find(e => e.id == func.id)?.email || '';
+                    options += `<option value="${func.id}" data-nome="${nome}" data-cargo="${cargo}" data-email="${email}" data-id="${func.id}">${nome} – ${cargo}</option>`;
+                });
+                select.innerHTML = options;
+            } else {
+                select.innerHTML = '<option value="">Nenhum funcionário cadastrado nesta obra</option>';
+            }
+
+            // 2. POPULAR INFORMAÇÕES TÉCNICAS (Nova lógica)
+            if (data.technical_info) {
+                console.log("🏗️ Dados técnicos recebidos:", data.technical_info);
+                Object.keys(data.technical_info).forEach(key => {
+                    const field = document.getElementById(key);
+                    if (field) {
+                        field.value = data.technical_info[key] || '';
+                    }
+                });
+                // Ativar autosave
+                if (window.setupTechnicalInfoAutosave) {
+                    window.setupTechnicalInfoAutosave();
+                }
+            }
+
         } else {
-            select.innerHTML = '<option value="">Nenhum funcionário cadastrado nesta obra</option>';
+            select.innerHTML = '<option value="">Erro ao carregar dados</option>';
         }
     })
     .catch(error => {
