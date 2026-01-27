@@ -103,9 +103,13 @@
                                             <strong>{{ email.nome_contato }}</strong>
                                         </td>
                                         <td>
-                                            <a href="mailto:{{ email.email }}" class="text-decoration-none">
-                                                {{ email.email }}
-                                            </a>
+                                            {% if email.email %}
+                                                <a href="mailto:{{ email.email }}" class="text-decoration-none">
+                                                    {{ email.email }}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             {% if email.telefone %}
@@ -180,7 +184,11 @@
                                         </h6>
                                         <small class="text-muted">
                                             <i class="fas fa-envelope me-1"></i>
-                                            <a href="mailto:{{ email.email }}" class="text-decoration-none">{{ email.email }}</a>
+                                            {% if email.email %}
+                                                <a href="mailto:{{ email.email }}" class="text-decoration-none">{{ email.email }}</a>
+                                            {% else %}
+                                                <span class="text-muted">Sem e-mail</span>
+                                            {% endif %}
                                         </small>
                                         {% if email.telefone %}
                                         <br>

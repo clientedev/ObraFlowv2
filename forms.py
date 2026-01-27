@@ -88,7 +88,7 @@ class ContatoProjetoForm(FlaskForm):
         self.contato_id.choices = [(c.id, f"{c.nome} - {c.empresa or 'Sem empresa'}") for c in contatos_ativos]
 
 class EmailClienteForm(FlaskForm):
-    email = StringField('E-mail', validators=[DataRequired(), Email(), Length(max=255)])
+    email = StringField('E-mail (opcional)', validators=[Optional(), Email(), Length(max=255)])
     nome_contato = StringField('Nome do Contato', validators=[DataRequired(), Length(max=200)])
     cargo = StringField('Cargo', validators=[Length(max=100)])
     empresa = StringField('Empresa', validators=[Length(max=200)])
