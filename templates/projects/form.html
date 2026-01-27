@@ -167,8 +167,8 @@
                                     </div>
                                     
                                     <div class="form-group">
-                                        <label>E-mail</label>
-                                        <input type="email" name="contatos[{{ loop.index0 }}][email]" class="form-control" value="{{ contato.email or '' }}" required>
+                                        <label>E-mail (opcional)</label>
+                                        <input type="email" name="contatos[{{ loop.index0 }}][email]" class="form-control" value="{{ contato.email or '' }}" placeholder="email@exemplo.com">
                                     </div>
                                     
                                     <div class="form-group">
@@ -660,8 +660,8 @@ document.getElementById('addContatoBtn').addEventListener('click', function() {
             <input type="text" name="contatos[${contatoCounter}][empresa]" class="form-control">
         </div>
         <div class="form-group">
-            <label>E-mail</label>
-            <input type="email" name="contatos[${contatoCounter}][email]" class="form-control" required>
+            <label>E-mail (opcional)</label>
+            <input type="email" name="contatos[${contatoCounter}][email]" class="form-control" placeholder="email@exemplo.com">
         </div>
         <div class="form-group">
             <label>Telefone (opcional)</label>

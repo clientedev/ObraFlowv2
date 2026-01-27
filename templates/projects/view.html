@@ -105,6 +105,7 @@
         </div>
 
         <!-- Botão Destaque para Criação de Relatório - Mobile-First -->
+        {% if project.status == 'Ativo' %}
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card bg-primary text-white shadow-lg mobile-cta-card">
@@ -132,6 +133,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 
