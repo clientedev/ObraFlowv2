@@ -11,6 +11,15 @@ class LoginForm(FlaskForm):
     password = PasswordField('Senha', validators=[DataRequired()])
     remember_me = BooleanField('Lembrar-me')
 
+class ForgotPasswordForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Enviar Link de Recuperação')
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('Nova Senha', validators=[DataRequired(), Length(min=6)])
+    password2 = PasswordField('Confirmar Nova Senha', validators=[DataRequired(), EqualTo('password', message='As senhas devem coincidir')])
+    submit = SubmitField('Redefinir Senha')
+
 # Formulário para troca de senha no primeiro login
 class FirstLoginForm(FlaskForm):
     current_password = PasswordField('Senha Atual', validators=[DataRequired()])

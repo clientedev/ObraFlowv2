@@ -22,6 +22,8 @@ class User(UserMixin, db.Model):
     ativo = db.Column(db.Boolean, default=True)
     cor_agenda = db.Column(db.String(7), default="#0EA5E9")  # Cor HEX para agenda - Item 29
     fcm_token = db.Column(db.Text, nullable=True)  # Token do Firebase Cloud Messaging para push notifications
+    reset_token = db.Column(db.String(100), nullable=True, unique=True)  # Token para recuperação de senha
+    reset_token_expires = db.Column(db.DateTime, nullable=True)  # Expiração do token de recuperação
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     @property

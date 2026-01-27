@@ -1807,6 +1807,136 @@ def login():
 
     return render_template('auth/login.html', form=form)
 
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Password recovery - request reset link"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    from forms import ForgotPasswordForm
+    import secrets
+    import requests
+    import os
+    
+    form = ForgotPasswordForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        
+        if user:
+            # Generate secure token
+            token = secrets.token_urlsafe(32)
+            user.reset_token = token
+            user.reset_token_expires = datetime.utcnow() + timedelta(minutes=15)
+            db.session.commit()
+            
+            # Send email with reset link
+            try:
+                reset_url = url_for('reset_password', token=token, _external=True)
+                
+                # HTML email body
+                html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }}
+        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center; }}
+        .content {{ padding: 40px 20px; line-height: 1.6; color: #333; }}
+        .button {{ display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+        .footer {{ background: #f5f5f5; padding: 20px; font-size: 12px; text-align: center; color: #666; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔑 Recuperação de Senha</h1>
+        </div>
+        <div class="content">
+            <p>Olá <strong>{user.nome_completo}</strong>,</p>
+            <p>Recebemos uma solicitação para redefinir sua senha.</p>
+            <p>Clique no botão abaixo para criar uma nova senha:</p>
+            <p style="text-align: center;">
+                <a href="{reset_url}" class="button">Redefinir Senha</a>
+            </p>
+            <p><small>Ou copie e cole este link no navegador:<br>{reset_url}</small></p>
+            <p><strong>Este link expira em 15 minutos.</strong></p>
+            <p>Se você não solicitou esta redefinição, ignore este email.</p>
+        </div>
+        <div class="footer">
+            <p>© 2025 Sistema de Acompanhamento de Visitas em Obras</p>
+        </div>
+    </div>
+</body>
+</html>"""
+                
+                # Send via Resend API
+                api_key = os.getenv('RESEND_API_KEY', 're_Y7ESk4Tk_3oyhaqCqWTPWTVMcy8TtfVje')
+                from_email = os.getenv('RESEND_FROM_EMAIL', 'relatorios@elpconsultoria.eng.br')
+                
+                payload = {
+                    "from": from_email,
+                    "to": user.email,
+                    "subject": "🔑 Recuperação de Senha - Sistema de Obras",
+                    "html": html_body
+                }
+                
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                response = requests.post(
+                    "https://api.resend.com/emails",
+                    json=payload,
+                    headers=headers,
+                    timeout=10
+                )
+                
+                if response.status_code == 200:
+                    current_app.logger.info(f"✅ Email de recuperação enviado para {user.email}")
+                else:
+                    current_app.logger.error(f"❌ Erro ao enviar email: {response.text}")
+                    
+            except Exception as e:
+                current_app.logger.error(f"❌ Erro ao enviar email de recuperação: {e}")
+        
+        # Always show success message (security best practice - don't reveal if email exists)
+        flash('Se o email estiver cadastrado, você receberá um link para redefinir sua senha.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('auth/forgot_password.html', form=form)
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    """Password recovery - reset password with token"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    from forms import ResetPasswordForm
+    
+    # Find user by valid token
+    user = User.query.filter_by(reset_token=token).first()
+    
+    # Validate token
+    if not user or not user.reset_token_expires or user.reset_token_expires < datetime.utcnow():
+        flash('Link de recuperação inválido ou expirado.', 'error')
+        return redirect(url_for('forgot_password'))
+    
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        # Update password
+        user.password_hash = generate_password_hash(form.password.data)
+        user.reset_token = None
+        user.reset_token_expires = None
+        db.session.commit()
+        
+        flash('Senha redefinida com sucesso! Você já pode fazer login.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('auth/reset_password.html', form=form, token=token)
+
+
 @app.route('/logout')
 @login_required
 def logout():
