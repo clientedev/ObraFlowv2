@@ -930,6 +930,9 @@ function saveTechnicalInfo() {
 document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('projeto_id').value) {
         setupTechnicalInfoAutosave();
+        // Carregar dados técnicos e emails SE houver projeto selecionado (edit mode ou url param)
+        // Isso garante que os campos técnicos sejam preenchidos ao carregar a página
+        carregarFuncionariosEmails();
     }
 });
 
