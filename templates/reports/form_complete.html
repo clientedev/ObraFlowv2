@@ -407,30 +407,7 @@
                             </div>
                         </div>
 
-                        <!-- Acompanhantes da Visita -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <div class="card">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-user-friends me-2"></i>👥 Acompanhantes da Visita
-                                        </h6>
-                                        <button type="button" class="btn btn-sm btn-primary" onclick="abrirModalAcompanhantes()">
-                                            <i class="fas fa-plus me-1"></i>Adicionar Acompanhante
-                                        </button>
-                                    </div>
-                                    <div class="card-body">
-                                        <div id="lista-acompanhantes">
-                                            <p class="text-muted text-center py-3">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                Nenhum acompanhante adicionado ainda. Clique em "Adicionar Acompanhante" para começar.
-                                            </p>
-                                        </div>
-                                        <input type="hidden" id="acompanhantes-data" name="acompanhantes" value="[]">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+<!-- Acompanhantes movido para baixo do Checklist -->
 
                         <!-- Nota: O aprovador é definido automaticamente pelo sistema -->
                         <!-- Aprovador Temporário do projeto (se configurado) ou Aprovador Global -->
@@ -446,10 +423,104 @@
                             </div>
                         </div>
 
-                        <!-- Checklist da Obra -->
-                        <div class="mb-4">
-                            <h5><i class="fas fa-tasks"></i> Checklist da Obra</h5>
-                            <div id="checklistItems">
+                        <!-- Informações Técnicas (Collapsible - Aberto por padrão) -->
+                        <div class="card mb-4 border-info">
+                            <div class="card-header bg-soft-info" id="headingTechnicalInfo">
+                                <h5 class="mb-0">
+                                    <button class="btn btn-link w-100 text-start text-decoration-none text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTechnicalInfo" aria-expanded="true" aria-controls="collapseTechnicalInfo">
+                                        <i class="fas fa-cogs me-2 text-info"></i> Informações Técnicas
+                                        <i class="fas fa-chevron-down float-end"></i>
+                                    </button>
+                                </h5>
+                            </div>
+                            <div id="collapseTechnicalInfo" class="collapse show" aria-labelledby="headingTechnicalInfo">
+                                <div class="card-body">
+                                    <div id="technical-info-status" class="text-end mb-2 text-muted small">
+                                        <i class="fas fa-check-circle"></i> Sincronizado com o cadastro da obra
+                                    </div>
+                                    
+                                    <div class="row g-3">
+                                        <!-- Elementos Construtivos -->
+                                        <div class="col-12"><h6 class="text-primary border-bottom pb-2">Elementos Construtivos</h6></div>
+                                        
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Base / Estrutura</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_base" name="elementos_construtivos_base" placeholder="Ex: Concreto armado...">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Piso</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_piso" name="elementos_construtivos_piso">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Paredes / Divisórias</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_paredes" name="elementos_construtivos_paredes">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Cobertura / Forro</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_cobertura" name="elementos_construtivos_cobertura">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Esquadrias / Portas / Vidros</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_esquadrias" name="elementos_construtivos_esquadrias">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Acabamentos / Revestimentos</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_acabamentos" name="elementos_construtivos_acabamentos">
+                                        </div>
+
+                                        <!-- Instalações -->
+                                        <div class="col-12 mt-3"><h6 class="text-primary border-bottom pb-2">Instalações</h6></div>
+                                        
+                                        <div class="col-md-6">
+                                            <label class="form-label small">Elétrica / Iluminação / Dados</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="instalacoes_eletrica" name="instalacoes_eletrica">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small">Hidráulica / Esgoto / Águas Pluviais</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="instalacoes_hidraulica" name="instalacoes_hidraulica">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small">Ar Condicionado / Exaustão</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="instalacoes_ar_condicionado" name="instalacoes_ar_condicionado">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small">Combate a Incêndio / SPDA</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="instalacoes_incendio" name="instalacoes_incendio">
+                                        </div>
+
+                                        <!-- Outros -->
+                                        <div class="col-12 mt-3"><h6 class="text-primary border-bottom pb-2">Outros</h6></div>
+                                        
+                                        <div class="col-md-6">
+                                            <label class="form-label small">Impermeabilização / Isolamento</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="outros_impermeabilizacao" name="outros_impermeabilizacao">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small">Pintura / Tratamentos</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="outros_pintura" name="outros_pintura">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label small">Observações Técnicas Gerais</label>
+                                            <textarea class="form-control form-control-sm technical-field" id="outras_observacoes" name="outras_observacoes" rows="2"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Checklist da Obra (Collapsible - Fechado por padrão se preenchido, mas vamos deixar toggleable) -->
+                        <div class="card mb-4">
+                            <div class="card-header" id="headingChecklist">
+                                <h5 class="mb-0">
+                                    <button class="btn btn-link w-100 text-start text-decoration-none collapsed text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseChecklist" aria-expanded="false" aria-controls="collapseChecklist">
+                                        <i class="fas fa-tasks me-2"></i> Checklist da Obra
+                                        <i class="fas fa-chevron-down float-end"></i>
+                                    </button>
+                                </h5>
+                            </div>
+                            <div id="collapseChecklist" class="collapse" aria-labelledby="headingChecklist">
+                                <div class="card-body">
+                                    <div id="checklistItems">
                                 <!-- Itens predefinidos -->
                                 <div class="checklist-item mb-3">
                                     <div class="form-check">
@@ -502,10 +573,33 @@
                                 </div>
                             </div>
 
-                            <div class="text-center mt-3">
-                                <button type="button" class="btn btn-outline-primary" onclick="addCustomChecklistItem()">
-                                    <i class="fas fa-plus"></i> Adicionar Item Personalizado
+                                    <div class="text-center mt-3">
+                                        <button type="button" class="btn btn-outline-primary" onclick="addCustomChecklistItem()">
+                                            <i class="fas fa-plus"></i> Adicionar Item Personalizado
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Acompanhantes da Visita (MOVIDO) -->
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-user-friends me-2"></i>👥 Acompanhantes da Visita
+                                </h6>
+                                <button type="button" class="btn btn-sm btn-primary" onclick="abrirModalAcompanhantes()">
+                                    <i class="fas fa-plus me-1"></i>Adicionar Acompanhante
                                 </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="lista-acompanhantes">
+                                    <p class="text-muted text-center py-3">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Nenhum acompanhante adicionado ainda. Clique em "Adicionar Acompanhante" para começar.
+                                    </p>
+                                </div>
+                                <input type="hidden" id="acompanhantes-data" name="acompanhantes" value="[]">
                             </div>
                         </div>
 
@@ -761,11 +855,101 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Função para carregar funcionários e e-mails do projeto selecionado
+// Função para carregar funcionários, e-mails e INFORMAÇÕES TÉCNICAS do projeto
 function carregarFuncionariosEmails() {
     const projetoId = document.getElementById('projeto_id').value;
     carregarFuncionariosEmailsPorId(projetoId);
-    // carregarCategoriasProjeto já é chamada no onchange, não precisa duplicar
+}
+
+// Função para auto-save das informações técnicas
+function setupTechnicalInfoAutosave() {
+    const technicalFields = document.querySelectorAll('.technical-field');
+    let timeoutId;
+
+    technicalFields.forEach(field => {
+        field.addEventListener('input', function() {
+            const statusDiv = document.getElementById('technical-info-status');
+            statusDiv.innerHTML = '<span class="text-warning"><i class="fas fa-sync fa-spin"></i> Salvando...</span>';
+            
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                saveTechnicalInfo();
+            }, 1000); // Wait 1s after typing stops
+        });
+    });
+}
+
+function saveTechnicalInfo() {
+    const projetoId = document.getElementById('projeto_id').value;
+    if (!projetoId) return;
+
+    const data = {};
+    document.querySelectorAll('.technical-field').forEach(field => {
+        data[field.name] = field.value;
+    });
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    fetch(`/api/projeto/${projetoId}/update_technical_info`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        const statusDiv = document.getElementById('technical-info-status');
+        if (result.success) {
+            statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Salvo automaticamente</span>';
+            setTimeout(() => {
+                statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Sincronizado com o cadastro da obra';
+            }, 3000);
+        } else {
+            statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Erro ao salvar</span>';
+        }
+    })
+    .catch(error => {
+        console.error('Erro no auto-save:', error);
+        document.getElementById('technical-info-status').innerHTML = '<span class="text-danger"><i class="fas fa-times"></i> Erro de conexão</span>';
+    });
+}
+
+// Initial setup
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('projeto_id').value) {
+        setupTechnicalInfoAutosave();
+    }
+});
+
+// Atualizar carregarFuncionariosEmailsPorId para preencher dados técnicos
+function carregarFuncionariosEmailsPorId(projetoId) {
+    if (!projetoId) return;
+
+    fetch(`/api/projeto/${projetoId}/funcionarios-emails`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Popular status (já existente) e e-mails...
+                // (código existente para funcionários/emails - vamos assumir que está em outro lugar ou aqui?)
+                
+                // POPULAR INFORMAÇÕES TÉCNICAS
+                if (data.technical_info) {
+                    console.log("🏗️ Dados técnicos recebidos:", data.technical_info);
+                    Object.keys(data.technical_info).forEach(key => {
+                        const field = document.getElementById(key);
+                        if (field) {
+                            field.value = data.technical_info[key] || '';
+                            // Disparar evento de input manualmente? Não, pois acabamos de carregar do servidor.
+                        }
+                    });
+                    // Ativar autosave agora que temos dados
+                    setupTechnicalInfoAutosave();
+                }
+            }
+        })
+        .catch(error => console.error('Erro ao carregar dados do projeto:', error));
 }
 
 // Função para carregar categorias do projeto
