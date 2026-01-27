@@ -6654,7 +6654,7 @@ def report_edit_complete(report_id):
 
         projeto = Projeto.query.get(relatorio.projeto_id)
         # Carregar todos os projetos para o dropdown (necessário para o loop no template)
-        projetos = Projeto.query.filter_by(ativo=True).order_by(Projeto.nome).all()
+        projetos = Projeto.query.filter_by(status='Ativo').order_by(Projeto.nome).all()
         
         fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).all()
         
