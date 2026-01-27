@@ -440,69 +440,79 @@
                                     </div>
                                     
                                     <div class="row g-3">
-                                        <!-- Elementos Construtivos -->
-                                        <div class="col-12"><h6 class="text-primary border-bottom pb-2">Elementos Construtivos</h6></div>
                                         
-                                        <div class="col-md-4">
-                                            <label class="form-label small">Base / Estrutura</label>
-                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_base" name="elementos_construtivos_base" placeholder="Ex: Concreto armado...">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label small">Piso</label>
-                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_piso" name="elementos_construtivos_piso">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label small">Paredes / Divisórias</label>
-                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_paredes" name="elementos_construtivos_paredes">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label small">Cobertura / Forro</label>
-                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_cobertura" name="elementos_construtivos_cobertura">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label small">Esquadrias / Portas / Vidros</label>
-                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_esquadrias" name="elementos_construtivos_esquadrias">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label small">Acabamentos / Revestimentos</label>
-                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_acabamentos" name="elementos_construtivos_acabamentos">
-                                        </div>
-
-                                        <!-- Instalações -->
-                                        <div class="col-12 mt-3"><h6 class="text-primary border-bottom pb-2">Instalações</h6></div>
-                                        
-                                        <div class="col-md-6">
-                                            <label class="form-label small">Elétrica / Iluminação / Dados</label>
-                                            <input type="text" class="form-control form-control-sm technical-field" id="instalacoes_eletrica" name="instalacoes_eletrica">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label small">Hidráulica / Esgoto / Águas Pluviais</label>
-                                            <input type="text" class="form-control form-control-sm technical-field" id="instalacoes_hidraulica" name="instalacoes_hidraulica">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label small">Ar Condicionado / Exaustão</label>
-                                            <input type="text" class="form-control form-control-sm technical-field" id="instalacoes_ar_condicionado" name="instalacoes_ar_condicionado">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label small">Combate a Incêndio / SPDA</label>
-                                            <input type="text" class="form-control form-control-sm technical-field" id="instalacoes_incendio" name="instalacoes_incendio">
-                                        </div>
-
-                                        <!-- Outros -->
-                                        <div class="col-12 mt-3"><h6 class="text-primary border-bottom pb-2">Outros</h6></div>
-                                        
-                                        <div class="col-md-6">
-                                            <label class="form-label small">Impermeabilização / Isolamento</label>
-                                            <input type="text" class="form-control form-control-sm technical-field" id="outros_impermeabilizacao" name="outros_impermeabilizacao">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label small">Pintura / Tratamentos</label>
-                                            <input type="text" class="form-control form-control-sm technical-field" id="outros_pintura" name="outros_pintura">
-                                        </div>
+                                        <!-- Campo 1 -->
                                         <div class="col-12">
-                                            <label class="form-label small">Observações Técnicas Gerais</label>
+                                            <label class="form-label small fw-bold">Elementos construtivos da base</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="elementos_construtivos_base" name="elementos_construtivos_base">
+                                        </div>
+
+                                        <!-- Campo 2 -->
+                                        <div class="col-12">
+                                            <label class="form-label small fw-bold">Especificação chapisco colante</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="especificacao_chapisco_colante" name="especificacao_chapisco_colante">
+                                        </div>
+
+                                        <!-- Campo 3 -->
+                                        <div class="col-12">
+                                            <label class="form-label small fw-bold">Especificação chapisco da alvenaria</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="especificacao_chapisco_alvenaria" name="especificacao_chapisco_alvenaria">
+                                        </div>
+
+                                        <!-- Campo 4 -->
+                                        <div class="col-12">
+                                            <label class="form-label small fw-bold">Especificação da argamassa de emboço</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="especificacao_argamassa_emboco" name="especificacao_argamassa_emboco">
+                                        </div>
+
+                                        <!-- Campo 5 -->
+                                        <div class="col-12">
+                                            <label class="form-label small fw-bold">Forma da aplicação da argamassa de emboço</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="forma_aplicacao_argamassa" name="forma_aplicacao_argamassa">
+                                        </div>
+
+                                        <!-- Campo 6 -->
+                                        <div class="col-12">
+                                            <label class="form-label small fw-bold">Acabamentos do revestimento</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="acabamentos_revestimento" name="acabamentos_revestimento">
+                                        </div>
+
+                                        <!-- Campo 7 -->
+                                        <div class="col-12">
+                                            <label class="form-label small fw-bold">Acabamento em peitoris de janela</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="acabamento_peitoris" name="acabamento_peitoris">
+                                        </div>
+
+                                        <!-- Campo 8 -->
+                                        <div class="col-12">
+                                            <label class="form-label small fw-bold">Acabamento em muretas de terraços</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="acabamento_muretas" name="acabamento_muretas">
+                                        </div>
+
+                                        <!-- Campo 9 -->
+                                        <div class="col-12">
+                                            <label class="form-label small fw-bold">Definição sobre frisos de mudança de cor de textura</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="definicao_frisos_cor" name="definicao_frisos_cor">
+                                        </div>
+
+                                        <!-- Campo 10 -->
+                                        <div class="col-12">
+                                            <label class="form-label small fw-bold">Definição sobre face inferior das abas (friso pingadeira ou caimento invertido)</label>
+                                            <input type="text" class="form-control form-control-sm technical-field" id="definicao_face_inferior_abas" name="definicao_face_inferior_abas">
+                                        </div>
+
+                                        <!-- Campo 11 -->
+                                        <div class="col-12">
+                                            <label class="form-label small fw-bold">Caso haja projeto de fachada, especificar o projetista e fazer observações sobre procedimentos específicos ou divergências de orientações</label>
+                                            <textarea class="form-control form-control-sm technical-field" id="observacoes_projeto_fachada" name="observacoes_projeto_fachada" rows="2"></textarea>
+                                        </div>
+
+                                        <!-- Campo 12 -->
+                                        <div class="col-12">
+                                            <label class="form-label small fw-bold">Outras observações</label>
                                             <textarea class="form-control form-control-sm technical-field" id="outras_observacoes" name="outras_observacoes" rows="2"></textarea>
                                         </div>
+
                                     </div>
                                 </div>
                             </div>

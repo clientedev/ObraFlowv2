@@ -10988,3 +10988,66 @@ def _gerar_relatorio_excel(visitas, user, mes_nome, ano, visitas_por_status, vis
     filename = f"relatorio_visitas_{user.nome_completo.replace(' ', '_')}_{mes_nome}_{ano}.xlsx"
     return send_file(buffer, as_attachment=True, download_name=filename, 
                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.route('/api/projeto/<int:projeto_id>/update_technical_info', methods=['POST'])
+@login_required
+def api_update_technical_info(projeto_id):
+    """
+    Atualiza as informações técnicas de um projeto.
+    Recebe um JSON com os campos a serem atualizados.
+    """
+    try:
+        projeto = Projeto.query.get_or_404(projeto_id)
+        
+        # Verificar permissão (apenas se for admin ou responsável/membro do projeto)
+        if not current_user.is_master:
+            # Lógica simplificada de permissão: se está logado e acessou, assume que tem permissão
+            # Idealmente checar FuncionarioProjeto ou responsável
+            is_responsavel = projeto.responsavel_id == current_user.id
+            if not is_responsavel:
+                # Verificar se é funcionário do projeto
+                user_project_access = FuncionarioProjeto.query.filter_by(
+                    projeto_id=projeto_id,
+                    user_id=current_user.id,
+                    ativo=True
+                ).first()
+                if not user_project_access:
+                    return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'Dados não fornecidos'}), 400
+
+        # Lista exata de campos permitidos para atualização
+        campos_permitidos = [
+            'elementos_construtivos_base',
+            'especificacao_chapisco_colante',
+            'especificacao_chapisco_alvenaria',
+            'especificacao_argamassa_emboco',
+            'forma_aplicacao_argamassa',
+            'acabamentos_revestimento',
+            'acabamento_peitoris',
+            'acabamento_muretas',
+            'definicao_frisos_cor',
+            'definicao_face_inferior_abas',
+            'observacoes_projeto_fachada',
+            'outras_observacoes'
+        ]
+
+        updated_count = 0
+        for campo in campos_permitidos:
+            if campo in data:
+                setattr(projeto, campo, data[campo])
+                updated_count += 1
+        
+        if updated_count > 0:
+            db.session.commit()
+            current_app.logger.info(f"✅ Informações técnicas do projeto {projeto_id} atualizadas por {current_user.id}")
+            return jsonify({'success': True, 'message': 'Dados salvos com sucesso'})
+        else:
+            return jsonify({'success': True, 'message': 'Nenhum dado alterado'})
+
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao atualizar informações técnicas: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
