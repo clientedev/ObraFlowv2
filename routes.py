@@ -21,7 +21,7 @@ from models import (
     ChecklistObra, FuncionarioProjeto, AprovadorPadrao, ProjetoChecklistConfig,
     LogEnvioEmail, ConfiguracaoEmail,
     VisitaParticipante, TipoObra, CategoriaObra, Notificacao, GoogleDriveToken,
-    RelatorioExpress, FotoRelatorioExpress
+    RelatorioExpress, FotoRelatorioExpress, Lembrete
 )
 
 # ==========================================================================================
@@ -1063,6 +1063,125 @@ def get_emails_projeto(projeto_id):
     except Exception as e:
         current_app.logger.error(f"❌ Erro ao buscar e-mails do projeto {projeto_id}: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+# ==========================================================================================
+# LEMBRETES API - Sistema de lembretes persistentes
+# ==========================================================================================
+
+@app.route('/api/projeto/<int:projeto_id>/lembretes/ativos')
+@login_required
+def get_lembretes_ativos(projeto_id):
+    """
+    Retorna todos os lembretes não fechados de um projeto
+    
+    Os lembretes permanecem ativos até serem explicitamente fechados.
+    Múltiplos lembretes podem estar ativos simultaneamente.
+    """
+    try:
+        lembretes = Lembrete.query.filter_by(
+            projeto_id=projeto_id,
+            fechado=False
+        ).order_by(Lembrete.criado_em.desc()).all()
+        
+        return jsonify({
+            'success': True,
+            'lembretes': [l.to_dict() for l in lembretes]
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao buscar lembretes ativos do projeto {projeto_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/lembrete/create', methods=['POST'])
+@login_required
+@csrf.exempt
+def create_lembrete():
+    """
+    Cria um novo lembrete para um projeto
+    
+    Body JSON:
+    {
+        "projeto_id": int,
+        "texto": string
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'projeto_id' not in data or 'texto' not in data:
+            return jsonify({'success': False, 'error': 'projeto_id e texto são obrigatórios'}), 400
+        
+        projeto_id = data['projeto_id']
+        texto = data['texto'].strip()
+        
+        if not texto:
+            return jsonify({'success': False, 'error': 'Texto do lembrete não pode estar vazio'}), 400
+        
+        # Verificar se projeto existe
+        projeto = Projeto.query.get(projeto_id)
+        if not projeto:
+            return jsonify({'success': False, 'error': 'Projeto não encontrado'}), 404
+        
+        # Criar lembrete
+        lembrete = Lembrete(
+            projeto_id=projeto_id,
+            texto=texto,
+            criado_por_id=current_user.id
+        )
+        
+        db.session.add(lembrete)
+        db.session.commit()
+        
+        current_app.logger.info(f"✅ Lembrete criado: ID {lembrete.id} para projeto {projeto_id}")
+        
+        return jsonify({
+            'success': True,
+            'lembrete': lembrete.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"❌ Erro ao criar lembrete: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/lembrete/<int:lembrete_id>/fechar', methods=['POST'])
+@login_required
+@csrf.exempt
+def fechar_lembrete(lembrete_id):
+    """
+    Fecha um lembrete (marca como concluído)
+    
+    Uma vez fechado, o lembrete não aparecerá mais nos próximos relatórios.
+    """
+    try:
+        lembrete = Lembrete.query.get(lembrete_id)
+        
+        if not lembrete:
+            return jsonify({'success': False, 'error': 'Lembrete não encontrado'}), 404
+        
+        if lembrete.fechado:
+            return jsonify({'success': False, 'error': 'Lembrete já está fechado'}), 400
+        
+        # Fechar lembrete
+        lembrete.fechado = True
+        lembrete.fechado_em = datetime.utcnow()
+        lembrete.fechado_por_id = current_user.id
+        
+        db.session.commit()
+        
+        current_app.logger.info(f"✅ Lembrete {lembrete_id} fechado por {current_user.username}")
+        
+        return jsonify({
+            'success': True,
+            'lembrete': lembrete.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"❌ Erro ao fechar lembrete {lembrete_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 
 @app.route('/api/dashboard-stats')
@@ -6995,6 +7114,15 @@ def update_report(report_id):
                             arquivo.seek(0)
                             arquivo.save(caminho)
                             app.logger.info(f"💾 Arquivo salvo em: {caminho}")
+                            
+                            # ELP BACKUP: Salvar cópia na pasta ELP
+                            try:
+                                elp_backup_path = os.path.join(app.config['ELP_BACKUP_FOLDER'], unique_filename)
+                                arquivo.seek(0)
+                                arquivo.save(elp_backup_path)
+                                app.logger.info(f"📁 Backup ELP salvo em: {elp_backup_path}")
+                            except Exception as backup_error:
+                                app.logger.warning(f"⚠️ Erro ao criar backup ELP: {backup_error}")
                             
                             # CORREÇÃO CRÍTICA: Buscar metadados do JSON (novas_imagens_metadata) primeiro
                             legenda = ""

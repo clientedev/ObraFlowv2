@@ -68,12 +68,18 @@ UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
+# ELP Backup folder configuration
+ELP_BACKUP_FOLDER = 'uploads/ELP'
+app.config['ELP_BACKUP_FOLDER'] = ELP_BACKUP_FOLDER
+
 # Ensure upload directory exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(ELP_BACKUP_FOLDER, exist_ok=True)
 os.makedirs('static/reports', exist_ok=True)
 
 # Log da configuração
 logging.info(f"📁 UPLOAD_FOLDER configurado: {UPLOAD_FOLDER}")
+logging.info(f"📁 ELP_BACKUP_FOLDER configurado: {ELP_BACKUP_FOLDER}")
 
 # CSRF Configuration - Enable for security
 app.config['WTF_CSRF_ENABLED'] = True
