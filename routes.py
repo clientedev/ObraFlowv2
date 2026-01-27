@@ -6791,7 +6791,8 @@ def report_edit_complete(report_id):
         return render_template(
             "reports/form_complete.html",
             report_data=report_data,
-            edit_mode=True
+            edit_mode=True,
+            selected_project=projeto  # Passar objeto projeto para preencher hidden input
         )
 
     except Exception as e:
