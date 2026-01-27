@@ -308,38 +308,6 @@
                             </div>
                         </div>
                         
-                        <!-- Seleção de Funcionários e E-mails -->
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-users me-2"></i>Funcionários da Obra
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div id="funcionarios-projeto">
-                                            <p class="text-muted">Selecione um projeto para ver os funcionários disponíveis</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-envelope me-2"></i>E-mails para Envio
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div id="emails-projeto">
-                                            <p class="text-muted">Selecione um projeto para ver os e-mails disponíveis</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -355,77 +323,211 @@
                             </div>
                         </div>
 
-                        <!-- Checklist da Obra -->
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5><i class="fas fa-tasks"></i> Checklist da Obra</h5>
+                        <!-- Informações Técnicas da Obra (Novo - AJAX) -->
+                        <div class="card mb-4 border-info">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center" 
+                                 data-bs-toggle="collapse" 
+                                 data-bs-target="#techInfoCollapse" 
+                                 style="cursor: pointer;">
+                                <h5 class="mb-0 text-info">
+                                    <i class="fas fa-info-circle me-2"></i>Informações Técnicas
+                                </h5>
+                                <i class="fas fa-chevron-down text-muted"></i>
                             </div>
-                            <div class="card-body">
-                                <div id="checklistItems">
-                                    <div class="checklist-item mb-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="check_fundacao">
-                                            <label class="form-check-label fw-bold" for="check_fundacao">
-                                                Fundação: Verificar escavação, armadura e concretagem
-                                            </label>
+                            <div id="techInfoCollapse" class="collapse">
+                                <div class="card-body">
+                                    <p class="text-muted small mb-3">
+                                        <i class="fas fa-sync-alt me-1"></i> 
+                                        Estas informações são carregadas da obra selecionada. Edições aqui atualizam diretamente o cadastro da obra.
+                                    </p>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="form-label fw-bold">Elementos construtivos da base</label>
+                                                <input type="text" class="form-control tech-field" id="tech_elementos_construtivos_base" data-field="elementos_construtivos_base">
+                                            </div>
                                         </div>
-                                        <textarea class="form-control mt-2" name="obs_fundacao" placeholder="Observações sobre fundação..." rows="2"></textarea>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="form-label fw-bold">Especificação chapisco colante</label>
+                                                <input type="text" class="form-control tech-field" id="tech_especificacao_chapisco_colante" data-field="especificacao_chapisco_colante">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="form-label fw-bold">Especificação chapisco da alvenaria</label>
+                                                <input type="text" class="form-control tech-field" id="tech_especificacao_chapisco_alvenaria" data-field="especificacao_chapisco_alvenaria">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="form-label fw-bold">Especificação da argamassa de emboço</label>
+                                                <input type="text" class="form-control tech-field" id="tech_especificacao_argamassa_emboco" data-field="especificacao_argamassa_emboco">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="form-label fw-bold">Forma da aplicação da argamassa de emboço</label>
+                                                <input type="text" class="form-control tech-field" id="tech_forma_aplicacao_argamassa" data-field="forma_aplicacao_argamassa">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="form-label fw-bold">Acabamentos do revestimento</label>
+                                                <input type="text" class="form-control tech-field" id="tech_acabamentos_revestimento" data-field="acabamentos_revestimento">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="form-label fw-bold">Acabamento em peitoris de janela</label>
+                                                <input type="text" class="form-control tech-field" id="tech_acabamento_peitoris" data-field="acabamento_peitoris">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="form-label fw-bold">Acabamento em muretas de terraços</label>
+                                                <input type="text" class="form-control tech-field" id="tech_acabamento_muretas" data-field="acabamento_muretas">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="form-label fw-bold">Definição sobre frisos de mudança de cor de textura</label>
+                                                <input type="text" class="form-control tech-field" id="tech_definicao_frisos_cor" data-field="definicao_frisos_cor">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="form-label fw-bold">Definição sobre face inferior das abas (friso pingadeira ou caimento invertido)</label>
+                                                <input type="text" class="form-control tech-field" id="tech_definicao_face_inferior_abas" data-field="definicao_face_inferior_abas">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="form-label fw-bold">Caso haja projeto de fachada, especificar o projetista e fazer observações sobre procedimentos específicos ou divergências de orientações</label>
+                                                <textarea class="form-control tech-field" id="tech_observacoes_projeto_fachada" data-field="observacoes_projeto_fachada" rows="2"></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="form-label fw-bold">Outras observações</label>
+                                                <textarea class="form-control tech-field" id="tech_outras_observacoes" data-field="outras_observacoes" rows="2"></textarea>
+                                            </div>
+                                        </div>
                                     </div>
+                                    <div id="techSaveStatus" class="mt-2 text-end"></div>
+                                </div>
+                            </div>
+                        </div>
 
-                                    <div class="checklist-item mb-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="check_estrutura">
-                                            <label class="form-check-label fw-bold" for="check_estrutura">
-                                                Estrutura: Verificar pilares, vigas e lajes
-                                            </label>
+                        <!-- Checklist da Obra (Colapsável) -->
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center" 
+                                 data-bs-toggle="collapse" 
+                                 data-bs-target="#checklistCollapse" 
+                                 style="cursor: pointer;">
+                                <h5><i class="fas fa-tasks"></i> Checklist da Obra</h5>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div id="checklistCollapse" class="collapse">
+                                <div class="card-body">
+                                    <div id="checklistItems">
+                                        <div class="checklist-item mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="check_fundacao">
+                                                <label class="form-check-label fw-bold" for="check_fundacao">
+                                                    Fundação: Verificar escavação, armadura e concretagem
+                                                </label>
+                                            </div>
+                                            <textarea class="form-control mt-2" name="obs_fundacao" placeholder="Observações sobre fundação..." rows="2"></textarea>
                                         </div>
-                                        <textarea class="form-control mt-2" name="obs_estrutura" placeholder="Observações sobre estrutura..." rows="2"></textarea>
+
+                                        <div class="checklist-item mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="check_estrutura">
+                                                <label class="form-check-label fw-bold" for="check_estrutura">
+                                                    Estrutura: Verificar pilares, vigas e lajes
+                                                </label>
+                                            </div>
+                                            <textarea class="form-control mt-2" name="obs_estrutura" placeholder="Observações sobre estrutura..." rows="2"></textarea>
+                                        </div>
+
+                                        <div class="checklist-item mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="check_alvenaria">
+                                                <label class="form-check-label fw-bold" for="check_alvenaria">
+                                                    Alvenaria: Verificar levante de paredes e esquadrias
+                                                </label>
+                                            </div>
+                                            <textarea class="form-control mt-2" name="obs_alvenaria" placeholder="Observações sobre alvenaria..." rows="2"></textarea>
+                                        </div>
+
+                                        <div class="checklist-item mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="check_instalacoes">
+                                                <label class="form-check-label fw-bold" for="check_instalacoes">
+                                                    Instalações: Verificar elétrica, hidráulica e sanitária
+                                                </label>
+                                            </div>
+                                            <textarea class="form-control mt-2" name="obs_instalacoes" placeholder="Observações sobre instalações..." rows="2"></textarea>
+                                        </div>
+
+                                        <div class="checklist-item mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="check_cobertura">
+                                                <label class="form-check-label fw-bold" for="check_cobertura">
+                                                    Cobertura: Verificar estrutura e telhas
+                                                </label>
+                                            </div>
+                                            <textarea class="form-control mt-2" name="obs_cobertura" placeholder="Observações sobre cobertura..." rows="2"></textarea>
+                                        </div>
+
+                                        <div class="checklist-item mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="check_acabamento">
+                                                <label class="form-check-label fw-bold" for="check_acabamento">
+                                                    Acabamento: Verificar revestimentos e pinturas
+                                                </label>
+                                            </div>
+                                            <textarea class="form-control mt-2" name="obs_acabamento" placeholder="Observações sobre acabamento..." rows="2"></textarea>
+                                        </div>
                                     </div>
+                                    
+                                    <button type="button" class="btn btn-outline-primary" onclick="addCustomChecklistItem()">
+                                        <i class="fas fa-plus"></i> Adicionar Item Personalizado
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
-                                    <div class="checklist-item mb-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="check_alvenaria">
-                                            <label class="form-check-label fw-bold" for="check_alvenaria">
-                                                Alvenaria: Verificar levante de paredes e esquadrias
-                                            </label>
-                                        </div>
-                                        <textarea class="form-control mt-2" name="obs_alvenaria" placeholder="Observações sobre alvenaria..." rows="2"></textarea>
+                        <!-- Seleção de Funcionários e E-mails (Movido para baixo do Checklist) -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-users me-2"></i>Acompanhantes da Visita (Funcionários)
+                                        </h6>
                                     </div>
-
-                                    <div class="checklist-item mb-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="check_instalacoes">
-                                            <label class="form-check-label fw-bold" for="check_instalacoes">
-                                                Instalações: Verificar elétrica, hidráulica e sanitária
-                                            </label>
+                                    <div class="card-body">
+                                        <div id="funcionarios-projeto">
+                                            <p class="text-muted">Selecione uma obra para ver os funcionários disponíveis</p>
                                         </div>
-                                        <textarea class="form-control mt-2" name="obs_instalacoes" placeholder="Observações sobre instalações..." rows="2"></textarea>
-                                    </div>
-
-                                    <div class="checklist-item mb-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="check_cobertura">
-                                            <label class="form-check-label fw-bold" for="check_cobertura">
-                                                Cobertura: Verificar estrutura e telhas
-                                            </label>
-                                        </div>
-                                        <textarea class="form-control mt-2" name="obs_cobertura" placeholder="Observações sobre cobertura..." rows="2"></textarea>
-                                    </div>
-
-                                    <div class="checklist-item mb-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="check_acabamento">
-                                            <label class="form-check-label fw-bold" for="check_acabamento">
-                                                Acabamento: Verificar revestimentos e pinturas
-                                            </label>
-                                        </div>
-                                        <textarea class="form-control mt-2" name="obs_acabamento" placeholder="Observações sobre acabamento..." rows="2"></textarea>
                                     </div>
                                 </div>
-                                
-                                <button type="button" class="btn btn-outline-primary" onclick="addCustomChecklistItem()">
-                                    <i class="fas fa-plus"></i> Adicionar Item Personalizado
-                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-envelope me-2"></i>E-mails para Envio
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="emails-projeto">
+                                            <p class="text-muted">Selecione uma obra para ver os e-mails disponíveis</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -588,6 +690,21 @@ function carregarFuncionariosEmails() {
                 emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para esta obra</p>';
             }
             emailsDiv.innerHTML = emailsHtml;
+            
+            // Popular Informações Técnicas (Novo)
+            if (data.technical_info) {
+                document.querySelectorAll('.tech-field').forEach(field => {
+                    const fieldName = field.getAttribute('data-field');
+                    // Verificar se o campo existe no data e preencher
+                    if (fieldName && data.technical_info[fieldName] !== undefined) {
+                        field.value = data.technical_info[fieldName] || ''; // Garantir vazio se null
+                    }
+                });
+                
+                // Limpar status de salvamento anterior se houver
+                const statusDiv = document.getElementById('techSaveStatus');
+                if (statusDiv) statusDiv.innerHTML = '';
+            }
         } else {
             funcionariosDiv.innerHTML = '<p class="text-danger">Erro ao carregar funcionários</p>';
             emailsDiv.innerHTML = '<p class="text-danger">Erro ao carregar e-mails</p>';
@@ -678,6 +795,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const projetoSelect = document.getElementById('projeto_id');
     if (projetoSelect) {
         projetoSelect.addEventListener('change', carregarFuncionariosEmails);
+        
+        // Se já houver um projeto selecionado (ex: Edição ou validação falhou), carregar dados imediatamente
+        if (projetoSelect.value) {
+            carregarFuncionariosEmails();
+        }
     }
     
     // Monitorar upload de fotos
@@ -704,7 +826,51 @@ document.addEventListener('DOMContentLoaded', function() {
         option.addEventListener('click', handleCategoryClick);
         option.addEventListener('touchend', handleCategoryTouch);
     });
+
+    // Listeners para Auto-Save de Informações Técnicas
+    document.querySelectorAll('.tech-field').forEach(field => {
+        field.addEventListener('change', saveTechnicalInfo);
+    });
 });
+
+// Função para salvar Informações Técnicas via AJAX
+function saveTechnicalInfo() {
+    const projetoId = document.getElementById('projeto_id').value;
+    if (!projetoId) return;
+
+    const data = {};
+    document.querySelectorAll('.tech-field').forEach(field => {
+        const fieldName = field.getAttribute('data-field');
+        if (fieldName) {
+            data[fieldName] = field.value;
+        }
+    });
+
+    const statusDiv = document.getElementById('techSaveStatus');
+    statusDiv.innerHTML = '<span class="text-warning"><i class="fas fa-sync fa-spin"></i> Salvando na obra...</span>';
+
+    fetch(`/api/projeto/${projetoId}/update_technical_info`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            statusDiv.innerHTML = '<span class="text-success fw-bold"><i class="fas fa-check"></i> Alterações salvas na obra!</span>';
+            setTimeout(() => { statusDiv.innerHTML = ''; }, 3000);
+        } else {
+            statusDiv.innerHTML = `<span class="text-danger">Erro ao salvar: ${result.error}</span>`;
+        }
+    })
+    .catch(error => {
+        console.error('Erro no auto-save:', error);
+        statusDiv.innerHTML = '<span class="text-danger">Erro de conexão ao salvar.</span>';
+    });
+}
 
 function handlePhotoSelection(files) {
     Array.from(files).forEach(file => {

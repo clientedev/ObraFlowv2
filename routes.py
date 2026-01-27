@@ -910,8 +910,21 @@ def api_projeto_funcionarios_emails(projeto_id):
             'success': True,
             'funcionarios': funcionarios_data,
             'emails': emails_data,
-            'projeto_nome': projeto.nome
-        }
+            'projeto_nome': projeto.nome,
+            'technical_info': {
+                'elementos_construtivos_base': projeto.elementos_construtivos_base or '',
+                'especificacao_chapisco_colante': projeto.especificacao_chapisco_colante or '',
+                'especificacao_chapisco_alvenaria': projeto.especificacao_chapisco_alvenaria or '',
+                'especificacao_argamassa_emboco': projeto.especificacao_argamassa_emboco or '',
+                'forma_aplicacao_argamassa': projeto.forma_aplicacao_argamassa or '',
+                'acabamentos_revestimento': projeto.acabamentos_revestimento or '',
+                'acabamento_peitoris': projeto.acabamento_peitoris or '',
+                'acabamento_muretas': projeto.acabamento_muretas or '',
+                'definicao_frisos_cor': projeto.definicao_frisos_cor or '',
+                'definicao_face_inferior_abas': projeto.definicao_face_inferior_abas or '',
+                'observacoes_projeto_fachada': projeto.observacoes_projeto_fachada or '',
+                'outras_observacoes': projeto.outras_observacoes or ''
+            }
 
         current_app.logger.info(f"✅ API retornando: {len(funcionarios_data)} funcionários, {len(emails_data)} e-mails")
         current_app.logger.info(f"📤 Response completo: {response_data}")
