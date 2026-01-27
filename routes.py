@@ -6653,6 +6653,9 @@ def report_edit_complete(report_id):
             return value if value is not None else default
 
         projeto = Projeto.query.get(relatorio.projeto_id)
+        # Carregar todos os projetos para o dropdown (necessário para o loop no template)
+        projetos = Projeto.query.filter_by(ativo=True).order_by(Projeto.nome).all()
+        
         fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).all()
         
         # --- ACOMPANHANTES: CARREGAR APENAS OS SELECIONADOS DO RELATÓRIO ---
@@ -6792,7 +6795,8 @@ def report_edit_complete(report_id):
             "reports/form_complete.html",
             report_data=report_data,
             edit_mode=True,
-            selected_project=projeto  # Passar objeto projeto para preencher hidden input
+            selected_project=projeto,  # Passar objeto projeto para preencher hidden input
+            projetos=projetos  # Passar lista de projetos para o dropdown
         )
 
     except Exception as e:

@@ -3162,8 +3162,8 @@ function editMobilePhoto(photoId) {
 async function deleteMobilePhoto(photoId) {
     if (!confirm('Deseja excluir esta foto?')) return;
 
-    // Encontrar a foto nos dados
-    const photoData = window.mobilePhotoData.find(p => p.id === photoId);
+    // Encontrar a foto nos dados (usar == para comparar string/number)
+    const photoData = window.mobilePhotoData.find(p => p.id == photoId);
     
     // Se a foto tem savedId, significa que já está salva no banco - precisa deletar via API
     if (photoData && photoData.savedId) {
@@ -3192,8 +3192,8 @@ async function deleteMobilePhoto(photoId) {
         }
     }
 
-    // Remove from data array
-    window.mobilePhotoData = window.mobilePhotoData.filter(p => p.id !== photoId);
+    // Remove from data array (usar != para confirmar exclusão com tipos diferentes)
+    window.mobilePhotoData = window.mobilePhotoData.filter(p => p.id != photoId);
 
     // Remove from DOM
     const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
