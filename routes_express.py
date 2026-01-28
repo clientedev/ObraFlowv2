@@ -398,16 +398,30 @@ def is_aprovador_global():
         return False
 
 def has_express_approval_permission():
-    """Verifica se o usuário tem permissão para aprovar Relatórios Express"""
+    """Verifica se o usuário tem permissão para aprovar Relatórios Express
+    
+    Permissões:
+    - Aprovador Global (definido em AprovadorPadrao com projeto_id=None)
+    - Usuários com is_aprovador_express=True
+    
+    Nota: Usuários Master NÃO têm permissão automática
+    """
     try:
         if not current_user or not current_user.is_authenticated:
             return False
         
-        # Verifica se é Aprovador Global (inclui Master)
-        if is_aprovador_global():
+        # Verificar se é Aprovador Global (sem incluir Master automaticamente)
+        from models import AprovadorPadrao
+        aprovador_global = AprovadorPadrao.query.filter_by(
+            projeto_id=None,
+            aprovador_id=current_user.id,
+            ativo=True
+        ).first()
+        
+        if aprovador_global:
             return True
             
-        # Verifica permissão específica
+        # Verificar permissão específica
         return getattr(current_user, 'is_aprovador_express', False)
     except Exception:
         return False

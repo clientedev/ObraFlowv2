@@ -147,7 +147,7 @@
                                             <select class="form-select" id="express_user_select" name="user_id" required>
                                                 <option value="">Escolha um usuário...</option>
                                                 {% for user in all_users %}
-                                                    {% if not user.is_aprovador_express and not user.is_master %}
+                                                    {% if not user.is_aprovador_express %}
                                                         <option value="{{ user.id }}">{{ user.nome_completo }}</option>
                                                     {% endif %}
                                                 {% endfor %}
@@ -155,9 +155,6 @@
                                             <button type="submit" class="btn btn-success">
                                                 <i class="fas fa-plus"></i> Conceder
                                             </button>
-                                        </div>
-                                        <div class="form-text">
-                                            Usuários Master já possuem permissão automática.
                                         </div>
                                     </div>
                                 </form>
