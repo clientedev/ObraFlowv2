@@ -247,6 +247,12 @@ def create_admin_user_safe():
             break # Exit loop if successful
         except Exception as e:
             db.session.rollback()
+            # Check for missing column error to avoid pointless retries providing a path for migrations to run
+            if "UndefinedColumn" in str(e) or "no such column" in str(e):
+                logging.warning(f"⚠️ Schema mismatch detected (pending migrations): {e}")
+                logging.info("⚠️ Skipping admin creation to allow migrations to run.")
+                break
+                
             logging.error(f"Attempt {attempt + 1} failed to create admin user: {e}")
             if attempt < MAX_RETRIES - 1:
                 logging.info(f"Retrying in {RETRY_DELAY} seconds...")
