@@ -39,7 +39,7 @@
                                         <strong>Nome:</strong> {{ relatorio.obra_nome }}
                                     </div>
                                     <div class="col-md-6 mb-2">
-                                        <strong>Construtora:</strong> {{ relatorio.obra_construtora or 'Não informado' }}
+                                        <strong>Cliente:</strong> {{ relatorio.obra_construtora or 'Não informado' }}
                                     </div>
                                     <div class="col-md-12 mb-2">
                                         <strong>Endereço:</strong> {{ relatorio.obra_endereco or 'Não informado' }}
@@ -57,6 +57,50 @@
                             </div>
                         </div>
                     </div>
+
+                    {% if relatorio.informacoes_tecnicas %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="accordion" id="accordionTechnical">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="headingTechnical">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTechnical" aria-expanded="false" aria-controls="collapseTechnical">
+                                            <i class="fas fa-hammer me-2 text-primary"></i>Informações Técnicas da Obra
+                                        </button>
+                                    </h2>
+                                    <div id="collapseTechnical" class="accordion-collapse collapse" aria-labelledby="headingTechnical" data-bs-parent="#accordionTechnical">
+                                        <div class="accordion-body">
+                                            <div class="row">
+                                                {% set info = relatorio.informacoes_tecnicas | from_json if relatorio.informacoes_tecnicas is string else relatorio.informacoes_tecnicas %}
+                                                {% set labels = {
+                                                    'elementos_construtivos_base': 'Elementos construtivos da base',
+                                                    'especificacao_chapisco_colante': 'Especificação chapisco colante',
+                                                    'especificacao_chapisco_alvenaria': 'Especificação chapisco da alvenaria',
+                                                    'especificacao_argamassa_emboco': 'Especificação da argamassa de emboço',
+                                                    'forma_aplicacao_argamassa': 'Forma da aplicação da argamassa de emboço',
+                                                    'acabamentos_revestimento': 'Acabamentos do revestimento',
+                                                    'acabamento_peitoris': 'Acabamento em peitoris de janela',
+                                                    'acabamento_muretas': 'Acabamento em muretas de terraços',
+                                                    'definicao_frisos_cor': 'Definição sobre frisos de mudança de cor de textura',
+                                                    'definicao_face_inferior_abas': 'Definição sobre face inferior de abas e varandas',
+                                                    'observacoes_projeto_fachada': 'Observações do projeto da fachada',
+                                                    'outras_observacoes': 'Outras observações'
+                                                } %}
+                                                
+                                                {% for key, label in labels.items() %}
+                                                <div class="col-md-6 mb-3">
+                                                    <strong>{{ label }}:</strong>
+                                                    <p class="mb-0 text-muted">{{ info[key] or 'Não informado' }}</p>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
 
                     <div class="row mb-4">
                         <div class="col-md-6 mb-3">
@@ -79,12 +123,10 @@
                             <h5><i class="fas fa-users me-2 text-primary"></i>Funcionários da Visita</h5>
                             <div class="row">
                                 {% for acomp in relatorio.acompanhantes %}
-                                <div class="col-md-4 col-6 mb-2">
-                                    <div class="border rounded p-2 bg-light">
+                                <div class="col-md-12 mb-2">
+                                    <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
                                         <strong>{{ acomp.nome }}</strong>
-                                        {% if acomp.email %}<br><small class="text-primary"><i class="fas fa-envelope me-1"></i>{{ acomp.email }}</small>{% endif %}
-                                        {% if acomp.cargo %}<br><small class="text-muted">{{ acomp.cargo }}</small>{% endif %}
-                                        {% if acomp.empresa %}<br><small class="text-muted">{{ acomp.empresa }}</small>{% endif %}
+                                        <span class="text-muted">{{ acomp.cargo or '' }}</span>
                                     </div>
                                 </div>
                                 {% endfor %}
@@ -147,9 +189,10 @@
                             <h5><i class="fas fa-camera me-2 text-primary"></i>Fotos ({{ fotos | length }})</h5>
                             <div class="row">
                                 {% for foto in fotos %}
-                                <div class="col-md-4 col-sm-6 mb-3">
+                                <div class="col-12 mb-3">
                                     <div class="card h-100 shadow-sm">
                                         <div class="position-relative">
+
                                             <span class="badge bg-primary position-absolute top-0 start-0 m-2" style="z-index: 10;">
                                                 Foto {{ loop.index }}
                                             </span>
