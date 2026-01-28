@@ -12,7 +12,7 @@
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3><i class="fas fa-edit"></i> Editar Relatório {{ relatorio.numero or 'S/N' }}</h3>
+                <h3><i class="fas fa-file-alt"></i> Visualização do Relatório {{ relatorio.numero or 'S/N' }}</h3>
                 <div class="d-flex gap-2">
                     {% if relatorio.status == 'Aprovado' %}
                     <div class="dropdown">
@@ -78,14 +78,10 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>Número:</strong> {{ relatorio.numero or 'S/N' }}</p>
-                                    <p><strong>Título:</strong> {{ relatorio.titulo or 'Sem título' }}</p>
                                     <p><strong>Obra:</strong> {{ relatorio.projeto.nome if relatorio.projeto else '-' }}</p>
-                                </div>
-                                <div class="col-md-6">
                                     <p><strong>Autor:</strong> {{ relatorio.autor.nome_completo if relatorio.autor else '-' }}</p>
                                     <p><strong>Data:</strong> {{ relatorio.data_relatorio.strftime('%d/%m/%Y') if relatorio.data_relatorio else '-' }}</p>
+                                    <p><strong>Título:</strong> {{ relatorio.titulo or 'Sem título' }}</p>
                                     <p><strong>Status:</strong> 
                                         <span class="badge 
                                             {% if relatorio.status == 'Aprovado' %}bg-success
@@ -99,6 +95,7 @@
                                             {% else %}{{ relatorio.status }}{% endif %}
                                         </span>
                                     </p>
+                                    <p class="small text-muted mb-0"><strong>Número:</strong> {{ relatorio.numero or 'S/N' }}</p>
 
                                     {% if relatorio.status == 'Aprovado' and relatorio.data_aprovacao %}
                                     <p><strong>Aprovado em:</strong> {{ relatorio.data_aprovacao|format_datetime_br }}
@@ -124,7 +121,7 @@
 
                             {% if relatorio.conteudo %}
                             <div class="mt-3">
-                                <strong>Conteúdo:</strong>
+                                <strong>Observações Gerais:</strong>
                                 <div class="border p-3 mt-2">
                                     {{ relatorio.conteudo|safe }}
                                 </div>
@@ -553,7 +550,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (data.projeto) {
                 const projetoInfo = document.querySelector('.card-body p:nth-child(3)');
                 if (projetoInfo) {
-                    projetoInfo.innerHTML = `<strong>Projeto:</strong> ${data.projeto.numero} - ${data.projeto.nome}`;
+                    projetoInfo.innerHTML = `<strong>Obra:</strong> ${data.projeto.numero} - ${data.projeto.nome}`;
                 }
             }
 
