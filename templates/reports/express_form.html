@@ -396,10 +396,10 @@
                                            placeholder="Ex: Edifício Residencial Aurora" required>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label" for="obra_construtora">Construtora</label>
+                                    <label class="form-label" for="obra_construtora">Cliente</label>
                                     <input type="text" name="obra_construtora" id="obra_construtora" class="form-control" 
                                            value="{% if existing_report %}{{ existing_report.obra_construtora }}{% endif %}"
-                                           placeholder="Nome da construtora">
+                                           placeholder="Nome do cliente">
                                 </div>
                             </div>
                             <div class="row">
@@ -902,16 +902,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const technicalFields = document.querySelectorAll('.technical-field');
     const technicalHidden = document.getElementById('informacoes_tecnicas');
     
-    technicalFields.forEach(field => {
-        field.addEventListener('input', updateTechnicalInfo);
-    });
+    if (technicalFields.length > 0 && technicalHidden) {
+        technicalFields.forEach(field => {
+            field.addEventListener('input', updateTechnicalInfo);
+            field.addEventListener('change', updateTechnicalInfo); // Add change event for safety
+        });
+    }
     
     function updateTechnicalInfo() {
+        if (!technicalHidden) return;
+        
         const data = {};
         technicalFields.forEach(f => {
             if (f.value) data[f.dataset.field] = f.value;
         });
         technicalHidden.value = JSON.stringify(data);
+        // console.log('Technical Info updated:', data); // Debug
         triggerExpressAutoSave();
     }
 });
