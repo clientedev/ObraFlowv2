@@ -139,6 +139,17 @@
                         {% endif %}
                     </div>
                 </div>
+
+                {% if relatorio.observacoes_gerais %}
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <p><strong><i class="fas fa-align-left me-1"></i>Observações Gerais:</strong></p>
+                        <div class="p-3 bg-white border rounded">
+                            {{ relatorio.observacoes_gerais|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 
                 {% if relatorio.observacoes_finais %}
                 <div class="row mt-3">
@@ -245,7 +256,7 @@
                     <!-- Mobile responsive photo grid -->
                     <div class="row g-2 g-md-3 photo-gallery">
                         {% for foto in fotos %}
-                        <div class="col-6 col-md-4 col-lg-3">
+                        <div class="col-12">
                             <div class="card photo-container h-100">
                                 <img src="{{ url_for('get_imagem', id=foto.id) }}" 
                                      class="card-img-top" 

@@ -2838,7 +2838,8 @@ def autosave_report(report_id):
             'titulo', 'observacoes', 'latitude', 'longitude', 
             'endereco', 'checklist_data', 'last_edited_at',
             'descricao', 'categoria', 'local', 'observacoes_finais', 
-            'conteudo', 'lembrete_proxima_visita', 'acompanhantes'
+            'conteudo', 'lembrete_proxima_visita', 'acompanhantes',
+            'observacoes_gerais'
         ]
 
         # Aplicar updates apenas nos campos permitidos
@@ -2966,6 +2967,7 @@ def create_report():
         projeto_id = request.form.get('projeto_id')
         titulo = request.form.get('titulo', 'Relatório de visita')
         conteudo = request.form.get('conteudo', '')
+        observacoes_gerais = request.form.get('observacoes_gerais', '')
         aprovador_nome = request.form.get('aprovador_nome', '')
         data_relatorio_str = request.form.get('data_relatorio')
 
@@ -3002,6 +3004,7 @@ def create_report():
                 # Update fields
                 relatorio.titulo = titulo
                 relatorio.projeto_id = projeto_id
+                relatorio.observacoes_gerais = observacoes_gerais
                 relatorio.updated_at = datetime.utcnow()
                 current_app.logger.info(f"📝 Updating existing report {relatorio.numero}")
             else:
@@ -3086,6 +3089,8 @@ def create_report():
                 relatorio.titulo = titulo
                 relatorio.projeto_id = projeto_id
                 relatorio.autor_id = current_user.id
+                if observacoes_gerais:
+                    relatorio.observacoes_gerais = observacoes_gerais
             # Process location data with address conversion
             latitude = request.form.get('latitude')
             longitude = request.form.get('longitude')
