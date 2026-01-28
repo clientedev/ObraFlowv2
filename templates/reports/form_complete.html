@@ -363,7 +363,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label" for="projeto_id">Obra *</label>
-                                    <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value); atualizarNumeroRelatorio(this.value); carregarChecklistProjeto(this.value); carregarLembrete(this.value);">
+                                    <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value); atualizarNumeroRelatorio(this.value); carregarChecklistProjeto(this.value); carregarLembretesAtivos(this.value);">
                                         <option value="">Selecione uma obra</option>
                                         {% for projeto in projetos %}
                                         <option value="{{ projeto.id }}" {% if selected_project and selected_project.id == projeto.id %}selected{% endif %}>
@@ -632,15 +632,6 @@
                                     placeholder="Descreva detalhes gerais da visita, pontos importantes, etc."></textarea>
                         </div>
 
-                        <!-- Lembrete para Próxima Visita -->
-                        <div class="mb-4">
-                            <label class="form-label" for="lembrete_proxima_visita">
-                                <i class="fas fa-bell me-2"></i>Lembrete para Próxima Visita (Opcional)
-                            </label>
-                            <textarea class="form-control" name="lembrete_proxima_visita" id="lembrete_proxima_visita" rows="3" 
-                                    placeholder="Deixe um lembrete ou ponto de atenção para a próxima visita a esta obra..."></textarea>
-                            <small class="text-muted">Este lembrete será exibido automaticamente no próximo relatório desta obra.</small>
-                        </div>
 
                         <!-- Sistema de Fotos Mobile-First -->
                         <div class="mb-4">
@@ -2070,7 +2061,7 @@ document.addEventListener('DOMContentLoaded', function() {
         carregarCategoriasProjeto(projetoSelect.value);
         carregarChecklistProjeto(projetoSelect.value);
         atualizarNumeroRelatorio(projetoSelect.value);
-        carregarLembrete(projetoSelect.value);
+        carregarLembretesAtivos(projetoSelect.value);
         carregarFuncionariosEmails();
     } else {
         // Se não há projeto selecionado, mostrar mensagem
