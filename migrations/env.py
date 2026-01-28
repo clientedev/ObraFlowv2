@@ -35,8 +35,9 @@ target_metadata = db.metadata
 
 
 def get_url():
-    """Get database URL from environment"""
-    return os.environ.get("DATABASE_URL")
+    """Get database URL from environment or app config"""
+    # Ensure app is initialized to apply protocol fixes
+    return app.config.get("SQLALCHEMY_DATABASE_URI", os.environ.get("DATABASE_URL"))
 
 
 def run_migrations_offline() -> None:
