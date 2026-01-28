@@ -140,7 +140,7 @@
                     </div>
                 </div>
 
-                {% if relatorio.observacoes_gerais %}
+                {% if relatorio.observacoes_gerais and relatorio.observacoes_gerais != relatorio.observacoes_finais %}
                 <div class="row mt-3">
                     <div class="col-12">
                         <p><strong><i class="fas fa-align-left me-1"></i>Observações Gerais:</strong></p>
@@ -154,7 +154,7 @@
                 {% if relatorio.observacoes_finais %}
                 <div class="row mt-3">
                     <div class="col-12">
-                        <p><strong><i class="fas fa-sticky-note me-1"></i>Lembretes/Observações Finais:</strong></p>
+                        <p><strong><i class="fas fa-sticky-note me-1"></i>Observações Gerais:</strong></p>
                         <div class="p-2 bg-light rounded border-start border-warning border-3">
                             {{ relatorio.observacoes_finais }}
                         </div>
