@@ -632,14 +632,15 @@
                             <label class="form-label" for="novo_lembrete_texto">
                                 <i class="fas fa-bell me-2"></i>Lembrete para Próxima Visita (Opcional)
                             </label>
-                            <div class="input-group">
+                            <!-- Layout Responsivo: Coluna no mobile, Linha no desktop -->
+                            <div class="d-flex flex-column flex-md-row gap-2">
                                 <textarea class="form-control" id="novo_lembrete_texto" rows="3" 
                                         placeholder="Deixe um lembrete ou ponto de atenção para a próxima visita a esta obra..."></textarea>
-                                <button class="btn btn-warning text-dark fw-bold" type="button" onclick="salvarNovoLembreteInput()" style="border-top-right-radius: 0.25rem; border-bottom-right-radius: 0.25rem;">
+                                <button class="btn btn-warning text-dark fw-bold align-self-md-start" type="button" onclick="salvarNovoLembreteInput()" style="white-space: nowrap; height: fit-content;">
                                     <i class="fas fa-plus me-1"></i> Adicionar
                                 </button>
                             </div>
-                            <small class="text-muted">Clique em "Adicionar" para salvar este lembrete para os próximos relatórios.</small>
+                            <small class="text-muted mt-1 d-block">Clique em "Adicionar" para salvar este lembrete para os próximos relatórios.</small>
                         </div>
 
                         <!-- Sistema de Fotos Mobile-First -->
