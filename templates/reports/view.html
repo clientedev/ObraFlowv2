@@ -26,9 +26,9 @@
                 <strong class="text-primary">
                     <i class="fas fa-calendar-alt me-2"></i>Data: 
                     {% if report.data_relatorio %}
-                        {{ report.data_relatorio.strftime('%d/%m/%Y') }}
+                        {{ report.data_relatorio|format_datetime_br('%d/%m/%Y') }}
                     {% else %}
-                        {{ report.created_at.strftime('%d/%m/%Y') }}
+                        {{ report.created_at|format_datetime_br('%d/%m/%Y') }}
                     {% endif %}
                 </strong>
             </div>
@@ -126,7 +126,7 @@
                     <div class="col-md-6">
                         <p><strong>Obra:</strong> {{ report.projeto.nome }} ({{ report.projeto.numero }})</p>
                         <p><strong>Autor:</strong> {{ report.autor.nome_completo }}</p>
-                        <p><strong>Data do Relatório:</strong> {{ report.data_relatorio.strftime('%d/%m/%Y') }}</p>
+                        <p><strong>Data do Relatório:</strong> {{ report.data_relatorio|format_datetime_br('%d/%m/%Y') }}</p>
                     </div>
                     <div class="col-md-6">
                         {% if report.aprovador_nome %}

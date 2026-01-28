@@ -5,6 +5,14 @@ from app import db
 import os
 from cryptography.fernet import Fernet
 from sqlalchemy.dialects.postgresql import JSONB
+import pytz
+
+# Brazil timezone for datetime defaults
+BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
+
+def brazil_now():
+    """Return current datetime in Brazil timezone"""
+    return datetime.now(BRAZIL_TZ)
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -360,7 +368,7 @@ class Relatorio(db.Model):
     visita_id = db.Column(db.Integer, db.ForeignKey('visitas.id'), nullable=True)
     autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     aprovador_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    data_relatorio = db.Column(db.DateTime, default=datetime.utcnow)
+    data_relatorio = db.Column(db.DateTime, default=brazil_now)
     data_aprovacao = db.Column(db.DateTime, nullable=True)
     conteudo = db.Column(db.Text)
     descricao = db.Column(db.Text, nullable=True)  # Descrição detalhada do relatório

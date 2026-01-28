@@ -49,9 +49,9 @@
                     <strong class="text-primary">
                         <i class="fas fa-calendar-alt me-2"></i>Data: 
                         {% if relatorio.data_relatorio %}
-                            {{ relatorio.data_relatorio.strftime('%d/%m/%Y') }}
+                            {{ relatorio.data_relatorio|format_datetime_br('%d/%m/%Y') }}
                         {% else %}
-                            {{ relatorio.created_at.strftime('%d/%m/%Y') if relatorio.created_at else 'N/A' }}
+                            {{ relatorio.created_at|format_datetime_br('%d/%m/%Y') if relatorio.created_at else 'N/A' }}
                         {% endif %}
                     </strong>
                 </div>
@@ -81,7 +81,7 @@
                                 <div class="col-12">
                                     <p id="report-info-obra"><strong>Obra:</strong> {{ relatorio.projeto.nome if relatorio.projeto else '-' }}</p>
                                     <p><strong>Autor:</strong> {{ relatorio.autor.nome_completo if relatorio.autor else '-' }}</p>
-                                    <p><strong>Data:</strong> {{ relatorio.data_relatorio.strftime('%d/%m/%Y') if relatorio.data_relatorio else '-' }}</p>
+                                    <p><strong>Data:</strong> {{ relatorio.data_relatorio|format_datetime_br('%d/%m/%Y') if relatorio.data_relatorio else '-' }}</p>
                                     <p><strong>Título:</strong> {{ relatorio.titulo or 'Sem título' }}</p>
                                     <p><strong>Status:</strong> 
                                         <span class="badge 

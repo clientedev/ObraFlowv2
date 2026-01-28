@@ -171,6 +171,18 @@ def from_json(value):
     except:
         return []
 
+# Context processor to provide Brazil timezone date to all templates
+@app.context_processor
+def inject_brazil_date():
+    """Inject current date in Brazil timezone for templates"""
+    from datetime import datetime
+    # Get current time in Brazil timezone
+    now_brazil = datetime.now(BRAZIL_TZ)
+    return {
+        'today_br': now_brazil.strftime('%Y-%m-%d'),  # For HTML date inputs
+        'now_brazil': now_brazil
+    }
+
 @login_manager.user_loader
 def load_user(user_id):
     from models import User
