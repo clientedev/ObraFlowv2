@@ -70,18 +70,7 @@
                                     <div id="collapseTechnical" class="accordion-collapse collapse" aria-labelledby="headingTechnical" data-bs-parent="#accordionTechnical">
                                         <div class="accordion-body">
                                             <div class="row">
-                                                {% set info = {} %}
-                                                {% if relatorio.informacoes_tecnicas %}
-                                                    {% if relatorio.informacoes_tecnicas is string %}
-                                                        {% try %}
-                                                            {% set info = relatorio.informacoes_tecnicas | from_json %}
-                                                        {% except %}
-                                                            {% set info = {} %}
-                                                        {% endtry %}
-                                                    {% else %}
-                                                        {% set info = relatorio.informacoes_tecnicas %}
-                                                    {% endif %}
-                                                {% endif %}
+                                                {% set info = tech_info if tech_info is defined else {} %}
                                                 
                                                 {% set labels = {
                                                     'elementos_construtivos_base': 'Elementos construtivos da base',

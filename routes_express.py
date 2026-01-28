@@ -408,11 +408,23 @@ def view_express_report(report_id):
         ).order_by(FotoRelatorioExpress.ordem).all()
         
         pode_aprovar = is_aprovador_global()
-        
+
+        # Processar informações técnicas de forma segura
+        tech_info = {}
+        if relatorio.informacoes_tecnicas:
+            if isinstance(relatorio.informacoes_tecnicas, str):
+                try:
+                    tech_info = json.loads(relatorio.informacoes_tecnicas)
+                except:
+                    tech_info = {}
+            else:
+                tech_info = relatorio.informacoes_tecnicas
+
         return render_template('reports/express_view.html',
             relatorio=relatorio,
             fotos=fotos,
-            pode_aprovar=pode_aprovar
+            pode_aprovar=pode_aprovar,
+            tech_info=tech_info
         )
     except Exception as e:
         logger.error(f"Erro ao visualizar Relatório Express: {e}")
