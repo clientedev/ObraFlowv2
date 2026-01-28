@@ -124,7 +124,7 @@
                             <div class="text-end">
                                 <small class="text-muted d-block mb-2">{{ rel.data_relatorio.strftime('%d/%m') if rel.data_relatorio else 'Sem data' }}</small>
                                 {% if rel.status == 'Aguardando Aprovação' %}
-                                <a href="{{ url_for('report_review', report_id=rel.id) }}" class="btn btn-sm btn-outline-warning">
+                                <a href="{{ url_for('review_report', report_id=rel.id) }}" class="btn btn-sm btn-outline-warning">
                                     <i class="fas fa-clipboard-check me-1"></i>Revisar
                                 </a>
                                 {% else %}
