@@ -90,6 +90,89 @@
         </div>
     </div>
 
+    <!-- Aprovadores Relatório Express -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-info shadow-sm">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-file-signature"></i> Aprovadores Relatório Express
+                        </h5>
+                        <small>Permissão específica para aprovar/reprovar Relatórios Express</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-check-circle"></i> Aprovadores Atuais</h6>
+                            {% if express_approvers %}
+                                <ul class="list-group mb-3">
+                                    {% for user in express_approvers %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ user.nome_completo }}</strong> <br>
+                                                <small class="text-muted">{{ user.email }}</small>
+                                            </div>
+                                            {% if is_current_user_aprovador_global %}
+                                                <form method="POST" action="{{ url_for('admin_toggle_express_approver') }}" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                                                    <input type="hidden" name="action" value="revoke">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                            onclick="return confirm('Remover permissão de {{ user.nome_completo }}?')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <div class="alert alert-light border">
+                                    <i class="fas fa-info-circle"></i> Nenhum aprovador específico definido.
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 border-start">
+                            <h6><i class="fas fa-plus"></i> Adicionar Permissão</h6>
+                            {% if is_current_user_aprovador_global %}
+                                <form method="POST" action="{{ url_for('admin_toggle_express_approver') }}" class="mt-3">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="action" value="grant">
+                                    
+                                    <div class="mb-3">
+                                        <label for="express_user_select" class="form-label">Selecione o usuário:</label>
+                                        <div class="input-group">
+                                            <select class="form-select" id="express_user_select" name="user_id" required>
+                                                <option value="">Escolha um usuário...</option>
+                                                {% for user in all_users %}
+                                                    {% if not user.is_aprovador_express and not user.is_master %}
+                                                        <option value="{{ user.id }}">{{ user.nome_completo }}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="fas fa-plus"></i> Conceder
+                                            </button>
+                                        </div>
+                                        <div class="form-text">
+                                            Usuários Master já possuem permissão automática.
+                                        </div>
+                                    </div>
+                                </form>
+                            {% else %}
+                                <div class="alert alert-warning mt-3">
+                                    <i class="fas fa-lock"></i> Apenas o Aprovador Global pode gerenciar estas permissões.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Aprovadores Temporários por Projeto -->
     <div class="row">
         <div class="col-12">

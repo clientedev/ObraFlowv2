@@ -26,6 +26,7 @@ class User(UserMixin, db.Model):
     telefone = db.Column(db.String(20))
     is_master = db.Column(db.Boolean, default=False)
     is_developer = db.Column(db.Boolean, default=False)  # Novo tipo de usuário
+    is_aprovador_express = db.Column(db.Boolean, default=False)  # Aprovador de Relatório Express
     primeiro_login = db.Column(db.Boolean, default=True)  # Campo para controlar primeiro login
     ativo = db.Column(db.Boolean, default=True)
     cor_agenda = db.Column(db.String(7), default="#0EA5E9")  # Cor HEX para agenda - Item 29

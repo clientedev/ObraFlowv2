@@ -10169,6 +10169,11 @@ def admin_aprovadores_padrao():
     # Buscar usuários master para seleção como aprovadores
     usuarios_master = User.query.filter_by(is_master=True, ativo=True).all()
     
+    # Buscar usuários aprovadores de Relatório Express
+    express_approvers = User.query.filter_by(is_aprovador_express=True, ativo=True).all()
+    # Buscar todos os usuários ativos para seleção
+    all_users = User.query.filter_by(ativo=True).order_by(User.nome_completo).all()
+    
     # Verificar se o usuário atual é o aprovador global
     is_current_user_aprovador_global = current_user_is_aprovador_global()
 
@@ -10177,7 +10182,45 @@ def admin_aprovadores_padrao():
                          aprovadores_temporarios=aprovadores_temporarios,
                          projetos_ativos=projetos_ativos,
                          usuarios_master=usuarios_master,
+                         express_approvers=express_approvers,
+                         all_users=all_users,
                          is_current_user_aprovador_global=is_current_user_aprovador_global)
+
+@app.route('/admin/aprovadores-padrao/express/toggle', methods=['POST'])
+@login_required
+def admin_toggle_express_approver():
+    """Alternar permissão de aprovador de Relatório Express - APENAS Aprovador Global"""
+    if not current_user_is_aprovador_global():
+        flash('Apenas o Aprovador Global pode gerenciar aprovadores express.', 'error')
+        return redirect(url_for('admin_aprovadores_padrao'))
+
+    user_id = request.form.get('user_id')
+    action = request.form.get('action') # 'grant' or 'revoke'
+
+    if not user_id or not action:
+        flash('Dados incompletos.', 'error')
+        return redirect(url_for('admin_aprovadores_padrao'))
+
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            flash('Usuário não encontrado.', 'error')
+            return redirect(url_for('admin_aprovadores_padrao'))
+
+        if action == 'grant':
+            user.is_aprovador_express = True
+            flash(f'Permissão de Aprovador Express concedida para {user.nome_completo}.', 'success')
+        elif action == 'revoke':
+            user.is_aprovador_express = False
+            flash(f'Permissão de Aprovador Express removida de {user.nome_completo}.', 'success')
+        
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erro ao alterar permissão express: {e}")
+        flash('Erro ao atualizar permissão.', 'error')
+
+    return redirect(url_for('admin_aprovadores_padrao'))
 
 @app.route('/admin/aprovadores-padrao/temporario/novo', methods=['GET', 'POST'])
 @login_required

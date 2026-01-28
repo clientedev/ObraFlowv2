@@ -397,6 +397,21 @@ def is_aprovador_global():
         logger.error(f"Erro ao verificar aprovador global: {e}")
         return False
 
+def has_express_approval_permission():
+    """Verifica se o usuário tem permissão para aprovar Relatórios Express"""
+    try:
+        if not current_user or not current_user.is_authenticated:
+            return False
+        
+        # Verifica se é Aprovador Global (inclui Master)
+        if is_aprovador_global():
+            return True
+            
+        # Verifica permissão específica
+        return getattr(current_user, 'is_aprovador_express', False)
+    except Exception:
+        return False
+
 
 @app.route('/relatorio-express/<int:report_id>')
 @login_required
@@ -409,7 +424,7 @@ def view_express_report(report_id):
             relatorio_express_id=report_id
         ).order_by(FotoRelatorioExpress.ordem).all()
         
-        pode_aprovar = is_aprovador_global()
+        pode_aprovar = has_express_approval_permission()
 
         # Processar informações técnicas de forma segura
         tech_info = {}
@@ -442,7 +457,7 @@ def view_express_report(report_id):
 def approve_express_report(report_id):
     """Aprova um Relatório Express e envia e-mails para os envolvidos"""
     try:
-        if not is_aprovador_global():
+        if not has_express_approval_permission():
             flash('Apenas aprovadores podem aprovar relatórios.', 'error')
             return redirect(url_for('express_reports_list'))
         
@@ -532,7 +547,7 @@ def approve_express_report(report_id):
 def reject_express_report(report_id):
     """Rejeita um Relatório Express"""
     try:
-        if not is_aprovador_global():
+        if not has_express_approval_permission():
             flash('Apenas aprovadores podem rejeitar relatórios.', 'error')
             return redirect(url_for('express_reports_list'))
         
