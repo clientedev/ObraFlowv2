@@ -425,36 +425,77 @@
                                 </button>
                                 <div class="collapse mt-3" id="technicalInfoCollapse">
                                     <div class="card card-body bg-light">
-                                        <div class="row">
-                                            <div class="col-md-4 mb-3">
-                                                <label class="form-label small">Área do Terreno (m²)</label>
-                                                <input type="number" step="0.01" class="form-control technical-field" data-field="area_terreno">
+                                        <div class="row g-3">
+                                            <!-- Campo 1 -->
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold">Elementos construtivos da base</label>
+                                                <input type="text" class="form-control technical-field" data-field="elementos_construtivos_base">
                                             </div>
-                                            <div class="col-md-4 mb-3">
-                                                <label class="form-label small">Área Construída (m²)</label>
-                                                <input type="number" step="0.01" class="form-control technical-field" data-field="area_construida">
+
+                                            <!-- Campo 2 -->
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold">Especificação chapisco colante</label>
+                                                <input type="text" class="form-control technical-field" data-field="especificacao_chapisco_colante">
                                             </div>
-                                            <div class="col-md-4 mb-3">
-                                                <label class="form-label small">Nº de Torres</label>
-                                                <input type="number" class="form-control technical-field" data-field="num_torres">
+
+                                            <!-- Campo 3 -->
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold">Especificação chapisco da alvenaria</label>
+                                                <input type="text" class="form-control technical-field" data-field="especificacao_chapisco_alvenaria">
                                             </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-3 mb-3">
-                                                <label class="form-label small">Nº de Unidades</label>
-                                                <input type="number" class="form-control technical-field" data-field="num_unidades">
+
+                                            <!-- Campo 4 -->
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold">Especificação da argamassa de emboço</label>
+                                                <input type="text" class="form-control technical-field" data-field="especificacao_argamassa_emboco">
                                             </div>
-                                            <div class="col-md-3 mb-3">
-                                                <label class="form-label small">Pavimentos</label>
-                                                <input type="number" class="form-control technical-field" data-field="pavimentos">
+
+                                            <!-- Campo 5 -->
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold">Forma da aplicação da argamassa de emboço</label>
+                                                <input type="text" class="form-control technical-field" data-field="forma_aplicacao_argamassa">
                                             </div>
-                                            <div class="col-md-3 mb-3">
-                                                <label class="form-label small">Pavimentos Subsolo</label>
-                                                <input type="number" class="form-control technical-field" data-field="subsolos">
+
+                                            <!-- Campo 6 -->
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold">Acabamentos do revestimento</label>
+                                                <input type="text" class="form-control technical-field" data-field="acabamentos_revestimento">
                                             </div>
-                                            <div class="col-md-3 mb-3">
-                                                <label class="form-label small">Elevadores</label>
-                                                <input type="number" class="form-control technical-field" data-field="elevadores">
+
+                                            <!-- Campo 7 -->
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold">Acabamento em peitoris de janela</label>
+                                                <input type="text" class="form-control technical-field" data-field="acabamento_peitoris">
+                                            </div>
+
+                                            <!-- Campo 8 -->
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold">Acabamento em muretas de terraços</label>
+                                                <input type="text" class="form-control technical-field" data-field="acabamento_muretas">
+                                            </div>
+
+                                            <!-- Campo 9 -->
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold">Definição sobre frisos de mudança de cor de textura</label>
+                                                <input type="text" class="form-control technical-field" data-field="definicao_frisos_cor">
+                                            </div>
+
+                                            <!-- Campo 10 -->
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold">Definição sobre face inferior das abas (friso pingadeira ou caimento invertido)</label>
+                                                <input type="text" class="form-control technical-field" data-field="definicao_face_inferior_abas">
+                                            </div>
+
+                                            <!-- Campo 11 -->
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold">Caso haja projeto de fachada, especificar o projetista e fazer observações sobre procedimentos específicos ou divergências de orientações</label>
+                                                <textarea class="form-control technical-field" data-field="observacoes_projeto_fachada" rows="2"></textarea>
+                                            </div>
+
+                                            <!-- Campo 12 -->
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold">Outras observações</label>
+                                                <textarea class="form-control technical-field" data-field="outras_observacoes" rows="2"></textarea>
                                             </div>
                                         </div>
                                         <input type="hidden" name="informacoes_tecnicas" id="informacoes_tecnicas">
