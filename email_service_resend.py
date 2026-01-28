@@ -71,6 +71,24 @@ class ReportApprovalEmailService:
                     current_app.logger.warning(f"⚠️ [2] APROVADOR: Sem email")
             except Exception as e:
                 current_app.logger.warning(f"⚠️ [2] APROVADOR: Erro - {e}")
+
+            # ===== 2.1. RESPONSÁVEL DO PROJETO e LEOPOLDO =====
+            try:
+                # Adicionar Leopoldo (Hardcoded)
+                recipients.add('leopoldo@elpconsultoria.eng.br')
+                current_app.logger.info(f"✅ [CC] LEOPOLDO: leopoldo@elpconsultoria.eng.br")
+
+                # Adicionar Responsável do Projeto
+                if hasattr(relatorio, 'projeto') and relatorio.projeto:
+                    resp_id = relatorio.projeto.responsavel_id
+                    if resp_id:
+                        from models import User
+                        resp = User.query.get(resp_id)
+                        if resp and resp.email:
+                            recipients.add(resp.email.strip().lower())
+                            current_app.logger.info(f"✅ [CC] RESPONSÁVEL OBRA: {resp.nome_completo} - {resp.email}")
+            except Exception as e:
+                current_app.logger.warning(f"⚠️ [CC] Erro ao adicionar responsáveis: {e}")
             
             # ===== 3. ACOMPANHANTES VIA EMAILCLIENTE DO PROJETO =====
             try:
@@ -107,13 +125,30 @@ class ReportApprovalEmailService:
             current_app.logger.error(f"❌ ERRO ao coletar destinatários: {e}", exc_info=True)
             return []
     
-    def _format_email_body(self, nome_destinatario, obra_nome, data_aprovacao):
+    def _format_email_body(self, nome_destinatario, obra_nome, data_aprovacao, relatorio=None):
         """Formato HTML do corpo do e-mail"""
         if not data_aprovacao:
             data_aprovacao = datetime.now()
         
-        data_formatada = data_aprovacao.strftime("%d/%m/%Y às %H:%M") if hasattr(data_aprovacao, 'strftime') else str(data_aprovacao)
+        data_formatada = data_aprovacao.strftime("%d/%m/%y") if hasattr(data_aprovacao, 'strftime') else str(data_aprovacao)
+        numero_rel = getattr(relatorio, 'numero', 'N/A') if relatorio else 'N/A'
+
+        # Identificar responsável da obra para contato
+        contato_nome = "Responsável da Obra"
+        contato_email = "contato@elpconsultoria.eng.br"
         
+        try:
+            if relatorio and hasattr(relatorio, 'projeto') and relatorio.projeto:
+                resp_id = relatorio.projeto.responsavel_id
+                if resp_id:
+                    from models import User
+                    resp = User.query.get(resp_id)
+                    if resp:
+                        contato_nome = getattr(resp, 'nome_completo', 'Responsável')
+                        contato_email = getattr(resp, 'email', '')
+        except Exception as e:
+            current_app.logger.warning(f"Erro ao obter responsável para contato: {e}")
+
         corpo_html = f"""
         <html>
             <head>
@@ -130,18 +165,19 @@ class ReportApprovalEmailService:
             <body>
                 <div class="container">
                     <div class="header">
-                        <h2>✅ Relatório Aprovado</h2>
+                        <h2>Relatório nº {numero_rel}</h2>
                     </div>
                     <div class="content">
                         <p>Olá <span class="highlight">{nome_destinatario}</span>,</p>
-                        <p>Temos o prazer de informar que o relatório da obra <span class="highlight">{obra_nome}</span> foi <span class="highlight">aprovado com sucesso</span>.</p>
-                        <p><strong>Data de aprovação:</strong> {data_formatada}</p>
-                        <p>O documento está em anexo para sua conveniência.</p>
-                        <p>Em caso de dúvidas ou necessidade de revisões, por favor entre em contato com o setor responsável.</p>
+                        <p>Segue em anexo o relatório <span class="highlight">{numero_rel}</span> da obra <span class="highlight">{obra_nome}</span>.</p>
+                        <p><strong>Data da visita:</strong> {data_formatada}</p>
+                       
+                        <p>Para esclarecimentos, entre em contato com <strong>{contato_nome}</strong> através do e-mail <a href="mailto:{contato_email}">{contato_email}</a>.</p>
+                        
                         <p>Atenciosamente,<br><strong>ELP Consultoria</strong></p>
                     </div>
                     <div class="footer">
-                        <p>Por favor, não responda este e-mail. Este é um e-mail automático.</p>
+                        <p>Este é um e-mail automático; por favor, não responder.</p>
                     </div>
                 </div>
             </body>
@@ -362,7 +398,9 @@ class ReportApprovalEmailService:
                 current_app.logger.warning(f"⚠️ PDF não encontrado: {pdf_path}")
                 return {'success': True, 'enviados': 0, 'error': None}
             
-            assunto = f"Relatório aprovado – Obra {obra_nome}"
+            # Assunto: Relatório “nº do relatório” – Obra “nome da obra”
+            numero_rel = getattr(relatorio, 'numero', 'N/A')
+            assunto = f"Relatório {numero_rel} – Obra {obra_nome}"
             
             # Ler PDF e converter para base64
             with open(pdf_path, 'rb') as pdf_file:
@@ -387,7 +425,7 @@ class ReportApprovalEmailService:
                     except:
                         pass
                     
-                    corpo_html = self._format_email_body(destinatario_nome, obra_nome, relatorio.data_aprovacao)
+                    corpo_html = self._format_email_body(destinatario_nome, obra_nome, relatorio.data_aprovacao, relatorio)
                     
                     current_app.logger.info(f"📤 [{idx+1}/{len(recipients)}] Enviando para {recipient_email}...")
                     

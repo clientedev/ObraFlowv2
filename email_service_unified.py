@@ -139,6 +139,13 @@ class UnifiedReportEmailService:
                         logger.warning(f"⚠️ [APROVADOR] Email inválido: {aprovador.email}")
                 else:
                     logger.info(f"ℹ️ [APROVADOR] Sem aprovador designado")
+
+                # ADICIONAR LEOPOLDO (Hardcoded conforme solicitado)
+                email_leopoldo = 'leopoldo@elpconsultoria.eng.br'
+                recipients.add(email_leopoldo)
+                recipients_by_type['aprovador'].append(email_leopoldo)
+                logger.info(f"✅ [CC] Leopoldo → {email_leopoldo}")
+
             except Exception as e:
                 logger.warning(f"⚠️ [APROVADOR] Erro: {e}")
             
@@ -304,13 +311,30 @@ class UnifiedReportEmailService:
             logger.error(f"❌ ERRO ao coletar destinatários: {e}", exc_info=True)
             return {'emails': [], 'por_tipo': {}, 'total': 0}
     
-    def _build_html_body(self, destinatario_nome, obra_nome, data_aprovacao):
-        """Cria HTML do email com styling profissional"""
+    def _build_html_body(self, destinatario_nome, obra_nome, data_aprovacao, relatorio=None):
+        """Cria HTML do email com styling profissional e texto customizado"""
         if not data_aprovacao:
             data_aprovacao = datetime.now()
         
-        data_str = data_aprovacao.strftime("%d/%m/%Y às %H:%M") if hasattr(data_aprovacao, 'strftime') else str(data_aprovacao)
+        data_str = data_aprovacao.strftime("%d/%m/%Y") if hasattr(data_aprovacao, 'strftime') else str(data_aprovacao)
         
+        # Identificar autor do preenchimento para contato
+        contato_nome = "Equipe ELP"
+        contato_email = "contato@elpconsultoria.eng.br"
+        
+        try:
+            if relatorio:
+                autor = getattr(relatorio, 'autor', None)
+                if not autor and hasattr(relatorio, 'autor_id'):
+                    from models import User
+                    autor = User.query.get(relatorio.autor_id)
+                
+                if autor:
+                    contato_nome = getattr(autor, 'nome_completo', 'Autor')
+                    contato_email = getattr(autor, 'email', '')
+        except Exception as e:
+            logger.warning(f"Erro ao obter autor para contato: {e}")
+
         html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -334,30 +358,22 @@ class UnifiedReportEmailService:
     <div class="wrapper">
         <div class="container">
             <div class="header">
-                <h1>✅ Relatório Aprovado</h1>
-                <p>Documentação oficial</p>
+                <h1>Relatório de Obra</h1>
             </div>
             
             <div class="content">
                 <p>Olá <span class="highlight">{destinatario_nome}</span>,</p>
                 
-                <p>Temos o prazer em informar que o relatório da obra <span class="highlight">{obra_nome}</span> foi <strong>aprovado com sucesso</strong>!</p>
+                <p>Segue em anexo o relatório de visita do dia <span class="highlight">{data_str}</span> da obra <span class="highlight">{obra_nome}</span>.</p>
                 
-                <div class="info-box">
-                    <strong>Data de aprovação:</strong><br/>
-                    {data_str}
-                </div>
-                
-                <p>O documento em PDF está anexado a este email e contém todas as informações completas sobre o relatório aprovado.</p>
-                
-                <p>Em caso de dúvidas ou necessidade de esclarecimentos, favor entrar em contato conosco.</p>
+                <p>Para esclarecimentos, entre em contato com <strong>{contato_nome}</strong> através do e-mail <a href="mailto:{contato_email}">{contato_email}</a>.</p>
                 
                 <p style="margin-top: 30px;">Atenciosamente,<br/>
-                <strong>ELP Consultoria Engenharia</strong></p>
+                <strong>ELP Consultoria</strong></p>
             </div>
             
             <div class="footer">
-                <p>Este é um email automático. Por favor, não responda este mensagem.</p>
+                <p>Este é um email automático; por favor, não responder.</p>
                 <p>© 2025 ELP Consultoria. Todos os direitos reservados.</p>
             </div>
         </div>
@@ -407,8 +423,18 @@ class UnifiedReportEmailService:
                 logger.error(f"❌ Erro ao ler PDF: {e}")
                 return {'success': False, 'enviados': 0, 'total': len(recipients), 'erros': [f'Erro ao ler PDF: {e}']}
             
-            # Preparar assunto
-            assunto = f"✅ Relatório Aprovado – {obra_nome}"
+            # Preparar assunto (Express: Relatório de visita do dia “xx/xx/xx” – Obra “nome da obra”)
+            data_visita_str = "Data N/A"
+            if hasattr(relatorio, 'data_visita') and relatorio.data_visita:
+                # Se for datetime
+                if hasattr(relatorio.data_visita, 'strftime'):
+                    data_visita_str = relatorio.data_visita.strftime("%d/%m/%y")
+                else:
+                    data_visita_str = str(relatorio.data_visita)
+            elif hasattr(relatorio, 'created_at') and relatorio.created_at:
+                data_visita_str = relatorio.created_at.strftime("%d/%m/%y")
+                
+            assunto = f"Relatório de visita do dia {data_visita_str} – Obra {obra_nome}"
             
             # Enviar para cada destinatário
             enviados = 0
@@ -439,7 +465,7 @@ class UnifiedReportEmailService:
                         pass
                     
                     # Montar HTML do corpo
-                    corpo_html = self._build_html_body(destinatario_nome, obra_nome, getattr(relatorio, 'data_aprovacao', None))
+                    corpo_html = self._build_html_body(destinatario_nome, obra_nome, getattr(relatorio, 'data_aprovacao', None), relatorio)
                     
                     # Preparar payload
                     payload = {
