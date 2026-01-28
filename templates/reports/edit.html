@@ -78,7 +78,8 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                    <p><strong>Obra:</strong> {{ relatorio.projeto.nome if relatorio.projeto else '-' }}</p>
+                                <div class="col-12">
+                                    <p id="report-info-obra"><strong>Obra:</strong> {{ relatorio.projeto.nome if relatorio.projeto else '-' }}</p>
                                     <p><strong>Autor:</strong> {{ relatorio.autor.nome_completo if relatorio.autor else '-' }}</p>
                                     <p><strong>Data:</strong> {{ relatorio.data_relatorio.strftime('%d/%m/%Y') if relatorio.data_relatorio else '-' }}</p>
                                     <p><strong>Título:</strong> {{ relatorio.titulo or 'Sem título' }}</p>
@@ -96,6 +97,7 @@
                                         </span>
                                     </p>
                                     <p class="small text-muted mb-0"><strong>Número:</strong> {{ relatorio.numero or 'S/N' }}</p>
+                                </div>
 
                                     {% if relatorio.status == 'Aprovado' and relatorio.data_aprovacao %}
                                     <p><strong>Aprovado em:</strong> {{ relatorio.data_aprovacao|format_datetime_br }}
@@ -548,7 +550,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // Atualizar informações do projeto se existir
             if (data.projeto) {
-                const projetoInfo = document.querySelector('.card-body p:nth-child(3)');
+                const projetoInfo = document.getElementById('report-info-obra');
                 if (projetoInfo) {
                     projetoInfo.innerHTML = `<strong>Obra:</strong> ${data.projeto.numero} - ${data.projeto.nome}`;
                 }
