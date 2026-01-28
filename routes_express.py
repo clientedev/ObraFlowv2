@@ -97,6 +97,7 @@ def new_express_report():
             'obra_email': '',
             'obra_telefone': '',
             'acompanhantes': [],
+            'informacoes_tecnicas': '{}',
             'imagens': []
         }
         
@@ -250,6 +251,7 @@ def edit_express_report(report_id):
             'conteudo': relatorio.conteudo,
             'acompanhantes': relatorio.acompanhantes or [],
             'checklist_data': checklist_data,
+            'informacoes_tecnicas': relatorio.informacoes_tecnicas,
             'imagens': []
         }
         

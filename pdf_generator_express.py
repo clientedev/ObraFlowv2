@@ -70,12 +70,27 @@ def gerar_pdf_relatorio_express(relatorio_ou_id, output_path=None, salvar_arquiv
         
         class VirtualProject:
             """Projeto virtual com dados da obra express"""
-            def __init__(self, obra_nome, obra_endereco, obra_construtora, obra_responsavel):
+            def __init__(self, obra_nome, obra_endereco, obra_construtora, obra_responsavel, info_tecnica=None):
                 self.nome = obra_nome or 'Obra Express'
                 self.endereco = obra_endereco or ''
                 self.construtora = obra_construtora or ''
                 self.cliente = obra_construtora or ''
                 self.responsavel = obra_responsavel or ''
+                
+                # Campos técnicos
+                info = info_tecnica or {}
+                self.elementos_construtivos_base = info.get('elementos_construtivos_base')
+                self.especificacao_chapisco_colante = info.get('especificacao_chapisco_colante')
+                self.especificacao_chapisco_alvenaria = info.get('especificacao_chapisco_alvenaria')
+                self.especificacao_argamassa_emboco = info.get('especificacao_argamassa_emboco')
+                self.forma_aplicacao_argamassa = info.get('forma_aplicacao_argamassa')
+                self.acabamentos_revestimento = info.get('acabamentos_revestimento')
+                self.acabamento_peitoris = info.get('acabamento_peitoris')
+                self.acabamento_muretas = info.get('acabamento_muretas')
+                self.definicao_frisos_cor = info.get('definicao_frisos_cor')
+                self.definicao_face_inferior_abas = info.get('definicao_face_inferior_abas')
+                self.observacoes_projeto_fachada = info.get('observacoes_projeto_fachada')
+                self.outras_observacoes = info.get('outras_observacoes')
         
         class VirtualAuthor:
             """Autor virtual quando não há autor real"""
@@ -112,11 +127,23 @@ def gerar_pdf_relatorio_express(relatorio_ou_id, output_path=None, salvar_arquiv
                 
                 self.aprovador = express_report.aprovador
                 
+                # Parse technical info
+                info_tecnica = {}
+                if express_report.informacoes_tecnicas:
+                    try:
+                        if isinstance(express_report.informacoes_tecnicas, str):
+                            info_tecnica = json.loads(express_report.informacoes_tecnicas)
+                        else:
+                            info_tecnica = express_report.informacoes_tecnicas
+                    except:
+                        pass
+
                 self.projeto = VirtualProject(
                     express_report.obra_nome,
                     express_report.obra_endereco,
                     express_report.obra_construtora,
-                    express_report.obra_responsavel
+                    express_report.obra_responsavel,
+                    info_tecnica
                 )
         
         relatorio_adaptado = ExpressReportAdapter(relatorio_express)
