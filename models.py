@@ -774,6 +774,7 @@ class RelatorioExpress(db.Model):
     conteudo = db.Column(db.Text)
     descricao = db.Column(db.Text, nullable=True)
     checklist_data = db.Column(db.Text)  # JSON string for checklist data
+    informacoes_tecnicas = db.Column(db.Text, nullable=True)  # JSON string com dados técnicos
     
     # Campos de metadados (idênticos ao Relatório Comum)
     categoria = db.Column(db.String(100), nullable=True)

@@ -153,10 +153,11 @@
                                             <option value="Assistente" {% if contato.cargo == 'Assistente' %}selected{% endif %}>Assistente</option>
                                             <option value="Encarregado" {% if contato.cargo == 'Encarregado' %}selected{% endif %}>Encarregado</option>
                                             <option value="Mestre" {% if contato.cargo == 'Mestre' %}selected{% endif %}>Mestre</option>
-                                            <option value="outro" {% if contato.cargo and contato.cargo not in ['Engenheiro/a', 'Arquiteto/a', 'Analista', 'Assistente', 'Encarregado', 'Mestre', ''] %}selected{% endif %}>Outro (adicionar novo)</option>
+                                            <option value="Estagiário/a" {% if contato.cargo == 'Estagiário/a' %}selected{% endif %}>Estagiário/a</option>
+                                            <option value="outro" {% if contato.cargo and contato.cargo not in ['Engenheiro/a', 'Arquiteto/a', 'Analista', 'Assistente', 'Encarregado', 'Mestre', 'Estagiário/a', ''] %}selected{% endif %}>Outro (adicionar novo)</option>
                                         </select>
-                                        <div class="cargo-custom-container mt-2" id="cargo_custom_container_{{ loop.index0 }}" style="display: {% if contato.cargo and contato.cargo not in ['Engenheiro/a', 'Arquiteto/a', 'Analista', 'Assistente', 'Encarregado', 'Mestre', ''] %}block{% else %}none{% endif %};">
-                                            <input type="text" class="form-control cargo-custom-input" placeholder="Digite o cargo personalizado" value="{{ contato.cargo if contato.cargo and contato.cargo not in ['Engenheiro/a', 'Arquiteto/a', 'Analista', 'Assistente', 'Encarregado', 'Mestre', ''] else '' }}" onchange="updateProjectCargoHidden(this, {{ loop.index0 }})">
+                                        <div class="cargo-custom-container mt-2" id="cargo_custom_container_{{ loop.index0 }}" style="display: {% if contato.cargo and contato.cargo not in ['Engenheiro/a', 'Arquiteto/a', 'Analista', 'Assistente', 'Encarregado', 'Mestre', 'Estagiário/a', ''] %}block{% else %}none{% endif %};">
+                                            <input type="text" class="form-control cargo-custom-input" placeholder="Digite o cargo personalizado" value="{{ contato.cargo if contato.cargo and contato.cargo not in ['Engenheiro/a', 'Arquiteto/a', 'Analista', 'Assistente', 'Encarregado', 'Mestre', 'Estagiário/a', ''] else '' }}" onchange="updateProjectCargoHidden(this, {{ loop.index0 }})">
                                         </div>
                                         <input type="hidden" name="contatos[{{ loop.index0 }}][cargo]" class="cargo-hidden" id="cargo_hidden_{{ loop.index0 }}" value="{{ contato.cargo or '' }}">
                                     </div>
@@ -748,6 +749,7 @@ document.getElementById('addContatoBtn').addEventListener('click', function() {
                 <option value="Assistente">Assistente</option>
                 <option value="Encarregado">Encarregado</option>
                 <option value="Mestre">Mestre</option>
+                <option value="Estagiário/a">Estagiário/a</option>
                 <option value="outro">Outro (adicionar novo)</option>
             </select>
             <div class="cargo-custom-container mt-2" id="cargo_custom_container_${contatoCounter}" style="display: none;">

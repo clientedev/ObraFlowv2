@@ -12,7 +12,7 @@ from flask import render_template, redirect, url_for, flash, request, jsonify, c
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app import app, db
-from models import RelatorioExpress, FotoRelatorioExpress, User
+from models import RelatorioExpress, FotoRelatorioExpress, User, ChecklistPadrao
 
 logger = logging.getLogger(__name__)
 
@@ -100,12 +100,16 @@ def new_express_report():
             'imagens': []
         }
         
+        # Carregar checklist padrão
+        checklist_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+        
         return render_template('reports/express_form.html',
             report_data=report_data,
             edit_mode=False,
             existing_report=None,
             next_numero=next_numero,
-            today=today
+            today=today,
+            checklist_items=checklist_items
         )
     except Exception as e:
         logger.error(f"Erro ao carregar formulário Express: {e}")
@@ -152,6 +156,12 @@ def create_express_report():
             conteudo=request.form.get('conteudo', ''),
             status='Em preenchimento'
         )
+        
+        # Processar informacoes_tecnicas
+        informacoes_tecnicas = request.form.get('informacoes_tecnicas')
+        if informacoes_tecnicas:
+            relatorio.informacoes_tecnicas = informacoes_tecnicas
+
         
         data_relatorio = request.form.get('data_relatorio')
         if data_relatorio:
@@ -256,12 +266,16 @@ def edit_express_report(report_id):
                 'ordem': foto.ordem
             })
         
+        # Carregar checklist padrão
+        checklist_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+        
         return render_template('reports/express_form.html',
             report_data=report_data,
             edit_mode=True,
             existing_report=relatorio,
             next_numero=relatorio.numero,
-            today=today
+            today=today,
+            checklist_items=checklist_items
         )
     except Exception as e:
         logger.error(f"Erro ao editar Relatório Express: {e}")
@@ -292,6 +306,11 @@ def update_express_report(report_id):
         relatorio.obra_telefone = request.form.get('obra_telefone', '')
         relatorio.conteudo = request.form.get('conteudo', '')
         relatorio.atualizado_por = current_user.id
+        
+        # Processar informacoes_tecnicas
+        informacoes_tecnicas = request.form.get('informacoes_tecnicas')
+        if informacoes_tecnicas:
+            relatorio.informacoes_tecnicas = informacoes_tecnicas
         
         relatorio.empresa_nome = request.form.get('obra_nome', relatorio.empresa_nome)
         relatorio.empresa_endereco = request.form.get('obra_endereco', '')
@@ -614,6 +633,14 @@ def autosave_express_report_api():
                 status='Em preenchimento'
             )
             
+            # Processar informacoes_tecnicas
+            informacoes_tecnicas = data.get('informacoes_tecnicas')
+            if informacoes_tecnicas:
+                if isinstance(informacoes_tecnicas, dict):
+                    informacoes_tecnicas = json.dumps(informacoes_tecnicas)
+                relatorio.informacoes_tecnicas = informacoes_tecnicas
+
+            
             if data.get('data_relatorio'):
                 try:
                     relatorio.data_relatorio = datetime.strptime(data['data_relatorio'], '%Y-%m-%d')
@@ -630,7 +657,7 @@ def autosave_express_report_api():
                 return jsonify({'success': False, 'error': 'Relatório não encontrado'}), 404
             
             campos = ['titulo', 'obra_nome', 'obra_endereco', 'obra_tipo', 'obra_construtora',
-                      'obra_responsavel', 'obra_email', 'obra_telefone', 'conteudo', 'observacoes_finais']
+                      'obra_responsavel', 'obra_email', 'obra_telefone', 'conteudo', 'observacoes_finais', 'informacoes_tecnicas']
             for campo in campos:
                 if campo in data:
                     setattr(relatorio, campo, data[campo])
@@ -865,7 +892,8 @@ def duplicate_express_report(report_id):
             existing_report=None,
             next_numero=next_numero,
             today=today,
-            is_duplicate=True
+            is_duplicate=True,
+            checklist_items=ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
         )
     except Exception as e:
         logger.error(f"Erro ao duplicar Relatório Express: {e}")
