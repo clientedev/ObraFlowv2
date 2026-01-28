@@ -6953,7 +6953,28 @@ def update_report(report_id):
                 except ValueError:
                     app.logger.warning(f"⚠️ Formato de data inválido: {data_str}")
         if "lembrete_proxima_visita" in data:
-            relatorio.lembrete_proxima_visita = data.get("lembrete_proxima_visita")
+            lembrete_val = data.get("lembrete_proxima_visita")
+            if lembrete_val:
+                try:
+                    # Tenta converter para data se for string
+                    if isinstance(lembrete_val, str):
+                        # Ignora se for texto genérico (como "TESTE DE NUMERO")
+                        if "TESTE" in lembrete_val.upper() or len(lembrete_val) < 10:
+                            app.logger.warning(f"⚠️ Ignorando lembrete inválido: {lembrete_val}")
+                        else:
+                            # Tenta converter ISO
+                            try:
+                                relatorio.lembrete_proxima_visita = datetime.fromisoformat(lembrete_val.replace('Z', '+00:00'))
+                            except ValueError:
+                                # Tenta formato YYYY-MM-DD
+                                try:
+                                    relatorio.lembrete_proxima_visita = datetime.strptime(lembrete_val, '%Y-%m-%d')
+                                except ValueError:
+                                    app.logger.warning(f"⚠️ Formato de data inválido para lembrete: {lembrete_val}")
+                    else:
+                        relatorio.lembrete_proxima_visita = lembrete_val
+                except Exception as e:
+                    app.logger.error(f"❌ Erro ao processar lembrete_proxima_visita: {e}")
 
         # Atualizar acompanhantes
         if "acompanhantes" in data:
