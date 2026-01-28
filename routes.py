@@ -1488,10 +1488,48 @@ def listar_notificacoes():
                 }), 500
             raise
         
+        
         notificacoes_json = []
         nao_lidas = 0
         
         for notif in notificacoes:
+            # Filtrar notificações de relatórios pendentes que já foram processados
+            if notif.tipo in ['relatorio_pendente', 'relatorio_express_pendente']:
+                deve_ocultar = False
+                
+                try:
+                    # Extrair ID do relatório do link
+                    if notif.link_destino:
+                        import re
+                        
+                        if notif.tipo == 'relatorio_pendente':
+                            # Formato: /reports/{id}/review
+                            match = re.search(r'/reports/(\d+)', notif.link_destino)
+                            if match:
+                                relatorio_id = int(match.group(1))
+                                relatorio = Relatorio.query.get(relatorio_id)
+                                
+                                if relatorio and relatorio.status != 'Aguardando Aprovação':
+                                    deve_ocultar = True
+                        
+                        elif notif.tipo == 'relatorio_express_pendente':
+                            # Formato: /relatorio-express/{id}
+                            match = re.search(r'/relatorio-express/(\d+)', notif.link_destino)
+                            if match:
+                                relatorio_id = int(match.group(1))
+                                relatorio_express = RelatorioExpress.query.get(relatorio_id)
+                                
+                                if relatorio_express and relatorio_express.status != 'Aguardando Aprovação':
+                                    deve_ocultar = True
+                
+                except Exception as filter_error:
+                    # Se houver erro ao filtrar, manter a notificação (fail-safe)
+                    current_app.logger.warning(f"⚠️ Erro ao filtrar notificação {notif.id}: {filter_error}")
+                    deve_ocultar = False
+                
+                if deve_ocultar:
+                    continue  # Pular esta notificação
+            
             if notif.status == 'nova':
                 nao_lidas += 1
             

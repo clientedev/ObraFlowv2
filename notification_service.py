@@ -209,12 +209,14 @@ class NotificationService:
             # Buscar informações do projeto para mensagem mais completa
             projeto = Projeto.query.get(relatorio.projeto_id) if relatorio.projeto_id else None
             projeto_nome = projeto.nome if projeto else "Sem projeto"
+            numero_rel = relatorio.numero or "S/N"
+            titulo_rel = relatorio.titulo or "Sem título"
             
             resultado = self.criar_notificacao(
                 user_id=aprovador_id,
                 tipo='relatorio_pendente',
                 titulo='Você tem um relatório com aprovação pendente',
-                mensagem=f'O relatório "{relatorio.titulo or relatorio.numero}" da obra "{projeto_nome}" está aguardando sua aprovação.',
+                mensagem=f'O relatório nº {numero_rel} "{titulo_rel}" da obra "{projeto_nome}" está aguardando sua aprovação.',
                 link_destino=f'/reports/{relatorio_id}/review'
             )
             
@@ -418,12 +420,14 @@ class NotificationService:
             
             projeto = Projeto.query.get(relatorio.projeto_id) if relatorio.projeto_id else None
             projeto_nome = projeto.nome if projeto else "Sem projeto"
+            numero_rel = relatorio.numero or "S/N"
+            titulo_rel = relatorio.titulo or "Sem título"
             
             resultado = self.criar_notificacao(
                 user_id=relatorio.autor_id,
                 tipo='relatorio_aprovado',
                 titulo='Relatório aprovado',
-                mensagem=f'Seu relatório "{relatorio.titulo or relatorio.numero}" da obra "{projeto_nome}" foi aprovado por {aprovador_nome}.',
+                mensagem=f'Seu relatório nº {numero_rel} "{titulo_rel}" da obra "{projeto_nome}" foi aprovado por {aprovador_nome}.',
                 link_destino=f'/reports/{relatorio_id}/edit'
             )
             
@@ -470,13 +474,15 @@ class NotificationService:
                         usuarios_a_notificar.add(func.user_id)
             
             # Criar notificações
+            numero_rel = relatorio.numero or "S/N"
+            titulo_rel = relatorio.titulo or "Sem título"
             notificacoes_criadas = 0
             for user_id in usuarios_a_notificar:
                 resultado = self.criar_notificacao(
                     user_id=user_id,
                     tipo='relatorio_criado',
                     titulo='Novo relatório criado',
-                    mensagem=f'Um novo relatório "{relatorio.titulo or relatorio.numero}" foi criado para a obra "{projeto_nome}".',
+                    mensagem=f'Um novo relatório nº {numero_rel} "{titulo_rel}" foi criado para a obra "{projeto_nome}".',
                     link_destino=f'/reports/{relatorio_id}'
                 )
                 
@@ -543,6 +549,8 @@ class NotificationService:
             
             projeto = Projeto.query.get(relatorio.projeto_id) if relatorio.projeto_id else None
             projeto_nome = projeto.nome if projeto else "Sem projeto"
+            numero_rel = relatorio.numero or "S/N"
+            titulo_rel = relatorio.titulo or "Sem título"
             
             editor = User.query.get(editor_id)
             editor_nome = editor.nome_completo if editor else "Um usuário"
@@ -551,7 +559,7 @@ class NotificationService:
                 user_id=aprovador_id,
                 tipo='relatorio_editado',
                 titulo='Relatório pendente foi editado',
-                mensagem=f'{editor_nome} editou o relatório "{relatorio.titulo or relatorio.numero}" da obra "{projeto_nome}" que está aguardando sua aprovação.',
+                mensagem=f'{editor_nome} editou o relatório nº {numero_rel} "{titulo_rel}" da obra "{projeto_nome}" que está aguardando sua aprovação.',
                 link_destino=f'/reports/{relatorio_id}/review'
             )
             
