@@ -4300,14 +4300,20 @@ function salvarNovoLembreteInput() {
     return;
   }
   
-  criarLembrete(projetoId, texto.trim());
-  textoInput.value = ''; // Limpar campo após salvar
+  window.lembreteSaving = true;
+  criarLembrete(projetoId, texto.trim(), false).then(() => {
+     textoInput.value = ''; 
+     localStorage.removeItem(`lembrete_draft_${projetoId}`);
+     window.lembreteSaving = false;
+  });
 }
 
-async function criarLembrete(projetoId, texto) {
+async function criarLembrete(projetoId, texto, silent = false) {
   try {
+    // Usar keepalive para garantir que o request continue mesmo se a página mudar
     const response = await fetch('/api/lembrete/create', {
       method: 'POST',
+      keepalive: true, 
       headers: {
         'Content-Type': 'application/json',
         'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
