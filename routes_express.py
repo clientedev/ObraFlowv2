@@ -160,6 +160,7 @@ def create_express_report():
         
         # Processar informacoes_tecnicas
         informacoes_tecnicas = request.form.get('informacoes_tecnicas')
+        logger.info(f"CREATE EXPRESS: informacoes_tecnicas received: {informacoes_tecnicas}")
         if informacoes_tecnicas:
             relatorio.informacoes_tecnicas = informacoes_tecnicas
 
@@ -311,6 +312,7 @@ def update_express_report(report_id):
         
         # Processar informacoes_tecnicas
         informacoes_tecnicas = request.form.get('informacoes_tecnicas')
+        logger.info(f"UPDATE EXPRESS: informacoes_tecnicas received: {informacoes_tecnicas}")
         if informacoes_tecnicas:
             relatorio.informacoes_tecnicas = informacoes_tecnicas
         
@@ -411,11 +413,14 @@ def view_express_report(report_id):
 
         # Processar informações técnicas de forma segura
         tech_info = {}
+        logger.info(f"VIEW EXPRESS: raw informacoes_tecnicas: {relatorio.informacoes_tecnicas}")
         if relatorio.informacoes_tecnicas:
             if isinstance(relatorio.informacoes_tecnicas, str):
                 try:
                     tech_info = json.loads(relatorio.informacoes_tecnicas)
-                except:
+                    logger.info(f"VIEW EXPRESS: parsed tech_info: {tech_info}")
+                except Exception as e:
+                    logger.error(f"VIEW EXPRESS: error parsing json: {e}")
                     tech_info = {}
             else:
                 tech_info = relatorio.informacoes_tecnicas
@@ -674,7 +679,10 @@ def autosave_express_report_api():
                       'obra_responsavel', 'obra_email', 'obra_telefone', 'conteudo', 'observacoes_finais', 'informacoes_tecnicas']
             for campo in campos:
                 if campo in data:
-                    setattr(relatorio, campo, data[campo])
+                    value = data[campo]
+                    if campo == 'informacoes_tecnicas' and isinstance(value, dict):
+                        value = json.dumps(value)
+                    setattr(relatorio, campo, value)
             
             if 'obra_nome' in data:
                 relatorio.empresa_nome = data['obra_nome']
