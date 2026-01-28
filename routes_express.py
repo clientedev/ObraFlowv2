@@ -881,6 +881,7 @@ def duplicate_express_report(report_id):
             'obra_telefone': relatorio_original.obra_telefone or '',
             'conteudo': '',  # Novo conteúdo
             'acompanhantes': acompanhantes,
+            'informacoes_tecnicas': relatorio_original.informacoes_tecnicas,
             'checklist_data': checklist_data,  # Duplicar checklist
             'imagens': [],  # Sem fotos (novo relatório)
             'duplicado_de': relatorio_original.numero
