@@ -635,7 +635,7 @@
                             <div class="input-group">
                                 <textarea class="form-control" id="novo_lembrete_texto" rows="3" 
                                         placeholder="Deixe um lembrete ou ponto de atenção para a próxima visita a esta obra..."></textarea>
-                                <button class="btn btn-outline-warning" type="button" onclick="salvarNovoLembreteInput()" style="border-top-right-radius: 0.25rem; border-bottom-right-radius: 0.25rem;">
+                                <button class="btn btn-warning text-dark fw-bold" type="button" onclick="salvarNovoLembreteInput()" style="border-top-right-radius: 0.25rem; border-bottom-right-radius: 0.25rem;">
                                     <i class="fas fa-plus me-1"></i> Adicionar
                                 </button>
                             </div>
@@ -4212,20 +4212,23 @@ function mostrarLembretes(lembretes) {
   
   lembretes.forEach(lembrete => {
     const card = document.createElement('div');
-    card.className = 'alert alert-warning alert-dismissible fade show';
+    // USANDO CARD EM VEZ DE ALERT PARA EVITAR AUTO-DISMISS SCRIPTS
+    card.className = 'card bg-warning bg-opacity-10 border-warning mb-2 shadow-sm';
     card.setAttribute('data-lembrete-id', lembrete.id);
     card.innerHTML = `
-      <div class="d-flex justify-content-between align-items-start">
-        <div style="flex: 1;">
-          <strong><i class="fas fa-bell me-2"></i>Lembrete:</strong><br>
-          <span>${escapeHtml(lembrete.texto)}</span>
-          <div class="mt-2 text-muted small">
-            <i class="fas fa-user me-1"></i> Criado por: ${escapeHtml(lembrete.criado_por)} em ${formatarDataLembrete(lembrete.criado_em)}
+      <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-start">
+          <div style="flex: 1;">
+            <strong class="text-warning-dark"><i class="fas fa-bell me-2"></i>Lembrete:</strong>
+            <div class="mt-1">${escapeHtml(lembrete.texto)}</div>
+            <div class="mt-2 text-muted small">
+              <i class="fas fa-user me-1"></i> Criado por: ${escapeHtml(lembrete.criado_por)} em ${formatarDataLembrete(lembrete.criado_em)}
+            </div>
           </div>
+          <button type="button" class="btn btn-sm btn-outline-danger ms-3" onclick="fecharLembrete(${lembrete.id})" title="Marcar como concluído">
+            <i class="fas fa-check"></i> Fechar
+          </button>
         </div>
-        <button type="button" class="btn btn-sm btn-warning ms-3" onclick="fecharLembrete(${lembrete.id})" title="Fechar lembrete">
-          <i class="fas fa-check"></i> Fechar
-        </button>
       </div>
     `;
     container.appendChild(card);
