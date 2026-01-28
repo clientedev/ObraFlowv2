@@ -366,6 +366,8 @@ class UnifiedReportEmailService:
                 
                 <p>Segue em anexo o relatório de visita do dia <span class="highlight">{data_str}</span> da obra <span class="highlight">{obra_nome}</span>.</p>
                 
+                <p>Este é um e-mail automático; por favor, não responder.</p>
+                
                 <p>Para esclarecimentos, entre em contato com <strong>{contato_nome}</strong> através do e-mail <a href="mailto:{contato_email}">{contato_email}</a>.</p>
                 
                 <p style="margin-top: 30px;">Atenciosamente,<br/>
@@ -373,7 +375,6 @@ class UnifiedReportEmailService:
             </div>
             
             <div class="footer">
-                <p>Este é um email automático; por favor, não responder.</p>
                 <p>© 2025 ELP Consultoria. Todos os direitos reservados.</p>
             </div>
         </div>

@@ -171,13 +171,12 @@ class ReportApprovalEmailService:
                         <p>Olá <span class="highlight">{nome_destinatario}</span>,</p>
                         <p>Segue em anexo o relatório <span class="highlight">{numero_rel}</span> da obra <span class="highlight">{obra_nome}</span>.</p>
                         <p><strong>Data da visita:</strong> {data_formatada}</p>
+                        
+                        <p>Este é um e-mail automático; por favor, não responder.</p>
                        
                         <p>Para esclarecimentos, entre em contato com <strong>{contato_nome}</strong> através do e-mail <a href="mailto:{contato_email}">{contato_email}</a>.</p>
                         
                         <p>Atenciosamente,<br><strong>ELP Consultoria</strong></p>
-                    </div>
-                    <div class="footer">
-                        <p>Este é um e-mail automático; por favor, não responder.</p>
                     </div>
                 </div>
             </body>
