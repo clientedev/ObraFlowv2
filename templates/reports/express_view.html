@@ -58,7 +58,6 @@
                         </div>
                     </div>
 
-                    {% if relatorio.informacoes_tecnicas %}
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="accordion" id="accordionTechnical">
@@ -71,7 +70,19 @@
                                     <div id="collapseTechnical" class="accordion-collapse collapse" aria-labelledby="headingTechnical" data-bs-parent="#accordionTechnical">
                                         <div class="accordion-body">
                                             <div class="row">
-                                                {% set info = relatorio.informacoes_tecnicas | from_json if relatorio.informacoes_tecnicas is string else relatorio.informacoes_tecnicas %}
+                                                {% set info = {} %}
+                                                {% if relatorio.informacoes_tecnicas %}
+                                                    {% if relatorio.informacoes_tecnicas is string %}
+                                                        {% try %}
+                                                            {% set info = relatorio.informacoes_tecnicas | from_json %}
+                                                        {% except %}
+                                                            {% set info = {} %}
+                                                        {% endtry %}
+                                                    {% else %}
+                                                        {% set info = relatorio.informacoes_tecnicas %}
+                                                    {% endif %}
+                                                {% endif %}
+                                                
                                                 {% set labels = {
                                                     'elementos_construtivos_base': 'Elementos construtivos da base',
                                                     'especificacao_chapisco_colante': 'Especificação chapisco colante',
@@ -100,7 +111,6 @@
                             </div>
                         </div>
                     </div>
-                    {% endif %}
 
                     <div class="row mb-4">
                         <div class="col-md-6 mb-3">

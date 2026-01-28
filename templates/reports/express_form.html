@@ -340,6 +340,57 @@
         }
       }, 100);
     }
+
+    // --- Lógica para Informações Técnicas ---
+    const technicalFields = document.querySelectorAll('.technical-field');
+    const technicalInput = document.getElementById('informacoes_tecnicas');
+
+    function updateTechnicalJson() {
+        const data = {};
+        technicalFields.forEach(field => {
+            const fieldName = field.getAttribute('data-field');
+            if (fieldName) {
+                data[fieldName] = field.value;
+            }
+        });
+        technicalInput.value = JSON.stringify(data);
+    }
+
+    // Adicionar listeners para atualização em tempo real
+    technicalFields.forEach(field => {
+        field.addEventListener('input', updateTechnicalJson);
+        field.addEventListener('change', updateTechnicalJson);
+    });
+
+    // Carregar dados existentes
+    if (REPORT_DATA.informacoes_tecnicas) {
+        try {
+            let techData = REPORT_DATA.informacoes_tecnicas;
+            // Se for string, tentar parsear
+            if (typeof techData === 'string') {
+                try {
+                    techData = JSON.parse(techData);
+                } catch (e) {
+                    console.error("Erro ao parsear informacoes_tecnicas:", e);
+                    techData = {};
+                }
+            }
+            
+            // Popula os campos
+            if (techData && typeof techData === 'object') {
+                technicalFields.forEach(field => {
+                    const fieldName = field.getAttribute('data-field');
+                    if (fieldName && techData[fieldName]) {
+                        field.value = techData[fieldName];
+                    }
+                });
+                // Atualiza o input hidden inicial
+                updateTechnicalJson();
+            }
+        } catch (e) {
+            console.error("Erro ao processar dados técnicos:", e);
+        }
+    }
   });
 </script>
 <div class="container-fluid">
