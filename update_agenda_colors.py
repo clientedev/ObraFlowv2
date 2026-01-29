@@ -5,18 +5,8 @@ import sys
 def update_colors():
     with app.app_context():
         # Map of partial name to color
-        # Leopoldo: Blue (#0000FF)
-        # Mateus: Green (#008000)
-        # Isadora: Yellow (#FFFF00)
-        # Luciana: Orange (#FFA500)
-        # admin: Black (#000000)
-        
         color_map = {
-            'leopoldo': '#0000FF',
-            'mateus': '#008000',
-            'isadora': '#FFFF00', # Using standard Yellow as requested
-            'luciana': '#FFA500', 
-            'admin': '#000000'
+            'isadora': '#D4AC0D', # Darker Yellow (Ochre) for white text visibility
         }
         
         print("Starting Agenda Color Update...")
