@@ -1637,6 +1637,11 @@ def marcar_notificacao_lida_put(notificacao_id):
         current_app.logger.error(f"❌ Erro ao marcar notificação como lida: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/firebase-messaging-sw.js')
+def serve_sw():
+    """Serve o service worker do Firebase com as chaves injetadas dinamicamente"""
+    return make_response(render_template('firebase-messaging-sw.js'), 200, {'Content-Type': 'application/javascript'})
+
 @app.route('/api/test_push', methods=['POST'])
 @login_required
 def test_push():

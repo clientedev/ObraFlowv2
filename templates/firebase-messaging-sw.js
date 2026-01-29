@@ -17,12 +17,12 @@ importScripts("https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging-comp
 // Para este projeto, as variáveis são públicas (Firebase Public Keys).
 
 const firebaseConfig = {
-    apiKey: "AIzaSy...", // O usuário deve substituir estas chaves se necessário, mas as públicas não são sensíveis
-    authDomain: "elp-consultoria.firebaseapp.com",
-    projectId: "elp-consultoria",
-    storageBucket: "elp-consultoria.appspot.com",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:abc123"
+    apiKey: "{{ config.get('FIREBASE_API_KEY', '') }}",
+    authDomain: "{{ config.get('FIREBASE_AUTH_DOMAIN', '') }}",
+    projectId: "{{ config.get('FIREBASE_PROJECT_ID', '') }}",
+    storageBucket: "{{ config.get('FIREBASE_STORAGE_BUCKET', '') }}",
+    messagingSenderId: "{{ config.get('FIREBASE_MESSAGING_SENDER_ID', '') }}",
+    appId: "{{ config.get('FIREBASE_APP_ID', '') }}"
 };
 
 // Se possível, o servidor deve servir este arquivo dinamicamente para injetar as chaves reais.
