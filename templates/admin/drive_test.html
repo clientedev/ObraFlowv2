@@ -217,6 +217,7 @@ function backupAllReports() {
                     <i class="fas fa-check-circle me-2"></i>
                     <strong>Backup concluído com sucesso!</strong><br>
                     ${data.message}
+                    ${data.detalhes ? `<br><small class="text-muted">${data.detalhes}</small>` : ''}
                     ${filesHtml}
                 </div>
             `;
