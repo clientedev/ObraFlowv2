@@ -103,6 +103,13 @@ class FirebaseNotificationsManager {
 
             console.log('🔔 Solicitando permissão de notificações...');
             
+            // Check if permission is already denied
+            if (Notification.permission === 'denied') {
+                console.warn('⚠️ Permissão de notificações negada anteriormente.');
+                alert('As notificações estão bloqueadas nas configurações do seu navegador. Para ativar:\n\n1. Clique no ícone de "Cadeado" ou "Configurações" na barra de endereços (ao lado do link do site).\n2. Mude a opção "Notificações" para "Permitir".\n3. Recarregue a página.');
+                return null;
+            }
+            
             const permission = await Notification.requestPermission();
             
             if (permission === 'granted') {

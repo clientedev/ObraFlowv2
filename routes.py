@@ -1646,19 +1646,29 @@ def serve_sw():
 @login_required
 def test_push():
     """Endpoint para testar o envio de push notification para o usuário logado"""
-    from firebase_utils import send_push_notification
-    
-    success = send_push_notification(
-        user=current_user,
-        title="🔔 Teste de Notificação",
-        body="Se você recebeu isso, o sistema de Push Notifications está funcionando!",
-        data={'url': '/'}
-    )
-    
-    if success:
-        return jsonify({'success': True, 'message': 'Notificação enviada com sucesso!'})
-    else:
-        return jsonify({'success': False, 'message': 'Falha ao enviar notificação. Verifique os logs do servidor.'}), 500
+    try:
+        from firebase_utils import send_push_notification
+        
+        if not current_user.fcm_token:
+            return jsonify({
+                'success': False, 
+                'message': 'Você ainda não ativou as notificações neste navegador. Clique em "Ativar Notificações" primeiro.'
+            }), 400
+
+        success = send_push_notification(
+            user=current_user,
+            title="🔔 Teste de Notificação",
+            body="Se você recebeu isso, o sistema de Push Notifications está funcionando!",
+            data={'url': '/dashboard'}
+        )
+        
+        if success:
+            return jsonify({'success': True, 'message': 'Notificação enviada com sucesso!'})
+        else:
+            return jsonify({'success': False, 'message': 'Falha ao enviar notificação. Verifique se o token é válido.'}), 500
+    except Exception as e:
+        current_app.logger.error(f"Erro no endpoint test_push: {e}")
+        return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
 
 @app.route('/api/update_fcm_token', methods=['POST'])
 @login_required
@@ -1989,7 +1999,51 @@ def login():
         if user and user.ativo and check_password_hash(user.password_hash, form.password.data):
             login_user(user, remember=form.remember_me.data)
 
-            # Verificar se é o primeiro login
+            # --- Adicionar Notificações de Login ---
+            try:
+                from notification_service import NotificationService
+                notif_service = NotificationService()
+                
+                # 1. Notificação de Boas-vindas (Primeiro Login)
+                if hasattr(user, 'primeiro_login') and user.primeiro_login:
+                    # Enviar notificação de boas-vindas
+                    notif_service.criar_notificacao(
+                        user_id=user.id,
+                        tipo='boas_vindas',
+                        titulo='Bem-vindo ao ELP Relatórios!',
+                        mensagem='Ficamos felizes em ter você aqui. Suas notificações já estão configuradas.',
+                        link_destino='/dashboard'
+                    )
+                    # Não retornamos aqui ainda para permitir a notificação broadcast abaixo
+                else:
+                    # Notificação de boas-vindas geral (sempre que loga)
+                    notif_service.enviar_push_notification(
+                        token=user.fcm_token,
+                        titulo='Bem-vindo de volta!',
+                        corpo='Você entrou no sistema ELP Relatórios.',
+                        link='/dashboard'
+                    )
+
+                # 2. Notificação Broadcast para outros usuários logados
+                outros_usuarios = User.query.filter(
+                    User.id != user.id, 
+                    User.fcm_token.isnot(None), 
+                    User.ativo == True
+                ).all()
+                
+                for outro in outros_usuarios:
+                    notif_service.criar_notificacao(
+                        user_id=outro.id,
+                        tipo='usuario_online',
+                        titulo='Usuário Online',
+                        mensagem=f'{user.nome_completo} acabou de entrar no app.',
+                        link_destino='/dashboard'
+                    )
+            except Exception as e:
+                current_app.logger.error(f"Erro ao processar notificações de login: {e}")
+            # --- Fim das Notificações ---
+
+            # Verificar se é o primeiro login (redirecionamento original)
             if hasattr(user, 'primeiro_login') and user.primeiro_login:
                 return redirect(url_for('first_login'))
 
