@@ -39,14 +39,22 @@ def initialize_firebase():
 
         if project_id and client_email and private_key:
             logger.info(f"🔧 Inicializando Firebase Admin para o projeto: {project_id}")
-            # Tratar \n na chave privada
+            # Tratar \n na chave privada de forma robusta
+            # Algumas plataformas salvam com \n real, outras com \\n literal
             formatted_private_key = private_key.replace('\\n', '\n')
+            if not formatted_private_key.startswith('-----BEGIN PRIVATE KEY-----'):
+                formatted_private_key = f"-----BEGIN PRIVATE KEY-----\n{formatted_private_key}"
+            if not formatted_private_key.endswith('-----END PRIVATE KEY-----'):
+                formatted_private_key = f"{formatted_private_key}\n-----END PRIVATE KEY-----"
+            
+            # Limpar espaços extras em cada linha
+            formatted_private_key = '\n'.join([line.strip() for line in formatted_private_key.split('\n') if line.strip()])
             
             cred_dict = {
                 "type": "service_account",
                 "project_id": project_id,
-                "client_email": client_email,
                 "private_key": formatted_private_key,
+                "client_email": client_email,
                 "token_uri": "https://oauth2.googleapis.com/token",
             }
             

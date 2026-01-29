@@ -16,26 +16,18 @@ class NotificationService:
         self.init_firebase()
     
     def init_firebase(self):
+        """
+        Inicializa o Firebase Admin usando a utilidade centralizada para evitar conflitos
+        """
         try:
-            if not firebase_admin._apps:
-                firebase_credentials = os.environ.get('FIREBASE_CREDENTIALS_JSON')
-                
-                if firebase_credentials:
-                    import json
-                    cred_dict = json.loads(firebase_credentials)
-                    cred = credentials.Certificate(cred_dict)
-                    firebase_admin.initialize_app(cred)
-                    self.firebase_initialized = True
-                    logger.info("✅ Firebase Admin SDK inicializado com sucesso")
-                else:
-                    # Firebase opcional - não logar warning
-                    logger.debug("ℹ️ Firebase não configurado (modo opcional)")
-                    self.firebase_initialized = False
+            from firebase_utils import initialize_firebase
+            self.firebase_initialized = initialize_firebase()
+            if self.firebase_initialized:
+                logger.info("✅ Firebase Admin SDK vinculado ao NotificationService")
             else:
-                self.firebase_initialized = True
-                logger.info("✅ Firebase Admin SDK já estava inicializado")
+                logger.warning("⚠️ NotificationService: Firebase não pôde ser inicializado")
         except Exception as e:
-            logger.debug(f"ℹ️ Firebase não disponível: {e}")
+            logger.error(f"❌ Erro ao vincular Firebase ao NotificationService: {e}")
             self.firebase_initialized = False
     
     def criar_notificacao(self, user_id, tipo, titulo, mensagem, link_destino=None, enviar_push=True):
