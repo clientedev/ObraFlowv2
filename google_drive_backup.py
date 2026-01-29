@@ -514,7 +514,7 @@ def backup_to_drive(report_data: Dict[str, Any], project_name: str) -> Dict[str,
     }
 
 
-def backup_photos_to_drive(token_info: Dict[str, Any], db_session, Relatorio, FotoRelatorio, RelatorioExpress, FotoRelatorioExpress) -> Dict[str, Any]:
+def backup_photos_to_drive(token_info: Dict[str, Any], db_session, Relatorio, FotoRelatorio, RelatorioExpress, FotoRelatorioExpress, upload_folder: str = 'uploads') -> Dict[str, Any]:
     """
     Fazer backup de TODAS as fotos para o Google Drive
     Organização:
@@ -544,8 +544,6 @@ def backup_photos_to_drive(token_info: Dict[str, Any], db_session, Relatorio, Fo
         'photos': {'total': 0, 'success': 0, 'failed': 0, 'skipped': 0, 'bytes': 0},
         'errors': []
     }
-    
-    upload_folder = os.environ.get('UPLOAD_FOLDER', 'uploads')
     
     # 1. Processar Relatórios Comuns (Aprovados)
     from sqlalchemy import func

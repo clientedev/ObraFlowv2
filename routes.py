@@ -9722,7 +9722,8 @@ def drive_backup_photos():
             Relatorio=Relatorio,
             FotoRelatorio=FotoRelatorio,
             RelatorioExpress=RelatorioExpress,
-            FotoRelatorioExpress=FotoRelatorioExpress
+            FotoRelatorioExpress=FotoRelatorioExpress,
+            upload_folder=app.config['UPLOAD_FOLDER']
         )
         
         return jsonify(result)
