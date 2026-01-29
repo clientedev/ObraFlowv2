@@ -283,6 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicializar calendário
     calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
+        eventDisplay: 'block', // Força exibição em bloco com cor de fundo
         locale: 'pt-br',
         headerToolbar: {
             left: 'prev,next today',
