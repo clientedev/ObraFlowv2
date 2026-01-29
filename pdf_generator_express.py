@@ -138,7 +138,13 @@ def gerar_pdf_relatorio_express(relatorio_ou_id, output_path=None, salvar_arquiv
                     except:
                         pass
 
-                self.created_at = express_report.created_at
+                # Ensure created_at is set, fallback to current time
+                try:
+                    from models import brazil_now
+                    self.created_at = express_report.created_at or brazil_now()
+                except ImportError:
+                     # Fallback if import fails (unlikely)
+                     self.created_at = express_report.created_at or datetime.now()
 
                 self.projeto = VirtualProject(
                     express_report.obra_nome,
