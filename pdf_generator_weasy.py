@@ -120,13 +120,13 @@ class WeasyPrintReportGenerator:
         
         # Helper para converter datetime naive (UTC) para Brazil timezone
         def to_brazil_tz(dt):
-            """Converte datetime para timezone do Brasil, tratando naive datetimes como UTC"""
+            """Converte datetime para timezone do Brasil"""
             if dt is None:
                 return now_brazil
-            # Se datetime é naive (sem timezone), assumir que é UTC
+            # Se datetime é naive (sem timezone), assumir que JÁ É Brazil (devido ao novo default no models)
             if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
-                dt = utc_tz.localize(dt)
-            # Converter para timezone do Brasil
+                return dt
+            # Se tem timezone, converter
             return dt.astimezone(brazil_tz)
         
         # Processar acompanhantes - lista de nomes dos participantes

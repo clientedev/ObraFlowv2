@@ -386,7 +386,7 @@ class Relatorio(db.Model):
     acompanhantes = db.Column(JSONB, nullable=True)  # JSONB array of visit attendees
     criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Usuário que criou
     atualizado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Último usuário que atualizou
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Composite unique constraint: numero must be unique within each project
@@ -794,7 +794,7 @@ class RelatorioExpress(db.Model):
     # Auditoria
     criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     atualizado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relacionamentos
