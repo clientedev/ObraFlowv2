@@ -100,6 +100,35 @@ img[src*="no-image"] {
 
     <!-- Mobile Touch Fix - Elimina vibração e melhora precisão -->
 
+    <!-- Firebase Push Notifications -->
+    <script type="module">
+        import FirebaseNotificationsManager from '/static/js/firebase-notifications.js';
+        
+        const firebaseConfig = {
+            apiKey: "{{ config.get('FIREBASE_API_KEY', '') }}",
+            authDomain: "{{ config.get('FIREBASE_AUTH_DOMAIN', '') }}",
+            projectId: "{{ config.get('FIREBASE_PROJECT_ID', '') }}",
+            storageBucket: "{{ config.get('FIREBASE_STORAGE_BUCKET', '') }}",
+            messagingSenderId: "{{ config.get('FIREBASE_MESSAGING_SENDER_ID', '') }}",
+            appId: "{{ config.get('FIREBASE_APP_ID', '') }}"
+        };
+        
+        const vapidKey = "{{ config.get('FIREBASE_VAPID_KEY', '') }}";
+        
+        if (firebaseConfig.apiKey) {
+            document.addEventListener('DOMContentLoaded', async () => {
+                const fcmManager = new FirebaseNotificationsManager();
+                if (await fcmManager.initialize(firebaseConfig)) {
+                    console.log('✅ Firebase initialized');
+                    
+                    // Opcional: Solicitar automaticamente ou vincular a um botão
+                    // Por agora, vamos apenas garantir que o manager está pronto
+                    window.fcmManager = fcmManager;
+                }
+            });
+        }
+    </script>
+    
     {% block extra_head %}{% endblock %}
 </head>
 <body>

@@ -11,14 +11,23 @@ importScripts("https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging-comp
 
 // IMPORTANTE: Configure estas variáveis com seus dados do Firebase
 // Estes valores devem vir do console Firebase → Configurações do projeto
+// Configuração será injetada ou deve ser mantida sincronizada
+// No contexto de um Service Worker estático, idealmente buscamos um endpoint de config
+// ou usamos placeholders que o processo de build/deploy substitui.
+// Para este projeto, vamos assumir que as variáveis estão disponíveis via URL params ou hardcoded de forma segura (chaves públicas).
+
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "FIREBASE_API_KEY_PLACEHOLDER",
+    authDomain: "FIREBASE_AUTH_DOMAIN_PLACEHOLDER",
+    projectId: "FIREBASE_PROJECT_ID_PLACEHOLDER",
+    storageBucket: "FIREBASE_STORAGE_BUCKET_PLACEHOLDER",
+    messagingSenderId: "FIREBASE_MESSAGING_SENDER_ID_PLACEHOLDER",
+    appId: "FIREBASE_APP_ID_PLACEHOLDER"
 };
+
+// Fallback para variáveis de ambiente se o servidor puder servir este arquivo dinamicamente
+// Mas SWs geralmente são estáticos. Vamos usar uma estratégia de "config endpoint" se possível
+// ou apenas documentar que o usuário deve preencher aqui as chaves PÚBLICAS.
 
 try {
     firebase.initializeApp(firebaseConfig);

@@ -16,13 +16,12 @@ firebase_initialized = False
 
 def initialize_firebase():
     """
-    Inicializa Firebase Admin SDK
-    Suporta tanto credenciais via arquivo JSON quanto variáveis de ambiente
+    Inicializa Firebase Admin SDK usando variáveis de ambiente específicas.
+    Foca em FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL e FIREBASE_PRIVATE_KEY.
     """
     global firebase_admin, messaging, firebase_initialized
     
     if firebase_initialized:
-        logger.info("✅ Firebase já inicializado")
         return True
     
     try:
@@ -30,40 +29,36 @@ def initialize_firebase():
         from firebase_admin import credentials, messaging as fcm_messaging
         
         if firebase_admin._apps:
-            logger.info("✅ Firebase já inicializado (app existente)")
             firebase_initialized = True
             messaging = fcm_messaging
             return True
         
-        cred_path = os.environ.get('FIREBASE_CREDENTIALS_PATH', 'firebase_credentials.json')
-        
-        if os.path.exists(cred_path):
-            logger.info(f"🔧 Inicializando Firebase com arquivo: {cred_path}")
-            cred = credentials.Certificate(cred_path)
+        project_id = os.environ.get('FIREBASE_PROJECT_ID')
+        client_email = os.environ.get('FIREBASE_CLIENT_EMAIL')
+        private_key = os.environ.get('FIREBASE_PRIVATE_KEY')
+
+        if project_id and client_email and private_key:
+            logger.info(f"🔧 Inicializando Firebase Admin para o projeto: {project_id}")
+            # Tratar \n na chave privada
+            formatted_private_key = private_key.replace('\\n', '\n')
+            
+            cred_dict = {
+                "type": "service_account",
+                "project_id": project_id,
+                "client_email": client_email,
+                "private_key": formatted_private_key,
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+            
+            cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred)
             messaging = fcm_messaging
             firebase_initialized = True
-            logger.info("✅ Firebase inicializado com sucesso (arquivo JSON)")
+            logger.info("✅ Firebase Admin inicializado com sucesso via variáveis individuais")
             return True
         
-        firebase_config = os.environ.get('FIREBASE_CONFIG')
-        if firebase_config:
-            logger.info("🔧 Inicializando Firebase com variável de ambiente")
-            config_dict = json.loads(firebase_config)
-            cred = credentials.Certificate(config_dict)
-            firebase_admin.initialize_app(cred)
-            messaging = fcm_messaging
-            firebase_initialized = True
-            logger.info("✅ Firebase inicializado com sucesso (variável de ambiente)")
-            return True
-        
-        # Firebase opcional - logar apenas em debug
-        logger.debug("ℹ️ Firebase não configurado (modo opcional)")
-        return False
-    
-    except ImportError:
-        logger.warning("⚠️ firebase-admin não instalado - push notifications desabilitadas")
-        logger.warning("   Execute: pip install firebase-admin")
+        # Fallback para modo opcional se as chaves não estiverem presentes
+        logger.debug("ℹ️ Firebase Admin não configurado (variáveis ausentes)")
         return False
     
     except Exception as e:

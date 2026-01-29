@@ -86,6 +86,15 @@ app.config['WTF_CSRF_ENABLED'] = True
 app.config['WTF_CSRF_CHECK_DEFAULT'] = True  # Check CSRF by default for security
 app.config['WTF_CSRF_METHODS'] = ['POST', 'PUT', 'PATCH', 'DELETE']
 
+# Pass Firebase public config to templates
+app.config['FIREBASE_API_KEY'] = os.environ.get('FIREBASE_API_KEY')
+app.config['FIREBASE_AUTH_DOMAIN'] = os.environ.get('FIREBASE_AUTH_DOMAIN')
+app.config['FIREBASE_PROJECT_ID'] = os.environ.get('FIREBASE_PROJECT_ID')
+app.config['FIREBASE_STORAGE_BUCKET'] = os.environ.get('FIREBASE_STORAGE_BUCKET')
+app.config['FIREBASE_MESSAGING_SENDER_ID'] = os.environ.get('FIREBASE_MESSAGING_SENDER_ID')
+app.config['FIREBASE_APP_ID'] = os.environ.get('FIREBASE_APP_ID')
+app.config['FIREBASE_VAPID_KEY'] = os.environ.get('FIREBASE_VAPID_KEY')
+
 # initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 try:
     db.init_app(app)
