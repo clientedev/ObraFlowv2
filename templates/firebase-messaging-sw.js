@@ -11,14 +11,22 @@ importScripts("https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging-comp
 
 // IMPORTANTE: Configure estas variáveis com seus dados do Firebase
 // Estes valores devem vir do console Firebase → Configurações do projeto
+// Configuração será injetada ou deve ser mantida sincronizada
+// No contexto de um Service Worker estático, idealmente buscamos um endpoint de config
+// ou usamos placeholders que o processo de build/deploy substitui.
+// Para este projeto, as variáveis são públicas (Firebase Public Keys).
+
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "{{ config.get('FIREBASE_API_KEY', '') }}",
+    authDomain: "{{ config.get('FIREBASE_AUTH_DOMAIN', '') }}",
+    projectId: "{{ config.get('FIREBASE_PROJECT_ID', '') }}",
+    storageBucket: "{{ config.get('FIREBASE_STORAGE_BUCKET', '') }}",
+    messagingSenderId: "{{ config.get('FIREBASE_MESSAGING_SENDER_ID', '') }}",
+    appId: "{{ config.get('FIREBASE_APP_ID', '') }}"
 };
+
+// Se possível, o servidor deve servir este arquivo dinamicamente para injetar as chaves reais.
+// Como fallback, tentamos ler do manifesto ou de um endpoint de config.
 
 try {
     firebase.initializeApp(firebaseConfig);

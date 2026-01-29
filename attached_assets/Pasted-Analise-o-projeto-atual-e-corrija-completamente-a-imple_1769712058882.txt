@@ -1,0 +1,95 @@
+Analise o projeto atual e corrija completamente a implementação de Push Notifications para um PWA, garantindo que:
+
+As variáveis de ambiente estejam corretas
+
+Cada variável seja usada no local certo (frontend vs backend)
+
+Não exista vazamento de credenciais sensíveis
+
+🎯 Objetivo final
+
+Ter um PWA com Push Notifications funcionando como app nativo, usando Firebase Cloud Messaging (FCM), com backend rodando em Node.js (deploy no Railway).
+
+🔵 FRONTEND (PWA)
+
+Corrigir e padronizar o uso das seguintes variáveis de ambiente no frontend:
+
+FIREBASE_API_KEY
+FIREBASE_AUTH_DOMAIN
+FIREBASE_PROJECT_ID
+FIREBASE_STORAGE_BUCKET
+FIREBASE_MESSAGING_SENDER_ID
+FIREBASE_APP_ID
+FIREBASE_VAPID_KEY
+
+Regras do frontend:
+
+Usar essas variáveis para inicializar o Firebase Web SDK
+
+Registrar corretamente o Service Worker
+
+Solicitar permissão de notificação apenas após ação do usuário
+
+Gerar o token FCM usando a FIREBASE_VAPID_KEY
+
+Enviar o token para o backend via API
+
+🔴 BACKEND (Node.js – Railway)
+
+Ajustar o backend para NÃO usar variáveis de frontend.
+
+O backend deve usar exclusivamente:
+
+FIREBASE_PROJECT_ID
+FIREBASE_CLIENT_EMAIL
+FIREBASE_PRIVATE_KEY
+
+Regras do backend:
+
+Inicializar o Firebase Admin SDK corretamente
+
+Converter \\n da FIREBASE_PRIVATE_KEY em quebras reais de linha
+
+Criar endpoint para envio de notificações (ex: POST /notifications/send)
+
+Enviar notificações via Firebase Cloud Messaging
+
+Tratar tokens inválidos ou expirados
+
+🚫 Limpezas obrigatórias
+
+Remover qualquer uso de FIREBASE_CONFIG
+
+Não usar API_KEY, APP_ID ou VAPID_KEY no backend
+
+Garantir que nenhuma chave sensível seja exposta no frontend
+
+🔔 Service Worker
+
+Criar ou corrigir firebase-messaging-sw.js
+
+Implementar os eventos:
+
+push
+
+notificationclick
+
+Garantir que o clique na notificação abra ou foque o PWA
+
+📦 Entregáveis esperados
+
+Código corrigido e funcional
+
+Separação clara entre frontend e backend
+
+Uso correto das variáveis de ambiente
+
+Push Notifications funcionando em:
+
+Android
+
+Desktop
+
+iOS (iOS 16.4+, app instalado)
+
+O resultado deve ser uma implementação pronta para produção, compatível com Railway, sem variáveis redundantes ou inseguras.

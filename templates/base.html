@@ -100,6 +100,35 @@ img[src*="no-image"] {
 
     <!-- Mobile Touch Fix - Elimina vibração e melhora precisão -->
 
+    <!-- Firebase Push Notifications -->
+    <script type="module">
+        import FirebaseNotificationsManager from '/static/js/firebase-notifications.js';
+        
+        const firebaseConfig = {
+            apiKey: "{{ config.get('FIREBASE_API_KEY', '') }}",
+            authDomain: "{{ config.get('FIREBASE_AUTH_DOMAIN', '') }}",
+            projectId: "{{ config.get('FIREBASE_PROJECT_ID', '') }}",
+            storageBucket: "{{ config.get('FIREBASE_STORAGE_BUCKET', '') }}",
+            messagingSenderId: "{{ config.get('FIREBASE_MESSAGING_SENDER_ID', '') }}",
+            appId: "{{ config.get('FIREBASE_APP_ID', '') }}"
+        };
+        
+        const vapidKey = "{{ config.get('FIREBASE_VAPID_KEY', '') }}";
+        
+        if (firebaseConfig.apiKey) {
+            document.addEventListener('DOMContentLoaded', async () => {
+                const fcmManager = new FirebaseNotificationsManager();
+                if (await fcmManager.initialize(firebaseConfig)) {
+                    console.log('✅ Firebase initialized');
+                    
+                    // Opcional: Solicitar automaticamente ou vincular a um botão
+                    // Por agora, vamos apenas garantir que o manager está pronto
+                    window.fcmManager = fcmManager;
+                }
+            });
+        }
+    </script>
+    
     {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -280,6 +309,62 @@ img[src*="no-image"] {
     <main class="container mt-4">
         {% block content %}{% endblock %}
     </main>
+
+    {% if current_user.is_authenticated %}
+    <div class="container mt-2">
+        <button id="btn-test-push" class="btn btn-sm btn-outline-info">
+            <i class="fas fa-paper-plane me-1"></i>Testar Push Notification
+        </button>
+        <button id="btn-enable-push" class="btn btn-sm btn-outline-primary ms-2">
+            <i class="fas fa-bell me-1"></i>Ativar Notificações
+        </button>
+    </div>
+
+    <script type="module">
+        import FirebaseNotificationsManager from '/static/js/firebase-notifications.js';
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            const btnTest = document.getElementById('btn-test-push');
+            const btnEnable = document.getElementById('btn-enable-push');
+            const vapidKey = "{{ config.get('FIREBASE_VAPID_KEY', '') }}";
+
+            if (btnEnable) {
+                btnEnable.addEventListener('click', async () => {
+                    if (window.fcmManager) {
+                        const token = await window.fcmManager.requestPermissionAndGetToken(vapidKey);
+                        if (token) {
+                            showToast('Notificações ativadas com sucesso!', 'success');
+                        } else {
+                            showToast('Falha ao ativar notificações.', 'error');
+                        }
+                    }
+                });
+            }
+
+            if (btnTest) {
+                btnTest.addEventListener('click', async () => {
+                    try {
+                        const response = await fetch('/api/test_push', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            showToast(data.message, 'success');
+                        } else {
+                            showToast(data.message, 'error');
+                        }
+                    } catch (error) {
+                        showToast('Erro ao enviar teste.', 'error');
+                    }
+                });
+            }
+        });
+    </script>
+    {% endif %}
 
     <!-- Footer -->
     <footer class="bg-light mt-5 py-3">
