@@ -154,7 +154,7 @@ class WeasyPrintReportGenerator:
         
         data = {
             'titulo': 'Relatório de Visita',
-            'data_atual': to_brazil_tz(relatorio.data_relatorio).strftime('%d/%m/%Y %H:%M'),
+            'data_atual': to_brazil_tz(relatorio.created_at).strftime('%d/%m/%Y %H:%M') if hasattr(relatorio, 'created_at') else to_brazil_tz(relatorio.data_relatorio).strftime('%d/%m/%Y %H:%M'),
             'numero_relatorio': relatorio.numero,
             'empresa': projeto.construtora if projeto and hasattr(projeto, 'construtora') and projeto.construtora else (projeto.nome if projeto else "ELP Consultoria"),
             'obra': projeto.nome if projeto else "Não informado",
@@ -163,7 +163,7 @@ class WeasyPrintReportGenerator:
             'preenchido_por': relatorio.autor.nome_completo if relatorio.autor else "Não informado",
             'liberado_por': "Eng. José Leopoldo Pugliese",
             'responsavel': responsavel_acompanhamento,
-            'data_relatorio': to_brazil_tz(relatorio.data_relatorio).strftime('%d/%m/%Y %H:%M'),
+            'data_relatorio': to_brazil_tz(relatorio.created_at).strftime('%d/%m/%Y %H:%M') if hasattr(relatorio, 'created_at') else to_brazil_tz(relatorio.data_relatorio).strftime('%d/%m/%Y %H:%M'),
             'logo_base64': logo_base64,
             'fotos': []
         }

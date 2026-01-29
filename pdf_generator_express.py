@@ -138,6 +138,8 @@ def gerar_pdf_relatorio_express(relatorio_ou_id, output_path=None, salvar_arquiv
                     except:
                         pass
 
+                self.created_at = express_report.created_at
+
                 self.projeto = VirtualProject(
                     express_report.obra_nome,
                     express_report.obra_endereco,
