@@ -11,7 +11,7 @@
         border: none;
     }
     .fc-event-agendada {
-        background-color: #007bff;
+        /* background-color removido para permitir cor dinâmica do responsável */
         color: white;
     }
     .fc-event-realizada {
@@ -453,14 +453,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         displayTitle = `${displayTitle} (${visit.participantes.length})`;
                     }
                     
-                    // Cor do evento baseada no status
-                    let eventColor = visit.responsavel_cor || '#0EA5E9';
-                    if (visit.participantes && visit.participantes.length > 0) {
-                        const responsavel = visit.participantes.find(p => p.is_responsavel);
-                        if (responsavel) {
-                            eventColor = responsavel.cor_agenda || eventColor;
-                        } else {
-                            eventColor = visit.participantes[0].cor_agenda || eventColor;
+                    // Cor do evento baseada no status e responsável
+                    let eventColor = '#0EA5E9'; // Default Blue
+                    const status = visit.status ? visit.status.toLowerCase() : '';
+                    
+                    if (status === 'realizada') {
+                        eventColor = '#28a745'; // Green for Realizada
+                    } else if (status === 'cancelada' || status === 'cancelado') {
+                        eventColor = '#dc3545'; // Red for Cancelada
+                    } else {
+                        // Para agendadas/pendentes, usar cor do responsável
+                        eventColor = visit.responsavel_cor || '#0EA5E9';
+                        if (visit.participantes && visit.participantes.length > 0) {
+                            const responsavel = visit.participantes.find(p => p.is_responsavel);
+                            if (responsavel) {
+                                eventColor = responsavel.cor_agenda || eventColor;
+                            } else {
+                                // Se não houver marcado como responsável, pega o primeiro
+                                eventColor = visit.participantes[0].cor_agenda || eventColor;
+                            }
                         }
                     }
 
