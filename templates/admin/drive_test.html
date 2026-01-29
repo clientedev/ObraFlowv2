@@ -79,6 +79,45 @@
                         </div>
                     </div>
 
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="fas fa-images me-2"></i>Salvar Backup de Todas as Fotos</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">
+                                Clique no botão abaixo para salvar TODAS as fotos do sistema no Google Drive, organizadas por obra e data.
+                                Esta operação pode demorar dependendo da quantidade de fotos.
+                            </p>
+                            <p class="text-muted">
+                                <strong>Organização:</strong> Backup Fotos / [Nome da Obra] / [Data - Tipo - Numero] / Fotos...
+                            </p>
+                            
+                            <button type="button" 
+                                    class="btn btn-info btn-lg" 
+                                    onclick="backupAllPhotos()"
+                                    {% if not is_authenticated %}disabled{% endif %}>
+                                <i class="fas fa-images me-2"></i>Salvar Backup de Fotos Agora
+                            </button>
+                            
+                            {% if not is_authenticated %}
+                            <small class="text-muted d-block mt-2">
+                                Faça login com Google primeiro para habilitar esta funcionalidade.
+                            </small>
+                            {% endif %}
+                            
+                            <div id="photos-backup-result" class="mt-3"></div>
+                            <div id="photos-backup-progress" class="mt-3" style="display: none;">
+                                <div class="progress">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" 
+                                         role="progressbar" 
+                                         style="width: 100%">
+                                        Processando backup de fotos...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="card h-100">
@@ -205,6 +244,76 @@ function backupAllReports() {
     .finally(() => {
         button.disabled = false;
         button.innerHTML = '<i class="fas fa-cloud-upload-alt me-2"></i>Salvar Backup Agora';
+    });
+}
+
+function backupAllPhotos() {
+    const button = document.querySelector('button[onclick="backupAllPhotos()"]');
+    const resultDiv = document.getElementById('photos-backup-result');
+    const progressDiv = document.getElementById('photos-backup-progress');
+    
+    if (!confirm('Deseja fazer backup de TODAS as fotos do sistema?\n\nAs fotos serão organizadas por Obra e Data no Google Drive.\n\nEsta operação pode demorar vários minutos.')) {
+        return;
+    }
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando fotos...';
+    resultDiv.innerHTML = '';
+    progressDiv.style.display = 'block';
+
+    fetch('/admin/drive/backup-photos', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        progressDiv.style.display = 'none';
+        
+        if (data.success) {
+            const photos = data.results.photos;
+            const totalMB = (photos.bytes / (1024 * 1024)).toFixed(2);
+            
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Backup de fotos concluído!</strong><br>
+                    ${data.message}<br>
+                    <hr>
+                    <ul class="mb-0">
+                        <li>Total de fotos processadas: ${photos.total}</li>
+                        <li>Fotos enviadas: ${photos.success}</li>
+                        <li>Fotos já existentes (puladas): ${photos.skipped}</li>
+                        <li>Erros: ${photos.failed}</li>
+                        <li>Total transferido: ${totalMB} MB</li>
+                    </ul>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-times-circle me-2"></i>
+                    <strong>Erro no backup de fotos:</strong><br>
+                    ${data.message || data.error || 'Erro desconhecido'}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        progressDiv.style.display = 'none';
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Erro na comunicação:</strong><br>
+                Não foi possível conectar ao servidor. Tente novamente.
+            </div>
+        `;
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-images me-2"></i>Salvar Backup de Fotos Agora';
     });
 }
 </script>

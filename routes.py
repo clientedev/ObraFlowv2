@@ -588,7 +588,7 @@ from forms import LoginForm, RegisterForm, UserForm, ProjetoForm, VisitaForm, Vi
 from forms_email import ConfiguracaoEmailForm, EnvioEmailForm
 from utils import generate_project_number, generate_report_number, generate_visit_number, send_report_email, calculate_reimbursement_total, get_coordinates_from_address
 from pdf_generator import generate_visit_report_pdf
-from google_drive_backup import backup_to_drive, test_drive_connection
+from google_drive_backup import backup_to_drive, test_drive_connection, backup_photos_to_drive
 import math
 import json
 
@@ -9696,6 +9696,43 @@ def drive_backup_all_pdfs():
         return jsonify({
             'success': False,
             'message': f'Erro ao fazer backup: {str(e)}'
+        }), 500
+
+@app.route('/admin/drive/backup-photos', methods=['POST'])
+@login_required
+@csrf.exempt
+def drive_backup_photos():
+    """Fazer backup de TODAS as fotos do sistema"""
+    if not current_user.is_master:
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    
+    stored_token = GoogleDriveToken.query.filter_by(user_id=current_user.id).first()
+    if not stored_token:
+        return jsonify({'success': False, 'message': 'Não autenticado. Faça login no Google Drive primeiro.'}), 401
+    
+    try:
+        token_info = {
+            'token': stored_token.get_access_token(),
+            'refresh_token': stored_token.get_refresh_token()
+        }
+        
+        result = backup_photos_to_drive(
+            token_info=token_info,
+            db_session=db.session,
+            Relatorio=Relatorio,
+            FotoRelatorio=FotoRelatorio,
+            RelatorioExpress=RelatorioExpress,
+            FotoRelatorioExpress=FotoRelatorioExpress
+        )
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        import logging
+        logging.error(f"Erro no backup de fotos: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao fazer backup de fotos: {str(e)}'
         }), 500
 
 @app.route('/admin/drive/force-backup/<int:report_id>')

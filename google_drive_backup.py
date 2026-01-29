@@ -512,3 +512,220 @@ def backup_to_drive(report_data: Dict[str, Any], project_name: str) -> Dict[str,
         'success': False,
         'message': 'Use a funcionalidade de Salvar Backup na área de administração'
     }
+
+
+def backup_photos_to_drive(token_info: Dict[str, Any], db_session, Relatorio, FotoRelatorio, RelatorioExpress, FotoRelatorioExpress) -> Dict[str, Any]:
+    """
+    Fazer backup de TODAS as fotos para o Google Drive
+    Organização:
+    - Backup Fotos
+      - [Nome da Obra]
+        - [Data (YYYY-MM-DD)] - [Tipo: Relatorio ou Express] - [Numero]
+          - Fotos...
+    
+    Args:
+        token_info: Token de autenticação
+        db_session: Sessão do banco de dados
+        Relatorio: Model de relatório
+        FotoRelatorio: Model de fotos
+        RelatorioExpress: Model de relatório express
+        FotoRelatorioExpress: Model de fotos express
+        
+    Returns:
+        Resultado do backup
+    """
+    backup_instance = GoogleDriveBackupOAuth()
+    backup_instance.set_credentials_from_token(token_info)
+    
+    # Pasta Raiz
+    root_folder_id = backup_instance.find_or_create_folder('Backup Fotos')
+    
+    results = {
+        'photos': {'total': 0, 'success': 0, 'failed': 0, 'skipped': 0, 'bytes': 0},
+        'errors': []
+    }
+    
+    upload_folder = os.environ.get('UPLOAD_FOLDER', 'uploads')
+    
+    # 1. Processar Relatórios Comuns (Aprovados)
+    from sqlalchemy import func
+    relatorios = Relatorio.query.filter(
+        func.lower(Relatorio.status).in_(['aprovado', 'finalizado', 'aprovado final'])
+    ).all()
+    
+    # Cache de pastas de obra para evitar chamadas repetidas à API
+    # Chave: Nome da Obra, Valor: ID da Pasta
+    obra_folders_cache = {}
+    
+    for relatorio in relatorios:
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).all()
+        if not fotos:
+            continue
+            
+        try:
+            # Determinar Nome da Obra
+            if relatorio.projeto:
+                obra_nome = relatorio.projeto.nome
+            elif relatorio.acompanhantes and isinstance(relatorio.acompanhantes, dict) and relatorio.acompanhantes.get('obra_nome'):
+                 # Tentar pegar de metadados se houver
+                 obra_nome = relatorio.acompanhantes.get('obra_nome')
+            else:
+                obra_nome = "Obras Diversas"
+                
+            obra_nome_clean = ''.join(c for c in obra_nome if c.isalnum() or c in (' ', '-', '_'))[:50].strip() or "Sem_Nome"
+            
+            # Encontrar/Criar pasta da Obra
+            if obra_nome_clean not in obra_folders_cache:
+                obra_folders_cache[obra_nome_clean] = backup_instance.find_or_create_folder(obra_nome_clean, root_folder_id)
+            
+            obra_folder_id = obra_folders_cache[obra_nome_clean]
+            
+            # Criar pasta específica do relatório: [Data] - Relatorio - [Numero]
+            data_str = relatorio.created_at.strftime('%Y-%m-%d')
+            numero_clean = relatorio.numero.replace('/', '_')
+            relatorio_folder_name = f"{data_str} - Relatorio - {numero_clean}"
+            
+            # Verificar se pasta do relatório já existe dentro da pasta da obra
+            # NOTA: Isso pode ser lento se tiver muitas subpastas. Otimização ideal seria cachear também.
+            # Por enquanto, find_or_create_folder faz a verificação.
+            relatorio_folder_id = backup_instance.find_or_create_folder(relatorio_folder_name, obra_folder_id)
+            
+            # Listar arquivos existentes para skip
+            existing_files = backup_instance.list_files_in_folder(relatorio_folder_id)
+            
+            for foto in fotos:
+                results['photos']['total'] += 1
+                
+                # Determinar arquivo local
+                # Prioridade: filename -> filename_original -> filename_anotada
+                local_filename = foto.filename or foto.filename_original or foto.filename_anotada
+                
+                if not local_filename:
+                    # Foto sem arquivo associado no DB
+                    results['photos']['failed'] += 1
+                    continue
+                    
+                file_path = os.path.join(upload_folder, local_filename)
+                
+                if not os.path.exists(file_path):
+                    # Tentar procurar apenas pelo basename caso haja caminhos bizarros
+                    file_path = os.path.join(upload_folder, os.path.basename(local_filename))
+                    
+                if not os.path.exists(file_path):
+                    # Arquivo físico não encontrado
+                    # results['errors'].append(f"Arquivo não encontrado: {local_filename} (Rel {relatorio.numero})")
+                    results['photos']['failed'] += 1
+                    continue
+                
+                # Nome para salvar no Drive
+                # Formato: [ID]_[Categoria]_[Legenda].jpg
+                categoria_clean = ''.join(c for c in (foto.tipo_servico or 'Geral') if c.isalnum())
+                legenda_clean = ''.join(c for c in (foto.legenda or 'foto') if c.isalnum() or c in (' ', '-', '_'))[:30]
+                ext = os.path.splitext(local_filename)[1] or '.jpg'
+                
+                drive_filename = f"{foto.id}_{categoria_clean}_{legenda_clean}{ext}"
+                
+                # Verificar duplicidade
+                if drive_filename in existing_files:
+                    results['photos']['skipped'] += 1
+                    continue
+                    
+                # Upload
+                try:
+                    stats = os.stat(file_path)
+                    file_size = stats.st_size
+                    
+                    backup_instance.upload_file(file_path, relatorio_folder_id, drive_filename)
+                    
+                    results['photos']['success'] += 1
+                    results['photos']['bytes'] += file_size
+                    
+                except Exception as e:
+                    print(f"Erro upload foto {foto.id}: {e}")
+                    results['photos']['failed'] += 1
+                    
+        except Exception as e:
+            print(f"Erro processando relatório {relatorio.numero}: {e}")
+            results['errors'].append(f"Erro Rel {relatorio.numero}: {str(e)}")
+
+    # 2. Processar Relatórios Express (Aprovados)
+    relatorios_express = RelatorioExpress.query.filter(
+        func.lower(RelatorioExpress.status).in_(['aprovado', 'finalizado', 'aprovado final'])
+    ).all()
+    
+    for express in relatorios_express:
+        fotos = FotoRelatorioExpress.query.filter_by(relatorio_express_id=express.id).all()
+        if not fotos:
+            continue
+            
+        try:
+            # Determinar Nome da Obra (Express tem campo obra_nome)
+            obra_nome = express.obra_nome or "Express Diversos"
+            obra_nome_clean = ''.join(c for c in obra_nome if c.isalnum() or c in (' ', '-', '_'))[:50].strip() or "Sem_Nome"
+            
+            # Encontrar/Criar pasta da Obra
+            if obra_nome_clean not in obra_folders_cache:
+                obra_folders_cache[obra_nome_clean] = backup_instance.find_or_create_folder(obra_nome_clean, root_folder_id)
+            
+            obra_folder_id = obra_folders_cache[obra_nome_clean]
+            
+            # Criar pasta específica do relatório: [Data] - Express - [Numero]
+            data_str = express.created_at.strftime('%Y-%m-%d')
+            numero_clean = express.numero.replace('/', '_')
+            relatorio_folder_name = f"{data_str} - Express - {numero_clean}"
+            
+            relatorio_folder_id = backup_instance.find_or_create_folder(relatorio_folder_name, obra_folder_id)
+            
+            # Listar arquivos existentes para skip
+            existing_files = backup_instance.list_files_in_folder(relatorio_folder_id)
+            
+            for foto in fotos:
+                results['photos']['total'] += 1
+                
+                local_filename = foto.filename or foto.filename_original or foto.filename_anotada
+                
+                if not local_filename:
+                    results['photos']['failed'] += 1
+                    continue
+                    
+                file_path = os.path.join(upload_folder, local_filename)
+                
+                if not os.path.exists(file_path):
+                    file_path = os.path.join(upload_folder, os.path.basename(local_filename))
+                    
+                if not os.path.exists(file_path):
+                    results['photos']['failed'] += 1
+                    continue
+                
+                categoria_clean = ''.join(c for c in (foto.tipo_servico or 'Geral') if c.isalnum())
+                legenda_clean = ''.join(c for c in (foto.legenda or 'foto') if c.isalnum() or c in (' ', '-', '_'))[:30]
+                ext = os.path.splitext(local_filename)[1] or '.jpg'
+                
+                drive_filename = f"EXP_{foto.id}_{categoria_clean}_{legenda_clean}{ext}"
+                
+                if drive_filename in existing_files:
+                    results['photos']['skipped'] += 1
+                    continue
+                    
+                try:
+                    stats = os.stat(file_path)
+                    file_size = stats.st_size
+                    
+                    backup_instance.upload_file(file_path, relatorio_folder_id, drive_filename)
+                    
+                    results['photos']['success'] += 1
+                    results['photos']['bytes'] += file_size
+                    
+                except Exception as e:
+                    print(f"Erro upload foto express {foto.id}: {e}")
+                    results['photos']['failed'] += 1
+                    
+        except Exception as e:
+            print(f"Erro processando express {express.numero}: {e}")
+            results['errors'].append(f"Erro Express {express.numero}: {str(e)}")
+            
+    return {
+        'success': True,
+        'message': f"Backup de fotos concluído! Sucesso: {results['photos']['success']}, Pulados: {results['photos']['skipped']}, Falhas: {results['photos']['failed']}",
+        'results': results
+    }
