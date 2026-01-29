@@ -310,6 +310,62 @@ img[src*="no-image"] {
         {% block content %}{% endblock %}
     </main>
 
+    {% if current_user.is_authenticated %}
+    <div class="container mt-2">
+        <button id="btn-test-push" class="btn btn-sm btn-outline-info">
+            <i class="fas fa-paper-plane me-1"></i>Testar Push Notification
+        </button>
+        <button id="btn-enable-push" class="btn btn-sm btn-outline-primary ms-2">
+            <i class="fas fa-bell me-1"></i>Ativar Notificações
+        </button>
+    </div>
+
+    <script type="module">
+        import FirebaseNotificationsManager from '/static/js/firebase-notifications.js';
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            const btnTest = document.getElementById('btn-test-push');
+            const btnEnable = document.getElementById('btn-enable-push');
+            const vapidKey = "{{ config.get('FIREBASE_VAPID_KEY', '') }}";
+
+            if (btnEnable) {
+                btnEnable.addEventListener('click', async () => {
+                    if (window.fcmManager) {
+                        const token = await window.fcmManager.requestPermissionAndGetToken(vapidKey);
+                        if (token) {
+                            showToast('Notificações ativadas com sucesso!', 'success');
+                        } else {
+                            showToast('Falha ao ativar notificações.', 'error');
+                        }
+                    }
+                });
+            }
+
+            if (btnTest) {
+                btnTest.addEventListener('click', async () => {
+                    try {
+                        const response = await fetch('/api/test_push', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            showToast(data.message, 'success');
+                        } else {
+                            showToast(data.message, 'error');
+                        }
+                    } catch (error) {
+                        showToast('Erro ao enviar teste.', 'error');
+                    }
+                });
+            }
+        });
+    </script>
+    {% endif %}
+
     <!-- Footer -->
     <footer class="bg-light mt-5 py-3">
         <div class="container">

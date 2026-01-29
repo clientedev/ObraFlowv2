@@ -1637,6 +1637,24 @@ def marcar_notificacao_lida_put(notificacao_id):
         current_app.logger.error(f"❌ Erro ao marcar notificação como lida: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/test_push', methods=['POST'])
+@login_required
+def test_push():
+    """Endpoint para testar o envio de push notification para o usuário logado"""
+    from firebase_utils import send_push_notification
+    
+    success = send_push_notification(
+        user=current_user,
+        title="🔔 Teste de Notificação",
+        body="Se você recebeu isso, o sistema de Push Notifications está funcionando!",
+        data={'url': '/'}
+    )
+    
+    if success:
+        return jsonify({'success': True, 'message': 'Notificação enviada com sucesso!'})
+    else:
+        return jsonify({'success': False, 'message': 'Falha ao enviar notificação. Verifique os logs do servidor.'}), 500
+
 @app.route('/api/update_fcm_token', methods=['POST'])
 @login_required
 def update_fcm_token():
