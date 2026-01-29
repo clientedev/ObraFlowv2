@@ -152,9 +152,21 @@ class WeasyPrintReportGenerator:
         # Formatar lista de acompanhantes como string
         responsavel_acompanhamento = ', '.join(acompanhantes_nomes) if acompanhantes_nomes else "Não informado"
         
+        # Tentar obter a data de criação ou usar data do relatório como fallback
+        creation_dt = getattr(relatorio, 'created_at', None)
+        report_dt = getattr(relatorio, 'data_relatorio', None)
+        
+        # Use created_at if available, otherwise report_dt, otherwise now
+        final_dt = creation_dt if creation_dt else (report_dt if report_dt else now_brazil)
+        
+        # Format strings
+        date_str = to_brazil_tz(final_dt).strftime('%d/%m/%Y %H:%M')
+        
+        print(f"DEBUG PDF DATE: created_at={creation_dt}, report_dt={report_dt}, final={final_dt}, str={date_str}")
+
         data = {
             'titulo': 'Relatório de Visita',
-            'data_atual': to_brazil_tz(relatorio.created_at).strftime('%d/%m/%Y %H:%M') if hasattr(relatorio, 'created_at') else to_brazil_tz(relatorio.data_relatorio).strftime('%d/%m/%Y %H:%M'),
+            'data_atual': date_str,
             'numero_relatorio': relatorio.numero,
             'empresa': projeto.construtora if projeto and hasattr(projeto, 'construtora') and projeto.construtora else (projeto.nome if projeto else "ELP Consultoria"),
             'obra': projeto.nome if projeto else "Não informado",
@@ -163,7 +175,7 @@ class WeasyPrintReportGenerator:
             'preenchido_por': relatorio.autor.nome_completo if relatorio.autor else "Não informado",
             'liberado_por': "Eng. José Leopoldo Pugliese",
             'responsavel': responsavel_acompanhamento,
-            'data_relatorio': to_brazil_tz(relatorio.created_at).strftime('%d/%m/%Y %H:%M') if hasattr(relatorio, 'created_at') else to_brazil_tz(relatorio.data_relatorio).strftime('%d/%m/%Y %H:%M'),
+            'data_relatorio': date_str,
             'logo_base64': logo_base64,
             'fotos': []
         }
