@@ -331,11 +331,22 @@ img[src*="no-image"] {
             if (btnEnable) {
                 btnEnable.addEventListener('click', async () => {
                     if (window.fcmManager) {
-                        const token = await window.fcmManager.requestPermissionAndGetToken(vapidKey);
-                        if (token) {
-                            showToast('Notificações ativadas com sucesso!', 'success');
-                        } else {
-                            showToast('Falha ao ativar notificações.', 'error');
+                        try {
+                            const token = await window.fcmManager.requestPermissionAndGetToken(vapidKey);
+                            if (token) {
+                                showToast('Notificações ativadas com sucesso!', 'success');
+                                btnEnable.classList.remove('btn-outline-primary');
+                                btnEnable.classList.add('btn-success');
+                                btnEnable.innerHTML = '<i class="fas fa-check me-1"></i>Notificações Ativas';
+                            } else {
+                                // O erro já é tratado com alert no manager se for bloqueio
+                                if (Notification.permission !== 'denied') {
+                                    showToast('Falha ao obter token. Tente recarregar a página.', 'error');
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Erro ao ativar:', err);
+                            showToast('Erro técnico ao ativar notificações.', 'error');
                         }
                     }
                 });
