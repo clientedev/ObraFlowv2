@@ -1989,7 +1989,51 @@ def login():
         if user and user.ativo and check_password_hash(user.password_hash, form.password.data):
             login_user(user, remember=form.remember_me.data)
 
-            # Verificar se é o primeiro login
+            # --- Adicionar Notificações de Login ---
+            try:
+                from notification_service import NotificationService
+                notif_service = NotificationService()
+                
+                # 1. Notificação de Boas-vindas (Primeiro Login)
+                if hasattr(user, 'primeiro_login') and user.primeiro_login:
+                    # Enviar notificação de boas-vindas
+                    notif_service.criar_notificacao(
+                        user_id=user.id,
+                        tipo='boas_vindas',
+                        titulo='Bem-vindo ao ELP Relatórios!',
+                        mensagem='Ficamos felizes em ter você aqui. Suas notificações já estão configuradas.',
+                        link_destino='/dashboard'
+                    )
+                    # Não retornamos aqui ainda para permitir a notificação broadcast abaixo
+                else:
+                    # Notificação de boas-vindas geral (sempre que loga)
+                    notif_service.enviar_push_notification(
+                        token=user.fcm_token,
+                        titulo='Bem-vindo de volta!',
+                        corpo='Você entrou no sistema ELP Relatórios.',
+                        link='/dashboard'
+                    )
+
+                # 2. Notificação Broadcast para outros usuários logados
+                outros_usuarios = User.query.filter(
+                    User.id != user.id, 
+                    User.fcm_token.isnot(None), 
+                    User.ativo == True
+                ).all()
+                
+                for outro in outros_usuarios:
+                    notif_service.criar_notificacao(
+                        user_id=outro.id,
+                        tipo='usuario_online',
+                        titulo='Usuário Online',
+                        mensagem=f'{user.nome_completo} acabou de entrar no app.',
+                        link_destino='/dashboard'
+                    )
+            except Exception as e:
+                current_app.logger.error(f"Erro ao processar notificações de login: {e}")
+            # --- Fim das Notificações ---
+
+            # Verificar se é o primeiro login (redirecionamento original)
             if hasattr(user, 'primeiro_login') and user.primeiro_login:
                 return redirect(url_for('first_login'))
 
