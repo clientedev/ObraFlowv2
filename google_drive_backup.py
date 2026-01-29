@@ -6,6 +6,7 @@ Integração com OAuth 2.0 para salvar relatórios em pastas organizadas
 import os
 import io
 import json
+import mimetypes
 import tempfile
 from datetime import datetime
 from typing import Optional, List, Dict, Any
@@ -200,14 +201,15 @@ class GoogleDriveBackupOAuth:
             print(f"Erro ao verificar arquivo: {e}")
             return False
     
-    def upload_pdf_bytes(self, pdf_bytes: bytes, filename: str, folder_id: str) -> Dict[str, Any]:
+    def upload_pdf_bytes(self, pdf_bytes: bytes, filename: str, folder_id: str, mimetype: str = 'application/pdf') -> Dict[str, Any]:
         """
-        Upload de PDF em bytes para o Drive
+        Upload de bytes (PDF, imagem, etc) para o Drive
         
         Args:
-            pdf_bytes: Conteúdo do PDF em bytes
+            pdf_bytes: Conteúdo do arquivo em bytes
             filename: Nome do arquivo
             folder_id: ID da pasta de destino
+            mimetype: Tipo MIME do arquivo (default: application/pdf)
             
         Returns:
             Informações do arquivo enviado
@@ -222,7 +224,7 @@ class GoogleDriveBackupOAuth:
         
         media = MediaIoBaseUpload(
             io.BytesIO(pdf_bytes),
-            mimetype='application/pdf',
+            mimetype=mimetype,
             resumable=True
         )
         
@@ -653,9 +655,14 @@ def backup_photos_to_drive(token_info: Dict[str, Any], db_session, Relatorio, Fo
                 try:
                     file_size = len(photo_bytes)
                     
+                    # Detectar mimetype
+                    mime_type, _ = mimetypes.guess_type(drive_filename)
+                    if not mime_type:
+                        mime_type = 'image/jpeg' if ext.lower() in ['.jpg', '.jpeg'] else 'application/octet-stream'
+
                     # Upload de bytes para o Drive (usar upload_pdf_bytes que aceita bytes)
                     # NOTA: upload_pdf_bytes funciona para qualquer arquivo binário
-                    backup_instance.upload_pdf_bytes(photo_bytes, drive_filename, relatorio_folder_id)
+                    backup_instance.upload_pdf_bytes(photo_bytes, drive_filename, relatorio_folder_id, mimetype=mime_type)
                     
                     results['photos']['success'] += 1
                     results['photos']['bytes'] += file_size
@@ -751,7 +758,13 @@ def backup_photos_to_drive(token_info: Dict[str, Any], db_session, Relatorio, Fo
                     
                 try:
                     file_size = len(photo_bytes)
-                    backup_instance.upload_pdf_bytes(photo_bytes, drive_filename, relatorio_folder_id)
+                    
+                    # Detectar mimetype
+                    mime_type, _ = mimetypes.guess_type(drive_filename)
+                    if not mime_type:
+                        mime_type = 'image/jpeg' if ext.lower() in ['.jpg', '.jpeg'] else 'application/octet-stream'
+                        
+                    backup_instance.upload_pdf_bytes(photo_bytes, drive_filename, relatorio_folder_id, mimetype=mime_type)
                     
                     results['photos']['success'] += 1
                     results['photos']['bytes'] += file_size
