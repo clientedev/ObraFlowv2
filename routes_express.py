@@ -956,100 +956,33 @@ def duplicate_express_report(report_id):
 @app.route('/relatorio-express/<int:report_id>/pdf')
 @login_required
 def generate_express_pdf(report_id):
-    """Gera PDF do Relatório Express - EXATAMENTE igual ao relatório comum"""
+    """Gera PDF do Relatório Express - Visualização Inline"""
     try:
         from flask import Response
-        from pdf_generator_weasy import WeasyPrintReportGenerator
+        from pdf_generator_express import gerar_pdf_relatorio_express
         
         relatorio_express = RelatorioExpress.query.get_or_404(report_id)
-        fotos = FotoRelatorioExpress.query.filter_by(
-            relatorio_express_id=report_id
-        ).order_by(FotoRelatorioExpress.ordem).all()
         
-        # Criar objeto adaptador para simular estrutura do relatório comum
-        class VirtualProject:
-            """Projeto virtual com dados da obra express"""
-            def __init__(self, obra_nome, obra_endereco, obra_construtora, obra_responsavel):
-                self.nome = obra_nome or 'Obra Express'
-                self.endereco = obra_endereco or ''
-                self.construtora = obra_construtora or ''
-                self.cliente = obra_construtora or ''
-                self.responsavel = obra_responsavel or ''
+        # Gerar PDF em memória usando o gerador centralizado (que contém as correções de data)
+        pdf_io = gerar_pdf_relatorio_express(relatorio_express, salvar_arquivo=False)
         
-        class VirtualAuthor:
-            """Autor virtual quando não há autor real"""
-            def __init__(self, nome='Não informado'):
-                self.nome_completo = nome
-        
-        class ExpressReportAdapter:
-            """Adaptador para fazer RelatorioExpress funcionar com WeasyPrintReportGenerator"""
-            def __init__(self, express_report):
-                self.id = express_report.id
-                self.numero = express_report.numero
-                self.titulo = express_report.titulo
-                self.conteudo = express_report.conteudo or ''
-                self.data_relatorio = express_report.data_relatorio
-                self.data_aprovacao = express_report.data_aprovacao
-                self.status = express_report.status
-                self.observacoes_finais = express_report.observacoes_finais
-                
-                # Acompanhantes - garantir que é lista
-                acomp = express_report.acompanhantes
-                if isinstance(acomp, str):
-                    try:
-                        self.acompanhantes = json.loads(acomp)
-                    except:
-                        self.acompanhantes = []
-                else:
-                    self.acompanhantes = acomp or []
-                
-                # Checklist - manter como string (WeasyPrint não usa diretamente)
-                self.checklist_data = express_report.checklist_data
-                
-                # Autor - criar virtual se não existir
-                if express_report.autor:
-                    self.autor = express_report.autor
-                else:
-                    self.autor = VirtualAuthor('Não informado')
-                
-                # Aprovador - pode ser None
-                self.aprovador = express_report.aprovador
-                
-                # Projeto virtual com dados da obra
-                self.projeto = VirtualProject(
-                    express_report.obra_nome,
-                    express_report.obra_endereco,
-                    express_report.obra_construtora,
-                    express_report.obra_responsavel
-                )
-        
-        # Criar adaptador
-        relatorio_adaptado = ExpressReportAdapter(relatorio_express)
-        
-        # Gerar PDF usando o mesmo gerador dos relatórios comuns
-        generator = WeasyPrintReportGenerator()
-        pdf_data = generator.generate_report_pdf(relatorio_adaptado, fotos)
-        
-        # Sanitizar nome do arquivo
-        def sanitize_filename(name):
-            import re
-            if not name:
-                return 'express'
+        # Sanitizar nome
+        import re
+        def sanitize(name):
+            if not name: return 'express'
             return re.sub(r'[^\w\s-]', '', name).strip().replace(' ', '_')[:50]
-        
-        obra_nome = sanitize_filename(relatorio_express.obra_nome)
+            
+        obra_nome = sanitize(relatorio_express.obra_nome)
         filename = f"relatorio_express_{relatorio_express.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
         
-        response = Response(
-            pdf_data,
+        return Response(
+            pdf_io.getvalue(),
             mimetype='application/pdf',
             headers={
                 'Content-Disposition': f'inline; filename="{filename}"',
                 'Content-Type': 'application/pdf'
             }
         )
-        
-        return response
         
     except Exception as e:
         logger.error(f"Erro ao gerar PDF do Relatório Express: {e}", exc_info=True)
@@ -1060,100 +993,33 @@ def generate_express_pdf(report_id):
 @app.route('/relatorio-express/<int:report_id>/pdf/download')
 @login_required
 def download_express_pdf(report_id):
-    """Baixa PDF do Relatório Express - EXATAMENTE igual ao relatório comum"""
+    """Baixa PDF do Relatório Express - Visualização Download"""
     try:
         from flask import Response
-        from pdf_generator_weasy import WeasyPrintReportGenerator
+        from pdf_generator_express import gerar_pdf_relatorio_express
         
         relatorio_express = RelatorioExpress.query.get_or_404(report_id)
-        fotos = FotoRelatorioExpress.query.filter_by(
-            relatorio_express_id=report_id
-        ).order_by(FotoRelatorioExpress.ordem).all()
         
-        # Criar objeto adaptador para simular estrutura do relatório comum
-        class VirtualProject:
-            """Projeto virtual com dados da obra express"""
-            def __init__(self, obra_nome, obra_endereco, obra_construtora, obra_responsavel):
-                self.nome = obra_nome or 'Obra Express'
-                self.endereco = obra_endereco or ''
-                self.construtora = obra_construtora or ''
-                self.cliente = obra_construtora or ''
-                self.responsavel = obra_responsavel or ''
+        # Gerar PDF em memória
+        pdf_io = gerar_pdf_relatorio_express(relatorio_express, salvar_arquivo=False)
         
-        class VirtualAuthor:
-            """Autor virtual quando não há autor real"""
-            def __init__(self, nome='Não informado'):
-                self.nome_completo = nome
-        
-        class ExpressReportAdapter:
-            """Adaptador para fazer RelatorioExpress funcionar com WeasyPrintReportGenerator"""
-            def __init__(self, express_report):
-                self.id = express_report.id
-                self.numero = express_report.numero
-                self.titulo = express_report.titulo
-                self.conteudo = express_report.conteudo or ''
-                self.data_relatorio = express_report.data_relatorio
-                self.data_aprovacao = express_report.data_aprovacao
-                self.status = express_report.status
-                self.observacoes_finais = express_report.observacoes_finais
-                
-                # Acompanhantes - garantir que é lista
-                acomp = express_report.acompanhantes
-                if isinstance(acomp, str):
-                    try:
-                        self.acompanhantes = json.loads(acomp)
-                    except:
-                        self.acompanhantes = []
-                else:
-                    self.acompanhantes = acomp or []
-                
-                # Checklist - manter como string (WeasyPrint não usa diretamente)
-                self.checklist_data = express_report.checklist_data
-                
-                # Autor - criar virtual se não existir
-                if express_report.autor:
-                    self.autor = express_report.autor
-                else:
-                    self.autor = VirtualAuthor('Não informado')
-                
-                # Aprovador - pode ser None
-                self.aprovador = express_report.aprovador
-                
-                # Projeto virtual com dados da obra
-                self.projeto = VirtualProject(
-                    express_report.obra_nome,
-                    express_report.obra_endereco,
-                    express_report.obra_construtora,
-                    express_report.obra_responsavel
-                )
-        
-        # Criar adaptador
-        relatorio_adaptado = ExpressReportAdapter(relatorio_express)
-        
-        # Gerar PDF usando o mesmo gerador dos relatórios comuns
-        generator = WeasyPrintReportGenerator()
-        pdf_data = generator.generate_report_pdf(relatorio_adaptado, fotos)
-        
-        # Sanitizar nome do arquivo
-        def sanitize_filename(name):
-            import re
-            if not name:
-                return 'express'
+        # Sanitizar nome
+        import re
+        def sanitize(name):
+            if not name: return 'express'
             return re.sub(r'[^\w\s-]', '', name).strip().replace(' ', '_')[:50]
-        
-        obra_nome = sanitize_filename(relatorio_express.obra_nome)
+            
+        obra_nome = sanitize(relatorio_express.obra_nome)
         filename = f"relatorio_express_{relatorio_express.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
         
-        response = Response(
-            pdf_data,
+        return Response(
+            pdf_io.getvalue(),
             mimetype='application/pdf',
             headers={
                 'Content-Disposition': f'attachment; filename="{filename}"',
                 'Content-Type': 'application/pdf'
             }
         )
-        
-        return response
         
     except Exception as e:
         logger.error(f"Erro ao baixar PDF do Relatório Express: {e}", exc_info=True)
