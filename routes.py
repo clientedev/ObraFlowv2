@@ -2816,24 +2816,23 @@ def index():
         # Relatórios recentes
         query = Relatorio.query
         
-        # Filtro de Visibilidade para Relatórios "Aguardando Aprovação"
-        # Regra: Só Aprovador Global (Master) ou Aprovador Específico podem ver.
-        # Todos os outros usuários (incluindo Autor) NÃO veem "Aguardando Aprovação".
-        # Todos veem outros status ("preenchimento", "Aprovado", etc).
+        # Filtro de Visibilidade GLOBAL (Aplicado a TODOS, inclusive masters)
+        # Regra: "Aguardando Aprovação" só aparece para o Aprovador designado (aprovador_id).
+        # Ninguém mais vê (nem autor, nem outros admins).
+        # Outros status (Aprovado, Preenchimento, etc) aparecem para todos.
         
-        if not current_user.is_master:
-            query = query.filter(
-                db.or_(
-                    # Condição 1: Não é "Aguardando Aprovação" (Verificação robusta com wildcard)
-                    ~Relatorio.status.ilike('%Aguardando Aprovação%'),
-                    
-                    # Condição 2: É "Aguardando Aprovação", mas sou o Aprovador Específico
-                    db.and_(
-                        Relatorio.status.ilike('%Aguardando Aprovação%'),
-                        Relatorio.aprovador_id == current_user.id
-                    )
+        query = query.filter(
+            db.or_(
+                # 1. Não é "Aguardando Aprovação" -> Visível para todos
+                ~Relatorio.status.ilike('%Aguardando Aprovação%'),
+                
+                # 2. É "Aguardando Aprovação" -> Só visível se eu for o aprovador
+                db.and_(
+                    Relatorio.status.ilike('%Aguardando Aprovação%'),
+                    Relatorio.aprovador_id == current_user.id
                 )
             )
+        )
             
         relatorios_recentes = query.order_by(Relatorio.created_at.desc()).limit(5).all()
 
