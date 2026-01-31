@@ -129,9 +129,59 @@ img[src*="no-image"] {
     <script>
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         
+        // Helper to save player ID with retry logic
+        async function savePlayerIdWithRetry(playerId, maxRetries = 3) {
+            console.log('💾 Attempting to save player ID:', playerId);
+            
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`📤 Save attempt ${attempt}/${maxRetries}`);
+                    
+                    const response = await fetch('/api/onesignal/subscribe', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ player_id: playerId })
+                    });
+
+                    console.log(`📥 Response status: ${response.status}`);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('✅✅✅ PLAYER ID SAVED SUCCESSFULLY ✅✅✅');
+                        console.log('Response:', data);
+                        return true;
+                    } else {
+                        const errorText = await response.text();
+                        console.error(`❌ Save failed (${response.status}):`, errorText);
+                        
+                        if (attempt < maxRetries) {
+                            console.log(`⏳ Retrying in ${attempt} second(s)...`);
+                            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+                        }
+                    }
+                } catch (error) {
+                    console.error(`❌ Network error on attempt ${attempt}:`, error);
+                    
+                    if (attempt < maxRetries) {
+                        console.log(`⏳ Retrying in ${attempt} second(s)...`);
+                        await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+                    }
+                }
+            }
+            
+            console.error('❌❌❌ FAILED TO SAVE PLAYER ID AFTER ALL RETRIES ❌❌❌');
+            return false;
+        }
+        
         OneSignalDeferred.push(async function(OneSignal) {
             try {
-                console.log('🚀 Initializing OneSignal...');
+                console.log('==========================================');
+                console.log('🚀 ONESIGNAL INITIALIZATION STARTING');
+                console.log('Device:', navigator.userAgent);
+                console.log('==========================================');
                 
                 await OneSignal.init({
                     appId: "{{ config.get('ONESIGNAL_APP_ID', 'f024f50f-ac90-4120-99d7-ffc788cfa094') }}",
@@ -158,44 +208,16 @@ img[src*="no-image"] {
 
                 console.log('✅ OneSignal initialized');
 
-                // Save player ID function
-                async function savePlayerIdToBackend() {
-                    try {
-                        const playerId = await OneSignal.User.PushSubscription.id;
-                        
-                        if (!playerId) {
-                            console.log('⚠️ No player ID available');
-                            return false;
-                        }
-
-                        console.log('📱 Player ID:', playerId);
-
-                        const response = await fetch('/api/onesignal/subscribe', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': '{{ csrf_token() }}'
-                            },
-                            body: JSON.stringify({ player_id: playerId })
-                        });
-
-                        if (response.ok) {
-                            console.log('✅ Player ID saved successfully');
-                            return true;
-                        } else {
-                            console.error('❌ Failed to save player ID');
-                            return false;
-                        }
-                    } catch (error) {
-                        console.error('❌ Error saving player ID:', error);
-                        return false;
-                    }
-                }
-
                 // Listen for subscription changes
-                OneSignal.User.PushSubscription.addEventListener('change', function(change) {
-                    console.log('🔄 Subscription changed');
-                    savePlayerIdToBackend();
+                OneSignal.User.PushSubscription.addEventListener('change', async function(change) {
+                    console.log('🔄🔄🔄 SUBSCRIPTION CHANGED EVENT 🔄🔄🔄');
+                    console.log('Change:', change);
+                    
+                    const newId = await OneSignal.User.PushSubscription.id;
+                    if (newId) {
+                        console.log('📱 New player ID detected:', newId);
+                        await savePlayerIdWithRetry(newId);
+                    }
                 });
 
                 // Handle notification clicks
@@ -207,34 +229,87 @@ img[src*="no-image"] {
                     }
                 });
 
-                // Auto-request permission and subscribe
+                // Check and request permission
                 const hasPermission = await OneSignal.Notifications.permission;
-                console.log('🔔 Has permission:', hasPermission);
+                console.log('🔔 Current permission:', hasPermission);
 
                 if (!hasPermission) {
-                    console.log('📱 Requesting permission...');
+                    console.log('📱 Requesting notification permission...');
                     try {
                         const granted = await OneSignal.Notifications.requestPermission();
-                        console.log('📱 Permission granted:', granted);
+                        console.log('📱 Permission result:', granted);
+                        
+                        if (!granted) {
+                            console.warn('⚠️ User denied notification permission');
+                        }
                     } catch (error) {
-                        console.error('❌ Permission denied:', error);
+                        console.error('❌ Permission request failed:', error);
                     }
+                } else {
+                    console.log('✅ Already has permission');
                 }
 
-                // Check if opted in
-                const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
-                console.log('📱 Is opted in:', isOptedIn);
+                // Wait a bit for subscription to complete
+                await new Promise(resolve => setTimeout(resolve, 2000));
 
-                // Save player ID if we have permission
-                if (hasPermission || isOptedIn) {
-                    await savePlayerIdToBackend();
+                // Check if we have a player ID
+                const playerId = await OneSignal.User.PushSubscription.id;
+                const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
+                
+                console.log('==========================================');
+                console.log('📊 SUBSCRIPTION STATUS:');
+                console.log('Player ID:', playerId);
+                console.log('Opted In:', isOptedIn);
+                console.log('Has Permission:', hasPermission);
+                console.log('==========================================');
+
+                if (playerId) {
+                    console.log('✅ Player ID exists, saving...');
+                    const saved = await savePlayerIdWithRetry(playerId);
+                    
+                    if (saved) {
+                        console.log('🎉🎉🎉 SETUP COMPLETE - READY TO RECEIVE NOTIFICATIONS 🎉🎉🎉');
+                    } else {
+                        console.error('❌ CRITICAL: Player ID exists but could not be saved to server');
+                    }
+                } else {
+                    console.warn('⚠️⚠️⚠️ NO PLAYER ID YET ⚠️⚠️⚠️');
+                    console.warn('This usually means:');
+                    console.warn('1. Permission was denied');
+                    console.warn('2. Service worker failed to register');
+                    console.warn('3. Browser/PWA needs to be reinstalled');
+                    
+                    // Try to force subscription one more time
+                    console.log('🔄 Attempting to force subscription...');
+                    try {
+                        if (!hasPermission) {
+                            await OneSignal.Notifications.requestPermission();
+                        }
+                        
+                        // Wait and check again
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        const retryId = await OneSignal.User.PushSubscription.id;
+                        
+                        if (retryId) {
+                            console.log('✅ Player ID obtained on retry:', retryId);
+                            await savePlayerIdWithRetry(retryId);
+                        } else {
+                            console.error('❌ Still no player ID after retry');
+                        }
+                    } catch (error) {
+                        console.error('❌ Force subscription failed:', error);
+                    }
                 }
 
                 // Make available globally for test button
                 window.OneSignal = OneSignal;
 
             } catch (error) {
-                console.error('❌ CRITICAL ERROR initializing OneSignal:', error);
+                console.error('==========================================');
+                console.error('❌❌❌ CRITICAL ERROR INITIALIZING ONESIGNAL ❌❌❌');
+                console.error('Error:', error);
+                console.error('Stack:', error.stack);
+                console.error('==========================================');
             }
         });
     </script>
