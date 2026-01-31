@@ -1637,10 +1637,11 @@ def marcar_notificacao_lida_put(notificacao_id):
         current_app.logger.error(f"❌ Erro ao marcar notificação como lida: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/firebase-messaging-sw.js')
-def serve_sw():
-    """Serve o service worker do Firebase com as chaves injetadas dinamicamente"""
-    return make_response(render_template('firebase-messaging-sw.js'), 200, {'Content-Type': 'application/javascript'})
+
+@app.route('/OneSignalSDKWorker.js')
+def serve_onesignal_sw():
+    """Serve the OneSignal service worker from root path"""
+    return send_from_directory('.', 'OneSignalSDKWorker.js', mimetype='application/javascript')
 
 @app.route('/api/onesignal/subscribe', methods=['POST'])
 @login_required
@@ -1660,7 +1661,7 @@ def onesignal_subscribe():
         current_user.fcm_token = player_id
         db.session.commit()
         
-        logger.info(f"✅ OneSignal player ID saved for user {current_user.id}: {player_id}")
+        current_app.logger.info(f"✅ OneSignal player ID saved for user {current_user.id}: {player_id}")
         
         return jsonify({
             'success': True,
@@ -1668,7 +1669,7 @@ def onesignal_subscribe():
         })
         
     except Exception as e:
-        logger.error(f"❌ Error saving OneSignal player ID: {e}")
+        current_app.logger.error(f"❌ Error saving OneSignal player ID: {e}")
         db.session.rollback()
         return jsonify({
             'success': False,
@@ -1690,6 +1691,14 @@ def onesignal_test_notification():
                 'message': 'Você ainda não está inscrito em notificações. Por favor, permita notificações no navegador.'
             }), 400
         
+        # Check if it's an old Firebase token (contains ':' or is very long)
+        # OneSignal player IDs are UUIDs (36 chars with hyphens)
+        if ':' in player_id or len(player_id) > 50:
+            return jsonify({
+                'success': False,
+                'message': 'Token antigo detectado. Por favor, recarregue a página e permita notificações novamente.'
+            }), 400
+        
         # Send test notification
         result = onesignal_service.send_notification(
             player_id=player_id,
@@ -1700,21 +1709,21 @@ def onesignal_test_notification():
         )
         
         if result.get('success'):
-            logger.info(f"✅ Test notification sent to user {current_user.id}")
+            current_app.logger.info(f"✅ Test notification sent to user {current_user.id}")
             return jsonify({
                 'success': True,
                 'message': 'Notificação de teste enviada! Verifique seu dispositivo.',
                 'recipients': result.get('recipients', 1)
             })
         else:
-            logger.warning(f"⚠️ Failed to send test notification: {result.get('error')}")
+            current_app.logger.warning(f"⚠️ Failed to send test notification: {result.get('error')}")
             return jsonify({
                 'success': False,
                 'message': f'Falha ao enviar notificação: {result.get("error")}'
             }), 500
             
     except Exception as e:
-        logger.error(f"❌ Error sending test notification: {e}")
+        current_app.logger.error(f"❌ Error sending test notification: {e}")
         return jsonify({
             'success': False,
             'message': f'Erro ao enviar notificação de teste: {str(e)}'
@@ -1731,7 +1740,7 @@ def onesignal_status():
             'player_id': current_user.fcm_token if current_user.fcm_token else None
         })
     except Exception as e:
-        logger.error(f"❌ Error checking OneSignal status: {e}")
+        current_app.logger.error(f"❌ Error checking OneSignal status: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

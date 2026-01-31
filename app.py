@@ -86,14 +86,9 @@ app.config['WTF_CSRF_ENABLED'] = True
 app.config['WTF_CSRF_CHECK_DEFAULT'] = True  # Check CSRF by default for security
 app.config['WTF_CSRF_METHODS'] = ['POST', 'PUT', 'PATCH', 'DELETE']
 
-# Pass Firebase public config to templates
-app.config['FIREBASE_API_KEY'] = os.environ.get('FIREBASE_API_KEY')
-app.config['FIREBASE_AUTH_DOMAIN'] = os.environ.get('FIREBASE_AUTH_DOMAIN')
-app.config['FIREBASE_PROJECT_ID'] = os.environ.get('FIREBASE_PROJECT_ID')
-app.config['FIREBASE_STORAGE_BUCKET'] = os.environ.get('FIREBASE_STORAGE_BUCKET')
-app.config['FIREBASE_MESSAGING_SENDER_ID'] = os.environ.get('FIREBASE_MESSAGING_SENDER_ID')
-app.config['FIREBASE_APP_ID'] = os.environ.get('FIREBASE_APP_ID')
-app.config['FIREBASE_VAPID_KEY'] = os.environ.get('FIREBASE_VAPID_KEY')
+# OneSignal Push Notifications Configuration
+app.config['ONESIGNAL_APP_ID'] = os.environ.get('ONESIGNAL_APP_ID')
+app.config['ONESIGNAL_REST_API_KEY'] = os.environ.get('ONESIGNAL_REST_API_KEY')
 
 # initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 try:
@@ -578,17 +573,6 @@ else:
     # Local development initialization
     logging.info("💻 Local environment detected - initializing database")
     init_database()
-
-# Initialize Firebase Cloud Messaging (FCM)
-logging.info("🔥 Initializing Firebase Cloud Messaging...")
-try:
-    from firebase_utils import initialize_firebase
-    if initialize_firebase():
-        logging.info("✅ Firebase FCM inicializado com sucesso")
-    else:
-        logging.warning("⚠️ Firebase FCM não configurado - push notifications desabilitadas")
-except Exception as e:
-    logging.warning(f"⚠️ Firebase FCM initialization skipped: {e}")
 
 # Initialize Scheduler for background tasks
 logging.info("📅 Initializing Scheduler for background tasks...")

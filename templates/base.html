@@ -108,8 +108,6 @@ img[src*="no-image"] {
         OneSignalDeferred.push(async function(OneSignal) {
             await OneSignal.init({
                 appId: "{{ config.get('ONESIGNAL_APP_ID', 'f024f50f-ac90-4120-99d7-ffc788cfa094') }}",
-                serviceWorkerPath: "/static/OneSignalSDKWorker.js",
-                serviceWorkerUpdaterPath: "/static/OneSignalSDKWorker.js",
                 allowLocalhostAsSecureOrigin: true
             });
 
