@@ -112,9 +112,8 @@ class OneSignalService:
             if data:
                 payload['data'] = data
             
-            # Add URL for web push
+            # Add URL for web push (use web_url only, not url)
             if url:
-                payload['url'] = url
                 payload['web_url'] = url
             
             # Add icon and badge
@@ -199,9 +198,8 @@ class OneSignalService:
             if data:
                 payload['data'] = data
             
-            # Add URL for web push
+            # Add URL for web push (use web_url only)
             if url:
-                payload['url'] = url
                 payload['web_url'] = url
             
             # Add icon and badge
