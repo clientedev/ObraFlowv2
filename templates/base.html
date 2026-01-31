@@ -101,6 +101,21 @@ img[src*="no-image"] {
 
     <!-- Mobile Touch Fix - Elimina vibração e melhora precisão -->
 
+    <!-- Unregister old Firebase Service Worker (if exists) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (let registration of registrations) {
+                    // Unregister any Firebase service workers
+                    if (registration.active && registration.active.scriptURL.includes('firebase-messaging-sw')) {
+                        console.log('🗑️ Unregistering old Firebase service worker:', registration.active.scriptURL);
+                        registration.unregister();
+                    }
+                }
+            });
+        }
+    </script>
+
     <!-- OneSignal Push Notifications SDK -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
