@@ -16,11 +16,13 @@ class OneSignalService:
         self.api_url = "https://onesignal.com/api/v1/notifications"
         
         if not self.app_id or not self.rest_api_key:
-            logger.warning("⚠️ OneSignal credentials not configured. Push notifications will be disabled.")
+            logger.error("❌❌❌ ONESIGNAL CREDENTIALS NOT CONFIGURED ❌❌❌")
+            logger.error(f"ONESIGNAL_APP_ID: {'SET' if self.app_id else 'NOT SET'}")
+            logger.error(f"ONESIGNAL_REST_API_KEY: {'SET' if self.rest_api_key else 'NOT SET'}")
             self.enabled = False
         else:
             self.enabled = True
-            logger.info("✅ OneSignal service initialized successfully")
+            logger.info(f"✅ OneSignal service initialized (App ID: {self.app_id[:10]}...)")
     
     def send_notification(
         self, 

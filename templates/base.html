@@ -101,58 +101,74 @@ img[src*="no-image"] {
 
     <!-- Mobile Touch Fix - Elimina vibração e melhora precisão -->
 
-    <!-- Unregister ALL old service workers and register OneSignal properly -->
+    <!-- NUCLEAR OPTION: Force clear ALL service workers -->
     <script>
-        (async function() {
-            // Step 1: Unregister ALL existing service workers
+        // Execute immediately, before anything else
+        (function() {
             if ('serviceWorker' in navigator) {
-                try {
-                    const registrations = await navigator.serviceWorker.getRegistrations();
-                    for (let registration of registrations) {
-                        console.log('🗑️ Unregistering SW:', registration.scope);
-                        await registration.unregister();
+                // Unregister ALL service workers IMMEDIATELY
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    registrations.forEach(function(registration) {
+                        console.log('🗑️ FORCE UNREGISTER:', registration.scope);
+                        registration.unregister();
+                    });
+                    
+                    // Also clear controller
+                    if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({type: 'SKIP_WAITING'});
                     }
-                    console.log('✅ All old service workers unregistered');
-                } catch (error) {
-                    console.error('❌ Error unregistering SWs:', error);
-                }
-
-                // Wait a bit for unregistration to complete
-                await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    console.log('✅ ALL SERVICE WORKERS CLEARED');
+                });
             }
         })();
     </script>
 
-    <!-- OneSignal Push Notifications SDK -->
+    <!-- OneSignal SDK - Load and initialize -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
         window.OneSignalDeferred = window.OneSignalDeferred || [];
+        
         OneSignalDeferred.push(async function(OneSignal) {
             try {
-                // Initialize OneSignal with explicit service worker path
+                console.log('🚀 Initializing OneSignal...');
+                
                 await OneSignal.init({
                     appId: "{{ config.get('ONESIGNAL_APP_ID', 'f024f50f-ac90-4120-99d7-ffc788cfa094') }}",
+                    
+                    // Critical: Specify service worker location
+                    serviceWorkerPath: '/OneSignalSDKWorker.js',
                     serviceWorkerParam: { scope: '/' },
-                    serviceWorkerPath: 'OneSignalSDKWorker.js',
+                    
+                    // Mobile PWA compatibility
                     allowLocalhostAsSecureOrigin: true,
+                    autoRegister: true,
                     autoResubscribe: true,
-                    notifyButton: {
-                        enable: false
+                    
+                    // Disable OneSignal UI
+                    notifyButton: { enable: false },
+                    
+                    // Prompt settings
+                    promptOptions: {
+                        slidedown: {
+                            enabled: false  // We handle permission manually
+                        }
                     }
                 });
 
                 console.log('✅ OneSignal initialized');
 
-                // Function to save player ID
-                async function savePlayerId() {
+                // Save player ID function
+                async function savePlayerIdToBackend() {
                     try {
                         const playerId = await OneSignal.User.PushSubscription.id;
+                        
                         if (!playerId) {
-                            console.log('⚠️ No player ID yet');
+                            console.log('⚠️ No player ID available');
                             return false;
                         }
 
-                        console.log('📱 OneSignal Player ID:', playerId);
+                        console.log('📱 Player ID:', playerId);
 
                         const response = await fetch('/api/onesignal/subscribe', {
                             method: 'POST',
@@ -164,51 +180,61 @@ img[src*="no-image"] {
                         });
 
                         if (response.ok) {
-                            console.log('✅ Player ID saved');
+                            console.log('✅ Player ID saved successfully');
                             return true;
                         } else {
                             console.error('❌ Failed to save player ID');
                             return false;
                         }
                     } catch (error) {
-                        console.error('❌ Error in savePlayerId:', error);
+                        console.error('❌ Error saving player ID:', error);
                         return false;
                     }
                 }
 
                 // Listen for subscription changes
-                OneSignal.User.PushSubscription.addEventListener('change', async () => {
+                OneSignal.User.PushSubscription.addEventListener('change', function(change) {
                     console.log('🔄 Subscription changed');
-                    await savePlayerId();
+                    savePlayerIdToBackend();
                 });
 
                 // Handle notification clicks
-                OneSignal.Notifications.addEventListener('click', (event) => {
+                OneSignal.Notifications.addEventListener('click', function(event) {
                     console.log('🔔 Notification clicked');
                     const url = event.notification.url || event.notification.launchURL || '/';
-                    window.location.href = url;
+                    if (url) {
+                        window.location.href = url;
+                    }
                 });
 
-                // Auto-request permission
-                const permission = await OneSignal.Notifications.permission;
-                console.log('🔔 Permission:', permission);
+                // Auto-request permission and subscribe
+                const hasPermission = await OneSignal.Notifications.permission;
+                console.log('🔔 Has permission:', hasPermission);
 
-                if (!permission) {
+                if (!hasPermission) {
                     console.log('📱 Requesting permission...');
-                    const granted = await OneSignal.Notifications.requestPermission();
-                    console.log('📱 Permission granted:', granted);
+                    try {
+                        const granted = await OneSignal.Notifications.requestPermission();
+                        console.log('📱 Permission granted:', granted);
+                    } catch (error) {
+                        console.error('❌ Permission denied:', error);
+                    }
                 }
 
-                // Check subscription status
+                // Check if opted in
                 const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
                 console.log('📱 Is opted in:', isOptedIn);
 
-                if (permission || isOptedIn) {
-                    await savePlayerId();
+                // Save player ID if we have permission
+                if (hasPermission || isOptedIn) {
+                    await savePlayerIdToBackend();
                 }
 
+                // Make available globally for test button
+                window.OneSignal = OneSignal;
+
             } catch (error) {
-                console.error('❌ OneSignal init error:', error);
+                console.error('❌ CRITICAL ERROR initializing OneSignal:', error);
             }
         });
     </script>
