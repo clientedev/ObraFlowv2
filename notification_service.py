@@ -12,7 +12,31 @@ logger = logging.getLogger(__name__)
 class NotificationService:
     def __init__(self):
         self.onesignal_service = onesignal_service
+        self.base_url = 'https://elpconsultoria.pro'  # Production URL
         logger.info("✅ NotificationService initialized with OneSignal")
+    
+    def _build_full_url(self, path):
+        """
+        Convert relative path to absolute HTTPS URL for OneSignal
+        
+        Args:
+            path: Relative path (e.g., '/reports/123')
+            
+        Returns:
+            Full HTTPS URL (e.g., 'https://elpconsultoria.pro/reports/123')
+        """
+        if not path:
+            return self.base_url
+        
+        # If already absolute URL, return as is
+        if path.startswith('http://') or path.startswith('https://'):
+            return path
+        
+        # Ensure path starts with /
+        if not path.startswith('/'):
+            path = '/' + path
+        
+        return f"{self.base_url}{path}"
     
     def criar_notificacao(self, user_id, tipo, titulo, mensagem, link_destino=None, enviar_push=True):
         """
@@ -44,11 +68,14 @@ class NotificationService:
             if enviar_push:
                 usuario_destino = User.query.get(user_id)
                 if usuario_destino and usuario_destino.fcm_token:
+                    # Convert relative path to absolute URL for OneSignal
+                    full_url = self._build_full_url(link_destino)
+                    
                     self.enviar_push_notification(
                         token=usuario_destino.fcm_token,
                         titulo=titulo,
                         corpo=mensagem,
-                        link=link_destino,
+                        link=full_url,  # Use full URL
                         tipo=tipo
                     )
                 else:
