@@ -1646,20 +1646,23 @@ def serve_onesignal_sw():
 @app.route('/api/onesignal/subscribe', methods=['POST'])
 @login_required
 def onesignal_subscribe():
-    """Save OneSignal player ID to user"""
+    """Save OneSignal player ID to user_devices table (supports multiple devices)"""
     try:
+        from models import UserDevice
+        
         data = request.get_json()
         player_id = data.get('player_id')
+        device_info = data.get('device_info', request.user_agent.string)
         
         current_app.logger.info("="*80)
-        current_app.logger.info(f"📱📱📱 PLAYER ID SUBSCRIPTION REQUEST 📱📱📱")
+        current_app.logger.info(f"📱📱📱 DEVICE REGISTRATION REQUEST 📱📱📱")
         current_app.logger.info(f"User ID: {current_user.id}")
         current_app.logger.info(f"User Name: {current_user.nome_completo}")
-        current_app.logger.info(f"Player ID received: {player_id}")
-        current_app.logger.info(f"Current fcm_token in DB: {current_user.fcm_token}")
+        current_app.logger.info(f"Player ID: {player_id}")
+        current_app.logger.info(f"Device Info: {device_info[:100]}")
         
         if not player_id:
-            current_app.logger.error("❌ No player_id provided in request")
+            current_app.logger.error("❌ No player_id provided")
             return jsonify({
                 'success': False,
                 'error': 'Player ID is required'
@@ -1669,28 +1672,56 @@ def onesignal_subscribe():
         if len(player_id) != 36 or player_id.count('-') != 4:
             current_app.logger.warning(f"⚠️ Player ID format looks invalid: {player_id}")
         
-        # Store player ID in fcm_token field (repurposed for OneSignal)
-        old_token = current_user.fcm_token
+        # Check if this player_id already exists
+        existing_device = UserDevice.query.filter_by(player_id=player_id).first()
+        
+        if existing_device:
+            # Update existing device
+            old_user_id = existing_device.user_id
+            existing_device.user_id = current_user.id  # Transfer to current user if needed
+            existing_device.last_active = datetime.utcnow()
+            existing_device.device_info = device_info
+            
+            current_app.logger.info(f"🔄 Updated existing device")
+            if old_user_id != current_user.id:
+                current_app.logger.info(f"   Transferred from user {old_user_id} to {current_user.id}")
+        else:
+            # Create new device
+            new_device = UserDevice(
+                user_id=current_user.id,
+                player_id=player_id,
+                device_info=device_info
+            )
+            db.session.add(new_device)
+            current_app.logger.info(f"➕ Created new device entry")
+        
+        db.session.commit()
+        
+        # Count total devices for this user
+        device_count = UserDevice.query.filter_by(user_id=current_user.id).count()
+        
+        current_app.logger.info(f"✅ DEVICE REGISTERED SUCCESSFULLY")
+        current_app.logger.info(f"   User {current_user.id} now has {device_count} device(s)")
+        current_app.logger.info("="*80)
+        
+        # Also update fcm_token for backward compatibility
         current_user.fcm_token = player_id
         db.session.commit()
         
-        current_app.logger.info(f"✅ OneSignal player ID SAVED for user {current_user.id}")
-        current_app.logger.info(f"   Old token: {old_token}")
-        current_app.logger.info(f"   New token: {player_id}")
-        current_app.logger.info("="*80)
-        
         return jsonify({
             'success': True,
-            'message': 'Player ID saved successfully',
+            'message': 'Device registered successfully',
             'user_id': current_user.id,
-            'player_id': player_id
+            'player_id': player_id,
+            'total_devices': device_count
         })
         
     except Exception as e:
         current_app.logger.error("="*80)
-        current_app.logger.error(f"❌❌❌ ERROR SAVING PLAYER ID ❌❌❌")
+        current_app.logger.error(f"❌❌❌ ERROR REGISTERING DEVICE ❌❌❌")
         current_app.logger.error(f"User: {current_user.id if current_user else 'unknown'}")
         current_app.logger.error(f"Error: {e}")
+        current_app.logger.error(f"Traceback: ", exc_info=True)
         current_app.logger.error("="*80)
         db.session.rollback()
         return jsonify({

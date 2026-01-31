@@ -66,20 +66,51 @@ class NotificationService:
             db.session.flush()
             
             if enviar_push:
-                usuario_destino = User.query.get(user_id)
-                if usuario_destino and usuario_destino.fcm_token:
+                from models import UserDevice
+                
+                # Get ALL devices for this user
+                devices = UserDevice.query.filter_by(user_id=user_id).all()
+                
+                if devices:
+                    player_ids = [d.player_id for d in devices]
+                    device_count = len(player_ids)
+                    
+                    logger.info(f"📱 Sending push to {device_count} device(s) for user {user_id}")
+                    logger.info(f"📱 Player IDs: {[pid[:20]+'...' for pid in player_ids]}")
+                    
                     # Convert relative path to absolute URL for OneSignal
                     full_url = self._build_full_url(link_destino)
                     
-                    self.enviar_push_notification(
-                        token=usuario_destino.fcm_token,
-                        titulo=titulo,
-                        corpo=mensagem,
-                        link=full_url,  # Use full URL
-                        tipo=tipo
+                    # Send to all devices
+                    result = self.onesignal_service.send_notification_to_many(
+                        player_ids=player_ids,
+                        title=titulo,
+                        message=mensagem,
+                        url=full_url,
+                        data={'tipo': tipo} if tipo else None
                     )
+                    
+                    if result.get('success'):
+                        recipients = result.get('recipients', 0)
+                        logger.info(f"✅ Push sent! {recipients}/{device_count} device(s) received")
+                    else:
+                        logger.warning(f"⚠️ Push failed: {result.get('error')}")
                 else:
-                    logger.info(f"📱 Usuário {user_id} não tem OneSignal player ID configurado")
+                    logger.info(f"📱 User {user_id} has NO registered devices")
+                    
+                    # Fallback: Try old fcm_token method
+                    usuario_destino = User.query.get(user_id)
+                    if usuario_destino and usuario_destino.fcm_token:
+                        logger.info(f"📱 Trying fallback fcm_token: {usuario_destino.fcm_token[:20]}...")
+                        full_url = self._build_full_url(link_destino)
+                        
+                        self.onesignal_service.send_notification(
+                            player_id=usuario_destino.fcm_token,
+                            title=titulo,
+                            message=mensagem,
+                            url=full_url,
+                            data={'tipo': tipo} if tipo else None
+                        )
             
             db.session.commit()
             logger.info(f"✅ Notificação criada: {titulo} para usuário {user_id}")

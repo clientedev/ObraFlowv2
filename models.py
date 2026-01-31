@@ -96,6 +96,23 @@ class UserEmailConfig(db.Model):
     def __repr__(self):
         return f'<UserEmailConfig {self.email_address} for user {self.user_id}>'
 
+class UserDevice(db.Model):
+    """Track multiple devices per user for push notifications"""
+    __tablename__ = 'user_devices'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    player_id = db.Column(db.String(255), unique=True, nullable=False)
+    device_info = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_active = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    user = db.relationship('User', backref=db.backref('devices', lazy='dynamic', cascade='all, delete-orphan'))
+    
+    def __repr__(self):
+        return f'<UserDevice {self.player_id[:20]}... for user {self.user_id}>'
+
 class GoogleDriveToken(db.Model):
     """Armazenamento seguro de tokens OAuth do Google Drive"""
     __tablename__ = 'google_drive_tokens'
