@@ -120,7 +120,7 @@ class OneSignalService:
             
             # Add icons with ABSOLUTE URLs (OneSignal requires full URLs)
             payload['chrome_web_icon'] = 'https://elpconsultoria.pro/static/icons/icon-192x192.png'
-            # payload['chrome_web_badge'] = 'https://elpconsultoria.pro/static/icons/icon-72x72.png'  # Removed to fix "white icon" issue (Android needs mask)
+            payload['chrome_web_badge'] = 'https://elpconsultoria.pro/static/icons/icon-72x72.png'
             payload['firefox_icon'] = 'https://elpconsultoria.pro/static/icons/icon-192x192.png'
             
             # Send request
