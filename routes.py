@@ -2816,19 +2816,12 @@ def index():
        # Relatórios recentes
     query = Relatorio.query
     
-    # Se não for aprovador (master), filtrar o que pode ver
+    # Se não for aprovador (master), NÃO PODE VER "Aguardando Aprovação" de outros
     if not current_user.is_master:
-        # Usuário comum vê:
-        # 1. Seus próprios relatórios (qualquer status)
-        # 2. Relatórios de outros APENAS se já aprovados/finalizados (não vê pendentes nem rascunhos)
         query = query.filter(
             db.or_(
-                Relatorio.autor_id == current_user.id,  # Seus próprios
-                db.and_(
-                    Relatorio.status != 'Aguardando Aprovação',
-                    Relatorio.status != 'preenchimento',
-                    Relatorio.status != 'Rascunho' # Garantindo que rascunhos também não apareçam
-                )
+                Relatorio.autor_id == current_user.id,        # Vê TUDO que é seu
+                Relatorio.status != 'Aguardando Aprovação'    # Vê TUDO de outros, EXCETO Aguardando Aprovação
             )
         )
         
