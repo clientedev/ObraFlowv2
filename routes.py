@@ -2816,14 +2816,10 @@ def index():
        # Relatórios recentes
     query = Relatorio.query
     
-    # Se não for aprovador (master), NÃO PODE VER "Aguardando Aprovação" de outros
+    # "Aguardando Aprovação": SÓ Aprovador Global (Master) vê.
+    # NINGUÉM MAIS VÊ (nem o autor). Todos veem "preenchimento", "aprovado", etc.
     if not current_user.is_master:
-        query = query.filter(
-            db.or_(
-                Relatorio.autor_id == current_user.id,        # Vê TUDO que é seu
-                Relatorio.status != 'Aguardando Aprovação'    # Vê TUDO de outros, EXCETO Aguardando Aprovação
-            )
-        )
+        query = query.filter(Relatorio.status != 'Aguardando Aprovação')
         
     relatorios_recentes = query.order_by(Relatorio.created_at.desc()).limit(5).all()
 
