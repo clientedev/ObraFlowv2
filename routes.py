@@ -2816,12 +2816,19 @@ def index():
         # Relatórios recentes
         query = Relatorio.query
         
+        # DEBUG: Log user status
+        print(f"DEBUG DASHBOARD: User {current_user.id} ({current_user.nome_completo}) - is_master={current_user.is_master}")
+        
         # "Aguardando Aprovação": SÓ Aprovador Global (Master) vê.
         # NINGUÉM MAIS VÊ (nem o autor). Todos veem "preenchimento", "aprovado", etc.
         if not current_user.is_master:
+            print("DEBUG: Applying filter to HIDE 'Aguardando Aprovação'")
             query = query.filter(Relatorio.status != 'Aguardando Aprovação')
+        else:
+            print("DEBUG: User is Master - SHOWING ALL")
             
         relatorios_recentes = query.order_by(Relatorio.created_at.desc()).limit(5).all()
+        print(f"DEBUG: Found {len(relatorios_recentes)} reports")
 
     except Exception as e:
         # FALLBACK em caso de erro de conexão
