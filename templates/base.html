@@ -108,64 +108,89 @@ img[src*="no-image"] {
         OneSignalDeferred.push(async function(OneSignal) {
             await OneSignal.init({
                 appId: "{{ config.get('ONESIGNAL_APP_ID', 'f024f50f-ac90-4120-99d7-ffc788cfa094') }}",
-                allowLocalhostAsSecureOrigin: true
+                allowLocalhostAsSecureOrigin: true,
+                notifyButton: {
+                    enable: false // We have our own UI
+                }
             });
 
             console.log('✅ OneSignal initialized');
 
-            // Request permission and subscribe
-            OneSignal.Notifications.addEventListener('permissionChange', async (permission) => {
-                console.log('🔔 Notification permission changed:', permission);
-                if (permission === true) {
-                    await subscribeToOneSignal();
-                }
-            });
+            // Function to subscribe user to push notifications
+            async function subscribeToOneSignal() {
+                try {
+                    const playerId = await OneSignal.User.PushSubscription.id;
+                    if (!playerId) {
+                        console.log('⚠️ No player ID yet, requesting permission...');
+                        return;
+                    }
 
-            // Check if already subscribed
-            const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
-            if (isSubscribed) {
-                await subscribeToOneSignal();
-            }
-
-            // Handle notification clicks
-            OneSignal.Notifications.addEventListener('click', (event) => {
-                console.log('🔔 Notification clicked:', event);
-                if (event.notification.url) {
-                    window.location.href = event.notification.url;
-                }
-            });
-
-            // Make OneSignal available globally
-            window.OneSignal = OneSignal;
-        });
-
-        async function subscribeToOneSignal() {
-            try {
-                const playerId = await OneSignal.User.PushSubscription.id;
-                if (playerId) {
                     console.log('📱 OneSignal Player ID:', playerId);
-                    
-                    // Send player ID to backend
+
+                    // Save player ID to backend
                     const response = await fetch('/api/onesignal/subscribe', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content
+                            'X-CSRFToken': '{{ csrf_token() }}'
                         },
                         body: JSON.stringify({ player_id: playerId })
                     });
-                    
-                    const data = await response.json();
-                    if (data.success) {
+
+                    if (response.ok) {
                         console.log('✅ Player ID saved to backend');
                     } else {
-                        console.error('❌ Failed to save player ID:', data.error);
+                        console.error('❌ Failed to save player ID:', await response.text());
                     }
+                } catch (error) {
+                    console.error('❌ Error subscribing to OneSignal:', error);
+                }
+            }
+
+            // Listen for permission changes
+            OneSignal.Notifications.addEventListener('permissionChange', async (permission) => {
+                console.log('🔔 Notification permission changed:', permission);
+                if (permission) {
+                    await subscribeToOneSignal();
+                }
+            });
+
+            // Listen for push subscription changes
+            OneSignal.User.PushSubscription.addEventListener('change', async (change) => {
+                console.log('🔄 Push subscription changed:', change);
+                await subscribeToOneSignal();
+            });
+
+            // Handle notification clicks
+            OneSignal.Notifications.addEventListener('click', (event) => {
+                console.log('🔔 Notification clicked:', event);
+                const url = event.notification.url || event.notification.launchURL || '/';
+                window.location.href = url;
+            });
+
+            // Auto-request permission if not yet asked
+            try {
+                const permission = await OneSignal.Notifications.permission;
+                console.log('🔔 Current permission:', permission);
+
+                if (!permission) {
+                    console.log('📱 Requesting notification permission...');
+                    // Request permission - this triggers native browser/OS prompt
+                    const permitted = await OneSignal.Notifications.requestPermission();
+                    console.log('📱 Permission result:', permitted);
+                }
+
+                // Check if we're subscribed
+                const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
+                console.log('📱 Is subscribed:', isSubscribed);
+
+                if (isSubscribed || permission) {
+                    await subscribeToOneSignal();
                 }
             } catch (error) {
-                console.error('❌ Error subscribing to OneSignal:', error);
+                console.error('❌ Error requesting permission:', error);
             }
-        }
+        });
     </script>
     
     {% block extra_head %}{% endblock %}
