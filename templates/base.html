@@ -101,19 +101,26 @@ img[src*="no-image"] {
 
     <!-- Mobile Touch Fix - Elimina vibração e melhora precisão -->
 
-    <!-- Unregister old Firebase Service Worker (if exists) -->
+    <!-- Unregister ALL old service workers and register OneSignal properly -->
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for (let registration of registrations) {
-                    // Unregister any Firebase service workers
-                    if (registration.active && registration.active.scriptURL.includes('firebase-messaging-sw')) {
-                        console.log('🗑️ Unregistering old Firebase service worker:', registration.active.scriptURL);
-                        registration.unregister();
+        (async function() {
+            // Step 1: Unregister ALL existing service workers
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        console.log('🗑️ Unregistering SW:', registration.scope);
+                        await registration.unregister();
                     }
+                    console.log('✅ All old service workers unregistered');
+                } catch (error) {
+                    console.error('❌ Error unregistering SWs:', error);
                 }
-            });
-        }
+
+                // Wait a bit for unregistration to complete
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        })();
     </script>
 
     <!-- OneSignal Push Notifications SDK -->
@@ -121,89 +128,87 @@ img[src*="no-image"] {
     <script>
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         OneSignalDeferred.push(async function(OneSignal) {
-            await OneSignal.init({
-                appId: "{{ config.get('ONESIGNAL_APP_ID', 'f024f50f-ac90-4120-99d7-ffc788cfa094') }}",
-                allowLocalhostAsSecureOrigin: true,
-                notifyButton: {
-                    enable: false // We have our own UI
-                }
-            });
-
-            console.log('✅ OneSignal initialized');
-
-            // Function to subscribe user to push notifications
-            async function subscribeToOneSignal() {
-                try {
-                    const playerId = await OneSignal.User.PushSubscription.id;
-                    if (!playerId) {
-                        console.log('⚠️ No player ID yet, requesting permission...');
-                        return;
-                    }
-
-                    console.log('📱 OneSignal Player ID:', playerId);
-
-                    // Save player ID to backend
-                    const response = await fetch('/api/onesignal/subscribe', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({ player_id: playerId })
-                    });
-
-                    if (response.ok) {
-                        console.log('✅ Player ID saved to backend');
-                    } else {
-                        console.error('❌ Failed to save player ID:', await response.text());
-                    }
-                } catch (error) {
-                    console.error('❌ Error subscribing to OneSignal:', error);
-                }
-            }
-
-            // Listen for permission changes
-            OneSignal.Notifications.addEventListener('permissionChange', async (permission) => {
-                console.log('🔔 Notification permission changed:', permission);
-                if (permission) {
-                    await subscribeToOneSignal();
-                }
-            });
-
-            // Listen for push subscription changes
-            OneSignal.User.PushSubscription.addEventListener('change', async (change) => {
-                console.log('🔄 Push subscription changed:', change);
-                await subscribeToOneSignal();
-            });
-
-            // Handle notification clicks
-            OneSignal.Notifications.addEventListener('click', (event) => {
-                console.log('🔔 Notification clicked:', event);
-                const url = event.notification.url || event.notification.launchURL || '/';
-                window.location.href = url;
-            });
-
-            // Auto-request permission if not yet asked
             try {
+                // Initialize OneSignal with explicit service worker path
+                await OneSignal.init({
+                    appId: "{{ config.get('ONESIGNAL_APP_ID', 'f024f50f-ac90-4120-99d7-ffc788cfa094') }}",
+                    serviceWorkerParam: { scope: '/' },
+                    serviceWorkerPath: 'OneSignalSDKWorker.js',
+                    allowLocalhostAsSecureOrigin: true,
+                    autoResubscribe: true,
+                    notifyButton: {
+                        enable: false
+                    }
+                });
+
+                console.log('✅ OneSignal initialized');
+
+                // Function to save player ID
+                async function savePlayerId() {
+                    try {
+                        const playerId = await OneSignal.User.PushSubscription.id;
+                        if (!playerId) {
+                            console.log('⚠️ No player ID yet');
+                            return false;
+                        }
+
+                        console.log('📱 OneSignal Player ID:', playerId);
+
+                        const response = await fetch('/api/onesignal/subscribe', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({ player_id: playerId })
+                        });
+
+                        if (response.ok) {
+                            console.log('✅ Player ID saved');
+                            return true;
+                        } else {
+                            console.error('❌ Failed to save player ID');
+                            return false;
+                        }
+                    } catch (error) {
+                        console.error('❌ Error in savePlayerId:', error);
+                        return false;
+                    }
+                }
+
+                // Listen for subscription changes
+                OneSignal.User.PushSubscription.addEventListener('change', async () => {
+                    console.log('🔄 Subscription changed');
+                    await savePlayerId();
+                });
+
+                // Handle notification clicks
+                OneSignal.Notifications.addEventListener('click', (event) => {
+                    console.log('🔔 Notification clicked');
+                    const url = event.notification.url || event.notification.launchURL || '/';
+                    window.location.href = url;
+                });
+
+                // Auto-request permission
                 const permission = await OneSignal.Notifications.permission;
-                console.log('🔔 Current permission:', permission);
+                console.log('🔔 Permission:', permission);
 
                 if (!permission) {
-                    console.log('📱 Requesting notification permission...');
-                    // Request permission - this triggers native browser/OS prompt
-                    const permitted = await OneSignal.Notifications.requestPermission();
-                    console.log('📱 Permission result:', permitted);
+                    console.log('📱 Requesting permission...');
+                    const granted = await OneSignal.Notifications.requestPermission();
+                    console.log('📱 Permission granted:', granted);
                 }
 
-                // Check if we're subscribed
-                const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
-                console.log('📱 Is subscribed:', isSubscribed);
+                // Check subscription status
+                const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
+                console.log('📱 Is opted in:', isOptedIn);
 
-                if (isSubscribed || permission) {
-                    await subscribeToOneSignal();
+                if (permission || isOptedIn) {
+                    await savePlayerId();
                 }
+
             } catch (error) {
-                console.error('❌ Error requesting permission:', error);
+                console.error('❌ OneSignal init error:', error);
             }
         });
     </script>
