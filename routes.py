@@ -2813,15 +2813,15 @@ def index():
         print(f"REAL STATS FROM DB: P={projetos_ativos}, V={visitas_agendadas}, R={relatorios_pendentes}, U={usuarios_ativos}")
 
         # Get recent reports com fallback
-       # Relatórios recentes
-    query = Relatorio.query
-    
-    # "Aguardando Aprovação": SÓ Aprovador Global (Master) vê.
-    # NINGUÉM MAIS VÊ (nem o autor). Todos veem "preenchimento", "aprovado", etc.
-    if not current_user.is_master:
-        query = query.filter(Relatorio.status != 'Aguardando Aprovação')
+        # Relatórios recentes
+        query = Relatorio.query
         
-    relatorios_recentes = query.order_by(Relatorio.created_at.desc()).limit(5).all()
+        # "Aguardando Aprovação": SÓ Aprovador Global (Master) vê.
+        # NINGUÉM MAIS VÊ (nem o autor). Todos veem "preenchimento", "aprovado", etc.
+        if not current_user.is_master:
+            query = query.filter(Relatorio.status != 'Aguardando Aprovação')
+            
+        relatorios_recentes = query.order_by(Relatorio.created_at.desc()).limit(5).all()
 
     except Exception as e:
         # FALLBACK em caso de erro de conexão
