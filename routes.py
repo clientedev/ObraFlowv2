@@ -2813,10 +2813,26 @@ def index():
         print(f"REAL STATS FROM DB: P={projetos_ativos}, V={visitas_agendadas}, R={relatorios_pendentes}, U={usuarios_ativos}")
 
         # Get recent reports com fallback
-        try:
-            relatorios_recentes = Relatorio.query.order_by(Relatorio.created_at.desc()).limit(5).all()
-        except:
-            relatorios_recentes = []
+       # Relatórios recentes
+    query = Relatorio.query
+    
+    # Se não for aprovador (master), filtrar o que pode ver
+    if not current_user.is_master:
+        # Usuário comum vê:
+        # 1. Seus próprios relatórios (qualquer status)
+        # 2. Relatórios de outros APENAS se já aprovados/finalizados (não vê pendentes nem rascunhos)
+        query = query.filter(
+            db.or_(
+                Relatorio.autor_id == current_user.id,  # Seus próprios
+                db.and_(
+                    Relatorio.status != 'Aguardando Aprovação',
+                    Relatorio.status != 'preenchimento',
+                    Relatorio.status != 'Rascunho' # Garantindo que rascunhos também não apareçam
+                )
+            )
+        )
+        
+    relatorios_recentes = query.order_by(Relatorio.created_at.desc()).limit(5).all()
 
     except Exception as e:
         # FALLBACK em caso de erro de conexão
