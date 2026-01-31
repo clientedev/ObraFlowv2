@@ -2816,29 +2816,35 @@ def index():
         # Relatórios recentes
         query = Relatorio.query
         
-        # DEBUG: Log user status with APP LOGGER
-        current_app.logger.info(f"📊 DASHBOARD: User {current_user.id} ({current_user.nome_completo}) - is_master={current_user.is_master}")
+        # Filtro de Visibilidade para Relatórios "Aguardando Aprovação"
+        # Regra: Só Aprovador Global (Master) ou Aprovador Específico podem ver.
+        # Todos os outros usuários (incluindo Autor) NÃO veem "Aguardando Aprovação".
+        # Todos veem outros status ("preenchimento", "Aprovado", etc).
         
-        # "Aguardando Aprovação": SÓ Aprovador Global (Master) vê.
-        # NINGUÉM MAIS VÊ (nem o autor). Todos veem "preenchimento", "aprovado", etc.
         if not current_user.is_master:
-            current_app.logger.info("🚫 Filtering: Hiding 'Aguardando Aprovação' (case insensitive)")
-            # Using ilike for robust case-insensitive matching
-            query = query.filter(Relatorio.status.notilike('Aguardando Aprovação'))
-        else:
-            current_app.logger.info("✅ User is Master - Shows ALL reports")
+            query = query.filter(
+                db.or_(
+                    # Condição 1: Não é "Aguardando Aprovação" (Verificação robusta com wildcard)
+                    ~Relatorio.status.ilike('%Aguardando Aprovação%'),
+                    
+                    # Condição 2: É "Aguardando Aprovação", mas sou o Aprovador Específico
+                    db.and_(
+                        Relatorio.status.ilike('%Aguardando Aprovação%'),
+                        Relatorio.aprovador_id == current_user.id
+                    )
+                )
+            )
             
         relatorios_recentes = query.order_by(Relatorio.created_at.desc()).limit(5).all()
-        current_app.logger.info(f"📊 Found {len(relatorios_recentes)} reports for display")
 
     except Exception as e:
-        # FALLBACK em caso de erro de conexão
-        print(f"ERRO DB: {e} - Usando dados fallback")
+        # Em caso de erro, retornar lista vazia para não quebrar a página
+        print(f"Erro ao carregar dashboard: {e}") 
         stats = {
-            'projetos_ativos': 6,
-            'visitas_agendadas': 4,
+            'projetos_ativos': 0,
+            'visitas_agendadas': 0,
             'relatorios_pendentes': 0,
-            'usuarios_ativos': 2
+            'usuarios_ativos': 0
         }
         relatorios_recentes = []
 
