@@ -1651,25 +1651,47 @@ def onesignal_subscribe():
         data = request.get_json()
         player_id = data.get('player_id')
         
+        current_app.logger.info("="*80)
+        current_app.logger.info(f"📱📱📱 PLAYER ID SUBSCRIPTION REQUEST 📱📱📱")
+        current_app.logger.info(f"User ID: {current_user.id}")
+        current_app.logger.info(f"User Name: {current_user.nome_completo}")
+        current_app.logger.info(f"Player ID received: {player_id}")
+        current_app.logger.info(f"Current fcm_token in DB: {current_user.fcm_token}")
+        
         if not player_id:
+            current_app.logger.error("❌ No player_id provided in request")
             return jsonify({
                 'success': False,
                 'error': 'Player ID is required'
             }), 400
         
+        # Validate player ID format (should be UUID)
+        if len(player_id) != 36 or player_id.count('-') != 4:
+            current_app.logger.warning(f"⚠️ Player ID format looks invalid: {player_id}")
+        
         # Store player ID in fcm_token field (repurposed for OneSignal)
+        old_token = current_user.fcm_token
         current_user.fcm_token = player_id
         db.session.commit()
         
-        current_app.logger.info(f"✅ OneSignal player ID saved for user {current_user.id}: {player_id}")
+        current_app.logger.info(f"✅ OneSignal player ID SAVED for user {current_user.id}")
+        current_app.logger.info(f"   Old token: {old_token}")
+        current_app.logger.info(f"   New token: {player_id}")
+        current_app.logger.info("="*80)
         
         return jsonify({
             'success': True,
-            'message': 'Player ID saved successfully'
+            'message': 'Player ID saved successfully',
+            'user_id': current_user.id,
+            'player_id': player_id
         })
         
     except Exception as e:
-        current_app.logger.error(f"❌ Error saving OneSignal player ID: {e}")
+        current_app.logger.error("="*80)
+        current_app.logger.error(f"❌❌❌ ERROR SAVING PLAYER ID ❌❌❌")
+        current_app.logger.error(f"User: {current_user.id if current_user else 'unknown'}")
+        current_app.logger.error(f"Error: {e}")
+        current_app.logger.error("="*80)
         db.session.rollback()
         return jsonify({
             'success': False,
