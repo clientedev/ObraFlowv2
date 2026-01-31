@@ -84,17 +84,39 @@ class NotificationService:
                     # Send to all devices
                     result = self.onesignal_service.send_notification_to_many(
                         player_ids=player_ids,
-                        title=titulo,
+                        title=f"Nova Notificação - {current_app.config.get('APP_NAME', 'ObraFlow')}",
                         message=mensagem,
                         url=full_url,
                         data={'tipo': tipo} if tipo else None
                     )
                     
-                    if result.get('success'):
-                        recipients = result.get('recipients', 0)
-                        logger.info(f"✅ Push sent! {recipients}/{device_count} device(s) received")
+                    # SELF-HEALING: Remove invalid player IDs if reported by OneSignal
+                    if result and not result.get('success') and 'response' in result:
+                        response_data = result.get('response', {})
+                        # Check for invalid_player_ids in errors
+                        errors = response_data.get('errors')
+                        invalid_ids = []
+                        
+                        if isinstance(errors, dict) and 'invalid_player_ids' in errors:
+                            invalid_ids = errors['invalid_player_ids']
+                        elif response_data.get('invalid_player_ids'):
+                            invalid_ids = response_data.get('invalid_player_ids')
+                            
+                        if invalid_ids:
+                            current_app.logger.warning(f"🧹 SELF-HEALING: Removing {len(invalid_ids)} invalid device(s) from database")
+                            try:
+                                # Remove invalid devices to force re-registration
+                                db.session.query(UserDevice).filter(UserDevice.player_id.in_(invalid_ids)).delete(synchronize_session=False)
+                                db.session.commit()
+                                current_app.logger.info("✅ Invalid devices removed successfully. User needs to re-login/refresh to register new ID.")
+                            except Exception as e:
+                                current_app.logger.error(f"❌ Error removing invalid devices: {e}")
+                                db.session.rollback()
+
+                    if result and result.get('success'):
+                        current_app.logger.info(f"✅ Push sent! {result.get('recipients')} device(s) received")
                     else:
-                        logger.warning(f"⚠️ Push failed: {result.get('error')}")
+                        current_app.logger.info(f"⚠️ Push missed: {result.get('error')}")
                 else:
                     logger.info(f"📱 User {user_id} has NO registered devices")
                     
