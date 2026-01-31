@@ -1749,6 +1749,73 @@ def onesignal_status():
             'error': str(e)
         }), 500
 
+@app.route('/api/onesignal/debug', methods=['GET'])
+@login_required
+def onesignal_debug():
+    """Debug endpoint to check OneSignal configuration and player status"""
+    try:
+        import requests
+        import os
+        
+        app_id = os.environ.get('ONESIGNAL_APP_ID')
+        rest_api_key = os.environ.get('ONESIGNAL_REST_API_KEY')
+        player_id = current_user.fcm_token
+        
+        debug_info = {
+            'config': {
+                'app_id_configured': bool(app_id),
+                'api_key_configured': bool(rest_api_key),
+                'app_id': app_id[:10] + '...' if app_id else None
+            },
+            'user': {
+                'user_id': current_user.id,
+                'player_id': player_id,
+                'player_id_format_valid': bool(player_id and len(player_id) == 36 and '-' in player_id)
+            }
+        }
+        
+        # Try to fetch player info from OneSignal API
+        if app_id and rest_api_key and player_id:
+            try:
+                headers = {
+                    'Authorization': f'Basic {rest_api_key}'
+                }
+                response = requests.get(
+                    f'https://onesignal.com/api/v1/players/{player_id}?app_id={app_id}',
+                    headers=headers,
+                    timeout=5
+                )
+                
+                if response.status_code == 200:
+                    player_data = response.json()
+                    debug_info['onesignal_player'] = {
+                        'exists': True,
+                        'session_count': player_data.get('session_count', 0),
+                        'last_active': player_data.get('last_active'),
+                        'notification_types': player_data.get('notification_types'),
+                        'test_type': player_data.get('test_type')
+                    }
+                else:
+                    debug_info['onesignal_player'] = {
+                        'exists': False,
+                        'error': f'HTTP {response.status_code}',
+                        'message': response.text
+                    }
+            except Exception as api_error:
+                debug_info['onesignal_api_error'] = str(api_error)
+        
+        return jsonify({
+            'success': True,
+            'debug': debug_info
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Error in debug endpoint: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 # Legacy endpoint - redirects to OneSignal test
 @app.route('/api/test_push', methods=['POST'])
 @login_required
