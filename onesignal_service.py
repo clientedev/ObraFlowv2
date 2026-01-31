@@ -135,7 +135,24 @@ class OneSignalService:
             
             if response.status_code == 200:
                 recipients = response_data.get('recipients', 0)
-                logger.info(f"✅ OneSignal notification sent successfully to {recipients} device(s)")
+                
+                # Enhanced logging for diagnostics
+                if recipients == 0:
+                    logger.warning("="*50)
+                    logger.warning(f"⚠️ ONESIGNAL RETURNED 0 RECIPIENTS")
+                    logger.warning(f"Full Response: {response_data}")
+                    
+                    invalid_ids = response_data.get('invalid_player_ids')
+                    if invalid_ids:
+                         logger.warning(f"⚠️ The following Player IDs were rejected: {invalid_ids}")
+                         
+                    errors = response_data.get('errors')
+                    if errors:
+                         logger.error(f"❌ OneSignal Business Errors: {errors}")
+                    logger.warning("="*50)
+                else:
+                    logger.info(f"✅ OneSignal notification sent successfully to {recipients} device(s)")
+                
                 return {
                     'success': True,
                     'response': response_data,
