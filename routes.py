@@ -1699,13 +1699,16 @@ def onesignal_test_notification():
                 'message': 'Token antigo detectado. Por favor, recarregue a página e permita notificações novamente.'
             }), 400
         
+        # Build full URL (OneSignal requires https:// or http://)
+        base_url = request.host_url.rstrip('/')  # e.g., 'https://elpconsultoria.pro'
+        
         # Send test notification
         result = onesignal_service.send_notification(
             player_id=player_id,
             title='🔔 Teste de Notificação',
             message=f'Olá, {current_user.nome_completo}! As notificações estão funcionando perfeitamente! 🎉',
             data={'type': 'test', 'timestamp': datetime.utcnow().isoformat()},
-            url='/'
+            url=base_url  # Full URL with protocol
         )
         
         if result.get('success'):
