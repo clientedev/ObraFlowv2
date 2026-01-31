@@ -2816,19 +2816,20 @@ def index():
         # Relatórios recentes
         query = Relatorio.query
         
-        # DEBUG: Log user status
-        print(f"DEBUG DASHBOARD: User {current_user.id} ({current_user.nome_completo}) - is_master={current_user.is_master}")
+        # DEBUG: Log user status with APP LOGGER
+        current_app.logger.info(f"📊 DASHBOARD: User {current_user.id} ({current_user.nome_completo}) - is_master={current_user.is_master}")
         
         # "Aguardando Aprovação": SÓ Aprovador Global (Master) vê.
         # NINGUÉM MAIS VÊ (nem o autor). Todos veem "preenchimento", "aprovado", etc.
         if not current_user.is_master:
-            print("DEBUG: Applying filter to HIDE 'Aguardando Aprovação'")
-            query = query.filter(Relatorio.status != 'Aguardando Aprovação')
+            current_app.logger.info("🚫 Filtering: Hiding 'Aguardando Aprovação' (case insensitive)")
+            # Using ilike for robust case-insensitive matching
+            query = query.filter(Relatorio.status.notilike('Aguardando Aprovação'))
         else:
-            print("DEBUG: User is Master - SHOWING ALL")
+            current_app.logger.info("✅ User is Master - Shows ALL reports")
             
         relatorios_recentes = query.order_by(Relatorio.created_at.desc()).limit(5).all()
-        print(f"DEBUG: Found {len(relatorios_recentes)} reports")
+        current_app.logger.info(f"📊 Found {len(relatorios_recentes)} reports for display")
 
     except Exception as e:
         # FALLBACK em caso de erro de conexão
