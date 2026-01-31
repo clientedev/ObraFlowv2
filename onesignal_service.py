@@ -118,10 +118,10 @@ class OneSignalService:
             if url:
                 payload['web_url'] = url
             
-            # Add icon and badge
-            payload['chrome_web_icon'] = '/static/icons/icon-192x192.png'
-            payload['chrome_web_badge'] = '/static/icons/icon-72x72.png'
-            payload['firefox_icon'] = '/static/icons/icon-192x192.png'
+            # Add icons with ABSOLUTE URLs (OneSignal requires full URLs)
+            payload['chrome_web_icon'] = 'https://elpconsultoria.pro/static/icons/icon-192x192.png'
+            payload['chrome_web_badge'] = 'https://elpconsultoria.pro/static/icons/icon-72x72.png'
+            payload['firefox_icon'] = 'https://elpconsultoria.pro/static/icons/icon-192x192.png'
             
             # Send request
             response = requests.post(
@@ -204,10 +204,10 @@ class OneSignalService:
             if url:
                 payload['web_url'] = url
             
-            # Add icon and badge
-            payload['chrome_web_icon'] = '/static/icons/icon-192x192.png'
-            payload['chrome_web_badge'] = '/static/icons/icon-72x72.png'
-            payload['firefox_icon'] = '/static/icons/icon-192x192.png'
+            # Add icons with ABSOLUTE URLs
+            payload['chrome_web_icon'] = 'https://elpconsultoria.pro/static/icons/icon-192x192.png'
+            payload['chrome_web_badge'] = 'https://elpconsultoria.pro/static/icons/icon-72x72.png'
+            payload['firefox_icon'] = 'https://elpconsultoria.pro/static/icons/icon-192x192.png'
             
             # Send request
             response = requests.post(
