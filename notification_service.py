@@ -1,34 +1,18 @@
 import os
 import logging
 from datetime import datetime, timedelta
-import firebase_admin
-from firebase_admin import credentials, messaging
 from flask import current_app
 # Import models inside functions to avoid circular imports
 # from models import Notificacao, User, Projeto, Relatorio, FuncionarioProjeto
 from app import db
+from onesignal_service import onesignal_service
 
 logger = logging.getLogger(__name__)
 
 class NotificationService:
     def __init__(self):
-        self.firebase_initialized = False
-        self.init_firebase()
-    
-    def init_firebase(self):
-        """
-        Inicializa o Firebase Admin usando a utilidade centralizada para evitar conflitos
-        """
-        try:
-            from firebase_utils import initialize_firebase
-            self.firebase_initialized = initialize_firebase()
-            if self.firebase_initialized:
-                logger.info("✅ Firebase Admin SDK vinculado ao NotificationService")
-            else:
-                logger.warning("⚠️ NotificationService: Firebase não pôde ser inicializado")
-        except Exception as e:
-            logger.error(f"❌ Erro ao vincular Firebase ao NotificationService: {e}")
-            self.firebase_initialized = False
+        self.onesignal_service = onesignal_service
+        logger.info("✅ NotificationService initialized with OneSignal")
     
     def criar_notificacao(self, user_id, tipo, titulo, mensagem, link_destino=None, enviar_push=True):
         """
@@ -68,7 +52,7 @@ class NotificationService:
                         tipo=tipo
                     )
                 else:
-                    logger.info(f"📱 Usuário {user_id} não tem FCM token configurado")
+                    logger.info(f"📱 Usuário {user_id} não tem OneSignal player ID configurado")
             
             db.session.commit()
             logger.info(f"✅ Notificação criada: {titulo} para usuário {user_id}")
@@ -260,46 +244,46 @@ class NotificationService:
             logger.error(f"❌ Erro ao criar notificação de relatório reprovado: {e}")
             return {'success': False, 'error': str(e)}
     
+    
     def enviar_push_notification(self, token, titulo, corpo, link=None, tipo=None):
-        if not self.firebase_initialized:
-            # Firebase opcional - retornar silenciosamente
-            return False
+        """
+        Envia push notification via OneSignal
         
+        Args:
+            token: OneSignal player ID (stored in fcm_token field)
+            titulo: Notification title
+            corpo: Notification body/message
+            link: Optional URL to open when clicked
+            tipo: Notification type
+            
+        Returns:
+            bool: True if sent successfully, False otherwise
+        """
         try:
-            message_data = {
+            # Prepare notification data
+            data = {
                 'tipo': tipo or 'geral',
                 'timestamp': datetime.utcnow().isoformat()
             }
             
-            if link:
-                message_data['link'] = link
-            
-            message = messaging.Message(
-                notification=messaging.Notification(
-                    title=titulo,
-                    body=corpo
-                ),
-                data=message_data,
-                webpush=messaging.WebpushConfig(
-                    fcm_options=messaging.WebpushFCMOptions(
-                        link=link
-                    ) if link else None,
-                    notification=messaging.WebpushNotification(
-                        title=titulo,
-                        body=corpo,
-                        icon='/static/icons/icon-192x192.png',
-                        badge='/static/icons/icon-72x72.png'
-                    )
-                ),
-                token=token
+            # Send via OneSignal
+            result = self.onesignal_service.send_notification(
+                player_id=token,
+                title=titulo,
+                message=corpo,
+                data=data,
+                url=link
             )
             
-            response = messaging.send(message)
-            logger.info(f"✅ Push notification enviada com sucesso: {response}")
-            return True
-            
+            if result.get('success'):
+                logger.info(f"✅ Push notification enviada via OneSignal")
+                return True
+            else:
+                logger.warning(f"⚠️ Falha ao enviar via OneSignal: {result.get('error')}")
+                return False
+                
         except Exception as e:
-            logger.error(f"❌ Erro ao enviar push notification: {e}")
+            logger.error(f"❌ Erro ao enviar push notification via OneSignal: {e}")
             return False
     
     def marcar_como_lida(self, notificacao_id, user_id):

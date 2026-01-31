@@ -98,34 +98,75 @@ img[src*="no-image"] {
     <script src="{{ url_for('static', filename='js/notifications-manager.js') }}"></script>
 
 
+
     <!-- Mobile Touch Fix - Elimina vibração e melhora precisão -->
 
-    <!-- Firebase Push Notifications -->
-    <script type="module">
-        import FirebaseNotificationsManager from '/static/js/firebase-notifications.js';
-        
-        const firebaseConfig = {
-            apiKey: "{{ config.get('FIREBASE_API_KEY', '') }}",
-            authDomain: "{{ config.get('FIREBASE_AUTH_DOMAIN', '') }}",
-            projectId: "{{ config.get('FIREBASE_PROJECT_ID', '') }}",
-            storageBucket: "{{ config.get('FIREBASE_STORAGE_BUCKET', '') }}",
-            messagingSenderId: "{{ config.get('FIREBASE_MESSAGING_SENDER_ID', '') }}",
-            appId: "{{ config.get('FIREBASE_APP_ID', '') }}"
-        };
-        
-        const vapidKey = "{{ config.get('FIREBASE_VAPID_KEY', '') }}";
-        
-        if (firebaseConfig.apiKey) {
-            document.addEventListener('DOMContentLoaded', async () => {
-                const fcmManager = new FirebaseNotificationsManager();
-                if (await fcmManager.initialize(firebaseConfig)) {
-                    console.log('✅ Firebase initialized');
-                    
-                    // Opcional: Solicitar automaticamente ou vincular a um botão
-                    // Por agora, vamos apenas garantir que o manager está pronto
-                    window.fcmManager = fcmManager;
+    <!-- OneSignal Push Notifications SDK -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function(OneSignal) {
+            await OneSignal.init({
+                appId: "{{ config.get('ONESIGNAL_APP_ID', 'f024f50f-ac90-4120-99d7-ffc788cfa094') }}",
+                serviceWorkerPath: "/static/OneSignalSDKWorker.js",
+                serviceWorkerUpdaterPath: "/static/OneSignalSDKWorker.js",
+                allowLocalhostAsSecureOrigin: true
+            });
+
+            console.log('✅ OneSignal initialized');
+
+            // Request permission and subscribe
+            OneSignal.Notifications.addEventListener('permissionChange', async (permission) => {
+                console.log('🔔 Notification permission changed:', permission);
+                if (permission === true) {
+                    await subscribeToOneSignal();
                 }
             });
+
+            // Check if already subscribed
+            const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
+            if (isSubscribed) {
+                await subscribeToOneSignal();
+            }
+
+            // Handle notification clicks
+            OneSignal.Notifications.addEventListener('click', (event) => {
+                console.log('🔔 Notification clicked:', event);
+                if (event.notification.url) {
+                    window.location.href = event.notification.url;
+                }
+            });
+
+            // Make OneSignal available globally
+            window.OneSignal = OneSignal;
+        });
+
+        async function subscribeToOneSignal() {
+            try {
+                const playerId = await OneSignal.User.PushSubscription.id;
+                if (playerId) {
+                    console.log('📱 OneSignal Player ID:', playerId);
+                    
+                    // Send player ID to backend
+                    const response = await fetch('/api/onesignal/subscribe', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content
+                        },
+                        body: JSON.stringify({ player_id: playerId })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        console.log('✅ Player ID saved to backend');
+                    } else {
+                        console.error('❌ Failed to save player ID:', data.error);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error subscribing to OneSignal:', error);
+            }
         }
     </script>
     
@@ -277,9 +318,14 @@ img[src*="no-image"] {
                 <small class="text-muted">
                     <span id="unreadCount">0</span> não lidas
                 </small>
-                <button type="button" class="btn btn-sm btn-outline-primary" id="markAllReadBtn">
-                    <i class="fas fa-check-double me-1"></i>Marcar todas como lidas
-                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-success" id="testNotificationBtn" title="Testar notificação push">
+                        <i class="fas fa-bell me-1"></i>Testar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="markAllReadBtn">
+                        <i class="fas fa-check-double me-1"></i>Marcar todas como lidas
+                    </button>
+                </div>
             </div>
             
             <div id="notificationsList" class="list-group list-group-flush">
@@ -310,68 +356,44 @@ img[src*="no-image"] {
         {% block content %}{% endblock %}
     </main>
 
-    <!--
+
+    <!-- OneSignal Test Notification Script -->
     {% if current_user.is_authenticated %}
-    <div class="container mt-2">
-        <button id="btn-test-push" class="btn btn-sm btn-outline-info">
-            <i class="fas fa-paper-plane me-1"></i>Testar Push Notification
-        </button>
-        <button id="btn-enable-push" class="btn btn-sm btn-outline-primary ms-2">
-            <i class="fas fa-bell me-1"></i>Ativar Notificações
-        </button>
-    </div>
-    -->
-
-    <script type="module">
-        import FirebaseNotificationsManager from '/static/js/firebase-notifications.js';
-        
-        document.addEventListener('DOMContentLoaded', async () => {
-            const btnTest = document.getElementById('btn-test-push');
-            const btnEnable = document.getElementById('btn-enable-push');
-            const vapidKey = "{{ config.get('FIREBASE_VAPID_KEY', '') }}";
-
-            if (btnEnable) {
-                btnEnable.addEventListener('click', async () => {
-                    if (window.fcmManager) {
-                        try {
-                            const token = await window.fcmManager.requestPermissionAndGetToken(vapidKey);
-                            if (token) {
-                                showToast('Notificações ativadas com sucesso!', 'success');
-                                btnEnable.classList.remove('btn-outline-primary');
-                                btnEnable.classList.add('btn-success');
-                                btnEnable.innerHTML = '<i class="fas fa-check me-1"></i>Notificações Ativas';
-                            } else {
-                                // O erro já é tratado com alert no manager se for bloqueio
-                                if (Notification.permission !== 'denied') {
-                                    showToast('Falha ao obter token. Tente recarregar a página.', 'error');
-                                }
-                            }
-                        } catch (err) {
-                            console.error('Erro ao ativar:', err);
-                            showToast('Erro técnico ao ativar notificações.', 'error');
-                        }
-                    }
-                });
-            }
-
-            if (btnTest) {
-                btnTest.addEventListener('click', async () => {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const testNotificationBtn = document.getElementById('testNotificationBtn');
+            
+            if (testNotificationBtn) {
+                testNotificationBtn.addEventListener('click', async () => {
                     try {
-                        const response = await fetch('/api/test_push', {
+                        // Show loading state
+                        testNotificationBtn.disabled = true;
+                        testNotificationBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Enviando...';
+                        
+                        const response = await fetch('/api/onesignal/test-notification', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content
                             }
                         });
+                        
                         const data = await response.json();
+                        
+                        // Reset button
+                        testNotificationBtn.disabled = false;
+                        testNotificationBtn.innerHTML = '<i class="fas fa-bell me-1"></i>Testar';
+                        
                         if (data.success) {
-                            showToast(data.message, 'success');
+                            showToast(data.message || 'Notificação de teste enviada!', 'success');
                         } else {
-                            showToast(data.message, 'error');
+                            showToast(data.message || 'Erro ao enviar notificação de teste', 'error');
                         }
                     } catch (error) {
-                        showToast('Erro ao enviar teste.', 'error');
+                        console.error('Error sending test notification:', error);
+                        testNotificationBtn.disabled = false;
+                        testNotificationBtn.innerHTML = '<i class="fas fa-bell me-1"></i>Testar';
+                        showToast('Erro ao enviar notificação de teste', 'error');
                     }
                 });
             }

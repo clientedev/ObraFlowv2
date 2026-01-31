@@ -1642,59 +1642,114 @@ def serve_sw():
     """Serve o service worker do Firebase com as chaves injetadas dinamicamente"""
     return make_response(render_template('firebase-messaging-sw.js'), 200, {'Content-Type': 'application/javascript'})
 
-@app.route('/api/test_push', methods=['POST'])
+@app.route('/api/onesignal/subscribe', methods=['POST'])
 @login_required
-def test_push():
-    """Endpoint para testar o envio de push notification para o usuário logado"""
-    try:
-        from firebase_utils import send_push_notification
-        
-        if not current_user.fcm_token:
-            return jsonify({
-                'success': False, 
-                'message': 'Você ainda não ativou as notificações neste navegador. Clique em "Ativar Notificações" primeiro.'
-            }), 400
-
-        success = send_push_notification(
-            user=current_user,
-            title="🔔 Teste de Notificação",
-            body="Se você recebeu isso, o sistema de Push Notifications está funcionando!",
-            data={'url': '/dashboard'}
-        )
-        
-        if success:
-            return jsonify({'success': True, 'message': 'Notificação enviada com sucesso!'})
-        else:
-            return jsonify({'success': False, 'message': 'Falha ao enviar notificação. Verifique se o token é válido.'}), 500
-    except Exception as e:
-        current_app.logger.error(f"Erro no endpoint test_push: {e}")
-        return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
-
-@app.route('/api/update_fcm_token', methods=['POST'])
-@login_required
-def update_fcm_token():
-    """
-    Endpoint Firebase FCM - Atualizar token de push notification
-    Compatível com Firebase Cloud Messaging SDK
-    """
+def onesignal_subscribe():
+    """Save OneSignal player ID to user"""
     try:
         data = request.get_json()
-        token = data.get('fcm_token')
+        player_id = data.get('player_id')
         
-        if not token:
-            return jsonify({'error': 'Token ausente'}), 400
+        if not player_id:
+            return jsonify({
+                'success': False,
+                'error': 'Player ID is required'
+            }), 400
         
-        current_user.fcm_token = token
+        # Store player ID in fcm_token field (repurposed for OneSignal)
+        current_user.fcm_token = player_id
         db.session.commit()
         
-        current_app.logger.info(f"✅ FCM token atualizado para usuário {current_user.username}")
+        logger.info(f"✅ OneSignal player ID saved for user {current_user.id}: {player_id}")
         
-        return jsonify({'success': True, 'message': 'Token FCM atualizado com sucesso'}), 200
-    
+        return jsonify({
+            'success': True,
+            'message': 'Player ID saved successfully'
+        })
+        
     except Exception as e:
+        logger.error(f"❌ Error saving OneSignal player ID: {e}")
         db.session.rollback()
-        current_app.logger.error(f"❌ Erro ao atualizar FCM token: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/onesignal/test-notification', methods=['POST'])
+@login_required
+def onesignal_test_notification():
+    """Send a test notification to the current user"""
+    try:
+        from onesignal_service import onesignal_service
+        
+        player_id = current_user.fcm_token
+        
+        if not player_id:
+            return jsonify({
+                'success': False,
+                'message': 'Você ainda não está inscrito em notificações. Por favor, permita notificações no navegador.'
+            }), 400
+        
+        # Send test notification
+        result = onesignal_service.send_notification(
+            player_id=player_id,
+            title='🔔 Teste de Notificação',
+            message=f'Olá, {current_user.nome_completo}! As notificações estão funcionando perfeitamente! 🎉',
+            data={'type': 'test', 'timestamp': datetime.utcnow().isoformat()},
+            url='/'
+        )
+        
+        if result.get('success'):
+            logger.info(f"✅ Test notification sent to user {current_user.id}")
+            return jsonify({
+                'success': True,
+                'message': 'Notificação de teste enviada! Verifique seu dispositivo.',
+                'recipients': result.get('recipients', 1)
+            })
+        else:
+            logger.warning(f"⚠️ Failed to send test notification: {result.get('error')}")
+            return jsonify({
+                'success': False,
+                'message': f'Falha ao enviar notificação: {result.get("error")}'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"❌ Error sending test notification: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao enviar notificação de teste: {str(e)}'
+        }), 500
+
+@app.route('/api/onesignal/status', methods=['GET'])
+@login_required
+def onesignal_status():
+    """Check OneSignal subscription status for current user"""
+    try:
+        return jsonify({
+            'success': True,
+            'subscribed': bool(current_user.fcm_token),
+            'player_id': current_user.fcm_token if current_user.fcm_token else None
+        })
+    except Exception as e:
+        logger.error(f"❌ Error checking OneSignal status: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# Legacy endpoint - redirects to OneSignal test
+@app.route('/api/test_push', methods=['POST'])
+@login_required
+def test_push_legacy():
+    """Legacy Firebase endpoint - redirects to OneSignal"""
+    return onesignal_test_notification()
+
+# Legacy endpoint - redirects to OneSignal subscribe
+@app.route('/api/update_fcm_token', methods=['POST'])
+@login_required
+def update_fcm_token_legacy():
+    """Legacy Firebase endpoint - redirects to OneSignal subscribe"""
+    return onesignal_subscribe()
 
 # Save location route for geolocation tracking
 @app.route('/save_location', methods=['POST'])
