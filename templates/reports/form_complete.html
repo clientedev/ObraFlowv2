@@ -334,7 +334,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('create_report') }}" enctype="multipart/form-data" id="reportForm" {% if existing_report %}data-report-id="{{ existing_report.id }}"{% endif %}>
+                    <form method="POST" action="#" enctype="multipart/form-data" id="reportForm" {% if edit_mode and report_data and report_data.relatorio %}data-report-id="{{ report_data.relatorio.id }}"{% endif %}>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         {% if existing_report %}
                         <input type="hidden" name="edit_report_id" value="{{ existing_report.id }}">
