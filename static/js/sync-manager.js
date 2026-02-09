@@ -38,9 +38,10 @@ const SyncManager = {
             indicator.className = 'alert alert-warning fixed-bottom m-3 shadow-lg';
             indicator.innerHTML = '<i class="fas fa-wifi-slash me-2"></i>Você está offline. Dados serão salvos localmente.';
         } else if (status === 'syncing') {
-            indicator.style.display = 'block';
-            indicator.className = 'alert alert-info fixed-bottom m-3 shadow-lg';
-            indicator.innerHTML = '<i class="fas fa-sync fa-spin me-2"></i>Sincronizando dados...';
+            // Removido para não exibir mensagem intrusiva
+            // indicator.style.display = 'block';
+            // indicator.className = 'alert alert-info fixed-bottom m-3 shadow-lg';
+            // indicator.innerHTML = '<i class="fas fa-sync fa-spin me-2"></i>Sincronizando dados...';
         } else if (status === 'online') {
             // Mostrar brevemente que está online e esconder
             // indicator.className = 'alert alert-success fixed-bottom m-3 shadow-lg';
