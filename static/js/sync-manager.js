@@ -43,11 +43,11 @@ const SyncManager = {
             indicator.innerHTML = '<i class="fas fa-sync fa-spin me-2"></i>Sincronizando dados...';
         } else if (status === 'online') {
             // Mostrar brevemente que está online e esconder
-            indicator.className = 'alert alert-success fixed-bottom m-3 shadow-lg';
-            indicator.innerHTML = '<i class="fas fa-check-circle me-2"></i>Conexão restabelecida.';
-            setTimeout(() => {
-                indicator.style.display = 'none';
-            }, 3000);
+            // indicator.className = 'alert alert-success fixed-bottom m-3 shadow-lg';
+            // indicator.innerHTML = '<i class="fas fa-check-circle me-2"></i>Conexão restabelecida.';
+            // setTimeout(() => {
+            //     indicator.style.display = 'none';
+            // }, 3000);
         }
     },
 
