@@ -1,7 +1,7 @@
 // Main JavaScript file for Construction Site Visit Tracking System
 
 // Initialize application when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializeComponents();
     setupFormValidation();
     setupDateTimeInputs();
@@ -25,9 +25,9 @@ function initializeComponents() {
     });
 
     // Auto-hide alerts after 5 seconds
-    setTimeout(function() {
+    setTimeout(function () {
         const alerts = document.querySelectorAll('.alert-dismissible');
-        alerts.forEach(function(alert) {
+        alerts.forEach(function (alert) {
             if (alert) {
                 const bsAlert = new bootstrap.Alert(alert);
                 bsAlert.close();
@@ -40,9 +40,9 @@ function initializeComponents() {
 function setupFormValidation() {
     // Custom validation for forms
     const forms = document.querySelectorAll('.needs-validation');
-    
-    Array.prototype.slice.call(forms).forEach(function(form) {
-        form.addEventListener('submit', function(event) {
+
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
             if (!form.checkValidity()) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -53,16 +53,16 @@ function setupFormValidation() {
 
     // Email validation
     const emailInputs = document.querySelectorAll('input[type="email"]');
-    emailInputs.forEach(function(input) {
-        input.addEventListener('blur', function() {
+    emailInputs.forEach(function (input) {
+        input.addEventListener('blur', function () {
             validateEmail(this);
         });
     });
 
     // Phone validation (Brazilian format)
     const phoneInputs = document.querySelectorAll('input[name="telefone"]');
-    phoneInputs.forEach(function(input) {
-        input.addEventListener('input', function() {
+    phoneInputs.forEach(function (input) {
+        input.addEventListener('input', function () {
             formatPhoneNumber(this);
         });
     });
@@ -73,8 +73,8 @@ function setupDateTimeInputs() {
     // Set minimum date to today for future dates
     const futureDateInputs = document.querySelectorAll('input[type="date"]:not(.allow-past)');
     const today = new Date().toISOString().split('T')[0];
-    
-    futureDateInputs.forEach(function(input) {
+
+    futureDateInputs.forEach(function (input) {
         if (!input.value) {
             input.min = today;
         }
@@ -92,7 +92,7 @@ function setupDateTimeInputs() {
 
     // Set default datetime for visit scheduling
     const datetimeInputs = document.querySelectorAll('input[type="datetime-local"]');
-    datetimeInputs.forEach(function(input) {
+    datetimeInputs.forEach(function (input) {
         // Não sobrescrever se já tem valor ou se está em formulário de visitas
         // (o formulário de visitas tem seu próprio controle)
         if (!input.value && !input.closest('form[action*="visit"]')) {
@@ -100,7 +100,7 @@ function setupDateTimeInputs() {
             now.setMinutes(0); // Round to the hour
             now.setSeconds(0);
             now.setMilliseconds(0);
-            
+
             const horarioLocal = formatarDataLocal(now);
             input.value = horarioLocal;
             input.min = horarioLocal;
@@ -111,9 +111,9 @@ function setupDateTimeInputs() {
 // Setup photo preview functionality
 function setupPhotoPreview() {
     const photoInputs = document.querySelectorAll('input[type="file"][accept*="image"]');
-    
-    photoInputs.forEach(function(input) {
-        input.addEventListener('change', function() {
+
+    photoInputs.forEach(function (input) {
+        input.addEventListener('change', function () {
             previewImage(this);
         });
     });
@@ -122,9 +122,9 @@ function setupPhotoPreview() {
 // Setup location services
 function setupLocationServices() {
     const getLocationBtns = document.querySelectorAll('#getLocationBtn');
-    
-    getLocationBtns.forEach(function(btn) {
-        btn.addEventListener('click', function() {
+
+    getLocationBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
             getCurrentLocation(this);
         });
     });
@@ -144,7 +144,7 @@ function setupNotifications() {
 function validateEmail(input) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const isValid = emailRegex.test(input.value);
-    
+
     if (input.value && !isValid) {
         input.classList.add('is-invalid');
         showFieldError(input, 'Por favor, insira um email válido.');
@@ -157,7 +157,7 @@ function validateEmail(input) {
 // Format phone number (Brazilian format)
 function formatPhoneNumber(input) {
     let value = input.value.replace(/\D/g, '');
-    
+
     if (value.length >= 11) {
         value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
     } else if (value.length >= 10) {
@@ -167,7 +167,7 @@ function formatPhoneNumber(input) {
     } else if (value.length >= 2) {
         value = value.replace(/(\d{2})(\d*)/, '($1) $2');
     }
-    
+
     input.value = value;
 }
 
@@ -187,16 +187,16 @@ function previewImage(input) {
 
     // Create preview
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         let preview = document.getElementById('imagePreview');
-        
+
         if (!preview) {
             preview = document.createElement('div');
             preview.id = 'imagePreview';
             preview.className = 'mt-3';
             input.parentNode.appendChild(preview);
         }
-        
+
         preview.innerHTML = `
             <div class="card" style="max-width: 300px;">
                 <img src="${e.target.result}" class="card-img-top" alt="Preview">
@@ -209,7 +209,7 @@ function previewImage(input) {
             </div>
         `;
     };
-    
+
     reader.readAsDataURL(file);
 }
 
@@ -241,7 +241,7 @@ async function getCurrentLocation(button) {
 
         if (latInput) latInput.value = lat;
         if (lngInput) lngInput.value = lng;
-        
+
         if (addressInput) {
             if (position.address) {
                 // Se temos endereço completo do reverse geocoding
@@ -269,13 +269,13 @@ async function getCurrentLocation(button) {
 
     } catch (error) {
         console.error('❌ Erro ao obter localização:', error);
-        
+
         // Restaurar botão
         button.innerHTML = '<i class="fas fa-map-marker-alt me-1"></i>Tentar Novamente';
         button.disabled = false;
         button.classList.remove('btn-outline-primary', 'btn-success');
         button.classList.add('btn-warning');
-        
+
         showAlert('❌ Não foi possível obter localização: ' + error.message, 'danger');
     }
 }
@@ -285,9 +285,9 @@ async function getCurrentLocation(button) {
 function showLocationInstructions() {
     const isAndroid = /Android/i.test(navigator.userAgent);
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
+
     let instructions = '';
-    
+
     if (isAndroid) {
         instructions = `
             <strong>📱 Para habilitar localização no Android:</strong><br>
@@ -310,7 +310,7 @@ function showLocationInstructions() {
             3. Recarregue a página
         `;
     }
-    
+
     return instructions;
 }
 
@@ -318,8 +318,8 @@ function showLocationInstructions() {
 function handleGeolocationError(error, buttonElement) {
     let errorMessage = '';
     let instructions = '';
-    
-    switch(error.code) {
+
+    switch (error.code) {
         case error.PERMISSION_DENIED:
             errorMessage = '🚫 Permissão de localização negada';
             instructions = showLocationInstructions();
@@ -337,7 +337,7 @@ function handleGeolocationError(error, buttonElement) {
             instructions = 'Verifique as configurações do seu dispositivo.';
             break;
     }
-    
+
     // Mostrar modal com instruções
     const modal = document.createElement('div');
     modal.className = 'modal fade show';
@@ -362,9 +362,9 @@ function handleGeolocationError(error, buttonElement) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
-    
+
     // Restaurar botão se fornecido
     if (buttonElement) {
         buttonElement.innerHTML = '<i class="fas fa-map-marker-alt"></i> Tentar Novamente';
@@ -387,18 +387,18 @@ function reverseGeocode(lat, lng, addressInput) {
             longitude: lng
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.endereco) {
-            addressInput.value = data.endereco;
-            console.log('Endereço obtido:', data.endereco);
-        } else {
-            console.log('Não foi possível obter endereço, mantendo coordenadas');
-        }
-    })
-    .catch(error => {
-        console.log('Erro no reverse geocoding:', error);
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.endereco) {
+                addressInput.value = data.endereco;
+                console.log('Endereço obtido:', data.endereco);
+            } else {
+                console.log('Não foi possível obter endereço, mantendo coordenadas');
+            }
+        })
+        .catch(error => {
+            console.log('Erro no reverse geocoding:', error);
+        });
 }
 
 // Show alert message
@@ -417,7 +417,7 @@ function showAlert(message, type = 'info') {
     }
 
     // Auto-remove after 5 seconds
-    setTimeout(function() {
+    setTimeout(function () {
         if (alertContainer.parentNode) {
             alertContainer.remove();
         }
@@ -427,13 +427,13 @@ function showAlert(message, type = 'info') {
 // Show field error
 function showFieldError(input, message) {
     let errorDiv = input.parentNode.querySelector('.invalid-feedback');
-    
+
     if (!errorDiv) {
         errorDiv = document.createElement('div');
         errorDiv.className = 'invalid-feedback';
         input.parentNode.appendChild(errorDiv);
     }
-    
+
     errorDiv.textContent = message;
 }
 
@@ -500,7 +500,7 @@ function hideLoading(element, originalContent) {
 // Copy to clipboard
 function copyToClipboard(text) {
     if (navigator.clipboard) {
-        navigator.clipboard.writeText(text).then(function() {
+        navigator.clipboard.writeText(text).then(function () {
             showAlert('Copiado para a área de transferência!', 'success');
         });
     } else {
@@ -523,31 +523,32 @@ function checkNetworkStatus() {
 }
 
 // Initialize network status check
-window.addEventListener('online', function() {
-    showAlert('Conexão restabelecida!', 'success');
+window.addEventListener('online', function () {
+    // Removido popup de "Conexão restabelecida" - era muito intrusivo
+    // showAlert('Conexão restabelecida!', 'success');
 });
 
-window.addEventListener('offline', function() {
+window.addEventListener('offline', function () {
     showAlert('Você está offline!', 'warning');
 });
 
 // Localizar Obras Próximas
 async function localizarObrasProximas() {
     console.log('🔍 Iniciando busca de obras próximas...');
-    
+
     // Verificar se geolocalização está disponível
     if (!navigator.geolocation) {
         showAlert('Seu dispositivo não suporta geolocalização.', 'warning');
         return;
     }
-    
+
     const btnLocalizar = document.getElementById('btnLocalizarObras');
     const originalContent = btnLocalizar ? showLoading(btnLocalizar) : null;
-    
+
     try {
         // Obter localização do usuário com configurações otimizadas
         console.log('🔍 Solicitando permissão de localização...');
-        
+
         const position = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
@@ -561,41 +562,41 @@ async function localizarObrasProximas() {
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         });
-        
+
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
-        
+
         console.log(`📍 Coordenadas capturadas: lat=${latitude}, lng=${longitude}`);
-        
+
         // Fazer requisição para API
         const response = await fetch('/api/projects/nearby', {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ latitude, longitude })
         });
-        
+
         if (!response.ok) {
             const errorMsg = await response.text();
             console.error('❌ Erro no nearby API:', errorMsg);
             throw new Error(`Erro ao buscar obras próximas: ${errorMsg}`);
         }
-        
+
         const data = await response.json();
         console.log("✅ Obras próximas recebidas:", data);
-        
+
         // Renderizar resultados - API retorna data.nearby
         renderizarObrasProximas(data.nearby || []);
-        
+
         // Esconder loading
         if (btnLocalizar && originalContent) {
             hideLoading(btnLocalizar, originalContent);
         }
-        
+
     } catch (error) {
         console.error('❌ Erro ao buscar obras próximas:', error);
-        
+
         // Tratamento específico de erros de geolocalização
         if (error.code === 1) {
             showAlert('Permissão de localização negada. Habilite para usar esta função.', 'warning');
@@ -608,7 +609,7 @@ async function localizarObrasProximas() {
         } else {
             showAlert('Erro de comunicação com o servidor.', 'danger');
         }
-        
+
         // Esconder loading em caso de erro
         if (btnLocalizar && originalContent) {
             hideLoading(btnLocalizar, originalContent);
@@ -619,27 +620,27 @@ async function localizarObrasProximas() {
 // Renderizar obras próximas
 function renderizarObrasProximas(obras) {
     console.log(`🏗️ Renderizando ${obras.length} obra(s) próxima(s)`);
-    
+
     const container = document.getElementById('obrasProximasContainer');
-    
+
     if (!container) {
         console.warn('⚠️ Container de obras próximas não encontrado');
-        
+
         // Mostrar em alerta se não houver container
         if (obras.length === 0) {
             showAlert('Nenhuma obra encontrada em um raio de 10km', 'info');
         } else {
-            const listaObras = obras.map(o => 
+            const listaObras = obras.map(o =>
                 `${o.nome} (${o.distancia}km)`
             ).join(', ');
             showAlert(`${obras.length} obra(s) próxima(s): ${listaObras}`, 'success');
         }
         return;
     }
-    
+
     // Limpar container
     container.innerHTML = '';
-    
+
     if (obras.length === 0) {
         container.innerHTML = `
             <div class="alert alert-info">
@@ -649,7 +650,7 @@ function renderizarObrasProximas(obras) {
         `;
         return;
     }
-    
+
     // Renderizar lista de obras
     container.innerHTML = `
         <div class="alert alert-success mb-3">
@@ -683,7 +684,7 @@ function renderizarObrasProximas(obras) {
 // Carregar funcionários e e-mails de um projeto
 async function carregarFuncionariosEmails(eventOrId) {
     let projetoId;
-    
+
     // Extrair projetoId do evento ou usar diretamente
     if (typeof eventOrId === 'object' && eventOrId && eventOrId.target) {
         projetoId = parseInt(eventOrId.target.value);
@@ -702,14 +703,14 @@ async function carregarFuncionariosEmails(eventOrId) {
             }
         }
     }
-    
+
     if (!projetoId || isNaN(projetoId)) {
         console.log('⚠️ Projeto não selecionado');
         return;
     }
-    
+
     console.log('🔄 Carregando funcionários/e-mails para projeto:', projetoId);
-    
+
     // Buscar elementos DOM com IDs corretos
     const funcionariosDiv = document.getElementById('funcionarios-projeto');
     const emailsDiv = document.getElementById('emails-projeto');
@@ -718,11 +719,11 @@ async function carregarFuncionariosEmails(eventOrId) {
         console.log('⚠️ Elementos DOM não encontrados');
         return;
     }
-    
+
     // Mostrar loading
     funcionariosDiv.innerHTML = '<div class="alert alert-info mb-0"><i class="fas fa-spinner fa-spin me-2"></i>Carregando funcionários...</div>';
     emailsDiv.innerHTML = '<div class="alert alert-info mb-0"><i class="fas fa-spinner fa-spin me-2"></i>Carregando e-mails...</div>';
-    
+
     try {
         const response = await fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
             method: 'GET',
@@ -732,17 +733,17 @@ async function carregarFuncionariosEmails(eventOrId) {
                 'Accept': 'application/json'
             }
         });
-        
+
         if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
             throw new Error('Sessão expirada - faça login novamente');
         }
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             // Renderizar funcionários como checkboxes
             let funcionariosHtml = '';
@@ -765,7 +766,7 @@ async function carregarFuncionariosEmails(eventOrId) {
                 funcionariosHtml = '<div class="alert alert-info mb-0"><i class="fas fa-info-circle me-2"></i>Nenhum funcionário cadastrado para este projeto</div>';
             }
             funcionariosDiv.innerHTML = funcionariosHtml;
-            
+
             // Renderizar e-mails como checkboxes
             let emailsHtml = '';
             if (data.emails && data.emails.length > 0) {
@@ -787,12 +788,12 @@ async function carregarFuncionariosEmails(eventOrId) {
                 emailsHtml = '<div class="alert alert-info mb-0"><i class="fas fa-info-circle me-2"></i>Nenhum e-mail cadastrado para este projeto</div>';
             }
             emailsDiv.innerHTML = emailsHtml;
-            
+
             console.log(`✅ Carregados ${data.funcionarios.length} funcionários e ${data.emails.length} e-mails`);
         } else {
             throw new Error(data.error || 'Erro ao carregar dados');
         }
-        
+
     } catch (error) {
         console.error('❌ Erro ao carregar funcionários/e-mails:', error);
         funcionariosDiv.innerHTML = `<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Erro: ${error.message}</div>`;
