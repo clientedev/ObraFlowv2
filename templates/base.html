@@ -97,6 +97,11 @@ img[src*="no-image"] {
     <!-- Sistema de Notificações Internas -->
     <script src="{{ url_for('static', filename='js/notifications-manager.js') }}"></script>
 
+    <!-- OFFLINE SUPPORT SYSTEM -->
+    <script src="{{ url_for('static', filename='js/offline-db.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/sync-manager.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/offline-forms.js') }}" defer></script>
+
 
 
     <!-- Mobile Touch Fix - Elimina vibração e melhora precisão -->
@@ -499,6 +504,9 @@ img[src*="no-image"] {
     <main class="container mt-4">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- Offline Indicator -->
+    <div id="offlineIndicator" style="display: none; z-index: 9999;"></div>
 
 
     <!-- OneSignal Test Notification Script -->

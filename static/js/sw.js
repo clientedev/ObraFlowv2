@@ -1,49 +1,61 @@
 /**
- * SERVICE WORKER COM SUPORTE A PUSH NOTIFICATIONS
- * Sistema mantém acesso direto ao PostgreSQL sem cache agressivo
+ * SERVICE WORKER COM SUPORTE A OFFLINE E PUSH NOTIFICATIONS
+ * Estratégia: NetworkFirst para HTML, StaleWhileRevalidate para estáticos
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2-offline';
 const CACHE_NAME = `elp-pwa-${CACHE_VERSION}`;
 
-// Recursos mínimos para cache (apenas para offline básico)
-const MINIMAL_CACHE = [
+// Recursos para pré-cache (Offline Básico)
+const PRECACHE_URLS = [
+    '/',
+    '/offline',
+    '/static/css/style.css',
+    '/static/css/mobile.css',
+    '/static/js/main.js',
+    '/static/js/offline-db.js',
+    '/static/js/sync-manager.js',
+    '/static/js/offline-forms.js',
     '/static/icons/icon-192x192.png',
-    '/static/icons/icon-512x512.png'
+    '/static/icons/icon-512x512.png',
+    '/static/logo_elp_navbar.png',
+    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js'
 ];
 
-console.log('🔧 SW: Service Worker iniciado - Modo Push Notifications');
+console.log('🔧 SW: Service Worker iniciado - Offline & Push Enabled');
 
-// INSTALL - Configuração inicial
+// INSTALL
 self.addEventListener('install', (event) => {
-    console.log('📦 SW: Instalando service worker...');
-    
+    console.log('📦 SW: Instalando e fazendo cache de recursos...');
+
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('📦 SW: Cache criado');
-                return cache.addAll(MINIMAL_CACHE);
+                // Tenta adicionar um por um para não falhar tudo se um 404
+                return Promise.allSettled(
+                    PRECACHE_URLS.map(url => cache.add(url).catch(e => console.warn(`⚠️ Falha ao cachear ${url}:`, e)))
+                );
             })
             .then(() => {
-                console.log('✅ SW: Instalação concluída');
+                console.log('✅ SW: Pré-cache concluído');
                 return self.skipWaiting();
-            })
-            .catch(error => {
-                console.error('❌ SW: Erro na instalação:', error);
             })
     );
 });
 
-// ACTIVATE - Limpeza e ativação
+// ACTIVATE
 self.addEventListener('activate', (event) => {
-    console.log('🚀 SW: Ativando service worker...');
-    
+    console.log('🚀 SW: Ativando e limpando caches antigos...');
+
     event.waitUntil(
         caches.keys()
             .then(cacheNames => {
                 return Promise.all(
                     cacheNames.map(cacheName => {
-                        if (cacheName !== CACHE_NAME) {
+                        // Limpa caches antigos do app, mantém outros se necessário
+                        if (cacheName.startsWith('elp-pwa-') && cacheName !== CACHE_NAME) {
                             console.log(`🧹 SW: Removendo cache antigo: ${cacheName}`);
                             return caches.delete(cacheName);
                         }
@@ -51,32 +63,86 @@ self.addEventListener('activate', (event) => {
                 );
             })
             .then(() => {
-                console.log('✅ SW: Ativado e pronto');
+                console.log('✅ SW: Pronto e ativo');
                 return self.clients.claim();
             })
     );
 });
 
-// FETCH - NÃO fazer cache agressivo, deixar passar direto ao servidor
+// FETCH
 self.addEventListener('fetch', (event) => {
-    // Estratégia: Network First (sempre tentar servidor primeiro)
-    // Isso garante dados sempre atualizados do PostgreSQL
-    event.respondWith(
-        fetch(event.request)
-            .catch(error => {
-                // Se falhar, tentar cache apenas para recursos estáticos
-                if (event.request.url.includes('/static/icons/')) {
-                    return caches.match(event.request);
-                }
-                throw error;
+    const request = event.request;
+    const url = new URL(request.url);
+
+    // Ignorar requisições não-GET ou extensões de navegador
+    if (request.method !== 'GET' || url.protocol.startsWith('chrome-extension')) {
+        return;
+    }
+
+    // 1. Navegação (HTML) -> NetworkFirst
+    if (request.mode === 'navigate') {
+        event.respondWith(
+            fetch(request)
+                .then(response => {
+                    // Caching dinâmica da página visitada
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(request, responseClone));
+                    return response;
+                })
+                .catch(async () => {
+                    console.log('📡 SW: Falha na rede (HTML), tentando cache...');
+                    const cachedResponse = await caches.match(request);
+                    if (cachedResponse) return cachedResponse;
+
+                    // Fallback para página offline se não tiver cache
+                    const offlinePage = await caches.match('/offline');
+                    if (offlinePage) return offlinePage;
+
+                    return new Response('Você está offline e esta página não está em cache.', {
+                        status: 503,
+                        statusText: 'Service Unavailable',
+                        headers: new Headers({ 'Content-Type': 'text/plain' })
+                    });
+                })
+        );
+        return;
+    }
+
+    // 2. Estáticos (JS, CSS, Imagens) -> StaleWhileRevalidate
+    if (
+        url.pathname.startsWith('/static/') ||
+        url.href.includes('cdn.jsdelivr.net') ||
+        url.href.includes('cdnjs.cloudflare.com') ||
+        request.destination === 'script' ||
+        request.destination === 'style' ||
+        request.destination === 'image'
+    ) {
+        event.respondWith(
+            caches.match(request).then(cachedResponse => {
+                const networkFetch = fetch(request).then(response => {
+                    // Atualiza cache em background
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(request, responseClone));
+                    return response;
+                }).catch(() => {
+                    // Se falhar rede, ok, já retornamos cache ou undefined
+                });
+
+                // Retorna cache se existir, senão espera rede
+                return cachedResponse || networkFetch;
             })
-    );
+        );
+        return;
+    }
+
+    // 3. API/Outros -> NetworkOnly (Default)
+    // Deixa o browser lidar normal
 });
 
-// PUSH - Receber notificações push
+// PUSH - Receber notificações push (Mantido original)
 self.addEventListener('push', (event) => {
     console.log('📬 SW: Push notification recebida');
-    
+
     let notificationData = {
         title: 'ELP Relatórios',
         body: 'Nova notificação',
@@ -91,8 +157,7 @@ self.addEventListener('push', (event) => {
     if (event.data) {
         try {
             const data = event.data.json();
-            console.log('📬 SW: Dados da notificação:', data);
-            
+
             notificationData = {
                 title: data.title || notificationData.title,
                 body: data.body || data.message || notificationData.body,
@@ -120,29 +185,20 @@ self.addEventListener('push', (event) => {
             data: notificationData.data,
             tag: notificationData.tag,
             requireInteraction: notificationData.requireInteraction
-        }).then(() => {
-            console.log('✅ SW: Notificação exibida com sucesso');
-        }).catch(error => {
-            console.error('❌ SW: Erro ao exibir notificação:', error);
         })
     );
 });
 
-// NOTIFICATIONCLICK - Ação ao clicar na notificação
+// NOTIFICATIONCLICK (Mantido original)
 self.addEventListener('notificationclick', (event) => {
-    console.log('👆 SW: Notificação clicada');
-    
     event.notification.close();
-    
     const urlToOpen = event.notification.data?.url || '/';
-    
+
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then(windowClients => {
-                // Verificar se já existe uma janela aberta
                 for (let client of windowClients) {
                     if (client.url.includes(self.location.origin) && 'focus' in client) {
-                        console.log('👆 SW: Focando janela existente');
                         return client.focus().then(client => {
                             if ('navigate' in client) {
                                 return client.navigate(urlToOpen);
@@ -150,35 +206,16 @@ self.addEventListener('notificationclick', (event) => {
                         });
                     }
                 }
-                
-                // Se não, abrir nova janela
-                console.log('👆 SW: Abrindo nova janela');
                 if (clients.openWindow) {
                     return clients.openWindow(urlToOpen);
                 }
             })
-            .catch(error => {
-                console.error('❌ SW: Erro ao processar clique:', error);
-            })
     );
 });
 
-// NOTIFICATIONCLOSE - Notificação fechada sem clique
-self.addEventListener('notificationclose', (event) => {
-    console.log('🔕 SW: Notificação fechada');
-});
-
-// MESSAGE - Comunicação com a aplicação
+// MESSAGE (Mantido original)
 self.addEventListener('message', (event) => {
-    console.log('💬 SW: Mensagem recebida:', event.data);
-    
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
     }
-    
-    if (event.data && event.data.type === 'GET_VERSION') {
-        event.ports[0].postMessage({ version: CACHE_VERSION });
-    }
 });
-
-console.log('✅ SW: Service Worker carregado - Push Notifications habilitado');
