@@ -9068,14 +9068,13 @@ def admin_emails():
         flash('Acesso negado. Apenas usuários master podem acessar esta área.', 'error')
         return redirect(url_for('index'))
 
-    # Buscar todos os projetos com seus e-mails
-    projetos = Projeto.query.join(EmailCliente).filter(EmailCliente.ativo == True).distinct().all()
+    # Buscar todos os projetos com seus e-mails (usando DISTINCT para evitar duplicatas)
+    projetos_com_emails = db.session.query(EmailCliente.projeto_id).filter(EmailCliente.ativo == True).distinct().subquery()
+    projetos = Projeto.query.filter(Projeto.id.in_(projetos_com_emails)).all()
 
     # Contar estatísticas
     total_emails = EmailCliente.query.filter_by(ativo=True).count()
-    projetos_sem_email = Projeto.query.filter(~Projeto.id.in_(
-        db.session.query(EmailCliente.projeto_id).filter_by(ativo=True).distinct()
-    )).count()
+    projetos_sem_email = Projeto.query.filter(~Projeto.id.in_(projetos_com_emails)).count()
 
     return render_template('emails/admin.html', 
                          projetos=projetos, 
