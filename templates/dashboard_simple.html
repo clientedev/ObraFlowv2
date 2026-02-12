@@ -19,18 +19,20 @@
 {% block content %}
 <div class="dashboard-container">
     <!-- Sistema de Notificações -->
-    {% include 'dashboard_notifications.html' %}
+    <div style="display: none;">
+        {% include 'dashboard_notifications.html' %}
+    </div>
     
     <!-- Título da seção de cards -->
     <h3 class="dashboard-section-title">
-        <i class="fas fa-chart-line me-2"></i>Resumo do Sistema
+        <i class="fas fa-chart-line me-2"></i>Dashboard
     </h3>
     
     <!-- Statistics Cards com Grid Layout -->
     <div class="dashboard-grid">
         <!-- Card 1: Obras Ativas -->
         <div class="col-12">
-            <a href="{{ url_for('projects_list') }}" class="text-decoration-none" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver todas as obras" aria-label="Acessar lista de obras">
+            <a href="{{ url_for('projects_list', status='ativo', hide_filters='1') }}" class="text-decoration-none" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver obras ativas" aria-label="Acessar lista de obras ativas">
                 <div class="dashboard-card border-left-primary" style="border-left: 4px solid #4e73df;">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
@@ -93,7 +95,7 @@
     </div>
 
     <!-- Seção de Relatórios Recentes -->
-    <section class="recent-reports">
+    <section class="recent-reports" style="display: none;">
         <h4 class="recent-reports-title">
             <i class="fas fa-file-alt me-2"></i>Relatórios Recentes
         </h4>
