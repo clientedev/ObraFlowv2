@@ -138,7 +138,7 @@
                                 set status_color = 'secondary' 
                             %}
                             {% if report.status == 'preenchimento' %}
-                                {% set status_color = 'warning' %}
+                                {% set status_color = 'primary' %}
                                 {% set status_text = 'Em preenchimento' %}
                                 {% set target_url = url_for('report_edit', report_id=report.id) %}
                             {% elif report.status == 'Aprovado' %}
@@ -150,12 +150,12 @@
                                 {% set status_text = 'Rejeitado' %}
                                 {% set target_url = url_for('report_edit', report_id=report.id) %}
                             {% elif report.status == 'Em edição' %}
-                                {% set status_color = 'info' %}
+                                {% set status_color = 'danger' %}
                                 {% set status_text = 'Em edição' %}
                                 {% set target_url = url_for('report_edit', report_id=report.id) %}
                             {% elif report.status == 'Aguardando Aprovação' or report.status == 'Aguardando Aprovacao' %}
                                 {% set status_color = 'warning' %}
-                                {% set status_text = 'Aguardando' %}
+                                {% set status_text = 'Aguardando Aprovação' %}
                                 {% set target_url = url_for('review_report', report_id=report.id) %}
                             {% else %}
                                 {% set status_text = report.status or 'Indefinido' %}
