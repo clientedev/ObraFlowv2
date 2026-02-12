@@ -5,6 +5,31 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
+        <!-- Indicador Visual de Status -->
+        <div class="mb-3">
+            {% if project.status == 'Ativo' %}
+                <div class="alert mb-0 d-inline-flex align-items-center" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);">
+                    <i class="fas fa-check-circle fa-lg me-2"></i>
+                    <strong>Obra Ativa</strong>
+                </div>
+            {% elif project.status == 'Não iniciado' %}
+                <div class="alert mb-0 d-inline-flex align-items-center" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);">
+                    <i class="fas fa-clock fa-lg me-2"></i>
+                    <strong>Obra Não Iniciada</strong>
+                </div>
+            {% elif project.status == 'Pausado' %}
+                <div class="alert mb-0 d-inline-flex align-items-center" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); color: #000; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);">
+                    <i class="fas fa-pause-circle fa-lg me-2"></i>
+                    <strong>Obra Pausada</strong>
+                </div>
+            {% elif project.status == 'Concluído' %}
+                <div class="alert mb-0 d-inline-flex align-items-center" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);">
+                    <i class="fas fa-flag-checkered fa-lg me-2"></i>
+                    <strong>Obra Concluída</strong>
+                </div>
+            {% endif %}
+        </div>
+        
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div class="d-flex align-items-center">
                 <h1 class="mb-0">
@@ -54,11 +79,11 @@
                 <a href="{{ url_for('project_edit', project_id=project.id) }}" class="btn btn-primary me-2">
                     <i class="fas fa-edit me-2"></i>Editar Obra
                 </a>
-                <div class="dropdown d-inline-block me-2">
+                <div class="dropdown d-inline-block me-2" style="position: relative; z-index: 1050;">
                     <button class="btn btn-warning dropdown-toggle" type="button" id="statusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-exchange-alt me-2"></i>Alterar Status
                     </button>
-                    <ul class="dropdown-menu" aria-labelledby="statusDropdown">
+                    <ul class="dropdown-menu" aria-labelledby="statusDropdown" style="z-index: 1051;">
                         <li>
                             <form action="{{ url_for('update_project_status', project_id=project.id) }}" method="POST" class="px-2">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -104,33 +129,14 @@
             </div>
         </div>
 
-        <!-- Botão Destaque para Criação de Relatório - Mobile-First -->
+        <!-- Botão Simples para Criação de Relatório -->
         {% if project.status == 'Ativo' %}
-        <div class="row mb-4">
+        <div class="row mb-3">
             <div class="col-12">
-                <div class="card bg-primary text-white shadow-lg mobile-cta-card">
-                    <div class="card-body py-3">
-                        <div class="row align-items-center">
-                            <div class="col-md-8 col-12">
-                                <div class="d-flex align-items-center mb-2 mb-md-0">
-                                    <i class="fas fa-file-alt fa-2x me-3"></i>
-                                    <div>
-                                        <h5 class="mb-1 fw-bold">Criar Relatório de Obra</h5>
-                                        <small class="opacity-75">Documente as atividades e progresso deste projeto</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4 col-12">
-                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                    <a href="{{ url_for('create_report') }}?projeto_id={{ project.id }}" 
-                                       class="btn btn-light btn-lg fw-bold mobile-touch-target">
-                                        <i class="fas fa-plus me-2"></i>Criar Relatório
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <a href="{{ url_for('create_report') }}?projeto_id={{ project.id }}" 
+                   class="btn btn-primary btn-lg w-100 w-md-auto">
+                    <i class="fas fa-plus me-2"></i>Criar Relatório de Obra
+                </a>
             </div>
         </div>
         {% endif %}
