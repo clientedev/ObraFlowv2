@@ -47,48 +47,44 @@
 {% if request.args.get('hide_filters') != '1' %}
 <div class="row">
     <div class="col-12">
-        <ul class="nav nav-tabs nav-fill mb-3" role="tablist">
-            <li class="nav-item" role="presentation">
-                <a class="nav-link py-3 px-4 fw-bold {% if status_filter == 'ativo' %}active{% endif %}" 
+        <div class="row g-2 mb-3">
+            <div class="col-6 col-lg-3">
+                <a class="d-block text-center nav-link py-3 px-2 fw-bold {% if status_filter == 'ativo' %}active{% endif %}" 
                    href="{{ url_for('projects_list', status='ativo', q=request.args.get('q', '')) }}"
                    role="tab"
-                   style="{% if status_filter == 'ativo' %}background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important; color: white !important; border: none !important; box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);{% else %}background-color: #e8f5e9; color: #28a745; border: 2px solid #28a745 !important; font-weight: 600;{% endif %} border-radius: 8px; margin: 0 4px; transition: all 0.3s ease;">
-                    <i class="fas fa-check-circle me-1"></i>
-                    <span class="d-none d-sm-inline">Ativas</span>
-                    <span class="d-sm-none">Ativas</span>
+                   style="{% if status_filter == 'ativo' %}background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important; color: white !important; border: none !important; box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);{% else %}background-color: #e8f5e9; color: #28a745; border: 2px solid #28a745 !important; font-weight: 600;{% endif %} border-radius: 8px; transition: all 0.3s ease;">
+                    <i class="fas fa-check-circle d-block mb-1"></i>
+                    <span style="font-size: 0.85rem;">Ativas</span>
                 </a>
-            </li>
-            <li class="nav-item" role="presentation">
-                <a class="nav-link py-3 px-4 fw-bold {% if status_filter == 'nao_iniciado' %}active{% endif %}" 
+            </div>
+            <div class="col-6 col-lg-3">
+                <a class="d-block text-center nav-link py-3 px-2 fw-bold {% if status_filter == 'nao_iniciado' %}active{% endif %}" 
                    href="{{ url_for('projects_list', status='nao_iniciado', q=request.args.get('q', '')) }}"
                    role="tab"
-                   style="{% if status_filter == 'nao_iniciado' %}background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important; color: white !important; border: none !important; box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);{% else %}background-color: #f8f9fa; color: #6c757d; border: 2px solid #6c757d !important; font-weight: 600;{% endif %} border-radius: 8px; margin: 0 4px; transition: all 0.3s ease;">
-                    <i class="fas fa-clock me-1"></i>
-                    <span class="d-none d-sm-inline">Não iniciadas</span>
-                    <span class="d-sm-none">N. Inic.</span>
+                   style="{% if status_filter == 'nao_iniciado' %}background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important; color: white !important; border: none !important; box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);{% else %}background-color: #f8f9fa; color: #6c757d; border: 2px solid #6c757d !important; font-weight: 600;{% endif %} border-radius: 8px; transition: all 0.3s ease;">
+                    <i class="fas fa-clock d-block mb-1"></i>
+                    <span style="font-size: 0.85rem;">Não iniciadas</span>
                 </a>
-            </li>
-            <li class="nav-item" role="presentation">
-                <a class="nav-link py-3 px-4 fw-bold {% if status_filter == 'pausado' %}active{% endif %}" 
+            </div>
+            <div class="col-6 col-lg-3">
+                <a class="d-block text-center nav-link py-3 px-2 fw-bold {% if status_filter == 'pausado' %}active{% endif %}" 
                    href="{{ url_for('projects_list', status='pausado', q=request.args.get('q', '')) }}"
                    role="tab"
-                   style="{% if status_filter == 'pausado' %}background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important; color: #000 !important; border: none !important; box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);{% else %}background-color: #fff3cd; color: #856404; border: 2px solid #ffc107 !important; font-weight: 600;{% endif %} border-radius: 8px; margin: 0 4px; transition: all 0.3s ease;">
-                    <i class="fas fa-pause-circle me-1"></i>
-                    <span class="d-none d-sm-inline">Pausadas</span>
-                    <span class="d-sm-none">Pausadas</span>
+                   style="{% if status_filter == 'pausado' %}background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important; color: #000 !important; border: none !important; box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);{% else %}background-color: #fff3cd; color: #856404; border: 2px solid #ffc107 !important; font-weight: 600;{% endif %} border-radius: 8px; transition: all 0.3s ease;">
+                    <i class="fas fa-pause-circle d-block mb-1"></i>
+                    <span style="font-size: 0.85rem;">Pausadas</span>
                 </a>
-            </li>
-            <li class="nav-item" role="presentation">
-                <a class="nav-link py-3 px-4 fw-bold {% if status_filter == 'concluido' %}active{% endif %}" 
+            </div>
+            <div class="col-6 col-lg-3">
+                <a class="d-block text-center nav-link py-3 px-2 fw-bold {% if status_filter == 'concluido' %}active{% endif %}" 
                    href="{{ url_for('projects_list', status='concluido', q=request.args.get('q', '')) }}"
                    role="tab"
-                   style="{% if status_filter == 'concluido' %}background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important; color: white !important; border: none !important; box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);{% else %}background-color: #cfe2ff; color: #004085; border: 2px solid #007bff !important; font-weight: 600;{% endif %} border-radius: 8px; margin: 0 4px; transition: all 0.3s ease;">
-                    <i class="fas fa-flag-checkered me-1"></i>
-                    <span class="d-none d-sm-inline">Concluídas</span>
-                    <span class="d-sm-none">Concl.</span>
+                   style="{% if status_filter == 'concluido' %}background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important; color: white !important; border: none !important; box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);{% else %}background-color: #cfe2ff; color: #004085; border: 2px solid #007bff !important; font-weight: 600;{% endif %} border-radius: 8px; transition: all 0.3s ease;">
+                    <i class="fas fa-flag-checkered d-block mb-1"></i>
+                    <span style="font-size: 0.85rem;">Concluídas</span>
                 </a>
-            </li>
-        </ul>
+            </div>
+        </div>
     </div>
 </div>
 {% endif %}
