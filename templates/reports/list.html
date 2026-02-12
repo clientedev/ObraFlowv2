@@ -15,7 +15,7 @@
                             {% if projeto_filter %}
                                  {% for p in projetos_list %}
                                      {% if p.id|string == projeto_filter %}
-                                         Relatórios da {{ p.nome }}
+                                         Relatórios da Obra: {{ p.nome }}
                                          {% set ns.found = true %}
                                      {% endif %}
                                  {% endfor %}
