@@ -4750,6 +4750,7 @@ def finalize_report(report_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/reports/<int:id>/delete', methods=['GET', 'POST', 'DELETE'])
+@app.route('/reports/delete/<int:id>', methods=['GET', 'POST', 'DELETE']) # Rota alternativa para evitar conflitos
 @login_required
 def delete_report(id):
     """

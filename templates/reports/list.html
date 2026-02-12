@@ -213,7 +213,7 @@
                                     <!-- Botão de Excluir (Absoluto) -->
                                     {% if current_user.is_master %}
                                     <div class="position-absolute bottom-0 end-0 p-3">
-                                        <form action="{{ url_for('delete_report', id=report.id) }}" method="POST" 
+                                        <form action="/reports/delete/{{ report.id }}" method="POST" 
                                               onsubmit="return confirm('Tem certeza que deseja excluir este relatório? Esta ação não pode ser desfeita.');"
                                               style="display: inline;">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
