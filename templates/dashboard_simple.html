@@ -53,7 +53,7 @@
 
         <!-- Card 2: Relatórios Pendentes -->
         <div class="col-12">
-            <a href="{{ url_for('reports', status='pendentes') }}" class="text-decoration-none" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver relatórios pendentes" aria-label="Acessar lista de relatórios pendentes">
+            <a href="{{ url_for('reports', status='pendentes', hide_filters='1') }}" class="text-decoration-none" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver relatórios pendentes" aria-label="Acessar lista de relatórios pendentes">
                 <div class="dashboard-card border-left-info" style="border-left: 4px solid #36b9cc;">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
