@@ -196,6 +196,9 @@ function optimizeFormsForMobile() {
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
         form.addEventListener('submit', function(e) {
+            // Check if submission was prevented (e.g. by confirm dialog cancellation)
+            if (e.defaultPrevented) return;
+
             const submitButton = form.querySelector('button[type="submit"], input[type="submit"]');
             if (submitButton && !submitButton.disabled) {
                 submitButton.disabled = true;
