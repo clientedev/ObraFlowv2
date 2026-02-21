@@ -218,7 +218,15 @@
                                     </div>
                                     <div class="col-md-7 col-sm-6">
                                         <span class="item-text" id="text-{{ item.id }}">{{ item.texto }}</span>
-                                        <input type="text" class="form-control edit-field d-none" id="edit-{{ item.id }}" value="{{ item.texto }}">
+                                        <div class="input-group d-none" id="edit-group-{{ item.id }}">
+                                            <input type="text" class="form-control edit-field" id="edit-{{ item.id }}" value="{{ item.texto }}">
+                                            <button class="btn btn-success" type="button" onclick="editarItem({{ item.id }})" title="Salvar edição">
+                                                <i class="fas fa-check"></i> OK
+                                            </button>
+                                            <button class="btn btn-outline-secondary" type="button" onclick="cancelarEdicao({{ item.id }})" title="Cancelar">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="col-md-2 col-sm-3 text-center">
                                         <small class="text-muted">Ordem: {{ item.ordem }}</small>
@@ -405,18 +413,19 @@ function editarItem(itemId) {
     // console.log('Editando item:', itemId);
     
     const textSpan = document.getElementById('text-' + itemId);
+    const editGroup = document.getElementById('edit-group-' + itemId);
     const editInput = document.getElementById('edit-' + itemId);
     
-    if (!textSpan || !editInput) {
+    if (!textSpan || !editGroup || !editInput) {
         console.error('Elementos não encontrados para item:', itemId);
         showToast('Erro: elementos não encontrados', 'error');
         return;
     }
     
-    if (editInput.classList.contains('d-none')) {
+    if (editGroup.classList.contains('d-none')) {
         // Entrar em modo de edição
         textSpan.classList.add('d-none');
-        editInput.classList.remove('d-none');
+        editGroup.classList.remove('d-none');
         editInput.focus();
         editInput.select();
         // console.log('Modo de edição ativado para item:', itemId);
@@ -448,7 +457,7 @@ function editarItem(itemId) {
             if (data.success) {
                 textSpan.textContent = novoTexto;
                 textSpan.classList.remove('d-none');
-                editInput.classList.add('d-none');
+                editGroup.classList.add('d-none');
                 console.log('Item editado com sucesso');
                 showToast('Item editado com sucesso!', 'success');
             } else {
@@ -564,6 +573,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+function cancelarEdicao(itemId) {
+    const textSpan = document.getElementById('text-' + itemId);
+    const editGroup = document.getElementById('edit-group-' + itemId);
+    const editInput = document.getElementById('edit-' + itemId);
+    
+    if (editGroup && textSpan && editInput) {
+        editGroup.classList.add('d-none');
+        textSpan.classList.remove('d-none');
+        editInput.value = textSpan.textContent;
+    }
+}
+
 // Teclas de atalho
 document.addEventListener('keydown', function(e) {
     if (e.target.classList.contains('edit-field')) {
@@ -572,9 +593,7 @@ document.addEventListener('keydown', function(e) {
             editarItem(itemId);
         } else if (e.key === 'Escape') {
             const itemId = e.target.id.replace('edit-', '');
-            const textSpan = document.getElementById('text-' + itemId);
-            e.target.classList.add('d-none');
-            textSpan.classList.remove('d-none');
+            cancelarEdicao(itemId);
         }
     }
 });
