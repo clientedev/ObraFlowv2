@@ -343,24 +343,12 @@
                         <input type="hidden" id="projeto_id" name="projeto_id" value="{{ selected_project.id }}">
                         {% endif %}
 
-                        <!-- Data do Relatório -->
-                        <div class="mb-3">
-                            <label class="form-label" for="data_relatorio">
-                                Data do Relatório *
-                            </label>
-                            <input type="date" name="data_relatorio" id="data_relatorio" class="form-control" value="{{ today_br }}" required>
-                        </div>
-
-                        <!-- Informações Básicas - Sempre mostrar, apenas pré-selecionar se vier de projeto específico -->
+                        <!-- Informações Básicas (Obra e Data lado a lado) -->
                         <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label" for="titulo">Título do Relatório *</label>
-                                    <input type="text" name="titulo" id="titulo" class="form-control" 
-                                           value="{% if existing_report %}{{ existing_report.titulo }}{% else %}Relatório de visita{% endif %}" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
+                            <!-- Input oculto para o título fixo -->
+                            <input type="hidden" name="titulo" id="titulo" value="{% if existing_report %}{{ existing_report.titulo }}{% else %}Relatório de visita{% endif %}">
+                            
+                            <div class="col-md-6 mb-3 mb-md-0">
                                 <div class="form-group">
                                     <label class="form-label" for="projeto_id">Obra *</label>
                                     <select name="projeto_id" id="projeto_id" class="form-control" required onchange="carregarFuncionariosEmails(); carregarCategoriasProjeto(this.value); atualizarNumeroRelatorio(this.value); carregarChecklistProjeto(this.value); carregarLembretesAtivos(this.value);">
@@ -371,6 +359,12 @@
                                         </option>
                                         {% endfor %}
                                     </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label" for="data_relatorio">Data do Relatório *</label>
+                                    <input type="date" name="data_relatorio" id="data_relatorio" class="form-control" value="{{ today_br }}" required>
                                 </div>
                             </div>
                         </div>
@@ -419,17 +413,17 @@
                         
 
 
-                        <!-- Informações Técnicas (Collapsible - Aberto por padrão) -->
+                        <!-- Informações Técnicas (Collapsible - Fechado por padrão) -->
                         <div class="card mb-4 border-info">
                             <div class="card-header bg-soft-info" id="headingTechnicalInfo">
                                 <h5 class="mb-0">
-                                    <button class="btn btn-link w-100 text-start text-decoration-none text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTechnicalInfo" aria-expanded="true" aria-controls="collapseTechnicalInfo">
+                                    <button class="btn btn-link w-100 text-start text-decoration-none text-dark collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTechnicalInfo" aria-expanded="false" aria-controls="collapseTechnicalInfo">
                                         <i class="fas fa-cogs me-2 text-info"></i> Informações Técnicas
-                                        <i class="fas fa-chevron-down float-end"></i>
+                                        <i class="fas fa-chevron-down float-end" id="techInfoChevron" style="display:inline-block;transition:transform 0.35s ease-in-out;transform:rotate(0deg);"></i>
                                     </button>
                                 </h5>
                             </div>
-                            <div id="collapseTechnicalInfo" class="collapse show" aria-labelledby="headingTechnicalInfo">
+                            <div id="collapseTechnicalInfo" class="collapse" aria-labelledby="headingTechnicalInfo">
                                 <div class="card-body">
                                     <div id="technical-info-status" class="text-end mb-2 text-muted small">
                                         <i class="fas fa-check-circle"></i> Sincronizado com o cadastro da obra
@@ -4366,6 +4360,23 @@ function mostrarMensagemSucesso(mensagem) {
   }, 3000);
 }
 
+</script>
+
+<!-- Script para a animação do Chevron em Informações Técnicas -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var techCollapseEl = document.getElementById('collapseTechnicalInfo');
+    var techChevron = document.getElementById('techInfoChevron');
+    
+    if (techCollapseEl && techChevron) {
+        techCollapseEl.addEventListener('show.bs.collapse', function() {
+            techChevron.style.transform = 'rotate(180deg)';
+        });
+        techCollapseEl.addEventListener('hide.bs.collapse', function() {
+            techChevron.style.transform = 'rotate(0deg)';
+        });
+    }
+});
 </script>
 
 <!-- Auto Save Script -->
