@@ -42,33 +42,35 @@
 
 /* Animação do Chevron em Informações Técnicas */
 .tech-info-chevron {
+    display: inline-block;  /* obrigatório para transform funcionar */
     transition: transform 0.35s ease-in-out;
 }
 .tech-info-chevron.open {
     transform: rotate(180deg);
 }
 
-/* Botões Subir/Descer do Checklist - tamanho touch-friendly */
+/* Botões Subir/Descer do Checklist - touch-friendly */
 .btn-order-item {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 8px;
-    font-size: 1rem;
-    border: 1px solid #dee2e6;
-    background: #f8f9fa;
-    color: #495057;
-    cursor: pointer;
-    transition: background 0.15s;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 38px !important;
+    border-radius: 6px !important;
+    font-size: 0.9rem !important;
+    border: 1px solid #ced4da !important;
+    background-color: #f8f9fa !important;
+    color: #495057 !important;
+    cursor: pointer !important;
+    transition: background-color 0.15s !important;
+    padding: 0 !important;
 }
-.btn-order-item:hover:not(.disabled) {
-    background: #e2e6ea;
+.btn-order-item:hover:not([disabled]) {
+    background-color: #e2e6ea !important;
 }
-.btn-order-item.disabled {
-    opacity: 0.35;
-    pointer-events: none;
+.btn-order-item[disabled], .btn-order-item.disabled {
+    opacity: 0.35 !important;
+    pointer-events: none !important;
 }
 </style>
 {% endblock %}
@@ -1457,11 +1459,13 @@ function renderCustomChecklistItems() {
             <div class="card mb-2" data-checklist-item-id="${item.id}">
                 <div class="card-body py-2">
                     <div class="row align-items-center g-2">
-                        <div class="col-auto d-flex flex-column gap-1">
-                            <button type="button" class="btn-order-item ${isFirst ? 'disabled' : ''}" onclick="moveChecklistItemUp(${item.id})" title="Subir item">
+                        <div class="col-auto d-flex flex-column" style="gap:4px;">
+                            <button type="button" onclick="moveChecklistItemUp(${item.id})" title="Subir item" ${isFirst ? 'disabled' : ''}
+                                style="display:flex;align-items:center;justify-content:center;width:44px;height:38px;border:1px solid #ced4da;border-radius:6px;background:#f8f9fa;color:#495057;cursor:pointer;font-size:0.85rem;${isFirst ? 'opacity:0.35;pointer-events:none;' : ''}">
                                 <i class="fas fa-chevron-up"></i>
                             </button>
-                            <button type="button" class="btn-order-item ${isLast ? 'disabled' : ''}" onclick="moveChecklistItemDown(${item.id})" title="Descer item">
+                            <button type="button" onclick="moveChecklistItemDown(${item.id})" title="Descer item" ${isLast ? 'disabled' : ''}
+                                style="display:flex;align-items:center;justify-content:center;width:44px;height:38px;border:1px solid #ced4da;border-radius:6px;background:#f8f9fa;color:#495057;cursor:pointer;font-size:0.85rem;${isLast ? 'opacity:0.35;pointer-events:none;' : ''}">
                                 <i class="fas fa-chevron-down"></i>
                             </button>
                         </div>
