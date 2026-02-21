@@ -39,6 +39,15 @@
     margin-top: 5px;
     margin-bottom: 5px;
 }
+
+/* Animação do Chevron em Informações Técnicas */
+.tech-info-btn .fas.fa-chevron-down {
+    transition: transform 0.3s ease-in-out;
+}
+
+.tech-info-btn[aria-expanded="true"] .fas.fa-chevron-down {
+    transform: rotate(180deg);
+}
 </style>
 {% endblock %}
 
@@ -86,6 +95,13 @@
                     </div>
                     {% endif %}
                     
+                    <div class="mb-3">
+                        {{ form.construtora.label(class="form-label") }}
+                        {{ form.construtora(class="form-control" + (" is-invalid" if form.construtora.errors else ""), placeholder="Nome da construtora responsável") }}
+                        {% for error in form.construtora.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
                     
                     <div class="mb-3">
                         {{ form.endereco.label(class="form-label") }}
@@ -116,23 +132,12 @@
                         {% endfor %}
                     </div>
                     
-                    <div class="mb-3">
-                        {{ form.construtora.label(class="form-label") }}
-                        {{ form.construtora(class="form-control" + (" is-invalid" if form.construtora.errors else ""), placeholder="Nome da construtora responsável") }}
-                        {% for error in form.construtora.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                    
                     <!-- Seção de Contatos da Obra -->
                     <div class="card mt-3">
                         <div class="card-header">
                             <i class="bi bi-people"></i> Contatos da Obra
                         </div>
                         <div class="card-body">
-                            <p class="text-muted mb-3">
-                                Adicione todos os contatos associados a esta obra, incluindo nome, cargo, empresa, e-mail e telefone (opcional).
-                            </p>
                             
                             <div id="lista-contatos">
                                 {% for contato in contatos_existentes %}
@@ -191,18 +196,13 @@
                     </div>
                     
                     <!-- Seção de Categorias da Obra - Item 16 -->
-                    <div class="card mb-4">
+                    <div class="card mb-4 mt-3">
                         <div class="card-header">
                             <h6 class="mb-0">
                                 <i class="fas fa-tags me-2"></i>Categorias da Obra
                             </h6>
                         </div>
                         <div class="card-body">
-                            <p class="text-muted small mb-3">
-                                <i class="fas fa-info-circle me-1"></i>
-                                As categorias são usadas para organizar fotos nos relatórios. 
-                                Você pode editar, excluir ou adicionar novas categorias abaixo.
-                            </p>
                             {% if project %}
                             <div id="categorias-container" class="mt-3"></div>
                             <button type="button" id="btnAddCategoria" class="btn btn-outline-primary mt-2">+ Adicionar Categoria</button>
@@ -235,10 +235,10 @@
                     </div>
                     
                     <!-- Seção de Informações Técnicas - Expansível -->
-                    <div class="card mb-3 mt-3">
-                        <div class="card-header" id="headingTechInfo">
+                    <div class="card border-info mb-3 mt-3">
+                        <div class="card-header bg-info text-white" id="headingTechInfo">
                             <h6 class="mb-0">
-                                <button class="btn btn-link collapsed w-100 text-start d-flex justify-content-between align-items-center" 
+                                <button class="btn btn-link text-white text-decoration-none collapsed w-100 text-start d-flex justify-content-between align-items-center tech-info-btn" 
                                         type="button" 
                                         data-bs-toggle="collapse" 
                                         data-bs-target="#collapseTechInfo" 
@@ -254,10 +254,6 @@
                         
                         <div id="collapseTechInfo" class="collapse" aria-labelledby="headingTechInfo">
                             <div class="card-body">
-                                <p class="text-muted small mb-3">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Campos opcionais com informações técnicas da obra. Preencha conforme necessário.
-                                </p>
                                 
                                 <!-- Campo 1 -->
                                 <div class="mb-3">
@@ -358,10 +354,6 @@
                                                     <i class="fas fa-edit me-2"></i>Checklist Personalizado
                                                 </button>
                                             </div>
-                                            <small class="text-muted mt-2 d-block">
-                                                <i class="fas fa-info-circle"></i>
-                                                Importante: O checklist não aparece nos PDFs gerados, apenas na visualização web dos relatórios.
-                                            </small>
                                         </div>
                                     </div>
 
@@ -374,7 +366,7 @@
                                             <div class="list-group-item">
                                                 <div class="d-flex align-items-start">
                                                     <div class="me-3">
-                                                        <span class="badge bg-primary rounded-pill">{{ item.ordem }}</span>
+                                                        <i class="fas fa-check text-primary mt-1"></i>
                                                     </div>
                                                     <div class="flex-grow-1">
                                                         <p class="mb-0">{{ item.texto }}</p>
@@ -1352,6 +1344,7 @@ function deleteChecklistItem(itemId) {
                 alert('Erro: ' + data.error);
             }
         })
+        })
         .catch(error => {
             console.error('Error:', error);
             alert('Erro ao remover item');
@@ -1359,6 +1352,65 @@ function deleteChecklistItem(itemId) {
         {% endif %}
     }
 }
+
+function moveChecklistItemUp(itemId) {
+    const index = customChecklistItems.findIndex(i => i.id === itemId);
+    if (index > 0) {
+        // Swap with previous
+        const temp = customChecklistItems[index];
+        customChecklistItems[index] = customChecklistItems[index - 1];
+        customChecklistItems[index - 1] = temp;
+        
+        // Update order numbers
+        customChecklistItems.forEach((item, i) => item.ordem = i + 1);
+        
+        renderCustomChecklistItems();
+        if (isNewProject) {
+            updateChecklistItemsHiddenField();
+        } else {
+            saveReorderedItems();
+        }
+    }
+}
+
+function moveChecklistItemDown(itemId) {
+    const index = customChecklistItems.findIndex(i => i.id === itemId);
+    if (index >= 0 && index < customChecklistItems.length - 1) {
+        // Swap with next
+        const temp = customChecklistItems[index];
+        customChecklistItems[index] = customChecklistItems[index + 1];
+        customChecklistItems[index + 1] = temp;
+        
+        // Update order numbers
+        customChecklistItems.forEach((item, i) => item.ordem = i + 1);
+        
+        renderCustomChecklistItems();
+        if (isNewProject) {
+            updateChecklistItemsHiddenField();
+        } else {
+            saveReorderedItems();
+        }
+    }
+}
+
+function saveReorderedItems() {
+    {% if project %}
+    const projectId = {{ project.id }};
+    const orderData = customChecklistItems.map(item => ({ id: item.id, ordem: item.ordem }));
+    
+    fetch(`/projects/${projectId}/checklist/items/reorder`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: orderData })
+    })
+    .catch(error => {
+        console.error('Error reordering items:', error);
+    });
+    {% endif %}
+}
+
 
 function renderCustomChecklistItems() {
     const container = document.getElementById('customChecklistItems');
@@ -1375,15 +1427,23 @@ function renderCustomChecklistItems() {
     if (emptyMessage) emptyMessage.style.display = 'none';
     
     let html = '';
-    customChecklistItems.forEach(item => {
+    customChecklistItems.forEach((item, index) => {
+        const isFirst = index === 0;
+        const isLast = index === customChecklistItems.length - 1;
+        
         html += `
             <div class="card mb-2" data-checklist-item-id="${item.id}">
                 <div class="card-body py-2">
                     <div class="row align-items-center">
-                        <div class="col-1">
-                            <span class="badge bg-primary">${item.ordem}</span>
+                        <div class="col-2 col-md-1 d-flex flex-column align-items-center">
+                            <button type="button" class="btn btn-sm btn-link p-0 text-muted ${isFirst ? 'disabled' : ''}" onclick="moveChecklistItemUp(${item.id})" title="Subir">
+                                <i class="fas fa-chevron-up"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-link p-0 text-muted ${isLast ? 'disabled' : ''}" onclick="moveChecklistItemDown(${item.id})" title="Descer">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
                         </div>
-                        <div class="col-8">
+                        <div class="col-7 col-md-8">
                             <span class="item-text">${item.texto}</span>
                             <input type="text" class="form-control d-none item-edit-input" value="${item.texto}">
                         </div>

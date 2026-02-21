@@ -11126,6 +11126,35 @@ def project_checklist_delete_item(project_id, item_id):
         db.session.rollback()
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
 
+@app.route("/projects/<int:project_id>/checklist/items/reorder", methods=["POST"])
+@login_required
+@csrf.exempt
+def project_checklist_reorder(project_id):
+    """Reorder custom checklist items"""
+    project = Projeto.query.get_or_404(project_id)
+    
+    try:
+        data = request.get_json()
+        items = data.get('items', [])
+        
+        for item_data in items:
+            item_id = item_data.get('id')
+            nova_ordem = item_data.get('ordem')
+            
+            if item_id and nova_ordem:
+                item = ChecklistObra.query.filter_by(id=item_id, projeto_id=project_id).first()
+                if item:
+                    item.ordem = nova_ordem
+                    item.updated_at = datetime.utcnow()
+                    
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
 @app.route("/projects/<int:project_id>/checklist/items/list", methods=["GET"])
 @login_required
 def project_checklist_list_items(project_id):
