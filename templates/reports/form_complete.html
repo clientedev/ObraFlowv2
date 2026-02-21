@@ -9,6 +9,28 @@
 
 {% block extra_css %}
 <style>
+/* Select2 Multiple adjustments for Bootstrap */
+.select2-container .select2-selection--multiple {
+    min-height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #0d6efd;
+    border: 1px solid #0a58ca;
+    color: white;
+    padding: 2px 6px;
+    margin-top: 5px;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    color: white;
+    margin-right: 5px;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #f8f9fa;
+    background-color: transparent;
+}
+
 .checklist-item {
     background-color: #f8f9fa;
     padding: 15px;
@@ -375,8 +397,6 @@
                                 <div class="form-group">
                                     <label class="form-label" for="numero">
                                         Número do Relatório
-                                        <i class="fas fa-info-circle text-info ms-1" data-bs-toggle="tooltip" 
-                                           title="O número é gerado automaticamente, mas você pode editá-lo se necessário"></i>
                                     </label>
                                     {% if existing_report %}
                                         <input type="text" name="numero" id="numero" class="form-control" 
@@ -588,8 +608,8 @@
                                 <h6 class="mb-0">
                                     <i class="fas fa-user-friends me-2"></i>👥 Acompanhantes da Visita
                                 </h6>
-                                <button type="button" class="btn btn-sm btn-primary" onclick="abrirModalAcompanhantes()">
-                                    <i class="fas fa-plus me-1"></i>Adicionar Acompanhante
+                                <button type="button" class="btn btn-sm btn-primary" onclick="abrirModalAcompanhantes()" title="Adicionar Acompanhante">
+                                    <i class="fas fa-plus"></i>
                                 </button>
                             </div>
                             <div class="card-body">
@@ -690,10 +710,26 @@
                             <div id="photoPreview" class="row" style="display: none;"></div>
                         </div>
 
+                        <!-- Novo Lembrete (Estilo Antigo - Funcionalidade Nova) - COPIA INFERIOR PARA MELHOR UX APÓS FOTOS -->
+                        <div class="mb-4 pt-3 border-top" id="novo-lembrete-container-inferior" style="display: none;">
+                            <label class="form-label" for="novo_lembrete_texto_inferior">
+                                <i class="fas fa-bell text-warning me-2"></i>Lembrete para Próxima Visita (Reexibição)
+                            </label>
+                            <!-- Layout Responsivo: Coluna no mobile, Linha no desktop -->
+                            <div class="d-flex flex-column flex-md-row gap-2">
+                                <textarea class="form-control" id="novo_lembrete_texto_inferior" rows="2" 
+                                        placeholder="Caso tenha esquecido de preencher acima, deixo o lembrete aqui..."></textarea>
+                                <button class="btn btn-warning text-dark fw-bold align-self-md-start" type="button" onclick="salvarNovoLembreteInputInferior()" style="white-space: nowrap; height: fit-content;">
+                                    <i class="fas fa-plus me-1"></i> Adicionar
+                                </button>
+                            </div>
+                            <small class="text-muted mt-1 d-block">Este lembrete aparecerá no painel e na próxima vez que abrirem esta obra.</small>
+                        </div>
+
                         <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times"></i> Cancelar
-                            </a>
+                            <button type="button" class="btn btn-outline-warning text-dark fw-bold" onclick="enviarParaAprovacao()">
+                                <i class="fas fa-paper-plane me-1"></i> Enviar para Aprovação
+                            </button>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Concluir relatório
                             </button>
@@ -1800,8 +1836,14 @@ document.getElementById('reportForm').addEventListener('submit', async function(
         console.log(`📤 Total de novas imagens para upload: ${novasImagensCount}`);
         
         // CRÍTICO: Adicionar flag de finalização
-        // Quando o usuário submete o formulário "Concluir relatório", deve mudar status para "Aguardando Aprovação"
+        // Quando o usuário submete o formulário "Concluir relatório", deve mudar status para "Aguardando Aprovação" ou finaliza dependendo do contexto.
         formData.append('should_finalize', 'true');
+
+        // Se a requisição veio do botão "Enviar para Aprovação", forçar essa transição de status usando flag específica
+        if (window.enviarAprovacaoFlag) {
+            formData.append('enviar_aprovacao', 'true');
+            console.log('✅ Flag enviar_aprovacao = true capturada. O status será alterado para Aguardando Aprovação no backend.');
+        }
         
         // LOG FINAL DE DEBUG: Mostrar tudo que está sendo enviado
         console.log('📦 RESUMO DO QUE SERÁ ENVIADO:');
@@ -3379,8 +3421,7 @@ console.log('📱 Sistema de fotos mobile-first carregado');
                     <!-- Seleção de Funcionário -->
                     <div id="selecao-funcionario" class="mb-3">
                         <label for="funcionario-select" class="form-label">Selecionar Funcionário *</label>
-                        <select class="form-select" id="funcionario-select">
-                            <option value="">Selecione um projeto primeiro...</option>
+                        <select class="form-select select2-multiple" id="funcionario-select" multiple="multiple" style="width: 100%;">
                         </select>
                         <small class="text-muted">Funcionários cadastrados nesta obra</small>
                     </div>
@@ -3442,7 +3483,8 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
     const select = document.getElementById('funcionario-select');
 
     if (!projetoId) {
-        select.innerHTML = '<option value="">Selecione um projeto primeiro...</option>';
+        select.innerHTML = '';
+        if ($.fn.select2) { $(select).trigger('change'); }
         return;
     }
 
@@ -3457,7 +3499,7 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
         if (data.success) {
             // 1. Popular dropdown de funcionários (Lógica original)
             if (data.funcionarios && data.funcionarios.length > 0) {
-                let options = '<option value="">Selecione um funcionário...</option>';
+                let options = '';
                 data.funcionarios.forEach(func => {
                     const nome = func.nome_funcionario || 'Sem nome';
                     const cargo = func.cargo || 'Não informado';
@@ -3466,8 +3508,9 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
                 });
                 select.innerHTML = options;
             } else {
-                select.innerHTML = '<option value="">Nenhum funcionário cadastrado nesta obra</option>';
+                select.innerHTML = '';
             }
+            if ($.fn.select2) { $(select).trigger('change'); }
 
             // 2. POPULAR INFORMAÇÕES TÉCNICAS (Nova lógica)
             if (data.technical_info) {
@@ -3528,18 +3571,27 @@ function adicionarAcompanhante() {
 
     if (tipo === 'funcionario') {
         const select = document.getElementById('funcionario-select');
-        const selectedOption = select.options[select.selectedIndex];
+        const selectedOptions = Array.from(select.selectedOptions);
 
-        if (!select.value) {
-            alert('Por favor, selecione um funcionário!');
+        if (selectedOptions.length === 0) {
+            alert('Por favor, selecione ao menos um funcionário!');
             return;
         }
 
-        nome = selectedOption.getAttribute('data-nome');
-        funcao = selectedOption.getAttribute('data-cargo') || '';
-        email = selectedOption.getAttribute('data-email') || '';
-        id = selectedOption.getAttribute('data-id');
-        origem = 'Funcionário da obra';
+        selectedOptions.forEach(option => {
+            acompanhantes.push({
+                nome: option.getAttribute('data-nome'),
+                funcao: option.getAttribute('data-cargo') || '',
+                origem: 'Funcionário da obra',
+                id: option.getAttribute('data-id'),
+                email: option.getAttribute('data-email') || ''
+            });
+        });
+        
+        // Deselecionar todos após adicionar
+        select.selectedIndex = -1;
+        if ($.fn.select2) { $(select).val(null).trigger('change'); }
+
     } else {
         nome = document.getElementById('nome-manual').value.trim();
         funcao = document.getElementById('funcao-acompanhante').value.trim();
@@ -3550,18 +3602,19 @@ function adicionarAcompanhante() {
         }
 
         origem = 'Inserido manualmente';
+        
+        acompanhantes.push({
+            nome: nome,
+            funcao: funcao,
+            origem: origem,
+            id: null,
+            email: ''
+        });
+        
+        // Limpar campos de entrada manual
+        document.getElementById('nome-manual').value = '';
+        document.getElementById('funcao-acompanhante').value = '';
     }
-
-    // Adicionar ao array - COM ID e EMAIL
-    const acompanhante = {
-        nome: nome,
-        funcao: funcao,
-        origem: origem,
-        id: id,
-        email: email
-    };
-
-    acompanhantes.push(acompanhante);
 
     // Atualizar visualização
     atualizarListaAcompanhantes();
@@ -3569,10 +3622,26 @@ function adicionarAcompanhante() {
     // Atualizar campo hidden
     document.getElementById('acompanhantes-data').value = JSON.stringify(acompanhantes);
 
-    // Fechar modal
-    bootstrap.Modal.getInstance(document.getElementById('modalAcompanhantes')).hide();
+    // O modal NÃO é mais fechado automaticamente para permitir adicionar vários de uma vez
+    // bootstrap.Modal.getInstance(document.getElementById('modalAcompanhantes')).hide();
+
+    // Feedback visual opcional
+    const btn = document.querySelector('#modalAcompanhantes .btn-success');
+    if (btn) {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check me-1"></i><span>Adicionados!</span>';
+        setTimeout(() => btn.innerHTML = originalHtml, 1500);
+    }
 
     console.log('✅ Acompanhante adicionado:', acompanhante);
+    
+    // Pequeno feedback visual
+    const addBtn = document.querySelector('#modalAcompanhantes .btn-success');
+    const originalText = addBtn.innerHTML;
+    addBtn.innerHTML = '<i class="fas fa-check-double me-1"></i> Adicionado!';
+    setTimeout(() => {
+        addBtn.innerHTML = originalText;
+    }, 1500);
 }
 
 // Atualizar lista de acompanhantes
@@ -3600,11 +3669,7 @@ function atualizarListaAcompanhantes() {
                             <strong>${acomp.nome}</strong>
                         </h6>
                         ${acomp.funcao ? `<p class="mb-1 text-muted"><small><i class="fas fa-briefcase me-1"></i>${acomp.funcao}</small></p>` : ''}
-                        <p class="mb-0">
-                            <span class="badge bg-${acomp.origem.includes('Funcionário') ? 'info' : 'success'}">
-                                ${acomp.origem}
-                            </span>
-                        </p>
+                        <!-- Removido o badge de origem/status do acompanhante -->
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerAcompanhante(${index})" title="Remover">
                         <i class="fas fa-trash"></i>
@@ -4303,6 +4368,45 @@ function salvarNovoLembreteInput() {
   });
 }
 
+function salvarNovoLembreteInputInferior() {
+  const projetoId = document.getElementById('projeto_id')?.value;
+  if (!projetoId) {
+    alert('Por favor, selecione uma obra primeiro.');
+    return;
+  }
+  
+  const textoInput = document.getElementById('novo_lembrete_texto_inferior');
+  const texto = textoInput.value;
+  
+  if (!texto || texto.trim() === '') {
+    alert('Por favor, digite o texto do lembrete.');
+    return;
+  }
+  
+  window.lembreteSaving = true;
+  criarLembrete(projetoId, texto.trim(), false).then(() => {
+     textoInput.value = ''; 
+     localStorage.removeItem(`lembrete_draft_inferior_${projetoId}`);
+     window.lembreteSaving = false;
+  });
+}
+
+// Função para tratar clique do botão Enviar para Aprovação
+function enviarParaAprovacao() {
+    window.enviarAprovacaoFlag = true;
+    
+    // Dispara a submissão do form normalmente. 
+    // O event listener do 'submit' do form irá pegar a window.enviarAprovacaoFlag e injetar na rquisição.
+    const form = document.getElementById('reportForm');
+    
+    // Validação básica do form nativa antes de submeter
+    if (form.reportValidity()) {
+        form.dispatchEvent(new Event('submit', { cancelable: true }));
+    } else {
+        window.enviarAprovacaoFlag = false;
+    }
+}
+
 async function criarLembrete(projetoId, texto, silent = false) {
   try {
     // Usar keepalive para garantir que o request continue mesmo se a página mudar
@@ -4374,6 +4478,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         techCollapseEl.addEventListener('hide.bs.collapse', function() {
             techChevron.style.transform = 'rotate(0deg)';
+        });
+    }
+});
+</script>
+
+<!-- Select2 Initialization -->
+<script>
+$(document).ready(function() {
+    if ($.fn.select2) {
+        $('#funcionario-select').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Selecione os funcionários',
+            allowClear: true,
+            dropdownParent: $('#modalAcompanhantes')
         });
     }
 });

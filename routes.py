@@ -3912,10 +3912,23 @@ def create_report():
 
             # SEMPRE mantém status como "preenchimento" (comportamento igual ao autosave)
             should_finalize = request.form.get('should_finalize') == 'true'
-            if should_finalize:
+            enviar_aprovacao = request.form.get('enviar_aprovacao') == 'true'
+            
+            if enviar_aprovacao:
+                relatorio.status = 'Aguardando Aprovação'
+                current_app.logger.info(f"✅ Relatório {relatorio.numero} enviado para aprovação")
+                
+                # Criar notificação se for enviado para aprovação na criação
+                try:
+                    from notification_service import notification_service
+                    notification_service.criar_notificacao_relatorio_gerado(relatorio)
+                    current_app.logger.info(f"✅ Notificação de relatório para aprovação criada")
+                except Exception as notif_error:
+                    current_app.logger.error(f"⚠️ Erro ao criar notificação: {notif_error}")
+            elif should_finalize:
                 current_app.logger.info(f"✅ Relatório {relatorio.numero} salvo em preenchimento (should_finalize ignorado)")
 
-            flash('Relatório criado com sucesso!', 'success')
+            flash('Relatório salvo com sucesso!', 'success')
 
             # Return JSON response for AJAX submission
             if request.content_type and 'multipart/form-data' in request.content_type:
@@ -7493,7 +7506,12 @@ def update_report(report_id):
 
         # SEMPRE mantém status como "preenchimento" (comportamento igual ao autosave)
         should_finalize = request.form.get('should_finalize') == 'true'
-        if should_finalize:
+        enviar_aprovacao = request.form.get('enviar_aprovacao') == 'true'
+
+        if enviar_aprovacao:
+            relatorio.status = 'Aguardando Aprovação'
+            app.logger.info(f"✅ Relatório {relatorio.numero} enviado para aprovação via edição")
+        elif should_finalize:
             app.logger.info(f"✅ Relatório {relatorio.numero} salvo em preenchimento (should_finalize ignorado)")
 
         # Salvar alterações no banco
