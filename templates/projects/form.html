@@ -41,12 +41,34 @@
 }
 
 /* Animação do Chevron em Informações Técnicas */
-.tech-info-btn .fas.fa-chevron-down {
-    transition: transform 0.3s ease-in-out;
+.tech-info-chevron {
+    transition: transform 0.35s ease-in-out;
+}
+.tech-info-chevron.open {
+    transform: rotate(180deg);
 }
 
-.tech-info-btn[aria-expanded="true"] .fas.fa-chevron-down {
-    transform: rotate(180deg);
+/* Botões Subir/Descer do Checklist - tamanho touch-friendly */
+.btn-order-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    font-size: 1rem;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+    color: #495057;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.btn-order-item:hover:not(.disabled) {
+    background: #e2e6ea;
+}
+.btn-order-item.disabled {
+    opacity: 0.35;
+    pointer-events: none;
 }
 </style>
 {% endblock %}
@@ -247,7 +269,7 @@
                                     <span>
                                         <i class="fas fa-cog me-2"></i>Informações Técnicas
                                     </span>
-                                    <i class="fas fa-chevron-down"></i>
+                                    <i class="fas fa-chevron-down tech-info-chevron" id="techInfoChevron"></i>
                                 </button>
                             </h6>
                         </div>
@@ -1434,20 +1456,20 @@ function renderCustomChecklistItems() {
         html += `
             <div class="card mb-2" data-checklist-item-id="${item.id}">
                 <div class="card-body py-2">
-                    <div class="row align-items-center">
-                        <div class="col-2 col-md-1 d-flex flex-column align-items-center">
-                            <button type="button" class="btn btn-sm btn-link p-0 text-muted ${isFirst ? 'disabled' : ''}" onclick="moveChecklistItemUp(${item.id})" title="Subir">
+                    <div class="row align-items-center g-2">
+                        <div class="col-auto d-flex flex-column gap-1">
+                            <button type="button" class="btn-order-item ${isFirst ? 'disabled' : ''}" onclick="moveChecklistItemUp(${item.id})" title="Subir item">
                                 <i class="fas fa-chevron-up"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-link p-0 text-muted ${isLast ? 'disabled' : ''}" onclick="moveChecklistItemDown(${item.id})" title="Descer">
+                            <button type="button" class="btn-order-item ${isLast ? 'disabled' : ''}" onclick="moveChecklistItemDown(${item.id})" title="Descer item">
                                 <i class="fas fa-chevron-down"></i>
                             </button>
                         </div>
-                        <div class="col-7 col-md-8">
+                        <div class="col">
                             <span class="item-text">${item.texto}</span>
                             <input type="text" class="form-control d-none item-edit-input" value="${item.texto}">
                         </div>
-                        <div class="col-3 text-end">
+                        <div class="col-auto text-end">
                             <button type="button" class="btn btn-sm btn-outline-primary me-1 btn-edit-item" onclick="editChecklistItem(${item.id})">
                                 <i class="fas fa-edit"></i>
                             </button>
@@ -1482,6 +1504,20 @@ function updateChecklistTypeHiddenField(tipo) {
     }
     hiddenField.value = tipo;
 }
+
+// Chevron animation for Informações Técnicas
+document.addEventListener('DOMContentLoaded', function() {
+    const collapseEl = document.getElementById('collapseTechInfo');
+    const chevron = document.getElementById('techInfoChevron');
+    if (collapseEl && chevron) {
+        collapseEl.addEventListener('show.bs.collapse', function() {
+            chevron.classList.add('open');
+        });
+        collapseEl.addEventListener('hide.bs.collapse', function() {
+            chevron.classList.remove('open');
+        });
+    }
+});
 
 // Helper function to update hidden field with custom checklist items
 function updateChecklistItemsHiddenField() {
