@@ -271,7 +271,7 @@
                                     <span>
                                         <i class="fas fa-cog me-2"></i>Informações Técnicas
                                     </span>
-                                    <i class="fas fa-chevron-down tech-info-chevron" id="techInfoChevron"></i>
+                                    <i class="fas fa-chevron-down" id="techInfoChevron" style="display:inline-block;transition:transform 0.35s ease-in-out;"></i>
                                 </button>
                             </h6>
                         </div>
@@ -1515,10 +1515,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const chevron = document.getElementById('techInfoChevron');
     if (collapseEl && chevron) {
         collapseEl.addEventListener('show.bs.collapse', function() {
-            chevron.classList.add('open');
+            chevron.style.transform = 'rotate(180deg)';
         });
         collapseEl.addEventListener('hide.bs.collapse', function() {
-            chevron.classList.remove('open');
+            chevron.style.transform = 'rotate(0deg)';
         });
     }
 });
