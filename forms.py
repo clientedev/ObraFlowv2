@@ -131,7 +131,17 @@ class VisitaForm(FlaskForm):
 
         # Adicionar opção 'Outros' aos projetos
         projetos_ativos = Projeto.query.filter_by(status='Ativo').all()
-        self.projeto_id.choices = [(-1, 'Outros')] + [(p.id, f"{p.numero} - {p.nome}") for p in projetos_ativos]
+        projetos_ativos_ids = [p.id for p in projetos_ativos]
+        
+        choices_projetos = [(-1, 'Outros')] + [(p.id, f"{p.numero} - {p.nome}") for p in projetos_ativos]
+        
+        # Se estiver editando uma visita e o projeto dela não estiver ativo, adiciona-o à lista
+        if visit and visit.projeto_id and visit.projeto_id not in projetos_ativos_ids:
+            projeto_atual = Projeto.query.get(visit.projeto_id)
+            if projeto_atual:
+                choices_projetos.append((projeto_atual.id, f"{projeto_atual.numero} - {projeto_atual.nome} [{projeto_atual.status}]"))
+                
+        self.projeto_id.choices = choices_projetos
 
         # Carregar usuários ativos para seleção de responsável
         usuarios_ativos = User.query.filter_by(ativo=True).all()
