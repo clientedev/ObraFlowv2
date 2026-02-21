@@ -534,7 +534,7 @@
                                 <h5 class="mb-0">
                                     <button class="btn btn-link w-100 text-start text-decoration-none collapsed text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseChecklist" aria-expanded="false" aria-controls="collapseChecklist">
                                         <i class="fas fa-tasks me-2"></i> Checklist da Obra
-                                        <i class="fas fa-chevron-down float-end"></i>
+                                        <i class="fas fa-chevron-down float-end transition-transform" id="checklistChevron" style="transition: transform 0.3s ease;"></i>
                                     </button>
                                 </h5>
                             </div>
@@ -727,7 +727,7 @@
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <button type="button" class="btn btn-outline-warning text-dark fw-bold" onclick="enviarParaAprovacao()">
+                            <button type="button" class="btn btn-warning text-dark fw-bold" onclick="enviarParaAprovacao()">
                                 <i class="fas fa-paper-plane me-1"></i> Enviar para Aprovação
                             </button>
                             <button type="submit" class="btn btn-primary">
@@ -3422,6 +3422,7 @@ console.log('📱 Sistema de fotos mobile-first carregado');
                     <div id="selecao-funcionario" class="mb-3">
                         <label for="funcionario-select" class="form-label">Selecionar Funcionário *</label>
                         <select class="form-select select2-multiple" id="funcionario-select" multiple="multiple" style="width: 100%;">
+                            <option value=""></option>
                         </select>
                         <small class="text-muted">Funcionários cadastrados nesta obra</small>
                     </div>
@@ -3483,7 +3484,7 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
     const select = document.getElementById('funcionario-select');
 
     if (!projetoId) {
-        select.innerHTML = '';
+        select.innerHTML = '<option value=""></option>';
         if ($.fn.select2) { $(select).trigger('change'); }
         return;
     }
@@ -3508,7 +3509,7 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
                 });
                 select.innerHTML = options;
             } else {
-                select.innerHTML = '';
+                select.innerHTML = '<option value=""></option>';
             }
             if ($.fn.select2) { $(select).trigger('change'); }
 
@@ -4388,6 +4389,14 @@ function salvarNovoLembreteInputInferior() {
      textoInput.value = ''; 
      localStorage.removeItem(`lembrete_draft_inferior_${projetoId}`);
      window.lembreteSaving = false;
+     
+     // Feedback visual no botão
+     const btn = textoInput.nextElementSibling;
+     if (btn) {
+         const originalHtml = btn.innerHTML;
+         btn.innerHTML = '<i class="fas fa-check me-1"></i> Adicionado';
+         setTimeout(() => btn.innerHTML = originalHtml, 2000);
+     }
   });
 }
 
@@ -4466,9 +4475,10 @@ function mostrarMensagemSucesso(mensagem) {
 
 </script>
 
-<!-- Script para a animação do Chevron em Informações Técnicas -->
+<!-- Script para as animações dos Chevrons -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Chevron Technical Info
     var techCollapseEl = document.getElementById('collapseTechnicalInfo');
     var techChevron = document.getElementById('techInfoChevron');
     
@@ -4478,6 +4488,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         techCollapseEl.addEventListener('hide.bs.collapse', function() {
             techChevron.style.transform = 'rotate(0deg)';
+        });
+    }
+
+    // Chevron Checklist
+    var chkCollapseEl = document.getElementById('collapseChecklist');
+    var chkChevron = document.getElementById('checklistChevron');
+    
+    if (chkCollapseEl && chkChevron) {
+        chkCollapseEl.addEventListener('show.bs.collapse', function() {
+            chkChevron.style.transform = 'rotate(180deg)';
+        });
+        chkCollapseEl.addEventListener('hide.bs.collapse', function() {
+            chkChevron.style.transform = 'rotate(0deg)';
         });
     }
 });
