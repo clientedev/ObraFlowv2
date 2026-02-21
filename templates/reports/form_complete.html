@@ -3594,7 +3594,7 @@ function adicionarAcompanhante() {
         
         // Deselecionar todos após adicionar
         select.selectedIndex = -1;
-        if ($.fn.select2) { $(select).val(null).trigger('change'); }
+        if (typeof $ !== 'undefined' && $.fn && $.fn.select2) { $(select).val(null).trigger('change'); }
 
     } else {
         nome = document.getElementById('nome-manual').value.trim();
@@ -3637,7 +3637,7 @@ function adicionarAcompanhante() {
         setTimeout(() => btn.innerHTML = originalHtml, 1500);
     }
 
-    console.log('✅ Acompanhante adicionado:', acompanhante);
+    console.log('✅ Acompanhantes adicionados:', acompanhantes.length);
     
     // Pequeno feedback visual
     const addBtn = document.querySelector('#modalAcompanhantes .btn-success');
