@@ -6356,7 +6356,9 @@ def visits_list():
 
         # Renderizar template com tratamento de erro
         try:
-            return render_template('visits/list.html', visits=visits, now=datetime.now())
+            # Fuso horário de Brasília (UTC-3) para evitar mostrar visitas como atrasadas cedo demais
+            agora = datetime.utcnow() - timedelta(hours=3)
+            return render_template('visits/list.html', visits=visits, now=agora)
         except Exception as template_error:
             current_app.logger.error(f"❌ Erro no template visits/list.html: {template_error}")
             # Template de emergência em caso de erro

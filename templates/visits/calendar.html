@@ -464,7 +464,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (status !== 'realizada' && status !== 'cancelada' && status !== 'cancelado') {
                         const start = new Date(visit.data_inicio);
-                        if (start < new Date()) {
+                        // Fuso horário de Brasília (UTC-3)
+                        const agoraUTC = new Date();
+                        const agoraBR = new Date(agoraUTC.getTime() - (agoraUTC.getTimezoneOffset() * 60000) - (3 * 60 * 60 * 1000));
+                        
+                        if (start < agoraBR) {
                             isOverdue = true;
                             displayStatus = 'Atrasada';
                         }
@@ -586,7 +590,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     let displayStatus = visit.status;
                     if (visit.status !== 'Realizada' && visit.status !== 'Cancelada' && visit.data_inicio) {
                         const start = new Date(visit.data_inicio);
-                        if (start < new Date()) {
+                        // Fuso horário de Brasília (UTC-3) para cálculo de atraso real
+                        const agoraUTC = new Date();
+                        const agoraBR = new Date(agoraUTC.getTime() - (agoraUTC.getTimezoneOffset() * 60000) - (3 * 60 * 60 * 1000));
+
+                        if (start < agoraBR) {
                             displayStatus = 'Atrasada';
                         }
                     }
