@@ -4398,6 +4398,9 @@ function salvarNovoLembreteInputInferior() {
      if (btn) {
          const originalHtml = btn.innerHTML;
          btn.innerHTML = '<i class="fas fa-check me-1"></i> Adicionado';
+         setTimeout(() => btn.innerHTML = originalHtml, 2000);
+     }
+     
      // Exibir lembrete também no relatorio atual sem recarregar a tela inteira
      const localContainer = document.getElementById('lembretes-adicionados-neste-relatorio');
      if (localContainer) {
