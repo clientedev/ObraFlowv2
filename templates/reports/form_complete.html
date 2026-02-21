@@ -342,7 +342,7 @@
 </script>
 <div class="container-fluid">
     <div class="row">
-        <div class="col-12">
+        <div class="col-12 px-1">
             <div class="card">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
@@ -698,7 +698,7 @@
 
                             <!-- Quick Action Bar para adicionar mais fotos -->
                             <div id="quickPhotoActions" class="text-center mt-3 p-3 bg-light rounded" style="display: none;">
-                                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                <div class="d-flex justify-content-center gap-4 flex-wrap">
                                     <button type="button" class="btn btn-success" onclick="mobileCaptureFromCamera()" style="min-height: 48px; border-radius: 24px;">
                                         <i class="fas fa-camera me-2"></i>Adicionar da Câmera
                                     </button>
@@ -2254,10 +2254,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <label class="form-label">Espessura:</label>
                                     <input type="range" id="modal-stroke-width" class="form-range" min="1" max="20" value="3">
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Legenda:</label>
-                                    <input type="text" id="modal-custom-legend" class="form-control" placeholder="Digite uma legenda...">
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -3186,8 +3182,12 @@ async function saveCaptionData(photoId) {
 
 // Edit mobile photo - RESTAURADO como funcionava antes
 function editMobilePhoto(photoId) {
-    const photoData = mobilePhotoData.find(p => p.id === photoId);
-    if (!photoData) return;
+    // Use == (loose) to handle both string and numeric IDs from existing or new photos
+    const photoData = window.mobilePhotoData.find(p => p.id == photoId);
+    if (!photoData) {
+        console.warn('editMobilePhoto: foto não encontrada para id', photoId);
+        return;
+    }
 
     // Encontrar o elemento img da foto
     const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
