@@ -290,6 +290,8 @@ document.addEventListener('DOMContentLoaded', function() {
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
         },
+        slotMinTime: '07:00:00',
+        slotMaxTime: '18:00:00',
         height: 'auto',
         // Item 28: Implementar clique em eventos para mostrar modal de detalhes
         eventClick: function(info) {
@@ -457,11 +459,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Cor do evento baseada no status e responsável
                     let eventColor = '#0EA5E9'; // Default Blue
                     const status = visit.status ? visit.status.toLowerCase() : '';
+                    let isOverdue = false;
+                    let displayStatus = visit.status;
+                    
+                    if (status !== 'realizada' && status !== 'cancelada' && status !== 'cancelado') {
+                        const start = new Date(visit.data_inicio);
+                        if (start < new Date()) {
+                            isOverdue = true;
+                            displayStatus = 'Atrasada';
+                        }
+                    }
                     
                     if (status === 'realizada') {
                         eventColor = '#28a745'; // Green for Realizada
                     } else if (status === 'cancelada' || status === 'cancelado') {
                         eventColor = '#dc3545'; // Red for Cancelada
+                    } else if (isOverdue) {
+                        eventColor = '#dc3545'; // Red for Atrasada
                     } else {
                         // Para agendadas/pendentes, usar cor do responsável
                         eventColor = visit.responsavel_cor || '#0EA5E9';
@@ -565,9 +579,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         'Agendada': { bg: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)', badge: 'primary' },
                         'Realizada': { bg: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', badge: 'success' },
                         'Cancelado': { bg: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', badge: 'danger' },
-                        'Cancelada': { bg: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', badge: 'danger' }
+                        'Cancelada': { bg: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', badge: 'danger' },
+                        'Atrasada':  { bg: 'linear-gradient(135deg, #DC3545 0%, #C82333 100%)', badge: 'danger' }
                     };
-                    const statusStyle = statusColors[visit.status] || statusColors['Agendada'];
+                    
+                    let displayStatus = visit.status;
+                    if (visit.status !== 'Realizada' && visit.status !== 'Cancelada' && visit.data_inicio) {
+                        const start = new Date(visit.data_inicio);
+                        if (start < new Date()) {
+                            displayStatus = 'Atrasada';
+                        }
+                    }
+                    const statusStyle = statusColors[displayStatus] || statusColors['Agendada'];
                     
                     modalHeader.style.background = statusStyle.bg;
                     modalTitle.innerHTML = `<i class="fas fa-calendar-check me-2"></i>Visita ${visit.numero}`;
@@ -602,8 +625,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="col-12">
                                 <div class="d-flex align-items-center mb-3">
                                     <span class="badge bg-${statusStyle.badge} me-2" style="font-size: 0.9rem; padding: 8px 16px;">
-                                        <i class="fas fa-${visit.status === 'Realizada' ? 'check-circle' : visit.status === 'Agendada' ? 'clock' : 'times-circle'} me-1"></i>
-                                        ${visit.status}
+                                        <i class="fas fa-${displayStatus === 'Realizada' ? 'check-circle' : displayStatus === 'Atrasada' ? 'exclamation-circle' : displayStatus === 'Agendada' ? 'clock' : 'times-circle'} me-1"></i>
+                                        ${displayStatus}
                                     </span>
                                     ${visit.is_pessoal ? '<span class="badge bg-secondary"><i class="fas fa-user me-1"></i>Pessoal</span>' : ''}
                                 </div>
@@ -697,8 +720,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
 
                     let actions = '';
-                    if (visit.status === 'Agendada') {
-                        actions += `<a href="/visits/${visit.id}/realize" class="btn btn-success"><i class="fas fa-check me-1"></i>Realizar</a>`;
+                    if (displayStatus === 'Agendada' || displayStatus === 'Atrasada') {
+                        if(visit.projeto_id) {
+                            actions += `<a href="/projects/${visit.projeto_id}" class="btn btn-success"><i class="fas fa-check me-1"></i>Realizar</a>`;
+                        }
                         actions += `<a href="/visits/${visit.id}/edit" class="btn btn-warning"><i class="fas fa-edit me-1"></i>Editar</a>`;
                     }
                     actions += `<a href="/visits/${visit.id}" class="btn btn-primary"><i class="fas fa-eye me-1"></i>Ver Detalhes</a>`;

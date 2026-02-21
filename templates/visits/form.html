@@ -25,7 +25,7 @@
                     </div>
                 {% endif %}
                 
-                <form method="POST" action="{% if action == 'edit' %}{{ url_for('visit_edit', visit_id=visit.id) }}{% elif action == 'realize' %}{{ url_for('visit_realize', visit_id=visit.id) }}{% else %}{{ url_for('visit_new') }}{% endif %}" id="visitForm">
+                <form method="POST" action="{% if action == 'edit' %}{{ url_for('visit_edit', visit_id=visit.id) }}{% else %}{{ url_for('visit_new') }}{% endif %}" id="visitForm">
                     {{ form.hidden_tag() }}
                     
                     {% if action != 'realize' %}

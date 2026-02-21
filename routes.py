@@ -3871,6 +3871,24 @@ def create_report():
             
             current_app.logger.info(f"✅ COMMIT REALIZADO COM SUCESSO")
             
+            # LÓGICA DE AUTO-BAIXA DA VISITA
+            try:
+                hoje = datetime.now().date()
+                visitas_pendentes = Visita.query.filter(
+                    Visita.projeto_id == relatorio.projeto_id,
+                    Visita.status != 'Realizada',
+                    Visita.status != 'Cancelada'
+                ).all()
+                for visita_pend in visitas_pendentes:
+                    if visita_pend.data_inicio and visita_pend.data_inicio.date() == hoje:
+                        visita_pend.status = 'Realizada'
+                        visita_pend.data_realizada = datetime.utcnow()
+                        current_app.logger.info(f"✅ Baixa automática na visita {visita_pend.numero} pela geração do relatório {relatorio.numero}")
+                db.session.commit()
+            except Exception as v_err:
+                current_app.logger.error(f"❌ Erro ao auto-baixar visita: {v_err}")
+                db.session.rollback()
+
             # VERIFICAÇÃO PÓS-COMMIT: Contar imagens salvas com dados binários
             fotos_com_imagem = db.session.query(FotoRelatorio).filter(
                 FotoRelatorio.relatorio_id == relatorio.id,
@@ -6338,7 +6356,7 @@ def visits_list():
 
         # Renderizar template com tratamento de erro
         try:
-            return render_template('visits/list.html', visits=visits)
+            return render_template('visits/list.html', visits=visits, now=datetime.now())
         except Exception as template_error:
             current_app.logger.error(f"❌ Erro no template visits/list.html: {template_error}")
             # Template de emergência em caso de erro
@@ -6516,71 +6534,11 @@ def visit_new():
             current_app.logger.error(f"Erro ao processar parâmetros de data: {e}")
 
     return render_template('visits/form.html', form=form, form_data=form_data)
-
-
-@app.route('/visits/<int:visit_id>/realize', methods=['GET', 'POST'])
-@login_required
-def visit_realize(visit_id):
-    visit = Visita.query.get_or_404(visit_id)
-
-    if visit.status == 'Realizada':
-        flash('Esta visita já foi realizada.', 'info')
-        return redirect(url_for('visit_checklist', visit_id=visit_id))
-
-    form = VisitaRealizadaForm()
-
-    if form.validate_on_submit():
-        visit.data_realizada = datetime.utcnow()
-        visit.status = 'Realizada'
-        visit.atividades_realizadas = form.atividades_realizadas.data
-        visit.observacoes = form.observacoes.data
-
-        if form.latitude.data and form.longitude.data:
-            visit.latitude = float(form.latitude.data)
-            visit.longitude = float(form.longitude.data)
-            visit.endereco_gps = form.endereco_gps.data
-
-        db.session.commit()
-        flash('Visita registrada com sucesso!', 'success')
-        return redirect(url_for('visit_checklist', visit_id=visit_id))
-
-    return render_template('visits/form.html', form=form, visit=visit, action='realize')
-
-@app.route('/visits/<int:visit_id>/checklist', methods=['GET', 'POST'])
-@login_required
-def visit_checklist(visit_id):
-    visit = Visita.query.get_or_404(visit_id)
-    checklist_items = ChecklistItem.query.filter_by(visita_id=visit_id).order_by(ChecklistItem.ordem).all()
-
-    if request.method == 'POST':
-        for item in checklist_items:
-            resposta = request.form.get(f'resposta_{item.id}')
-            concluido = f'concluido_{item.id}' in request.form
-
-            item.resposta = resposta
-            item.concluido = concluido
-
-        db.session.commit()
-        flash('Checklist atualizado com sucesso!', 'success')
-
-        # Check if all mandatory items are completed
-        mandatory_incomplete = ChecklistItem.query.filter_by(
-            visita_id=visit_id,
-            obrigatorio=True,
-            concluido=False
-        ).count()
-
-        if mandatory_incomplete > 0:
-            flash(f'Atenção: {mandatory_incomplete} itens obrigatórios ainda não foram concluídos.', 'warning')
-
-    return render_template('visits/checklist.html', visit=visit, checklist_items=checklist_items)
-
 @app.route('/visits/<int:visit_id>')
 @login_required
 def visit_view(visit_id):
     """View visit details"""
     visit = Visita.query.get_or_404(visit_id)
-    checklist_items = ChecklistItem.query.filter_by(visita_id=visit_id).order_by(ChecklistItem.ordem).all()
     comunicacoes = ComunicacaoVisita.query.filter_by(visita_id=visit_id).order_by(ComunicacaoVisita.created_at.desc()).limit(5).all()
 
     # Buscar participantes da visita
@@ -6590,7 +6548,7 @@ def visit_view(visit_id):
             if participante.user:
                 participantes.append(participante.user)
 
-    return render_template('visits/checklist.html', visit=visit, checklist_items=checklist_items, comunicacoes=comunicacoes, participantes=participantes)
+    return render_template('visits/view.html', visit=visit, comunicacoes=comunicacoes, participantes=participantes)
 
 @app.route('/visits/<int:visit_id>/cancel', methods=['POST'])
 @login_required
@@ -6957,6 +6915,25 @@ def report_edit(report_id):
                     relatorio.updated_at = datetime.utcnow()
 
                     db.session.commit()
+                    
+                    # LÓGICA DE AUTO-BAIXA DA VISITA (edição do relatório)
+                    try:
+                        hoje = datetime.now().date()
+                        visitas_pendentes = Visita.query.filter(
+                            Visita.projeto_id == relatorio.projeto_id,
+                            Visita.status != 'Realizada',
+                            Visita.status != 'Cancelada'
+                        ).all()
+                        for visita_pend in visitas_pendentes:
+                            if visita_pend.data_inicio and visita_pend.data_inicio.date() == hoje:
+                                visita_pend.status = 'Realizada'
+                                visita_pend.data_realizada = datetime.utcnow()
+                                current_app.logger.info(f"✅ Baixa automática na visita {visita_pend.numero} pela atualização do relatório {relatorio.numero}")
+                        db.session.commit()
+                    except Exception as v_err:
+                        current_app.logger.error(f"❌ Erro ao auto-baixar visita: {v_err}")
+                        db.session.rollback()
+
                     flash('Relatório atualizado com sucesso!', 'success')
 
                 elif action == 'submit_approval':

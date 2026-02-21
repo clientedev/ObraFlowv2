@@ -364,15 +364,9 @@
                                                 </td>
                                                 <td>{{ visita.observacoes[:50] if visita.observacoes else '' }}{{ '...' if visita.observacoes and visita.observacoes|length > 50 else '' }}</td>
                                                 <td>
-                                                    {% if visita.status == 'Agendada' %}
-                                                        <a href="{{ url_for('visit_realize', visit_id=visita.id) }}" class="btn btn-sm btn-outline-success">
-                                                            <i class="fas fa-check"></i>
-                                                        </a>
-                                                    {% else %}
-                                                        <a href="{{ url_for('visit_checklist', visit_id=visita.id) }}" class="btn btn-sm btn-outline-info">
-                                                            <i class="fas fa-eye"></i>
-                                                        </a>
-                                                    {% endif %}
+                                                    <a href="{{ url_for('visit_view', visit_id=visita.id) }}" class="btn btn-sm btn-outline-info">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
                                                 </td>
                                             </tr>
                                             {% endfor %}
@@ -419,15 +413,9 @@
                                         </div>
                                         {% endif %}
                                         <div class="d-grid gap-2">
-                                            {% if visita.status == 'Agendada' %}
-                                                <a href="{{ url_for('visit_realize', visit_id=visita.id) }}" class="btn btn-sm btn-success">
-                                                    <i class="fas fa-check me-1"></i>Realizar Visita
-                                                </a>
-                                            {% else %}
-                                                <a href="{{ url_for('visit_checklist', visit_id=visita.id) }}" class="btn btn-sm btn-outline-info">
-                                                    <i class="fas fa-eye me-1"></i>Ver Detalhes
-                                                </a>
-                                            {% endif %}
+                                            <a href="{{ url_for('visit_view', visit_id=visita.id) }}" class="btn btn-sm btn-outline-info">
+                                                <i class="fas fa-eye me-1"></i>Ver Detalhes
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
