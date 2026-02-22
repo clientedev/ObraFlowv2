@@ -537,8 +537,48 @@ def api_atualizar_relatorio(relatorio_id):
             relatorio.conteudo = data['conteudo']
         if 'checklist_data' in data:
             relatorio.checklist_data = data['checklist_data']
+            # === NOVA LÓGICA: marcar/desmarcar itens ChecklistObra ===
+            try:
+                from models import ChecklistObra
+                from datetime import datetime as _dt
+                checklist_raw = data['checklist_data']
+                if isinstance(checklist_raw, str):
+                    import json as _json
+                    checklist_parsed = _json.loads(checklist_raw)
+                else:
+                    checklist_parsed = checklist_raw
+                
+                if isinstance(checklist_parsed, list):
+                    for entry in checklist_parsed:
+                        item_id = entry.get('id')
+                        is_checked = bool(entry.get('concluido') or entry.get('completado') or entry.get('checked'))
+                        if not item_id:
+                            continue
+                        obra_item = ChecklistObra.query.get(item_id)
+                        if not obra_item:
+                            continue
+                        
+                        existing_concluido = getattr(obra_item, 'concluido', False)
+                        existing_rel_id = getattr(obra_item, 'concluido_relatorio_id', None)
+                        
+                        if is_checked:
+                            # Only mark if not already marked by another report
+                            if not existing_concluido:
+                                obra_item.concluido = True
+                                obra_item.concluido_relatorio_id = relatorio_id
+                                obra_item.concluido_em = _dt.utcnow()
+                            # If already marked by THIS same report, keep as-is (idempotent)
+                        else:
+                            # Only unmark if it was THIS report that marked it
+                            if existing_concluido and existing_rel_id == relatorio_id:
+                                obra_item.concluido = False
+                                obra_item.concluido_relatorio_id = None
+                                obra_item.concluido_em = None
+            except Exception as _cl_err:
+                logger.warning(f"Erro ao processar conclusão de checklist: {_cl_err}")
         if 'status' in data:
             relatorio.status = data['status']
+
 
         # Processar lembrete_proxima_visita
         if 'lembrete_proxima_visita' in data:

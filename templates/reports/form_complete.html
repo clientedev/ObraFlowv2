@@ -528,79 +528,35 @@
                             </div>
                         </div>
 
-                        <!-- Checklist da Obra (Collapsible - Fechado por padrão se preenchido, mas vamos deixar toggleable) -->
+                        <!-- Checklist da Obra (Collapsible - Dinâmico por projeto) -->
                         <div class="card mb-4">
                             <div class="card-header" id="headingChecklist">
                                 <h5 class="mb-0">
-                                    <button class="btn btn-link w-100 text-start text-decoration-none collapsed text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseChecklist" aria-expanded="false" aria-controls="collapseChecklist">
+                                    <button class="btn btn-link w-100 text-start text-decoration-none collapsed text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseChecklist" aria-expanded="false" aria-controls="collapseChecklist" onclick="if(!window._checklistCarregado) carregarChecklistObra()">
                                         <i class="fas fa-tasks me-2"></i> Checklist da Obra
+                                        <span id="checklistBadge" class="badge bg-secondary ms-2" style="font-size:11px;"></span>
                                         <i class="fas fa-chevron-down float-end transition-transform" id="checklistChevron" style="transition: transform 0.3s ease;"></i>
                                     </button>
                                 </h5>
                             </div>
                             <div id="collapseChecklist" class="collapse" aria-labelledby="headingChecklist">
                                 <div class="card-body">
-                                    <div id="checklistItems">
-                                <!-- Itens predefinidos -->
-                                <div class="checklist-item mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="estrutura">
-                                        <label class="form-check-label fw-bold" for="estrutura">
-                                            Estrutura / Fundação
-                                        </label>
+                                    <div id="checklistItemsDynamic">
+                                        <div class="text-center py-3 text-muted">
+                                            <i class="fas fa-spinner fa-spin me-2"></i>Carregando checklist da obra...
+                                        </div>
                                     </div>
-                                    <textarea class="form-control mt-2" name="obs_estrutura" placeholder="Observações sobre estrutura..."></textarea>
-                                </div>
-
-                                <div class="checklist-item mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="alvenaria">
-                                        <label class="form-check-label fw-bold" for="alvenaria">
-                                            Alvenaria / Vedação
-                                        </label>
-                                    </div>
-                                    <textarea class="form-control mt-2" name="obs_alvenaria" placeholder="Observações sobre alvenaria..."></textarea>
-                                </div>
-
-                                <div class="checklist-item mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="instalacoes">
-                                        <label class="form-check-label fw-bold" for="instalacoes">
-                                            Instalações (Elétrica/Hidráulica)
-                                        </label>
-                                    </div>
-                                    <textarea class="form-control mt-2" name="obs_instalacoes" placeholder="Observações sobre instalações..."></textarea>
-                                </div>
-
-                                <div class="checklist-item mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="acabamento">
-                                        <label class="form-check-label fw-bold" for="acabamento">
-                                            Acabamentos
-                                        </label>
-                                    </div>
-                                    <textarea class="form-control mt-2" name="obs_acabamento" placeholder="Observações sobre acabamentos..."></textarea>
-                                </div>
-
-                                <div class="checklist-item mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="limpeza">
-                                        <label class="form-check-label fw-bold" for="limpeza">
-                                            Limpeza / Organização
-                                        </label>
-                                    </div>
-                                    <textarea class="form-control mt-2" name="obs_limpeza" placeholder="Observações sobre limpeza..."></textarea>
-                                </div>
-                            </div>
-
-                                    <div class="text-center mt-3">
-                                        <button type="button" class="btn btn-outline-primary" onclick="addCustomChecklistItem()">
-                                            <i class="fas fa-plus"></i> Adicionar Item Personalizado
-                                        </button>
+                                    <div id="checklistSemItens" class="d-none">
+                                        <div class="alert alert-info mb-0">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            Nenhum item de checklist configurado para esta obra.
+                                            <a href="#" class="ms-2" id="linkConfigurarChecklist">Configurar agora</a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
 
                         <!-- Acompanhantes da Visita (MOVIDO) -->
                         <div class="card mb-4">
@@ -4433,20 +4389,61 @@ function salvarNovoLembreteInputInferior() {
 }
 
 // Função para tratar clique do botão Enviar para Aprovação
-function enviarParaAprovacao() {
-    window.enviarAprovacaoFlag = true;
+// MELHORADO: salva automaticamente antes de enviar, igual ao botão Salvar
+async function enviarParaAprovacao() {
+    const btn = document.querySelector('[onclick="enviarParaAprovacao()"]');
+    const originalHTML = btn ? btn.innerHTML : '';
     
-    // Dispara a submissão do form normalmente. 
-    // O event listener do 'submit' do form irá pegar a window.enviarAprovacaoFlag e injetar na rquisição.
-    const form = document.getElementById('reportForm');
-    
-    // Validação básica do form nativa antes de submeter
-    if (form.reportValidity()) {
-        form.dispatchEvent(new Event('submit', { cancelable: true }));
-    } else {
+    try {
+        // 1. Mostrar estado de carregamento
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Salvando...';
+            btn.disabled = true;
+        }
+
+        // 2. Forçar salvamento via autosave primeiro (igual ao botão Salvar)
+        if (window.autoSaveInstance) {
+            await new Promise((resolve, reject) => {
+                const originalCallback = window.autoSaveInstance.onSaveComplete;
+                window.autoSaveInstance.onSaveComplete = (success) => {
+                    if (originalCallback) originalCallback(success);
+                    window.autoSaveInstance.onSaveComplete = originalCallback;
+                    if (success) resolve(); else reject(new Error('Falha ao salvar'));
+                };
+                window.autoSaveInstance.triggerSave();
+                // Timeout fallback para não travar indefinidamente
+                setTimeout(resolve, 5000);
+            });
+        }
+
+        // 3. Atualizar botão e submeter para aprovação
+        if (btn) btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Enviando...';
+        
+        window.enviarAprovacaoFlag = true;
+        const form = document.getElementById('reportForm');
+        if (form && form.reportValidity()) {
+            form.dispatchEvent(new Event('submit', { cancelable: true }));
+        } else {
+            window.enviarAprovacaoFlag = false;
+            if (btn) {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        }
+    } catch (err) {
+        console.error('❌ Erro ao enviar para aprovação:', err);
         window.enviarAprovacaoFlag = false;
+        if (btn) {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
+        // Tentar submeter mesmo assim
+        window.enviarAprovacaoFlag = true;
+        const form = document.getElementById('reportForm');
+        if (form) form.dispatchEvent(new Event('submit', { cancelable: true }));
     }
 }
+
 
 async function criarLembrete(projetoId, texto, silent = false) {
   try {
@@ -4557,5 +4554,182 @@ document.addEventListener('DOMContentLoaded', initSelect2);
 
 <!-- Auto Save Script -->
 <script src="{{ url_for('static', filename='js/reports_autosave.js') }}"></script>
+
+<!-- Checklist da Obra - Sistema Dinâmico -->
+<script>
+// ============================================================================
+// CHECKLIST DA OBRA - SISTEMA DINÂMICO POR ETAPAS
+// Cada item do checklist é uma etapa do projeto. Uma vez concluída em um
+// relatório, desaparece dos próximos (exceto o próprio relatório que marcou).
+// ============================================================================
+
+window._checklistCarregado = false;
+window._checklistItemsData = []; // Array de {id, texto, concluido}
+
+/**
+ * Carrega os itens do checklist da API, filtrando itens concluídos por outros
+ * relatórios (baseado no relatorio_id atual ou 'new' para novos relatórios).
+ */
+async function carregarChecklistObra() {
+    const projetoId = document.getElementById('projeto_id')?.value;
+    if (!projetoId) return;
+
+    // Determine current report ID (for editing mode) or null (new report)
+    const relatorioId = window.currentReportId || null;
+
+    const url = relatorioId
+        ? `/api/projeto/${projetoId}/checklist?relatorio_id=${relatorioId}`
+        : `/api/projeto/${projetoId}/checklist`;
+
+    const container = document.getElementById('checklistItemsDynamic');
+    const semItensDiv = document.getElementById('checklistSemItens');
+    const badge = document.getElementById('checklistBadge');
+    const linkConfig = document.getElementById('linkConfigurarChecklist');
+
+    try {
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        if (!data.success) throw new Error(data.error || 'Erro ao carregar');
+
+        const items = data.checklist || [];
+
+        // Update badge
+        if (badge) {
+            badge.textContent = `${items.length} item${items.length !== 1 ? 's' : ''}`;
+            badge.className = 'badge ms-2';
+            badge.style.fontSize = '11px';
+            badge.classList.add(items.length === 0 ? 'bg-secondary' : 'bg-primary');
+        }
+
+        if (linkConfig && projetoId) {
+            linkConfig.href = `/projects/${projetoId}/checklist`;
+        }
+
+        if (items.length === 0) {
+            container.innerHTML = '';
+            semItensDiv?.classList.remove('d-none');
+            window._checklistCarregado = true;
+            return;
+        }
+
+        semItensDiv?.classList.add('d-none');
+
+        // Store data for autosave
+        window._checklistItemsData = items.map(i => ({
+            id: i.id,
+            texto: i.texto,
+            concluido: i.checked_in_this_report || false
+        }));
+
+        // Render items
+        let html = '';
+        items.forEach((item, idx) => {
+            const checked = item.checked_in_this_report ? 'checked' : '';
+            const itemId = `cl_item_${item.id}`;
+            html += `
+            <div class="d-flex align-items-start mb-3 p-2 rounded" 
+                 style="border: 1px solid ${checked ? '#28a745' : '#dee2e6'}; background: ${checked ? '#f0fff4' : '#fff'};"
+                 id="cl_row_${item.id}">
+                <input class="form-check-input me-3 mt-1 flex-shrink-0" 
+                       type="checkbox" 
+                       id="${itemId}" 
+                       data-item-id="${item.id}"
+                       ${checked}
+                       onchange="onChecklistItemChange(this, ${item.id})">
+                <div class="flex-grow-1">
+                    <label class="form-check-label fw-bold" for="${itemId}" style="cursor:pointer;">
+                        ${idx + 1}. ${item.texto}
+                    </label>
+                    ${checked ? '<div class="text-success small mt-1"><i class="fas fa-check-circle me-1"></i>Concluído neste relatório</div>' : ''}
+                </div>
+            </div>`;
+        });
+
+        container.innerHTML = html;
+        window._checklistCarregado = true;
+
+    } catch (err) {
+        console.error('Erro ao carregar checklist:', err);
+        if (container) {
+            container.innerHTML = `<div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Não foi possível carregar o checklist. <button class="btn btn-sm btn-link" onclick="carregarChecklistObra()">Tentar novamente</button>
+            </div>`;
+        }
+    }
+}
+
+/**
+ * Chamado quando o usuário marca/desmarca um item do checklist.
+ * Atualiza o estado local e aciona o autosave.
+ */
+function onChecklistItemChange(checkbox, itemId) {
+    const isChecked = checkbox.checked;
+
+    // Update local state
+    const entry = window._checklistItemsData.find(e => e.id === itemId);
+    if (entry) {
+        entry.concluido = isChecked;
+    }
+
+    // Update row styling for immediate feedback
+    const row = document.getElementById(`cl_row_${itemId}`);
+    const label = row?.querySelector('label');
+    const infoDiv = row?.querySelector('.text-success');
+
+    if (row) {
+        row.style.borderColor = isChecked ? '#28a745' : '#dee2e6';
+        row.style.background = isChecked ? '#f0fff4' : '#fff';
+    }
+
+    if (isChecked && row && !infoDiv) {
+        const feedback = document.createElement('div');
+        feedback.className = 'text-success small mt-1';
+        feedback.innerHTML = '<i class="fas fa-check-circle me-1"></i>Será concluído ao salvar';
+        row.querySelector('.flex-grow-1')?.appendChild(feedback);
+    } else if (!isChecked && infoDiv) {
+        infoDiv.remove();
+    }
+
+    // Trigger autosave
+    triggerAutosaveFromChecklist();
+}
+
+/**
+ * Returns the checklist data array for inclusion in the autosave payload.
+ * Should be called by the autosave system when collecting report data.
+ */
+window.getChecklistDataForAutosave = function() {
+    if (!window._checklistCarregado) return null;
+    return window._checklistItemsData;
+};
+
+/**
+ * Triggers the autosave system when a checklist item is changed.
+ */
+function triggerAutosaveFromChecklist() {
+    if (window.autoSaveInstance && typeof window.autoSaveInstance.triggerSave === 'function') {
+        window.autoSaveInstance.triggerSave();
+    }
+}
+
+// Auto-load checklist when the collapse panel opens
+document.addEventListener('DOMContentLoaded', function() {
+    const collapseEl = document.getElementById('collapseChecklist');
+    if (collapseEl) {
+        collapseEl.addEventListener('show.bs.collapse', function() {
+            if (!window._checklistCarregado) {
+                carregarChecklistObra();
+            }
+        });
+    }
+    
+    // Also try to load after a short delay if we're in edit mode
+    if (window.currentReportId) {
+        setTimeout(carregarChecklistObra, 800);
+    }
+});
+</script>
 
 {% endblock %}

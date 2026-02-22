@@ -669,9 +669,15 @@ class ChecklistObra(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Completion tracking — per project stage
+    concluido = db.Column(db.Boolean, default=False, nullable=False)
+    concluido_relatorio_id = db.Column(db.Integer, db.ForeignKey("relatorios.id"), nullable=True)
+    concluido_em = db.Column(db.DateTime, nullable=True)
+
     # Relacionamentos
     projeto = db.relationship("Projeto", backref="checklist_personalizado")
     criador = db.relationship("User", backref="checklists_criados")
+    concluido_relatorio = db.relationship("Relatorio", foreign_keys=[concluido_relatorio_id], backref="checklist_items_concluidos")
 
     # Validação única para ordem dentro do projeto
     __table_args__ = (db.UniqueConstraint("projeto_id", "ordem", name="unique_ordem_por_projeto"),)

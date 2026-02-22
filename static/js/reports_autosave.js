@@ -422,9 +422,26 @@ class ReportsAutoSave {
     }
 
     getChecklistData() {
-        const checklistData = [];
+        // === NOVA LÓGICA: usar o sistema dinâmico de checklist por obra ===
+        // window.getChecklistDataForAutosave é definido em form_complete.html
+        if (typeof window.getChecklistDataForAutosave === 'function') {
+            const dynamicData = window.getChecklistDataForAutosave();
+            if (dynamicData !== null && dynamicData !== undefined) {
+                const result = dynamicData.map(item => ({
+                    id: item.id,
+                    texto: item.texto,
+                    concluido: item.concluido,
+                    // Legacy fields for backward compatibility
+                    descricao: item.texto,
+                    completado: item.concluido
+                }));
+                console.log(`📋 AutoSave - Checklist (dinâmico): ${result.length} itens`, result);
+                return result;
+            }
+        }
 
-        // Coletar itens do checklist EXATAMENTE como o botão concluir faz (linhas 1521-1542 de form_complete.html)
+        // ===  Fallback: ler do DOM estático (modo antigo/padrão) ===
+        const checklistData = [];
         document.querySelectorAll('.checklist-item').forEach(item => {
             const checkbox = item.querySelector('.form-check-input[type="checkbox"]');
             const label = item.querySelector('.form-check-label');
@@ -443,9 +460,10 @@ class ReportsAutoSave {
             }
         });
 
-        console.log(`📋 AutoSave - Checklist: ${checklistData.length} itens coletados`, checklistData);
+        console.log(`📋 AutoSave - Checklist (fallback DOM): ${checklistData.length} itens`, checklistData);
         return checklistData;
     }
+
 
     /**
      * Função de coleta de imagens conforme especificação técnica

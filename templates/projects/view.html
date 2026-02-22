@@ -236,6 +236,34 @@
     </div>
 </div>
 
+<!-- Checklist Progress Card — entre Estatísticas e Informações da Obra -->
+<div class="row mb-4" id="checklistProgressSection">
+    <div class="col-12">
+        <div class="card shadow-sm border-0" style="border-left: 4px solid #007bff !important;">
+            <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #007bff11, #ffffff);">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tasks me-2 text-primary"></i>
+                    Progresso do Checklist
+                    <span id="checklistProgressBadge" class="badge bg-secondary ms-2 fs-7"></span>
+                </h5>
+                <div>
+                    <a href="{{ url_for('project_checklist_view', project_id=project.id) }}" class="btn btn-sm btn-outline-primary me-2">
+                        <i class="fas fa-cog me-1"></i>Configurar
+                    </a>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="carregarProgressoChecklist()" title="Atualizar">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body" id="checklistProgressBody">
+                <div class="text-center py-3 text-muted">
+                    <i class="fas fa-spinner fa-spin me-2"></i>Carregando progresso...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Tabs -->
 <div class="row">
     <div class="col-12">
@@ -895,5 +923,117 @@ function carregarChecklist() {
             `;
         });
 }
-</script></head></old_str>
+</script>
+
+<!-- Checklist Progress Loader -->
+<script>
+async function carregarProgressoChecklist() {
+    const body = document.getElementById('checklistProgressBody');
+    const badge = document.getElementById('checklistProgressBadge');
+    if (!body) return;
+
+    body.innerHTML = '<div class="text-center py-3 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Carregando...</div>';
+
+    try {
+        const resp = await fetch(`/api/projeto/${projetoId}/checklist/progresso`);
+        const data = await resp.json();
+
+        if (!data.success) throw new Error(data.error || 'Erro ao carregar');
+
+        const { items, total, concluidos, pendentes, percentual } = data;
+
+        if (badge) {
+            badge.textContent = `${concluidos}/${total}`;
+            badge.className = `badge ms-2 ${concluidos === total && total > 0 ? 'bg-success' : 'bg-primary'}`;
+        }
+
+        if (total === 0) {
+            body.innerHTML = `<div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle me-2"></i>
+                Nenhum item de checklist configurado para esta obra.
+                <a href="/projects/${projetoId}/checklist" class="ms-2 btn btn-sm btn-outline-primary">Configurar Checklist</a>
+            </div>`;
+            return;
+        }
+
+        const progressColor = percentual >= 100 ? 'bg-success' : percentual >= 50 ? 'bg-primary' : 'bg-warning';
+        
+        let html = `
+        <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-bold">${concluidos} de ${total} etapas concluídas</span>
+                <span class="fw-bold text-${percentual >= 100 ? 'success' : 'primary'}">${percentual}%</span>
+            </div>
+            <div class="progress" style="height: 12px; border-radius: 6px;">
+                <div class="progress-bar ${progressColor}" role="progressbar" 
+                     style="width: ${percentual}%; border-radius: 6px; transition: width 0.6s ease;"
+                     aria-valuenow="${percentual}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:40px;">#</th>
+                        <th>Etapa / Item</th>
+                        <th style="width:130px;">Status</th>
+                        <th>Concluído por</th>
+                        <th style="width:110px;">Data</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        items.forEach((item, idx) => {
+            const done = item.concluido;
+            const rel = item.concluido_relatorio;
+            html += `
+            <tr>
+                <td class="text-muted">${item.ordem || idx + 1}</td>
+                <td class="fw-medium">${item.texto}</td>
+                <td>
+                    ${done
+                        ? '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Concluído</span>'
+                        : '<span class="badge bg-secondary"><i class="fas fa-clock me-1"></i>Pendente</span>'
+                    }
+                </td>
+                <td>
+                    ${done && rel
+                        ? `<a href="${rel.url}" class="text-decoration-none text-primary" target="_blank">
+                            <i class="fas fa-file-alt me-1"></i>${rel.numero} — ${rel.titulo || ''}
+                           </a>`
+                        : '<span class="text-muted">—</span>'
+                    }
+                </td>
+                <td class="text-muted small">${item.concluido_em || '—'}</td>
+            </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+        body.innerHTML = html;
+
+    } catch (err) {
+        console.error('Erro ao carregar progresso checklist:', err);
+        body.innerHTML = `<div class="alert alert-warning mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Não foi possível carregar o progresso do checklist.
+            <button class="btn btn-sm btn-link" onclick="carregarProgressoChecklist()">Tentar novamente</button>
+        </div>`;
+    }
+}
+
+// Carregar ao abrir a aba de checklist
+document.addEventListener('DOMContentLoaded', function() {
+    // Load checklist progress immediately on page load
+    carregarProgressoChecklist();
+
+    // Reload when checklist tab is shown
+    const checklistTab = document.getElementById('checklist-tab');
+    if (checklistTab) {
+        checklistTab.addEventListener('shown.bs.tab', function() {
+            const contentContainer = document.getElementById('checklist-content');
+            if (contentContainer) carregarChecklist();
+        });
+    }
+});
+</script>
 {% endblock %}
