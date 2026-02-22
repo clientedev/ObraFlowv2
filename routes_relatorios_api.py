@@ -275,6 +275,32 @@ def api_criar_relatorio():
         db.session.add(novo_relatorio)
         db.session.flush()  # Obter ID sem fazer commit
 
+        # === NOVA LÓGICA: marcar itens ChecklistObra na criação via autosave ===
+        if data.get('checklist_data'):
+            try:
+                from models import ChecklistObra
+                from datetime import datetime as _dt
+                import json
+                
+                checklist_items = data['checklist_data']
+                if isinstance(checklist_items, str):
+                    checklist_items = json.loads(checklist_items)
+                    
+                if isinstance(checklist_items, list):
+                    for item in checklist_items:
+                        item_id = item.get('id')
+                        is_checked = item.get('concluido', False)
+                        
+                        if item_id and is_checked:
+                            obra_item = ChecklistObra.query.get(item_id)
+                            if obra_item and obra_item.projeto_id == novo_relatorio.projeto_id:
+                                if not obra_item.concluido:
+                                    obra_item.concluido = True
+                                    obra_item.concluido_relatorio_id = novo_relatorio.id
+                                    obra_item.concluido_em = _dt.utcnow()
+            except Exception as e:
+                logger.error(f"Erro ao atualizar ChecklistObra na criacao via API: {e}")
+
         # Processar imagens se houver
         imagens_salvas = []
         if files:

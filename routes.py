@@ -3560,6 +3560,28 @@ def create_report():
             db.session.flush()  # Get the ID
             current_app.logger.info(f"✅ RELATÓRIO ID={relatorio.id} NÚMERO={relatorio.numero}")
 
+            # Process ChecklistObra newly checked items for new reports
+            if checklist_data:
+                try:
+                    from models import ChecklistObra
+                    from datetime import datetime as _dt
+                    import json
+                    
+                    items = checklist_data if isinstance(checklist_data, list) else json.loads(checklist_data)
+                    for item in items:
+                        item_id = item.get('id')
+                        is_checked = item.get('concluido', False) or item.get('completado', False)
+                        
+                        if item_id and is_checked:
+                            obra_item = ChecklistObra.query.get(item_id)
+                            if obra_item and obra_item.projeto_id == relatorio.projeto_id:
+                                if not obra_item.concluido:
+                                    obra_item.concluido = True
+                                    obra_item.concluido_relatorio_id = relatorio.id
+                                    obra_item.concluido_em = _dt.utcnow()
+                except Exception as e:
+                    current_app.logger.error(f"Erro ao atualizar ChecklistObra na criacao do relatorio: {e}")
+
             # VERIFICAR SE JÁ EXISTEM FOTOS (do autosave) - Evitar duplicação
             fotos_existentes = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).count()
             if fotos_existentes > 0:
