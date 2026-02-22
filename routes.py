@@ -9793,23 +9793,44 @@ def api_get_project_checklist(project_id):
                         'checked_in_this_report': concluido and concluido_rel_id == relatorio_id
                     })
         
-        # Se não tiver personalizado ou não tiver itens, usar padrão
-        if not checklist_items and relatorio_id is None:
+        # Se não tiver personalizado ou se a lista de itens personalizados ficou vazia
+        # (mas o tipo era padrão ou não tinha config), usar o checklist padrão.
+        if (not config or config.tipo_checklist == 'padrao') and not checklist_items:
             items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
             checklist_type = 'padrao'
             
+            # For default checklist, we don't have a ChecklistObra record.
+            # We must check the report's JSON checklist_data to see what is checked.
+            checked_ids = []
+            if relatorio_id:
+                rel = db.session.get(Relatorio, relatorio_id)
+                if rel and rel.checklist_data:
+                    import json
+                    try:
+                        data = rel.checklist_data
+                        if isinstance(data, str):
+                            data = json.loads(data)
+                        if isinstance(data, list):
+                            checked_ids = [str(item.get('id', '')) for item in data if item.get('concluido')]
+                    except:
+                        pass
+            
             for item in items:
+                # Default checklist items don't disappear when checked by other reports currently,
+                # because they are not project-stages. We just show what the current report checked.
+                is_checked = str(item.id) in checked_ids
+                
                 checklist_items.append({
                     'id': item.id,
                     'texto': item.texto,
                     'ordem': item.ordem or 0,
                     'descricao': getattr(item, 'descricao', '') or '',
                     'categoria': getattr(item, 'categoria', 'Geral') or 'Geral',
-                    'concluido': False,
-                    'concluido_relatorio_id': None,
+                    'concluido': is_checked,
+                    'concluido_relatorio_id': relatorio_id if is_checked else None,
                     'concluido_em': None,
                     'concluido_relatorio': None,
-                    'checked_in_this_report': False
+                    'checked_in_this_report': is_checked
                 })
         
         return jsonify({
