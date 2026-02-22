@@ -1,7 +1,7 @@
 """add checklist obra completion tracking
 
 Revision ID: 20260221_checklist_completion
-Revises: 0d8a27655353
+Revises: add_user_devices
 Create Date: 2026-02-21 20:30:00
 
 Adds concluido, concluido_relatorio_id, concluido_em to checklist_obra
@@ -13,9 +13,10 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '20260221_checklist_completion'
-down_revision = '0d8a27655353'
+down_revision = 'add_user_devices'
 branch_labels = None
 depends_on = None
+
 
 
 def upgrade():
