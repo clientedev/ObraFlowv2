@@ -49,9 +49,9 @@
                     </div>
                     <div class="col-md-6">
                         <p><strong>Total de itens:</strong> {{ checklist_items|length }}</p>
-                        <p><strong>Criado por:</strong> {{ config.criador.nome_completo }}</p>
-                        <p><strong>Criado em:</strong> {{ config.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
-                        {% if config.updated_at != config.created_at %}
+                        {% if config.criador %}<p><strong>Criado por:</strong> {{ config.criador.nome_completo }}</p>{% endif %}
+                        {% if config.created_at %}<p><strong>Criado em:</strong> {{ config.created_at.strftime('%d/%m/%Y %H:%M') }}</p>{% endif %}
+                        {% if config.updated_at and config.created_at and config.updated_at != config.created_at %}
                         <p><strong>Última atualização:</strong> {{ config.updated_at.strftime('%d/%m/%Y %H:%M') }}</p>
                         {% endif %}
                     </div>
@@ -71,13 +71,22 @@
                 <div class="list-group">
                     {% for item in checklist_items %}
                     <div class="list-group-item">
-                        <div class="d-flex align-items-start">
-                            <div class="me-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 flex-shrink-0">
                                 <span class="badge bg-primary rounded-pill">{{ item.ordem }}</span>
                             </div>
                             <div class="flex-grow-1">
                                 <p class="mb-0">{{ item.texto }}</p>
                             </div>
+                            {% if item.concluido is defined %}
+                            <div class="ms-2 flex-shrink-0">
+                                {% if item.concluido %}
+                                    <span class="badge bg-success"><i class="fas fa-check me-1"></i>Concluído</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Pendente</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
