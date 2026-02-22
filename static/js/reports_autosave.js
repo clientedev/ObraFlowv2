@@ -237,12 +237,17 @@ class ReportsAutoSave {
             const pergunta = item.item || item.pergunta || item.texto;
             const concluido = item.completed || item.concluido || item.resposta;
 
-            // Tentar encontrar o checkbox correspondente
-            const checkboxes = document.querySelectorAll('.checklist-item .form-check-input[type="checkbox"]');
+            // Funciona para elementos legados E os novos do dynamic container
+            const checkboxes = document.querySelectorAll('.form-check-input[type="checkbox"]');
             checkboxes.forEach(checkbox => {
-                const label = checkbox.closest('.checklist-item')?.querySelector('.form-check-label');
+                const label = checkbox.nextElementSibling || checkbox.parentElement.querySelector('label') || checkbox.closest('div')?.querySelector('label');
                 if (label && label.textContent.trim().includes(pergunta)) {
                     checkbox.checked = concluido;
+                    // Trigger style update se for o novo sistema dinâmico
+                    if (typeof onChecklistItemChange === 'function') {
+                        const itemId = checkbox.getAttribute('data-item-id');
+                        if (itemId) onChecklistItemChange(checkbox, itemId);
+                    }
                 }
             });
         });

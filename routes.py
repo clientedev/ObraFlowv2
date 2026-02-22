@@ -9758,117 +9758,72 @@ def api_checklist_default():
 @app.route('/api/projeto/<int:project_id>/checklist')
 @login_required
 def api_get_project_checklist(project_id):
-    """API para obter checklist do projeto (personalizado ou padrão)"""
+    """API para obter checklist do projeto (agora sempre usando ChecklistObra)"""
     try:
         projeto = Projeto.query.get_or_404(project_id)
         
         # Optional: relatorio_id to filter items visible for a specific report
         relatorio_id = request.args.get('relatorio_id', type=int)
         
-        # Verificar configuração de checklist do projeto
-        config = ProjetoChecklistConfig.query.filter_by(projeto_id=project_id).first()
+        # O novo sistema sempre exige itens no ChecklistObra para tracking fidedigno
+        ensure_project_checklist(project_id)
+        
+        # Buscar itens do checklist
+        items = ChecklistObra.query.filter_by(
+            projeto_id=project_id, 
+            ativo=True
+        ).order_by(ChecklistObra.ordem).all()
         
         checklist_items = []
-        checklist_type = 'padrao'
         
-        if config and config.tipo_checklist == 'personalizado':
-            # Buscar checklist personalizado da obra
-            items = ChecklistObra.query.filter_by(
-                projeto_id=project_id, 
-                ativo=True
-            ).order_by(ChecklistObra.ordem).all()
+        for item in items:
+            # Determine if this item should be visible in this report context
+            concluido = getattr(item, 'concluido', False) or False
+            concluido_rel_id = getattr(item, 'concluido_relatorio_id', None)
+            concluido_em = getattr(item, 'concluido_em', None)
             
-            if items:
-                checklist_type = 'personalizado'
-                for item in items:
-                    # Determine if this item should be visible in this report context
-                    concluido = getattr(item, 'concluido', False) or False
-                    concluido_rel_id = getattr(item, 'concluido_relatorio_id', None)
-                    concluido_em = getattr(item, 'concluido_em', None)
-                    
-                    # For report context: skip items completed by OTHER reports
-                    if relatorio_id is not None:
-                        if concluido and concluido_rel_id and concluido_rel_id != relatorio_id:
-                            # Completed by another report — do not show in this report
-                            continue
-                    
-                    # Build completion info
-                    relatorio_info = None
-                    if concluido and concluido_rel_id:
-                        rel = db.session.get(Relatorio, concluido_rel_id)
-                        if rel:
-                            relatorio_info = {
-                                'id': rel.id,
-                                'numero': rel.numero,
-                                'titulo': rel.titulo,
-                                'data': rel.data_relatorio.strftime('%d/%m/%Y') if rel.data_relatorio else ''
-                            }
-                    
-                    checklist_items.append({
-                        'id': item.id,
-                        'texto': item.texto,
-                        'ordem': item.ordem or 0,
-                        'concluido': concluido,
-                        'concluido_relatorio_id': concluido_rel_id,
-                        'concluido_em': concluido_em.strftime('%d/%m/%Y %H:%M') if concluido_em else None,
-                        'concluido_relatorio': relatorio_info,
-                        'checked_in_this_report': concluido and concluido_rel_id == relatorio_id
-                    })
-        
-        # Se não tiver personalizado ou se a lista de itens personalizados ficou vazia
-        # (mas o tipo era padrão ou não tinha config), usar o checklist padrão.
-        if (not config or config.tipo_checklist == 'padrao') and not checklist_items:
-            items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
-            checklist_type = 'padrao'
+            # For report context: skip items completed by OTHER reports
+            if relatorio_id is not None:
+                if concluido and concluido_rel_id and concluido_rel_id != relatorio_id:
+                    # Completed by another report — do not show in this report
+                    continue
             
-            # For default checklist, we don't have a ChecklistObra record.
-            # We must check the report's JSON checklist_data to see what is checked.
-            checked_ids = []
-            if relatorio_id:
-                rel = db.session.get(Relatorio, relatorio_id)
-                if rel and rel.checklist_data:
-                    import json
-                    try:
-                        data = rel.checklist_data
-                        if isinstance(data, str):
-                            data = json.loads(data)
-                        if isinstance(data, list):
-                            checked_ids = [str(item.get('id', '')) for item in data if item.get('concluido')]
-                    except:
-                        pass
+            # Build completion info
+            relatorio_info = None
+            if concluido and concluido_rel_id:
+                rel = db.session.get(Relatorio, concluido_rel_id)
+                if rel:
+                    relatorio_info = {
+                        'id': rel.id,
+                        'numero': rel.numero,
+                        'titulo': rel.titulo,
+                        'data': rel.data_relatorio.strftime('%d/%m/%Y') if rel.data_relatorio else ''
+                    }
             
-            for item in items:
-                # Default checklist items don't disappear when checked by other reports currently,
-                # because they are not project-stages. We just show what the current report checked.
-                is_checked = str(item.id) in checked_ids
-                
-                checklist_items.append({
-                    'id': item.id,
-                    'texto': item.texto,
-                    'ordem': item.ordem or 0,
-                    'descricao': getattr(item, 'descricao', '') or '',
-                    'categoria': getattr(item, 'categoria', 'Geral') or 'Geral',
-                    'concluido': is_checked,
-                    'concluido_relatorio_id': relatorio_id if is_checked else None,
-                    'concluido_em': None,
-                    'concluido_relatorio': None,
-                    'checked_in_this_report': is_checked
-                })
-        
+            checklist_items.append({
+                'id': item.id,
+                'texto': item.texto,
+                'ordem': item.ordem or 0,
+                'descricao': getattr(item, 'descricao', '') or '',
+                'categoria': getattr(item, 'categoria', 'Geral') or 'Geral',
+                'concluido': concluido,
+                'concluido_relatorio_id': concluido_rel_id,
+                'concluido_em': concluido_em.strftime('%d/%m/%Y %H:%M') if concluido_em else None,
+                'concluido_relatorio': relatorio_info,
+                'checked_in_this_report': concluido and concluido_rel_id == relatorio_id
+            })
+            
         return jsonify({
             'success': True,
             'checklist': checklist_items,
-            'tipo': checklist_type,
-            'project_id': project_id,
-            'project_name': projeto.nome,
-            'total': len(checklist_items)
+            'tipo': 'personalizado',
+            'project_id': project_id
         })
-    
     except Exception as e:
-        current_app.logger.error(f"Erro ao carregar checklist do projeto {project_id}: {str(e)}")
+        current_app.logger.error(f"Erro ao buscar checklist do projeto {project_id}: {str(e)}")
         return jsonify({
             'success': False,
-            'error': 'Erro ao carregar checklist',
+            'error': 'Erro ao carregar checklist do projeto',
             'details': str(e)
         }), 500
 
@@ -9878,58 +9833,41 @@ def api_get_checklist_progresso(project_id):
     """API para visualização do progresso do checklist na tela da obra"""
     try:
         projeto = Projeto.query.get_or_404(project_id)
-        config = ProjetoChecklistConfig.query.filter_by(projeto_id=project_id).first()
+        
+        # O novo sistema sempre exige itens no ChecklistObra para tracking fidedigno
+        ensure_project_checklist(project_id)
+        
+        items = ChecklistObra.query.filter_by(
+            projeto_id=project_id,
+            ativo=True
+        ).order_by(ChecklistObra.ordem).all()
         
         items_data = []
-        checklist_type = 'padrao'
-        
-        if config and config.tipo_checklist == 'personalizado':
-            items = ChecklistObra.query.filter_by(
-                projeto_id=project_id,
-                ativo=True
-            ).order_by(ChecklistObra.ordem).all()
+        for item in items:
+            concluido = getattr(item, 'concluido', False) or False
+            concluido_rel_id = getattr(item, 'concluido_relatorio_id', None)
+            concluido_em = getattr(item, 'concluido_em', None)
 
-            if items:
-                checklist_type = 'personalizado'
-                for item in items:
-                    concluido = getattr(item, 'concluido', False) or False
-                    concluido_rel_id = getattr(item, 'concluido_relatorio_id', None)
-                    concluido_em = getattr(item, 'concluido_em', None)
+            relatorio_info = None
+            if concluido and concluido_rel_id:
+                rel = db.session.get(Relatorio, concluido_rel_id)
+                if rel:
+                    relatorio_info = {
+                        'id': rel.id,
+                        'numero': rel.numero,
+                        'titulo': rel.titulo,
+                        'data': rel.data_relatorio.strftime('%d/%m/%Y') if rel.data_relatorio else '',
+                        'url': f'/reports/{rel.id}/view'
+                    }
 
-                    relatorio_info = None
-                    if concluido and concluido_rel_id:
-                        rel = db.session.get(Relatorio, concluido_rel_id)
-                        if rel:
-                            relatorio_info = {
-                                'id': rel.id,
-                                'numero': rel.numero,
-                                'titulo': rel.titulo,
-                                'data': rel.data_relatorio.strftime('%d/%m/%Y') if rel.data_relatorio else '',
-                                'url': f'/reports/{rel.id}/view'
-                            }
-
-                    items_data.append({
-                        'id': item.id,
-                        'texto': item.texto,
-                        'ordem': item.ordem or 0,
-                        'concluido': concluido,
-                        'concluido_em': concluido_em.strftime('%d/%m/%Y %H:%M') if concluido_em else None,
-                        'concluido_relatorio': relatorio_info
-                    })
-
-        if not items_data:
-            # Usar padrão se não existir personalizado
-            items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
-            checklist_type = 'padrao'
-            for item in items:
-                items_data.append({
-                    'id': item.id,
-                    'texto': item.texto,
-                    'ordem': item.ordem or 0,
-                    'concluido': False,
-                    'concluido_em': None,
-                    'concluido_relatorio': None
-                })
+            items_data.append({
+                'id': item.id,
+                'texto': item.texto,
+                'ordem': item.ordem or 0,
+                'concluido': concluido,
+                'concluido_em': concluido_em.strftime('%d/%m/%Y %H:%M') if concluido_em else None,
+                'concluido_relatorio': relatorio_info
+            })
 
         total = len(items_data)
         concluidos = sum(1 for i in items_data if i['concluido'])
@@ -11072,6 +11010,33 @@ def geocode_address():
 
 
 # ====== PROJECT CHECKLIST ROUTES ======
+
+def ensure_project_checklist(project_id):
+    """Garante que o projeto tenha itens no ChecklistObra. Se vazio, copia do padrão."""
+    items = ChecklistObra.query.filter_by(projeto_id=project_id, ativo=True).all()
+    if not items:
+        padrao = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+        for p_item in padrao:
+            novo_item = ChecklistObra(
+                projeto_id=project_id,
+                texto=p_item.texto,
+                ordem=p_item.ordem,
+                ativo=True
+            )
+            # Try to populate default fields if the model supports them, otherwise fallback to safe creation
+            try:
+                if hasattr(novo_item, 'descricao') and hasattr(p_item, 'descricao'): 
+                    novo_item.descricao = p_item.descricao
+                if hasattr(novo_item, 'categoria') and hasattr(p_item, 'categoria'): 
+                    novo_item.categoria = p_item.categoria
+            except Exception:
+                pass
+            db.session.add(novo_item)
+        try:
+            db.session.commit()
+        except:
+            db.session.rollback()
+    return ChecklistObra.query.filter_by(projeto_id=project_id, ativo=True).order_by(ChecklistObra.ordem).all()
 
 @app.route("/projects/<int:project_id>/checklist")
 @login_required 
