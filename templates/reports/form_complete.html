@@ -4557,6 +4557,8 @@ document.addEventListener('DOMContentLoaded', initSelect2);
 
 <!-- Checklist da Obra - Sistema Dinâmico -->
 <script>
+window.currentReportId = {% if relatorio %}{{ relatorio.id }}{% else %}null{% endif %};
+
 // ============================================================================
 // CHECKLIST DA OBRA - SISTEMA DINÂMICO POR ETAPAS
 // Cada item do checklist é uma etapa do projeto. Uma vez concluída em um
