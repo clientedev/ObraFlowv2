@@ -11063,22 +11063,21 @@ def project_checklist_view(project_id):
         # Default to standard checklist
         config = ProjetoChecklistConfig(
             projeto_id=project_id,
-            tipo_checklist="padrao",
+            tipo_checklist="personalizado",
             criado_por=current_user.id
         )
         db.session.add(config)
         db.session.commit()
+    elif config.tipo_checklist != "personalizado":
+        config.tipo_checklist = "personalizado"
+        db.session.commit()
 
     # Get appropriate checklist items
-    if config.tipo_checklist == "personalizado":
-        checklist_items = ChecklistObra.query.filter_by(
-            projeto_id=project_id, 
-            ativo=True
-        ).order_by(ChecklistObra.ordem).all()
-    else:
-        checklist_items = ChecklistPadrao.query.filter_by(
-            ativo=True
-        ).order_by(ChecklistPadrao.ordem).all()
+    ensure_project_checklist(project_id)
+    checklist_items = ChecklistObra.query.filter_by(
+        projeto_id=project_id, 
+        ativo=True
+    ).order_by(ChecklistObra.ordem).all()
 
     return render_template("projects/checklist_view.html", 
                          project=project, 
@@ -11104,35 +11103,37 @@ def project_checklist_config(project_id):
         if not config:
             config = ProjetoChecklistConfig(
                 projeto_id=project_id,
-                tipo_checklist=tipo_checklist,
+                tipo_checklist="personalizado",
                 criado_por=current_user.id
             )
             db.session.add(config)
         else:
-            config.tipo_checklist = tipo_checklist
+            config.tipo_checklist = "personalizado"
             config.updated_at = datetime.utcnow()
 
-        # If switching to personalizado and no custom items exist, create from padrao
-        if tipo_checklist == "personalizado":
-            existing_custom = ChecklistObra.query.filter_by(projeto_id=project_id).count()
-            if existing_custom == 0:
-                # Copy from standard checklist
-                padrao_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
-                for item in padrao_items:
-                    custom_item = ChecklistObra(
-                        projeto_id=project_id,
-                        texto=item.texto,
-                        ordem=item.ordem,
-                        criado_por=current_user.id
-                    )
-                    db.session.add(custom_item)
-
-        db.session.commit()
+        # If switching back to padrao, reset the checklist
+        if tipo_checklist == "padrao":
+            ChecklistObra.query.filter_by(projeto_id=project_id).delete()
+            db.session.commit()
+            
+            padrao_items = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+            for item in padrao_items:
+                custom_item = ChecklistObra(
+                    projeto_id=project_id,
+                    texto=item.texto,
+                    ordem=item.ordem,
+                    criado_por=current_user.id
+                )
+                db.session.add(custom_item)
+            db.session.commit()
+            
+        elif tipo_checklist == "personalizado":
+            ensure_project_checklist(project_id)
 
         return jsonify({
             "success": True,
-            "message": f"Checklist configurado para usar modelo {'personalizado' if tipo_checklist == 'personalizado' else 'padrão'}",
-            "tipo_checklist": tipo_checklist,
+            "message": f"Checklist configurado. Todos os checklists agora são personalizados por obra.",
+            "tipo_checklist": "personalizado",
             "redirect": url_for("project_checklist_edit", project_id=project_id) if tipo_checklist == "personalizado" else None
         })
 
