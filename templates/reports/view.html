@@ -112,9 +112,8 @@
     </div>
 </div>
 
-<!-- Report Information -->
 <div class="row mb-4">
-    <div class="col-md-8">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
@@ -136,67 +135,24 @@
                             <p><strong>Visita Relacionada:</strong> {{ report.visita.data_agendada.strftime('%d/%m/%Y às %H:%M') }}</p>
                         {% endif %}
                         <p><strong>Criado em:</strong> {{ report.created_at.strftime('%d/%m/%Y às %H:%M') }}</p>
+                        {% if report.envios %}
+                        <p><strong>Emails Enviados:</strong> <span class="badge bg-success">{{ report.envios|length }}</span></p>
+                        {% endif %}
                     </div>
                 </div>
                 
                 {% if report.conteudo %}
                 <div class="mt-3">
-                    <strong>Observações Gerais:</strong>
+                    <strong>Detalhes:</strong>
                     <div class="mt-2 p-3 bg-light rounded">
                         {{ report.conteudo.replace('\n', '<br>')|safe }}
                     </div>
                 </div>
                 {% endif %}
+
+                {% include 'reports/_detalhes_visita.html' %}
             </div>
         </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-bar me-2"></i>Estatísticas
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>Total de Fotos:</span>
-                    <span class="badge bg-primary">{{ fotos|length }}</span>
-                </div>
-                {% if report.envios %}
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>Emails Enviados:</span>
-                    <span class="badge bg-success">{{ report.envios|length }}</span>
-                </div>
-                {% endif %}
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>Tipo de Obra:</span>
-                    <span class="badge bg-info">{{ report.projeto.tipo_obra.nome }}</span>
-                </div>
-            </div>
-        </div>
-        
-        {% if report.envios %}
-        <div class="card mt-3">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="fas fa-envelope me-2"></i>Histórico de Envios
-                </h6>
-            </div>
-            <div class="card-body">
-                {% for envio in report.envios %}
-                <div class="mb-2">
-                    <small>
-                        <strong>{{ envio.nome_destinatario or envio.email_destinatario }}</strong><br>
-                        {{ envio.email_destinatario }}<br>
-                        <span class="text-muted">{{ envio.data_envio.strftime('%d/%m/%Y às %H:%M') }}</span>
-                    </small>
-                </div>
-                {% if not loop.last %}<hr class="my-2">{% endif %}
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
     </div>
 </div>
 

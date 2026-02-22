@@ -94,7 +94,7 @@
 
 <!-- Report Information -->
 <div class="row mb-4">
-    <div class="col-md-8">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
@@ -107,16 +107,6 @@
                         <p><strong>Obra:</strong> {{ relatorio.projeto.nome }} ({{ relatorio.projeto.numero }})</p>
                         <p><strong>Autor:</strong> {{ relatorio.autor.nome_completo }}</p>
                         <p><strong>Data do Relatório:</strong> {{ relatorio.data_relatorio.strftime('%d/%m/%Y') }}</p>
-                        {% if acompanhantes_formatados and acompanhantes_formatados|length > 0 %}
-                        <p><strong><i class="fas fa-users me-1"></i>Acompanhantes:</strong></p>
-                        <div class="ms-3">
-                            {% for acomp in acompanhantes_formatados %}
-                                <span class="badge bg-info me-1 mb-1">
-                                    {{ acomp.nome|default('Sem nome') }}{% if acomp.funcao %} ({{ acomp.funcao }}){% endif %}{% if acomp.origem %} - {{ acomp.origem }}{% endif %}
-                                </span>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
                     </div>
                     <div class="col-md-6">
                         {% if relatorio.aprovador %}
@@ -137,13 +127,21 @@
                             </span>
                         </p>
                         {% endif %}
+                        {% if notificacoes and notificacoes|length > 0 %}
+                            <p><strong><i class="fas fa-envelope me-1"></i>Envios Realizados:</strong> <span class="badge bg-success">{{ notificacoes|length }}</span></p>
+                            <div class="ms-3 small">
+                                {% for notif in notificacoes %}
+                                    <div class="text-muted"><i class="fas fa-check text-success me-1"></i> {{ notif.tipo_notificacao }}: {{ notif.destinatario }} ({{ notif.data_envio.strftime('%d/%m/%Y %H:%M') }})</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 
                 {% if relatorio.observacoes_gerais and relatorio.observacoes_gerais != relatorio.observacoes_finais %}
                 <div class="row mt-3">
                     <div class="col-12">
-                        <p><strong><i class="fas fa-align-left me-1"></i>Observações Gerais:</strong></p>
+                        <p><strong><i class="fas fa-align-left me-1"></i>Detalhes:</strong></p>
                         <div class="p-3 bg-white border rounded">
                             {{ relatorio.observacoes_gerais|replace('\n', '<br>')|safe }}
                         </div>
@@ -151,37 +149,8 @@
                 </div>
                 {% endif %}
                 
-                {% if relatorio.observacoes_finais %}
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <p><strong><i class="fas fa-sticky-note me-1"></i>Observações Gerais:</strong></p>
-                        <div class="p-2 bg-light rounded border-start border-warning border-3">
-                            {{ relatorio.observacoes_finais }}
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
+                {% include 'reports/_detalhes_visita.html' %}
 
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-bar me-2"></i>Estatísticas
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>Total de Fotos:</span>
-                    <span class="badge bg-primary">{{ fotos|length }}</span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>Tipo de Obra:</span>
-                    <span class="badge bg-info">{{ relatorio.projeto.tipo_obra if relatorio.projeto.tipo_obra else 'N/A' }}</span>
-                </div>
             </div>
         </div>
     </div>
