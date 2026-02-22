@@ -11061,7 +11061,7 @@ def project_checklist_view(project_id):
 
     return render_template("projects/checklist_view.html", 
                          project=project, 
-                         config=config,
+                         checklist_config=config,
                          checklist_items=checklist_items)
 
 @app.route("/projects/<int:project_id>/checklist/config", methods=["POST"])
