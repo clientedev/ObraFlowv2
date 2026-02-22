@@ -941,6 +941,21 @@ def api_autosave_relatorio():
             else:
                 acompanhantes = []
 
+            # Processar data_relatorio do formulário (input type="date" envia 'YYYY-MM-DD')
+            data_relatorio_val = now_brt()
+            if data.get('data_relatorio'):
+                try:
+                    dr_str = str(data['data_relatorio']).strip()
+                    if len(dr_str) == 10:
+                        # data pura 'YYYY-MM-DD' — usar meio-dia para evitar rollback UTC→BRT
+                        from datetime import date as _dr_date
+                        _dr_d = _dr_date.fromisoformat(dr_str)
+                        data_relatorio_val = datetime(_dr_d.year, _dr_d.month, _dr_d.day, 12, 0, 0)
+                    else:
+                        data_relatorio_val = datetime.fromisoformat(dr_str.replace('Z', '+00:00'))
+                except Exception as _e:
+                    logger.warning(f"Erro ao processar data_relatorio na criação: {_e}")
+
             # Criar novo relatório
             novo_relatorio = Relatorio(
                 numero=numero_formatado,
@@ -959,8 +974,8 @@ def api_autosave_relatorio():
                 observacoes_finais=data.get('observacoes_finais'),
                 lembrete_proxima_visita=lembrete_proxima_visita,
 
-                # Data/hora
-                data_relatorio=now_brt(),
+                # Data/hora — usar data do formulário ou now_brt() como fallback
+                data_relatorio=data_relatorio_val,
 
                 # Status
                 status=data.get('status', 'preenchimento'),
@@ -1038,12 +1053,21 @@ def api_autosave_relatorio():
             # Atualizar data do relatório se fornecida
             if 'data_relatorio' in data and data['data_relatorio']:
                 try:
-                    if isinstance(data['data_relatorio'], str):
-                        relatorio.data_relatorio = datetime.fromisoformat(
-                            data['data_relatorio'].replace('Z', '+00:00')
-                        )
+                    date_val = data['data_relatorio']
+                    if isinstance(date_val, str):
+                        date_val_clean = date_val.strip()
+                        if len(date_val_clean) == 10:
+                            # Formato de data pura 'YYYY-MM-DD' do input HTML date
+                            # Usar meio-dia para evitar rollback UTC→BRT à meia-noite
+                            from datetime import date as _date
+                            parsed = _date.fromisoformat(date_val_clean)
+                            relatorio.data_relatorio = datetime(parsed.year, parsed.month, parsed.day, 12, 0, 0)
+                        else:
+                            relatorio.data_relatorio = datetime.fromisoformat(
+                                date_val_clean.replace('Z', '+00:00')
+                            )
                     else:
-                        relatorio.data_relatorio = data['data_relatorio']
+                        relatorio.data_relatorio = date_val
                 except (ValueError, TypeError) as e:
                     logger.warning(f"Erro ao processar data_relatorio: {e}")
 
