@@ -9784,8 +9784,12 @@ def api_get_project_checklist(project_id):
             
             # For report context: skip items completed by OTHER reports
             if relatorio_id is not None:
+                # Editing an existing report: show items completed by THIS report, hide those of OTHERS
                 if concluido and concluido_rel_id and concluido_rel_id != relatorio_id:
-                    # Completed by another report — do not show in this report
+                    continue
+            else:
+                # Creating a NEW report: hide items already completed by any report
+                if concluido and concluido_rel_id:
                     continue
             
             # Build completion info
@@ -9875,7 +9879,7 @@ def api_get_checklist_progresso(project_id):
         return jsonify({
             'success': True,
             'items': items_data,
-            'tipo': checklist_type,
+            'tipo': 'personalizado',
             'total': total,
             'concluidos': concluidos,
             'pendentes': total - concluidos,
