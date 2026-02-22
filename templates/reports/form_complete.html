@@ -1689,24 +1689,37 @@ document.getElementById('reportForm').addEventListener('submit', async function(
         const formData = new FormData(this);
 
         // Coletar dados do checklist
-        const checklistData = [];
-        document.querySelectorAll('.checklist-item').forEach(item => {
-            const checkbox = item.querySelector('.form-check-input[type="checkbox"]');
-            const label = item.querySelector('.form-check-label');
-            const customInput = item.querySelector('input[type="text"]');
-            const textarea = item.querySelector('textarea');
-
-            if (checkbox) {
-                const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
-                if (itemText) {
-                    checklistData.push({
-                        texto: itemText,
-                        concluido: checkbox.checked,
-                        observacao: textarea ? textarea.value : ''
-                    });
-                }
+        let checklistData = [];
+        if (typeof window.getChecklistDataForAutosave === 'function') {
+            const dynamicData = window.getChecklistDataForAutosave();
+            if (dynamicData) {
+                checklistData = dynamicData.map(item => ({
+                    id: item.id,
+                    texto: item.texto,
+                    concluido: item.concluido,
+                    descricao: item.texto,
+                    completado: item.concluido
+                }));
             }
-        });
+        } else {
+            document.querySelectorAll('.checklist-item').forEach(item => {
+                const checkbox = item.querySelector('.form-check-input[type="checkbox"]');
+                const label = item.querySelector('.form-check-label');
+                const customInput = item.querySelector('input[type="text"]');
+                const textarea = item.querySelector('textarea');
+
+                if (checkbox) {
+                    const itemText = label ? label.textContent.trim() : (customInput ? customInput.value : '');
+                    if (itemText) {
+                        checklistData.push({
+                            texto: itemText,
+                            concluido: checkbox.checked,
+                            observacao: textarea ? textarea.value : ''
+                        });
+                    }
+                }
+            });
+        }
 
         // Adicionar checklist ao FormData
         formData.append('checklist', JSON.stringify(checklistData));
@@ -4733,9 +4746,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Also try to load after a short delay if we're in edit mode
+    // Auto-load in edit mode
     if (window.currentReportId) {
         setTimeout(carregarChecklistObra, 800);
+    }
+    
+    // CRÍTICO: Carregar checklist quando o projeto é selecionado (novo relatório)
+    // Isso garante que os IDs dos items estejam em memória ANTES do primeiro autosave
+    const projectSelect = document.getElementById('projeto_id') || document.querySelector('select[name="projeto_id"]');
+    if (projectSelect) {
+        projectSelect.addEventListener('change', function() {
+            window._checklistCarregado = false;
+            window._checklistItemsData = [];
+            if (this.value) {
+                // Carregar imediatamente (não esperar o painel abrir)
+                setTimeout(carregarChecklistObra, 300);
+            }
+        });
+        
+        // Se projeto já está selecionado na carga da página (novo relatório com projeto pré-selecionado)
+        if (projectSelect.value && !window.currentReportId) {
+            setTimeout(carregarChecklistObra, 500);
+        }
     }
 });
 </script>

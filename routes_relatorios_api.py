@@ -980,6 +980,34 @@ def api_autosave_relatorio():
             print(f"   - Acompanhantes: {acompanhantes}")
             logger.info(f"✅ AutoSave: Novo relatório criado com ID {relatorio_id}")
 
+            # === CRÍTICO: Persistir marcações do checklist na tabela ChecklistObra ===
+            # Sem isso, os itens marcados desaparecem ao editar o relatório
+            if checklist_data:
+                try:
+                    import json as _json
+                    from models import ChecklistObra
+                    from datetime import datetime as _dt
+                    
+                    checklist_items_raw = checklist_data
+                    if isinstance(checklist_items_raw, str):
+                        checklist_items_raw = _json.loads(checklist_items_raw)
+                    
+                    if isinstance(checklist_items_raw, list):
+                        for ci in checklist_items_raw:
+                            item_id = ci.get('id')
+                            is_checked = bool(ci.get('concluido') or ci.get('completado'))
+                            if item_id and is_checked:
+                                obra_item = ChecklistObra.query.get(item_id)
+                                if obra_item and obra_item.projeto_id == novo_relatorio.projeto_id:
+                                    if not obra_item.concluido:
+                                        obra_item.concluido = True
+                                        obra_item.concluido_relatorio_id = relatorio_id
+                                        obra_item.concluido_em = _dt.utcnow()
+                                        print(f"📋 AutoSave CREATE: ChecklistObra item {item_id} marcado como concluído")
+                except Exception as e:
+                    logger.error(f"Erro ao salvar ChecklistObra no autosave CREATE: {e}")
+
+
         # 2️⃣ ATUALIZAR RELATÓRIO EXISTENTE
         else:
             relatorio = Relatorio.query.get(relatorio_id)
@@ -1057,6 +1085,47 @@ def api_autosave_relatorio():
                         relatorio.checklist_data = None
                 else:
                     relatorio.checklist_data = None
+
+                # === CRÍTICO: Persistir marcações na tabela ChecklistObra (UPDATE PATH) ===
+                try:
+                    import json as _json
+                    from models import ChecklistObra
+                    from datetime import datetime as _dt
+                    
+                    checklist_raw = data['checklist_data']
+                    if isinstance(checklist_raw, str):
+                        try:
+                            checklist_raw = _json.loads(checklist_raw)
+                        except:
+                            checklist_raw = []
+                    
+                    if isinstance(checklist_raw, list):
+                        for ci in checklist_raw:
+                            item_id = ci.get('id')
+                            is_checked = bool(ci.get('concluido') or ci.get('completado'))
+                            if not item_id:
+                                continue
+                            obra_item = ChecklistObra.query.get(item_id)
+                            if not obra_item:
+                                continue
+                            if obra_item.projeto_id != relatorio.projeto_id:
+                                continue
+                            
+                            if is_checked:
+                                if not obra_item.concluido:
+                                    obra_item.concluido = True
+                                    obra_item.concluido_relatorio_id = relatorio_id
+                                    obra_item.concluido_em = _dt.utcnow()
+                                    print(f"📋 AutoSave UPDATE: ChecklistObra item {item_id} marcado como concluído")
+                            else:
+                                # Desmarcar somente se FOI este relatório que marcou
+                                if obra_item.concluido and obra_item.concluido_relatorio_id == relatorio_id:
+                                    obra_item.concluido = False
+                                    obra_item.concluido_relatorio_id = None
+                                    obra_item.concluido_em = None
+                                    print(f"📋 AutoSave UPDATE: ChecklistObra item {item_id} desmarcado")
+                except Exception as e:
+                    logger.error(f"Erro ao salvar ChecklistObra no autosave UPDATE: {e}")
 
             # Atualizar acompanhantes - COMPATÍVEL COM ARRAY OU STRING
             if 'acompanhantes' in data:
