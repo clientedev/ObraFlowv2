@@ -1,4 +1,4 @@
-"""
+﻿"""
 API REST para gerenciamento de relatórios com salvamento automático
 Implementação conforme especificação técnica profissional
 """
@@ -248,7 +248,7 @@ def api_criar_relatorio():
             observacoes_finais=data.get('observacoes_finais'),
 
             # Data/hora
-            data_relatorio=datetime.utcnow(),
+            data_relatorio=now_brt(),
 
             # Status
             status=data.get('status', 'preenchimento'),
@@ -364,7 +364,7 @@ def api_criar_relatorio():
             
             # Mudar status para Aguardando Aprovação
             novo_relatorio.status = 'Aguardando Aprovação'
-            novo_relatorio.updated_at = datetime.utcnow()
+            novo_relatorio.updated_at = now_brt()
             
             db.session.commit()
             
@@ -623,7 +623,7 @@ def api_atualizar_relatorio(relatorio_id):
 
         # Atualizar metadados
         relatorio.atualizado_por = current_user.id
-        relatorio.updated_at = datetime.utcnow()
+        relatorio.updated_at = now_brt()
 
         # Processar sincronização de imagens
         imagens_atualizadas = []
@@ -796,7 +796,7 @@ def api_remover_imagem(relatorio_id, imagem_id):
         # Atualizar timestamp do relatório
         relatorio = Relatorio.query.get(relatorio_id)
         if relatorio:
-            relatorio.updated_at = datetime.utcnow()
+            relatorio.updated_at = now_brt()
             relatorio.atualizado_por = current_user.id
 
         db.session.commit()
@@ -960,7 +960,7 @@ def api_autosave_relatorio():
                 lembrete_proxima_visita=lembrete_proxima_visita,
 
                 # Data/hora
-                data_relatorio=datetime.utcnow(),
+                data_relatorio=now_brt(),
 
                 # Status
                 status=data.get('status', 'preenchimento'),
@@ -1153,7 +1153,7 @@ def api_autosave_relatorio():
 
             # Atualizar metadados de auditoria
             relatorio.atualizado_por = current_user.id
-            relatorio.updated_at = datetime.utcnow()
+            relatorio.updated_at = now_brt()
 
             print(f"✅ AutoSave: Relatório {relatorio_id} atualizado")
             logger.info(f"✅ AutoSave: Relatório {relatorio_id} atualizado")
@@ -1457,7 +1457,7 @@ def api_autosave_relatorio():
             
             # Mudar status para Aguardando Aprovação
             relatorio_final.status = 'Aguardando Aprovação'
-            relatorio_final.updated_at = datetime.utcnow()
+            relatorio_final.updated_at = now_brt()
             
             db.session.commit()
             
@@ -1605,7 +1605,7 @@ def approve_relatorio_api(relatorio_id):
         
         relatorio.status = 'Aprovado'
         relatorio.aprovador_id = current_user.id
-        relatorio.data_aprovacao = datetime.utcnow()
+        relatorio.data_aprovacao = now_brt()
         db.session.commit()
         
         logger.info(f"✅ Relatório {relatorio.numero} aprovado")

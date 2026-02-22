@@ -1,4 +1,4 @@
-import os
+﻿import os
 import uuid
 import io
 import hashlib
@@ -106,7 +106,7 @@ def health_check():
             'mode': 'normal',
             'legendas_count': legendas_count,
             'database': 'connected',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': now_brt().isoformat(),
             'version': '1.0.1'
         }), 200
 
@@ -116,7 +116,7 @@ def health_check():
             'message': 'Sistema de Gestão de Construção - ELP',
             'status': 'ERROR',
             'error': str(e),
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': now_brt().isoformat(),
             'version': '1.0.1'
         }), 500
 
@@ -197,7 +197,7 @@ def debug_reports_data():
             'message': 'Sistema de Gestão de Construção - ELP',
             'status': 'ERROR',
             'error': str(e),
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': now_brt().isoformat(),
             'version': '1.0.1'
         }), 500
 
@@ -277,7 +277,7 @@ def health_reports():
     try:
         health_data = {
             'status': 'healthy',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': now_brt().isoformat(),
             'reports_functional': False,
             'database_connected': False,
             'table_exists': False,
@@ -326,7 +326,7 @@ def health_reports():
     except Exception as e:
         return jsonify({
             'status': 'error',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': now_brt().isoformat(),
             'error': str(e)
         }), 500
 
@@ -341,14 +341,14 @@ def health_check_full():
         db.session.execute(db.text('SELECT 1'))
         return jsonify({
             'status': 'healthy',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': now_brt().isoformat(),
             'database': 'connected',
             'service': 'flask-app'
         }), 200
     except Exception as e:
         return jsonify({
             'status': 'unhealthy',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': now_brt().isoformat(),
             'database': 'disconnected',
             'error': str(e),
             'service': 'flask-app'
@@ -570,14 +570,14 @@ def debug_db_test():
         db.session.execute(db.text('SELECT 1'))
         return jsonify({
             'status': 'healthy',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': now_brt().isoformat(),
             'database': 'connected',
             'service': 'flask-app'
         }), 200
     except Exception as e:
         return jsonify({
             'status': 'unhealthy',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': now_brt().isoformat(),
             'database': 'disconnected',
             'error': str(e),
             'service': 'flask-app'
@@ -761,7 +761,7 @@ def api_legendas():
             'legendas': legendas_data,
             'total': len(legendas_data),
             'fonte': 'railway_postgresql',
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': now_brt().isoformat()
         }
 
         # Headers anti-cache
@@ -786,7 +786,7 @@ def api_legendas():
             'legendas': [],
             'total': 0,
             'fonte': 'error_definitivo',
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': now_brt().isoformat()
         }), 500
 
 # Debug routes para identificar diferenças de dados
@@ -1165,7 +1165,7 @@ def fechar_lembrete(lembrete_id):
         
         # Fechar lembrete
         lembrete.fechado = True
-        lembrete.fechado_em = datetime.utcnow()
+        lembrete.fechado_em = now_brt()
         lembrete.fechado_por_id = current_user.id
         
         db.session.commit()
@@ -1208,7 +1208,7 @@ def api_dashboard_stats():
             'visitas_agendadas': visitas_agendadas,
             'relatorios_pendentes': relatorios_pendentes,
             'usuarios_ativos': usuarios_ativos,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': now_brt().isoformat(),
             'user_id': current_user.id,
             'source': 'postgresql'
         }
@@ -1465,7 +1465,7 @@ def listar_notificacoes():
         from notification_service import notification_service
         
         try:
-            agora = datetime.utcnow()
+            agora = now_brt()
             limite_48h = agora - timedelta(hours=48)
             
             notificacoes = Notificacao.query.filter(
@@ -1679,7 +1679,7 @@ def onesignal_subscribe():
             # Update existing device
             old_user_id = existing_device.user_id
             existing_device.user_id = current_user.id  # Transfer to current user if needed
-            existing_device.last_active = datetime.utcnow()
+            existing_device.last_active = now_brt()
             existing_device.device_info = device_info
             
             current_app.logger.info(f"🔄 Updated existing device")
@@ -1760,7 +1760,7 @@ def onesignal_test_notification():
             player_id=player_id,
             title='🔔 Teste de Notificação',
             message=f'Olá, {current_user.nome_completo}! As notificações estão funcionando perfeitamente! 🎉',
-            data={'type': 'test', 'timestamp': datetime.utcnow().isoformat()},
+            data={'type': 'test', 'timestamp': now_brt().isoformat()},
             url=base_url  # Full URL with protocol
         )
         
@@ -2261,7 +2261,7 @@ def forgot_password():
             # Generate secure token
             token = secrets.token_urlsafe(32)
             user.reset_token = token
-            user.reset_token_expires = datetime.utcnow() + timedelta(minutes=15)
+            user.reset_token_expires = now_brt() + timedelta(minutes=15)
             db.session.commit()
             
             # Send email with reset link
@@ -2354,7 +2354,7 @@ def reset_password(token):
     user = User.query.filter_by(reset_token=token).first()
     
     # Validate token
-    if not user or not user.reset_token_expires or user.reset_token_expires < datetime.utcnow():
+    if not user or not user.reset_token_expires or user.reset_token_expires < now_brt():
         flash('Link de recuperação inválido ou expirado.', 'error')
         return redirect(url_for('forgot_password'))
     
@@ -3235,7 +3235,7 @@ def autosave_report(report_id):
                 current_app.logger.debug("📝 AUTOSAVE: Status alterado para 'preenchimento'")
 
             # Atualizar timestamp
-            relatorio.updated_at = datetime.utcnow()
+            relatorio.updated_at = now_brt()
 
             # Commit com try/except e rollback
             try:
@@ -3325,7 +3325,7 @@ def create_report():
                 relatorio.titulo = titulo
                 relatorio.projeto_id = projeto_id
                 relatorio.observacoes_gerais = observacoes_gerais
-                relatorio.updated_at = datetime.utcnow()
+                relatorio.updated_at = now_brt()
                 current_app.logger.info(f"📝 Updating existing report {relatorio.numero}")
             else:
                 # Create new report
@@ -3462,8 +3462,8 @@ def create_report():
             relatorio.conteudo = final_content
             relatorio.data_relatorio = data_relatorio
             relatorio.status = 'preenchimento'  # Status inicial - muda para "Aguardando Aprovação" ao finalizar
-            relatorio.created_at = datetime.utcnow()
-            relatorio.updated_at = datetime.utcnow()
+            relatorio.created_at = now_brt()
+            relatorio.updated_at = now_brt()
             
             # Save lembrete_proxima_visita
             lembrete = request.form.get('lembrete_proxima_visita', '').strip()
@@ -3904,7 +3904,7 @@ def create_report():
                 for visita_pend in visitas_pendentes:
                     if visita_pend.data_inicio and visita_pend.data_inicio.date() == hoje:
                         visita_pend.status = 'Realizada'
-                        visita_pend.data_realizada = datetime.utcnow()
+                        visita_pend.data_realizada = now_brt()
                         current_app.logger.info(f"✅ Baixa automática na visita {visita_pend.numero} pela geração do relatório {relatorio.numero}")
                 db.session.commit()
             except Exception as v_err:
@@ -4582,7 +4582,7 @@ def approve_report(id):
         # Atualizar status do relatório ANTES de enviar e-mail
         relatorio.status = "Aprovado"
         relatorio.aprovado_por = current_user.id
-        relatorio.data_aprovacao = datetime.utcnow()
+        relatorio.data_aprovacao = now_brt()
         db.session.commit()
         
         current_app.logger.info(f"✅ Relatório {relatorio.numero} aprovado no banco de dados")
@@ -4666,7 +4666,7 @@ def reject_report(id):
         # Atualizar status do relatório
         relatorio.status = 'Rejeitado'  # Status correto para relatórios rejeitados
         relatorio.aprovado_por = current_user.id
-        relatorio.data_aprovacao = datetime.utcnow()
+        relatorio.data_aprovacao = now_brt()
         relatorio.comentario_aprovacao = comentario.strip()
 
         # Commit único de todas as alterações
@@ -4759,7 +4759,7 @@ def finalize_report(report_id):
 
         # SEMPRE mantém como "em preenchimento" ao concluir (igual ao autosave)
         relatorio.status = 'preenchimento'
-        relatorio.updated_at = datetime.utcnow()
+        relatorio.updated_at = now_brt()
         current_app.logger.info(f"✅ Relatório {relatorio.numero} salvo em preenchimento")
 
         # IMPORTANTE: Deletar TODOS os outros relatórios em "preenchimento" do mesmo projeto
@@ -6182,7 +6182,7 @@ def diagnostico_imagens():
             'arquivos_perdidos': [],
             'arquivos_ok': [],
             'em_attached_assets': 0,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': now_brt().isoformat()
         }
 
         upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
@@ -6391,8 +6391,8 @@ def visits_list():
 
         # Renderizar template com tratamento de erro
         try:
-            # Fuso horário de Brasília (UTC-3) para evitar mostrar visitas como atrasadas cedo demais
-            agora = datetime.utcnow() - timedelta(hours=3)
+            # Fuso horário de Brasília (BRT = UTC-3) - agora usando now_brt() diretamente
+            agora = now_brt()
             return render_template('visits/list.html', visits=visits, now=agora)
         except Exception as template_error:
             current_app.logger.error(f"❌ Erro no template visits/list.html: {template_error}")
@@ -6884,7 +6884,7 @@ def report_edit(report_id):
         if relatorio.status == 'Rejeitado' and request.method == 'GET':
             try:
                 relatorio.status = 'Em edição'
-                relatorio.updated_at = datetime.utcnow()
+                relatorio.updated_at = now_brt()
                 db.session.commit()
                 current_app.logger.info(f"📝 Status alterado de 'Rejeitado' para 'Em edição' para relatório {report_id}")
             except Exception as e:
@@ -6949,7 +6949,7 @@ def report_edit(report_id):
                         pass
 
                     # Atualizar timestamp
-                    relatorio.updated_at = datetime.utcnow()
+                    relatorio.updated_at = now_brt()
 
                     db.session.commit()
                     
@@ -6964,7 +6964,7 @@ def report_edit(report_id):
                         for visita_pend in visitas_pendentes:
                             if visita_pend.data_inicio and visita_pend.data_inicio.date() == hoje:
                                 visita_pend.status = 'Realizada'
-                                visita_pend.data_realizada = datetime.utcnow()
+                                visita_pend.data_realizada = now_brt()
                                 current_app.logger.info(f"✅ Baixa automática na visita {visita_pend.numero} pela atualização do relatório {relatorio.numero}")
                         db.session.commit()
                     except Exception as v_err:
@@ -6978,7 +6978,7 @@ def report_edit(report_id):
                     status_permitidos = ['preenchimento', 'Rascunho', 'Rejeitado', 'Em edição', 'Aguardando Aprovação']
                     if relatorio.status in status_permitidos:
                         relatorio.status = 'Aguardando Aprovação'
-                        relatorio.updated_at = datetime.utcnow()
+                        relatorio.updated_at = now_brt()
                         # Limpar comentário de reprovação anterior
                         relatorio.comentario_aprovacao = None
                         db.session.commit()
@@ -7634,7 +7634,7 @@ def report_send(report_id):
 
     if emails_enviados > 0:
         report.status = 'Enviado'
-        report.data_envio = datetime.utcnow()
+        report.data_envio = now_brt()
         db.session.commit()
         flash(f'Relatório enviado para {emails_enviados} destinatário(s)!', 'success')
     else:
@@ -7706,7 +7706,7 @@ def request_reimbursement():
             reembolso.total = total_combustivel + alimentacao + hospedagem + outros_gastos
 
             reembolso.status = 'Aguardando Aprovação'
-            reembolso.created_at = datetime.utcnow()
+            reembolso.created_at = now_brt()
 
             db.session.add(reembolso)
             db.session.flush()  # Get the ID
@@ -7768,7 +7768,7 @@ def approve_reimbursement(id):
     reembolso = Reembolso.query.get_or_404(id)
     reembolso.status = 'Aprovado'
     reembolso.aprovado_por = current_user.id
-    reembolso.data_aprovacao = datetime.utcnow()
+    reembolso.data_aprovacao = now_brt()
 
     db.session.commit()
     flash(f'Reembolso aprovado com sucesso! PDF disponível para download.', 'success')
@@ -7785,7 +7785,7 @@ def reject_reimbursement(id):
     reembolso = Reembolso.query.get_or_404(id)
     reembolso.status = 'Rejeitado'
     reembolso.aprovado_por = current_user.id
-    reembolso.data_aprovacao = datetime.utcnow()
+    reembolso.data_aprovacao = now_brt()
 
     db.session.commit()
     flash(f'Reembolso rejeitado.', 'warning')
@@ -8379,7 +8379,7 @@ def report_submit_for_approval(report_id):
         return redirect(url_for('report_view', report_id=report_id))
 
     relatorio.status = 'Aguardando Aprovação'
-    relatorio.updated_at = datetime.utcnow()
+    relatorio.updated_at = now_brt()
     # Clear any previous rejection comments
     relatorio.comentario_aprovacao = None
     db.session.commit()
@@ -9050,7 +9050,7 @@ def editar_email_cliente(email_id):
         email_cliente.receber_notificacoes = form.receber_notificacoes.data
         email_cliente.receber_relatorios = form.receber_relatorios.data
         email_cliente.ativo = form.ativo.data
-        email_cliente.updated_at = datetime.utcnow()
+        email_cliente.updated_at = now_brt()
 
         try:
             db.session.commit()
@@ -9071,7 +9071,7 @@ def remover_email_cliente(email_id):
 
     try:
         email_cliente.ativo = False
-        email_cliente.updated_at = datetime.utcnow()
+        email_cliente.updated_at = now_brt()
         db.session.commit()
         flash('E-mail removido com sucesso!', 'success')
     except Exception as e:
@@ -9340,7 +9340,7 @@ def admin_user_email_config_test(config_id):
             
             # Sucesso - atualizar status
             config.last_test_status = 'success'
-            config.last_test_at = datetime.utcnow()
+            config.last_test_at = now_brt()
             db.session.commit()
             
             flash(f'Teste SMTP para {user_name} realizado com sucesso!', 'success')
@@ -9348,7 +9348,7 @@ def admin_user_email_config_test(config_id):
         except Exception as smtp_error:
             # Erro SMTP - atualizar status
             config.last_test_status = 'error'
-            config.last_test_at = datetime.utcnow()
+            config.last_test_at = now_brt()
             db.session.commit()
             
             flash(f'Erro no teste SMTP para {user_name}: {str(smtp_error)}', 'error')
@@ -9523,7 +9523,7 @@ def api_legendas_diagnostico():
     """Diagnóstico completo do sistema de legendas para Railway"""
     try:
         diagnostico = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': now_brt().isoformat(),
             'database': {
                 'engine': str(db.engine.dialect.name),
                 'url_host': db.engine.url.host if db.engine.url else 'N/A'
@@ -9577,7 +9577,7 @@ def api_legendas_diagnostico():
     except Exception as e:
         return jsonify({
             'error': str(e),
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': now_brt().isoformat()
         }), 500
 
 
@@ -9633,7 +9633,7 @@ def api_test():
             'message': 'API funcionando',
             'database_connection': True,
             'legendas_count': count,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': now_brt().isoformat()
         })
     except Exception as e:
         return jsonify({
@@ -10232,7 +10232,7 @@ def developer_checklist_edit(item_id):
             return jsonify({'error': 'Já existe um item com este texto'}), 400
 
         item.texto = novo_texto
-        item.updated_at = datetime.utcnow()
+        item.updated_at = now_brt()
 
         db.session.commit()
 
@@ -10256,7 +10256,7 @@ def developer_checklist_delete(item_id):
 
         # Marcar como inativo em vez de deletar fisicamente
         item.ativo = False
-        item.updated_at = datetime.utcnow()
+        item.updated_at = now_brt()
 
         db.session.commit()
 
@@ -10287,7 +10287,7 @@ def developer_checklist_reorder():
                 item = ChecklistPadrao.query.get(item_id)
                 if item:
                     item.ordem = nova_ordem
-                    item.updated_at = datetime.utcnow()
+                    item.updated_at = now_brt()
 
         db.session.commit()
 
@@ -10360,7 +10360,7 @@ def admin_checklist_edit(item_id):
             return jsonify({'error': 'Texto é obrigatório'}), 400
 
         item.texto = novo_texto
-        item.updated_at = datetime.utcnow()
+        item.updated_at = now_brt()
         db.session.commit()
 
         return jsonify({
@@ -10390,7 +10390,7 @@ def admin_checklist_delete(item_id):
 
         # Marcar como inativo em vez de deletar fisicamente
         item.ativo = False
-        item.updated_at = datetime.utcnow()
+        item.updated_at = now_brt()
 
         db.session.commit()
 
@@ -10420,7 +10420,7 @@ def admin_checklist_reorder():
                 item = ChecklistPadrao.query.get(item_id)
                 if item:
                     item.ordem = nova_ordem
-                    item.updated_at = datetime.utcnow()
+                    item.updated_at = now_brt()
 
         db.session.commit()
 
@@ -10783,7 +10783,7 @@ def admin_aprovador_padrao_editar(id):
             aprovador_padrao.projeto_id = projeto_id
             aprovador_padrao.aprovador_id = aprovador_id
             aprovador_padrao.observacoes = observacoes
-            aprovador_padrao.updated_at = datetime.utcnow()
+            aprovador_padrao.updated_at = now_brt()
 
             db.session.commit()
 
@@ -10845,7 +10845,7 @@ def admin_transferir_aprovador_global():
         aprovador_global_atual = get_aprovador_global()
         if aprovador_global_atual:
             aprovador_global_atual.ativo = False
-            aprovador_global_atual.updated_at = datetime.utcnow()
+            aprovador_global_atual.updated_at = now_brt()
         
         # Criar novo Aprovador Global
         novo_aprovador_global = AprovadorPadrao(
@@ -10888,7 +10888,7 @@ def admin_aprovador_padrao_desativar(id):
             return redirect(url_for('admin_aprovadores_padrao'))
         
         aprovador_padrao.ativo = False
-        aprovador_padrao.updated_at = datetime.utcnow()
+        aprovador_padrao.updated_at = now_brt()
 
         db.session.commit()
 
@@ -11100,7 +11100,7 @@ def project_checklist_config(project_id):
             db.session.add(config)
         else:
             config.tipo_checklist = "personalizado"
-            config.updated_at = datetime.utcnow()
+            config.updated_at = now_brt()
 
         # If switching back to padrao, reset the checklist
         if tipo_checklist == "padrao":
@@ -11224,7 +11224,7 @@ def project_checklist_edit_item(project_id, item_id):
             return jsonify({"error": "Texto é obrigatório"}), 400
 
         item.texto = texto
-        item.updated_at = datetime.utcnow()
+        item.updated_at = now_brt()
 
         db.session.commit()
 
@@ -11255,7 +11255,7 @@ def project_checklist_delete_item(project_id, item_id):
 
     try:
         item.ativo = False
-        item.updated_at = datetime.utcnow()
+        item.updated_at = now_brt()
 
         db.session.commit()
 
@@ -11287,7 +11287,7 @@ def project_checklist_reorder(project_id):
                 item = ChecklistObra.query.filter_by(id=item_id, projeto_id=project_id).first()
                 if item:
                     item.ordem = nova_ordem
-                    item.updated_at = datetime.utcnow()
+                    item.updated_at = now_brt()
                     
         db.session.commit()
         

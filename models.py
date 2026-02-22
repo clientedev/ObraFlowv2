@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from app import db
@@ -756,7 +756,7 @@ class Notificacao(db.Model):
     def marcar_como_lida(self):
         """Marca a notificação como lida"""
         self.status = 'lida'
-        self.lida_em = datetime.utcnow()
+        self.lida_em = now_brt()
     
     def __repr__(self):
         return f'<Notificacao {self.tipo} - ID {self.id}>'

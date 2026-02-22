@@ -135,6 +135,17 @@ from datetime import datetime
 
 BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
 
+def now_brt():
+    """
+    Retorna o datetime atual no fuso horário do Brasil (America/Sao_Paulo / BRT = UTC-3).
+    Substitui datetime.utcnow() em todo o sistema para garantir timestamps corretos.
+    """
+    return datetime.now(BRAZIL_TZ).replace(tzinfo=None)
+
+# Exportar como builtin para que todos os módulos possam usar sem import adicional
+import builtins
+builtins.now_brt = now_brt
+
 @app.template_filter('to_brazil_tz')
 def to_brazil_tz(dt):
     """Convert a UTC datetime to Brazil timezone (America/Sao_Paulo)"""

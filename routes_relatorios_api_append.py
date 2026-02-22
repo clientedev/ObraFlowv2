@@ -1,4 +1,4 @@
-
+﻿
 # ===== ENDPOINT DE APROVAÇÃO PARA RELATÓRIOS NORMAIS =====
 @app.route('/api/relatorios/<int:relatorio_id>/aprovar', methods=['POST'])
 @login_required
@@ -29,7 +29,7 @@ def approve_relatorio(relatorio_id):
         relatorio.status = 'Aprovado'
         relatorio.aprovador_id = current_user.id
         from datetime import datetime
-        relatorio.data_aprovacao = datetime.utcnow()
+        relatorio.data_aprovacao = now_brt()
         db.session.commit()
         
         logger.info(f"✅ Relatório {relatorio.numero} aprovado por {current_user.nome_completo}")

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tarefas Agendadas - Sistema de Limpeza Automática
 Usa APScheduler para executar tarefas periódicas
 """
