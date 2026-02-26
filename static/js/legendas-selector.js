@@ -28,6 +28,31 @@ class LegendasSelector {
             console.log(`📋 Cache HIT para categoria: ${categoria}`);
             return this.cache.get(cacheKey);
         }
+
+        // Suporte PWA Offline
+        if (!navigator.onLine && window.ELPOfflineManager) {
+            try {
+                console.log(`📡 [Offline] Buscando legendas do IndexedDB...`);
+                const legendasDb = await window.ELPOfflineManager.getLegendas();
+                if (legendasDb && legendasDb.length > 0) {
+                    let filtradas = legendasDb;
+                    if (categoria !== 'all') {
+                        filtradas = legendasDb.filter(l => l.categoria === categoria);
+                    }
+                    this.cache.set(cacheKey, filtradas);
+                    console.log(`✅ [Offline] Legendas carregadas do IDB: ${filtradas.length}`);
+                    return filtradas;
+                }
+            } catch (err) {
+                console.warn('⚠️ [Offline] Erro ao ler legendas do IDB, tentando fallback estático:', err);
+            }
+            // Fallback estático se o IDB também falhar
+            return [
+                {id: 1, texto: 'Registro fotográfico geral', categoria: 'Geral'},
+                {id: 2, texto: 'Serviço em andamento', categoria: 'Andamento'},
+                {id: 3, texto: 'Concluído conforme projeto', categoria: 'Conclusão'}
+            ];
+        }
         
         try {
             const url = `${this.apiUrl}?categoria=${categoria}&_t=${Date.now()}`;

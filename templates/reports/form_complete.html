@@ -891,6 +891,13 @@ function saveTechnicalInfo() {
     const projetoId = document.getElementById('projeto_id').value;
     if (!projetoId) return;
 
+    const statusDiv = document.getElementById('technical-info-status');
+
+    if (!navigator.onLine) {
+        if (statusDiv) statusDiv.innerHTML = '<span class="text-warning"><i class="fas fa-wifi"></i> Offline (será salvo com o relatório)</span>';
+        return;
+    }
+
     const data = {};
     document.querySelectorAll('.technical-field').forEach(field => {
         data[field.name] = field.value;
@@ -908,14 +915,15 @@ function saveTechnicalInfo() {
     })
     .then(response => response.json())
     .then(result => {
-        const statusDiv = document.getElementById('technical-info-status');
-        if (result.success) {
-            statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Salvo automaticamente</span>';
-            setTimeout(() => {
-                statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Sincronizado com o cadastro da obra';
-            }, 3000);
-        } else {
-            statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Erro ao salvar</span>';
+        if (statusDiv) {
+            if (result.success) {
+                statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Salvo automaticamente</span>';
+                setTimeout(() => {
+                    statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Sincronizado</span>';
+                }, 3000);
+            } else {
+                statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Erro ao salvar</span>';
+            }
         }
     })
     .catch(error => {
@@ -937,9 +945,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 // Função para carregar categorias do projeto
-function carregarCategoriasProjeto(projetoId) {
+async function carregarCategoriasProjeto(projetoId) {
     if (!projetoId) {
         console.log('Nenhum projeto selecionado para carregar categorias');
+        return;
+    }
+
+    if (!navigator.onLine && window.ELPOfflineManager) {
+        try {
+            const projetos = await window.ELPOfflineManager.getProjects();
+            const projeto = projetos.find(p => p.id == projetoId);
+            if (projeto && projeto.categorias) {
+                console.log(`✅ [Offline] Categorias carregadas: ${projeto.categorias.length} categorias para projeto ${projetoId}`);
+                window.currentProjectCategorias = projeto.categorias;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar categorias do projeto offline:', error);
+        }
         return;
     }
 
@@ -960,7 +982,7 @@ function carregarCategoriasProjeto(projetoId) {
 }
 
 // Função para carregar lembrete do último relatório
-function carregarLembrete(projetoId) {
+async function carregarLembrete(projetoId) {
     const lembreteCard = document.getElementById('lembrete-card');
     const lembreteTitulo = document.getElementById('lembrete-titulo');
     const lembreteTexto = document.getElementById('lembrete-texto');
@@ -968,6 +990,26 @@ function carregarLembrete(projetoId) {
     // Ocultar o card se nenhum projeto estiver selecionado
     if (!projetoId) {
         lembreteCard.style.display = 'none';
+        return;
+    }
+    
+    if (!navigator.onLine && window.ELPOfflineManager) {
+        try {
+            const projetos = await window.ELPOfflineManager.getProjects();
+            const projeto = projetos.find(p => p.id == projetoId);
+            if (projeto && projeto.lembrete_anterior) {
+                lembreteTitulo.textContent = `⚠️ Lembrete do último relatório (${projeto.lembrete_anterior.numero}):`;
+                lembreteTexto.textContent = projeto.lembrete_anterior.texto;
+                lembreteCard.style.display = 'block';
+                console.log(`✅ [Offline] Lembrete carregado: ${projeto.lembrete_anterior.texto}`);
+            } else {
+                lembreteCard.style.display = 'none';
+                console.log('ℹ️ [Offline] Nenhum lembrete encontrado para esta obra');
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar lembrete offline:', error);
+            lembreteCard.style.display = 'none';
+        }
         return;
     }
 
@@ -994,10 +1036,25 @@ function carregarLembrete(projetoId) {
 }
 
 // Função para atualizar o número do relatório quando o projeto é selecionado
-function atualizarNumeroRelatorio(projetoId) {
+async function atualizarNumeroRelatorio(projetoId) {
     const numeroInput = document.getElementById('numero');
 
     if (!projetoId || !numeroInput) {
+        return;
+    }
+    
+    if (!navigator.onLine && window.ELPOfflineManager) {
+        try {
+            const projetos = await window.ELPOfflineManager.getProjects();
+            const projeto = projetos.find(p => p.id == projetoId);
+            if (projeto && projeto.next_numero) {
+                numeroInput.value = projeto.next_numero;
+                numeroInput.readOnly = false;
+                console.log(`[Offline] Número do relatório atualizado para: ${projeto.next_numero}`);
+            }
+        } catch (error) {
+            console.error('Erro ao buscar próximo número do relatório offline:', error);
+        }
         return;
     }
 
@@ -1022,7 +1079,7 @@ function atualizarNumeroRelatorio(projetoId) {
     });
 }
 
-function carregarFuncionariosEmailsPorId(projetoId) {
+async function carregarFuncionariosEmailsPorId(projetoId) {
     const funcionariosDiv = document.getElementById('funcionarios-projeto');
     const emailsDiv = document.getElementById('emails-projeto');
 
@@ -1037,6 +1094,70 @@ function carregarFuncionariosEmailsPorId(projetoId) {
         emailsDiv.innerHTML = '<p class="text-muted">Selecione um projeto para ver os e-mails disponíveis</p>';
         return;
     }
+    
+    // Função helper para renderizar UI
+    const renderizarUI = (data) => {
+        // Renderizar funcionários
+        let funcionariosHtml = '';
+        if (data.funcionarios && data.funcionarios.length > 0) {
+            data.funcionarios.forEach(func => {
+                const checked = func.is_responsavel_principal ? 'checked' : '';
+                funcionariosHtml += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="func_${func.id}" 
+                               name="funcionarios_selecionados[]" value="${func.id}" ${checked}>
+                        <label class="form-check-label" for="func_${func.id}">
+                            <strong>${func.nome_funcionario}</strong><br>
+                            <small class="text-muted">${func.cargo || 'Sem cargo'} - ${func.empresa || 'Sem empresa'}</small>
+                            ${func.is_responsavel_principal ? '<span class="badge bg-primary">Principal</span>' : ''}
+                        </label>
+                    </div>
+                `;
+            });
+        } else {
+            funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
+        }
+        if (funcionariosDiv) funcionariosDiv.innerHTML = funcionariosHtml;
+
+        // Renderizar e-mails
+        let emailsHtml = '';
+        if (data.emails && data.emails.length > 0) {
+            data.emails.forEach(email => {
+                emailsHtml += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="email_${email.id}" 
+                               name="emails_selecionados[]" value="${email.id}">
+                        <label class="form-check-label" for="email_${email.id}">
+                            <strong>${email.email}</strong><br>
+                            <small class="text-muted">${email.nome_contato} - ${email.cargo || 'Sem cargo'}</small>
+                        </label>
+                    </div>
+                `;
+            });
+        } else {
+            emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para este projeto</p>';
+        }
+        if (emailsDiv) emailsDiv.innerHTML = emailsHtml;
+    };
+
+    if (!navigator.onLine && window.ELPOfflineManager) {
+        try {
+            const projetos = await window.ELPOfflineManager.getProjects();
+            const projeto = projetos.find(p => p.id == projetoId);
+            if (projeto && (projeto.funcionarios || projeto.emails)) {
+                console.log(`✅ [Offline] Carregando funcionários e emails para projeto ${projetoId}`);
+                renderizarUI(projeto);
+            } else {
+                if (funcionariosDiv) funcionariosDiv.innerHTML = '<p class="text-danger">Projeto não encontrado no cache</p>';
+                if (emailsDiv) emailsDiv.innerHTML = '<p class="text-danger">Projeto não encontrado no cache</p>';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar func/emais offline:', error);
+            if (funcionariosDiv) funcionariosDiv.innerHTML = '<p class="text-danger">Erro cache offline</p>';
+            if (emailsDiv) emailsDiv.innerHTML = '<p class="text-danger">Erro cache offline</p>';
+        }
+        return;
+    }
 
     // Buscar funcionários e e-mails do projeto via AJAX
     fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
@@ -1049,7 +1170,7 @@ function carregarFuncionariosEmailsPorId(projetoId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Renderizar funcionários
+            renderizarUI(data);
             let funcionariosHtml = '';
             if (data.funcionarios && data.funcionarios.length > 0) {
                 data.funcionarios.forEach(func => {
@@ -4608,12 +4729,26 @@ async function carregarChecklistObra() {
     const linkConfig = document.getElementById('linkConfigurarChecklist');
 
     try {
-        const resp = await fetch(url);
-        const data = await resp.json();
-
-        if (!data.success) throw new Error(data.error || 'Erro ao carregar');
-
-        const items = data.checklist || [];
+        let items = [];
+        
+        // Tentar usar offline manager PRIMEIRO se estiver offline ou se for um novo relatório
+        if (!navigator.onLine && window.ELPOfflineManager) {
+            console.log('📡 [Offline] Buscando checklist do IndexedDB...');
+            const projetos = await window.ELPOfflineManager.getProjects();
+            const projeto = projetos.find(p => p.id == projetoId);
+            if (projeto && projeto.checklist_projeto) {
+                items = projeto.checklist_projeto;
+                console.log(`✅ [Offline] Carregados ${items.length} itens do checklist do projeto ${projetoId}`);
+            } else {
+                console.warn('⚠️ [Offline] Checklist não encontrado no cache do projeto.');
+            }
+        } else {
+            console.log('📡 [Online] Buscando checklist da API...');
+            const resp = await fetch(url);
+            const data = await resp.json();
+            if (!data.success) throw new Error(data.error || 'Erro ao carregar');
+            items = data.checklist || [];
+        }
 
         // Update badge
         if (badge) {
@@ -4628,7 +4763,7 @@ async function carregarChecklistObra() {
         }
 
         if (items.length === 0) {
-            container.innerHTML = '';
+            if (container) container.innerHTML = '';
             semItensDiv?.classList.remove('d-none');
             window._checklistCarregado = true;
             return;
@@ -4667,7 +4802,7 @@ async function carregarChecklistObra() {
             </div>`;
         });
 
-        container.innerHTML = html;
+        if (container) container.innerHTML = html;
         window._checklistCarregado = true;
 
     } catch (err) {
