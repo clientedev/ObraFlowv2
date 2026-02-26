@@ -14,7 +14,7 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.2'; // Bump para forçar atualização do SW e carregar o importScripts
+const SW_VERSION = 'elp-v3.3'; // Bump para forçar atualização do SW e carregar o importScripts
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];
@@ -185,7 +185,7 @@ self.addEventListener('fetch', (event) => {
  */
 async function cacheFirst(request, cacheName) {
     const cache = await caches.open(cacheName);
-    const cached = await cache.match(request);
+    const cached = await cache.match(request, { ignoreSearch: true });
     if (cached) return cached;
 
     try {
@@ -205,7 +205,7 @@ async function cacheFirst(request, cacheName) {
  */
 async function cacheFirstWithBgRevalidation(request) {
     const cache = await caches.open(CACHE_OBRAS);
-    const cached = await cache.match(request);
+    const cached = await cache.match(request, { ignoreSearch: true });
 
     const networkFetch = fetchAndCacheIfOk(request, cache);
 
@@ -224,7 +224,7 @@ async function cacheFirstWithBgRevalidation(request) {
         recordNetworkFailure();
         console.warn(`⚠️ SW: Offline e sem cache para ${request.url}`);
         // Tentar servir a página de lista como fallback (evita tela de erro)
-        const fallback = await cache.match('/projects') || await cache.match('/reports');
+        const fallback = await cache.match('/projects', { ignoreSearch: true }) || await cache.match('/reports', { ignoreSearch: true });
         if (fallback) return fallback;
         return syntheticErrorResponse('Página ainda não disponível offline. Conecte-se à internet uma vez para baixá-la.');
     }
@@ -238,7 +238,7 @@ async function networkFirstWithCacheFallback(request) {
 
     if (!isNetworkStable()) {
         // Rede instável: vai direto para cache
-        const cached = await cache.match(request);
+        const cached = await cache.match(request, { ignoreSearch: true });
         if (cached) return cached;
     }
 
@@ -249,7 +249,7 @@ async function networkFirstWithCacheFallback(request) {
         return response;
     } catch (err) {
         recordNetworkFailure();
-        const cached = await cache.match(request);
+        const cached = await cache.match(request, { ignoreSearch: true });
         if (cached) return cached;
         return syntheticErrorResponse('Você está offline e esta página não foi baixada.');
     }
@@ -260,7 +260,7 @@ async function networkFirstWithCacheFallback(request) {
  */
 async function staleWhileRevalidate(request, cacheName) {
     const cache = await caches.open(cacheName);
-    const cached = await cache.match(request);
+    const cached = await cache.match(request, { ignoreSearch: true });
 
     const networkUpdate = fetch(request).then(response => {
         if (response.ok) cache.put(request, response.clone());
