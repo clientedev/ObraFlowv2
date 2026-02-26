@@ -1,6 +1,8 @@
+importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+
 /**
  * ============================================================
- * ELP OBRAS — SERVICE WORKER AVANÇADO v3.0
+ * ELP OBRAS — SERVICE WORKER AVANÇADO v3.1
  * ============================================================
  * Funcionalidades:
  * - Cache-First para módulo obras/relatórios (funciona 100% offline)
@@ -8,11 +10,11 @@
  * - Interceptação de POST offline → IndexedDB → sync em background
  * - Estabilidade de rede (não troca de template em oscilações)
  * - Versionamento seguro de cache
- * - Push notifications (OneSignal compatível)
+ * - Push notifications (Integrado nativamente com OneSignal)
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.1';
+const SW_VERSION = 'elp-v3.2'; // Bump para forçar atualização do SW e carregar o importScripts
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];
@@ -442,67 +444,6 @@ self.addEventListener('message', (event) => {
             });
             break;
     }
-});
-
-// ============================================================
-// PUSH NOTIFICATIONS (mantido da versão anterior)
-// ============================================================
-self.addEventListener('push', (event) => {
-    let data = {
-        title: 'ELP Relatórios',
-        body: 'Nova notificação',
-        icon: '/static/icons/icon-192x192.png',
-        badge: '/static/icons/icon-96x96.png',
-        vibrate: [200, 100, 200],
-        data: { url: '/' }
-    };
-
-    if (event.data) {
-        try {
-            const received = event.data.json();
-            data = {
-                title: received.title || data.title,
-                body: received.body || received.message || data.body,
-                icon: received.icon || data.icon,
-                badge: received.badge || data.badge,
-                vibrate: received.vibrate || data.vibrate,
-                data: { url: received.url || received.click_action || '/', ...received.data },
-                tag: received.tag,
-                requireInteraction: received.requireInteraction || false
-            };
-        } catch (e) {
-            console.error('❌ SW: Erro ao parsear push notification:', e);
-        }
-    }
-
-    event.waitUntil(
-        self.registration.showNotification(data.title, {
-            body: data.body,
-            icon: data.icon,
-            badge: data.badge,
-            vibrate: data.vibrate,
-            data: data.data,
-            tag: data.tag,
-            requireInteraction: data.requireInteraction
-        })
-    );
-});
-
-self.addEventListener('notificationclick', (event) => {
-    event.notification.close();
-    const urlToOpen = event.notification.data?.url || '/';
-
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then(windowClients => {
-                for (let client of windowClients) {
-                    if (client.url.includes(self.location.origin) && 'focus' in client) {
-                        return client.focus().then(c => 'navigate' in c ? c.navigate(urlToOpen) : c);
-                    }
-                }
-                if (clients.openWindow) return clients.openWindow(urlToOpen);
-            })
-    );
 });
 
 // ============================================================

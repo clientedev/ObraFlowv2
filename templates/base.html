@@ -164,10 +164,6 @@ img[src*="no-image"] {
                 await OneSignal.init({
                     appId: "{{ config.get('ONESIGNAL_APP_ID', 'f024f50f-ac90-4120-99d7-ffc788cfa094') }}",
                     
-                    // Critical: Specify service worker location
-                    serviceWorkerPath: '/OneSignalSDKWorker.js',
-                    serviceWorkerParam: { scope: '/' },
-                    
                     // Mobile PWA compatibility
                     allowLocalhostAsSecureOrigin: true,
                     autoRegister: true,
