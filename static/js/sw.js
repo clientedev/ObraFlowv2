@@ -12,7 +12,7 @@
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.0';
+const SW_VERSION = 'elp-v3.1';
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];
@@ -40,6 +40,17 @@ const PRECACHE_ASSETS = [
 const OBRAS_PATTERNS = [
     /^\/projects(\/|$)/,
     /^\/reports(\/|$)/,
+];
+
+// Rotas de autenticação — NUNCA cachear (têm CSRF tokens vinculados à sessão)
+const AUTH_ROUTES = [
+    /^\/login/,
+    /^\/logout/,
+    /^\/register/,
+    /^\/auth\//,
+    /^\/first-login/,
+    /^\/password-reset/,
+    /^\/forgot-password/,
 ];
 
 // Estabilidade de rede: evitar troca de template em oscilações
@@ -110,8 +121,16 @@ self.addEventListener('fetch', (event) => {
     const request = event.request;
     const url = new URL(request.url);
 
-    // Ignorar: não-GET que não sejam POSTs de relatório, extensões de browser, outras origens
+    // Ignorar: extensões de browser, outras origens
     if (url.protocol.startsWith('chrome-extension')) return;
+
+    // *** NUNCA CACHEAR ROTAS DE AUTENTICAÇÃO ***
+    // Páginas de login/logout contêm CSRF tokens vinculados à sessão.
+    // Cachear essas páginas causa erros de "CSRF token expirado".
+    if (isAuthRoute(url.pathname)) {
+        // Network-only para rotas de auth
+        return;
+    }
 
     // Interceptar POST de relatórios offline
     if (request.method === 'POST' && isObrasUrl(url.pathname)) {
@@ -365,6 +384,9 @@ async function triggerCacheWarmup(csrfToken) {
         let errors = 0;
 
         for (const url of urls) {
+            // NUNCA cachear rotas de autenticação (evita erro CSRF)
+            if (isAuthRoute(new URL(url, self.location.origin).pathname)) continue;
+            
             try {
                 const response = await fetch(url, { credentials: 'include' });
                 if (response.ok && response.status !== 204) {
@@ -489,6 +511,10 @@ self.addEventListener('notificationclick', (event) => {
 
 function isObrasUrl(pathname) {
     return OBRAS_PATTERNS.some(pattern => pattern.test(pathname));
+}
+
+function isAuthRoute(pathname) {
+    return AUTH_ROUTES.some(pattern => pattern.test(pathname));
 }
 
 function isStaticAsset(url) {
