@@ -1,5 +1,5 @@
 # Rotas específicas para PWA
-from flask import send_from_directory, jsonify, request
+from flask import send_from_directory, jsonify, request, make_response
 from flask_login import current_user, login_required
 from app import app, db
 from models import Projeto
@@ -17,8 +17,16 @@ def browserconfig():
 
 @app.route('/sw.js')
 def service_worker():
-    """Servir Service Worker do diretório static/js"""
-    return send_from_directory('static/js', 'sw.js', mimetype='application/javascript')
+    """Servir Service Worker com headers corretos para update via cache:none"""
+    response = make_response(
+        send_from_directory('static/js', 'sw.js', mimetype='application/javascript')
+    )
+    # CRÍTICO: SW nunca deve ser cacheado pelo browser
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    response.headers['Service-Worker-Allowed'] = '/'
+    return response
 
 @app.route('/offline')
 def offline():

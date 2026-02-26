@@ -75,13 +75,11 @@ img[src*="no-image"] {
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512x512.png') }}">
 
-    <!-- Sistema limpo - dados diretos do PostgreSQL -->
-
-    <!-- PWA INSTALL ONLY - Sem funcionalidade offline -->
-    <script src="{{ url_for('static', filename='js/pwa-install-only.js') }}" defer></script>
-
-    <!-- SINCRONIZAÇÃO TEMPO REAL - Dados sempre fresh do PostgreSQL -->
-    <script src="{{ url_for('static', filename='js/realtime-sync.js') }}" defer></script>
+    <!-- OFFLINE PWA: Variável de autenticação para o Offline Manager -->
+    <script>
+        window.ELP_USER_LOGGED_IN = {{ 'true' if current_user.is_authenticated else 'false' }};
+        window.ELP_USER_ID = {{ current_user.id if current_user.is_authenticated else 'null' }};
+    </script>
 
     <!-- Image Error Handler - DEVE SER CARREGADO PRIMEIRO -->
     <script src="{{ url_for('static', filename='js/image-error-handler.js') }}"></script>
@@ -97,37 +95,12 @@ img[src*="no-image"] {
     <!-- Sistema de Notificações Internas -->
     <script src="{{ url_for('static', filename='js/notifications-manager.js') }}"></script>
 
-    <!-- OFFLINE SUPPORT SYSTEM -->
-    <script src="{{ url_for('static', filename='js/offline-db.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/sync-manager.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/offline-forms.js') }}" defer></script>
+    <!-- OFFLINE PWA MANAGER — Service Worker + IndexedDB + Sync -->
+    <script src="{{ url_for('static', filename='js/offline-manager.js') }}"></script>
 
 
 
     <!-- Mobile Touch Fix - Elimina vibração e melhora precisão -->
-
-    <!-- NUCLEAR OPTION: Force clear ALL service workers -->
-    <script>
-        // Execute immediately, before anything else
-        (function() {
-            if ('serviceWorker' in navigator) {
-                // Unregister ALL service workers IMMEDIATELY
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    registrations.forEach(function(registration) {
-                        console.log('🗑️ FORCE UNREGISTER:', registration.scope);
-                        registration.unregister();
-                    });
-                    
-                    // Also clear controller
-                    if (navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage({type: 'SKIP_WAITING'});
-                    }
-                    
-                    console.log('✅ ALL SERVICE WORKERS CLEARED');
-                });
-            }
-        })();
-    </script>
 
     <!-- OneSignal SDK - Load and initialize -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>

@@ -271,12 +271,7 @@
 {% if current_user.is_authenticated and (current_user.is_aprovador or current_user.is_master) and relatorio.status == 'Aguardando Aprovação' %}
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card border-warning">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-gavel me-2"></i>Ações de Aprovação
-                </h5>
-            </div>
+        <div class="card mb-4 shadow-sm border-0">
             <div class="card-body">
                 <!-- Mobile: Stack buttons vertically -->
                 <div class="d-grid gap-3 d-md-flex">
@@ -299,13 +294,6 @@
                             <i class="fas fa-times me-2"></i>Reprovar Relatório
                         </button>
                     </div>
-                </div>
-                <div class="mt-3">
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        <strong>Atenção:</strong> Ao aprovar, o relatório será enviado automaticamente aos clientes. 
-                        Ao reprovar, será necessário incluir um comentário e o relatório voltará para edição.
-                    </small>
                 </div>
             </div>
         </div>

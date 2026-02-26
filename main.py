@@ -5,6 +5,7 @@ import routes  # noqa: F401
 import railway_routes_fix  # noqa: F401
 import routes_relatorios_api  # noqa: F401  # API REST para relatórios com autosave
 import routes_express  # noqa: F401  # Relatório Express
+import routes_offline  # noqa: F401  # Offline PWA API endpoints
 
 # Auto-run migrations on Railway deploy
 import os
