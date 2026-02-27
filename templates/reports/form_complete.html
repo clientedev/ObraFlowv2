@@ -4907,4 +4907,23 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<script>
+    // Recuperar projeto_id da URL (essencial para quando a página é carregada do cache offline do Service Worker)
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const projetoId = urlParams.get('projeto_id');
+        const projetoSelect = document.getElementById('projeto_id');
+        
+        if (projetoId && projetoSelect && !projetoSelect.value) {
+            projetoSelect.value = projetoId;
+            // Se estiver usando jQuery, acionar evento change para disparar lógicas adicionais
+            if (typeof jQuery !== 'undefined') {
+                $(projetoSelect).trigger('change');
+            } else {
+                projetoSelect.dispatchEvent(new Event('change'));
+            }
+        }
+    });
+</script>
+
 {% endblock %}
