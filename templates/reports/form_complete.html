@@ -2763,6 +2763,25 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadPredefinedLegendas() {
     try {
         console.log('📦 Carregando legendas pré-definidas...');
+        
+        // --- OFFLINE SUPPORT ---
+        if (!navigator.onLine && window.ELPOfflineManager) {
+            console.log('📡 [Offline] Buscando legendas pré-definidas no cache local...');
+            const legendasOffline = await window.ELPOfflineManager.getLegendas();
+            if (legendasOffline && legendasOffline.length > 0) {
+                predefinedLegendas = legendasOffline;
+                console.log(`✅ [Offline] ${predefinedLegendas.length} legendas carregadas com sucesso`);
+                preencherDropdownLegendas();
+                return;
+            } else {
+                console.warn('⚠️ [Offline] Nenhuma legenda local encontrada.');
+                predefinedLegendas = [];
+                preencherDropdownLegendas();
+                return;
+            }
+        }
+        // -----------------------
+
         const response = await fetch('/api/legendas?categoria=all');
         
         if (!response.ok) {
@@ -2774,11 +2793,8 @@ async function loadPredefinedLegendas() {
         if (data.success && Array.isArray(data.legendas)) {
             predefinedLegendas = data.legendas;
             console.log(`✅ ${predefinedLegendas.length} legendas carregadas com sucesso`);
-            
-            // ✅ CORREÇÃO: Preencher todos os dropdowns existentes após carregar as legendas
             preencherDropdownLegendas();
         } else if (Array.isArray(data.legendas) && data.legendas.length > 0) {
-            // Se apenas data.legendas existe, usar mesmo assim
             predefinedLegendas = data.legendas;
             console.log(`✅ ${predefinedLegendas.length} legendas carregadas (sem flag success)`);
             preencherDropdownLegendas();
@@ -3236,6 +3252,22 @@ async function savePhotoData(photoId) {
     }
 }
 
+// Helper to render category dropdowns
+function renderizarDropdownCategoria(categorySelect, categorias, photoId) {
+    let html = '<option value="">Sem categoria</option>';
+    categorias.forEach(cat => {
+        const nomeCat = typeof cat === 'string' ? cat : (cat.nome_categoria || cat.nome);
+        html += `<option value="${nomeCat}">${nomeCat}</option>`;
+    });
+    categorySelect.innerHTML = html;
+
+    // Set the currently selected value if it exists in photoData
+    const photoData = mobilePhotoData.find(p => p.id === photoId || p.id == photoId);
+    if (photoData && photoData.category) {
+        categorySelect.value = photoData.category;
+    }
+}
+
 // Populate category select for a photo card
 function populateCategorySelect(photoId) {
     const categorySelect = document.getElementById(`category_${photoId}`);
@@ -3243,23 +3275,33 @@ function populateCategorySelect(photoId) {
 
     if (!categorySelect || !projetoId) return;
 
+    // --- OFFLINE/CACHE SUPPORT ---
+    if (window.currentProjectCategorias && window.currentProjectCategorias.length > 0) {
+        renderizarDropdownCategoria(categorySelect, window.currentProjectCategorias, photoId);
+        return;
+    }
+
+    if (!navigator.onLine && window.ELPOfflineManager) {
+        window.ELPOfflineManager.getProjects().then(projetos => {
+            const proj = projetos.find(p => p.id == projetoId);
+            if (proj && proj.categorias) {
+                window.currentProjectCategorias = proj.categorias;
+                renderizarDropdownCategoria(categorySelect, proj.categorias, photoId);
+            } else {
+                categorySelect.innerHTML = '<option value="">Sem categoria (Offline)</option>';
+            }
+        });
+        return;
+    }
+    // -----------------------------
+
     // Buscar categorias do projeto via API
     fetch(`/api/projects/${projetoId}/categorias`)
         .then(response => response.json())
         .then(data => {
             if (data.categorias && data.categorias.length > 0) {
-                // Renderizar categorias
-                let html = '<option value="">Sem categoria</option>';
-                data.categorias.forEach(cat => {
-                    html += `<option value="${cat.nome}">${cat.nome}</option>`;
-                });
-                categorySelect.innerHTML = html;
-
-                // Set the currently selected value if it exists in photoData
-                const photoData = mobilePhotoData.find(p => p.id === photoId);
-                if (photoData && photoData.category) {
-                    categorySelect.value = photoData.category;
-                }
+                window.currentProjectCategorias = data.categorias;
+                renderizarDropdownCategoria(categorySelect, data.categorias, photoId);
             } else {
                 // Nenhuma categoria encontrada
                 categorySelect.innerHTML = '<option value="">Sem categoria</option>';
@@ -3581,6 +3623,50 @@ document.getElementById('projeto_id')?.addEventListener('change', function() {
     carregarFuncionariosParaAcompanhantes(this.value);
 });
 
+// Função Helper para renderizar Funcionários e Informações Técnicas na UI
+function renderizarFuncionariosAcompanhantesUI(data, select) {
+    // 1. Popular dropdown de funcionários
+    let funcionarios = data.funcionarios || [];
+    let emails = data.emails || [];
+    
+    if (funcionarios && funcionarios.length > 0) {
+        let options = '';
+        funcionarios.forEach(func => {
+            const nome = func.nome_funcionario || 'Sem nome';
+            const cargo = func.cargo || 'Não informado';
+            
+            // Tratar IDs quando offline (prefixos fp_ e ec_)
+            let rawId = func.id;
+            if (typeof rawId === 'string') {
+                rawId = rawId.replace('fp_', '').replace('ec_', '');
+            }
+            
+            // Encontrar email
+            const email = emails.find(e => e.id == func.id || e.id == rawId)?.email || '';
+            options += `<option value="${rawId}" data-nome="${nome}" data-cargo="${cargo}" data-email="${email}" data-id="${rawId}">${nome} – ${cargo}</option>`;
+        });
+        select.innerHTML = options;
+    } else {
+        select.innerHTML = '<option value=""></option>';
+    }
+    if (typeof $ !== 'undefined' && $.fn && $.fn.select2) { $(select).trigger('change'); }
+
+    // 2. POPULAR INFORMAÇÕES TÉCNICAS
+    if (data.technical_info) {
+        console.log("🏗️ Dados técnicos recebidos:", data.technical_info);
+        Object.keys(data.technical_info).forEach(key => {
+            const field = document.getElementById(key);
+            if (field) {
+                field.value = data.technical_info[key] || '';
+            }
+        });
+        // Ativar autosave
+        if (window.setupTechnicalInfoAutosave) {
+            window.setupTechnicalInfoAutosave();
+        }
+    }
+}
+
 // Carregar funcionários da obra e informações técnicas
 function carregarFuncionariosParaAcompanhantes(projetoId) {
     const select = document.getElementById('funcionario-select');
@@ -3593,6 +3679,24 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
 
     select.innerHTML = '<option value="">Carregando...</option>';
 
+    // --- OFFLINE SUPPORT ---
+    if (!navigator.onLine && window.ELPOfflineManager) {
+        window.ELPOfflineManager.getProjects().then(projetos => {
+            const projeto = projetos.find(p => p.id == projetoId);
+            if (projeto) {
+                console.log(`✅ [Offline] Carregando acompanhantes/info. técnica para projeto ${projetoId}`);
+                renderizarFuncionariosAcompanhantesUI(projeto, select);
+            } else {
+                select.innerHTML = '<option value="">Projeto não encontrado offline</option>';
+            }
+        }).catch(err => {
+            console.error('Erro offline:', err);
+            select.innerHTML = '<option value="">Erro offline</option>';
+        });
+        return;
+    }
+    // -----------------------
+
     fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
@@ -3600,43 +3704,14 @@ function carregarFuncionariosParaAcompanhantes(projetoId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // 1. Popular dropdown de funcionários (Lógica original)
-            if (data.funcionarios && data.funcionarios.length > 0) {
-                let options = '';
-                data.funcionarios.forEach(func => {
-                    const nome = func.nome_funcionario || 'Sem nome';
-                    const cargo = func.cargo || 'Não informado';
-                    const email = data.emails.find(e => e.id == func.id)?.email || '';
-                    options += `<option value="${func.id}" data-nome="${nome}" data-cargo="${cargo}" data-email="${email}" data-id="${func.id}">${nome} – ${cargo}</option>`;
-                });
-                select.innerHTML = options;
-            } else {
-                select.innerHTML = '<option value=""></option>';
-            }
-            if (typeof $ !== 'undefined' && $.fn && $.fn.select2) { $(select).trigger('change'); }
-
-            // 2. POPULAR INFORMAÇÕES TÉCNICAS (Nova lógica)
-            if (data.technical_info) {
-                console.log("🏗️ Dados técnicos recebidos:", data.technical_info);
-                Object.keys(data.technical_info).forEach(key => {
-                    const field = document.getElementById(key);
-                    if (field) {
-                        field.value = data.technical_info[key] || '';
-                    }
-                });
-                // Ativar autosave
-                if (window.setupTechnicalInfoAutosave) {
-                    window.setupTechnicalInfoAutosave();
-                }
-            }
-
+            renderizarFuncionariosAcompanhantesUI(data, select);
         } else {
             select.innerHTML = '<option value="">Erro ao carregar dados</option>';
         }
     })
     .catch(error => {
-        console.error('Erro ao carregar funcionários:', error);
-        select.innerHTML = '<option value="">Erro ao carregar funcionários</option>';
+        console.error('Erro ao carregar acompanhantes/info técnica:', error);
+        select.innerHTML = '<option value="">Erro de conexão</option>';
     });
 }
 
@@ -4345,6 +4420,14 @@ async function carregarLembretesAtivos(projetoId) {
     return;
   }
   
+  if (!navigator.onLine) {
+     console.log('📡 [Offline] Sem conexão para buscar lembretes ativos (apenas lembrete anterior disponíve).');
+     // Mostrar o campo de novo lembrete
+     const containerNovo = document.getElementById('novo-lembrete-container');
+     if (containerNovo) containerNovo.style.display = '';
+     return;
+  }
+  
   try {
     const response = await fetch(`/api/projeto/${projetoId}/lembretes/ativos`);
     const data = await response.json();
@@ -4354,11 +4437,13 @@ async function carregarLembretesAtivos(projetoId) {
       mostrarLembretes(data.lembretes);
       
       // Mostrar campo de novo lembrete
-      document.getElementById('novo-lembrete-container').style.display = '';
+      const containerNovo = document.getElementById('novo-lembrete-container');
+      if (containerNovo) containerNovo.style.display = '';
     } else {
       console.log('📋 Nenhum lembrete ativo');
       // Mostrar campo de novo lembrete mesmo sem ativos
-      document.getElementById('novo-lembrete-container').style.display = '';
+      const containerNovo = document.getElementById('novo-lembrete-container');
+      if (containerNovo) containerNovo.style.display = '';
     }
   } catch (error) {
     console.error('❌ Erro ao carregar lembretes:', error);
