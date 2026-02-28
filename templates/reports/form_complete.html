@@ -5011,4 +5011,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 </script>
 
+<!-- OFFLINE FORM HYDRATOR - DEVE SER O ÚLTIMO SCRIPT A CARREGAR -->
+<script src="{{ url_for('static', filename='js/offline-form-hydrator.js') }}"></script>
+
 {% endblock %}

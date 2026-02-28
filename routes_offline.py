@@ -311,10 +311,15 @@ def offline_save_report():
         offline_id = data.get('offline_id')  # ID temporário gerado no dispositivo
         projeto_id = data.get('projeto_id')
         titulo = data.get('titulo', 'Relatório Offline')
-        descricao = data.get('descricao', '')
+        numero = data.get('numero')
         status = data.get('status', 'Rascunho')
-        observacoes = data.get('observacoes', '')
-        checklist_data = data.get('checklist', [])
+        observacoes = data.get('observacoes_finais', '')
+        checklist_data = data.get('checklist_data', [])
+        acompanhantes = data.get('acompanhantes', [])
+        fotos = data.get('fotos', [])
+        tech_info = data.get('technical_info', {})
+        data_relatorio_str = data.get('data_relatorio', '')
+        lembrete = data.get('lembrete_proxima_visita', '')
 
         app.logger.info(
             f"📥 Salvando relatório offline: offline_id={offline_id}, "
@@ -322,57 +327,187 @@ def offline_save_report():
         )
 
         # Verificar se projeto existe
+        projeto = None
         if projeto_id:
             projeto = Projeto.query.get(projeto_id)
             if not projeto:
-                projeto_id = None
+                return jsonify({'success': False, 'error': f'Projeto {projeto_id} não encontrado'}), 404
 
         # Gerar número do relatório
         try:
-            from utils import generate_report_number
-            numero = generate_report_number()
+            ultimo_relatorio = Relatorio.query.filter_by(
+                projeto_id=projeto_id
+            ).order_by(Relatorio.numero_projeto.desc()).first()
+            if ultimo_relatorio and ultimo_relatorio.numero_projeto:
+                proximo_numero = ultimo_relatorio.numero_projeto + 1
+            else:
+                proximo_numero = projeto.numeracao_inicial if getattr(projeto, 'numeracao_inicial', None) else 1
+            numero_formatado = numero or f"{projeto.numero}-R{proximo_numero:03d}"
         except Exception:
-            numero = f"OFF-{int(datetime.utcnow().timestamp())}"
+            proximo_numero = 1
+            numero_formatado = f"OFF-{int(datetime.utcnow().timestamp())}"
+
+        # Parse Data Report
+        data_relatorio_val = datetime.utcnow()
+        if data_relatorio_str:
+            try:
+                date_str = str(data_relatorio_str).strip()
+                if len(date_str) == 10:
+                    from datetime import date as _dr_date
+                    _dr_d = _dr_date.fromisoformat(date_str)
+                    data_relatorio_val = datetime(_dr_d.year, _dr_d.month, _dr_d.day, 12, 0, 0)
+                else:
+                    data_relatorio_val = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            except Exception as e:
+                app.logger.warning(f"Erro ao processar data_relatorio (offline): {e}")
+
+        # Parse Lembrete
+        lembrete_val = None
+        if lembrete:
+            try:
+                if isinstance(lembrete, str):
+                    lembrete_val = datetime.fromisoformat(lembrete.replace('Z', '+00:00'))
+                else:
+                    lembrete_val = lembrete
+            except (ValueError, TypeError) as e:
+                app.logger.warning(f"Erro ao processar lembrete_proxima_visita (offline): {e}")
 
         # Criar relatório
         novo_relatorio = Relatorio(
-            numero=numero,
+            numero=numero_formatado,
+            numero_projeto=proximo_numero if 'numero_projeto' in dir(Relatorio) else None,
             titulo=titulo,
-            descricao=descricao if hasattr(Relatorio, 'descricao') else None,
-            observacoes=observacoes if hasattr(Relatorio, 'observacoes') else None,
-            status=status,
             projeto_id=projeto_id,
             autor_id=current_user.id,
+            criado_por=current_user.id if 'criado_por' in dir(Relatorio) else None,
+            atualizado_por=current_user.id if 'atualizado_por' in dir(Relatorio) else None,
+            status=status,
+            observacoes_finais=observacoes if hasattr(Relatorio, 'observacoes_finais') else "",
+            lembrete_proxima_visita=lembrete_val if hasattr(Relatorio, 'lembrete_proxima_visita') else None,
+            data_relatorio=data_relatorio_val if hasattr(Relatorio, 'data_relatorio') else datetime.utcnow(),
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
 
-        # Tentar set campos opcionais de forma segura
-        optional_fields = ['titulo_obra', 'data_visita', 'clima', 'etapa_obra']
-        for field in optional_fields:
-            if field in data and hasattr(Relatorio, field):
+        # Tratar Technical Info
+        if tech_info:
+            for field, value in tech_info.items():
+                if hasattr(novo_relatorio, field):
+                    setattr(novo_relatorio, field, value)
+
+        # Tratar Checklist
+        if checklist_data:
+            if isinstance(checklist_data, (dict, list)):
+                import json
+                novo_relatorio.checklist_data = json.dumps(checklist_data)
+            else:
+                novo_relatorio.checklist_data = None
+
+        # Tratar Acompanhantes
+        if acompanhantes:
+            if isinstance(acompanhantes, str):
                 try:
-                    setattr(novo_relatorio, field, data[field])
-                except Exception:
-                    pass
+                    import json
+                    acomp_list = json.loads(acompanhantes)
+                    novo_relatorio.acompanhantes = acomp_list if isinstance(acomp_list, list) else []
+                except:
+                    novo_relatorio.acompanhantes = []
+            elif isinstance(acompanhantes, list):
+                novo_relatorio.acompanhantes = acompanhantes
 
         db.session.add(novo_relatorio)
-        db.session.flush()  # Obter ID sem commit
-
+        db.session.flush()
         relatorio_id = novo_relatorio.id
 
-        # Salvar checklist se fornecido
-        if checklist_data and hasattr(Relatorio, 'checklist_items'):
-            # Serializar como JSON se o modelo suportar
+        # Atualizar ChecklistObra 
+        if checklist_data and projeto_id:
             try:
-                novo_relatorio.checklist_items = json.dumps(checklist_data)
-            except Exception:
-                pass
+                import json as _json
+                from models import ChecklistObra
+                cl_items = checklist_data
+                if isinstance(cl_items, str):
+                    cl_items = _json.loads(cl_items)
+                
+                if isinstance(cl_items, list):
+                    for ci in cl_items:
+                        item_id = ci.get('id')
+                        is_checked = bool(ci.get('concluido') or ci.get('completado'))
+                        if item_id and is_checked:
+                            obra_item = ChecklistObra.query.get(item_id)
+                            if obra_item and getattr(obra_item, 'projeto_id', None) == projeto_id:
+                                if getattr(obra_item, 'concluido', False) == False:
+                                    obra_item.concluido = True
+                                    obra_item.concluido_relatorio_id = relatorio_id
+                                    # Handle timezone-aware or naive datetime depending on model
+                                    obra_item.concluido_em = datetime.utcnow()
+            except Exception as e:
+                app.logger.warning(f"Offline ChecklistObra failed: {e}")
+
+        # Salvar as Fotos com Base64
+        if fotos:
+            import os, base64, hashlib
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            if not os.path.exists(upload_folder):
+                os.makedirs(upload_folder)
+
+            # Obter ordem máxima atual (agora vazia)
+            max_ordem = -1
+            
+            for idx, foto in enumerate(fotos):
+                b64_data = foto.get('base64')
+                if not b64_data:
+                    continue
+                
+                try:
+                    # Parse Base64 string ex: "data:image/jpeg;base64,...""
+                    if ',' in b64_data:
+                        header, base64_str = b64_data.split(',', 1)
+                        # Extract extension
+                        ext = 'jpg'
+                        if 'image/png' in header: ext = 'png'
+                        elif 'image/webp' in header: ext = 'webp'
+                    else:
+                        base64_str = b64_data
+                        ext = 'jpg'
+                        
+                    image_bytes = base64.b64decode(base64_str)
+                    imagem_hash = hashlib.sha256(image_bytes).hexdigest()
+                    
+                    # Prevent duplicates
+                    foto_existente = FotoRelatorio.query.filter_by(
+                        relatorio_id=relatorio_id,
+                        imagem_hash=imagem_hash
+                    ).first()
+                    
+                    if not foto_existente:
+                        timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S%f')
+                        final_filename = f"relatorio_{relatorio_id}_{timestamp}_offline_{idx}.{ext}"
+                        final_filepath = os.path.join(upload_folder, final_filename)
+                        
+                        with open(final_filepath, 'wb') as f:
+                            f.write(image_bytes)
+                            
+                        nova_foto = FotoRelatorio(
+                            relatorio_id=relatorio_id,
+                            url=f"/uploads/{final_filename}",
+                            filename=final_filename,
+                            imagem=image_bytes if hasattr(FotoRelatorio, 'imagem') else None,
+                            imagem_hash=imagem_hash if hasattr(FotoRelatorio, 'imagem_hash') else None,
+                            imagem_size=len(image_bytes) if hasattr(FotoRelatorio, 'imagem_size') else None,
+                            content_type=f"image/{ext}" if hasattr(FotoRelatorio, 'content_type') else None,
+                            legenda=foto.get('caption', ''),
+                            tipo_servico=foto.get('category', ''),
+                            local=foto.get('local', ''),
+                            ordem=foto.get('ordem', max_ordem + idx + 1)
+                        )
+                        db.session.add(nova_foto)
+                except Exception as e:
+                    app.logger.warning(f"Failed to process offline photo: {e}")
 
         db.session.commit()
 
         app.logger.info(
-            f"✅ Relatório offline salvo: id={relatorio_id}, "
+            f"✅ Relatório offline salvo completamente: id={relatorio_id}, "
             f"offline_id={offline_id}"
         )
 
@@ -380,7 +515,7 @@ def offline_save_report():
             'success': True,
             'relatorio_id': relatorio_id,
             'offline_id': offline_id,
-            'numero': numero,
+            'numero': numero_formatado,
             'message': 'Relatório sincronizado com sucesso'
         })
 
@@ -390,5 +525,5 @@ def offline_save_report():
         return jsonify({
             'success': False,
             'error': str(e),
-            'offline_id': data.get('offline_id') if data else None
+            'offline_id': data.get('offline_id') if request.is_json else None
         }), 500
