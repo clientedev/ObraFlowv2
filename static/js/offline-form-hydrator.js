@@ -407,8 +407,12 @@
         const titulo = getValue(['#titulo_relatorio', '#titulo', '[name="titulo"]']);
         const numero = getValue(['#numero', '[name="numero"]', '#numero_relatorio']);
         const dataRelatorio = getValue(['#data_relatorio', '[name="data_relatorio"]']);
-        const observacoes = getValue(['#conteudo', '[name="observacoes_finais"]', '#observacoes']);
+        const observacoes = getValue(['#observacoes', '[name="observacoes_finais"]', '#observacoes_finais']);
         const lembrete = getValue(['#lembrete_proxima_visita', '#lembrete', '[name="lembrete_proxima_visita"]']);
+        const categoria = getValue(['#categoria', '[name="categoria"]']);
+        const local = getValue(['#local', '[name="local"]']);
+        const descricao = getValue(['#descricao', '[name="descricao"]']);
+        const conteudo = getValue(['#conteudo', '[name="conteudo"]']);
 
         // Informações técnicas
         const techInfo = {};
@@ -445,6 +449,10 @@
             titulo: titulo || `Relatório ${new Date().toLocaleDateString('pt-BR')}`,
             numero: numero,
             data_relatorio: dataRelatorio,
+            categoria: categoria,
+            local: local,
+            descricao: descricao,
+            conteudo: conteudo,
             observacoes_finais: observacoes,
             lembrete_proxima_visita: lembrete || null,
             technical_info: techInfo,
@@ -474,12 +482,26 @@
         const resultado = [];
 
         for (const img of imgs) {
+            const id = img.id;
+            
+            // Tentar ler valores ATUAIS do DOM se os inputs existirem
+            const domCategory = document.querySelector(`#category_${id}`);
+            const domLocal = document.querySelector(`#local_${id}`);
+            const domManualCaption = document.querySelector(`#manual_caption_${id}`);
+            const domPredefinedCaption = document.querySelector(`#predefined_caption_${id}`);
+
+            const categoryValue = domCategory ? domCategory.value : (img.category || '');
+            const localValue = domLocal ? domLocal.value : (img.local || '');
+            const captionValue = (domManualCaption && domManualCaption.value) ? domManualCaption.value : 
+                                 ((domPredefinedCaption && domPredefinedCaption.value) ? domPredefinedCaption.value : 
+                                 (img.manualCaption || img.predefinedCaption || img.caption || ''));
+
             const entry = {
-                id: img.id,
+                id: id,
                 savedId: img.savedId || null,
-                category: img.category || '',
-                local: img.local || '',
-                caption: img.manualCaption || img.predefinedCaption || img.caption || '',
+                category: categoryValue,
+                local: localValue,
+                caption: captionValue,
                 filename: img.name || img.filename || 'foto.jpg',
                 previewUrl: img.previewUrl || null,
                 isExisting: img.isExisting || false
@@ -500,7 +522,6 @@
 
         return resultado;
     }
-
     function blobToBase64(blob) {
         return new Promise((resolve, reject) => {
             if (!blob) return resolve(null);

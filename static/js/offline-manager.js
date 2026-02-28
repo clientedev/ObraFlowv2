@@ -334,6 +334,9 @@
     }
 
     function isReportForm(form) {
+        // Se o hidratador especializado estiver presente, deixa ele cuidar do formulário
+        if (window.ELPFormHydrator) return false;
+
         const action = form.action || '';
         const id = form.id || '';
         const cls = form.className || '';

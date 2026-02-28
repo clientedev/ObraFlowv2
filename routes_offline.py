@@ -320,6 +320,10 @@ def offline_save_report():
         tech_info = data.get('technical_info', {})
         data_relatorio_str = data.get('data_relatorio', '')
         lembrete = data.get('lembrete_proxima_visita', '')
+        categoria = data.get('categoria', '')
+        local = data.get('local', '')
+        descricao = data.get('descricao', '')
+        conteudo = data.get('conteudo', '')
 
         app.logger.info(
             f"📥 Salvando relatório offline: offline_id={offline_id}, "
@@ -382,6 +386,10 @@ def offline_save_report():
             criado_por=current_user.id if 'criado_por' in dir(Relatorio) else None,
             atualizado_por=current_user.id if 'atualizado_por' in dir(Relatorio) else None,
             status=status,
+            categoria=categoria,
+            local=local,
+            descricao=descricao,
+            conteudo=conteudo,
             observacoes_finais=observacoes if hasattr(Relatorio, 'observacoes_finais') else "",
             lembrete_proxima_visita=lembrete_val if hasattr(Relatorio, 'lembrete_proxima_visita') else None,
             data_relatorio=data_relatorio_val if hasattr(Relatorio, 'data_relatorio') else datetime.utcnow(),
