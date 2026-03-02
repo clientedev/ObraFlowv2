@@ -486,7 +486,9 @@
 
         // Se fez warmup recentemente, ainda precisamos checar se o IDB está populado
         if (lastWarmup && (Date.now() - parseInt(lastWarmup)) < TWO_HOURS) {
-            const projects = await ELPOfflineManager.getProjects();
+            // Acessar banco diretamente para evitar circularidade com ELPOfflineManager
+            await initDB();
+            const projects = await dbGetAll('projects');
             if (projects && projects.length > 0) {
                 console.log('ℹ️ OfflineManager: Cache ainda recente e populado, warmup ignorado');
                 return;
