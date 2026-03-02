@@ -214,7 +214,7 @@ async function cacheFirstWithBgRevalidation(request) {
     if (cached) {
         // Retorna cache imediatamente + atualiza em background
         if (isNetworkStable()) {
-            networkFetch.catch(() => {}); // Bg update, sem esperar
+            networkFetch.catch(() => { }); // Bg update, sem esperar
         }
         return cached;
     }
@@ -298,7 +298,8 @@ async function handleOfflinePost(request, url) {
 
     // Offline: capturar body do formulário
     try {
-        const formDataText = await request.text();
+        const clonedRequest = request.clone();
+        const formDataText = await clonedRequest.text();
         const offlineId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         // Notificar todos os clientes para salvar no IndexedDB
@@ -393,7 +394,7 @@ async function triggerCacheWarmup(csrfToken) {
         for (const url of urls) {
             // NUNCA cachear rotas de autenticação (evita erro CSRF)
             if (isAuthRoute(new URL(url, self.location.origin).pathname)) continue;
-            
+
             try {
                 const response = await fetch(url, { credentials: 'include' });
                 if (response.ok && response.status !== 204) {

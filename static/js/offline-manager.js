@@ -484,9 +484,14 @@
         const lastWarmup = localStorage.getItem('elp_last_warmup');
         const TWO_HOURS = 2 * 60 * 60 * 1000;
 
+        // Se fez warmup recentemente, ainda precisamos checar se o IDB está populado
         if (lastWarmup && (Date.now() - parseInt(lastWarmup)) < TWO_HOURS) {
-            console.log('ℹ️ OfflineManager: Cache ainda recente, warmup ignorado');
-            return;
+            const projects = await this.getProjects();
+            if (projects && projects.length > 0) {
+                console.log('ℹ️ OfflineManager: Cache ainda recente e populado, warmup ignorado');
+                return;
+            }
+            console.log('🔥 OfflineManager: Cache recente mas IDB vazio, forçando warmup...');
         }
 
         if (!navigator.onLine) {
