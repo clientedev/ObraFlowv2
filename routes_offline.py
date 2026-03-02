@@ -185,14 +185,13 @@ def offline_sync_data():
                 })
 
             # 6. Checklist específico do projeto
-            from models import ProjetoChecklist
-            checklist_projeto = ProjetoChecklist.query.filter_by(projeto_id=p.id).order_by(ProjetoChecklist.ordem).all()
+            from models import ChecklistObra
+            checklist_projeto = ChecklistObra.query.filter_by(projeto_id=p.id).order_by(ChecklistObra.ordem).all()
             checklist_projeto_data = []
             for cl in checklist_projeto:
                 checklist_projeto_data.append({
                     'id': cl.id,
                     'texto': cl.texto,
-                    'etapa': cl.etapa or '',
                     'ordem': cl.ordem or 0,
                     # We do not preload status or checked_in_this_report because offline creation evaluates checklists from zero.
                 })
@@ -433,9 +432,24 @@ def offline_save_report():
             elif isinstance(acompanhantes, list):
                 novo_relatorio.acompanhantes = acompanhantes
 
-        db.session.add(novo_relatorio)
-        db.session.flush()
-        relatorio_id = novo_relatorio.id
+        try:
+            db.session.add(novo_relatorio)
+            db.session.flush()
+            relatorio_id = novo_relatorio.id
+        except Exception as e:
+            db.session.rollback()
+            if 'uq_relatorios_projeto_numero' in str(e).lower() or 'unique constraint' in str(e).lower():
+                from models import Relatorio as _Relatorio
+                existing = _Relatorio.query.filter_by(projeto_id=projeto_id, numero=numero).first()
+                if existing:
+                    app.logger.info(f"ℹ️ Relatório duplicado detectado durante sync (projeto {projeto_id}, numero {numero}). Usando ID existente: {existing.id}")
+                    relatorio_id = existing.id
+                else:
+                    app.logger.error(f"❌ Erro de unicidade, mas relatório não encontrado: {str(e)}")
+                    raise e
+            else:
+                app.logger.error(f"❌ Erro ao salvar relatório offline: {str(e)}")
+                raise e
 
         # Atualizar ChecklistObra 
         if checklist_data and projeto_id:

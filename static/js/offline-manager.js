@@ -486,7 +486,7 @@
 
         // Se fez warmup recentemente, ainda precisamos checar se o IDB está populado
         if (lastWarmup && (Date.now() - parseInt(lastWarmup)) < TWO_HOURS) {
-            const projects = await this.getProjects();
+            const projects = await ELPOfflineManager.getProjects();
             if (projects && projects.length > 0) {
                 console.log('ℹ️ OfflineManager: Cache ainda recente e populado, warmup ignorado');
                 return;
@@ -536,7 +536,7 @@
     // ============================================================
     // API pública
     // ============================================================
-    window.ELPOfflineManager = {
+    const ELPOfflineManager = {
         init: async function () {
             await initDB();
             setupSWMessageListener();
@@ -549,7 +549,7 @@
             // Pequeno delay para o SW ficar pronto
             setTimeout(async () => {
                 await triggerCacheWarmupIfLoggedIn();
-            }, 1500);
+            }, 1000);
 
             console.log('✅ OfflineManager: Inicializado completamente');
         },
@@ -563,6 +563,8 @@
         getChecklist: () => initDB().then(() => dbGetAll('checklist')),
         triggerWarmup: triggerCacheWarmupIfLoggedIn,
     };
+
+    window.ELPOfflineManager = ELPOfflineManager;
 
     // Auto-inicializar quando DOM estiver pronto
     if (document.readyState === 'loading') {

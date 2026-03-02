@@ -284,6 +284,10 @@ async function staleWhileRevalidate(request, cacheName) {
  * Salva via IDB (via postMessage para o cliente) e retorna resposta sintética.
  */
 async function handleOfflinePost(request, url) {
+    // Clone the request immediately before any body-consuming operations
+    const initialRequest = request.clone();
+    const captureRequest = request.clone();
+
     // Se tivermos rede estável, deixa passar normalmente
     if (isNetworkStable()) {
         try {
@@ -298,8 +302,7 @@ async function handleOfflinePost(request, url) {
 
     // Offline: capturar body do formulário
     try {
-        const clonedRequest = request.clone();
-        const formDataText = await clonedRequest.text();
+        const formDataText = await captureRequest.text();
         const offlineId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         // Notificar todos os clientes para salvar no IndexedDB
