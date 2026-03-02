@@ -361,10 +361,11 @@
             // Só interceptar se REALMENTE estiver offline
             if (navigator.onLine) return;
 
+            log('🛑 Offline detectado no submit, interceptando...');
             e.preventDefault();
+            e.stopImmediatePropagation(); // Impedir que o handler online em form_complete.html rode
             e.stopImmediatePropagation();
 
-            log('📴 Offline: Interceptando submit do formulário...');
             showToast('📴 Offline — Salvando relatório no dispositivo...', 'warning');
 
             try {
@@ -412,6 +413,20 @@
         }
 
         // Se o select não tiver valor, tenta buscar de qualquer input (hidden ou não)
+        if (!projetoId) {
+            const backup = document.getElementById('projeto_id_backup');
+            if (backup && backup.value) {
+                projetoId = backup.value;
+                log('📍 projeto_id recuperado do backup hidden');
+            }
+        }
+
+        // Última instância: fallback do window persistido no init
+        if (!projetoId && window._currentProjetoId) {
+            projetoId = window._currentProjetoId;
+            log('📍 projeto_id recuperado do fallback global (URL)');
+        }
+
         if (!projetoId) {
             const anyProj = document.querySelector('#projeto_id') || document.querySelector('[name="projeto_id"]');
             if (anyProj && anyProj.value) {
@@ -728,6 +743,15 @@
             });
         }
 
+        log('🏗️ Inicializando OfflineFormHydrator...');
+
+        // Persistir projeto_id da URL como fallback global
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlProjId = urlParams.get('projeto_id');
+        if (urlProjId) {
+            window._currentProjetoId = urlProjId;
+            log(`📍 Projeto ID da URL persistido: ${urlProjId}`);
+        }
         log('✅ Offline Form Hydrator inicializado com sucesso!');
     }
 

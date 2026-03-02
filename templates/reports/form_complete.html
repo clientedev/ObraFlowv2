@@ -397,6 +397,8 @@
                                         </option>
                                         {% endfor %}
                                     </select>
+                                    <input type="hidden" name="projeto_id_backup" id="projeto_id_backup"
+                                        value="{% if selected_project %}{{ selected_project.id }}{% endif %}">
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -1851,6 +1853,10 @@
 
     // Função para criar relatório inicial em preenchimento
     async function createInitialReport() {
+        if (!navigator.onLine) {
+            console.log('📶 Offline: Pulando criação de relatório inicial no servidor');
+            return null;
+        }
         const formData = new FormData(document.getElementById('reportForm'));
 
         try {
@@ -1875,6 +1881,10 @@
 
     // Submissão do formulário
     document.getElementById('reportForm').addEventListener('submit', async function (e) {
+        if (!navigator.onLine) {
+            // Deixar o Offline Manager/Hydrator interceptar
+            return;
+        }
         e.preventDefault();
 
         // Show loading state
@@ -2248,6 +2258,7 @@
         // Função para inicializar auto save quando houver dados suficientes
         function tryInitializeAutoSave() {
             if (autoSaveInitialized) return;
+            if (!navigator.onLine) return;
 
             const titulo = document.getElementById('titulo').value;
             const projetoId = document.getElementById('projeto_id').value;
@@ -2291,7 +2302,12 @@
         }
 
         if (projetoField) {
-            projetoField.addEventListener('change', tryInitializeAutoSave);
+            projetoField.addEventListener('change', function () {
+                // Atualizar backup hidden se existir
+                const backup = document.getElementById('projeto_id_backup');
+                if (backup) backup.value = this.value;
+                tryInitializeAutoSave();
+            });
         }
     });
 
