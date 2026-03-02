@@ -369,6 +369,8 @@
                         <div class="row mb-4">
                             <!-- Input oculto para o título fixo -->
                             <input type="hidden" name="titulo" id="titulo" value="{% if existing_report %}{{ existing_report.titulo }}{% else %}Relatório de visita{% endif %}">
+                            <input type="hidden" name="categoria" id="categoria" value="{{ existing_report.categoria if existing_report else '' }}">
+                            <input type="hidden" name="local" id="local" value="{{ existing_report.local if existing_report else '' }}">
                             
                             <div class="col-md-6 mb-3 mb-md-0">
                                 <div class="form-group">

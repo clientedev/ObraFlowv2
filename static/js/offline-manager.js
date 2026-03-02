@@ -555,6 +555,7 @@
         getReports: () => initDB().then(() => dbGetAll('reports')),
         getPendingSync: () => initDB().then(() => dbGetAll('pending_sync')),
         getLegendas: () => initDB().then(() => dbGetAll('legendas')),
+        getChecklist: () => initDB().then(() => dbGetAll('checklist')),
         triggerWarmup: triggerCacheWarmupIfLoggedIn,
     };
 

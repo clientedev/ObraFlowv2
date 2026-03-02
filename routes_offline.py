@@ -369,11 +369,20 @@ def offline_save_report():
         lembrete_val = None
         if lembrete:
             try:
-                if isinstance(lembrete, str):
-                    lembrete_val = datetime.fromisoformat(lembrete.replace('Z', '+00:00'))
+                if isinstance(lembrete, str) and lembrete.strip():
+                    # Tentar parsear como ISO
+                    try:
+                        lembrete_val = datetime.fromisoformat(lembrete.replace('Z', '+00:00'))
+                    except (ValueError, TypeError):
+                        # Se falhar e for apenas texto, infelizmente a coluna é DateTime.
+                        # No Relatorio do models.py linha 398: lembrete_proxima_visita = db.Column(db.DateTime, nullable=True)
+                        # Se o usuário quer texto, talvez ele devesse usar outro campo ou a coluna deveria ser Text.
+                        # Mas como o objetivo é não quebrar, vamos logar e deixar nulo se não for data.
+                        app.logger.warning(f"Lembrete '{lembrete}' não é uma data válida para coluna DateTime. Ignorando conversão.")
+                        lembrete_val = None
                 else:
                     lembrete_val = lembrete
-            except (ValueError, TypeError) as e:
+            except Exception as e:
                 app.logger.warning(f"Erro ao processar lembrete_proxima_visita (offline): {e}")
 
         # Criar relatório
@@ -397,11 +406,12 @@ def offline_save_report():
             updated_at=datetime.utcnow(),
         )
 
-        # Tratar Technical Info
-        if tech_info:
+        # Tratar Technical Info - ATUALIZAR O PROJETO (não o relatório)
+        if tech_info and projeto:
             for field, value in tech_info.items():
-                if hasattr(novo_relatorio, field):
-                    setattr(novo_relatorio, field, value)
+                if hasattr(projeto, field):
+                    setattr(projeto, field, value)
+            app.logger.info(f"✅ Informações técnicas da obra {projeto_id} atualizadas via sync offline")
 
         # Tratar Checklist
         if checklist_data:

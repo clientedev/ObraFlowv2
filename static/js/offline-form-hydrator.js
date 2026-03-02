@@ -131,7 +131,8 @@
         // 3. INFORMAÇÕES TÉCNICAS
         if (projeto.technical_info && typeof projeto.technical_info === 'object') {
             Object.entries(projeto.technical_info).forEach(([key, value]) => {
-                const field = document.getElementById(key);
+                // Tenta encontrar pelo ID ou pelo NAME
+                const field = document.getElementById(key) || document.querySelector(`[name="${key}"]`);
                 if (field && value) {
                     field.value = value;
                 }
@@ -403,12 +404,18 @@
             return '';
         };
 
-        const projetoId = getValue(['#projeto_id', '[name="projeto_id"]']);
+        let projetoId = getValue(['#projeto_id', '[name="projeto_id"]']);
+        // Fallback para input hidden se o select não tiver valor
+        if (!projetoId) {
+            const hiddenProj = document.querySelector('input[type="hidden"]#projeto_id') || document.querySelector('input[type="hidden"][name="projeto_id"]');
+            if (hiddenProj) projetoId = hiddenProj.value;
+        }
+
         const titulo = getValue(['#titulo_relatorio', '#titulo', '[name="titulo"]']);
         const numero = getValue(['#numero', '[name="numero"]', '#numero_relatorio']);
         const dataRelatorio = getValue(['#data_relatorio', '[name="data_relatorio"]']);
-        const observacoes = getValue(['#observacoes', '[name="observacoes_finais"]', '#observacoes_finais']);
-        const lembrete = getValue(['#lembrete_proxima_visita', '#lembrete', '[name="lembrete_proxima_visita"]']);
+        const observacoes = getValue(['#observacoes', '[name="observacoes_finais"]', '#observacoes_finais', '#conteudo', '[name="conteudo"]']);
+        const lembrete = getValue(['#novo_lembrete_texto', '#novo_lembrete_texto_inferior', '#lembrete_proxima_visita']);
         const categoria = getValue(['#categoria', '[name="categoria"]']);
         const local = getValue(['#local', '[name="local"]']);
         const descricao = getValue(['#descricao', '[name="descricao"]']);
@@ -420,25 +427,47 @@
             if (field.name && field.value) techInfo[field.name] = field.value.trim();
         });
 
-        // Checklist
+        // Checklist - Coleta robusta
         let checklistData = [];
         if (typeof window.getChecklistDataForAutosave === 'function') {
             const dynamic = window.getChecklistDataForAutosave();
-            if (dynamic) checklistData = dynamic;
+            if (dynamic && dynamic.length > 0) checklistData = dynamic;
         }
+
+        // Se não conseguiu via função global, tenta coletar manualmente dos inputs
+        if (checklistData.length === 0) {
+            const items = document.querySelectorAll('#checklistItemsDynamic .form-check-input, #checklistItems .form-check-input');
+            items.forEach(input => {
+                const id = input.dataset.itemId || input.id.replace('cl_item_', '');
+                const row = input.closest('.d-flex') || input.closest('.checklist-item');
+                const obsField = row ? row.querySelector('textarea, input[type="text"]:not(.form-check-input)') : null;
+                checklistData.push({
+                    id: parseInt(id),
+                    concluido: input.checked,
+                    observacoes: obsField ? obsField.value : ''
+                });
+            });
+        }
+
         if (checklistData.length === 0 && window._checklistItemsData) {
             checklistData = window._checklistItemsData;
         }
 
         // Acompanhantes
         let acompanhantes = [];
-        if (window.acompanhantes && Array.isArray(window.acompanhantes)) {
-            acompanhantes = window.acompanhantes;
-        } else {
-            const hiddenField = document.getElementById('acompanhantes-data');
-            if (hiddenField && hiddenField.value) {
-                try { acompanhantes = JSON.parse(hiddenField.value); } catch (e) {}
+        const hiddenField = document.getElementById('acompanhantes-data');
+        if (hiddenField && hiddenField.value) {
+            try {
+                const parsed = JSON.parse(hiddenField.value);
+                if (Array.isArray(parsed)) acompanhantes = parsed;
+            } catch (e) {
+                warn('Erro ao parsear #acompanhantes-data:', e);
             }
+        }
+
+        // Se ainda vazio, tenta variável global
+        if (acompanhantes.length === 0 && Array.isArray(window.acompanhantes)) {
+            acompanhantes = window.acompanhantes;
         }
 
         // Fotos — com base64 para armazenamento offline
@@ -483,7 +512,7 @@
 
         for (const img of imgs) {
             const id = img.id;
-            
+
             // Tentar ler valores ATUAIS do DOM se os inputs existirem
             const domCategory = document.querySelector(`#category_${id}`);
             const domLocal = document.querySelector(`#local_${id}`);
@@ -492,9 +521,9 @@
 
             const categoryValue = domCategory ? domCategory.value : (img.category || '');
             const localValue = domLocal ? domLocal.value : (img.local || '');
-            const captionValue = (domManualCaption && domManualCaption.value) ? domManualCaption.value : 
-                                 ((domPredefinedCaption && domPredefinedCaption.value) ? domPredefinedCaption.value : 
-                                 (img.manualCaption || img.predefinedCaption || img.caption || ''));
+            const captionValue = (domManualCaption && domManualCaption.value) ? domManualCaption.value :
+                ((domPredefinedCaption && domPredefinedCaption.value) ? domPredefinedCaption.value :
+                    (img.manualCaption || img.predefinedCaption || img.caption || ''));
 
             const entry = {
                 id: id,
@@ -571,7 +600,7 @@
         // Quando `carregarFuncionariosParaAcompanhantes` for chamada,
         // e estivermos offline, usar dados do IDB
         const originalCarregarFunc = window.carregarFuncionariosParaAcompanhantes;
-        window.carregarFuncionariosParaAcompanhantes = async function(pid) {
+        window.carregarFuncionariosParaAcompanhantes = async function (pid) {
             if (navigator.onLine) {
                 if (originalCarregarFunc) return originalCarregarFunc(pid);
                 return;
@@ -586,7 +615,7 @@
 
         // Quando `populateCategorySelect` for chamada
         const originalPopulateCategory = window.populateCategorySelect;
-        window.populateCategorySelect = function(photoId) {
+        window.populateCategorySelect = function (photoId) {
             if (navigator.onLine) {
                 if (originalPopulateCategory) return originalPopulateCategory(photoId);
                 return;
@@ -681,7 +710,7 @@
         // Listener para quando o projeto é trocado no select
         const selectEl = document.getElementById('projeto_id');
         if (selectEl) {
-            selectEl.addEventListener('change', async function() {
+            selectEl.addEventListener('change', async function () {
                 const newProjetoId = this.value;
                 if (!navigator.onLine && newProjetoId) {
                     log(`🔄 Projeto alterado para ${newProjetoId} — re-hidratando...`);
