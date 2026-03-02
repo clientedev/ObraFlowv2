@@ -309,6 +309,10 @@ def offline_save_report():
 
         offline_id = data.get('offline_id')  # ID temporário gerado no dispositivo
         projeto_id = data.get('projeto_id')
+        
+        if not projeto_id:
+            app.logger.error(f"❌ Erro sync offline: projeto_id ausente no payload {offline_id}")
+            return jsonify({'success': False, 'error': 'projeto_id é obrigatório para salvar o relatório'}), 400
         titulo = data.get('titulo', 'Relatório Offline')
         numero = data.get('numero')
         status = data.get('status', 'Rascunho')

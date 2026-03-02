@@ -404,11 +404,19 @@
             return '';
         };
 
-        let projetoId = getValue(['#projeto_id', '[name="projeto_id"]']);
-        // Fallback para input hidden se o select não tiver valor
+        let projetoId = null;
+        // Priorizar o select se ele tiver um valor selecionado
+        const selectProj = document.querySelector('select#projeto_id') || document.querySelector('select[name="projeto_id"]');
+        if (selectProj && selectProj.value) {
+            projetoId = selectProj.value;
+        }
+
+        // Se o select não tiver valor, tenta buscar de qualquer input (hidden ou não)
         if (!projetoId) {
-            const hiddenProj = document.querySelector('input[type="hidden"]#projeto_id') || document.querySelector('input[type="hidden"][name="projeto_id"]');
-            if (hiddenProj) projetoId = hiddenProj.value;
+            const anyProj = document.querySelector('#projeto_id') || document.querySelector('[name="projeto_id"]');
+            if (anyProj && anyProj.value) {
+                projetoId = anyProj.value;
+            }
         }
 
         const titulo = getValue(['#titulo_relatorio', '#titulo', '[name="titulo"]']);

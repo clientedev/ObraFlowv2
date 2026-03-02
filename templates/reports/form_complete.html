@@ -371,7 +371,7 @@
                         <input type="hidden" name="edit_report_id" value="{{ existing_report.id }}">
                         {% endif %}
                         {% if selected_project %}
-                        <input type="hidden" id="projeto_id" name="projeto_id" value="{{ selected_project.id }}">
+                        {# Removido input oculto duplicado para evitar conflito com o select #}
                         {% endif %}
 
                         <!-- Informações Básicas (Obra e Data lado a lado) -->
@@ -4052,9 +4052,9 @@
     function carregarChecklist(items) {
         console.log('📋 carregarChecklist() chamada com:', items);
 
-        const list = document.querySelector("#checklistItems");
+        const list = document.querySelector("#checklistItemsDynamic") || document.querySelector("#checklistItems");
         if (!list) {
-            console.error('❌ Container #checklistItems não encontrado no DOM!');
+            console.error('❌ Container de checklist não encontrado no DOM!');
             return;
         }
 
