@@ -1113,7 +1113,7 @@
     // Standard checklist items for pre-loading when switching to personalized
     const standardChecklistItems = [
         {% for item in checklist_items_padrao %}
-    { id: { { loop.index } }, texto: "{{ item.texto|e }}", ordem: { { item.ordem } } } {% if not loop.last %}, {% endif %}
+    { id: {{ loop.index }}, texto: "{{ item.texto|e }}", ordem: {{ item.ordem }} } {% if not loop.last %}, {% endif %}
     {% endfor %}
 ];
 
@@ -1362,30 +1362,30 @@
             {% if project %}
             const projectId = {{ project.id }};
 
-    fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            texto: texto
+        fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                texto: texto
+            })
         })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const item = customChecklistItems.find(i => i.id === itemId);
-                if (item) item.texto = texto;
-                renderCustomChecklistItems();
-            } else {
-                alert('Erro: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Erro ao salvar item');
-        });
-    {% endif %}
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const item = customChecklistItems.find(i => i.id === itemId);
+                    if (item) item.texto = texto;
+                    renderCustomChecklistItems();
+                } else {
+                    alert('Erro: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erro ao salvar item');
+            });
+        {% endif %}
     }
 
     function cancelEditChecklistItem(itemId) {
@@ -1406,23 +1406,23 @@
             {% if project %}
             const projectId = {{ project.id }};
 
-    fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
-        method: 'DELETE'
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
-                renderCustomChecklistItems();
-            } else {
-                alert('Erro: ' + data.error);
-            }
+        fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
+            method: 'DELETE'
         })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Erro ao remover item');
-        });
-    {% endif %}
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
+                    renderCustomChecklistItems();
+                } else {
+                    alert('Erro: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erro ao remover item');
+            });
+        {% endif %}
     }
 
     function moveChecklistItemUp(itemId) {
