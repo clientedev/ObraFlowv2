@@ -1000,11 +1000,11 @@
             ordem: categoriasExistentes.length + 1,
             project_id: {{ project.id }
     }
-  };
+        };
     categoriasExistentes.push(nova);
     renderCategorias();
     updateCategoriasHiddenField();
-});
+    });
     {% endif %}
 
     // Aplicar normalização de endereços quando carregar a página
