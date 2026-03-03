@@ -3267,6 +3267,7 @@ def autosave_report(report_id):
 
 @app.route('/reports/new', methods=['GET', 'POST'])
 @login_required
+@csrf.exempt
 def create_report():
     # CORREÇÃO: Se edit=X na URL, redirecionar para a rota de edição completa
     edit_id = request.args.get('edit', type=int)
@@ -7264,6 +7265,7 @@ def report_edit_complete(report_id):
 
 @app.route('/api/reports/<int:report_id>/update', methods=['POST'])
 @login_required
+@csrf.exempt
 def update_report(report_id):
     """
     Rota de atualização de relatório em modo de edição.
@@ -8363,6 +8365,7 @@ def report_photo_annotate(report_id):
 
 @app.route('/reports/<int:report_id>/submit-for-approval', methods=['POST'])
 @login_required
+@csrf.exempt
 def report_submit_for_approval(report_id):
     """Submit report for approval"""
     relatorio = Relatorio.query.get_or_404(report_id)
