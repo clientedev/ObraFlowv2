@@ -1000,7 +1000,8 @@
             id: Date.now(), // temporário até salvar
             nome: "",
             ordem: categoriasExistentes.length + 1,
-            project_id: {{ project.id }}
+            project_id: {{ project.id }
+    }
         };
     categoriasExistentes.push(nova);
     renderCategorias();
@@ -1113,7 +1114,7 @@
     // Standard checklist items for pre-loading when switching to personalized
     const standardChecklistItems = [
         {% for item in checklist_items_padrao %}
-    { id: {{ loop.index }}, texto: "{{ item.texto|e }}", ordem: {{ item.ordem }} } {% if not loop.last %}, {% endif %}
+    { id: { { loop.index } }, texto: "{{ item.texto|e }}", ordem: { { item.ordem } } } {% if not loop.last %}, {% endif %}
     {% endfor %}
 ];
 
@@ -1217,7 +1218,8 @@
         }
 
         {% if project %}
-        const projectId = {{ project.id }};
+        const projectId = {{ project.id }
+    };
 
     fetch(`/projects/${projectId}/checklist/config`, {
         method: 'POST',
@@ -1251,7 +1253,8 @@
         }
 
         {% if project %}
-        const projectId = {{ project.id }};
+        const projectId = {{ project.id }
+    };
 
     fetch(`/projects/${projectId}/checklist/items/list`, {
         method: 'GET'
@@ -1293,7 +1296,8 @@
         } else {
             {% if project %}
             // For existing projects, use API-only approach (immediate save to database)
-            const projectId = {{ project.id }};
+            const projectId = {{ project.id }
+        };
 
         fetch(`/projects/${projectId}/checklist/items`, {
             method: 'POST',
@@ -1319,6 +1323,7 @@
                 alert('Erro ao adicionar item');
             });
         {% endif %}
+    }
     }
 
     function editChecklistItem(itemId) {
@@ -1360,7 +1365,8 @@
             }
         } else {
             {% if project %}
-            const projectId = {{ project.id }};
+            const projectId = {{ project.id }
+        };
 
         fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
             method: 'PUT',
@@ -1387,6 +1393,7 @@
             });
         {% endif %}
     }
+    }
 
     function cancelEditChecklistItem(itemId) {
         renderCustomChecklistItems();
@@ -1404,7 +1411,8 @@
             updateChecklistItemsHiddenField();
         } else {
             {% if project %}
-            const projectId = {{ project.id }};
+            const projectId = {{ project.id }
+        };
 
         fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
             method: 'DELETE'
@@ -1423,6 +1431,7 @@
                 alert('Erro ao remover item');
             });
         {% endif %}
+    }
     }
 
     function moveChecklistItemUp(itemId) {
@@ -1467,7 +1476,8 @@
 
     function saveReorderedItems() {
         {% if project %}
-        const projectId = {{ project.id }};
+        const projectId = {{ project.id }
+    };
     const orderData = customChecklistItems.map(item => ({ id: item.id, ordem: item.ordem }));
 
     fetch(`/projects/${projectId}/checklist/items/reorder`, {
