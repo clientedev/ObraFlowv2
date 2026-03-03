@@ -2080,8 +2080,9 @@
             // Sucesso!
             alert('✅ Relatório atualizado com sucesso!');
 
-            // Redirecionar para a lista de relatórios
-            window.location.href = '/reports';
+            // Redirecionar para a lista de relatórios da obra específica com filtros ocultos
+            const projetoId = $('#projeto_id').val();
+            window.location.href = `/reports?projeto_id=${projetoId}&hide_filters=1`;
 
         } catch (error) {
             console.error('❌ Erro ao salvar relatório:', error);

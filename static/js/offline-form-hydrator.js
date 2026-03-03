@@ -383,9 +383,10 @@
                 log(`💾 Relatório salvo offline com ID: ${payload.offline_id}`);
                 showToast('✅ Relatório salvo! Será enviado quando você tiver conexão.', 'success');
 
-                // Redirecionar após 2s
+                // Redirecionar após 2s com filtros ocultos e ID do projeto
                 setTimeout(() => {
-                    window.location.href = '/reports?offline_saved=1';
+                    const projetoId = payload.projeto_id || '';
+                    window.location.href = `/reports?projeto_id=${projetoId}&hide_filters=1&offline_saved=1`;
                 }, 2200);
 
             } catch (error) {
