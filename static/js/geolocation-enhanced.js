@@ -12,10 +12,10 @@ class EnhancedGeolocation {
         this.currentPosition = null;
         this.fallbackUsed = false;
         this.isHTTPS = window.location.protocol === 'https:';
-        
+
         console.log('🌍 GEOLOCALIZAÇÃO: Sistema inicializado');
         console.log('🔒 HTTPS:', this.isHTTPS ? 'SIM' : 'NÃO');
-        
+
         // Avisar se não estiver em HTTPS
         if (!this.isHTTPS && window.location.hostname !== 'localhost') {
             this.showWarning('⚠️ Geolocalização pode não funcionar em HTTP. Use HTTPS.');
@@ -31,7 +31,7 @@ class EnhancedGeolocation {
             if ('permissions' in navigator) {
                 const permission = await navigator.permissions.query({ name: 'geolocation' });
                 console.log('🔐 PERMISSÃO: Status atual:', permission.state);
-                
+
                 // Configurar listener para mudanças na permissão
                 permission.onchange = () => {
                     console.log('🔐 PERMISSÃO: Mudou para:', permission.state);
@@ -50,14 +50,14 @@ class EnhancedGeolocation {
                         });
                     }
                 };
-                
+
                 return permission.state; // 'granted', 'prompt', ou 'denied'
             }
-            
+
             // Fallback se a API de Permissions não estiver disponível
             console.log('⚠️ PERMISSÃO: API não disponível, tentando geolocalização diretamente');
             return 'prompt'; // Assume que precisará solicitar
-            
+
         } catch (error) {
             console.warn('⚠️ PERMISSÃO: Erro ao verificar:', error);
             return 'prompt'; // Em caso de erro, assume que precisará solicitar
@@ -84,27 +84,27 @@ class EnhancedGeolocation {
         // Verificar suporte
         if (!navigator.geolocation) {
             console.error('❌ GEOLOCALIZAÇÃO: Não suportada');
-            
+
             if (config.showUI) {
                 this.showError(
                     'Geolocalização não suportada',
                     'Seu navegador não suporta geolocalização. Usando localização aproximada por IP.'
                 );
             }
-            
+
             if (config.fallbackToIP) {
                 return await this.getLocationByIP();
             }
-            
+
             throw new Error('Geolocalização não suportada');
         }
 
         // NOVO: Verificar permissão antes de tentar obter localização
         const permissionStatus = await this.checkPermission();
-        
+
         if (permissionStatus === 'denied') {
             console.error('❌ GEOLOCALIZAÇÃO: Permissão negada permanentemente');
-            
+
             if (config.showUI) {
                 this.showDetailedError(
                     '🚫 Permissão de Localização Negada',
@@ -112,26 +112,26 @@ class EnhancedGeolocation {
                     this.getPermissionInstructions()
                 );
             }
-            
+
             // Se permissão negada, usar fallback por IP
             if (config.fallbackToIP) {
                 console.log('🔄 GEOLOCALIZAÇÃO: Usando fallback por IP devido a permissão negada');
                 return await this.getLocationByIP();
             }
-            
+
             throw new Error('Permissão de geolocalização negada');
         }
-        
+
         console.log('✅ GEOLOCALIZAÇÃO: Permissão OK, capturando localização...');
 
         // Tentar obter localização GPS
         try {
             const position = await this.getGPSLocation(config);
-            
+
             if (config.showUI) {
                 this.showSuccess('📍 Localização capturada com sucesso!');
             }
-            
+
             // Reverse geocoding se solicitado
             if (config.reverseGeocode) {
                 const address = await this.reverseGeocode(
@@ -140,27 +140,27 @@ class EnhancedGeolocation {
                 );
                 position.address = address;
             }
-            
+
             this.currentPosition = position;
             return position;
-            
+
         } catch (error) {
             console.error('❌ GEOLOCALIZAÇÃO GPS falhou:', error);
-            
+
             // Tentar fallback por IP
             if (config.fallbackToIP) {
                 console.log('🔄 GEOLOCALIZAÇÃO: Tentando fallback por IP...');
-                
+
                 if (config.showUI) {
                     this.showInfo(
                         'Usando localização aproximada',
                         'Não foi possível obter sua localização exata. Usando localização aproximada por IP.'
                     );
                 }
-                
+
                 return await this.getLocationByIP();
             }
-            
+
             // Se não tem fallback, mostrar erro detalhado
             this.handleGeolocationError(error, config.showUI);
             throw error;
@@ -200,38 +200,39 @@ class EnhancedGeolocation {
     async getLocationByIP() {
         try {
             console.log('🌐 IP GEOLOCATION: Iniciando...');
-            
-            const response = await fetch('https://ipapi.co/json/');
-            
+
+            const response = await fetch('https://ipinfo.io/json');
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
-            
+
             const data = await response.json();
-            
+            const [lat, lng] = data.loc ? data.loc.split(',') : [0, 0];
+
             console.log('✅ IP GEOLOCATION: Localização obtida', {
                 city: data.city,
                 region: data.region,
-                country: data.country_name
+                country: data.country
             });
-            
+
             const position = {
                 coords: {
-                    latitude: data.latitude,
-                    longitude: data.longitude,
+                    latitude: parseFloat(lat),
+                    longitude: parseFloat(lng),
                     accuracy: 5000, // Aproximado a 5km
                 },
                 timestamp: Date.now(),
-                address: `${data.city}, ${data.region}, ${data.country_name}`,
+                address: `${data.city}, ${data.region}, ${data.country}`,
                 source: 'ip',
                 ip: data.ip
             };
-            
+
             this.currentPosition = position;
             this.fallbackUsed = true;
-            
+
             return position;
-            
+
         } catch (error) {
             console.error('❌ IP GEOLOCATION: Falhou', error);
             throw new Error('Não foi possível obter localização por IP: ' + error.message);
@@ -244,7 +245,7 @@ class EnhancedGeolocation {
     async reverseGeocode(lat, lng) {
         try {
             console.log('🗺️ REVERSE GEOCODING: Convertendo coordenadas...');
-            
+
             const response = await fetch('/api/reverse-geocoding', {
                 method: 'POST',
                 headers: {
@@ -253,21 +254,21 @@ class EnhancedGeolocation {
                 },
                 body: JSON.stringify({ latitude: lat, longitude: lng })
             });
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
-            
+
             const data = await response.json();
-            
+
             if (data.success && data.endereco) {
                 console.log('✅ REVERSE GEOCODING: Endereço obtido:', data.endereco);
                 return data.endereco;
             }
-            
+
             // Fallback para formato simples
             return `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
-            
+
         } catch (error) {
             console.error('❌ REVERSE GEOCODING: Falhou', error);
             return `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
@@ -328,13 +329,13 @@ class EnhancedGeolocation {
         let message = '';
         let instructions = '';
 
-        switch(error.code) {
+        switch (error.code) {
             case error.PERMISSION_DENIED:
                 title = '🚫 Permissão de Localização Negada';
                 message = 'Você negou o acesso à sua localização.';
                 instructions = this.getPermissionInstructions();
                 break;
-                
+
             case error.POSITION_UNAVAILABLE:
                 title = '📍 Localização Indisponível';
                 message = 'Não foi possível determinar sua localização.';
@@ -346,7 +347,7 @@ class EnhancedGeolocation {
                     </ul>
                 `;
                 break;
-                
+
             case error.TIMEOUT:
                 title = '⏰ Tempo Limite Excedido';
                 message = 'A busca pela localização demorou muito.';
@@ -358,7 +359,7 @@ class EnhancedGeolocation {
                     </ul>
                 `;
                 break;
-                
+
             default:
                 title = '❌ Erro de Geolocalização';
                 message = error.message || 'Erro desconhecido ao obter localização.';
@@ -534,9 +535,9 @@ class EnhancedGeolocation {
             ${message}
             <button type="button" class="btn-close" onclick="this.remove()"></button>
         `;
-        
+
         document.body.appendChild(toast);
-        
+
         setTimeout(() => {
             if (toast.parentNode) toast.remove();
         }, 5000);
@@ -565,7 +566,7 @@ class EnhancedGeolocation {
     async requestAndSaveLocation(options = {}) {
         try {
             console.log('🔄 Solicitando localização...');
-            
+
             // Obter localização (já verifica permissões internamente)
             const position = await this.getLocation({
                 ...options,

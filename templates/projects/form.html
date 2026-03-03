@@ -491,16 +491,14 @@
                                     <!-- Current Checklist Display (for editing existing projects) -->
                                     {% if project and checklist_items %}
                                     <div id="currentChecklistDisplay">
-                                        <h6><i class="fas fa-list me-2"></i>Checklist Atual ({{
-                                            checklist_config.tipo_checklist
+                                        <h6><i class="fas fa-list me-2"></i>Checklist Atual ({{ config.tipo_checklist
                                             }})</h6>
                                         <div class="list-group mb-3">
                                             {% for item in checklist_items %}
                                             <div class="list-group-item">
                                                 <div class="d-flex align-items-start">
                                                     <div class="me-3">
-                                                        <span class="badge bg-primary rounded-pill">{{ item.ordem
-                                                            }}</span>
+                                                        <span class="badge bg-primary rounded-pill">{{ item.ordem }}</span>
                                                     </div>
                                                     <div class="flex-grow-1">
                                                         <p class="mb-0">{{ item.texto }}</p>
@@ -511,8 +509,7 @@
                                         </div>
                                         <div class="alert alert-info">
                                             <i class="fas fa-info-circle me-2"></i>
-                                            Tipo atual: <strong>{{ 'Padrão' if checklist_config.tipo_checklist ==
-                                                'padrao' else
+                                            Tipo atual: <strong>{{ 'Padrão' if config.tipo_checklist == 'padrao' else
                                                 'Personalizado' }}</strong>.
                                             Use os botões acima para alterar.
                                         </div>
@@ -998,13 +995,15 @@
     document.getElementById("btnAddCategoria").addEventListener("click", () => {
         const nova = {
             id: Date.now(), // temporário até salvar
+            nome: "",
+            ordem: categoriasExistentes.length + 1,
             project_id: {{ project.id }}
     }
-        };
+  };
     categoriasExistentes.push(nova);
     renderCategorias();
     updateCategoriasHiddenField();
-    });
+});
     {% endif %}
 
     // Aplicar normalização de endereços quando carregar a página
@@ -1105,7 +1104,7 @@
     }
 
     // Checklist Configuration System
-    let currentChecklistType = {% if project and checklist_config %}'{{ checklist_config.tipo_checklist }}'{% else %} 'padrao'{% endif %};
+    let currentChecklistType = {% if project and config %}'{{ config.tipo_checklist }}'{% else %} 'padrao'{% endif %};
     let customChecklistItems = [];
     const isNewProject = {% if project %}false{% else %} true{% endif %};
 
@@ -1131,7 +1130,7 @@
             selectChecklistType(currentChecklistType);
 
             // Load custom checklist items for existing projects with custom checklist
-            {% if project and checklist_config and checklist_config.tipo_checklist == 'personalizado' %}
+            {% if project and config and config.tipo_checklist == 'personalizado' %}
             loadCustomChecklistItems();
             {% endif %}
         } else {
@@ -1216,8 +1215,7 @@
         }
 
         {% if project %}
-        const projectId = {{ project.id }};
-    };
+        const projectId = {{ project.id }}
     };
 
     fetch(`/projects/${projectId}/checklist/config`, {
@@ -1252,8 +1250,7 @@
         }
 
         {% if project %}
-        const projectId = {{ project.id }};
-    };
+        const projectId = {{ project.id }}
     };
 
     fetch(`/projects/${projectId}/checklist/items/list`, {
@@ -1296,7 +1293,10 @@
         } else {
             {% if project %}
             // For existing projects, use API-only approach (immediate save to database)
-            const projectId = {{ project.id }};\n    fetch(`/projects/${projectId}/checklist/items`, {
+            const projectId = {{ project.id }}
+        };
+
+        fetch(`/projects/${projectId}/checklist/items`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1321,7 +1321,7 @@
             });
         {% endif %}
     }
-    }
+}
 
     function editChecklistItem(itemId) {
         const card = document.querySelector(`[data-checklist-item-id="${itemId}"]`);
@@ -1362,36 +1362,35 @@
             }
         } else {
             {% if project %}
-            const projectId = {{ project.id }};
+            const projectId = {{ project.id }}
         };
-    };
 
-    fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            texto: texto
+        fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                texto: texto
+            })
         })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const item = customChecklistItems.find(i => i.id === itemId);
-                if (item) item.texto = texto;
-                renderCustomChecklistItems();
-            } else {
-                alert('Erro: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Erro ao salvar item');
-        });
-    {% endif %}
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const item = customChecklistItems.find(i => i.id === itemId);
+                    if (item) item.texto = texto;
+                    renderCustomChecklistItems();
+                } else {
+                    alert('Erro: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erro ao salvar item');
+            });
+        {% endif %}
     }
-    }
+}
 
     function cancelEditChecklistItem(itemId) {
         renderCustomChecklistItems();
@@ -1409,29 +1408,28 @@
             updateChecklistItemsHiddenField();
         } else {
             {% if project %}
-            const projectId = {{ project.id }};
+            const projectId = {{ project.id }}
         };
-    };
 
-    fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
-        method: 'DELETE'
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
-                renderCustomChecklistItems();
-            } else {
-                alert('Erro: ' + data.error);
-            }
+        fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
+            method: 'DELETE'
         })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Erro ao remover item');
-        });
-    {% endif %}
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
+                    renderCustomChecklistItems();
+                } else {
+                    alert('Erro: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erro ao remover item');
+            });
+        {% endif %}
     }
-    }
+}
 
     function moveChecklistItemUp(itemId) {
         const index = customChecklistItems.findIndex(i => i.id === itemId);
@@ -1475,7 +1473,7 @@
 
     function saveReorderedItems() {
         {% if project %}
-        const projectId = {{ project.id }};
+        const projectId = {{ project.id }}
     };
     const orderData = customChecklistItems.map(item => ({ id: item.id, ordem: item.ordem }));
 
