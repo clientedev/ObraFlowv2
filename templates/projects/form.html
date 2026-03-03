@@ -998,8 +998,8 @@
             id: Date.now(), // temporário até salvar
             nome: "",
             ordem: categoriasExistentes.length + 1,
-            project_id: {{ project.id }
-    },
+            project_id: {{ project.id if project else 'null' }
+    }
         };
     categoriasExistentes.push(nova);
     renderCategorias();
@@ -1218,10 +1218,9 @@
             return;
         }
 
+        {% if project %}
         const projectId = {{ project.id }
     };
-    {% endif %}
-
     fetch(`/projects/${projectId}/checklist/config`, {
         method: 'POST',
         headers: {
@@ -1245,7 +1244,7 @@
             alert('Erro ao salvar configuração do checklist');
         });
     {% endif %}
-}
+    }
 
     function loadCustomChecklistItems() {
         if (isNewProject) {
@@ -1253,10 +1252,9 @@
             return;
         }
 
+        {% if project %}
         const projectId = {{ project.id }
     };
-    {% endif %}
-
     fetch(`/projects/${projectId}/checklist/items/list`, {
         method: 'GET'
     })
@@ -1271,7 +1269,7 @@
             console.error('Error loading items:', error);
         });
     {% endif %}
-}
+    }
 
     function addChecklistItem(event) {
         if (event) event.preventDefault();
@@ -1295,10 +1293,9 @@
             updateChecklistItemsHiddenField();
             document.getElementById('newChecklistItemText').value = '';
         } else {
+            {% if project %}
             const projectId = {{ project.id }
         };
-        {% endif %}
-
         fetch(`/projects/${projectId}/checklist/items`, {
             method: 'POST',
             headers: {
@@ -1324,7 +1321,7 @@
             });
         {% endif %}
     }
-}
+    }
 
     function editChecklistItem(itemId) {
         const card = document.querySelector(`[data-checklist-item-id="${itemId}"]`);
@@ -1364,10 +1361,9 @@
                 updateChecklistItemsHiddenField();
             }
         } else {
+            {% if project %}
             const projectId = {{ project.id }
         };
-        {% endif %}
-
         fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
             method: 'PUT',
             headers: {
@@ -1393,7 +1389,7 @@
             });
         {% endif %}
     }
-}
+    }
 
     function cancelEditChecklistItem(itemId) {
         renderCustomChecklistItems();
@@ -1410,10 +1406,9 @@
             renderCustomChecklistItems();
             updateChecklistItemsHiddenField();
         } else {
+            {% if project %}
             const projectId = {{ project.id }
         };
-        {% endif %}
-
         fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
             method: 'DELETE'
         })
@@ -1432,7 +1427,7 @@
             });
         {% endif %}
     }
-}
+    }
 
     function moveChecklistItemUp(itemId) {
         const index = customChecklistItems.findIndex(i => i.id === itemId);
@@ -1475,15 +1470,21 @@
     }
 
     function saveReorderedItems() {
+        if (isNewProject) {
+            updateChecklistItemsHiddenField();
+            return;
+        }
+
+        {% if project %}
         const projectId = {{ project.id }
     };
-    {% endif %}
     const orderData = customChecklistItems.map(item => ({ id: item.id, ordem: item.ordem }));
 
     fetch(`/projects/${projectId}/checklist/items/reorder`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
         },
         body: JSON.stringify({ items: orderData })
     })
@@ -1491,7 +1492,7 @@
             console.error('Error reordering items:', error);
         });
     {% endif %}
-}
+    }
 
 
     function renderCustomChecklistItems() {
