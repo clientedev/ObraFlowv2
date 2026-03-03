@@ -817,6 +817,7 @@ def api_remover_imagem(relatorio_id, imagem_id):
 
 @app.route('/api/relatorios/autosave', methods=['POST'])
 @login_required
+@csrf.exempt
 def api_autosave_relatorio():
     """
     POST /api/relatorios/autosave

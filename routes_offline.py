@@ -184,16 +184,18 @@ def offline_sync_data():
                     'cargo': email.cargo or ''
                 })
 
-            # 6. Checklist específico do projeto
+            # 6. Checklist específico do projeto — somente itens PENDENTES (não concluídos)
             from models import ChecklistObra
-            checklist_projeto = ChecklistObra.query.filter_by(projeto_id=p.id).order_by(ChecklistObra.ordem).all()
+            checklist_projeto = ChecklistObra.query.filter_by(
+                projeto_id=p.id, concluido=False
+            ).order_by(ChecklistObra.ordem).all()
             checklist_projeto_data = []
             for cl in checklist_projeto:
                 checklist_projeto_data.append({
                     'id': cl.id,
                     'texto': cl.texto,
                     'ordem': cl.ordem or 0,
-                    # We do not preload status or checked_in_this_report because offline creation evaluates checklists from zero.
+                    'concluido': False,  # Sempre False pois só enviamos pendentes
                 })
 
             projetos_data.append({

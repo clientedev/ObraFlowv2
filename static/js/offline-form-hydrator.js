@@ -151,36 +151,40 @@
             });
         }
 
-        // 5. CHECKLIST DA OBRA
+        // 5. CHECKLIST DA OBRA — apenas itens pendentes (já filtrados no backend)
         if (projeto.checklist_projeto && projeto.checklist_projeto.length > 0) {
-            log(`✅ Carregando checklist: ${projeto.checklist_projeto.length} itens`);
-            // Usar função do form_complete.html se disponível
+            log(`✅ Carregando checklist: ${projeto.checklist_projeto.length} itens pendentes`);
+            // Itens recebidos já são somente pendentes (concluido=False no backend)
+            const items = projeto.checklist_projeto.map(item => ({
+                id: item.id,
+                texto: item.texto,
+                ordem: item.ordem || 0,
+                concluido: false,  // pendente por definição
+                checked_in_this_report: false
+            }));
+
+            // Renderizar diretamente via função especializada do form
             if (typeof window.carregarChecklist === 'function') {
-                // Formato esperado: {id, texto, concluido}
-                const items = projeto.checklist_projeto.map(item => ({
-                    ...item,
-                    concluido: false,
-                    checked: false,
-                    checked_in_this_report: false
-                }));
                 window.carregarChecklist(items);
-                // Também popular o sistema dinâmico
-                window._checklistItemsData = items.map(i => ({
-                    id: i.id,
-                    texto: i.texto,
-                    concluido: false
-                }));
-                window._checklistCarregado = true;
-            } else if (typeof window.carregarChecklistObra === 'function') {
-                await window.carregarChecklistObra();
             } else {
-                // Fallback: renderizar manualmente no container dinâmico
-                renderizarChecklistManual(projeto.checklist_projeto);
+                // Renderização manual — fallback robusto
+                renderizarChecklistManual(items);
             }
+
+            // Persistir estado global para coleta no submit
+            window._checklistItemsData = items.map(i => ({
+                id: i.id,
+                texto: i.texto,
+                concluido: false
+            }));
+            window._checklistCarregado = true;
         } else {
-            log('Projeto sem checklist personalizado');
-            // Tentar carregar checklist padrão do IDB
-            await hydratarChecklistPadrao(manager);
+            log('Projeto sem itens pendentes no checklist');
+            // Mostrar mensagem sem itens
+            const semItens = document.getElementById('checklistSemItens');
+            if (semItens) semItens.classList.remove('d-none');
+            const container = document.getElementById('checklistItemsDynamic');
+            if (container) container.innerHTML = '';
         }
 
         // 6. FUNCIONÁRIOS / ACOMPANHANTES
@@ -444,10 +448,33 @@
         const descricao = getValue(['#descricao', '[name="descricao"]']);
         const conteudo = getValue(['#conteudo', '[name="conteudo"]']);
 
-        // Informações técnicas
+        // Informações técnicas — coletar por ID direto para funcionar mesmo com collapse fechado
+        const TECH_FIELDS = [
+            'elementos_construtivos_base',
+            'especificacao_chapisco_colante',
+            'especificacao_chapisco_alvenaria',
+            'especificacao_argamassa_emboco',
+            'forma_aplicacao_argamassa',
+            'acabamentos_revestimento',
+            'acabamento_peitoris',
+            'acabamento_muretas',
+            'definicao_frisos_cor',
+            'definicao_face_inferior_abas',
+            'observacoes_projeto_fachada',
+            'outras_observacoes'
+        ];
         const techInfo = {};
+        TECH_FIELDS.forEach(fieldName => {
+            const el = document.getElementById(fieldName);
+            if (el && el.value && el.value.trim() !== '') {
+                techInfo[fieldName] = el.value.trim();
+            }
+        });
+        // Fallback: também tenta coletar por seletor de classe
         document.querySelectorAll('.technical-field').forEach(field => {
-            if (field.name && field.value) techInfo[field.name] = field.value.trim();
+            if (field.name && field.value && field.value.trim() && !techInfo[field.name]) {
+                techInfo[field.name] = field.value.trim();
+            }
         });
 
         // Checklist - Coleta robusta
