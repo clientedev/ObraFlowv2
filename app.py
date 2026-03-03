@@ -474,7 +474,7 @@ def init_database():
     try:
         with app.app_context():
             # Models will be imported by routes.py
-            # import models  # noqa: F401
+            import models  # noqa: F401
 
             # Quick database setup for Railway
             db.create_all()
@@ -498,7 +498,7 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
     try:
         with app.app_context():
             # Models will be imported by routes.py
-            # import models  # noqa: F401
+            import models  # noqa: F401
 
             # Test database connection first
             try:
@@ -527,6 +527,7 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or (os.environ.get("DATABASE_URL") and 
             # Create admin user
             create_admin_user_safe()
             create_default_checklists()
+            create_default_legendas()
 
             # Test reports route functionality
             logging.info("🧪 Testing reports functionality...")

@@ -5704,7 +5704,7 @@ def project_new():
     # Get standard checklist items for display
     checklist_items_padrao = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
     
-    return render_template('projects/form.html', form=form, contatos_existentes=[], checklist_items_padrao=checklist_items_padrao)
+    return render_template('projects/form.html', form=form, contatos_existentes=[], checklist_items_padrao=checklist_items_padrao, categorias=[])
 
 @app.route('/projects/<int:project_id>')
 @login_required
@@ -5771,15 +5771,9 @@ def project_edit(project_id):
     # Buscar categorias existentes do projeto - Item 16 (Fix)
     categorias_existentes = CategoriaObra.query.filter_by(projeto_id=project_id).order_by(CategoriaObra.ordem).all()
     
-    # Serializar corretamente com fallback para evitar undefined
-    categorias_serializadas = []
-    for c in categorias_existentes:
-        categorias_serializadas.append({
-            "id": c.id,
-            "nome": getattr(c, "nome", None) or getattr(c, "nome_categoria", None) or "",  # fallback de campo
-            "ordem": getattr(c, "ordem", 0),
-            "project_id": c.projeto_id
-        })
+    # Serializar corretamente para evitar erro 500 (TypeError: Object of type CategoriaObra is not JSON serializable)
+    categorias_serializadas = [c.to_dict() for c in categorias_existentes]
+    print(f"DEBUG: {len(categorias_serializadas)} categorias serializadas para o projeto {project_id}")
     
     # Carregar contatos existentes (para GET e POST)
     contatos_existentes = EmailCliente.query.filter_by(projeto_id=project_id).all()
