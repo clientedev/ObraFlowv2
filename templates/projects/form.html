@@ -998,7 +998,7 @@
             id: Date.now(), // temporário até salvar
             nome: "",
             ordem: categoriasExistentes.length + 1,
-            project_id: {{ project.id }}
+            project_id: {{ project.id }}}
     }
         };
     categoriasExistentes.push(nova);
@@ -1216,7 +1216,7 @@
         }
 
         {% if project %}
-        const projectId = {{ project.id }
+        const projectId = {{ project.id }}
     };
 
     fetch(`/projects/${projectId}/checklist/config`, {
@@ -1251,7 +1251,7 @@
         }
 
         {% if project %}
-        const projectId = {{ project.id }
+        const projectId = {{ project.id }}
     };
 
     fetch(`/projects/${projectId}/checklist/items/list`, {
@@ -1294,7 +1294,7 @@
         } else {
             {% if project %}
             // For existing projects, use API-only approach (immediate save to database)
-            const projectId = {{ project.id }
+            const projectId = {{ project.id }}
         };
 
         fetch(`/projects/${projectId}/checklist/items`, {
@@ -1363,7 +1363,7 @@
             }
         } else {
             {% if project %}
-            const projectId = {{ project.id }
+            const projectId = {{ project.id }}
         };
 
         fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
@@ -1409,7 +1409,7 @@
             updateChecklistItemsHiddenField();
         } else {
             {% if project %}
-            const projectId = {{ project.id }
+            const projectId = {{ project.id }}
         };
 
         fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
@@ -1474,7 +1474,7 @@
 
     function saveReorderedItems() {
         {% if project %}
-        const projectId = {{ project.id }
+        const projectId = {{ project.id }}
     };
     const orderData = customChecklistItems.map(item => ({ id: item.id, ordem: item.ordem }));
 
