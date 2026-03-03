@@ -187,9 +187,9 @@ class ReportsAutoSave {
         console.log(`📸 Carregando ${imagens.length} imagens`);
 
         // Tentar encontrar o container de imagens
-        const container = document.getElementById('imagens-container') || 
-                         document.getElementById('photos-container') ||
-                         document.querySelector('.photos-container');
+        const container = document.getElementById('imagens-container') ||
+            document.getElementById('photos-container') ||
+            document.querySelector('.photos-container');
 
         if (!container) {
             console.warn('⚠️ Container de imagens não encontrado');
@@ -328,23 +328,36 @@ class ReportsAutoSave {
     collectFormData() {
         try {
             const data = {
-                titulo: document.querySelector('#titulo_relatorio')?.value?.trim() || 
-                        document.querySelector('#titulo')?.value?.trim() || "",
-                numero: document.querySelector('#numero_relatorio')?.value?.trim() || 
-                        document.querySelector('#numero')?.value?.trim() || "",
+                titulo: document.querySelector('#titulo_relatorio')?.value?.trim() ||
+                    document.querySelector('#titulo')?.value?.trim() || "",
+                numero: document.querySelector('#numero_relatorio')?.value?.trim() ||
+                    document.querySelector('#numero')?.value?.trim() || "",
                 data_relatorio: document.querySelector('#data_relatorio')?.value || null,
                 // Observações Gerais: ler do #conteudo e salvar em observacoes_finais
-                observacoes_finais: document.querySelector('#conteudo')?.value?.trim() || 
-                                   document.querySelector('#observacoes')?.value?.trim() || "",
+                observacoes_finais: document.querySelector('#conteudo')?.value?.trim() ||
+                    document.querySelector('#observacoes')?.value?.trim() || "",
                 lembrete_proxima_visita: document.querySelector('#lembrete')?.value?.trim() || null,
                 conteudo: this.collectRichTextContent() || "",
                 checklist_data: this.getChecklistData(),
                 acompanhantes: this.getAcompanhantesData(),
+                // Campos de Informações Técnicas (Salvos no Projeto)
+                elementos_construtivos_base: document.getElementById('elementos_construtivos_base')?.value || "",
+                especificacao_chapisco_colante: document.getElementById('especificacao_chapisco_colante')?.value || "",
+                especificacao_chapisco_alvenaria: document.getElementById('especificacao_chapisco_alvenaria')?.value || "",
+                especificacao_argamassa_emboco: document.getElementById('especificacao_argamassa_emboco')?.value || "",
+                forma_aplicacao_argamassa: document.getElementById('forma_aplicacao_argamassa')?.value || "",
+                acabamentos_revestimento: document.getElementById('acabamentos_revestimento')?.value || "",
+                acabamento_peitoris: document.getElementById('acabamento_peitoris')?.value || "",
+                acabamento_muretas: document.getElementById('acabamento_muretas')?.value || "",
+                definicao_frisos_cor: document.getElementById('definicao_frisos_cor')?.value || "",
+                definicao_face_inferior_abas: document.getElementById('definicao_face_inferior_abas')?.value || "",
+                observacoes_projeto_fachada: document.getElementById('observacoes_projeto_fachada')?.value || "",
+                outras_observacoes: document.getElementById('outras_observacoes')?.value || "",
                 fotos: [] // Será preenchido na versão async
             };
 
             // Adicionar projeto_id como número inteiro - buscar em múltiplos locais
-            const projetoIdStr = 
+            const projetoIdStr =
                 document.querySelector('[name="projeto_id"]')?.value?.trim() ||
                 document.querySelector('#projeto_id')?.value?.trim() ||
                 document.querySelector('[data-project-id]')?.getAttribute('data-project-id') ||
@@ -377,14 +390,14 @@ class ReportsAutoSave {
             const acompanhantesData = this.getAcompanhantesData();
 
             const data = {
-                titulo: document.querySelector('#titulo_relatorio')?.value?.trim() || 
-                        document.querySelector('#titulo')?.value?.trim() || "",
-                numero: document.querySelector('#numero_relatorio')?.value?.trim() || 
-                        document.querySelector('#numero')?.value?.trim() || "",
+                titulo: document.querySelector('#titulo_relatorio')?.value?.trim() ||
+                    document.querySelector('#titulo')?.value?.trim() || "",
+                numero: document.querySelector('#numero_relatorio')?.value?.trim() ||
+                    document.querySelector('#numero')?.value?.trim() || "",
                 data_relatorio: document.querySelector('#data_relatorio')?.value || null,
                 // Observações Gerais: ler do #conteudo e salvar em observacoes_finais
-                observacoes_finais: document.querySelector('#conteudo')?.value?.trim() || 
-                                   document.querySelector('#observacoes')?.value?.trim() || "",
+                observacoes_finais: document.querySelector('#conteudo')?.value?.trim() ||
+                    document.querySelector('#observacoes')?.value?.trim() || "",
                 lembrete_proxima_visita: document.querySelector('#lembrete_proxima_visita')?.value?.trim() || null,
                 conteudo: this.collectRichTextContent() || "",
                 // ENVIAR COMO ARRAY - backend irá converter para JSON
@@ -392,11 +405,24 @@ class ReportsAutoSave {
                 acompanhantes: acompanhantesData,
                 fotos: await this.getImageData(), // Aguardar upload das imagens
                 categoria: document.querySelector('#categoria')?.value?.trim() || null,
-                local: document.querySelector('#local')?.value?.trim() || null
+                local: document.querySelector('#local')?.value?.trim() || null,
+                // Campos de Informações Técnicas (Salvos no Projeto)
+                elementos_construtivos_base: document.getElementById('elementos_construtivos_base')?.value || "",
+                especificacao_chapisco_colante: document.getElementById('especificacao_chapisco_colante')?.value || "",
+                especificacao_chapisco_alvenaria: document.getElementById('especificacao_chapisco_alvenaria')?.value || "",
+                especificacao_argamassa_emboco: document.getElementById('especificacao_argamassa_emboco')?.value || "",
+                forma_aplicacao_argamassa: document.getElementById('forma_aplicacao_argamassa')?.value || "",
+                acabamentos_revestimento: document.getElementById('acabamentos_revestimento')?.value || "",
+                acabamento_peitoris: document.getElementById('acabamento_peitoris')?.value || "",
+                acabamento_muretas: document.getElementById('acabamento_muretas')?.value || "",
+                definicao_frisos_cor: document.getElementById('definicao_frisos_cor')?.value || "",
+                definicao_face_inferior_abas: document.getElementById('definicao_face_inferior_abas')?.value || "",
+                observacoes_projeto_fachada: document.getElementById('observacoes_projeto_fachada')?.value || "",
+                outras_observacoes: document.getElementById('outras_observacoes')?.value || ""
             };
 
             // Adicionar projeto_id como número inteiro - buscar em múltiplos locais
-            const projetoIdStr = 
+            const projetoIdStr =
                 document.querySelector('[name="projeto_id"]')?.value?.trim() ||
                 document.querySelector('#projeto_id')?.value?.trim() ||
                 document.querySelector('[data-project-id]')?.getAttribute('data-project-id') ||
@@ -543,7 +569,7 @@ class ReportsAutoSave {
             const category = image.category || "em branco";
             const local = image.local || "em branco";
             const caption = image.manualCaption || image.predefinedCaption || image.caption || "em branco";
-            
+
             console.log("📤 AutoSave - Preparando upload da imagem:", image.name || image.filename);
 
             const formData = new FormData();
@@ -585,13 +611,13 @@ class ReportsAutoSave {
         if (editor) {
             return editor.innerHTML.trim();
         }
-        
+
         // Fallback: ler do textarea #conteudo diretamente
         const conteudoTextarea = document.querySelector('#conteudo');
         if (conteudoTextarea) {
             return conteudoTextarea.value?.trim() || '';
         }
-        
+
         return '';
     }
 
@@ -653,7 +679,7 @@ class ReportsAutoSave {
 
             const response = await fetch('/api/relatorios/autosave', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     ...(this.csrfToken && { 'X-CSRFToken': this.csrfToken })
                 },
@@ -672,26 +698,26 @@ class ReportsAutoSave {
             console.log('✅ AutoSave concluído com sucesso:', result);
 
             // Atualizar reportId se foi criado novo relatório
-                if (result.relatorio_id) {
-                    if (!this.reportId) {
-                        console.log(`📌 AutoSave: Novo relatório criado com ID ${result.relatorio_id}`);
-                    }
-                    this.reportId = result.relatorio_id;
-                    window.currentReportId = result.relatorio_id;
-
-                    // Atualizar TODOS os campos hidden possíveis
-                    const reportIdInputs = [
-                        document.querySelector('input[name="report_id"]'),
-                        document.getElementById('relatorio_id'),
-                        document.querySelector('input[name="relatorio_id"]')
-                    ];
-
-                    reportIdInputs.forEach(input => {
-                        if (input) {
-                            input.value = this.reportId;
-                        }
-                    });
+            if (result.relatorio_id) {
+                if (!this.reportId) {
+                    console.log(`📌 AutoSave: Novo relatório criado com ID ${result.relatorio_id}`);
                 }
+                this.reportId = result.relatorio_id;
+                window.currentReportId = result.relatorio_id;
+
+                // Atualizar TODOS os campos hidden possíveis
+                const reportIdInputs = [
+                    document.querySelector('input[name="report_id"]'),
+                    document.getElementById('relatorio_id'),
+                    document.querySelector('input[name="relatorio_id"]')
+                ];
+
+                reportIdInputs.forEach(input => {
+                    if (input) {
+                        input.value = this.reportId;
+                    }
+                });
+            }
 
             // Mapear temp_ids para IDs reais das imagens salvas
             if (result.imagens && Array.isArray(result.imagens) && window.mobilePhotoData) {
@@ -760,7 +786,7 @@ class ReportsAutoSave {
 
             const response = await fetch('/api/relatorios/autosave', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     ...(this.csrfToken && { 'X-CSRFToken': this.csrfToken })
                 },
@@ -786,7 +812,7 @@ class ReportsAutoSave {
 }
 
 // Função de inicialização global
-window.initAutoSave = function(reportId, csrfToken) {
+window.initAutoSave = function (reportId, csrfToken) {
     if (window.autoSaveInstance) {
         console.warn('⚠️ AutoSave já foi inicializado');
         return window.autoSaveInstance;
@@ -801,7 +827,7 @@ window.initAutoSave = function(reportId, csrfToken) {
 };
 
 // Auto-inicialização se os dados estiverem disponíveis
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const reportIdElement = document.querySelector('[data-report-id]');
     const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
 

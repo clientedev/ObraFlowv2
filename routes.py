@@ -3266,8 +3266,9 @@ def autosave_report(report_id):
         return jsonify({"success": False, "error": "Erro interno do servidor"}), 500
 
 @app.route('/reports/new', methods=['GET', 'POST'])
-@login_required
 @csrf.exempt
+@login_required
+
 def create_report():
     # CORREÇÃO: Se edit=X na URL, redirecionar para a rota de edição completa
     edit_id = request.args.get('edit', type=int)
@@ -3471,6 +3472,28 @@ def create_report():
             if lembrete:
                 relatorio.lembrete_proxima_visita = lembrete
                 current_app.logger.info(f"✅ Lembrete para próxima visita salvo: {lembrete[:50]}...")
+
+            # --- SALVAR INFORMAÇÕES TÉCNICAS NO PROJETO ---
+            projeto = Projeto.query.get(projeto_id)
+            if projeto:
+                try:
+                    # Atualizar campos técnicos do projeto com dados do formulário
+                    projeto.elementos_construtivos_base = request.form.get('elementos_construtivos_base', projeto.elementos_construtivos_base)
+                    projeto.especificacao_chapisco_colante = request.form.get('especificacao_chapisco_colante', projeto.especificacao_chapisco_colante)
+                    projeto.especificacao_chapisco_alvenaria = request.form.get('especificacao_chapisco_alvenaria', projeto.especificacao_chapisco_alvenaria)
+                    projeto.especificacao_argamassa_emboco = request.form.get('especificacao_argamassa_emboco', projeto.especificacao_argamassa_emboco)
+                    projeto.forma_aplicacao_argamassa = request.form.get('forma_aplicacao_argamassa', projeto.forma_aplicacao_argamassa)
+                    projeto.acabamentos_revestimento = request.form.get('acabamentos_revestimento', projeto.acabamentos_revestimento)
+                    projeto.acabamento_peitoris = request.form.get('acabamento_peitoris', projeto.acabamento_peitoris)
+                    projeto.acabamento_muretas = request.form.get('acabamento_muretas', projeto.acabamento_muretas)
+                    projeto.definicao_frisos_cor = request.form.get('definicao_frisos_cor', projeto.definicao_frisos_cor)
+                    projeto.definicao_face_inferior_abas = request.form.get('definicao_face_inferior_abas', projeto.definicao_face_inferior_abas)
+                    projeto.observacoes_projeto_fachada = request.form.get('observacoes_projeto_fachada', projeto.observacoes_projeto_fachada)
+                    projeto.outras_observacoes = request.form.get('outras_observacoes', projeto.outras_observacoes)
+                    
+                    current_app.logger.info(f"✅ Informações técnicas do projeto {projeto.id} atualizadas via criação/edição")
+                except Exception as e:
+                    current_app.logger.error(f"❌ Erro ao salvar informações técnicas no projeto: {e}")
 
             # Process acompanhantes (visit attendees) - Add emails if available
             acompanhantes_data = request.form.get('acompanhantes')
@@ -3949,7 +3972,12 @@ def create_report():
                 except Exception as notif_error:
                     current_app.logger.error(f"⚠️ Erro ao criar notificação: {notif_error}")
             elif should_finalize:
-                current_app.logger.info(f"✅ Relatório {relatorio.numero} salvo em preenchimento (should_finalize ignorado)")
+                relatorio.status = 'Aguardando Aprovação' # Consistente com comportamento de autosave
+                current_app.logger.info(f"✅ Relatório {relatorio.numero} finalizado e enviado para aprovação")
+
+            # COMMIT FINAL após mudança de status
+            db.session.commit()
+            current_app.logger.info(f"✅ COMMIT FINAL REALIZADO (Status: {relatorio.status})")
 
             flash('Relatório salvo com sucesso!', 'success')
 
@@ -7264,8 +7292,9 @@ def report_edit_complete(report_id):
         return render_template("reports/error_report.html", message=str(e)), 500
 
 @app.route('/api/reports/<int:report_id>/update', methods=['POST'])
-@login_required
 @csrf.exempt
+@login_required
+
 def update_report(report_id):
     """
     Rota de atualização de relatório em modo de edição.
@@ -7315,8 +7344,30 @@ def update_report(report_id):
                                     app.logger.warning(f"⚠️ Formato de data inválido para lembrete: {lembrete_val}")
                     else:
                         relatorio.lembrete_proxima_visita = lembrete_val
-                except Exception as e:
-                    app.logger.error(f"❌ Erro ao processar lembrete_proxima_visita: {e}")
+            except Exception as e:
+                app.logger.error(f"❌ Erro ao processar lembrete_proxima_visita: {e}")
+
+        # --- SALVAR INFORMAÇÕES TÉCNICAS NO PROJETO ---
+        projeto = Projeto.query.get(relatorio.projeto_id)
+        if projeto:
+            try:
+                # Atualizar campos técnicos do projeto com dados do formulário
+                projeto.elementos_construtivos_base = request.form.get('elementos_construtivos_base', projeto.elementos_construtivos_base)
+                projeto.especificacao_chapisco_colante = request.form.get('especificacao_chapisco_colante', projeto.especificacao_chapisco_colante)
+                projeto.especificacao_chapisco_alvenaria = request.form.get('especificacao_chapisco_alvenaria', projeto.especificacao_chapisco_alvenaria)
+                projeto.especificacao_argamassa_emboco = request.form.get('especificacao_argamassa_emboco', projeto.especificacao_argamassa_emboco)
+                projeto.forma_aplicacao_argamassa = request.form.get('forma_aplicacao_argamassa', projeto.forma_aplicacao_argamassa)
+                projeto.acabamentos_revestimento = request.form.get('acabamentos_revestimento', projeto.acabamentos_revestimento)
+                projeto.acabamento_peitoris = request.form.get('acabamento_peitoris', projeto.acabamento_peitoris)
+                projeto.acabamento_muretas = request.form.get('acabamento_muretas', projeto.acabamento_muretas)
+                projeto.definicao_frisos_cor = request.form.get('definicao_frisos_cor', projeto.definicao_frisos_cor)
+                projeto.definicao_face_inferior_abas = request.form.get('definicao_face_inferior_abas', projeto.definicao_face_inferior_abas)
+                projeto.observacoes_projeto_fachada = request.form.get('observacoes_projeto_fachada', projeto.observacoes_projeto_fachada)
+                projeto.outras_observacoes = request.form.get('outras_observacoes', projeto.outras_observacoes)
+                
+                app.logger.info(f"✅ Informações técnicas do projeto {projeto.id} atualizadas via edição")
+            except Exception as e:
+                app.logger.error(f"❌ Erro ao salvar informações técnicas no projeto: {e}")
 
         # Atualizar acompanhantes
         if "acompanhantes" in data:
@@ -7536,7 +7587,17 @@ def update_report(report_id):
             relatorio.status = 'Aguardando Aprovação'
             app.logger.info(f"✅ Relatório {relatorio.numero} enviado para aprovação via edição")
         elif should_finalize:
-            app.logger.info(f"✅ Relatório {relatorio.numero} salvo em preenchimento (should_finalize ignorado)")
+            relatorio.status = 'Aguardando Aprovação' # Consistente com comportamento de criação
+            app.logger.info(f"✅ Relatório {relatorio.numero} finalizado e enviado para aprovação")
+
+        # Criar notificação se relatório mudou para Aguardando Aprovação
+        if relatorio.status == 'Aguardando Aprovação':
+            try:
+                from notification_service import notification_service
+                notification_service.criar_notificacao_relatorio_submetido(relatorio.id, current_user.id)
+                app.logger.info(f"✅ Notificação de submissão criada")
+            except Exception as e:
+                app.logger.error(f"❌ Erro ao criar notificação de submissão: {e}")
 
         # Salvar alterações no banco
         db.session.commit()

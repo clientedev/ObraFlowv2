@@ -816,8 +816,9 @@ def api_remover_imagem(relatorio_id, imagem_id):
         }), 500
 
 @app.route('/api/relatorios/autosave', methods=['POST'])
-@login_required
 @csrf.exempt
+@login_required
+
 def api_autosave_relatorio():
     """
     POST /api/relatorios/autosave
@@ -1023,6 +1024,28 @@ def api_autosave_relatorio():
                 except Exception as e:
                     logger.error(f"Erro ao salvar ChecklistObra no autosave CREATE: {e}")
 
+            # --- SALVAR INFORMAÇÕES TÉCNICAS NO PROJETO (CREATE) ---
+            projeto = Projeto.query.get(novo_relatorio.projeto_id)
+            if projeto:
+                try:
+                    # Atualizar campos técnicos do projeto se presentes no JSON do autosave
+                    if 'elementos_construtivos_base' in data: projeto.elementos_construtivos_base = data['elementos_construtivos_base']
+                    if 'especificacao_chapisco_colante' in data: projeto.especificacao_chapisco_colante = data['especificacao_chapisco_colante']
+                    if 'especificacao_chapisco_alvenaria' in data: projeto.especificacao_chapisco_alvenaria = data['especificacao_chapisco_alvenaria']
+                    if 'especificacao_argamassa_emboco' in data: projeto.especificacao_argamassa_emboco = data['especificacao_argamassa_emboco']
+                    if 'forma_aplicacao_argamassa' in data: projeto.forma_aplicacao_argamassa = data['forma_aplicacao_argamassa']
+                    if 'acabamentos_revestimento' in data: projeto.acabamentos_revestimento = data['acabamentos_revestimento']
+                    if 'acabamento_peitoris' in data: projeto.acabamento_peitoris = data['acabamento_peitoris']
+                    if 'acabamento_muretas' in data: projeto.acabamento_muretas = data['acabamento_muretas']
+                    if 'definicao_frisos_cor' in data: projeto.definicao_frisos_cor = data['definicao_frisos_cor']
+                    if 'definicao_face_inferior_abas' in data: projeto.definicao_face_inferior_abas = data['definicao_face_inferior_abas']
+                    if 'observacoes_projeto_fachada' in data: projeto.observacoes_projeto_fachada = data['observacoes_projeto_fachada']
+                    if 'outras_observacoes' in data: projeto.outras_observacoes = data['outras_observacoes']
+                    
+                    logger.info(f"✅ AutoSave CREATE: Informações técnicas do projeto {projeto.id} atualizadas")
+                except Exception as e:
+                    logger.error(f"❌ AutoSave CREATE: Erro ao salvar informações técnicas no projeto: {e}")
+
 
         # 2️⃣ ATUALIZAR RELATÓRIO EXISTENTE
         else:
@@ -1050,6 +1073,28 @@ def api_autosave_relatorio():
                 relatorio.latitude = data['latitude']
             if 'longitude' in data:
                 relatorio.longitude = data['longitude']
+
+            # --- SALVAR INFORMAÇÕES TÉCNICAS NO PROJETO (UPDATE) ---
+            projeto = Projeto.query.get(relatorio.projeto_id)
+            if projeto:
+                try:
+                    # Atualizar campos técnicos do projeto se presentes no JSON do autosave
+                    if 'elementos_construtivos_base' in data: projeto.elementos_construtivos_base = data['elementos_construtivos_base']
+                    if 'especificacao_chapisco_colante' in data: projeto.especificacao_chapisco_colante = data['especificacao_chapisco_colante']
+                    if 'especificacao_chapisco_alvenaria' in data: projeto.especificacao_chapisco_alvenaria = data['especificacao_chapisco_alvenaria']
+                    if 'especificacao_argamassa_emboco' in data: projeto.especificacao_argamassa_emboco = data['especificacao_argamassa_emboco']
+                    if 'forma_aplicacao_argamassa' in data: projeto.forma_aplicacao_argamassa = data['forma_aplicacao_argamassa']
+                    if 'acabamentos_revestimento' in data: projeto.acabamentos_revestimento = data['acabamentos_revestimento']
+                    if 'acabamento_peitoris' in data: projeto.acabamento_peitoris = data['acabamento_peitoris']
+                    if 'acabamento_muretas' in data: projeto.acabamento_muretas = data['acabamento_muretas']
+                    if 'definicao_frisos_cor' in data: projeto.definicao_frisos_cor = data['definicao_frisos_cor']
+                    if 'definicao_face_inferior_abas' in data: projeto.definicao_face_inferior_abas = data['definicao_face_inferior_abas']
+                    if 'observacoes_projeto_fachada' in data: projeto.observacoes_projeto_fachada = data['observacoes_projeto_fachada']
+                    if 'outras_observacoes' in data: projeto.outras_observacoes = data['outras_observacoes']
+                    
+                    logger.info(f"✅ AutoSave UPDATE: Informações técnicas do projeto {projeto.id} atualizadas")
+                except Exception as e:
+                    logger.error(f"❌ AutoSave UPDATE: Erro ao salvar informações técnicas no projeto: {e}")
 
             # Atualizar data do relatório se fornecida
             if 'data_relatorio' in data and data['data_relatorio']:
