@@ -5950,19 +5950,19 @@ def project_edit(project_id):
             flash(f'Erro ao atualizar obra: {str(e)}', 'error')
     
     # Get or create checklist config for this project
-    config = ProjetoChecklistConfig.query.filter_by(projeto_id=project_id).first()
-    if not config:
+    checklist_config = ProjetoChecklistConfig.query.filter_by(projeto_id=project_id).first()
+    if not checklist_config:
         # Default to standard checklist
-        config = ProjetoChecklistConfig(
+        checklist_config = ProjetoChecklistConfig(
             projeto_id=project_id,
             tipo_checklist="padrao",
             criado_por=current_user.id
         )
-        db.session.add(config)
+        db.session.add(checklist_config)
         db.session.commit()
 
     # Get appropriate checklist items
-    if config.tipo_checklist == "personalizado":
+    if checklist_config.tipo_checklist == "personalizado":
         checklist_items = ChecklistObra.query.filter_by(
             projeto_id=project_id, 
             ativo=True
@@ -5975,7 +5975,7 @@ def project_edit(project_id):
     # Also get standard checklist items for switching
     checklist_items_padrao = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
     
-    return render_template('projects/form.html', form=form, project=project, categorias=categorias_serializadas, contatos_existentes=contatos_existentes, checklist_items=checklist_items, config=config, checklist_items_padrao=checklist_items_padrao)
+    return render_template('projects/form.html', form=form, project=project, categorias=categorias_serializadas, contatos_existentes=contatos_existentes, checklist_items=checklist_items, config=checklist_config, checklist_items_padrao=checklist_items_padrao)
 
 # Category management routes - Item 16
 @app.route('/projects/<int:project_id>/categorias')
