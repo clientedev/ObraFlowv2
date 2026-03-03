@@ -3972,8 +3972,9 @@ def create_report():
                 except Exception as notif_error:
                     current_app.logger.error(f"⚠️ Erro ao criar notificação: {notif_error}")
             elif should_finalize:
-                relatorio.status = 'Aguardando Aprovação' # Consistente com comportamento de autosave
-                current_app.logger.info(f"✅ Relatório {relatorio.numero} finalizado e enviado para aprovação")
+                # Mudança solicitada: Concluir salva como preenchimento
+                relatorio.status = 'preenchimento'
+                current_app.logger.info(f"✅ Relatório {relatorio.numero} salvo como preenchimento")
 
             # COMMIT FINAL após mudança de status
             db.session.commit()
@@ -7587,8 +7588,9 @@ def update_report(report_id):
             relatorio.status = 'Aguardando Aprovação'
             app.logger.info(f"✅ Relatório {relatorio.numero} enviado para aprovação via edição")
         elif should_finalize:
-            relatorio.status = 'Aguardando Aprovação' # Consistente com comportamento de criação
-            app.logger.info(f"✅ Relatório {relatorio.numero} finalizado e enviado para aprovação")
+            # Mudança solicitada: Concluir salva como preenchimento
+            relatorio.status = 'preenchimento'
+            app.logger.info(f"✅ Relatório {relatorio.numero} salvo como preenchimento via edição")
 
         # Criar notificação se relatório mudou para Aguardando Aprovação
         if relatorio.status == 'Aguardando Aprovação':
@@ -11764,6 +11766,7 @@ def _gerar_relatorio_excel(visitas, user, mes_nome, ano, visitas_por_status, vis
                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 @app.route('/api/projeto/<int:projeto_id>/update_technical_info', methods=['POST'])
+@csrf.exempt
 @login_required
 def api_update_technical_info(projeto_id):
     """

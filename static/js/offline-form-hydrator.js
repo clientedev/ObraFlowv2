@@ -538,7 +538,7 @@
             checklist_data: checklistData,
             acompanhantes: acompanhantes,
             fotos: fotos,
-            status: 'Rascunho'
+            status: 'preenchimento'
         };
 
         log('📦 Payload coletado para salvar offline:', {

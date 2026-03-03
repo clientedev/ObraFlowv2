@@ -317,7 +317,7 @@ def offline_save_report():
             return jsonify({'success': False, 'error': 'projeto_id é obrigatório para salvar o relatório'}), 400
         titulo = data.get('titulo', 'Relatório Offline')
         numero = data.get('numero')
-        status = data.get('status', 'Rascunho')
+        status = data.get('status', 'preenchimento')
         observacoes = data.get('observacoes_finais', '')
         checklist_data = data.get('checklist_data', [])
         acompanhantes = data.get('acompanhantes', [])

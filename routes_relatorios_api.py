@@ -1519,30 +1519,30 @@ def api_autosave_relatorio():
         # 5️⃣ VERIFICAR SE DEVE FINALIZAR O RELATÓRIO (mudar status para "Aguardando Aprovação")
         # Isso replica exatamente o comportamento do botão "Concluir relatório" no formulário
         should_finalize = data.get('should_finalize') == True or data.get('should_finalize') == 'true'
+        enviar_aprovacao = data.get('enviar_aprovacao') == True or data.get('enviar_aprovacao') == 'true'
         relatorio_final = Relatorio.query.get(relatorio_id)
         
-        if should_finalize and relatorio_final.status == 'preenchimento':
-            logger.info(f"🎯 FLAG should_finalize detectado - finalizando relatório {relatorio_id}")
-            print(f"🎯 Finalizando relatório {relatorio_id}")
-            
-            # Mudar status para Aguardando Aprovação
+        # Mudar status baseado na intenção
+        if enviar_aprovacao:
+            logger.info(f"🎯 FLAG enviar_aprovacao detectado - submetendo relatório {relatorio_id}")
             relatorio_final.status = 'Aguardando Aprovação'
             relatorio_final.updated_at = now_brt()
-            
             db.session.commit()
             
-            # Criar notificação de relatório pendente para o aprovador
+            # Criar notificação para aprovador
             if relatorio_final.aprovador_id:
                 from notification_service import notification_service
                 try:
                     notification_service.criar_notificacao_relatorio_pendente(relatorio_final.id)
-                    logger.info(f"✅ Notificação de relatório pendente criada para aprovador {relatorio_final.aprovador_id}")
-                    print(f"✅ Notificação criada para aprovador {relatorio_final.aprovador_id}")
-                except Exception as notif_error:
-                    logger.error(f"⚠️ Erro ao criar notificação de relatório pendente: {notif_error}")
-            else:
-                logger.warning(f"⚠️ Relatório {relatorio_id} finalizado sem aprovador designado - notificação não criada")
-            
+                    logger.info(f"✅ Notificação criada para aprovador {relatorio_final.aprovador_id}")
+                except Exception as e:
+                    logger.error(f"Erro ao criar notificação no autosave: {e}")
+
+        elif should_finalize:
+            logger.info(f"🎯 FLAG should_finalize detectado - salvando relatório {relatorio_id} como preenchimento")
+            relatorio_final.status = 'preenchimento'
+            relatorio_final.updated_at = now_brt()
+            db.session.commit()
             logger.info(f"✅ Relatório {relatorio_final.numero} FINALIZADO - Status: {relatorio_final.status}")
             print(f"✅ Relatório {relatorio_final.numero} FINALIZADO")
 
