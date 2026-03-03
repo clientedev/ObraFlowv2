@@ -498,7 +498,8 @@
                                             <div class="list-group-item">
                                                 <div class="d-flex align-items-start">
                                                     <div class="me-3">
-                                                        <span class="badge bg-primary rounded-pill">{{ item.ordem }}</span>
+                                                        <span class="badge bg-primary rounded-pill">{{ item.ordem
+                                                            }}</span>
                                                     </div>
                                                     <div class="flex-grow-1">
                                                         <p class="mb-0">{{ item.texto }}</p>
@@ -997,13 +998,13 @@
             id: Date.now(), // temporário até salvar
             nome: "",
             ordem: categoriasExistentes.length + 1,
-            project_id: {{ project.id }}
-    }
-  };
+            project_id: {{ project.id }
+    },
+        };
     categoriasExistentes.push(nova);
     renderCategorias();
     updateCategoriasHiddenField();
-});
+    });
     {% endif %}
 
     // Aplicar normalização de endereços quando carregar a página
@@ -1104,14 +1105,17 @@
     }
 
     // Checklist Configuration System
-    let currentChecklistType = {% if project and config %}'{{ config.tipo_checklist }}'{% else %} 'padrao'{% endif %};
+    let currentChecklistType = 'padrao';
+    {% if project and config %}
+    currentChecklistType = '{{ config.tipo_checklist }}';
+    {% endif %}
     let customChecklistItems = [];
     const isNewProject = {% if project %}false{% else %} true{% endif %};
 
     // Standard checklist items for pre-loading when switching to personalized
     const standardChecklistItems = [
         {% for item in checklist_items_padrao %}
-    { id: {{ loop.index }}, texto: "{{ item.texto|e }}", ordem: {{ item.ordem }} } {% if not loop.last %}, {% endif %}
+    { id: { { loop.index } }, texto: "{{ item.texto|e }}", ordem: { { item.ordem } } } {% if not loop.last %}, {% endif %}
     {% endfor %}
 ];
 
@@ -1214,9 +1218,9 @@
             return;
         }
 
-        {% if project %}
-        const projectId = {{ project.id }}
+        const projectId = {{ project.id }
     };
+    {% endif %}
 
     fetch(`/projects/${projectId}/checklist/config`, {
         method: 'POST',
@@ -1249,9 +1253,9 @@
             return;
         }
 
-        {% if project %}
-        const projectId = {{ project.id }}
+        const projectId = {{ project.id }
     };
+    {% endif %}
 
     fetch(`/projects/${projectId}/checklist/items/list`, {
         method: 'GET'
@@ -1291,10 +1295,9 @@
             updateChecklistItemsHiddenField();
             document.getElementById('newChecklistItemText').value = '';
         } else {
-            {% if project %}
-            // For existing projects, use API-only approach (immediate save to database)
-            const projectId = {{ project.id }}
+            const projectId = {{ project.id }
         };
+        {% endif %}
 
         fetch(`/projects/${projectId}/checklist/items`, {
             method: 'POST',
@@ -1361,9 +1364,9 @@
                 updateChecklistItemsHiddenField();
             }
         } else {
-            {% if project %}
-            const projectId = {{ project.id }}
+            const projectId = {{ project.id }
         };
+        {% endif %}
 
         fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
             method: 'PUT',
@@ -1407,9 +1410,9 @@
             renderCustomChecklistItems();
             updateChecklistItemsHiddenField();
         } else {
-            {% if project %}
-            const projectId = {{ project.id }}
+            const projectId = {{ project.id }
         };
+        {% endif %}
 
         fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
             method: 'DELETE'
@@ -1472,9 +1475,9 @@
     }
 
     function saveReorderedItems() {
-        {% if project %}
-        const projectId = {{ project.id }}
+        const projectId = {{ project.id }
     };
+    {% endif %}
     const orderData = customChecklistItems.map(item => ({ id: item.id, ordem: item.ordem }));
 
     fetch(`/projects/${projectId}/checklist/items/reorder`, {
