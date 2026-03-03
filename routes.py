@@ -7344,8 +7344,8 @@ def update_report(report_id):
                                     app.logger.warning(f"⚠️ Formato de data inválido para lembrete: {lembrete_val}")
                     else:
                         relatorio.lembrete_proxima_visita = lembrete_val
-            except Exception as e:
-                app.logger.error(f"❌ Erro ao processar lembrete_proxima_visita: {e}")
+                except Exception as e:
+                    app.logger.error(f"❌ Erro ao processar lembrete_proxima_visita: {e}")
 
         # --- SALVAR INFORMAÇÕES TÉCNICAS NO PROJETO ---
         projeto = Projeto.query.get(relatorio.projeto_id)
