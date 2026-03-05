@@ -5778,8 +5778,15 @@ def project_edit(project_id):
     # Carregar contatos existentes (para GET e POST)
     contatos_existentes = EmailCliente.query.filter_by(projeto_id=project_id).all()
 
+    if request.method == 'POST':
+        print(f"🔍 DEBUG: Edit Project {project_id} - Form data: {dict(request.form)}")
+        print(f"🔍 DEBUG: Edit Project {project_id} - Validation: {form.validate_on_submit()}")
+        if form.errors:
+            print(f"🔍 DEBUG: Edit Project {project_id} - Form errors: {form.errors}")
+
     if form.validate_on_submit():
         try:
+            print(f"🔍 DEBUG: Processing project edit for ID {project_id}")
             project.nome = form.nome.data
             project.descricao = 'Projeto atualizado através do sistema ELP'  # Default value since field was removed
             project.endereco = form.endereco.data
@@ -5854,6 +5861,9 @@ def project_edit(project_id):
                         'id': contato_id
                     })
             
+            # 🔍 DEBUG: Log contatos encontrados
+            print(f"🔍 DEBUG: Edit Project {project_id} - Found {len(contatos)} contacts in form")
+            
             # Processar cada contato
             for contato_data in contatos:
                 if contato_data.get('id'):
@@ -5878,22 +5888,83 @@ def project_edit(project_id):
                     )
                     db.session.add(novo_contato)
             
+            # IMPORTANTE: Flush para garantir que IDs sejam gerados e exclusões processadas
+            db.session.flush()
+            
             # Atualizar campos legados do projeto com primeiro contato
             primeiro_contato = EmailCliente.query.filter_by(projeto_id=project.id).first()
             if primeiro_contato:
                 project.nome_funcionario = primeiro_contato.nome_contato
                 project.email_principal = primeiro_contato.email or ''
             else:
-                project.nome_funcionario = ''
-                project.email_principal = ''
+                # Se não houver contatos, garantir que nome_funcionario não seja nulo (nullable=False)
+                project.nome_funcionario = project.nome_funcionario or 'Responsável'
+                project.email_principal = project.email_principal or ''
+
+            # Process checklist configuration - Same logic as project_new
+            checklist_tipo = request.form.get('checklist_tipo')
+            if checklist_tipo:
+                checklist_config = ProjetoChecklistConfig.query.filter_by(projeto_id=project.id).first()
+                if not checklist_config:
+                    checklist_config = ProjetoChecklistConfig(projeto_id=project.id, criado_por=current_user.id)
+                    db.session.add(checklist_config)
+                
+                checklist_config.tipo_checklist = checklist_tipo
+                
+                # If personalized, update items
+                if checklist_tipo == 'personalizado':
+                    checklist_items_json = request.form.get('checklist_items')
+                    if checklist_items_json:
+                        try:
+                            checklist_items = json.loads(checklist_items_json)
+                            # Remove existing items and add new ones (standard approach for simplistic sync)
+                            ChecklistObra.query.filter_by(projeto_id=project.id).delete()
+                            for item in checklist_items:
+                                if isinstance(item, dict) and item.get('texto'):
+                                    custom_item = ChecklistObra(
+                                        projeto_id=project.id,
+                                        texto=item.get('texto', ''),
+                                        ordem=item.get('ordem', 1),
+                                        criado_por=current_user.id,
+                                        ativo=True
+                                    )
+                                    db.session.add(custom_item)
+                        except Exception as ce:
+                            print(f"⚠️ Erro ao processar checklist: {ce}")
 
             # Process categorias from form - Item 16 (Fix)
             import json
             categorias_json = request.form.get('categorias_json')
+            
+            # Também procurar por formato indexado categorias[index][nome]
+            categorias_form = []
+            for key in request.form.keys():
+                if key.startswith('categorias[') and key.endswith('][nome]'):
+                    idx = key.split('[')[1].split(']')[0]
+                    nome_cat = request.form.get(f'categorias[{idx}][nome]')
+                    ordem_cat = request.form.get(f'categorias[{idx}][ordem]', 0)
+                    id_cat = request.form.get(f'categorias[{idx}][id]')
+                    if nome_cat:
+                        categorias_form.append({
+                            'nome': nome_cat.strip(),
+                            'ordem': int(ordem_cat) if ordem_cat else 0,
+                            'id': id_cat
+                        })
+            
             categorias_adicionadas = 0
-            if categorias_json:
+            if categorias_json or categorias_form:
                 try:
-                    categorias_data = json.loads(categorias_json)
+                    categorias_data = []
+                    if categorias_json:
+                        categorias_data = json.loads(categorias_json)
+                    
+                    # Merge data from categorias_form if not already in categorias_data
+                    existing_names = [c.get('nome') or c.get('nome_categoria') for c in categorias_data]
+                    for cf in categorias_form:
+                        if cf['nome'] not in existing_names:
+                            categorias_data.append(cf)
+                    
+                    print(f"🔍 DEBUG: Edit Project {project_id} - Processing {len(categorias_data)} categories")
                     
                     # 1. Identificar categorias atuais no banco
                     categorias_atuais = CategoriaObra.query.filter_by(projeto_id=project.id).all()
@@ -11339,10 +11410,21 @@ def project_checklist_reorder(project_id):
         data = request.get_json()
         items = data.get('items', [])
         
+        # First pass: set to temporary negative values to avoid UniqueConstraint (projeto_id, ordem)
+        for item_data in items:
+            item_id = item_data.get('id')
+            if item_id:
+                item = ChecklistObra.query.filter_by(id=item_id, projeto_id=project_id).first()
+                if item:
+                    item.ordem = -abs(int(item_data.get('ordem', 0))) # Temporary negative
+                    item.updated_at = now_brt()
+        
+        db.session.flush() # Send to DB but don't commit yet
+        
+        # Second pass: set to final positive values
         for item_data in items:
             item_id = item_data.get('id')
             nova_ordem = item_data.get('ordem')
-            
             if item_id and nova_ordem:
                 item = ChecklistObra.query.filter_by(id=item_id, projeto_id=project_id).first()
                 if item:

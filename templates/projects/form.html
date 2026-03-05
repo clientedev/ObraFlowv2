@@ -883,11 +883,11 @@
         <div class="row">
             <div class="col-md-6">
                 <label class="form-label">Nome da Categoria</label>
-                <input type="text" class="form-control" name="categorias[${categoriaCounter}][nome]" placeholder="Ex: Torre 1, Área Comum, etc." required>
+                <input type="text" class="form-control" name="categorias[${categoriaCounter}][nome]" placeholder="Ex: Torre 1, Área Comum, etc." oninput="updateCategoriasHiddenField()" required>
             </div>
             <div class="col-md-4">
                 <label class="form-label">Ordem de Exibição</label>
-                <input type="number" class="form-control" name="categorias[${categoriaCounter}][ordem]" value="${categoriaCounter}" min="0">
+                <input type="number" class="form-control" name="categorias[${categoriaCounter}][ordem]" value="${categoriaCounter}" oninput="updateCategoriasHiddenField()" min="0">
             </div>
             <div class="col-md-2 d-flex align-items-end">
                 <button type="button" class="btn btn-outline-danger btn-sm" onclick="removerCategoria(${categoriaCounter})">
@@ -898,65 +898,16 @@
     `;
 
         categoriasList.appendChild(categoriaDiv);
+        updateCategoriasHiddenField();
     }
 
-    // Função para remover categoria
     function removerCategoria(id) {
         const categoriaDiv = document.getElementById(`categoria-${id}`);
         if (categoriaDiv) {
             categoriaDiv.remove();
+            updateCategoriasHiddenField();
         }
     }
-
-    {% if project %}
-    // Script de edição de categorias - conforme orientações do prompt
-    const categoriasExistentes = {{ categorias| tojson | safe }};
-    console.log("Categorias carregadas:", categoriasExistentes);
-
-    const container = document.getElementById("categorias-container");
-
-    // Função para renderizar as categorias
-    function renderCategorias() {
-        container.innerHTML = "";
-        categoriasExistentes.forEach(cat => {
-            const card = document.createElement("div");
-            card.className = "card mb-3";
-            card.innerHTML = `
-      <div class="card-body">
-        <label>Nome da Categoria</label>
-        <input type="text" class="form-control nome-categoria" data-id="${cat.id}" value="${cat.nome || ''}">
-        <small class="text-muted d-block mt-1">Categoria vinculada ao projeto #${cat.project_id}</small>
-
-        <label class="mt-2">Ordem de Exibição</label>
-        <input type="number" class="form-control ordem-categoria" data-id="${cat.id}" value="${cat.ordem || 0}">
-
-        <div class="mt-3 d-flex gap-2">
-          <button type="button" class="btn btn-danger btn-delete" data-id="${cat.id}">🗑️ Excluir</button>
-        </div>
-      </div>
-    `;
-            container.appendChild(card);
-        });
-    }
-    renderCategorias();
-
-    // Remover botão salvar e lidar com atualização via formulário principal
-    container.addEventListener("input", (e) => {
-        if (e.target.classList.contains("nome-categoria") || e.target.classList.contains("ordem-categoria")) {
-            const id = e.target.dataset.id;
-            const cat = categoriasExistentes.find(c => c.id == id);
-            if (cat) {
-                if (e.target.classList.contains("nome-categoria")) cat.nome = e.target.value;
-                if (e.target.classList.contains("ordem-categoria")) cat.ordem = e.target.value;
-                updateCategoriasHiddenField();
-            }
-        }
-    });
-
-    // Garantir que os dados sejam atualizados antes da submissão
-    document.getElementById('projectForm').addEventListener('submit', function (e) {
-        updateCategoriasHiddenField();
-    });
 
     function updateCategoriasHiddenField() {
         let hiddenField = document.getElementById('categoriasHidden');
@@ -968,16 +919,69 @@
             document.getElementById('projectForm').appendChild(hiddenField);
         }
 
-        // Sincronizar dados atuais dos inputs antes de salvar no JSON
-        categoriasExistentes.forEach(cat => {
-            const nomeInput = document.querySelector(`.nome-categoria[data-id='${cat.id}']`);
-            const ordemInput = document.querySelector(`.ordem-categoria[data-id='${cat.id}']`);
-            if (nomeInput) cat.nome = nomeInput.value;
-            if (ordemInput) cat.ordem = ordemInput.value;
+        const payload = [];
+
+        // 1. Coletar de categoriasExistentes (modo edição inteligente)
+        if (typeof categoriasExistentes !== 'undefined' && Array.isArray(categoriasExistentes)) {
+            categoriasExistentes.forEach(cat => {
+                const nomeInput = document.querySelector(`.nome-categoria[data-id='${cat.id}']`);
+                const ordemInput = document.querySelector(`.ordem-categoria[data-id='${cat.id}']`);
+                payload.push({
+                    id: cat.id,
+                    nome: nomeInput ? nomeInput.value : cat.nome,
+                    ordem: ordemInput ? parseInt(ordemInput.value) : cat.ordem
+                });
+            });
+        }
+
+        // 2. Coletar de inputs dinâmicos
+        const dinamicInputs = document.querySelectorAll('input[name^="categorias["][name$="][nome]"]');
+        dinamicInputs.forEach(input => {
+            const name = input.name;
+            const match = name.match(/categorias\[(\d+)\]/);
+            if (match) {
+                const idx = match[1];
+                const ordemInput = document.querySelector(`input[name="categorias[${idx}][ordem]"]`);
+                payload.push({
+                    id: null,
+                    nome: input.value,
+                    ordem: ordemInput ? parseInt(ordemInput.value) : 0
+                });
+            }
         });
 
-        hiddenField.value = JSON.stringify(categoriasExistentes);
+        hiddenField.value = JSON.stringify(payload);
     }
+
+    {% if project %}
+    // Script de edição de categorias
+    const categoriasExistentes = {{ categorias| tojson | safe }};
+    const container = document.getElementById("categorias-container");
+
+    function renderCategorias() {
+        if (!container) return;
+        container.innerHTML = "";
+        categoriasExistentes.forEach(cat => {
+            const card = document.createElement("div");
+            card.className = "card mb-3";
+            card.innerHTML = `
+          <div class="card-body">
+            <label>Nome da Categoria</label>
+            <input type="text" class="form-control nome-categoria" data-id="${cat.id}" value="${cat.nome || ''}" oninput="updateCategoriasHiddenField()">
+            <small class="text-muted d-block mt-1">Categoria vinculada ao projeto #${cat.project_id}</small>
+    
+            <label class="mt-2">Ordem de Exibição</label>
+            <input type="number" class="form-control ordem-categoria" data-id="${cat.id}" value="${cat.ordem || 0}" oninput="updateCategoriasHiddenField()">
+    
+            <div class="mt-3 d-flex gap-2">
+              <button type="button" class="btn btn-danger btn-delete" data-id="${cat.id}">🗑️ Excluir</button>
+            </div>
+          </div>
+        `;
+            container.appendChild(card);
+        });
+    }
+    renderCategorias();
 
     container.addEventListener("click", async (e) => {
         if (e.target.classList.contains("btn-delete")) {
@@ -989,6 +993,7 @@
             alert(data.message || "Categoria excluída!");
             categoriasExistentes.splice(categoriasExistentes.findIndex(c => c.id == id), 1);
             renderCategorias();
+            updateCategoriasHiddenField();
         }
     });
 
@@ -998,11 +1003,17 @@
             id: Date.now(),
             nome: "",
             ordem: categoriasExistentes.length + 1,
-            project_id: {{ project.id if project else 'null' }}
+            project_id: {{ project.id if project else 'null' }
+    }
         };
     categoriasExistentes.push(nova);
     renderCategorias();
     updateCategoriasHiddenField();
+    });
+
+    // Garantir que os dados sejam atualizados antes da submissão
+    document.getElementById('projectForm').addEventListener('submit', function (e) {
+        updateCategoriasHiddenField();
     });
     {% endif %}
 
@@ -1112,7 +1123,8 @@
     const isNewProject = {% if project %}false{% else %} true{% endif %};
 
     // Standard checklist items for pre-loading when switching to personalized
-    const standardChecklistItems = [
+    const standardChecklistI
+    tems = [
         {% for item in checklist_items_padrao %}
     { id: {{ loop.index }}, texto: "{{ item.texto|e }}", ordem: {{ item.ordem }} } {% if not loop.last %}, {% endif %}
     {% endfor %}
@@ -1295,30 +1307,35 @@
             {% if project %}
             const projectId = {{ project.id }};
 
-    fetch(`/projects/${projectId}/checklist/items`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            texto: texto
+        fetch(`/projects/${projectId}/checklist/items`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                texto: texto
+            })
         })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                customChecklistItems.push(data.item);
-                renderCustomChecklistItems();
-                document.getElementById('newChecklistItemText').value = '';
-            } else {
-                alert('Erro: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Erro ao adicionar item');
-        });
-    {% endif %}
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    customChecklistItems.push(data.item);
+                    renderCustomChecklistItems();
+                    document.getElementById('newChecklistItemText').value = '';
+                } else {
+                    alert('Erro: ' + (data.error || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erro ao adicionar item: ' + (error.error || error.message || 'Erro de conexão'));
+            });
+        {% endif %}
     }
     }
 
@@ -1363,28 +1380,33 @@
             {% if project %}
             const projectId = {{ project.id }};
 
-    fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
+        fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            texto: texto
-        })
+            body: JSON.stringify({
+                texto: texto
+            })
     })
-        .then(response => response.json())
+        .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
         .then(data => {
             if (data.success) {
                 const item = customChecklistItems.find(i => i.id === itemId);
                 if (item) item.texto = texto;
                 renderCustomChecklistItems();
             } else {
-                alert('Erro: ' + data.error);
+                alert('Erro: ' + (data.error || 'Erro desconhecido'));
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao salvar item');
+            alert('Erro ao salvar item: ' + (error.error || error.message || 'Erro de conexão'));
         });
     {% endif %}
     }
@@ -1395,7 +1417,8 @@
     }
 
     function deleteChecklistItem(itemId) {
-        if (!confirm('Tem certeza que deseja remover este item do checklist?')) {
+        if (!confirm
+            ('Tem certeza que deseja remover este item do checklist?')) {
             return;
         }
 
@@ -1408,64 +1431,59 @@
             {% if project %}
             const projectId = {{ project.id }};
 
-    fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
-        method: 'DELETE'
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
-                renderCustomChecklistItems();
-            } else {
-                alert('Erro: ' + data.error);
-            }
+        fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
+            method: 'DELETE'
         })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Erro ao remover item');
-        });
-    {% endif %}
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
+                    renderCustomChecklistItems();
+                } else {
+                    alert('Erro: ' + (data.error || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erro ao remover item: ' + (error.error || error.message || 'Erro de conexão'));
+            });
+        {% endif %}
     }
     }
 
-    function moveChecklistItemUp(itemId) {
-        const index = customChecklistItems.findIndex(i => i.id === itemId);
-        if (index > 0) {
-            // Swap with previous
-            const temp = customChecklistItems[index];
-            customChecklistItems[index] = customChecklistItems[index - 1];
-            customChecklistItems[index - 1] = temp;
+    function moveChecklistItemUp(it
+        em            index = customChecklistItems.findIndex(i => i.id =                if (inde                 //            ous
+            const temp = customC        s[i               customChecklistI            stomChecklist        - 1               ecklistItems[index - 1] = temp;
 
-            // Update order numbers
-            customChecklistItems.forEach((item, i) => item.ordem = i + 1);
+           Update order nu              customChecklistIte => item.ordem = i + 1);
 
-            renderCustomChecklistItems();
-            if (isNewProject) {
-                updateChecklistItemsHiddenField();
-            } else {
-                saveReorderedItems();
-            }
+    tItems();
+    if (isNe                        updateChecklistItemsHiddenField();
+            } els                saveR                         }
         }
     }
 
-    function moveChecklistItemDown(itemId) {
-        const index = customChecklistItems.findIndex(i => i.id === itemId);
-        if (index >= 0 && index < customChecklistItems.length - 1) {
-            // Swap with next
-            const temp = customChecklistItems[index];
-            customChecklistItems[index] = customChecklistItems[index + 1];
-            customChecklistItems[index + 1] = temp;
+              he        wn(              const index             tItems.findIndex(i => i.id === i            if (index >= 0 && index < customC        s.le    ) {
+        // Swap with next
+        const temp = customChecklistItems[index];
+        customChecklistItems[index] = customChecklistItems[index + 1];
+        customChecklistItems[index + 1] = temp;
 
-            // Update order numbers
-            customChecklistItems.forEach((item, i) => item.ordem = i + 1);
+        // Update order numbers
+        customChecklistItems.forEach((item, i) => item.ordem = i + 1);
 
-            renderCustomChecklistItems();
-            if (isNewProject) {
-                updateChecklistItemsHiddenField();
-            } else {
-                saveReorderedItems();
-            }
+        renderCustomChecklistItems();
+        if (isNewProject) {
+            updateChecklistItemsHiddenField();
+        } else {
+            saveReorderedItems();
         }
+    }
     }
 
     function saveReorderedItems() {
@@ -1487,31 +1505,31 @@
         },
         body: JSON.stringify({ items: orderData })
     })
-        .catch(error => {
-            console.error('Error reordering items:', error);
-        });
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw err; });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                console.error('Reorder error:', data.error);
+                alert('Erro ao salvar nova ordem: ' + (data.error || 'Erro desconhecido'));
+            }
+        })
+
+    tch({
+        console.error('Error reordering items:', erro            alert('Falh         ao reorden                });
     {% endif %}
     }
 
 
-    function renderCustomChecklistItems() {
-        const container = document.getElementById('customChecklistItems');
-        const emptyMessage = document.getElementById('emptyChecklistMessage');
-
-        if (!container) return;
-
-        if (customChecklistItems.length === 0) {
-            if (emptyMessage) emptyMessage.style.display = 'block';
-            container.innerHTML = '';
-            return;
-        }
-
-        if (emptyMessage) emptyMessage.style.display = 'none';
-
-        let html = '';
-        customChecklistItems.forEach((item, index) => {
-            const isFirst = index === 0;
-            const isLast = index === customChecklistItems.length - 1;
+        der        istItems() {
+            co            document.getE        cus    lis              const emptyMessage = document        yId('emptyCheckl                   if (!containe                if (customChecklistItems.length === 0) {
+            if(empty                e.style.display = 'block';
+            nnerHTML = '';
+            ret                    i                tyMessage.style.display = 'non             h                   cklistItems.forEac            => {
+            const isFirst =                      const isLast = index        heck    s.length - 1;
 
             html += `
             <div class="card mb-2" data-checklist-item-id="${item.id}">
@@ -1519,14 +1537,12 @@
                     <div class="row align-items-center g-2">
                         <div class="col-auto d-flex flex-column" style="gap:4px;">
                             <button type="button" onclick="moveChecklistItemUp(${item.id})" title="Subir item" ${isFirst ? 'disabled' : ''}
-                                style="display:flex;align-items:center;justify-content:center;width:44px;height:38px;border:1px solid #ced4da;border-radius:6px;background:#f8f9fa;color:#495057;cursor:pointer;font-size:0.85rem;${isFirst ? 'opacity:0.35;pointer-events:none;' : ''}">
-                                <i class="fas fa-chevron-up"></i>
-                            </button>
-                            <button type="button" onclick="moveChecklistItemDown(${item.id})" title="Descer item" ${isLast ? 'disabled' : ''}
-                                style="display:flex;align-items:center;justify-content:center;width:44px;height:38px;border:1px solid #ced4da;border-radius:6px;background:#f8f9fa;color:#495057;cursor:pointer;font-size:0.85rem;${isLast ? 'opacity:0.35;pointer-events:none;' : ''}">
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                        </div>
+                                style="display:flex;align-items:center;justify-content:center;width:44px;height:38px;border:1px solid #ced4da;border-radius:6px;background:#f8f9fa;co
+        lo    7;cu    nter;font-size:0.85rem;${isFirst ? 'opacity:0.35;pointer-eve         ''}">
+                         i class= "fas fa-chevron-up" ></i >
+                        </                                                " onclick="moveChecklistItemDown(${ item.id })" title="Descer item" ${isLast                                                          :flex;ali                ify-content:center;width:44px;            er        ced        adius:6px;backgrou            :#495057;cursor:pointer;font-siz            st ? 'opacity:0.35;pointer-even        ''}" < i class= "fas fa-chevron-down" ></i >
+                            </button >
+                        </div >
                         <div class="col">
                             <span class="item-text">${item.texto}</span>
                             <input type="text" class="form-control d-none item-edit-input" value="${item.texto}">
@@ -1545,16 +1561,17 @@
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
-                    </div>
-                </div>
-            </div>
+                    </div >
+                </div >
+            </div >
         `;
         });
 
         container.innerHTML = html;
     }
 
-    // Helper function to update hidden field with checklist type
+    // Helper function to update hidden field wi
+    th checklist type
     function updateChecklistTypeHiddenField(tipo) {
         let hiddenField = document.getElementById('checklistTypeHidden');
         if (!hiddenField) {
@@ -1603,3 +1620,4 @@
 <script src="{{ url_for('static', filename='js/address-normalizer.js') }}"></script>
 
 {% endblock %}
+
