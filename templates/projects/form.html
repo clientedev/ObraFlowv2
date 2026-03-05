@@ -995,11 +995,10 @@
     // Adicionar nova categoria (visualmente)
     document.getElementById("btnAddCategoria").addEventListener("click", () => {
         const nova = {
-            id: Date.now(), // temporário até salvar
+            id: Date.now(),
             nome: "",
             ordem: categoriasExistentes.length + 1,
-            project_id: {{ project.id if project else 'null' }
-    }
+            project_id: {{ project.id if project else 'null' }}
         };
     categoriasExistentes.push(nova);
     renderCategorias();
@@ -1115,7 +1114,7 @@
     // Standard checklist items for pre-loading when switching to personalized
     const standardChecklistItems = [
         {% for item in checklist_items_padrao %}
-    { id: { { loop.index } }, texto: "{{ item.texto|e }}", ordem: { { item.ordem } } } {% if not loop.last %}, {% endif %}
+    { id: {{ loop.index }}, texto: "{{ item.texto|e }}", ordem: {{ item.ordem }} } {% if not loop.last %}, {% endif %}
     {% endfor %}
 ];
 
@@ -1219,8 +1218,7 @@
         }
 
         {% if project %}
-        const projectId = {{ project.id }
-    };
+        const projectId = {{ project.id }};
 
     fetch(`/projects/${projectId}/checklist/config`, {
         method: 'POST',
@@ -1254,8 +1252,7 @@
         }
 
         {% if project %}
-        const projectId = {{ project.id }
-    };
+        const projectId = {{ project.id }};
 
     fetch(`/projects/${projectId}/checklist/items/list`, {
         method: 'GET'
@@ -1296,33 +1293,32 @@
             document.getElementById('newChecklistItemText').value = '';
         } else {
             {% if project %}
-            const projectId = {{ project.id }
-        };
+            const projectId = {{ project.id }};
 
-        fetch(`/projects/${projectId}/checklist/items`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                texto: texto
-            })
+    fetch(`/projects/${projectId}/checklist/items`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            texto: texto
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    customChecklistItems.push(data.item);
-                    renderCustomChecklistItems();
-                    document.getElementById('newChecklistItemText').value = '';
-                } else {
-                    alert('Erro: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Erro ao adicionar item');
-            });
-        {% endif %}
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                customChecklistItems.push(data.item);
+                renderCustomChecklistItems();
+                document.getElementById('newChecklistItemText').value = '';
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao adicionar item');
+        });
+    {% endif %}
     }
     }
 
@@ -1365,33 +1361,32 @@
             }
         } else {
             {% if project %}
-            const projectId = {{ project.id }
-        };
+            const projectId = {{ project.id }};
 
-        fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                texto: texto
-            })
+    fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            texto: texto
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const item = customChecklistItems.find(i => i.id === itemId);
-                    if (item) item.texto = texto;
-                    renderCustomChecklistItems();
-                } else {
-                    alert('Erro: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Erro ao salvar item');
-            });
-        {% endif %}
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const item = customChecklistItems.find(i => i.id === itemId);
+                if (item) item.texto = texto;
+                renderCustomChecklistItems();
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao salvar item');
+        });
+    {% endif %}
     }
     }
 
@@ -1411,26 +1406,25 @@
             updateChecklistItemsHiddenField();
         } else {
             {% if project %}
-            const projectId = {{ project.id }
-        };
+            const projectId = {{ project.id }};
 
-        fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
-            method: 'DELETE'
+    fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
+        method: 'DELETE'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
+                renderCustomChecklistItems();
+            } else {
+                alert('Erro: ' + data.error);
+            }
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    customChecklistItems = customChecklistItems.filter(i => i.id !== itemId);
-                    renderCustomChecklistItems();
-                } else {
-                    alert('Erro: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Erro ao remover item');
-            });
-        {% endif %}
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao remover item');
+        });
+    {% endif %}
     }
     }
 
@@ -1481,8 +1475,7 @@
         }
 
         {% if project %}
-        const projectId = {{ project.id }
-    };
+        const projectId = {{ project.id }};
 
     const orderData = customChecklistItems.map(item => ({ id: item.id, ordem: item.ordem }));
 
