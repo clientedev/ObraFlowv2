@@ -1000,7 +1000,6 @@
             ordem: categoriasExistentes.length + 1,
             project_id: {{ project.id if project else 'null' }
     }
-    }
         };
     categoriasExistentes.push(nova);
     renderCategorias();
@@ -1222,6 +1221,7 @@
         {% if project %}
         const projectId = {{ project.id }
     };
+
     fetch(`/projects/${projectId}/checklist/config`, {
         method: 'POST',
         headers: {
@@ -1256,6 +1256,7 @@
         {% if project %}
         const projectId = {{ project.id }
     };
+
     fetch(`/projects/${projectId}/checklist/items/list`, {
         method: 'GET'
     })
@@ -1297,6 +1298,7 @@
             {% if project %}
             const projectId = {{ project.id }
         };
+
         fetch(`/projects/${projectId}/checklist/items`, {
             method: 'POST',
             headers: {
@@ -1365,6 +1367,7 @@
             {% if project %}
             const projectId = {{ project.id }
         };
+
         fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
             method: 'PUT',
             headers: {
@@ -1410,6 +1413,7 @@
             {% if project %}
             const projectId = {{ project.id }
         };
+
         fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
             method: 'DELETE'
         })
@@ -1479,6 +1483,7 @@
         {% if project %}
         const projectId = {{ project.id }
     };
+
     const orderData = customChecklistItems.map(item => ({ id: item.id, ordem: item.ordem }));
 
     fetch(`/projects/${projectId}/checklist/items/reorder`, {
