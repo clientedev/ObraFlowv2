@@ -1123,8 +1123,7 @@
     const isNewProject = {% if project %}false{% else %} true{% endif %};
 
     // Standard checklist items for pre-loading when switching to personalized
-    const standardChecklistI
-    tems = [
+    const standardChecklistItems = [
         {% for item in checklist_items_padrao %}
     { id: {{ loop.index }}, texto: "{{ item.texto|e }}", ordem: {{ item.ordem }} } {% if not loop.last %}, {% endif %}
     {% endfor %}
@@ -1456,34 +1455,44 @@
     }
     }
 
-    function moveChecklistItemUp(it
-        em            index = customChecklistItems.findIndex(i => i.id =                if (inde                 //            ous
-            const temp = customC        s[i               customChecklistI            stomChecklist        - 1               ecklistItems[index - 1] = temp;
+    function moveChecklistItemUp(itemId) {
+        const index = customChecklistItems.findIndex(i => i.id === itemId);
+        if (index > 0) {
+            // Swap with previous
+            const temp = customChecklistItems[index];
+            customChecklistItems[index] = customChecklistItems[index - 1];
+            customChecklistItems[index - 1] = temp;
 
-           Update order nu              customChecklistIte => item.ordem = i + 1);
+            // Update order numbers
+            customChecklistItems.forEach((item, i) => item.ordem = i + 1);
 
-    tItems();
-    if (isNe                        updateChecklistItemsHiddenField();
-            } els                saveR                         }
+            renderCustomChecklistItems();
+            if (isNewProject) {
+                updateChecklistItemsHiddenField();
+            } else {
+                saveReorderedItems();
+            }
         }
     }
 
-              he        wn(              const index             tItems.findIndex(i => i.id === i            if (index >= 0 && index < customC        s.le    ) {
-        // Swap with next
-        const temp = customChecklistItems[index];
-        customChecklistItems[index] = customChecklistItems[index + 1];
-        customChecklistItems[index + 1] = temp;
+    function moveChecklistItemDown(itemId) {
+        const index = customChecklistItems.findIndex(i => i.id === itemId);
+        if (index >= 0 && index < customChecklistItems.length - 1) {
+            // Swap with next
+            const temp = customChecklistItems[index];
+            customChecklistItems[index] = customChecklistItems[index + 1];
+            customChecklistItems[index + 1] = temp;
 
-        // Update order numbers
-        customChecklistItems.forEach((item, i) => item.ordem = i + 1);
+            // Update order numbers
+            customChecklistItems.forEach((item, i) => item.ordem = i + 1);
 
-        renderCustomChecklistItems();
-        if (isNewProject) {
-            updateChecklistItemsHiddenField();
-        } else {
-            saveReorderedItems();
+            renderCustomChecklistItems();
+            if (isNewProject) {
+                updateChecklistItemsHiddenField();
+            } else {
+                saveReorderedItems();
+            }
         }
-    }
     }
 
     function saveReorderedItems() {
@@ -1518,18 +1527,30 @@
             }
         })
 
-    tch({
-        console.error('Error reordering items:', erro            alert('Falh         ao reorden                });
+        .catch(error => {
+            console.error('Error reordering items:', error);
+            alert('Falha ao reordenar itens: ' + (error.message || 'Erro de conexão'));
+        });
     {% endif %}
     }
 
 
-        der        istItems() {
-            co            document.getE        cus    lis              const emptyMessage = document        yId('emptyCheckl                   if (!containe                if (customChecklistItems.length === 0) {
-            if(empty                e.style.display = 'block';
-            nnerHTML = '';
-            ret                    i                tyMessage.style.display = 'non             h                   cklistItems.forEac            => {
-            const isFirst =                      const isLast = index        heck    s.length - 1;
+    function renderCustomChecklistItems() {
+        const container = document.getElementById('customChecklistItemsList');
+        const emptyMessage = document.getElementById('emptyChecklistMessage');
+        if (!container) return;
+
+        if (customChecklistItems.length === 0) {
+            if (emptyMessage) emptyMessage.style.display = 'block';
+            container.innerHTML = '';
+            return;
+        }
+
+        if (emptyMessage) emptyMessage.style.display = 'none';
+        let html = '';
+        customChecklistItems.forEach((item, index) => {
+            const isFirst = index === 0;
+            const isLast = index === customChecklistItems.length - 1;
 
             html += `
             <div class="card mb-2" data-checklist-item-id="${item.id}">
@@ -1537,11 +1558,13 @@
                     <div class="row align-items-center g-2">
                         <div class="col-auto d-flex flex-column" style="gap:4px;">
                             <button type="button" onclick="moveChecklistItemUp(${item.id})" title="Subir item" ${isFirst ? 'disabled' : ''}
-                                style="display:flex;align-items:center;justify-content:center;width:44px;height:38px;border:1px solid #ced4da;border-radius:6px;background:#f8f9fa;co
-        lo    7;cu    nter;font-size:0.85rem;${isFirst ? 'opacity:0.35;pointer-eve         ''}">
-                         i class= "fas fa-chevron-up" ></i >
-                        </                                                " onclick="moveChecklistItemDown(${ item.id })" title="Descer item" ${isLast                                                          :flex;ali                ify-content:center;width:44px;            er        ced        adius:6px;backgrou            :#495057;cursor:pointer;font-siz            st ? 'opacity:0.35;pointer-even        ''}" < i class= "fas fa-chevron-down" ></i >
-                            </button >
+                                style="display:flex;align-items:center;justify-content:center;width:44px;height:38px;border:1px solid #ced4da;border-radius:6px;background:#f8f9fa;color:#495057;cursor:pointer;font-size:0.85rem;${isFirst ? 'opacity:0.35;pointer-events:none;' : ''}">
+                                <i class="fas fa-chevron-up"></i>
+                            </button>
+                            <button type="button" onclick="moveChecklistItemDown(${item.id})" title="Descer item" ${isLast ? 'disabled' : ''}
+                                style="display:flex;align-items:center;justify-content:center;width:44px;height:38px;border:1px solid #ced4da;border-radius:6px;background:#f8f9fa;color:#495057;cursor:pointer;font-size:0.85rem;${isLast ? 'opacity:0.35;pointer-events:none;' : ''}">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
                         </div >
                         <div class="col">
                             <span class="item-text">${item.texto}</span>
@@ -1570,8 +1593,7 @@
         container.innerHTML = html;
     }
 
-    // Helper function to update hidden field wi
-    th checklist type
+    // Helper function to update hidden field with checklist type
     function updateChecklistTypeHiddenField(tipo) {
         let hiddenField = document.getElementById('checklistTypeHidden');
         if (!hiddenField) {
