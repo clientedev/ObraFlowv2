@@ -558,9 +558,6 @@
     </div>
 </div>
 
-{% endblock %}
-
-{% block extra_scripts %}{{ super() }}
 <script>
 let map;
 let marker;
@@ -1420,7 +1417,6 @@ function deleteChecklistItem(itemId) {
             } else {
                 alert('Erro: ' + data.error);
             }
-        })
         })
         .catch(error => {
             console.error('Error:', error);
