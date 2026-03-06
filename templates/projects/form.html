@@ -1003,8 +1003,8 @@
             id: Date.now(),
             nome: "",
             ordem: categoriasExistentes.length + 1,
-            project_id: {{ project.id if project else 'null' }
-    }
+            project_id: {{ project.id if project else 'null' }},
+        }
         };
     categoriasExistentes.push(nova);
     renderCategorias();
