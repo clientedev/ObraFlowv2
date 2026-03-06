@@ -558,6 +558,9 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_scripts %}{{ super() }}
 <script>
     let map;
     let marker;
@@ -1409,7 +1412,6 @@
         });
     {% endif %}
     }
-    }
 
     function cancelEditChecklistItem(itemId) {
         renderCustomChecklistItems();
@@ -1452,7 +1454,6 @@
                 alert('Erro ao remover item: ' + (error.error || error.message || 'Erro de conexão'));
             });
         {% endif %}
-    }
     }
 
     function moveChecklistItemUp(itemId) {
