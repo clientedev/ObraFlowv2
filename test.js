@@ -1,564 +1,4 @@
-{% extends "base.html" %}
 
-{% block title %}{{ 'Editar' if project else 'Nova' }} Obra - Sistema de Acompanhamento de Visitas em Obras{% endblock
-%}
-
-{% block extra_css %}
-<style>
-    .obra-contatos {
-        margin-top: 20px;
-        border-radius: 10px;
-        background: #fff;
-    }
-
-    .card-contato {
-        background: #ffffff;
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 18px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-    }
-
-    .card-contato .form-group {
-        margin-bottom: 10px;
-    }
-
-    .card-contato .form-group label {
-        font-size: 0.9em;
-        font-weight: 500;
-        color: #495057;
-        margin-bottom: 5px;
-    }
-
-    .card-contato input {
-        margin-bottom: 10px;
-    }
-
-    .card-contato .btn-excluir {
-        float: right;
-        margin-top: 5px;
-        margin-bottom: 5px;
-    }
-
-    /* Animação do Chevron em Informações Técnicas */
-    .tech-info-chevron {
-        display: inline-block;
-        /* obrigatório para transform funcionar */
-        transition: transform 0.35s ease-in-out;
-    }
-
-    .tech-info-chevron.open {
-        transform: rotate(180deg);
-    }
-
-    /* Botões Subir/Descer do Checklist - touch-friendly */
-    .btn-order-item {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 44px !important;
-        height: 38px !important;
-        border-radius: 6px !important;
-        font-size: 0.9rem !important;
-        border: 1px solid #ced4da !important;
-        background-color: #f8f9fa !important;
-        color: #495057 !important;
-        cursor: pointer !important;
-        transition: background-color 0.15s !important;
-        padding: 0 !important;
-    }
-
-    .btn-order-item:hover:not([disabled]) {
-        background-color: #e2e6ea !important;
-    }
-
-    .btn-order-item[disabled],
-    .btn-order-item.disabled {
-        opacity: 0.35 !important;
-        pointer-events: none !important;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="row">
-    <div class="col-12">
-        <h1 class="mb-4">
-            <i class="fas fa-{{ 'edit' if project else 'plus' }} me-2"></i>
-            {{ 'Editar' if project else 'Nova' }} Obra
-        </h1>
-    </div>
-</div>
-
-<div class="row justify-content-center">
-    <div class="col-md-10">
-        <div class="card">
-            <div class="card-body">
-                <form method="POST"
-                    action="{{ url_for('project_edit', project_id=project.id) if project else url_for('project_new') }}"
-                    id="projectForm">
-                    {{ form.hidden_tag() }}
-
-                    {% if project %}
-                    <div class="row mb-3">
-                        <div class="col-md-3">
-                            <label class="form-label">Número da Obra</label>
-                            <input type="text" class="form-control" value="{{ project.numero }}" readonly>
-                        </div>
-                        <div class="col-md-9">
-                            <div class="mb-3">
-                                {{ form.nome.label(class="form-label") }}
-                                {{ form.nome(class="form-control" + (" is-invalid" if form.nome.errors else "")) }}
-                                {% for error in form.nome.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="mb-3">
-                        {{ form.nome.label(class="form-label") }}
-                        {{ form.nome(class="form-control" + (" is-invalid" if form.nome.errors else "")) }}
-                        {% for error in form.nome.errors %}
-                        <div class="invalid-feedback">{{ error }}</div>
-                        {% endfor %}
-                        <small class="form-text text-muted">O número da obra será gerado automaticamente.</small>
-                    </div>
-                    {% endif %}
-
-                    <div class="mb-3">
-                        {{ form.construtora.label(class="form-label") }}
-                        {{ form.construtora(class="form-control" + (" is-invalid" if form.construtora.errors else ""),
-                        placeholder="Nome da construtora responsável") }}
-                        {% for error in form.construtora.errors %}
-                        <div class="invalid-feedback">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-
-                    <div class="mb-3">
-                        {{ form.endereco.label(class="form-label") }}
-                        {{ form.endereco(class="form-control", rows="2", id="endereco") }}
-                        <div class="mt-2">
-                            <button type="button" class="btn btn-outline-secondary btn-sm"
-                                onclick="getGPSLocationAndAddress()"
-                                title="Capturar localização via GPS e preencher endereço">
-                                <i class="fas fa-location-crosshairs"></i> Capturar GPS + Endereço
-                            </button>
-                        </div>
-                        <small class="text-muted">
-                            <span id="locationStatus"></span>
-                        </small>
-                        <div id="addressPreview" class="mt-2" style="display: none;">
-                            <div class="alert alert-info">
-                                <strong>Endereço capturado:</strong>
-                                <div id="capturedAddress"></div>
-                            </div>
-                        </div>
-                        {{ form.latitude() }}
-                        {{ form.longitude() }}
-                    </div>
-
-                    <div class="mb-3">
-                        {{ form.responsavel_id.label(class="form-label") }}
-                        {{ form.responsavel_id(class="form-select" + (" is-invalid" if form.responsavel_id.errors else
-                        "")) }}
-                        {% for error in form.responsavel_id.errors %}
-                        <div class="invalid-feedback">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-
-                    <!-- Seção de Contatos da Obra -->
-                    <div class="card mt-3">
-                        <div class="card-header">
-                            <i class="bi bi-people"></i> Contatos da Obra
-                        </div>
-                        <div class="card-body">
-
-                            <div id="lista-contatos">
-                                {% for contato in contatos_existentes %}
-                                <div class="card-contato" data-id="{{ contato.id }}" data-index="{{ loop.index0 }}">
-                                    <div class="form-group">
-                                        <label>Nome</label>
-                                        <input type="text" name="contatos[{{ loop.index0 }}][nome]" class="form-control"
-                                            value="{{ contato.nome_contato }}" required>
-                                        <input type="hidden" name="contatos[{{ loop.index0 }}][id]"
-                                            value="{{ contato.id }}">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>Cargo</label>
-                                        <select name="contatos[{{ loop.index0 }}][cargo_select]"
-                                            class="form-select cargo-select"
-                                            onchange="handleProjectCargoChange(this, {{ loop.index0 }})">
-                                            <option value="">Selecione um cargo...</option>
-                                            <option value="Engenheiro/a" {% if contato.cargo=='Engenheiro/a'
-                                                %}selected{% endif %}>Engenheiro/a</option>
-                                            <option value="Arquiteto/a" {% if contato.cargo=='Arquiteto/a' %}selected{%
-                                                endif %}>Arquiteto/a</option>
-                                            <option value="Analista" {% if contato.cargo=='Analista' %}selected{% endif
-                                                %}>Analista</option>
-                                            <option value="Assistente" {% if contato.cargo=='Assistente' %}selected{%
-                                                endif %}>Assistente</option>
-                                            <option value="Encarregado" {% if contato.cargo=='Encarregado' %}selected{%
-                                                endif %}>Encarregado</option>
-                                            <option value="Mestre" {% if contato.cargo=='Mestre' %}selected{% endif %}>
-                                                Mestre</option>
-                                            <option value="Estagiário/a" {% if contato.cargo=='Estagiário/a'
-                                                %}selected{% endif %}>Estagiário/a</option>
-                                            <option value="outro" {% if contato.cargo and contato.cargo not in
-                                                ['Engenheiro/a', 'Arquiteto/a' , 'Analista' , 'Assistente'
-                                                , 'Encarregado' , 'Mestre' , 'Estagiário/a' , '' ] %}selected{% endif
-                                                %}>Outro (adicionar novo)</option>
-                                        </select>
-                                        <div class="cargo-custom-container mt-2"
-                                            id="cargo_custom_container_{{ loop.index0 }}"
-                                            style="display: {% if contato.cargo and contato.cargo not in ['Engenheiro/a', 'Arquiteto/a', 'Analista', 'Assistente', 'Encarregado', 'Mestre', 'Estagiário/a', ''] %}block{% else %}none{% endif %};">
-                                            <input type="text" class="form-control cargo-custom-input"
-                                                placeholder="Digite o cargo personalizado"
-                                                value="{{ contato.cargo if contato.cargo and contato.cargo not in ['Engenheiro/a', 'Arquiteto/a', 'Analista', 'Assistente', 'Encarregado', 'Mestre', 'Estagiário/a', ''] else '' }}"
-                                                onchange="updateProjectCargoHidden(this, {{ loop.index0 }})">
-                                        </div>
-                                        <input type="hidden" name="contatos[{{ loop.index0 }}][cargo]"
-                                            class="cargo-hidden" id="cargo_hidden_{{ loop.index0 }}"
-                                            value="{{ contato.cargo or '' }}">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>Empresa</label>
-                                        <input type="text" name="contatos[{{ loop.index0 }}][empresa]"
-                                            class="form-control" value="{{ contato.empresa or '' }}">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>E-mail (opcional)</label>
-                                        <input type="email" name="contatos[{{ loop.index0 }}][email]"
-                                            class="form-control" value="{{ contato.email or '' }}"
-                                            placeholder="email@exemplo.com">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>Telefone (opcional)</label>
-                                        <input type="text" name="contatos[{{ loop.index0 }}][telefone]"
-                                            class="form-control" value="{{ contato.telefone or '' }}">
-                                    </div>
-
-                                    <button type="button" class="btn btn-danger btn-sm btn-excluir"
-                                        onclick="removerContato(this, {{ contato.id }})">
-                                        <i class="bi bi-trash"></i> Excluir
-                                    </button>
-                                </div>
-                                {% endfor %}
-                            </div>
-
-                            <button type="button" class="btn btn-primary mt-2" id="addContatoBtn">
-                                <i class="bi bi-person-plus"></i> Adicionar Contato
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Seção de Categorias da Obra - Item 16 -->
-                    <div class="card mb-4 mt-3">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-tags me-2"></i>Categorias da Obra
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            {% if project %}
-                            <div id="categorias-container" class="mt-3"></div>
-                            <button type="button" id="btnAddCategoria" class="btn btn-outline-primary mt-2">+ Adicionar
-                                Categoria</button>
-                            {% else %}
-                            <div id="categorias-list">
-                                <!-- Categorias serão adicionadas aqui dinamicamente -->
-                            </div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarCategoria()">
-                                <i class="fas fa-plus me-1"></i>Adicionar Categoria
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.numeracao_inicial.label(class="form-label") }}
-                                {{ form.numeracao_inicial(class="form-control", type="number", min="1") }}
-                                <small class="form-text text-muted">Primeiro número dos relatórios desta obra</small>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.status.label(class="form-label") }}
-                                {{ form.status(class="form-select") }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Seção de Informações Técnicas - Expansível -->
-                    <div class="card border-info mb-3 mt-3">
-                        <div class="card-header bg-info text-white" id="headingTechInfo">
-                            <h6 class="mb-0">
-                                <button
-                                    class="btn btn-link text-white text-decoration-none collapsed w-100 text-start d-flex justify-content-between align-items-center tech-info-btn"
-                                    type="button" data-bs-toggle="collapse" data-bs-target="#collapseTechInfo"
-                                    aria-expanded="false" aria-controls="collapseTechInfo">
-                                    <span>
-                                        <i class="fas fa-cog me-2"></i>Informações Técnicas
-                                    </span>
-                                    <i class="fas fa-chevron-down" id="techInfoChevron"
-                                        style="display:inline-block;transition:transform 0.35s ease-in-out;"></i>
-                                </button>
-                            </h6>
-                        </div>
-
-                        <div id="collapseTechInfo" class="collapse" aria-labelledby="headingTechInfo">
-                            <div class="card-body">
-
-                                <!-- Campo 1 -->
-                                <div class="mb-3">
-                                    {{ form.elementos_construtivos_base.label(class="form-label fw-bold") }}
-                                    {{ form.elementos_construtivos_base(class="form-control", rows="2") }}
-                                </div>
-
-                                <!-- Campo 2 -->
-                                <div class="mb-3">
-                                    {{ form.especificacao_chapisco_colante.label(class="form-label fw-bold") }}
-                                    {{ form.especificacao_chapisco_colante(class="form-control", rows="2") }}
-                                </div>
-
-                                <!-- Campo 3 -->
-                                <div class="mb-3">
-                                    {{ form.especificacao_chapisco_alvenaria.label(class="form-label fw-bold") }}
-                                    {{ form.especificacao_chapisco_alvenaria(class="form-control", rows="2") }}
-                                </div>
-
-                                <!-- Campo 4 -->
-                                <div class="mb-3">
-                                    {{ form.especificacao_argamassa_emboco.label(class="form-label fw-bold") }}
-                                    {{ form.especificacao_argamassa_emboco(class="form-control", rows="2") }}
-                                </div>
-
-                                <!-- Campo 5 -->
-                                <div class="mb-3">
-                                    {{ form.forma_aplicacao_argamassa.label(class="form-label fw-bold") }}
-                                    {{ form.forma_aplicacao_argamassa(class="form-control", rows="2") }}
-                                </div>
-
-                                <!-- Campo 6 -->
-                                <div class="mb-3">
-                                    {{ form.acabamentos_revestimento.label(class="form-label fw-bold") }}
-                                    {{ form.acabamentos_revestimento(class="form-control", rows="2") }}
-                                </div>
-
-                                <!-- Campo 7 -->
-                                <div class="mb-3">
-                                    {{ form.acabamento_peitoris.label(class="form-label fw-bold") }}
-                                    {{ form.acabamento_peitoris(class="form-control", rows="2") }}
-                                </div>
-
-                                <!-- Campo 8 -->
-                                <div class="mb-3">
-                                    {{ form.acabamento_muretas.label(class="form-label fw-bold") }}
-                                    {{ form.acabamento_muretas(class="form-control", rows="2") }}
-                                </div>
-
-                                <!-- Campo 9 -->
-                                <div class="mb-3">
-                                    {{ form.definicao_frisos_cor.label(class="form-label fw-bold") }}
-                                    {{ form.definicao_frisos_cor(class="form-control", rows="2") }}
-                                </div>
-
-                                <!-- Campo 10 -->
-                                <div class="mb-3">
-                                    {{ form.definicao_face_inferior_abas.label(class="form-label fw-bold") }}
-                                    {{ form.definicao_face_inferior_abas(class="form-control", rows="2") }}
-                                </div>
-
-                                <!-- Campo 11 -->
-                                <div class="mb-3">
-                                    {{ form.observacoes_projeto_fachada.label(class="form-label fw-bold") }}
-                                    {{ form.observacoes_projeto_fachada(class="form-control", rows="3") }}
-                                </div>
-
-                                <!-- Campo 12 -->
-                                <div class="mb-3">
-                                    {{ form.outras_observacoes.label(class="form-label fw-bold") }}
-                                    {{ form.outras_observacoes(class="form-control", rows="2") }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Checklist Configuration Section - Always visible -->
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <div class="card border-primary">
-                                <div class="card-header bg-primary text-white">
-                                    <h5 class="card-title mb-0">
-                                        <i class="fas fa-check-square me-2"></i>Configuração do Checklist
-                                    </h5>
-                                </div>
-                                <div class="card-body">
-                                    <!-- Checklist Type Selection -->
-                                    <div class="card bg-light mb-3">
-                                        <div class="card-body">
-                                            <h6 class="card-title">
-                                                <i class="fas fa-tools me-2"></i>Tipo de Checklist
-                                            </h6>
-                                            <div class="btn-group w-100" role="group" id="checklistTypeSelector">
-                                                <button type="button" class="btn btn-outline-primary"
-                                                    id="btnChecklistPadrao" onclick="selectChecklistType('padrao')">
-                                                    <i class="fas fa-list me-2"></i>Checklist Padrão
-                                                </button>
-                                                <button type="button" class="btn btn-outline-success"
-                                                    id="btnChecklistPersonalizado"
-                                                    onclick="selectChecklistType('personalizado')">
-                                                    <i class="fas fa-edit me-2"></i>Checklist Personalizado
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Standard Checklist Preview -->
-                                    <div id="checklistPadraoPreview" style="display: none;">
-                                        <h6><i class="fas fa-eye me-2"></i>Visualização do Checklist Padrão</h6>
-                                        {% if checklist_items_padrao %}
-                                        <div class="list-group mb-3">
-                                            {% for item in checklist_items_padrao %}
-                                            <div class="list-group-item">
-                                                <div class="d-flex align-items-start">
-                                                    <div class="me-3">
-                                                        <i class="fas fa-check text-primary mt-1"></i>
-                                                    </div>
-                                                    <div class="flex-grow-1">
-                                                        <p class="mb-0">{{ item.texto }}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {% endfor %}
-                                        </div>
-                                        {% else %}
-                                        <div class="alert alert-warning">
-                                            <i class="fas fa-exclamation-triangle me-2"></i>
-                                            Nenhum item no checklist padrão encontrado.
-                                        </div>
-                                        {% endif %}
-                                    </div>
-
-                                    <!-- Custom Checklist Editor -->
-                                    <div id="checklistPersonalizadoEditor" style="display: none;">
-                                        <h6><i class="fas fa-edit me-2"></i>Editor de Checklist Personalizado</h6>
-
-                                        <!-- Add New Item Form -->
-                                        <div class="card mb-3">
-                                            <div class="card-header bg-light">
-                                                <h6 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Adicionar Novo
-                                                    Item</h6>
-                                            </div>
-                                            <div class="card-body">
-                                                <div id="addChecklistItemForm">
-                                                    <div class="row">
-                                                        <div class="col-md-9">
-                                                            <input type="text" class="form-control"
-                                                                id="newChecklistItemText"
-                                                                placeholder="Digite o texto do novo item do checklist">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <button type="button" class="btn btn-success w-100"
-                                                                onclick="addChecklistItem(event)">
-                                                                <i class="fas fa-plus me-2"></i>Adicionar
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Custom Checklist Items List -->
-                                        <div id="customChecklistItems">
-                                            <!-- Items will be loaded here dynamically -->
-                                            <div class="text-center py-3" id="emptyChecklistMessage">
-                                                <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
-                                                <p class="text-muted">Nenhum item adicionado ainda. Use o formulário
-                                                    acima para adicionar itens.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Current Checklist Display (for editing existing projects) -->
-                                    {% if project and checklist_items %}
-                                    <div id="currentChecklistDisplay">
-                                        <h6><i class="fas fa-list me-2"></i>Checklist Atual ({{ config.tipo_checklist
-                                            }})</h6>
-                                        <div class="list-group mb-3">
-                                            {% for item in checklist_items %}
-                                            <div class="list-group-item">
-                                                <div class="d-flex align-items-start">
-                                                    <div class="me-3">
-                                                        <span class="badge bg-primary rounded-pill">{{ item.ordem
-                                                            }}</span>
-                                                    </div>
-                                                    <div class="flex-grow-1">
-                                                        <p class="mb-0">{{ item.texto }}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {% endfor %}
-                                        </div>
-                                        <div class="alert alert-info">
-                                            <i class="fas fa-info-circle me-2"></i>
-                                            Tipo atual: <strong>{{ 'Padrão' if config.tipo_checklist == 'padrao' else
-                                                'Personalizado' }}</strong>.
-                                            Use os botões acima para alterar.
-                                        </div>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-between mt-4">
-                        <a href="{{ url_for('projects_list') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-2"></i>Voltar
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-2"></i>{{ 'Atualizar' if project else 'Cadastrar' }} Obra
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Map Modal -->
-<div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="mapModalLabel">Escolher Localização no Mapa</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="map" style="height: 400px; width: 100%;"></div>
-                <div class="mt-3">
-                    <small class="text-muted">Clique no mapa para selecionar a localização da obra</small>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="confirmMapLocation()">Confirmar
-                    Localização</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
 let map;
 let marker;
 let selectedLat = null;
@@ -793,7 +233,7 @@ function updateProjectCargoHidden(input, index) {
 // Gestão de Contatos da Obra
 let categoriaCounter = 0;
 let contatosExcluidos = [];
-let contatoCounter = {{ contatos_existentes|length }};
+let contatoCounter = "jinja_var";
 
 document.getElementById('addContatoBtn').addEventListener('click', function() {
     const lista = document.getElementById('lista-contatos');
@@ -908,9 +348,9 @@ function removerCategoria(id) {
     }
 }
 
-{% if project %}
+
 // Script de edição de categorias - conforme orientações do prompt
-const categoriasExistentes = {{ categorias|tojson|safe }};
+const categoriasExistentes = "jinja_var";
 console.log("Categorias carregadas:", categoriasExistentes);
 
 const container = document.getElementById("categorias-container");
@@ -998,13 +438,13 @@ document.getElementById("btnAddCategoria").addEventListener("click", () => {
     id: Date.now(), // temporário até salvar
     nome: "",
     ordem: categoriasExistentes.length + 1,
-    project_id: {{ project.id }}
+    project_id: "jinja_var"
   };
   categoriasExistentes.push(nova);
   renderCategorias();
   updateCategoriasHiddenField();
 });
-{% endif %}
+
 
 // Aplicar normalização de endereços quando carregar a página
 document.addEventListener('DOMContentLoaded', function() {
@@ -1104,15 +544,15 @@ function geocodeAddressToCoordinates() {
 }
 
 // Checklist Configuration System
-let currentChecklistType = {% if project and config %}'{{ config.tipo_checklist }}'{% else %}'padrao'{% endif %};
+let currentChecklistType = '"jinja_var"''padrao';
 let customChecklistItems = [];
-const isNewProject = {% if project %}false{% else %}true{% endif %};
+const isNewProject = falsetrue;
 
 // Standard checklist items for pre-loading when switching to personalized
 const standardChecklistItems = [
-    {% for item in checklist_items_padrao %}
-    { id: {{ loop.index }}, texto: {{ item.texto|tojson }}, ordem: {{ item.ordem }} }{% if not loop.last %},{% endif %}
-    {% endfor %}
+    
+    { id: "jinja_var", texto: ""jinja_var"", ordem: "jinja_var" },
+    
 ];
 
 // Initialize checklist on page load
@@ -1130,9 +570,9 @@ document.addEventListener('DOMContentLoaded', function() {
         selectChecklistType(currentChecklistType, true);
         
         // Load custom checklist items for existing projects with custom checklist
-        {% if project and config and config.tipo_checklist == 'personalizado' %}
+        
         loadCustomChecklistItems();
-        {% endif %}
+        
     } else {
         // For new projects, allow both options
         updateChecklistTypeButtons('padrao');
@@ -1140,9 +580,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function selectChecklistType(tipo, isSkipSave = false) {
-    // If called from HTML button explicitly, isSkipSave might be the button element 'this'
-    const skipSave = (isSkipSave === true);
+function selectChecklistType(tipo, skipSave = false) {
     currentChecklistType = tipo;
     
     // Update button states
@@ -1216,8 +654,8 @@ function saveChecklistConfig(tipo) {
         return;
     }
     
-    {% if project %}
-    const projectId = {{ project.id }};
+    
+    const projectId = "jinja_var";
     
     fetch(`/projects/${projectId}/checklist/config`, {
         method: 'POST',
@@ -1241,7 +679,7 @@ function saveChecklistConfig(tipo) {
         console.error('Error:', error);
         alert('Erro ao salvar configuração do checklist');
     });
-    {% endif %}
+    
 }
 
 function loadCustomChecklistItems() {
@@ -1250,8 +688,8 @@ function loadCustomChecklistItems() {
         return;
     }
     
-    {% if project %}
-    const projectId = {{ project.id }};
+    
+    const projectId = "jinja_var";
     
     fetch(`/projects/${projectId}/checklist/items/list`, {
         method: 'GET'
@@ -1266,7 +704,7 @@ function loadCustomChecklistItems() {
     .catch(error => {
         console.error('Error loading items:', error);
     });
-    {% endif %}
+    
 }
 
 function addChecklistItem(event) {
@@ -1291,9 +729,9 @@ function addChecklistItem(event) {
         updateChecklistItemsHiddenField();
         document.getElementById('newChecklistItemText').value = '';
     } else {
-        {% if project %}
+        
         // For existing projects, use API-only approach (immediate save to database)
-        const projectId = {{ project.id }};
+        const projectId = "jinja_var";
         
         fetch(`/projects/${projectId}/checklist/items`, {
             method: 'POST',
@@ -1318,7 +756,7 @@ function addChecklistItem(event) {
             console.error('Error:', error);
             alert('Erro ao adicionar item');
         });
-        {% endif %}
+        
     }
 }
 
@@ -1360,8 +798,8 @@ function saveChecklistItem(itemId) {
             updateChecklistItemsHiddenField();
         }
     } else {
-        {% if project %}
-        const projectId = {{ project.id }};
+        
+        const projectId = "jinja_var";
         
         fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
             method: 'PUT',
@@ -1386,7 +824,7 @@ function saveChecklistItem(itemId) {
             console.error('Error:', error);
             alert('Erro ao salvar item');
         });
-        {% endif %}
+        
     }
 }
 
@@ -1405,8 +843,8 @@ function deleteChecklistItem(itemId) {
         renderCustomChecklistItems();
         updateChecklistItemsHiddenField();
     } else {
-        {% if project %}
-        const projectId = {{ project.id }};
+        
+        const projectId = "jinja_var";
         
         fetch(`/projects/${projectId}/checklist/items/${itemId}`, {
             method: 'DELETE'
@@ -1424,7 +862,7 @@ function deleteChecklistItem(itemId) {
             console.error('Error:', error);
             alert('Erro ao remover item');
         });
-        {% endif %}
+        
     }
 }
 
@@ -1469,8 +907,8 @@ function moveChecklistItemDown(itemId) {
 }
 
 function saveReorderedItems() {
-    {% if project %}
-    const projectId = {{ project.id }};
+    
+    const projectId = "jinja_var";
     const orderData = customChecklistItems.map(item => ({ id: item.id, ordem: item.ordem }));
     
     fetch(`/projects/${projectId}/checklist/items/reorder`, {
@@ -1483,7 +921,7 @@ function saveReorderedItems() {
     .catch(error => {
         console.error('Error reordering items:', error);
     });
-    {% endif %}
+    
 }
 
 
@@ -1586,14 +1024,3 @@ function updateChecklistItemsHiddenField() {
     }
     hiddenField.value = JSON.stringify(customChecklistItems);
 }
-</script>
-
-<!-- Load Leaflet CSS and JS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- Load Address Normalizer -->
-<script src="{{ url_for('static', filename='js/address-normalizer.js') }}"></script>
-
-{% endblock %}
-

@@ -14,7 +14,7 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.5'; // Bump para forçar atualização do SW e carregar o importScripts
+const SW_VERSION = 'elp-v3.6'; // Bump para forçar atualização do SW e carregar o importScripts
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];
@@ -151,9 +151,9 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 2. Módulo obras/relatórios → CacheFirst com revalidação em background
+    // 2. Módulo obras/relatórios → NetworkFirst (para não mostrar dados desatualizados ao redirecionar)
     if (request.mode === 'navigate' && isObrasUrl(url.pathname)) {
-        event.respondWith(cacheFirstWithBgRevalidation(request));
+        event.respondWith(networkFirstWithCacheFallback(request));
         return;
     }
 

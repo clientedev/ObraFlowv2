@@ -6015,7 +6015,7 @@ def project_edit(project_id):
             else:
                 flash('Obra atualizada com sucesso!', 'success')
             
-            return redirect(url_for('project_edit', project_id=project.id))
+            return redirect(url_for('project_view', project_id=project.id))
             
         except Exception as e:
             db.session.rollback()
