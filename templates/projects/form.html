@@ -1140,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function selectChecklistType(tipo, isSkipSave = false) {
+async function selectChecklistType(tipo, isSkipSave = false) {
     // If called from HTML button explicitly, isSkipSave might be the button element 'this'
     const skipSave = (isSkipSave === true);
     currentChecklistType = tipo;
@@ -1166,7 +1166,7 @@ function selectChecklistType(tipo, isSkipSave = false) {
         
         // Save configuration for existing projects
         if (!isNewProject && !skipSave) {
-            saveChecklistConfig('padrao');
+            await saveChecklistConfig('padrao');
         }
     } else {
         padraoPreview.style.display = 'none';
@@ -1184,7 +1184,7 @@ function selectChecklistType(tipo, isSkipSave = false) {
         
         // Save configuration for existing projects and load items
         if (!isNewProject) {
-            if (!skipSave) saveChecklistConfig('personalizado');
+            if (!skipSave) await saveChecklistConfig('personalizado');
             loadCustomChecklistItems();
         }
     }
@@ -1210,7 +1210,7 @@ function updateChecklistTypeButtons(tipo) {
     }
 }
 
-function saveChecklistConfig(tipo) {
+async function saveChecklistConfig(tipo) {
     if (isNewProject) {
         console.log('Skipping config save for new project');
         return;
@@ -1219,28 +1219,28 @@ function saveChecklistConfig(tipo) {
     {% if project %}
     const projectId = {{ project.id }};
     
-    fetch(`/projects/${projectId}/checklist/config`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            tipo_checklist: tipo
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
+    try {
+        const response = await fetch(`/projects/${projectId}/checklist/config`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                tipo_checklist: tipo
+            })
+        });
+        
+        const data = await response.json();
         if (data.success) {
             console.log('Checklist config saved:', data.message);
         } else {
             console.error('Error saving config:', data.error);
             alert('Erro ao salvar configuração: ' + data.error);
         }
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Error:', error);
         alert('Erro ao salvar configuração do checklist');
-    });
+    }
     {% endif %}
 }
 
