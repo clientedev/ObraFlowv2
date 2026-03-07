@@ -344,14 +344,13 @@ class UnifiedReportEmailService:
         * {{ margin: 0; padding: 0; }}
         body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }}
         .wrapper {{ background: #f5f5f5; padding: 20px 0; }}
-        .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
-        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center; }}
-        .header h1 {{ font-size: 28px; margin-bottom: 10px; }}
-        .content {{ padding: 40px 20px; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-top: 4px solid #333; }}
+        .header {{ background: #ffffff; color: #333; padding: 30px 20px 10px; border-bottom: 2px solid #f0f0f0; }}
+        .header h1 {{ font-size: 24px; margin-bottom: 5px; font-weight: 500; }}
+        .content {{ padding: 30px 20px; line-height: 1.6; color: #444; }}
         .content p {{ margin-bottom: 15px; }}
-        .highlight {{ color: #667eea; font-weight: bold; }}
-        .info-box {{ background: #f9f9f9; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; }}
-        .footer {{ background: #f5f5f5; padding: 20px; font-size: 12px; text-align: center; color: #666; border-top: 1px solid #ddd; }}
+        .highlight {{ color: #222; font-weight: 600; }}
+        .footer {{ background: #fafafa; padding: 20px; font-size: 13px; text-align: center; color: #666; border-top: 1px solid #eee; }}
     </style>
 </head>
 <body>
@@ -362,20 +361,18 @@ class UnifiedReportEmailService:
             </div>
             
             <div class="content">
-                <p>Olá <span class="highlight">{destinatario_nome}</span>,</p>
+                <p>Prezados,</p>
                 
-                <p>Segue em anexo o relatório de visita do dia <span class="highlight">{data_str}</span> da obra <span class="highlight">{obra_nome}</span>.</p>
+                <p>Segue em anexo o relatório de visita da obra <span class="highlight">{obra_nome}</span>.</p>
                 
-                <p>Este é um e-mail automático; por favor, não responder.</p>
-                
-                <p>Para esclarecimentos, entre em contato com <strong>{contato_nome}</strong> através do e-mail <a href="mailto:{contato_email}">{contato_email}</a>.</p>
+                <p>Para esclarecimentos, entre em contato com <strong>{contato_nome}</strong> através do e-mail <a href="mailto:{contato_email}" style="color: #0056b3; text-decoration: none;">{contato_email}</a>.</p>
                 
                 <p style="margin-top: 30px;">Atenciosamente,<br/>
                 <strong>ELP Consultoria</strong></p>
             </div>
             
             <div class="footer">
-                <p>© 2025 ELP Consultoria. Todos os direitos reservados.</p>
+                <p>Este é um e-mail automático do sistema de relatório elp</p>
             </div>
         </div>
     </div>
@@ -437,84 +434,75 @@ class UnifiedReportEmailService:
                 
             assunto = f"Relatório de visita do dia {data_visita_str} – Obra {obra_nome}"
             
-            # Enviar para cada destinatário
+            # Enviar para TODOS os destinatários numa única chamada (usando array no campo "to")
             enviados = 0
             erros = []
             
             logger.info(f"\n{'='*70}")
-            logger.info(f"📤 ENVIANDO EMAILS - {len(recipients)} destinatário(s)")
+            logger.info(f"📤 ENVIANDO EMAIL EM LOTE - {len(recipients)} destinatário(s)")
             logger.info(f"{'='*70}")
             
-            for idx, recipient_email in enumerate(recipients, 1):
-                try:
-                    # Validação básica
-                    if not recipient_email or '@' not in recipient_email:
-                        logger.warning(f"❌ [{idx}/{len(recipients)}] Email inválido: {recipient_email}")
-                        erros.append(f"{recipient_email}: Email inválido")
-                        continue
-                    
-                    logger.info(f"📤 [{idx}/{len(recipients)}] Preparando email para: {recipient_email}")
-                    
-                    # Obter nome do destinatário
-                    destinatario_nome = recipient_email.split('@')[0].title()
-                    try:
-                        from models import User
-                        user = User.query.filter_by(email=recipient_email).first()
-                        if user and hasattr(user, 'nome_completo') and user.nome_completo:
-                            destinatario_nome = user.nome_completo
-                    except:
-                        pass
-                    
-                    # Montar HTML do corpo
-                    corpo_html = self._build_html_body(destinatario_nome, obra_nome, getattr(relatorio, 'data_aprovacao', None), relatorio)
-                    
-                    # Preparar payload
-                    payload = {
-                        "from": self.from_email,
-                        "to": recipient_email,
-                        "subject": assunto,
-                        "html": corpo_html,
-                        "attachments": [
-                            {
-                                "filename": os.path.basename(pdf_path),
-                                "content": pdf_base64
-                            }
-                        ]
-                    }
-                    
-                    headers = {
-                        "Authorization": f"Bearer {self.api_key}",
-                        "Content-Type": "application/json"
-                    }
-                    
-                    logger.info(f"   Enviando via Resend API...")
-                    
-                    # ⏰ Delay para respeitar rate limit de 2 req/seg (0.5s = 2 req/seg)
-                    if idx > 1:
-                        time.sleep(0.5)
-                    
-                    # POST para Resend
-                    response = requests.post(
-                        self.resend_endpoint,
-                        json=payload,
-                        headers=headers,
-                        timeout=30
-                    )
-                    
-                    if response.status_code == 200:
-                        response_data = response.json()
-                        email_id = response_data.get('id', 'N/A')
-                        enviados += 1
-                        logger.info(f"✅ [{idx}/{len(recipients)}] Email enviado com sucesso! ID: {email_id}")
-                    else:
-                        erro = f"HTTP {response.status_code}: {response.text[:100]}"
-                        erros.append(f"{recipient_email}: {erro}")
-                        logger.error(f"❌ [{idx}/{len(recipients)}] Erro ao enviar para {recipient_email}: {erro}")
+            try:
+                # Validar emails (apenas pra logs de erro, enviamos tudo que tiver @)
+                valid_recipients = [email for email in recipients if email and '@' in email]
+                if len(valid_recipients) < len(recipients):
+                    logger.warning(f"⚠️ {len(recipients) - len(valid_recipients)} e-mails inválidos foram ignorados.")
                 
-                except Exception as e:
-                    erro = f"{type(e).__name__}: {str(e)}"
-                    erros.append(f"{recipient_email}: {erro}")
-                    logger.error(f"❌ Exceção ao enviar para {recipient_email}: {erro}", exc_info=True)
+                if not valid_recipients:
+                    logger.error("❌ Nenhum e-mail válido restante após validação.")
+                    return {'success': False, 'enviados': 0, 'total': len(recipients), 'erros': ['Nenhum e-mail válido']}
+
+                logger.info(f"📤 Preparando email batched para {len(valid_recipients)} destinatários.")
+                
+                # O destinatário nominal fica como genérico já que enviamos um para todos
+                destinatario_nome = "Equipe"
+                
+                # Montar HTML do corpo
+                corpo_html = self._build_html_body(destinatario_nome, obra_nome, getattr(relatorio, 'data_aprovacao', None), relatorio)
+                
+                # A API do Resend suporta enviar array de emails diretamente no "to"
+                payload = {
+                    "from": self.from_email,
+                    "to": valid_recipients,
+                    "subject": assunto,
+                    "html": corpo_html,
+                    "attachments": [
+                        {
+                            "filename": os.path.basename(pdf_path),
+                            "content": pdf_base64
+                        }
+                    ]
+                }
+                
+                headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                logger.info(f"   Enviando via Resend API (Batch TO)...")
+                
+                # POST para Resend
+                response = requests.post(
+                    self.resend_endpoint,
+                    json=payload,
+                    headers=headers,
+                    timeout=45
+                )
+                
+                if response.status_code == 200:
+                    response_data = response.json()
+                    email_id = response_data.get('id', 'N/A')
+                    enviados = len(valid_recipients)  # Todos no lote foram aceitos
+                    logger.info(f"✅ Email em lote enviado com sucesso! ID: {email_id}")
+                else:
+                    erro = f"HTTP {response.status_code}: {response.text[:100]}"
+                    erros.append(f"Erro Master: {erro}")
+                    logger.error(f"❌ Erro ao enviar email em lote: {erro}")
+            
+            except Exception as e:
+                erro = f"{type(e).__name__}: {str(e)}"
+                erros.append(f"Exceção Batch: {erro}")
+                logger.error(f"❌ Exceção ao enviar email em lote: {erro}", exc_info=True)
             
             # Resultado final
             resultado = {
