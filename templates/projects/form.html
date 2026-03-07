@@ -1127,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!isNewProject) {
         // Set initial button state for existing projects
         updateChecklistTypeButtons(currentChecklistType);
-        selectChecklistType(currentChecklistType);
+        selectChecklistType(currentChecklistType, true);
         
         // Load custom checklist items for existing projects with custom checklist
         {% if project and config and config.tipo_checklist == 'personalizado' %}
@@ -1140,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function selectChecklistType(tipo) {
+function selectChecklistType(tipo, skipSave = false) {
     currentChecklistType = tipo;
     
     // Update button states
@@ -1163,7 +1163,7 @@ function selectChecklistType(tipo) {
         }
         
         // Save configuration for existing projects
-        if (!isNewProject) {
+        if (!isNewProject && !skipSave) {
             saveChecklistConfig('padrao');
         }
     } else {
@@ -1182,7 +1182,7 @@ function selectChecklistType(tipo) {
         
         // Save configuration for existing projects and load items
         if (!isNewProject) {
-            saveChecklistConfig('personalizado');
+            if (!skipSave) saveChecklistConfig('personalizado');
             loadCustomChecklistItems();
         }
     }

@@ -1645,6 +1645,7 @@ def serve_onesignal_sw():
 
 @app.route('/api/onesignal/subscribe', methods=['POST'])
 @login_required
+@csrf.exempt
 def onesignal_subscribe():
     """Save OneSignal player ID to user_devices table (supports multiple devices)"""
     try:
@@ -6014,7 +6015,7 @@ def project_edit(project_id):
             else:
                 flash('Obra atualizada com sucesso!', 'success')
             
-            return redirect(url_for('project_view', project_id=project.id))
+            return redirect(url_for('project_edit', project_id=project.id))
             
         except Exception as e:
             db.session.rollback()
@@ -11185,13 +11186,10 @@ def project_checklist_view(project_id):
         # Default to standard checklist
         config = ProjetoChecklistConfig(
             projeto_id=project_id,
-            tipo_checklist="personalizado",
+            tipo_checklist="padrao",
             criado_por=current_user.id
         )
         db.session.add(config)
-        db.session.commit()
-    elif config.tipo_checklist != "personalizado":
-        config.tipo_checklist = "personalizado"
         db.session.commit()
 
     # Get appropriate checklist items
@@ -11225,12 +11223,12 @@ def project_checklist_config(project_id):
         if not config:
             config = ProjetoChecklistConfig(
                 projeto_id=project_id,
-                tipo_checklist="personalizado",
+                tipo_checklist=tipo_checklist,
                 criado_por=current_user.id
             )
             db.session.add(config)
         else:
-            config.tipo_checklist = "personalizado"
+            config.tipo_checklist = tipo_checklist
             config.updated_at = now_brt()
 
         # If switching back to padrao, reset the checklist
@@ -11254,8 +11252,8 @@ def project_checklist_config(project_id):
 
         return jsonify({
             "success": True,
-            "message": f"Checklist configurado. Todos os checklists agora são personalizados por obra.",
-            "tipo_checklist": "personalizado",
+            "message": f"Configuração salva com sucesso.",
+            "tipo_checklist": tipo_checklist,
             "redirect": url_for("project_checklist_edit", project_id=project_id) if tipo_checklist == "personalizado" else None
         })
 
