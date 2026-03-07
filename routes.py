@@ -11249,6 +11249,7 @@ def project_checklist_config(project_id):
             
         elif tipo_checklist == "personalizado":
             ensure_project_checklist(project_id)
+            db.session.commit()
 
         return jsonify({
             "success": True,
