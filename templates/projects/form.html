@@ -1104,7 +1104,7 @@ function geocodeAddressToCoordinates() {
 }
 
 // Checklist Configuration System
-let currentChecklistType = {% if project and config %}'{{ config.tipo_checklist }}'{% else %}'padrao'{% endif %};
+let currentChecklistType = {% if project and checklist_config %}'{{ checklist_config.tipo_checklist }}'{% else %}'padrao'{% endif %};
 let customChecklistItems = [];
 const isNewProject = {% if project %}false{% else %}true{% endif %};
 
@@ -1130,7 +1130,7 @@ document.addEventListener('DOMContentLoaded', function() {
         selectChecklistType(currentChecklistType, true);
         
         // Load custom checklist items for existing projects with custom checklist
-        {% if project and config and config.tipo_checklist == 'personalizado' %}
+        {% if project and checklist_config and checklist_config.tipo_checklist == 'personalizado' %}
         loadCustomChecklistItems();
         {% endif %}
     } else {

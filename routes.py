@@ -6047,7 +6047,7 @@ def project_edit(project_id):
     # Also get standard checklist items for switching
     checklist_items_padrao = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
     
-    return render_template('projects/form.html', form=form, project=project, categorias=categorias_serializadas, contatos_existentes=contatos_existentes, checklist_items=checklist_items, config=checklist_config, checklist_config=checklist_config, checklist_items_padrao=checklist_items_padrao)
+    return render_template('projects/form.html', form=form, project=project, categorias=categorias_serializadas, contatos_existentes=contatos_existentes, checklist_items=checklist_items, checklist_config=checklist_config, checklist_items_padrao=checklist_items_padrao)
 
 # Category management routes - Item 16
 @app.route('/projects/<int:project_id>/categorias')
