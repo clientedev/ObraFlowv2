@@ -20,7 +20,7 @@ try {
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.8'; // Bump — fix staleWhileRevalidate returning Promise instead of Response
+const SW_VERSION = 'elp-v3.9'; // Restaura CacheFirst para obras — fix offline navigation
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];
@@ -157,9 +157,9 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 2. Módulo obras/relatórios → NetworkFirst (para não mostrar dados desatualizados ao redirecionar)
+    // 2. Módulo obras/relatórios → CacheFirst (essencial para offline!)
     if (request.mode === 'navigate' && isObrasUrl(url.pathname)) {
-        event.respondWith(networkFirstWithCacheFallback(request));
+        event.respondWith(cacheFirstWithBgRevalidation(request));
         return;
     }
 
@@ -180,6 +180,7 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(staleWhileRevalidate(request, CACHE_CORE));
         return;
     }
+    // Demais recursos: não interceptar (deixar browser lidar)
 });
 
 // ============================================================
