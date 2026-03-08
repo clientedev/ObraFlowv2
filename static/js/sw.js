@@ -1,4 +1,10 @@
-importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+// OneSignal SDK — carregado com try/catch para não quebrar SW quando offline
+try {
+    importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+    console.log('✅ SW: OneSignal SDK carregado');
+} catch (e) {
+    console.warn('⚠️ SW: OneSignal SDK não disponível (offline ou CDN inacessível). Offline mode continuará funcionando normalmente.', e.message);
+}
 
 /**
  * ============================================================
@@ -14,7 +20,7 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.6'; // Bump para forçar atualização do SW e carregar o importScripts
+const SW_VERSION = 'elp-v3.7'; // Bump para forçar atualização do SW — fix importScripts offline crash
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];

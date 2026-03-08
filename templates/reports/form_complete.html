@@ -2085,10 +2085,38 @@
             window.location.href = `/reports?projeto_id=${projetoId}&hide_filters=1`;
 
         } catch (error) {
-            console.error('❌ Erro ao salvar relatório:', error);
-            alert('Erro ao salvar relatório: ' + error.message);
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
+            // Verificar se é um erro de rede (offline) em modo de criação
+            const isNetworkError = error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('network'));
+            const isCreating = !(EDIT_MODE && REPORT_DATA?.relatorio?.id) && !(window.currentReportId);
+
+            if (isNetworkError && isCreating && !navigator.onLine) {
+                // Offline: salvar localmente via IndexedDB
+                console.warn('📵 Modo offline detectado — salvando relatório localmente...');
+                try {
+                    if (window.ELPOfflineManager) {
+                        const payload = {};
+                        for (const [key, value] of formData.entries()) {
+                            if (key === 'csrf_token' || key === '_token') continue;
+                            payload[key] = value;
+                        }
+                        const offlineId = await window.ELPOfflineManager.savePendingReport(payload);
+                        alert(`💾 Sem conexão! Relatório salvo localmente (ID: ${offlineId}).\nSerá enviado automaticamente quando a conexão for restaurada.`);
+                        window.location.href = '/reports';
+                    } else {
+                        throw new Error('OfflineManager não disponível');
+                    }
+                } catch (offlineErr) {
+                    console.error('❌ Falha ao salvar offline:', offlineErr);
+                    alert('Erro ao salvar offline: ' + offlineErr.message);
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            } else {
+                console.error('❌ Erro ao salvar relatório:', error);
+                alert('Erro ao salvar relatório: ' + error.message);
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
         }
     });
 
