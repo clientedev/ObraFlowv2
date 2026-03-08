@@ -527,7 +527,9 @@
         const payload = {
             projeto_id: projetoId ? parseInt(projetoId) : null,
             titulo: titulo || `Relatório de Visita`,
-            numero: numero,
+            // Não enviar numero pre-preenchido pelo servidor: o backend irá gerar
+            // um número sequencial correto no momento do sync.
+            numero: null,
             data_relatorio: dataRelatorio,
             categoria: categoria || 'Geral',
             local: local || 'Obra',
@@ -567,14 +569,22 @@
             // Tentar ler valores ATUAIS do DOM se os inputs existirem
             const domCategory = document.querySelector(`#category_${id}`);
             const domLocal = document.querySelector(`#local_${id}`);
+            // Try both naming conventions used in form_complete.html:
+            // Old system: id="predefined_${photoId}"
+            // New mobile system: id="predefined_caption_${id}"
             const domManualCaption = document.querySelector(`#manual_caption_${id}`);
-            const domPredefinedCaption = document.querySelector(`#predefined_caption_${id}`);
+            const domPredefinedCaption =
+                document.querySelector(`#predefined_caption_${id}`) ||
+                document.querySelector(`#predefined_${id}`) ||
+                document.querySelector(`[data-photo-id="${id}"] .caption-select`) ||
+                document.querySelector(`[data-photo-id="${id}"] select[name^="photo_caption"]`);
 
             const categoryValue = domCategory ? domCategory.value : (img.category || '');
             const localValue = domLocal ? domLocal.value : (img.local || '');
-            const captionValue = (domManualCaption && domManualCaption.value) ? domManualCaption.value :
-                ((domPredefinedCaption && domPredefinedCaption.value) ? domPredefinedCaption.value :
-                    (img.manualCaption || img.predefinedCaption || img.caption || ''));
+            // Priority: manual text input > predefined dropdown > stored data properties
+            const captionValue = (domManualCaption && domManualCaption.value.trim()) ? domManualCaption.value.trim() :
+                ((domPredefinedCaption && domPredefinedCaption.value && domPredefinedCaption.value.trim()) ? domPredefinedCaption.value.trim() :
+                    (img.manualCaption || img.predefinedCaption || img.caption || img.metadata?.legenda || ''));
 
             const entry = {
                 id: id,

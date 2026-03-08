@@ -350,19 +350,37 @@ def offline_save_report():
             if not projeto:
                 return jsonify({'success': False, 'error': f'Projeto {projeto_id} não encontrado'}), 404
 
-        # Gerar número do relatório
+        # Gerar número do relatório - igual ao routes.py (numeracao_inicial + count)
+        # NUNCA usar o número enviado pelo cliente (pode estar travado no valor antigo da página)
         try:
-            ultimo_relatorio = Relatorio.query.filter_by(
-                projeto_id=projeto_id
-            ).order_by(Relatorio.numero_projeto.desc()).first()
-            if ultimo_relatorio and ultimo_relatorio.numero_projeto:
-                proximo_numero = ultimo_relatorio.numero_projeto + 1
-            else:
-                proximo_numero = projeto.numeracao_inicial if getattr(projeto, 'numeracao_inicial', None) else 1
-            numero_formatado = numero or f"{projeto.numero}-R{proximo_numero:03d}"
-        except Exception:
+            numeracao_inicial = getattr(projeto, 'numeracao_inicial', 1) or 1
+            relatorios_count = Relatorio.query.filter_by(projeto_id=projeto_id).count()
+            proximo_numero = numeracao_inicial + relatorios_count
+
+            # Garantir que o número é único (proteção contra race conditions)
+            tentativas = 0
+            numero_formatado = None
+            while tentativas < 20:
+                candidato = f"REL-{proximo_numero:04d}"
+                existe = Relatorio.query.filter_by(
+                    projeto_id=projeto_id, numero=candidato
+                ).first()
+                if not existe:
+                    numero_formatado = candidato
+                    break
+                proximo_numero += 1
+                tentativas += 1
+
+            if not numero_formatado:
+                # Fallback de emergência: timestamp garante unicidade
+                numero_formatado = f"OFF-{int(datetime.utcnow().timestamp())}"
+                proximo_numero = relatorios_count + 1
+
+            app.logger.info(f"✅ Número gerado para sync offline: {numero_formatado}")
+        except Exception as _ex:
             proximo_numero = 1
             numero_formatado = f"OFF-{int(datetime.utcnow().timestamp())}"
+            app.logger.warning(f"⚠️ Fallback de número offline: {numero_formatado} - {_ex}")
 
         # Parse Data Report (Matching routes.py)
         # We ensure it matches datetime.now() if blank, or parses from standard frontend date pickers
@@ -447,15 +465,21 @@ def offline_save_report():
             relatorio_id = novo_relatorio.id
         except Exception as e:
             db.session.rollback()
-            if 'uq_relatorios_projeto_numero' in str(e).lower() or 'unique constraint' in str(e).lower():
-                from models import Relatorio as _Relatorio
-                existing = _Relatorio.query.filter_by(projeto_id=projeto_id, numero=numero).first()
-                if existing:
-                    app.logger.info(f"ℹ️ Relatório duplicado detectado durante sync (projeto {projeto_id}, numero {numero}). Usando ID existente: {existing.id}")
-                    relatorio_id = existing.id
-                else:
-                    app.logger.error(f"❌ Erro de unicidade, mas relatório não encontrado: {str(e)}")
-                    raise e
+            if 'uq_relatorios_projeto_numero' in str(e).lower() or 'unique constraint' in str(e).lower() or 'duplicate' in str(e).lower():
+                # Número já existe: gerar novo número e tentar de novo
+                app.logger.warning(f"⚠️ Conflito de número '{numero_formatado}'. Gerando número alternativo...")
+                timestamp_suffix = int(datetime.utcnow().timestamp())
+                novo_relatorio.numero = f"REL-OFF-{timestamp_suffix}"
+                novo_relatorio.numero_projeto = None
+                try:
+                    db.session.add(novo_relatorio)
+                    db.session.flush()
+                    relatorio_id = novo_relatorio.id
+                    app.logger.info(f"✅ Relatório criado com número alternativo: {novo_relatorio.numero} (ID: {relatorio_id})")
+                except Exception as e2:
+                    db.session.rollback()
+                    app.logger.error(f"❌ Erro ao criar relatório mesmo com número alternativo: {e2}")
+                    raise e2
             else:
                 app.logger.error(f"❌ Erro ao salvar relatório offline: {str(e)}")
                 raise e

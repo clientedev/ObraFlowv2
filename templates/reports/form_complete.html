@@ -1418,70 +1418,109 @@
         }
     }
 
+    function _popularSelectLegendas(select, legendas, photoId) {
+        // Helper: preenche o <select> com as legendas e adiciona o change listener
+        select.innerHTML = '<option value="">Selecione uma legenda...</option>';
+
+        const cats = { 'Acabamentos': [], 'Estrutural': [], 'Geral': [], 'Segurança': [] };
+        legendas.forEach(leg => {
+            const cat = leg.categoria || 'Geral';
+            if (!cats[cat]) cats[cat] = [];
+            cats[cat].push(leg);
+        });
+
+        Object.keys(cats).forEach(cat => {
+            if (cats[cat].length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = cat + ' (' + cats[cat].length + ' itens)';
+                cats[cat].forEach(legenda => {
+                    const option = document.createElement('option');
+                    option.value = legenda.texto;
+                    option.textContent = legenda.texto;
+                    optgroup.appendChild(option);
+                });
+                select.appendChild(optgroup);
+            }
+        });
+
+        // CRITICAL: persist selected caption back into mobilePhotoData so offline payload captures it
+        select.addEventListener('change', function () {
+            const val = this.value;
+            if (window.mobilePhotoData) {
+                const photoEntry = window.mobilePhotoData.find(
+                    p => String(p.id) === String(photoId) || p.id == photoId
+                );
+                if (photoEntry) {
+                    photoEntry.predefinedCaption = val;
+                    photoEntry.caption = val;
+                    if (photoEntry.metadata) photoEntry.metadata.legenda = val;
+                    console.log(`📝 Legenda salva em mobilePhotoData para ${photoId}: "${val}"`);
+                }
+            }
+        });
+    }
+
     function loadPredefinedCaptionsForPhoto(photoId, category) {
         const select = document.getElementById(`predefined_${photoId}`);
         if (!select) return;
 
+        // Helper: try to load legendas from cache if offline or API fails
+        function _loadFromCache() {
+            const cached = window.predefinedLegendas;
+            if (cached && cached.length > 0) {
+                console.log(`📴 Usando ${cached.length} legendas do cache para foto ${photoId}`);
+                _popularSelectLegendas(select, cached, photoId);
+            } else {
+                select.innerHTML = '<option value="">Sem conexão - legendas indisponíveis</option>';
+                // Still wire up the change listener for manual typing scenarios
+                select.addEventListener('change', function () {
+                    const val = this.value;
+                    if (window.mobilePhotoData) {
+                        const photoEntry = window.mobilePhotoData.find(p => String(p.id) === String(photoId));
+                        if (photoEntry) {
+                            photoEntry.predefinedCaption = val;
+                            photoEntry.caption = val;
+                            if (photoEntry.metadata) photoEntry.metadata.legenda = val;
+                        }
+                    }
+                });
+            }
+        }
+
+        // If already offline, go straight to cache
+        if (!navigator.onLine) {
+            _loadFromCache();
+            return;
+        }
+
         select.innerHTML = '<option value="">Carregando legendas...</option>';
 
-        // Carregar direto da API (PostgreSQL)
+        // Carregar direto da API (PostgreSQL) with offline fallback
         const xhr = new XMLHttpRequest();
         xhr.open('GET', '/api/legendas?categoria=all', true);
-        xhr.timeout = 10000;
+        xhr.timeout = 8000;
 
         xhr.onload = function () {
             if (xhr.status === 200) {
                 try {
                     const data = JSON.parse(xhr.responseText);
                     if (data.success && data.legendas && data.legendas.length > 0) {
-                        select.innerHTML = '<option value="">Selecione uma legenda...</option>';
-
-                        const cats = {
-                            'Acabamentos': [],
-                            'Estrutural': [],
-                            'Geral': [],
-                            'Segurança': []
-                        };
-
-                        data.legendas.forEach(leg => {
-                            if (cats[leg.categoria]) {
-                                cats[leg.categoria].push(leg);
-                            }
-                        });
-
-                        Object.keys(cats).forEach(cat => {
-                            if (cats[cat].length > 0) {
-                                const optgroup = document.createElement('optgroup');
-                                optgroup.label = cat + ' (' + cats[cat].length + ' itens)';
-
-                                cats[cat].forEach(legenda => {
-                                    const option = document.createElement('option');
-                                    option.value = legenda.texto;
-                                    option.textContent = legenda.texto;
-                                    optgroup.appendChild(option);
-                                });
-
-                                select.appendChild(optgroup);
-                            }
-                        });
+                        // Cache for offline use
+                        window.predefinedLegendas = data.legendas;
+                        _popularSelectLegendas(select, data.legendas, photoId);
                     } else {
-                        select.innerHTML = '<option value="">Erro: nenhuma legenda encontrada</option>';
+                        _loadFromCache();
                     }
                 } catch (e) {
-                    select.innerHTML = '<option value="">Erro: formato inválido</option>';
+                    _loadFromCache();
                 }
             } else {
-                select.innerHTML = '<option value="">Erro: servidor indisponível</option>';
+                _loadFromCache();
             }
         };
 
-        xhr.onerror = function () {
-            select.innerHTML = '<option value="">Erro: falha de rede</option>';
-        };
-
-        xhr.ontimeout = function () {
-            select.innerHTML = '<option value="">Erro: tempo esgotado</option>';
-        };
+        xhr.onerror = function () { _loadFromCache(); };
+        xhr.ontimeout = function () { _loadFromCache(); };
 
         xhr.send();
     }
