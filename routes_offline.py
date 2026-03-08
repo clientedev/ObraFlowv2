@@ -75,6 +75,10 @@ def offline_pages():
         # Módulo de relatórios
         urls.append('/reports')
         urls.append('/reports/new')
+        # CRÍTICO: adicionar URL com projeto_id para cada projeto ativo
+        # O formulário de relatório é acessado como /reports/new?projeto_id=X
+        for projeto in projetos:
+            urls.append(f'/reports/new?projeto_id={projeto.id}')
 
         # Relatórios recentes (últimos 30 por usuário)
         relatorios = Relatorio.query.order_by(
