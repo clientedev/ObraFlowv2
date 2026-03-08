@@ -111,6 +111,10 @@
 
         // Helper to save player ID with retry logic
         async function savePlayerIdWithRetry(playerId, maxRetries = 3) {
+            if (!navigator.onLine) {
+                console.log('📡 [Offline] Inscrição OneSignal adiada (modo offline)');
+                return false;
+            }
             console.log('💾 Attempting to save player ID:', playerId);
 
             for (let attempt = 1; attempt <= maxRetries; attempt++) {

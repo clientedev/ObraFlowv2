@@ -466,9 +466,12 @@
             });
 
             return registration;
-
         } catch (err) {
-            console.error('❌ OfflineManager: Falha ao registrar Service Worker:', err);
+            if (!navigator.onLine) {
+                console.warn('⚠️ OfflineManager: Service Worker não pôde ser atualizado (offline):', err.message);
+            } else {
+                console.error('❌ OfflineManager: Falha ao registrar Service Worker:', err);
+            }
         }
     }
 

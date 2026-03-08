@@ -59,6 +59,8 @@ def offline_pages():
     """
     try:
         urls = [
+            # Dashboard principal
+            '/',
             # Módulo de projetos (obras)
             '/projects',
         ]

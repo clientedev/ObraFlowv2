@@ -46,6 +46,7 @@ const PRECACHE_ASSETS = [
 
 // Padrões de URL do módulo obras/relatórios (criticamente offline)
 const OBRAS_PATTERNS = [
+    /^\/$/,
     /^\/projects(\/|$)/,
     /^\/reports(\/|$)/,
 ];

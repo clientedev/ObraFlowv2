@@ -546,7 +546,9 @@ class ReportsAutoSave {
                     });
                 }
             } catch (err) {
-                console.error(`❌ Falha ao enviar imagem ${i}:`, err);
+                if (navigator.onLine) {
+                    console.error(`❌ Falha ao enviar imagem ${i}:`, err);
+                }
             }
         }
 
@@ -600,7 +602,11 @@ class ReportsAutoSave {
 
             return data.temp_id || data.id || null;
         } catch (err) {
-            console.error("❌ Erro no upload temporário:", err);
+            if (navigator.onLine) {
+                console.error("❌ Erro no upload temporário:", err);
+            } else {
+                console.log("📡 [Offline] Upload de imagem temporário salvo para sincronização.");
+            }
             throw err;
         }
     }
@@ -750,7 +756,11 @@ class ReportsAutoSave {
             this.clearLocalStorage();
 
         } catch (error) {
-            console.warn('⚠️ AutoSave falhou:', error.message);
+            if (navigator.onLine) {
+                console.warn('⚠️ AutoSave falhou:', error.message);
+            } else {
+                console.log('📡 [Offline] Salvando localmente devido a falta de conexão.');
+            }
             console.info('💾 Salvando temporariamente no localStorage...');
             this.saveToLocalStorage(payload);
         } finally {

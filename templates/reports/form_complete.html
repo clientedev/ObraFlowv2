@@ -865,14 +865,10 @@
 
         if (photoInput) {
             photoInput.addEventListener('change', handlePhotoUpload);
-        } else {
-            console.warn('Photo input element not found');
         }
 
         if (cameraInput) {
             cameraInput.addEventListener('change', handlePhotoUpload);
-        } else {
-            console.warn('Camera input element not found');
         }
 
         // Event listeners para ferramentas - OTIMIZADO PARA MOBILE
@@ -966,17 +962,11 @@
         });
     }
 
-    function saveTechnicalInfo() {
+    async function saveTechnicalInfo() {
         const projetoId = document.getElementById('projeto_id').value;
         if (!projetoId) return;
 
         const statusDiv = document.getElementById('technical-info-status');
-
-        if (!navigator.onLine) {
-            if (statusDiv) statusDiv.innerHTML = '<span class="text-warning"><i class="fas fa-wifi"></i> Offline (será salvo com o relatório)</span>';
-            return;
-        }
-
         const data = {};
         document.querySelectorAll('.technical-field').forEach(field => {
             data[field.name] = field.value;
@@ -984,31 +974,31 @@
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-        fetch(`/api/projeto/${projetoId}/update_technical_info`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify(data)
-        })
-            .then(response => response.json())
-            .then(result => {
-                if (statusDiv) {
-                    if (result.success) {
-                        statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Salvo automaticamente</span>';
-                        setTimeout(() => {
-                            statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Sincronizado</span>';
-                        }, 3000);
-                    } else {
-                        statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Erro ao salvar</span>';
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Erro no auto-save:', error);
-                document.getElementById('technical-info-status').innerHTML = '<span class="text-danger"><i class="fas fa-times"></i> Erro de conexão</span>';
+        try {
+            const response = await fetch(`/api/projeto/${projetoId}/update_technical_info`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(data)
             });
+            const result = await response.json();
+            
+            if (statusDiv) {
+                if (result.success) {
+                    statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Salvo automaticamente</span>';
+                    setTimeout(() => {
+                        statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Sincronizado</span>';
+                    }, 3000);
+                } else {
+                    statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Erro ao salvar</span>';
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Erro de conexão no auto-save (offline):', error);
+            if (statusDiv) statusDiv.innerHTML = '<span class="text-warning"><i class="fas fa-wifi"></i> Offline (será salvo com o relatório)</span>';
+        }
     }
 
     // Initial setup
@@ -1210,87 +1200,86 @@
             if (emailsDiv) emailsDiv.innerHTML = emailsHtml;
         };
 
-        if (!navigator.onLine && window.ELPOfflineManager) {
-            try {
-                const projetos = await window.ELPOfflineManager.getProjects();
-                const projeto = projetos.find(p => p.id == projetoId);
-                if (projeto && (projeto.funcionarios || projeto.emails)) {
-                    console.log(`✅ [Offline] Carregando funcionários e emails para projeto ${projetoId}`);
-                    renderizarUI(projeto);
-                } else {
-                    if (funcionariosDiv) funcionariosDiv.innerHTML = '<p class="text-danger">Projeto não encontrado no cache</p>';
-                    if (emailsDiv) emailsDiv.innerHTML = '<p class="text-danger">Projeto não encontrado no cache</p>';
+        // Buscar funcionários e e-mails do projeto via API
+        try {
+            const response = await fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
                 }
-            } catch (error) {
-                console.error('Erro ao carregar func/emais offline:', error);
-                if (funcionariosDiv) funcionariosDiv.innerHTML = '<p class="text-danger">Erro cache offline</p>';
-                if (emailsDiv) emailsDiv.innerHTML = '<p class="text-danger">Erro cache offline</p>';
-            }
-            return;
-        }
-
-        // Buscar funcionários e e-mails do projeto via AJAX
-        fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    renderizarUI(data);
-                    let funcionariosHtml = '';
-                    if (data.funcionarios && data.funcionarios.length > 0) {
-                        data.funcionarios.forEach(func => {
-                            const checked = func.is_responsavel_principal ? 'checked' : '';
-                            funcionariosHtml += `
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="func_${func.id}" 
-                                   name="funcionarios_selecionados[]" value="${func.id}" ${checked}>
-                            <label class="form-check-label" for="func_${func.id}">
-                                <strong>${func.nome_funcionario}</strong><br>
-                                <small class="text-muted">${func.cargo || 'Sem cargo'} - ${func.empresa || 'Sem empresa'}</small>
-                                ${func.is_responsavel_principal ? '<span class="badge bg-primary">Principal</span>' : ''}
-                            </label>
-                        </div>
-                    `;
-                        });
-                    } else {
-                        funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
-                    }
-                    if (funcionariosDiv) funcionariosDiv.innerHTML = funcionariosHtml;
-
-                    // Renderizar e-mails
-                    let emailsHtml = '';
-                    if (data.emails && data.emails.length > 0) {
-                        data.emails.forEach(email => {
-                            emailsHtml += `
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="email_${email.id}" 
-                                   name="emails_selecionados[]" value="${email.id}">
-                            <label class="form-check-label" for="email_${email.id}">
-                                <strong>${email.email}</strong><br>
-                                <small class="text-muted">${email.nome_contato} - ${email.cargo || 'Sem cargo'}</small>
-                            </label>
-                        </div>
-                    `;
-                        });
-                    } else {
-                        emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para este projeto</p>';
-                    }
-                    if (emailsDiv) emailsDiv.innerHTML = emailsHtml;
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                renderizarUI(data);
+                let funcionariosHtml = '';
+                if (data.funcionarios && data.funcionarios.length > 0) {
+                    data.funcionarios.forEach(func => {
+                        const checked = func.is_responsavel_principal ? 'checked' : '';
+                        funcionariosHtml += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="func_${func.id}" 
+                               name="funcionarios_selecionados[]" value="${func.id}" ${checked}>
+                        <label class="form-check-label" for="func_${func.id}">
+                            <strong>${func.nome_funcionario}</strong><br>
+                            <small class="text-muted">${func.cargo || 'Sem cargo'} - ${func.empresa || 'Sem empresa'}</small>
+                            ${func.is_responsavel_principal ? '<span class="badge bg-primary">Principal</span>' : ''}
+                        </label>
+                    </div>
+                `;
+                    });
                 } else {
-                    if (funcionariosDiv) funcionariosDiv.innerHTML = '<p class="text-danger">Erro ao carregar funcionários</p>';
-                    if (emailsDiv) emailsDiv.innerHTML = '<p class="text-danger">Erro ao carregar e-mails</p>';
+                    funcionariosHtml = '<p class="text-muted">Nenhum funcionário encontrado para este projeto</p>';
                 }
-            })
-            .catch(error => {
+                if (funcionariosDiv) funcionariosDiv.innerHTML = funcionariosHtml;
+
+                // Renderizar e-mails
+                let emailsHtml = '';
+                if (data.emails && data.emails.length > 0) {
+                    data.emails.forEach(email => {
+                        emailsHtml += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="email_${email.id}" 
+                               name="emails_selecionados[]" value="${email.id}">
+                        <label class="form-check-label" for="email_${email.id}">
+                            <strong>${email.email}</strong><br>
+                            <small class="text-muted">${email.nome_contato} - ${email.cargo || 'Sem cargo'}</small>
+                        </label>
+                    </div>
+                `;
+                    });
+                } else {
+                    emailsHtml = '<p class="text-muted">Nenhum e-mail encontrado para este projeto</p>';
+                }
+                if (emailsDiv) emailsDiv.innerHTML = emailsHtml;
+            } else {
+                throw new Error('Retorno sem sucesso da API');
+            }
+        } catch (error) {
+            console.warn('⚠️ API indisponível, tentando IndexedDB resgatar func/emails...', error.message);
+            if (window.ELPOfflineManager) {
+                try {
+                    const projetos = await window.ELPOfflineManager.getProjects();
+                    const projeto = projetos.find(p => p.id == projetoId);
+                    if (projeto && (projeto.funcionarios || projeto.emails)) {
+                        console.log(`✅ [Offline] Carregando funcionários e emails para projeto ${projetoId}`);
+                        renderizarUI(projeto);
+                    } else {
+                        if (funcionariosDiv) funcionariosDiv.innerHTML = '<p class="text-danger">Projeto não encontrado no cache</p>';
+                        if (emailsDiv) emailsDiv.innerHTML = '<p class="text-danger">Projeto não encontrado no cache</p>';
+                    }
+                } catch (err) {
+                    console.error('Erro ao carregar func/emais offline:', err);
+                    if (funcionariosDiv) funcionariosDiv.innerHTML = '<p class="text-danger">Erro cache offline</p>';
+                    if (emailsDiv) emailsDiv.innerHTML = '<p class="text-danger">Erro cache offline</p>';
+                }
+            } else {
                 console.error('Erro:', error);
                 if (funcionariosDiv) funcionariosDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
                 if (emailsDiv) emailsDiv.innerHTML = '<p class="text-danger">Erro de conexão</p>';
-            });
+            }
+        }
     }
 
     function handlePhotoUpload(event) {
@@ -2730,8 +2719,7 @@
     {% if existing_fotos and existing_fotos | length > 0 %}
     console.log('📸 Carregando {{ existing_fotos|length }} fotos existentes...');
     try {
-        const fotosExistentes = {{ existing_fotos | tojson | safe
-    }};
+        const fotosExistentes = {{ existing_fotos | tojson | safe }};
     window.mobilePhotoData = fotosExistentes.map((foto, index) => ({
         id: foto.id,
         previewUrl: foto.url,
@@ -2755,8 +2743,7 @@
     {% if existing_checklist %}
     console.log('✅ Carregando checklist existente...');
     try {
-        const checklistExistente = {{ existing_checklist | tojson | safe
-    }};
+        const checklistExistente = {{ existing_checklist | tojson | safe }};
     console.log('📋 Checklist existente:', checklistExistente);
 
     // Marcar checkboxes do checklist
@@ -2822,47 +2809,49 @@
         try {
             console.log('📦 Carregando legendas pré-definidas...');
 
-            // --- OFFLINE SUPPORT ---
-            if (!navigator.onLine && window.ELPOfflineManager) {
-                console.log('📡 [Offline] Buscando legendas pré-definidas no cache local...');
-                const legendasOffline = await window.ELPOfflineManager.getLegendas();
-                if (legendasOffline && legendasOffline.length > 0) {
-                    predefinedLegendas = legendasOffline;
-                    console.log(`✅ [Offline] ${predefinedLegendas.length} legendas carregadas com sucesso`);
-                    preencherDropdownLegendas();
-                    return;
-                } else {
-                    console.warn('⚠️ [Offline] Nenhuma legenda local encontrada.');
-                    predefinedLegendas = [];
-                    preencherDropdownLegendas();
-                    return;
-                }
-            }
-            // -----------------------
-
             const response = await fetch('/api/legendas?categoria=all');
 
             if (!response.ok) {
-                throw new Error(`Falha ao carregar legendas. Status: ${response.status}`);
+                throw new Error(`Falha ao carregar legendas da rede. Status: ${response.status}`);
             }
 
             const data = await response.json();
 
-            if (data.success && Array.isArray(data.legendas)) {
+            if (data.success && Array.isArray(data.legendas) && data.legendas.length > 0) {
                 predefinedLegendas = data.legendas;
-                console.log(`✅ ${predefinedLegendas.length} legendas carregadas com sucesso`);
+                console.log(`✅ ${predefinedLegendas.length} legendas pré-definidas carregadas com sucesso da rede`);
                 preencherDropdownLegendas();
             } else if (Array.isArray(data.legendas) && data.legendas.length > 0) {
                 predefinedLegendas = data.legendas;
-                console.log(`✅ ${predefinedLegendas.length} legendas carregadas (sem flag success)`);
+                console.log(`✅ ${predefinedLegendas.length} legendas pré-definidas carregadas (sem flag success)`);
                 preencherDropdownLegendas();
             } else {
-                console.warn('⚠️ Nenhuma legenda encontrada na resposta');
+                console.warn('⚠️ Nenhuma legenda pré-definida encontrada na resposta');
                 predefinedLegendas = [];
             }
         } catch (error) {
-            console.error('❌ Erro ao carregar legendas:', error);
-            predefinedLegendas = [];
+            console.warn('⚠️ Erro ao carregar legendas da rede, tentando IndexedDB...', error.message);
+            // --- OFFLINE SUPPORT ---
+            if (window.ELPOfflineManager) {
+                try {
+                    const legendasOffline = await window.ELPOfflineManager.getLegendas();
+                    if (legendasOffline && legendasOffline.length > 0) {
+                        predefinedLegendas = legendasOffline;
+                        console.log(`✅ [Offline] ${predefinedLegendas.length} legendas carregadas com sucesso do cache local`);
+                        preencherDropdownLegendas();
+                    } else {
+                        console.warn('⚠️ [Offline] Nenhuma legenda local encontrada.');
+                        predefinedLegendas = [];
+                        preencherDropdownLegendas();
+                    }
+                } catch (dbError) {
+                    console.error('❌ Erro gravíssimo: falha na rede e no IndexedDB para legendas', dbError);
+                    predefinedLegendas = [];
+                }
+            } else {
+                console.error('❌ Erro na rede e OfflineManager não disponível:', error);
+                predefinedLegendas = [];
+            }
         }
     }
 
@@ -3968,8 +3957,7 @@
     }
     {% if existing_acompanhantes and existing_acompanhantes | length > 0 %}
     try {
-        const acompanhantesExistentes = {{ existing_acompanhantes | tojson | safe
-    }};
+        const acompanhantesExistentes = {{ existing_acompanhantes | tojson | safe }};
     if (acompanhantesExistentes && Array.isArray(acompanhantesExistentes)) {
         acompanhantes = acompanhantesExistentes;
         atualizarListaAcompanhantes();
@@ -4849,7 +4837,7 @@
 
 <!-- Checklist da Obra - Sistema Dinâmico -->
 <script>
-    window.currentReportId = {% if relatorio %}{ { relatorio.id } } {% else %} null{% endif %};
+    window.currentReportId = {% if relatorio %}{{ relatorio.id }}{% else %}null{% endif %};
 
     // ============================================================================
     // CHECKLIST DA OBRA - SISTEMA DINÂMICO POR ETAPAS

@@ -51,19 +51,6 @@ class LegendasSelector {
             return null;
         };
 
-        // Tentar IDB primeiro se sabemos que estamos offline
-        if (!navigator.onLine) {
-            const idbResult = await tryIndexedDB();
-            if (idbResult) return idbResult;
-            // Fallback estático
-            console.warn('⚠️ Usando dados de fallback estáticos - legendas básicas');
-            return [
-                {id: 1, texto: 'Registro fotográfico geral', categoria: 'Geral'},
-                {id: 2, texto: 'Serviço em andamento', categoria: 'Andamento'},
-                {id: 3, texto: 'Concluído conforme projeto', categoria: 'Conclusão'}
-            ];
-        }
-
         try {
             const url = `${this.apiUrl}?categoria=${categoria}&_t=${Date.now()}`;
             const response = await fetch(url, {
@@ -99,8 +86,12 @@ class LegendasSelector {
             }
             
         } catch (error) {
-            console.error(`❌ Erro ao carregar legendas: ${error.message}`);
-
+            // Se estiver offline, não imprimir erro assustador
+            if (!navigator.onLine) {
+                console.log(`📡 [Offline] Usando fallback manager para legendas...`);
+            } else {
+                console.warn(`⚠️ Aviso ao carregar legendas da rede: ${error.message}`);
+            }
             // Tentar IndexedDB como fallback antes de dados estáticos
             const idbResult = await tryIndexedDB();
             if (idbResult) return idbResult;

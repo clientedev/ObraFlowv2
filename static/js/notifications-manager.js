@@ -65,6 +65,12 @@ class NotificationsManager {
     }
     
     async carregarNotificacoes(silent = false) {
+        // Se estiver offline, não tenta buscar notificações para não poluir o console com erros
+        if (!navigator.onLine) {
+            console.debug('📡 [Offline] Verificação de notificações ignorada');
+            return;
+        }
+
         try {
             const response = await fetch('/api/notificacoes', {
                 method: 'GET',
