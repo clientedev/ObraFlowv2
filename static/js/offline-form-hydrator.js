@@ -526,20 +526,20 @@
 
         const payload = {
             projeto_id: projetoId ? parseInt(projetoId) : null,
-            titulo: titulo || `Relatório ${new Date().toLocaleDateString('pt-BR')}`,
+            titulo: titulo || `Relatório de Visita`,
             numero: numero,
             data_relatorio: dataRelatorio,
-            categoria: categoria,
-            local: local,
+            categoria: categoria || 'Geral',
+            local: local || 'Obra',
             descricao: descricao,
             conteudo: conteudo,
             observacoes_finais: observacoes,
             lembrete_proxima_visita: lembrete || null,
+            technical_info: techInfo,
             checklist_data: checklistData,
             acompanhantes: acompanhantes,
             fotos: fotos,
-            status: 'preenchimento',
-            ...techInfo
+            status: 'preenchimento'
         };
 
         log('📦 Payload coletado para salvar offline:', {
@@ -579,12 +579,13 @@
             const entry = {
                 id: id,
                 savedId: img.savedId || null,
-                category: categoryValue,
-                local: localValue,
-                caption: captionValue,
+                category: categoryValue || 'Geral',
+                local: localValue || '',
+                caption: captionValue || '',
                 filename: img.name || img.filename || 'foto.jpg',
                 previewUrl: img.previewUrl || null,
-                isExisting: img.isExisting || false
+                isExisting: img.isExisting || false,
+                ordem: img.ordem !== undefined ? img.ordem : 0
             };
 
             // Se tiver blob (nova foto), converter para base64

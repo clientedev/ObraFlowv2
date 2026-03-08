@@ -331,8 +331,10 @@ def offline_save_report():
         tech_info = data.get('technical_info', {})
         data_relatorio_str = data.get('data_relatorio', '')
         lembrete = data.get('lembrete_proxima_visita', '')
-        categoria = data.get('categoria', '')
-        local = data.get('local', '')
+        categoria = data.get('categoria')
+        if not categoria: categoria = 'Geral'
+        local = data.get('local')
+        if not local: local = 'Obra'
         descricao = data.get('descricao', '')
         conteudo = data.get('conteudo', '')
 
@@ -378,18 +380,13 @@ def offline_save_report():
 
         # Parse Lembrete
         lembrete_val = None
-        if lembrete:
+        if lembrete and lembrete != 'null':
             try:
                 if isinstance(lembrete, str) and lembrete.strip():
-                    # Tentar parsear como ISO
                     try:
                         lembrete_val = datetime.fromisoformat(lembrete.replace('Z', '+00:00'))
                     except (ValueError, TypeError):
-                        # Se falhar e for apenas texto, infelizmente a coluna é DateTime.
-                        # No Relatorio do models.py linha 398: lembrete_proxima_visita = db.Column(db.DateTime, nullable=True)
-                        # Se o usuário quer texto, talvez ele devesse usar outro campo ou a coluna deveria ser Text.
-                        # Mas como o objetivo é não quebrar, vamos logar e deixar nulo se não for data.
-                        app.logger.warning(f"Lembrete '{lembrete}' não é uma data válida para coluna DateTime. Ignorando conversão.")
+                        app.logger.warning(f"Lembrete '{lembrete}' não é uma data válida. Ignorando conversão.")
                         lembrete_val = None
                 else:
                     lembrete_val = lembrete
@@ -468,6 +465,8 @@ def offline_save_report():
             try:
                 import json as _json
                 from models import ChecklistObra
+                from datetime import datetime as _dt
+                
                 cl_items = checklist_data
                 if isinstance(cl_items, str):
                     cl_items = _json.loads(cl_items)
@@ -475,15 +474,26 @@ def offline_save_report():
                 if isinstance(cl_items, list):
                     for ci in cl_items:
                         item_id = ci.get('id')
-                        is_checked = bool(ci.get('concluido') or ci.get('completado'))
-                        if item_id and is_checked:
+                        is_checked = bool(ci.get('concluido') or ci.get('completado') or ci.get('checked'))
+                        
+                        if item_id:
                             obra_item = ChecklistObra.query.get(item_id)
                             if obra_item and getattr(obra_item, 'projeto_id', None) == projeto_id:
-                                if getattr(obra_item, 'concluido', False) == False:
-                                    obra_item.concluido = True
-                                    obra_item.concluido_relatorio_id = relatorio_id
-                                    # Handle timezone-aware or naive datetime depending on model
-                                    obra_item.concluido_em = datetime.utcnow()
+                                existing_concluido = getattr(obra_item, 'concluido', False)
+                                existing_rel_id = getattr(obra_item, 'concluido_relatorio_id', None)
+
+                                if is_checked:
+                                    # Only mark if not already marked by another report
+                                    if not existing_concluido:
+                                        obra_item.concluido = True
+                                        obra_item.concluido_relatorio_id = relatorio_id
+                                        obra_item.concluido_em = _dt.utcnow()
+                                else:
+                                    # Only unmark if it was THIS report that marked it
+                                    if existing_concluido and existing_rel_id == relatorio_id:
+                                        obra_item.concluido = False
+                                        obra_item.concluido_relatorio_id = None
+                                        obra_item.concluido_em = None
             except Exception as e:
                 app.logger.warning(f"Offline ChecklistObra failed: {e}")
 
