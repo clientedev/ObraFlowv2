@@ -2708,7 +2708,7 @@
 <script>
     // Global variables for mobile photo system
     let mobilePhotoCounter = 0;
-    let predefinedLegendas = [];
+    window.predefinedLegendas = [];
 
     // Garantir que window.mobilePhotoData sempre exista (conforme especificação técnica)
     if (!window.mobilePhotoData) window.mobilePhotoData = [];
@@ -2818,16 +2818,16 @@
             const data = await response.json();
 
             if (data.success && Array.isArray(data.legendas) && data.legendas.length > 0) {
-                predefinedLegendas = data.legendas;
-                console.log(`✅ ${predefinedLegendas.length} legendas pré-definidas carregadas com sucesso da rede`);
+                window.predefinedLegendas = data.legendas;
+                console.log(`✅ ${window.predefinedLegendas.length} legendas pré-definidas carregadas com sucesso da rede`);
                 preencherDropdownLegendas();
             } else if (Array.isArray(data.legendas) && data.legendas.length > 0) {
-                predefinedLegendas = data.legendas;
-                console.log(`✅ ${predefinedLegendas.length} legendas pré-definidas carregadas (sem flag success)`);
+                window.predefinedLegendas = data.legendas;
+                console.log(`✅ ${window.predefinedLegendas.length} legendas pré-definidas carregadas (sem flag success)`);
                 preencherDropdownLegendas();
             } else {
                 console.warn('⚠️ Nenhuma legenda pré-definida encontrada na resposta');
-                predefinedLegendas = [];
+                window.predefinedLegendas = [];
             }
         } catch (error) {
             console.warn('⚠️ Erro ao carregar legendas da rede, tentando IndexedDB...', error.message);
@@ -2836,33 +2836,33 @@
                 try {
                     const legendasOffline = await window.ELPOfflineManager.getLegendas();
                     if (legendasOffline && legendasOffline.length > 0) {
-                        predefinedLegendas = legendasOffline;
-                        console.log(`✅ [Offline] ${predefinedLegendas.length} legendas carregadas com sucesso do cache local`);
+                        window.predefinedLegendas = legendasOffline;
+                        console.log(`✅ [Offline] ${window.predefinedLegendas.length} legendas carregadas com sucesso do cache local`);
                         preencherDropdownLegendas();
                     } else {
                         console.warn('⚠️ [Offline] Nenhuma legenda local encontrada.');
-                        predefinedLegendas = [];
+                        window.predefinedLegendas = [];
                         preencherDropdownLegendas();
                     }
                 } catch (dbError) {
                     console.error('❌ Erro gravíssimo: falha na rede e no IndexedDB para legendas', dbError);
-                    predefinedLegendas = [];
+                    window.predefinedLegendas = [];
                 }
             } else {
                 console.error('❌ Erro na rede e OfflineManager não disponível:', error);
-                predefinedLegendas = [];
+                window.predefinedLegendas = [];
             }
         }
     }
 
     // ✅ NOVA FUNÇÃO: Preenche todos os dropdowns de legendas pré-definidas
     function preencherDropdownLegendas() {
-        if (!predefinedLegendas || predefinedLegendas.length === 0) {
+        if (!window.predefinedLegendas || window.predefinedLegendas.length === 0) {
             console.warn('⚠️ Nenhuma legenda disponível para preencher dropdowns');
             return;
         }
 
-        // Selecionar todos os dropdowns de legenda (caption-select)
+            // Selecionar todos os dropdowns de legenda (caption-select)
         const selects = document.querySelectorAll('.caption-select');
 
         if (selects.length === 0) {
@@ -2878,7 +2878,7 @@
 
             // Agrupar legendas por categoria
             const legendsByCategory = {};
-            predefinedLegendas.forEach(legenda => {
+            window.predefinedLegendas.forEach(legenda => {
                 if (!legendsByCategory[legenda.categoria]) {
                     legendsByCategory[legenda.categoria] = [];
                 }
@@ -4064,7 +4064,7 @@
 
         // ✅ CORREÇÃO: Preencher dropdowns de legendas para todas as fotos existentes
         setTimeout(() => {
-            if (predefinedLegendas && predefinedLegendas.length > 0) {
+            if (window.predefinedLegendas && window.predefinedLegendas.length > 0) {
                 preencherDropdownLegendas();
                 console.log('✅ Dropdowns de legendas preenchidos para fotos existentes');
             }

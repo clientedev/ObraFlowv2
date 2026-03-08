@@ -535,11 +535,11 @@
             conteudo: conteudo,
             observacoes_finais: observacoes,
             lembrete_proxima_visita: lembrete || null,
-            technical_info: techInfo,
             checklist_data: checklistData,
             acompanhantes: acompanhantes,
             fotos: fotos,
-            status: 'preenchimento'
+            status: 'preenchimento',
+            ...techInfo
         };
 
         log('📦 Payload coletado para salvar offline:', {
