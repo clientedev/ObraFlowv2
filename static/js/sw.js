@@ -20,7 +20,7 @@ try {
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.7'; // Bump para forçar atualização do SW — fix importScripts offline crash
+const SW_VERSION = 'elp-v3.8'; // Bump — fix staleWhileRevalidate returning Promise instead of Response
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];
@@ -278,7 +278,15 @@ async function staleWhileRevalidate(request, cacheName) {
         return response;
     }).catch(() => null);
 
-    return cached || networkUpdate;
+    // CRÍTICO: retornar await (Response), nunca uma Promise cru
+    if (cached) {
+        networkUpdate.catch(() => {}); // bg update, não espera
+        return cached;
+    }
+    // Sem cache: aguardar a rede
+    const netResponse = await networkUpdate;
+    if (netResponse) return netResponse;
+    return new Response('', { status: 503 });
 }
 
 // ============================================================
