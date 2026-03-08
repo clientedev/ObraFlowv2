@@ -4890,25 +4890,31 @@
         const linkConfig = document.getElementById('linkConfigurarChecklist');
 
         try {
+            // Tentar rede PRIMEIRO — se falhar, usar IndexedDB (navigator.onLine é não confiável)
             let items = [];
+            let carregouDaRede = false;
 
-            // Tentar usar offline manager PRIMEIRO se estiver offline ou se for um novo relatório
-            if (!navigator.onLine && window.ELPOfflineManager) {
-                console.log('📡 [Offline] Buscando checklist do IndexedDB...');
-                const projetos = await window.ELPOfflineManager.getProjects();
-                const projeto = projetos.find(p => p.id == projetoId);
-                if (projeto && projeto.checklist_projeto) {
-                    items = projeto.checklist_projeto;
-                    console.log(`✅ [Offline] Carregados ${items.length} itens do checklist do projeto ${projetoId}`);
-                } else {
-                    console.warn('⚠️ [Offline] Checklist não encontrado no cache do projeto.');
-                }
-            } else {
-                console.log('📡 [Online] Buscando checklist da API...');
+            try {
+                console.log('📡 Buscando checklist da API...');
                 const resp = await fetch(url);
                 const data = await resp.json();
                 if (!data.success) throw new Error(data.error || 'Erro ao carregar');
                 items = data.checklist || [];
+                carregouDaRede = true;
+            } catch (fetchErr) {
+                console.warn('⚠️ Checklist API indisponível, tentando IndexedDB...', fetchErr.message);
+                if (window.ELPOfflineManager) {
+                    try {
+                        const projetos = await window.ELPOfflineManager.getProjects();
+                        const projeto = projetos.find(p => p.id == projetoId);
+                        if (projeto && projeto.checklist_projeto) {
+                            items = projeto.checklist_projeto;
+                            console.log(`✅ [Offline] ${items.length} itens do checklist carregados do IndexedDB`);
+                        }
+                    } catch (idbErr) {
+                        console.warn('⚠️ IndexedDB também indisponível:', idbErr.message);
+                    }
+                }
             }
 
             // Update badge

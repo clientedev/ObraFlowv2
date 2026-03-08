@@ -649,31 +649,35 @@
     // ============================================================
     function patchNetworkFunctions(manager, projetoId) {
         // Quando `carregarFuncionariosParaAcompanhantes` for chamada,
-        // e estivermos offline, usar dados do IDB
+        // tentar a rede e, se falhar, usar dados do IDB
         const originalCarregarFunc = window.carregarFuncionariosParaAcompanhantes;
         window.carregarFuncionariosParaAcompanhantes = async function (pid) {
-            if (navigator.onLine) {
-                if (originalCarregarFunc) return originalCarregarFunc(pid);
-                return;
-            }
-            const projetos = await manager.getProjects();
-            const proj = projetos.find(p => String(p.id) === String(pid));
-            const select = document.getElementById('funcionario-select');
-            if (proj && select) {
-                preencherSelectFuncionarios(select, proj);
+            try {
+                if (originalCarregarFunc) return await originalCarregarFunc(pid);
+            } catch (e) {
+                // Rede falhou — usar IndexedDB
+                log('📴 carregarFuncionariosParaAcompanhantes falhou na rede, usando IDB:', e.message);
+                const projetos = await manager.getProjects();
+                const proj = projetos.find(p => String(p.id) === String(pid));
+                const select = document.getElementById('funcionario-select');
+                if (proj && select) {
+                    preencherSelectFuncionarios(select, proj);
+                }
             }
         };
 
         // Quando `populateCategorySelect` for chamada
         const originalPopulateCategory = window.populateCategorySelect;
-        window.populateCategorySelect = function (photoId) {
-            if (navigator.onLine) {
-                if (originalPopulateCategory) return originalPopulateCategory(photoId);
-                return;
-            }
-            const sel = document.getElementById(`category_${photoId}`);
-            if (sel && window.currentProjectCategorias) {
-                preencherCategoriasSelect(sel, window.currentProjectCategorias, photoId);
+        window.populateCategorySelect = async function (photoId) {
+            try {
+                if (originalPopulateCategory) return await originalPopulateCategory(photoId);
+            } catch (e) {
+                // Rede falhou — usar cache
+                log('📴 populateCategorySelect falhou na rede, usando IDB:', e.message);
+                const sel = document.getElementById(`category_${photoId}`);
+                if (sel && window.currentProjectCategorias) {
+                    preencherCategoriasSelect(sel, window.currentProjectCategorias, photoId);
+                }
             }
         };
 

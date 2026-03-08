@@ -29,31 +29,41 @@ class LegendasSelector {
             return this.cache.get(cacheKey);
         }
 
-        // Suporte PWA Offline
-        if (!navigator.onLine && window.ELPOfflineManager) {
-            try {
-                console.log(`📡 [Offline] Buscando legendas do IndexedDB...`);
-                const legendasDb = await window.ELPOfflineManager.getLegendas();
-                if (legendasDb && legendasDb.length > 0) {
-                    let filtradas = legendasDb;
-                    if (categoria !== 'all') {
-                        filtradas = legendasDb.filter(l => l.categoria === categoria);
+        // Suporte PWA Offline — tentar IDB PRIMEIRO se navigator.onLine=false
+        // Mas também recuperar do IDB se a rede falhar mesmo com navigator.onLine=true
+        const tryIndexedDB = async () => {
+            if (window.ELPOfflineManager) {
+                try {
+                    const legendasDb = await window.ELPOfflineManager.getLegendas();
+                    if (legendasDb && legendasDb.length > 0) {
+                        let filtradas = legendasDb;
+                        if (categoria !== 'all') {
+                            filtradas = legendasDb.filter(l => l.categoria === categoria);
+                        }
+                        this.cache.set(cacheKey, filtradas);
+                        console.log(`✅ [IDB] Legendas carregadas: ${filtradas.length}`);
+                        return filtradas;
                     }
-                    this.cache.set(cacheKey, filtradas);
-                    console.log(`✅ [Offline] Legendas carregadas do IDB: ${filtradas.length}`);
-                    return filtradas;
+                } catch (idbErr) {
+                    console.warn('⚠️ IDB legendas falhou:', idbErr.message);
                 }
-            } catch (err) {
-                console.warn('⚠️ [Offline] Erro ao ler legendas do IDB, tentando fallback estático:', err);
             }
-            // Fallback estático se o IDB também falhar
+            return null;
+        };
+
+        // Tentar IDB primeiro se sabemos que estamos offline
+        if (!navigator.onLine) {
+            const idbResult = await tryIndexedDB();
+            if (idbResult) return idbResult;
+            // Fallback estático
+            console.warn('⚠️ Usando dados de fallback estáticos - legendas básicas');
             return [
                 {id: 1, texto: 'Registro fotográfico geral', categoria: 'Geral'},
                 {id: 2, texto: 'Serviço em andamento', categoria: 'Andamento'},
                 {id: 3, texto: 'Concluído conforme projeto', categoria: 'Conclusão'}
             ];
         }
-        
+
         try {
             const url = `${this.apiUrl}?categoria=${categoria}&_t=${Date.now()}`;
             const response = await fetch(url, {
@@ -67,7 +77,6 @@ class LegendasSelector {
             });
             
             if (!response.ok) {
-                // Log detalhado do erro HTTP (APENAS NO CONSOLE)
                 const responseText = await response.text();
                 console.error(`❌ HTTP ${response.status}: ${responseText}`);
                 throw new Error(`HTTP ${response.status}`);
@@ -78,11 +87,9 @@ class LegendasSelector {
             if (data.success && Array.isArray(data.legendas)) {
                 this.cache.set(cacheKey, data.legendas);
                 this.retryCount = 0;
-                
-                console.log(`✅ Legendas carregadas: ${data.total} itens (categoria: ${categoria}, fonte: ${data.fonte || 'N/A'})`);
+                console.log(`✅ Legendas carregadas: ${data.total} itens (categoria: ${categoria})`);
                 return data.legendas;
             } else {
-                // Mesmo com erro, se tiver dados, usar
                 if (Array.isArray(data.legendas) && data.legendas.length > 0) {
                     console.warn('⚠️ API com erro mas dados disponíveis');
                     this.cache.set(cacheKey, data.legendas);
@@ -92,26 +99,19 @@ class LegendasSelector {
             }
             
         } catch (error) {
-            // APENAS LOGS NO CONSOLE - SEM ALERTAS VISUAIS
-            console.error(`❌ Erro ao carregar legendas (tentativa ${this.retryCount + 1}/${this.maxRetries}):`, error);
-            
-            // Sistema de retry com backoff exponencial
-            if (this.retryCount < this.maxRetries) {
-                this.retryCount++;
-                const delay = Math.pow(2, this.retryCount) * 1000; // 2s, 4s, 8s
-                console.log(`🔄 Retry ${this.retryCount}/${this.maxRetries} em ${delay/1000}s...`);
-                
-                await new Promise(resolve => setTimeout(resolve, delay));
-                return this.loadLegendas(categoria, forceRefresh);
-            }
-            
-            // Fallback para cache
+            console.error(`❌ Erro ao carregar legendas: ${error.message}`);
+
+            // Tentar IndexedDB como fallback antes de dados estáticos
+            const idbResult = await tryIndexedDB();
+            if (idbResult) return idbResult;
+
+            // Fallback para cache interno
             if (this.cache.has(cacheKey)) {
                 console.log('📋 Usando cache como fallback após falhas');
                 return this.cache.get(cacheKey);
             }
             
-            // Fallback final: dados estáticos básicos (SEM ALERTAS)
+            // Fallback final: dados estáticos básicos
             console.warn('⚠️ Usando dados de fallback estáticos - legendas básicas');
             return [
                 {id: 1, texto: 'Emboço bem-acabado', categoria: 'Acabamentos'},
