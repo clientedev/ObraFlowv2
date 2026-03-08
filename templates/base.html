@@ -158,6 +158,11 @@
 
         OneSignalDeferred.push(async function (OneSignal) {
             try {
+                if (!navigator.onLine) {
+                    console.warn('📵 Offline Mode: Skipping OneSignal setup to prevent errors');
+                    return;
+                }
+
                 console.log('==========================================');
                 console.log('🚀 ONESIGNAL INITIALIZATION STARTING');
                 console.log('Device:', navigator.userAgent);

@@ -1030,34 +1030,30 @@
             return;
         }
 
-        if (!navigator.onLine && window.ELPOfflineManager) {
-            try {
-                const projetos = await window.ELPOfflineManager.getProjects();
-                const projeto = projetos.find(p => p.id == projetoId);
-                if (projeto && projeto.categorias) {
-                    console.log(`✅ [Offline] Categorias carregadas: ${projeto.categorias.length} categorias para projeto ${projetoId}`);
-                    window.currentProjectCategorias = projeto.categorias;
-                }
-            } catch (error) {
-                console.error('Erro ao carregar categorias do projeto offline:', error);
+        try {
+            const response = await fetch(`/api/projects/${projetoId}/categorias`);
+            const data = await response.json();
+            if (data.categorias) {
+                console.log(`✅ Categorias carregadas: ${data.categorias.length} categorias para projeto ${projetoId}`);
+                window.currentProjectCategorias = data.categorias;
+            } else {
+                throw new Error('Categorias não encontradas');
             }
-            return;
-        }
-
-        // Buscar categorias do projeto via API
-        fetch(`/api/projects/${projetoId}/categorias`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.categorias) {
-                    console.log(`✅ Categorias carregadas: ${data.categorias.length} categorias para projeto ${projetoId}`);
-                    // As categorias serão usadas pelos selects de categoria nas fotos
-                    // Armazena globalmente para uso posterior
-                    window.currentProjectCategorias = data.categorias;
+        } catch (error) {
+            console.warn('⚠️ Categorias API indisponível, tentando IndexedDB...', error.message);
+            if (window.ELPOfflineManager) {
+                try {
+                    const projetos = await window.ELPOfflineManager.getProjects();
+                    const projeto = projetos.find(p => p.id == projetoId);
+                    if (projeto && projeto.categorias) {
+                        console.log(`✅ [Offline] Categorias carregadas: ${projeto.categorias.length} categorias para projeto ${projetoId}`);
+                        window.currentProjectCategorias = projeto.categorias;
+                    }
+                } catch (err) {
+                    console.error('Erro ao carregar categorias do projeto offline:', err);
                 }
-            })
-            .catch(error => {
-                console.error('Erro ao carregar categorias do projeto:', error);
-            });
+            }
+        }
     }
 
     // Função para carregar lembrete do último relatório
@@ -1072,46 +1068,41 @@
             return;
         }
 
-        if (!navigator.onLine && window.ELPOfflineManager) {
-            try {
-                const projetos = await window.ELPOfflineManager.getProjects();
-                const projeto = projetos.find(p => p.id == projetoId);
-                if (projeto && projeto.lembrete_anterior) {
-                    lembreteTitulo.textContent = `⚠️ Lembrete do último relatório (${projeto.lembrete_anterior.numero}):`;
-                    lembreteTexto.textContent = projeto.lembrete_anterior.texto;
-                    lembreteCard.style.display = 'block';
-                    console.log(`✅ [Offline] Lembrete carregado: ${projeto.lembrete_anterior.texto}`);
-                } else {
-                    lembreteCard.style.display = 'none';
-                    console.log('ℹ️ [Offline] Nenhum lembrete encontrado para esta obra');
-                }
-            } catch (error) {
-                console.error('❌ Erro ao carregar lembrete offline:', error);
+        try {
+            const response = await fetch(`/relatorios/ultimo-lembrete?obra_id=${projetoId}`);
+            const data = await response.json();
+            if (data.lembrete) {
+                // Exibir o card com o lembrete
+                lembreteTitulo.textContent = `⚠️ Lembrete do último relatório (${data.relatorio_origem}):`;
+                lembreteTexto.textContent = data.lembrete;
+                lembreteCard.style.display = 'block';
+                console.log(`✅ Lembrete carregado: ${data.lembrete}`);
+            } else {
+                // Ocultar o card se não houver lembrete
                 lembreteCard.style.display = 'none';
+                console.log('ℹ️ Nenhum lembrete encontrado para esta obra');
             }
-            return;
-        }
-
-        // Buscar o lembrete via API
-        fetch(`/relatorios/ultimo-lembrete?obra_id=${projetoId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.lembrete) {
-                    // Exibir o card com o lembrete
-                    lembreteTitulo.textContent = `⚠️ Lembrete do último relatório (${data.relatorio_origem}):`;
-                    lembreteTexto.textContent = data.lembrete;
-                    lembreteCard.style.display = 'block';
-                    console.log(`✅ Lembrete carregado: ${data.lembrete}`);
-                } else {
-                    // Ocultar o card se não houver lembrete
+        } catch (error) {
+            console.warn('⚠️ Lembrete API indisponível, tentando IndexedDB...', error.message);
+            if (window.ELPOfflineManager) {
+                try {
+                    const projetos = await window.ELPOfflineManager.getProjects();
+                    const projeto = projetos.find(p => p.id == projetoId);
+                    if (projeto && projeto.lembrete_anterior) {
+                        lembreteTitulo.textContent = `⚠️ Lembrete do último relatório (${projeto.lembrete_anterior.numero}):`;
+                        lembreteTexto.textContent = projeto.lembrete_anterior.texto;
+                        lembreteCard.style.display = 'block';
+                        console.log(`✅ [Offline] Lembrete carregado: ${projeto.lembrete_anterior.texto}`);
+                    } else {
+                        lembreteCard.style.display = 'none';
+                        console.log('ℹ️ [Offline] Nenhum lembrete encontrado para esta obra');
+                    }
+                } catch (err) {
+                    console.error('❌ Erro ao carregar lembrete offline:', err);
                     lembreteCard.style.display = 'none';
-                    console.log('ℹ️ Nenhum lembrete encontrado para esta obra');
                 }
-            })
-            .catch(error => {
-                console.error('❌ Erro ao carregar lembrete:', error);
-                lembreteCard.style.display = 'none';
-            });
+            }
+        }
     }
 
     // Função para atualizar o número do relatório quando o projeto é selecionado
@@ -2089,7 +2080,7 @@
             const isNetworkError = error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('network'));
             const isCreating = !(EDIT_MODE && REPORT_DATA?.relatorio?.id) && !(window.currentReportId);
 
-            if (isNetworkError && isCreating && !navigator.onLine) {
+            if (isNetworkError && isCreating) {
                 // Offline: salvar localmente via IndexedDB
                 console.warn('📵 Modo offline detectado — salvando relatório localmente...');
                 try {
@@ -2246,7 +2237,7 @@
     function carregarChecklistPadrao() {
         const projetoSelect = document.getElementById('projeto_id');
         if (projetoSelect && projetoSelect.value) {
-            carregarChecklistProjeto(projetoSelect.value);
+            carregarChecklistObra(projetoSelect.value);
         } else {
             const container = document.getElementById('checklistItems');
             container.innerHTML = '<p class="text-muted">Selecione um projeto para carregar o checklist</p>';
@@ -2261,7 +2252,7 @@
             console.log('🏗️ Projeto detectado:', projetoSelect.value);
             // Carregar dados do projeto
             carregarCategoriasProjeto(projetoSelect.value);
-            carregarChecklistProjeto(projetoSelect.value);
+            carregarChecklistObra(projetoSelect.value);
             atualizarNumeroRelatorio(projetoSelect.value);
             carregarLembretesAtivos(projetoSelect.value);
             carregarFuncionariosEmails();
@@ -3743,7 +3734,7 @@
     }
 
     // Carregar funcionários da obra e informações técnicas
-    function carregarFuncionariosParaAcompanhantes(projetoId) {
+    async function carregarFuncionariosParaAcompanhantes(projetoId) {
         const select = document.getElementById('funcionario-select');
 
         if (!projetoId) {
@@ -3754,40 +3745,40 @@
 
         select.innerHTML = '<option value="">Carregando...</option>';
 
-        // --- OFFLINE SUPPORT ---
-        if (!navigator.onLine && window.ELPOfflineManager) {
-            window.ELPOfflineManager.getProjects().then(projetos => {
-                const projeto = projetos.find(p => p.id == projetoId);
-                if (projeto) {
-                    console.log(`✅ [Offline] Carregando acompanhantes/info. técnica para projeto ${projetoId}`);
-                    renderizarFuncionariosAcompanhantesUI(projeto, select);
-                } else {
-                    select.innerHTML = '<option value="">Projeto não encontrado offline</option>';
-                }
-            }).catch(err => {
-                console.error('Erro offline:', err);
-                select.innerHTML = '<option value="">Erro offline</option>';
+        try {
+            const response = await fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
             });
-            return;
-        }
-        // -----------------------
-
-        fetch(`/api/projeto/${projetoId}/funcionarios-emails`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    renderizarFuncionariosAcompanhantesUI(data, select);
-                } else {
-                    select.innerHTML = '<option value="">Erro ao carregar dados</option>';
+            const data = await response.json();
+            
+            if (data.success) {
+                renderizarFuncionariosAcompanhantesUI(data, select);
+            } else {
+                throw new Error('Retorno sem sucesso da API');
+            }
+        } catch (error) {
+            console.warn('⚠️ Acompanhantes API indisponível, tentando IndexedDB...', error.message);
+            // --- OFFLINE FALLBACK ---
+            if (window.ELPOfflineManager) {
+                try {
+                    const projetos = await window.ELPOfflineManager.getProjects();
+                    const projeto = projetos.find(p => p.id == projetoId);
+                    if (projeto) {
+                        console.log(`✅ [Offline] Carregando acompanhantes/info. técnica para projeto ${projetoId}`);
+                        renderizarFuncionariosAcompanhantesUI(projeto, select);
+                    } else {
+                        select.innerHTML = '<option value="">Projeto não encontrado offline</option>';
+                    }
+                } catch (err) {
+                    console.error('Erro offline:', err);
+                    select.innerHTML = '<option value="">Erro offline</option>';
                 }
-            })
-            .catch(error => {
+            } else {
                 console.error('Erro ao carregar acompanhantes/info técnica:', error);
                 select.innerHTML = '<option value="">Erro de conexão</option>';
-            });
+            }
+        }
     }
 
     // Abrir modal
@@ -4410,7 +4401,7 @@
             // Se há um projeto selecionado, carregar o checklist do projeto
             if (projetoIdSelecionado) {
                 console.log(`📋 Carregando checklist do projeto ${projetoIdSelecionado}...`);
-                carregarChecklistProjeto(projetoIdSelecionado);
+                carregarChecklistObra(projetoIdSelecionado);
             } else {
                 console.warn('⚠️ Nenhum projeto selecionado para carregar checklist');
             }
