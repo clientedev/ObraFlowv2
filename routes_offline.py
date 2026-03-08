@@ -364,15 +364,14 @@ def offline_save_report():
             proximo_numero = 1
             numero_formatado = f"OFF-{int(datetime.utcnow().timestamp())}"
 
-        # Parse Data Report
-        data_relatorio_val = datetime.utcnow()
+        # Parse Data Report (Matching routes.py)
+        # We ensure it matches datetime.now() if blank, or parses from standard frontend date pickers
+        data_relatorio_val = datetime.now()
         if data_relatorio_str:
             try:
                 date_str = str(data_relatorio_str).strip()
-                if len(date_str) == 10:
-                    from datetime import date as _dr_date
-                    _dr_d = _dr_date.fromisoformat(date_str)
-                    data_relatorio_val = datetime(_dr_d.year, _dr_d.month, _dr_d.day, 12, 0, 0)
+                if len(date_str) == 10: # YYYY-MM-DD
+                    data_relatorio_val = datetime.strptime(date_str, '%Y-%m-%d')
                 else:
                     data_relatorio_val = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
             except Exception as e:
@@ -393,23 +392,24 @@ def offline_save_report():
             except Exception as e:
                 app.logger.warning(f"Erro ao processar lembrete_proxima_visita (offline): {e}")
 
-        # Criar relatório
+        # Criar relatório with guaranteed fallbacks
+        titulo_val = titulo if titulo else f"Relatório de visita" 
         novo_relatorio = Relatorio(
             numero=numero_formatado,
             numero_projeto=proximo_numero if 'numero_projeto' in dir(Relatorio) else None,
-            titulo=titulo,
+            titulo=titulo_val,
             projeto_id=projeto_id,
             autor_id=current_user.id,
             criado_por=current_user.id if 'criado_por' in dir(Relatorio) else None,
             atualizado_por=current_user.id if 'atualizado_por' in dir(Relatorio) else None,
-            status=status,
+            status='preenchimento',
             categoria=categoria,
             local=local,
             descricao=descricao,
             conteudo=conteudo,
             observacoes_finais=observacoes if hasattr(Relatorio, 'observacoes_finais') else "",
             lembrete_proxima_visita=lembrete_val if hasattr(Relatorio, 'lembrete_proxima_visita') else None,
-            data_relatorio=data_relatorio_val if hasattr(Relatorio, 'data_relatorio') else datetime.utcnow(),
+            data_relatorio=data_relatorio_val if hasattr(Relatorio, 'data_relatorio') else datetime.now(),
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
