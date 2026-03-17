@@ -20,7 +20,7 @@ try {
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.11'; // Bump: fix $ is not defined on report save
+const SW_VERSION = 'elp-v3.12'; // Bump: fix offline report creation + save
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];
@@ -34,6 +34,9 @@ const PRECACHE_ASSETS = [
     '/static/js/main.js',
     '/static/js/mobile-utils.js',
     '/static/js/offline-manager.js',
+    '/static/js/offline-form-hydrator.js',
+    '/static/js/legendas-selector.js',
+    '/static/js/notifications-manager.js',
     '/static/logo_elp_navbar.png',
     '/static/icons/icon-192x192.png',
     '/static/icons/icon-512x512.png',

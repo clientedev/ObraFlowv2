@@ -966,6 +966,13 @@
         const projetoId = document.getElementById('projeto_id').value;
         if (!projetoId) return;
 
+        // Não tentar salvar se estiver offline — os dados serão salvos junto com o relatório
+        if (!navigator.onLine) {
+            const statusDiv = document.getElementById('technical-info-status');
+            if (statusDiv) statusDiv.innerHTML = '<span class="text-warning"><i class="fas fa-wifi"></i> Offline (será salvo com o relatório)</span>';
+            return;
+        }
+
         const statusDiv = document.getElementById('technical-info-status');
         const data = {};
         document.querySelectorAll('.technical-field').forEach(field => {
@@ -1901,7 +1908,49 @@
     // Submissão do formulário
     document.getElementById('reportForm').addEventListener('submit', async function (e) {
         if (!navigator.onLine) {
-            // Deixar o Offline Manager/Hydrator interceptar
+            // SAFETY NET: Se o Hydrator (capture=true) já interceptou e chamou
+            // stopImmediatePropagation, este handler NÃO roda. Mas se o hydrator
+            // não carregou (ex: script faltando no cache), precisamos agir aqui.
+            e.preventDefault();
+
+            console.warn('📵 [form_complete] Offline detectado no submit — safety net ativado');
+
+            try {
+                if (window.ELPFormHydrator && typeof window.ELPFormHydrator.coletarPayloadCompleto === 'function') {
+                    // Usar o coletor robusto do hydrator
+                    const payload = await window.ELPFormHydrator.coletarPayloadCompleto();
+                    payload.offline_id = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                    payload.created_offline = true;
+                    payload.created_at = new Date().toISOString();
+
+                    if (window.ELPOfflineManager) {
+                        await window.ELPOfflineManager.savePendingReport(payload);
+                        alert('💾 Sem conexão! Relatório salvo localmente.\nSerá enviado automaticamente quando a conexão for restaurada.');
+                        const pid = payload.projeto_id || '';
+                        window.location.href = `/reports?projeto_id=${pid}&hide_filters=1&offline_saved=1`;
+                    } else {
+                        throw new Error('OfflineManager não disponível');
+                    }
+                } else if (window.ELPOfflineManager) {
+                    // Fallback mínimo: coletar dados do FormData nativo
+                    const formData = new FormData(this);
+                    const payload = { created_offline: true, created_at: new Date().toISOString() };
+                    payload.offline_id = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                    for (const [key, value] of formData.entries()) {
+                        if (key === 'csrf_token' || key === '_token') continue;
+                        if (value instanceof File) continue;
+                        payload[key] = value;
+                    }
+                    await window.ELPOfflineManager.savePendingReport(payload);
+                    alert('💾 Sem conexão! Relatório salvo localmente.\nSerá enviado automaticamente quando a conexão for restaurada.');
+                    window.location.href = '/reports?offline_saved=1';
+                } else {
+                    alert('❌ Sem conexão e sem sistema offline disponível. Tente novamente quando estiver online.');
+                }
+            } catch (err) {
+                console.error('❌ Falha no safety net offline:', err);
+                alert('Erro ao salvar offline: ' + err.message);
+            }
             return;
         }
         e.preventDefault();
