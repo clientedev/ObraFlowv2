@@ -8255,10 +8255,30 @@ def get_location():
                 geolocator = Nominatim(user_agent="ObraFlowv2/1.0", timeout=10)
                 location = geolocator.reverse(f"{latitude}, {longitude}", language='pt-BR')
                 
-                if location and location.address:
+                if location:
+                    addr = location.raw.get('address', {})
+                    road = addr.get('road') or addr.get('pedestrian') or addr.get('square') or addr.get('highway')
+                    suburb = addr.get('suburb') or addr.get('city_district') or addr.get('neighbourhood') or addr.get('village')
+                    city = addr.get('city') or addr.get('town') or addr.get('municipality')
+                    state = addr.get('state')
+                    
+                    parts = []
+                    if road:
+                        parts.append(str(road))
+                    if suburb and str(suburb) not in parts: 
+                        parts.append(str(suburb))
+                    if city and state:
+                        parts.append(f"{city} - {state}")
+                    elif city:
+                        parts.append(str(city))
+                    elif state:
+                        parts.append(str(state))
+                        
+                    formatted_address = ", ".join(parts) if parts else location.address
+                    
                     return jsonify({
                         'success': True,
-                        'endereco': location.address
+                        'endereco': formatted_address
                     })
             except (GeocoderTimedOut, GeocoderServiceError, Exception) as e:
                 current_app.logger.error(f"Erro no geopy reverse geocode: {e}")
