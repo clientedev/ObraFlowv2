@@ -20,7 +20,7 @@ try {
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.10'; // Usa NetworkFirst para URLS de obras com query parameters
+const SW_VERSION = 'elp-v3.11'; // Bump: fix $ is not defined on report save
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];

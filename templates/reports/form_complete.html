@@ -2100,7 +2100,8 @@
             alert('✅ Relatório atualizado com sucesso!');
 
             // Redirecionar para a lista de relatórios da obra específica com filtros ocultos
-            const projetoId = $('#projeto_id').val();
+            const projetoElem = document.getElementById('projeto_id');
+            const projetoId = projetoElem ? projetoElem.value : '';
             window.location.href = `/reports?projeto_id=${projetoId}&hide_filters=1`;
 
         } catch (error) {
