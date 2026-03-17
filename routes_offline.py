@@ -434,10 +434,22 @@ def offline_save_report():
 
         # Tratar Technical Info - ATUALIZAR O PROJETO (não o relatório)
         if tech_info and projeto:
+            from sqlalchemy.orm.attributes import flag_modified
+            has_changes = False
             for field, value in tech_info.items():
                 if hasattr(projeto, field):
-                    setattr(projeto, field, value)
-            app.logger.info(f"✅ Informações técnicas da obra {projeto_id} atualizadas via sync offline")
+                    # Only update if value actually changed to prevent unnecessary DB writes
+                    current_val = getattr(projeto, field)
+                    if current_val != value:
+                        setattr(projeto, field, value)
+                        flag_modified(projeto, field)
+                        has_changes = True
+            
+            if has_changes:
+                db.session.add(projeto)
+                # Flush to ensure the project updates are pushed to the DB in this transaction
+                db.session.flush()
+                app.logger.info(f"✅ Informações técnicas da obra {projeto_id} adicionadas à sessão de sync offline")
 
         # Tratar Checklist
         if checklist_data:

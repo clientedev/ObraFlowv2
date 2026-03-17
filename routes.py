@@ -1,4 +1,4 @@
-﻿import os
+import os
 import uuid
 import io
 import hashlib
@@ -4137,6 +4137,7 @@ def create_report():
     for projeto in projetos:
         projetos_data.append({
             'id': projeto.id,
+            'numero': projeto.numero,
             'nome': projeto.nome,
             'cliente': projeto.construtora or '',
             'status': projeto.status or 'Ativo',
@@ -4158,6 +4159,7 @@ def create_report():
     if selected_project:
         selected_project_data = {
             'id': selected_project.id,
+            'numero': selected_project.numero,
             'nome': selected_project.nome,
             'cliente': selected_project.construtora or '',
             'status': selected_project.status or 'Ativo',
@@ -8236,64 +8238,41 @@ def get_imagem(id):
 @app.route('/get_location', methods=['POST', 'GET'])
 @csrf.exempt
 def get_location():
-    import requests
-    from urllib.parse import quote
+    from geopy.geocoders import Nominatim
+    from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 
-    data = request.get_json()
-    latitude = data.get('latitude')
-    longitude = data.get('longitude')
+    try:
+        data = request.get_json(silent=True) or {}
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        
+        if not latitude or not longitude:
+            latitude = request.args.get('lat')
+            longitude = request.args.get('lon')
 
-    if latitude and longitude:
-        try:
-            # Use Nominatim reverse geocoding to get formatted address
-            url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={latitude}&lon={longitude}&addressdetails=1&language=pt-BR"
-            headers = {'User-Agent': 'SistemaObras/1.0'}
-            response = requests.get(url, headers=headers, timeout=10)
+        if latitude and longitude:
+            try:
+                geolocator = Nominatim(user_agent="ObraFlowv2/1.0", timeout=10)
+                location = geolocator.reverse(f"{latitude}, {longitude}", language='pt-BR')
+                
+                if location and location.address:
+                    return jsonify({
+                        'success': True,
+                        'endereco': location.address
+                    })
+            except (GeocoderTimedOut, GeocoderServiceError, Exception) as e:
+                current_app.logger.error(f"Erro no geopy reverse geocode: {e}")
 
-            if response.status_code == 200:
-                data = response.json()
+            # Fallback to coordinates if geocoding fails
+            return jsonify({
+                'success': True,
+                'endereco': f"Lat: {latitude}, Lng: {longitude}"
+            })
 
-                # Extract address components
-                addr = data.get('address', {})
-
-                # Build formatted address
-                address_parts = []
-
-                # Street name and number
-                if addr.get('road'):
-                    if addr.get('house_number'):
-                        address_parts.append(f"{addr.get('road')}, {addr['house_number']}")
-                    else:
-                        address_parts.append(addr.get('road'))
-
-                # Neighborhood
-                if addr.get('suburb') or addr.get('neighbourhood'):
-                    address_parts.append(addr.get('suburb') or addr.get('neighbourhood'))
-
-                # City and state
-                city = addr.get('city') or addr.get('town') or addr.get('village')
-                if city:
-                    state = addr.get('state')
-                    if state:
-                        address_parts.append(f"{city} - {state}")
-                    else:
-                        address_parts.append(city)
-
-                formatted_address = ', '.join(filter(None, address_parts))
-
-                return jsonify({
-                    'success': True,
-                    'endereco': formatted_address or data.get('display_name', f"Lat: {latitude}, Lng: {longitude}")
-                })
-
-        except Exception as e:
-            print(f"Erro ao obter endereço: {e}")
-
-        # Fallback to coordinates if geocoding fails
-        return jsonify({
-            'success': True,
-            'endereco': f"Lat: {latitude}, Lng: {longitude}"
-        })
+    except Exception as general_e:
+        current_app.logger.error(f"Erro geral geocode: {general_e}")
+        
+    return jsonify({'success': False})
 
     return jsonify({'success': False})
 

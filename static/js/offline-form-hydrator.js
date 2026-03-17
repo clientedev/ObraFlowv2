@@ -477,6 +477,8 @@
                 techInfo[field.name] = field.value.trim();
             }
         });
+        
+        console.log('🏗️ Informações técnicas coletadas no hydrator:', techInfo);
 
         // Checklist - Coleta robusta
         let checklistData = [];

@@ -20,7 +20,7 @@ try {
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.9'; // Restaura CacheFirst para obras — fix offline navigation
+const SW_VERSION = 'elp-v3.10'; // Usa NetworkFirst para URLS de obras com query parameters
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];
@@ -159,8 +159,13 @@ self.addEventListener('fetch', (event) => {
     }
 
     // 2. Módulo obras/relatórios → CacheFirst (essencial para offline!)
+    // Se tiver query params (filtros, busca), usar NetworkFirst para a filtragem funcionar online
     if (request.mode === 'navigate' && isObrasUrl(url.pathname)) {
-        event.respondWith(cacheFirstWithBgRevalidation(request));
+        if (url.search) {
+            event.respondWith(networkFirstWithCacheFallback(request));
+        } else {
+            event.respondWith(cacheFirstWithBgRevalidation(request));
+        }
         return;
     }
 

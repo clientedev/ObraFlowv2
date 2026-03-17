@@ -5099,7 +5099,7 @@
         const projetoId = urlParams.get('projeto_id');
         const projetoSelect = document.getElementById('projeto_id');
 
-        if (projetoId && projetoSelect && !projetoSelect.value) {
+        if (projetoId && projetoSelect && projetoSelect.value !== projetoId) {
             projetoSelect.value = projetoId;
             // Se estiver usando jQuery, acionar evento change para disparar lógicas adicionais
             if (typeof jQuery !== 'undefined') {

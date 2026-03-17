@@ -187,9 +187,9 @@ class LegendasSelector {
             });
         });
         
-        // Refresh quando a página voltar a ficar visível
+        // Refresh quando a página voltar a ficar visível E estiver online
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
+            if (!document.hidden && navigator.onLine) {
                 console.log('🔄 Página visível novamente - refreshing legendas');
                 this.clearCache();
             }
