@@ -562,7 +562,27 @@
     // FOTOS COM BASE64 PARA OFFLINE
     // ============================================================
     async function coletarFotosComBase64() {
-        const imgs = window.mobilePhotoData || [];
+        // Usa mobilePhotoData como fonte principal; selectedPhotos (form.html) como fallback
+        let imgs = window.mobilePhotoData || [];
+
+        // Fallback: incluir fotos de window.selectedPhotos (form.html) que não estejam em mobilePhotoData
+        if (Array.isArray(window.selectedPhotos) && window.selectedPhotos.length > 0) {
+            const mobileIds = new Set(imgs.map(i => i.id));
+            window.selectedPhotos.forEach(function(sp) {
+                if (!mobileIds.has(sp.id)) {
+                    imgs.push({
+                        id: sp.id,
+                        file: sp.file,
+                        blob: sp.file,
+                        category: sp.category,
+                        name: sp.file ? sp.file.name : 'foto.jpg',
+                        filename: sp.file ? sp.file.name : 'foto.jpg',
+                        previewUrl: sp.originalSrc || null
+                    });
+                }
+            });
+        }
+
         const resultado = [];
 
         for (const img of imgs) {

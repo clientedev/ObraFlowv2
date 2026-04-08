@@ -258,6 +258,23 @@
     }
 }
 
+/* Chevron animation for collapsible cards */
+.card-header[data-bs-toggle="collapse"] .fa-chevron-down {
+    transition: transform 0.3s ease;
+    display: inline-block;
+}
+.card-header[data-bs-toggle="collapse"].collapsed-open .fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+/* Smooth collapse transition */
+.collapse {
+    transition: none;
+}
+.collapsing {
+    transition: height 0.3s ease;
+}
+
 /* Botões de ação principais responsivos */
 .action-buttons {
     display: flex;
@@ -831,6 +848,19 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.tech-field').forEach(field => {
         field.addEventListener('change', saveTechnicalInfo);
     });
+
+    // Animação do chevron nas seções colapsáveis
+    document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(header) {
+        var targetId = header.getAttribute('data-bs-target');
+        var target = targetId ? document.querySelector(targetId) : null;
+        if (!target) return;
+        target.addEventListener('show.bs.collapse', function() {
+            header.classList.add('collapsed-open');
+        });
+        target.addEventListener('hide.bs.collapse', function() {
+            header.classList.remove('collapsed-open');
+        });
+    });
 });
 
 // Função para salvar Informações Técnicas via AJAX
@@ -897,7 +927,32 @@ function handlePhotoSelection(files) {
                     console.log("📁 Seleção de galeria detectada. Download ignorado.");
                 }
 
-                // Forçar salvamento imediato no sistema (mesmo sem preencher itens da foto)
+                // Sempre registrar a foto em window.mobilePhotoData para suporte offline
+                if (!window.mobilePhotoData) window.mobilePhotoData = [];
+                window.mobilePhotoData.push({
+                    id: photoId,
+                    file: file,
+                    blob: file,
+                    category: selectedCategory,
+                    name: file.name,
+                    filename: file.name,
+                    previewUrl: e.target.result
+                });
+
+                // Se offline: salvar no dispositivo e não tentar o servidor
+                if (!navigator.onLine) {
+                    console.log("📴 Offline detectado: foto registrada localmente para envio posterior.");
+                    if (photoDiv) {
+                        const statusIndicator = document.createElement('div');
+                        statusIndicator.className = 'upload-status-indicator';
+                        statusIndicator.innerHTML = '<span class="badge bg-info text-dark"><i class="fas fa-save"></i> Salvo offline</span>';
+                        photoDiv.querySelector('.card-body').prepend(statusIndicator);
+                        setTimeout(() => statusIndicator.remove(), 3000);
+                    }
+                    return;
+                }
+
+                // Online: forçar salvamento imediato no sistema
                 console.log("🚀 Iniciando salvamento imediato no sistema...");
                 const formData = new FormData();
                 formData.append('file', file);
@@ -1001,6 +1056,10 @@ function removePhoto(photoId) {
     if (photo) {
         photo.element.remove();
         selectedPhotos = selectedPhotos.filter(p => p.id !== photoId);
+        // Também remover de mobilePhotoData (usado pelo sistema offline)
+        if (window.mobilePhotoData) {
+            window.mobilePhotoData = window.mobilePhotoData.filter(p => p.id !== photoId);
+        }
         // Atualizar contador após remover foto
         updatePhotoCounter();
     }

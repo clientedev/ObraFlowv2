@@ -338,6 +338,15 @@
             /* Prevent zoom on iOS */
         }
     }
+
+    /* Chevron rotation animation for collapsible sections */
+    button[data-bs-toggle="collapse"] .fa-chevron-down {
+        display: inline-block;
+        transition: transform 0.35s ease-in-out;
+    }
+    button[data-bs-toggle="collapse"][aria-expanded="true"] .fa-chevron-down {
+        transform: rotate(180deg) !important;
+    }
 </style>
 {% endblock %}
 
@@ -1312,6 +1321,16 @@
 
         event.target.value = ''; // Reset input
         // Upload concluído
+
+        // Se offline: salvar rascunho com as novas fotos no IndexedDB
+        if (!navigator.onLine && typeof saveOfflineDraftWithPhotos === 'function') {
+            // Pequeno delay para garantir que os FileReader callbacks completaram
+            setTimeout(() => {
+                saveOfflineDraftWithPhotos().then(() => {
+                    console.log("✅ Rascunho offline salvo após upload de foto(s)");
+                }).catch(err => console.warn("⚠️ Falha ao salvar rascunho offline:", err));
+            }, 500);
+        }
     }
 
     // Camera and gallery functions with error handling
@@ -3157,8 +3176,13 @@
                     document.body.removeChild(downloadLink);
                     console.log("📸 Download automático acionado (Captura de Câmera)");
 
-                    // Gatilho imediato de AutoSave para garantir persistência no servidor
-                    if (window.autoSaveInstance && typeof window.autoSaveInstance.triggerSave === 'function') {
+                    // Gatilho imediato de AutoSave para garantir persistência
+                    if (!navigator.onLine) {
+                        // Offline: salvar rascunho com foto no IndexedDB
+                        if (typeof saveOfflineDraftWithPhotos === 'function') {
+                            saveOfflineDraftWithPhotos().catch(e => console.warn("⚠️ Falha ao salvar rascunho:", e));
+                        }
+                    } else if (window.autoSaveInstance && typeof window.autoSaveInstance.triggerSave === 'function') {
                         console.log("🔄 [Completo] Acionando AutoSave para persistir foto capturada...");
                         window.autoSaveInstance.triggerSave();
                     }
@@ -3190,7 +3214,15 @@
             }
 
             // Forçar salvamento imediato no sistema (mesmo sem legenda preenchida)
-            if (window.autoSaveInstance && typeof window.autoSaveInstance.triggerSave === 'function') {
+            if (!navigator.onLine) {
+                // Offline: salvar rascunho completo (com foto) no IndexedDB imediatamente
+                console.log("📴 Offline: salvando rascunho com foto no IndexedDB...");
+                saveOfflineDraftWithPhotos().then(() => {
+                    console.log("✅ Rascunho offline salvo com nova foto");
+                }).catch(err => {
+                    console.warn("⚠️ Falha ao salvar rascunho offline:", err);
+                });
+            } else if (window.autoSaveInstance && typeof window.autoSaveInstance.triggerSave === 'function') {
                 console.log("Forçando autosave para nova foto...");
                 window.autoSaveInstance.triggerSave();
             }
@@ -4871,6 +4903,73 @@
         }, 3000);
     }
 
+</script>
+
+<!-- Função para salvar rascunho offline com fotos -->
+<script>
+    /**
+     * Salva rascunho completo (incluindo fotos em base64) no IndexedDB
+     * quando o usuário adiciona fotos enquanto está offline.
+     */
+    async function saveOfflineDraftWithPhotos() {
+        if (!window.ELPOfflineManager || typeof window.ELPOfflineManager.savePendingReport !== 'function') {
+            console.warn("⚠️ ELPOfflineManager não disponível para salvar rascunho offline");
+            return;
+        }
+
+        // Coletar dados básicos do formulário
+        const projetoIdEl = document.getElementById('projeto_id') || document.querySelector('[name="projeto_id"]');
+        const projetoId = projetoIdEl ? projetoIdEl.value : (window._currentProjetoId || null);
+        const dataEl = document.getElementById('data_relatorio') || document.querySelector('[name="data_relatorio"]');
+
+        // Converter fotos para base64
+        const fotosComBase64 = [];
+        const imgs = window.mobilePhotoData || [];
+        for (const img of imgs) {
+            const entry = {
+                id: img.id,
+                savedId: img.savedId || null,
+                category: img.category || 'Geral',
+                caption: img.caption || img.predefinedCaption || img.manualCaption || '',
+                filename: img.name || img.filename || 'foto.jpg',
+                previewUrl: img.previewUrl || null,
+                isExisting: img.isExisting || false
+            };
+            if (img.blob || img.file) {
+                try {
+                    entry.base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = () => reject(new Error('Erro ao ler blob'));
+                        reader.readAsDataURL(img.blob || img.file);
+                    });
+                } catch (e) {
+                    console.warn("⚠️ Não foi possível converter foto para base64:", e);
+                }
+            }
+            fotosComBase64.push(entry);
+        }
+
+        const payload = {
+            offline_id: window._offlineDraftId || ('draft_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6)),
+            created_offline: true,
+            created_at: new Date().toISOString(),
+            projeto_id: projetoId ? parseInt(projetoId) : null,
+            data_relatorio: dataEl ? dataEl.value : null,
+            fotos: fotosComBase64,
+            _is_draft: true
+        };
+
+        // Reutilizar o mesmo draft_id para não criar múltiplas entradas
+        if (!window._offlineDraftId) {
+            window._offlineDraftId = payload.offline_id;
+        } else {
+            payload.offline_id = window._offlineDraftId;
+        }
+
+        await window.ELPOfflineManager.savePendingReport(payload);
+        console.log(`💾 Rascunho offline salvo: ${payload.offline_id} com ${fotosComBase64.length} foto(s)`);
+    }
 </script>
 
 <!-- Script para as animações dos Chevrons -->
