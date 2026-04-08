@@ -4987,7 +4987,7 @@
 
 <!-- Script para as animações dos Chevrons -->
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    (function () {
         function bindChevron(collapseId, chevronId) {
             var collapseEl = document.getElementById(collapseId);
             var chevron = document.getElementById(chevronId);
@@ -5001,7 +5001,7 @@
         }
         bindChevron('collapseTechnicalInfo', 'techInfoChevron');
         bindChevron('collapseChecklist', 'checklistChevron');
-    });
+    })();
 </script>
 
 <!-- Select2 Initialization -->
