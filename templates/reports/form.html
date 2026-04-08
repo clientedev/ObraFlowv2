@@ -341,15 +341,17 @@
                         </div>
 
                         <!-- Informações Técnicas da Obra (Novo - AJAX) -->
-                        <div class="card mb-4 border-info">
-                            <div class="card-header bg-light d-flex justify-content-between align-items-center" 
+                        <div class="card mb-4 border-0 shadow-sm">
+                            <div class="card-header elp-collapse-header-info p-0 d-flex"
                                  data-bs-toggle="collapse" 
                                  data-bs-target="#techInfoCollapse" 
-                                 style="cursor: pointer;">
-                                <h5 class="mb-0 text-info">
-                                    <i class="fas fa-info-circle me-2"></i>Informações Técnicas
-                                </h5>
-                                <i class="fas fa-chevron-down text-muted"></i>
+                                 style="cursor: pointer; border-radius: 8px;">
+                                <div class="d-flex justify-content-between align-items-center w-100 py-3 px-4">
+                                    <h5 class="mb-0 text-white fw-semibold">
+                                        <i class="fas fa-cogs me-2"></i>Informações Técnicas
+                                    </h5>
+                                    <i class="fas fa-chevron-down elp-chevron-icon" id="formTechInfoChevron"></i>
+                                </div>
                             </div>
                             <div id="techInfoCollapse" class="collapse">
                                 <div class="card-body">
@@ -437,13 +439,15 @@
                         </div>
 
                         <!-- Checklist da Obra (Colapsável) -->
-                        <div class="card mb-4">
-                            <div class="card-header d-flex justify-content-between align-items-center" 
+                        <div class="card mb-4 border-0 shadow-sm">
+                            <div class="card-header elp-collapse-header-check p-0 d-flex" 
                                  data-bs-toggle="collapse" 
                                  data-bs-target="#checklistCollapse" 
-                                 style="cursor: pointer;">
-                                <h5><i class="fas fa-tasks"></i> Checklist da Obra</h5>
-                                <i class="fas fa-chevron-down"></i>
+                                 style="cursor: pointer; border-radius: 8px;">
+                                <div class="d-flex justify-content-between align-items-center w-100 py-3 px-4">
+                                    <h5 class="mb-0 text-white fw-semibold"><i class="fas fa-tasks me-2"></i>Checklist da Obra</h5>
+                                    <i class="fas fa-chevron-down elp-chevron-icon" id="formChecklistChevron"></i>
+                                </div>
                             </div>
                             <div id="checklistCollapse" class="collapse">
                                 <div class="card-body">
@@ -850,17 +854,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Animação do chevron nas seções colapsáveis
-    document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(header) {
-        var targetId = header.getAttribute('data-bs-target');
-        var target = targetId ? document.querySelector(targetId) : null;
-        if (!target) return;
-        target.addEventListener('show.bs.collapse', function() {
-            header.classList.add('collapsed-open');
-        });
-        target.addEventListener('hide.bs.collapse', function() {
-            header.classList.remove('collapsed-open');
-        });
-    });
+    (function() {
+        function setupChevron(collapseId, chevronId) {
+            var collapseEl = document.getElementById(collapseId);
+            var chevronEl = document.getElementById(chevronId);
+            if (!collapseEl || !chevronEl) return;
+            collapseEl.addEventListener('show.bs.collapse', function() {
+                chevronEl.classList.add('rotated');
+            });
+            collapseEl.addEventListener('hide.bs.collapse', function() {
+                chevronEl.classList.remove('rotated');
+            });
+        }
+        setupChevron('techInfoCollapse', 'formTechInfoChevron');
+        setupChevron('checklistCollapse', 'formChecklistChevron');
+    })();
 });
 
 // Função para salvar Informações Técnicas via AJAX

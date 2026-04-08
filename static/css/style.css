@@ -1188,3 +1188,41 @@ footer {
         margin-bottom: 20px;
     }
 }
+/* ============================================
+   ELP - Chevron Animation for Collapsible Sections
+   ============================================ */
+.elp-chevron-icon {
+    display: inline-block;
+    transition: transform 0.35s ease-in-out !important;
+    flex-shrink: 0;
+}
+.elp-chevron-icon.rotated {
+    transform: rotate(180deg) !important;
+}
+
+/* Collapsible section headers */
+.elp-collapse-header-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    border: none;
+    border-radius: 8px !important;
+    transition: box-shadow 0.2s ease;
+}
+.elp-collapse-header-info:hover {
+    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.35);
+}
+.elp-collapse-header-info * {
+    color: #fff !important;
+}
+
+.elp-collapse-header-check {
+    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+    border: none;
+    border-radius: 8px !important;
+    transition: box-shadow 0.2s ease;
+}
+.elp-collapse-header-check:hover {
+    box-shadow: 0 4px 12px rgba(52, 58, 64, 0.35);
+}
+.elp-collapse-header-check * {
+    color: #fff !important;
+}

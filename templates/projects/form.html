@@ -41,17 +41,6 @@
         margin-bottom: 5px;
     }
 
-    /* Animação do Chevron em Informações Técnicas */
-    .tech-info-chevron {
-        display: inline-block;
-        /* obrigatório para transform funcionar */
-        transition: transform 0.35s ease-in-out;
-    }
-
-    .tech-info-chevron.open {
-        transform: rotate(180deg);
-    }
-
     /* Botões Subir/Descer do Checklist - touch-friendly */
     .btn-order-item {
         display: flex !important;
@@ -308,8 +297,7 @@
                                     <span>
                                         <i class="fas fa-cog me-2"></i>Informações Técnicas
                                     </span>
-                                    <i class="fas fa-chevron-down" id="techInfoChevron"
-                                        style="display:inline-block;transition:transform 0.35s ease-in-out;"></i>
+                                    <i class="fas fa-chevron-down elp-chevron-icon" id="techInfoChevron"></i>
                                 </button>
                             </h6>
                         </div>
@@ -1562,14 +1550,14 @@ function updateChecklistTypeHiddenField(tipo) {
 
 // Chevron animation for Informações Técnicas
 document.addEventListener('DOMContentLoaded', function() {
-    const collapseEl = document.getElementById('collapseTechInfo');
-    const chevron = document.getElementById('techInfoChevron');
+    var collapseEl = document.getElementById('collapseTechInfo');
+    var chevron = document.getElementById('techInfoChevron');
     if (collapseEl && chevron) {
         collapseEl.addEventListener('show.bs.collapse', function() {
-            chevron.style.transform = 'rotate(180deg)';
+            chevron.classList.add('rotated');
         });
         collapseEl.addEventListener('hide.bs.collapse', function() {
-            chevron.style.transform = 'rotate(0deg)';
+            chevron.classList.remove('rotated');
         });
     }
 });
