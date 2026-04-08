@@ -344,7 +344,7 @@
         display: inline-block;
         transition: transform 0.35s ease-in-out;
     }
-    button[data-bs-toggle="collapse"][aria-expanded="true"] .fa-chevron-down {
+    button[data-bs-toggle="collapse"]:not(.collapsed) .fa-chevron-down {
         transform: rotate(180deg) !important;
     }
 </style>
@@ -3102,11 +3102,11 @@
             name: name,
             path: metadata.path || (file ? file.path : null) || null,
             previewUrl: previewUrl,
-            category: metadata.category || "em branco",
-            local: metadata.local || "em branco",
-            caption: metadata.caption || "em branco",
-            manualCaption: metadata.manualCaption || "em branco",
-            predefinedCaption: metadata.predefinedCaption || "em branco",
+            category: metadata.category || '',
+            local: metadata.local || '',
+            caption: metadata.caption || '',
+            manualCaption: metadata.manualCaption || '',
+            predefinedCaption: metadata.predefinedCaption || '',
             filename: filename,
             file: file || null,  // Pode ser null para fotos existentes
             blob: file || null,  // 🔥 Campo blob para compatibilidade com AutoSave
@@ -4545,18 +4545,18 @@
                     file: null,  // Fotos existentes não têm file
                     previewUrl: foto.url,
                     url: foto.url,
-                    category: foto.categoria || 'em branco',
-                    local: foto.local || 'em branco',
-                    caption: foto.legenda || 'em branco',
-                    manualCaption: foto.legenda || 'em branco',
-                    predefinedCaption: foto.legenda || 'em branco',
+                    category: foto.categoria || '',
+                    local: foto.local || '',
+                    caption: foto.legenda || '',
+                    manualCaption: foto.legenda || '',
+                    predefinedCaption: foto.legenda || '',
                     ordem: foto.ordem || index,
                     isExisting: true,  // IMPORTANTE: marcar como existente
                     metadata: {
-                        legenda: foto.legenda || 'em branco',
-                        categoria: foto.categoria || 'em branco',
-                        tipo_servico: foto.categoria || 'em branco',
-                        local: foto.local || 'em branco'
+                        legenda: foto.legenda || '',
+                        categoria: foto.categoria || '',
+                        tipo_servico: foto.categoria || '',
+                        local: foto.local || ''
                     }
                 };
                 window.mobilePhotoData.push(photoData);
@@ -4950,6 +4950,22 @@
             fotosComBase64.push(entry);
         }
 
+        // Read caption/category from the actual DOM for each photo card
+        for (const entry of fotosComBase64) {
+            const card = document.querySelector(`[data-photo-id="${entry.id}"]`);
+            if (card) {
+                const captionInput = card.querySelector('.caption-input, input[type="text"]');
+                const captionSelect = card.querySelector('.caption-select, select');
+                if (captionInput && captionInput.value.trim()) {
+                    entry.caption = captionInput.value.trim();
+                }
+                if (captionSelect && captionSelect.value && captionSelect.value !== 'em branco') {
+                    entry.category = captionSelect.value;
+                }
+            }
+        }
+
+        const existingReportId = window.currentReportId || null;
         const payload = {
             offline_id: window._offlineDraftId || ('draft_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6)),
             created_offline: true,
@@ -4957,7 +4973,8 @@
             projeto_id: projetoId ? parseInt(projetoId) : null,
             data_relatorio: dataEl ? dataEl.value : null,
             fotos: fotosComBase64,
-            _is_draft: true
+            _is_draft: true,
+            relatorio_id: existingReportId ? parseInt(existingReportId) : null
         };
 
         // Reutilizar o mesmo draft_id para não criar múltiplas entradas

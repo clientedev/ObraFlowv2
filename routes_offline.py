@@ -317,7 +317,8 @@ def offline_save_report():
 
         offline_id = data.get('offline_id')  # ID temporário gerado no dispositivo
         projeto_id = data.get('projeto_id')
-        
+        relatorio_id_existente = data.get('relatorio_id')  # ID de relatório existente (edição offline)
+
         if not projeto_id:
             app.logger.error(f"❌ Erro sync offline: projeto_id ausente no payload {offline_id}")
             return jsonify({'success': False, 'error': 'projeto_id é obrigatório para salvar o relatório'}), 400
@@ -337,6 +338,72 @@ def offline_save_report():
         if not local: local = 'Obra'
         descricao = data.get('descricao', '')
         conteudo = data.get('conteudo', '')
+
+        # ── MODO EDIÇÃO OFFLINE ─────────────────────────────────────────────
+        # Se um relatorio_id existente foi informado, atualizar em vez de criar
+        if relatorio_id_existente:
+            relatorio_existente = Relatorio.query.get(relatorio_id_existente)
+            if relatorio_existente and relatorio_existente.projeto_id == int(projeto_id):
+                app.logger.info(
+                    f"✏️ Atualizando relatório existente (edição offline): id={relatorio_id_existente}"
+                )
+                # Salvar apenas as fotos novas (com base64)
+                if fotos:
+                    import os, base64, hashlib
+                    upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+                    if not os.path.exists(upload_folder):
+                        os.makedirs(upload_folder)
+                    for idx, foto in enumerate(fotos):
+                        b64_data = foto.get('base64')
+                        if not b64_data:
+                            continue
+                        try:
+                            if ',' in b64_data:
+                                header, base64_str = b64_data.split(',', 1)
+                                ext = 'jpg'
+                                if 'image/png' in header: ext = 'png'
+                                elif 'image/webp' in header: ext = 'webp'
+                            else:
+                                base64_str = b64_data
+                                ext = 'jpg'
+                            image_bytes = base64.b64decode(base64_str)
+                            imagem_hash = hashlib.sha256(image_bytes).hexdigest()
+                            foto_existente = FotoRelatorio.query.filter_by(
+                                relatorio_id=relatorio_id_existente,
+                                imagem_hash=imagem_hash
+                            ).first()
+                            if not foto_existente:
+                                timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S%f')
+                                final_filename = f"relatorio_{relatorio_id_existente}_{timestamp}_offline_{idx}.{ext}"
+                                final_filepath = os.path.join(upload_folder, final_filename)
+                                with open(final_filepath, 'wb') as f:
+                                    f.write(image_bytes)
+                                nova_foto = FotoRelatorio(
+                                    relatorio_id=relatorio_id_existente,
+                                    url=f"/uploads/{final_filename}",
+                                    filename=final_filename,
+                                    imagem=image_bytes if hasattr(FotoRelatorio, 'imagem') else None,
+                                    imagem_hash=imagem_hash if hasattr(FotoRelatorio, 'imagem_hash') else None,
+                                    imagem_size=len(image_bytes) if hasattr(FotoRelatorio, 'imagem_size') else None,
+                                    content_type=f"image/{ext}" if hasattr(FotoRelatorio, 'content_type') else None,
+                                    legenda=foto.get('caption', ''),
+                                    tipo_servico=foto.get('category', ''),
+                                    local=foto.get('local', ''),
+                                    ordem=foto.get('ordem', idx)
+                                )
+                                db.session.add(nova_foto)
+                        except Exception as e:
+                            app.logger.warning(f"Failed to process offline photo (edit mode): {e}")
+                relatorio_existente.updated_at = datetime.utcnow()
+                db.session.commit()
+                app.logger.info(f"✅ Relatório {relatorio_id_existente} atualizado (edição offline)")
+                return jsonify({
+                    'success': True,
+                    'relatorio_id': relatorio_id_existente,
+                    'offline_id': offline_id,
+                    'numero': relatorio_existente.numero,
+                    'message': 'Relatório atualizado com sucesso'
+                })
 
         app.logger.info(
             f"📥 Salvando relatório offline: offline_id={offline_id}, "
