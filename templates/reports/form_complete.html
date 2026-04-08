@@ -340,8 +340,12 @@
     }
 
     /* Chevron rotation animation for collapsible sections */
-    .elp-chevron-open {
-        transform: rotate(180deg) !important;
+    .elp-collapse-btn .fa-chevron-down {
+        transition: transform 0.3s ease;
+        display: inline-block;
+    }
+    .elp-collapse-btn:not(.collapsed) .fa-chevron-down {
+        transform: rotate(180deg);
     }
 </style>
 {% endblock %}
@@ -463,12 +467,11 @@
                             <div class="card-header bg-soft-info" id="headingTechnicalInfo">
                                 <h5 class="mb-0">
                                     <button
-                                        class="btn btn-link w-100 text-start text-decoration-none text-dark collapsed"
+                                        class="btn btn-link w-100 text-start text-decoration-none text-dark collapsed elp-collapse-btn"
                                         type="button" data-bs-toggle="collapse" data-bs-target="#collapseTechnicalInfo"
                                         aria-expanded="false" aria-controls="collapseTechnicalInfo">
                                         <i class="fas fa-cogs me-2 text-info"></i> Informações Técnicas
-                                        <i class="fas fa-chevron-down float-end" id="techInfoChevron"
-                                            style="display:inline-block;transition:transform 0.3s ease;"></i>
+                                        <i class="fas fa-chevron-down float-end" id="techInfoChevron"></i>
                                     </button>
                                 </h5>
                             </div>
@@ -589,15 +592,14 @@
                             <div class="card-header" id="headingChecklist">
                                 <h5 class="mb-0">
                                     <button
-                                        class="btn btn-link w-100 text-start text-decoration-none collapsed text-dark"
+                                        class="btn btn-link w-100 text-start text-decoration-none collapsed text-dark elp-collapse-btn"
                                         type="button" data-bs-toggle="collapse" data-bs-target="#collapseChecklist"
                                         aria-expanded="false" aria-controls="collapseChecklist"
                                         onclick="if(!window._checklistCarregado) carregarChecklistObra()">
                                         <i class="fas fa-tasks me-2"></i> Checklist da Obra
                                         <span id="checklistBadge" class="badge bg-secondary ms-2"
                                             style="font-size:11px;"></span>
-                                        <i class="fas fa-chevron-down float-end"
-                                            id="checklistChevron" style="display:inline-block;transition:transform 0.3s ease;"></i>
+                                        <i class="fas fa-chevron-down float-end" id="checklistChevron"></i>
                                     </button>
                                 </h5>
                             </div>
@@ -4983,25 +4985,6 @@
         await window.ELPOfflineManager.savePendingReport(payload);
         console.log(`💾 Rascunho offline salvo: ${payload.offline_id} com ${fotosComBase64.length} foto(s)`);
     }
-</script>
-
-<!-- Script para as animações dos Chevrons -->
-<script>
-    (function () {
-        function bindChevron(collapseId, chevronId) {
-            var collapseEl = document.getElementById(collapseId);
-            var chevron = document.getElementById(chevronId);
-            if (!collapseEl || !chevron) return;
-            collapseEl.addEventListener('show.bs.collapse', function () {
-                chevron.classList.add('elp-chevron-open');
-            });
-            collapseEl.addEventListener('hide.bs.collapse', function () {
-                chevron.classList.remove('elp-chevron-open');
-            });
-        }
-        bindChevron('collapseTechnicalInfo', 'techInfoChevron');
-        bindChevron('collapseChecklist', 'checklistChevron');
-    })();
 </script>
 
 <!-- Select2 Initialization -->
