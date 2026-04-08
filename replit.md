@@ -10,7 +10,7 @@ Report forms: Location section removed from report creation/editing interface (g
 
 ## Backend Architecture
 - **Framework**: Flask with SQLAlchemy ORM.
-- **Database**: Railway PostgreSQL for production, SQLite for development.
+- **Database**: Replit PostgreSQL (provisioned via Replit integration), SQLite for development fallback.
 - **Authentication**: Flask-Login for session management and role-based access (regular/master users).
 - **Forms**: WTForms for secure form handling and CSRF protection.
 - **File Handling**: Manages file uploads (photos, documents) with a 50MB limit per file, supporting binary image storage in the database with filesystem fallback.

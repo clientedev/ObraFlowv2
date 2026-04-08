@@ -31,7 +31,7 @@ def upgrade():
             sa.Column('device_info', sa.Text(), nullable=True),
             sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
             sa.Column('last_active', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
-            sa.ForeignKeyConstraint(['user_id'], ['usuario.id'], ondelete='CASCADE'),
+            sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
             sa.PrimaryKeyConstraint('id'),
             sa.UniqueConstraint('player_id'),
             sa.UniqueConstraint('user_id', 'player_id', name='uq_user_player')
@@ -45,7 +45,7 @@ def upgrade():
         op.execute("""
             INSERT INTO user_devices (user_id, player_id, device_info)
             SELECT id, fcm_token, 'Migrated from fcm_token column'
-            FROM usuario
+            FROM users
             WHERE fcm_token IS NOT NULL 
             AND fcm_token != ''
             ON CONFLICT (player_id) DO NOTHING

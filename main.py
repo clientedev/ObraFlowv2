@@ -39,8 +39,8 @@ def clean_orphaned_alembic_versions():
     except Exception as e:
         logging.warning(f"⚠️ Erro ao verificar versão Alembic: {e}")
 
-if os.environ.get("RAILWAY_ENVIRONMENT"):
-    logging.info("🚂 Railway environment - preparando migrações...")
+if os.environ.get("DATABASE_URL"):
+    logging.info("🔄 PostgreSQL detectado - preparando migrações...")
     
     # Limpar versões órfãs antes de executar migrações
     clean_orphaned_alembic_versions()
