@@ -340,11 +340,7 @@
     }
 
     /* Chevron rotation animation for collapsible sections */
-    button[data-bs-toggle="collapse"] .fa-chevron-down {
-        display: inline-block;
-        transition: transform 0.35s ease-in-out;
-    }
-    button[data-bs-toggle="collapse"]:not(.collapsed) .fa-chevron-down {
+    .elp-chevron-open {
         transform: rotate(180deg) !important;
     }
 </style>
@@ -472,7 +468,7 @@
                                         aria-expanded="false" aria-controls="collapseTechnicalInfo">
                                         <i class="fas fa-cogs me-2 text-info"></i> Informações Técnicas
                                         <i class="fas fa-chevron-down float-end" id="techInfoChevron"
-                                            style="display:inline-block;transition:transform 0.35s ease-in-out;transform:rotate(0deg);"></i>
+                                            style="display:inline-block;transition:transform 0.3s ease;"></i>
                                     </button>
                                 </h5>
                             </div>
@@ -600,8 +596,8 @@
                                         <i class="fas fa-tasks me-2"></i> Checklist da Obra
                                         <span id="checklistBadge" class="badge bg-secondary ms-2"
                                             style="font-size:11px;"></span>
-                                        <i class="fas fa-chevron-down float-end transition-transform"
-                                            id="checklistChevron" style="transition: transform 0.3s ease;"></i>
+                                        <i class="fas fa-chevron-down float-end"
+                                            id="checklistChevron" style="display:inline-block;transition:transform 0.3s ease;"></i>
                                     </button>
                                 </h5>
                             </div>
@@ -4992,31 +4988,19 @@
 <!-- Script para as animações dos Chevrons -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Chevron Technical Info
-        var techCollapseEl = document.getElementById('collapseTechnicalInfo');
-        var techChevron = document.getElementById('techInfoChevron');
-
-        if (techCollapseEl && techChevron) {
-            techCollapseEl.addEventListener('show.bs.collapse', function () {
-                techChevron.style.transform = 'rotate(180deg)';
+        function bindChevron(collapseId, chevronId) {
+            var collapseEl = document.getElementById(collapseId);
+            var chevron = document.getElementById(chevronId);
+            if (!collapseEl || !chevron) return;
+            collapseEl.addEventListener('show.bs.collapse', function () {
+                chevron.classList.add('elp-chevron-open');
             });
-            techCollapseEl.addEventListener('hide.bs.collapse', function () {
-                techChevron.style.transform = 'rotate(0deg)';
-            });
-        }
-
-        // Chevron Checklist
-        var chkCollapseEl = document.getElementById('collapseChecklist');
-        var chkChevron = document.getElementById('checklistChevron');
-
-        if (chkCollapseEl && chkChevron) {
-            chkCollapseEl.addEventListener('show.bs.collapse', function () {
-                chkChevron.style.transform = 'rotate(180deg)';
-            });
-            chkCollapseEl.addEventListener('hide.bs.collapse', function () {
-                chkChevron.style.transform = 'rotate(0deg)';
+            collapseEl.addEventListener('hide.bs.collapse', function () {
+                chevron.classList.remove('elp-chevron-open');
             });
         }
+        bindChevron('collapseTechnicalInfo', 'techInfoChevron');
+        bindChevron('collapseChecklist', 'checklistChevron');
     });
 </script>
 
