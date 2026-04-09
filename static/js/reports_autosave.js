@@ -513,9 +513,9 @@ class ReportsAutoSave {
                 uploaded.push({
                     id: img.savedId,
                     filename: img.name || img.filename,
-                    category: img.category || "em branco",
-                    local: img.local || "em branco",
-                    caption: img.manualCaption || img.predefinedCaption || img.caption || "em branco",
+                    category: img.category || "",
+                    local: img.local || "",
+                    caption: img.manualCaption || img.predefinedCaption || img.caption || "",
                     ordem: i
                 });
                 console.log(`📌 AutoSave - Imagem já salva no banco: ID ${img.savedId}`);
@@ -529,10 +529,9 @@ class ReportsAutoSave {
             }
 
             try {
-                // Forçar "em branco" no objeto antes do upload para garantir persistência
-                img.category = img.category || "em branco";
-                img.local = img.local || "em branco";
-                img.caption = img.manualCaption || img.predefinedCaption || img.caption || "em branco";
+                img.category = img.category || "";
+                img.local = img.local || "";
+                img.caption = img.manualCaption || img.predefinedCaption || img.caption || "";
 
                 const tempId = await this.uploadImageTemp(img);
                 if (tempId) {
@@ -567,10 +566,9 @@ class ReportsAutoSave {
                 return null;
             }
 
-            // 🔒 Define valores padrão se estiverem vazios
-            const category = image.category || "em branco";
-            const local = image.local || "em branco";
-            const caption = image.manualCaption || image.predefinedCaption || image.caption || "em branco";
+            const category = image.category || "";
+            const local = image.local || "";
+            const caption = image.manualCaption || image.predefinedCaption || image.caption || "";
 
             console.log("📤 AutoSave - Preparando upload da imagem:", image.name || image.filename);
 

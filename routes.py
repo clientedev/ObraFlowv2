@@ -7348,12 +7348,20 @@ def report_edit_complete(report_id):
 
         app.logger.info(f"✅ Dados prontos para template: {len(fotos)} fotos, {len(checklist)} checklist, {len(acompanhantes_selecionados)} acompanhantes selecionados")
 
+        existing_report_dict = type('ExistingReport', (), {
+            'id': relatorio.id,
+            'titulo': safe_attr(relatorio, 'titulo') or 'Relatório de visita',
+            'numero': safe_attr(relatorio, 'numero') or safe_attr(relatorio, 'numero_relatorio') or '',
+        })()
+
         return render_template(
             "reports/form_complete.html",
             report_data=report_data,
             edit_mode=True,
-            selected_project=projeto,  # Passar objeto projeto para preencher hidden input
-            projetos=projetos  # Passar lista de projetos para o dropdown
+            relatorio=relatorio,
+            existing_report=existing_report_dict,
+            selected_project=projeto,
+            projetos=projetos
         )
 
     except Exception as e:

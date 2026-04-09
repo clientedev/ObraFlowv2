@@ -1152,6 +1152,11 @@
             return;
         }
 
+        // Em modo de edição, não sobrescrever o número do relatório existente
+        if (window.currentReportId || (typeof EDIT_MODE !== 'undefined' && EDIT_MODE)) {
+            return;
+        }
+
         if (!navigator.onLine && window.ELPOfflineManager) {
             try {
                 const projetos = await window.ELPOfflineManager.getProjects();

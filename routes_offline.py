@@ -417,12 +417,17 @@ def offline_save_report():
             if not projeto:
                 return jsonify({'success': False, 'error': f'Projeto {projeto_id} não encontrado'}), 404
 
-        # Gerar número do relatório - igual ao routes.py (numeracao_inicial + count)
+        # Gerar número do relatório - abordagem MAX (igual a api_next_report_number)
         # NUNCA usar o número enviado pelo cliente (pode estar travado no valor antigo da página)
         try:
             numeracao_inicial = getattr(projeto, 'numeracao_inicial', 1) or 1
-            relatorios_count = Relatorio.query.filter_by(projeto_id=projeto_id).count()
-            proximo_numero = numeracao_inicial + relatorios_count
+            ultimo_relatorio = Relatorio.query.filter_by(
+                projeto_id=projeto_id
+            ).order_by(Relatorio.numero_projeto.desc()).first()
+            if ultimo_relatorio and ultimo_relatorio.numero_projeto:
+                proximo_numero = max(numeracao_inicial - 1, ultimo_relatorio.numero_projeto) + 1
+            else:
+                proximo_numero = numeracao_inicial
 
             # Garantir que o número é único (proteção contra race conditions)
             tentativas = 0
