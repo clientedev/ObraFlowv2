@@ -480,8 +480,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
     } catch (error) {
-        console.error('❌ Erro ao carregar dados do relatório:', error);
-        showErrorMessage('Erro ao carregar dados do relatório. Recarregue a página.');
+        console.warn('⚠️ Erro ao carregar dados complementares do relatório via API:', error);
+        console.info('ℹ️ Os dados do relatório já foram carregados pelo servidor (server-side rendering). A API é usada apenas para dados complementares.');
+        // Não mostrar erro bloqueante - o relatório já está renderizado via Jinja
+        // showErrorMessage('Erro ao carregar dados do relatório. Recarregue a página.');
     }
 });
 

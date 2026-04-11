@@ -7348,10 +7348,37 @@ def report_edit_complete(report_id):
 
         app.logger.info(f"✅ Dados prontos para template: {len(fotos)} fotos, {len(checklist)} checklist, {len(acompanhantes_selecionados)} acompanhantes selecionados")
 
+        # Serializar projetos como dicts (consistente com create_report)
+        projetos_data = []
+        for p in projetos:
+            projetos_data.append({
+                'id': p.id,
+                'numero': p.numero,
+                'nome': p.nome,
+                'cliente': p.construtora or '',
+                'status': p.status or 'Ativo',
+                'numeracao_inicial': p.numeracao_inicial or 1
+            })
+        
+        # Serializar selected_project como dict
+        selected_project_data = None
+        if projeto:
+            selected_project_data = {
+                'id': projeto.id,
+                'numero': projeto.numero,
+                'nome': projeto.nome,
+                'cliente': projeto.construtora or '',
+                'status': projeto.status or 'Ativo',
+                'numeracao_inicial': projeto.numeracao_inicial or 1
+            }
+
         existing_report_dict = type('ExistingReport', (), {
             'id': relatorio.id,
             'titulo': safe_attr(relatorio, 'titulo') or 'Relatório de visita',
             'numero': safe_attr(relatorio, 'numero') or safe_attr(relatorio, 'numero_relatorio') or '',
+            'categoria': safe_attr(relatorio, 'categoria') or '',
+            'local': safe_attr(relatorio, 'local') or '',
+            'status': safe_attr(relatorio, 'status') or 'preenchimento',
         })()
 
         return render_template(
@@ -7360,8 +7387,10 @@ def report_edit_complete(report_id):
             edit_mode=True,
             relatorio=relatorio,
             existing_report=existing_report_dict,
-            selected_project=projeto,
-            projetos=projetos
+            selected_project=selected_project_data,
+            projetos=projetos_data,
+            next_numero=None,
+            lembrete_anterior=None
         )
 
     except Exception as e:

@@ -1,4 +1,4 @@
-﻿"""
+"""
 API REST para gerenciamento de relatórios com salvamento automático
 Implementação conforme especificação técnica profissional
 """
@@ -413,7 +413,12 @@ def api_criar_relatorio():
 def get_relatorio(relatorio_id):
     """Buscar dados completos de um relatório específico para edição"""
     try:
-        relatorio = Relatorio.query.get_or_404(relatorio_id)
+        relatorio = Relatorio.query.get(relatorio_id)
+        if not relatorio:
+            return jsonify({
+                'success': False,
+                'error': f'Relatório {relatorio_id} não encontrado'
+            }), 404
 
         # POLÍTICA PERMISSIVA: Todos os usuários autenticados podem visualizar/editar qualquer relatório
         # (conforme requisito do sistema)
@@ -873,17 +878,34 @@ def api_autosave_relatorio():
                     'error': f"Projeto {data['projeto_id']} não encontrado"
                 }), 404
 
-            # Gerar número do relatório
-            ultimo_relatorio = Relatorio.query.filter_by(
-                projeto_id=data['projeto_id']
-            ).order_by(Relatorio.numero_projeto.desc()).first()
+            # Gerar número do relatório - SEMPRE recalcular no servidor (número do cliente pode estar stale)
+            numeracao_inicial = projeto.numeracao_inicial or 1
+            max_numero_existente = db.session.query(
+                db.func.max(Relatorio.numero_projeto)
+            ).filter_by(projeto_id=data['projeto_id']).scalar()
 
-            if ultimo_relatorio and ultimo_relatorio.numero_projeto:
-                proximo_numero = ultimo_relatorio.numero_projeto + 1
+            if max_numero_existente is None:
+                proximo_numero = numeracao_inicial
             else:
-                proximo_numero = projeto.numeracao_inicial or 1
+                proximo_numero = max(numeracao_inicial - 1, max_numero_existente) + 1
 
-            numero_formatado = data.get('numero') or f"{projeto.numero}-R{proximo_numero:03d}"
+            # Formato consistente REL-XXXX (igual a api_next_report_number)
+            numero_formatado = f"REL-{proximo_numero:04d}"
+            
+            # Proteção contra race condition: verificar unicidade
+            tentativas = 0
+            while tentativas < 10:
+                existe = Relatorio.query.filter_by(
+                    projeto_id=data['projeto_id'],
+                    numero=numero_formatado
+                ).first()
+                if not existe:
+                    break
+                proximo_numero += 1
+                numero_formatado = f"REL-{proximo_numero:04d}"
+                tentativas += 1
+            
+            logger.info(f"📝 AutoSave CREATE: Número gerado no servidor: {numero_formatado} (numeracao_inicial: {numeracao_inicial}, max_existente: {max_numero_existente})")
 
             # Processar lembrete_proxima_visita
             lembrete_proxima_visita = None

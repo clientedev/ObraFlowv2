@@ -1057,6 +1057,22 @@
             setupTechnicalInfoAutosave();
             // Carregar dados técnicos e emails SE houver projeto selecionado
             carregarFuncionariosParaAcompanhantes(projetoId);
+            
+            // Em modo criação (sem relatório existente), auto-carregar número e checklist
+            const isEditMode = typeof EDIT_MODE !== 'undefined' && EDIT_MODE;
+            if (!isEditMode && !window.currentReportId) {
+                // Carregar número do relatório para projeto pré-selecionado
+                atualizarNumeroRelatorio(projetoId);
+                // Carregar checklist do projeto
+                carregarChecklistObra(projetoId);
+                // Carregar categorias do projeto
+                carregarCategoriasProjeto(projetoId);
+                // Carregar lembretes ativos
+                if (typeof carregarLembretesAtivos === 'function') {
+                    carregarLembretesAtivos(projetoId);
+                }
+                console.log(`✅ Dados do projeto ${projetoId} carregados automaticamente (modo criação)`);
+            }
         }
     });
 
@@ -1989,15 +2005,49 @@
                         throw new Error('OfflineManager não disponível');
                     }
                 } else if (window.ELPOfflineManager) {
-                    // Fallback mínimo: coletar dados do FormData nativo
+                    // Fallback mínimo: coletar dados do FormData nativo + fotos como base64
                     const formData = new FormData(this);
                     const payload = { created_offline: true, created_at: new Date().toISOString() };
                     payload.offline_id = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
                     for (const [key, value] of formData.entries()) {
                         if (key === 'csrf_token' || key === '_token') continue;
-                        if (value instanceof File) continue;
+                        if (value instanceof File) continue; // Fotos serão coletadas via mobilePhotoData abaixo
                         payload[key] = value;
                     }
+
+                    // Coletar fotos do mobilePhotoData com base64 para persistência offline
+                    const fotosOffline = [];
+                    const photoData = window.mobilePhotoData || [];
+                    for (const img of photoData) {
+                        const entry = {
+                            id: img.id,
+                            category: img.category || img.categoria || 'Geral',
+                            caption: img.manualCaption || img.predefinedCaption || img.caption || '',
+                            local: img.local || '',
+                            filename: img.name || img.filename || 'foto.jpg',
+                            isExisting: img.isExisting || false,
+                            ordem: img.ordem !== undefined ? img.ordem : 0
+                        };
+                        if (img.file || img.blob) {
+                            try {
+                                const base64 = await new Promise((resolve, reject) => {
+                                    const reader = new FileReader();
+                                    reader.onload = () => resolve(reader.result);
+                                    reader.onerror = () => reject(reader.error);
+                                    reader.readAsDataURL(img.file || img.blob);
+                                });
+                                entry.base64 = base64;
+                            } catch (e) {
+                                console.warn('⚠️ Não foi possível converter foto para base64:', e);
+                            }
+                        }
+                        fotosOffline.push(entry);
+                    }
+                    if (fotosOffline.length > 0) {
+                        payload.fotos = fotosOffline;
+                        console.log(`📸 ${fotosOffline.length} foto(s) coletada(s) para save offline (fallback)`);
+                    }
+
                     await window.ELPOfflineManager.savePendingReport(payload);
                     alert('💾 Sem conexão! Relatório salvo localmente.\nSerá enviado automaticamente quando a conexão for restaurada.');
                     window.location.href = '/reports?offline_saved=1';
@@ -2220,11 +2270,41 @@
                 console.warn('📵 Modo offline detectado — salvando relatório localmente...');
                 try {
                     if (window.ELPOfflineManager) {
-                        const payload = {};
+                        const payload = { created_offline: true, created_at: new Date().toISOString() };
+                        payload.offline_id = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
                         for (const [key, value] of formData.entries()) {
                             if (key === 'csrf_token' || key === '_token') continue;
+                            if (value instanceof File) continue;
                             payload[key] = value;
                         }
+                        
+                        // Coletar fotos como base64 para persistência no IndexedDB
+                        const fotosOff = [];
+                        const pData = window.mobilePhotoData || [];
+                        for (const img of pData) {
+                            const entry = {
+                                id: img.id,
+                                category: img.category || img.categoria || 'Geral',
+                                caption: img.manualCaption || img.predefinedCaption || img.caption || '',
+                                local: img.local || '',
+                                filename: img.name || img.filename || 'foto.jpg',
+                                isExisting: img.isExisting || false,
+                                ordem: img.ordem !== undefined ? img.ordem : 0
+                            };
+                            if (img.file || img.blob) {
+                                try {
+                                    entry.base64 = await new Promise((res, rej) => {
+                                        const r = new FileReader();
+                                        r.onload = () => res(r.result);
+                                        r.onerror = () => rej(r.error);
+                                        r.readAsDataURL(img.file || img.blob);
+                                    });
+                                } catch (e) { /* skip photo */ }
+                            }
+                            fotosOff.push(entry);
+                        }
+                        if (fotosOff.length > 0) payload.fotos = fotosOff;
+                        
                         const offlineId = await window.ELPOfflineManager.savePendingReport(payload);
                         alert(`💾 Sem conexão! Relatório salvo localmente (ID: ${offlineId}).\nSerá enviado automaticamente quando a conexão for restaurada.`);
                         window.location.href = '/reports';
@@ -2834,19 +2914,28 @@
     document.addEventListener('DOMContentLoaded', function () {
         // Verificar se existe um reportId renderizado pelo servidor
         const formReportId = document.querySelector('#reportForm')?.getAttribute('data-report-id');
-
-        // Inicializar AutoSave (ele detectará automaticamente ?edit={id} ou usará formReportId)
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-        // Se existe reportId do servidor, expor globalmente para o AutoSave
+        
+        // Também verificar REPORT_DATA para edit mode via editarrel
+        let reportId = null;
         if (formReportId) {
-            window.currentReportId = parseInt(formReportId, 10);
+            reportId = parseInt(formReportId, 10);
+        } else if (typeof REPORT_DATA !== 'undefined' && REPORT_DATA && REPORT_DATA.relatorio && REPORT_DATA.relatorio.id) {
+            reportId = parseInt(REPORT_DATA.relatorio.id, 10);
         }
 
-        // Inicializar AutoSave - ele detectará o ID automaticamente
-        const autoSave = initAutoSave(null, csrfToken);
+        // Inicializar AutoSave com CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-        console.log('✅ Auto Save inicializado');
+        // Se existe reportId, expor globalmente para o AutoSave
+        if (reportId) {
+            window.currentReportId = reportId;
+            console.log(`📌 Report ID definido para autosave: ${reportId}`);
+        }
+
+        // Inicializar AutoSave com o ID correto
+        const autoSave = initAutoSave(reportId, csrfToken);
+
+        console.log('✅ Auto Save inicializado', reportId ? `(edit mode: ID ${reportId})` : '(create mode)');
     });
 </script>
 
@@ -4516,18 +4605,32 @@
         if (REPORT_DATA.projeto) {
             const projetoField = document.querySelector('[name="projeto"]') || document.querySelector('[name="projeto_id"]');
             if (projetoField) {
-                // Se for um select, adicionar a opção selecionada
+                // Se for um select, primeiro tentar selecionar a opção existente
                 if (projetoField.tagName === 'SELECT') {
-                    const option = document.createElement('option');
-                    option.value = REPORT_DATA.projeto.id;
-                    option.textContent = `${REPORT_DATA.projeto.codigo || REPORT_DATA.projeto.numero || ''} - ${REPORT_DATA.projeto.nome || ''}`;
-                    option.selected = true;
-                    projetoField.appendChild(option);
+                    let found = false;
+                    for (let i = 0; i < projetoField.options.length; i++) {
+                        if (projetoField.options[i].value == REPORT_DATA.projeto.id) {
+                            projetoField.selectedIndex = i;
+                            found = true;
+                            break;
+                        }
+                    }
+                    // Só adicionar nova opção se não encontrou
+                    if (!found) {
+                        const option = document.createElement('option');
+                        option.value = REPORT_DATA.projeto.id;
+                        option.textContent = `${REPORT_DATA.projeto.codigo || REPORT_DATA.projeto.numero || ''} - ${REPORT_DATA.projeto.nome || ''}`;
+                        option.selected = true;
+                        projetoField.appendChild(option);
+                    }
                 } else {
                     projetoField.value = REPORT_DATA.projeto.id;
                 }
                 projetoIdSelecionado = REPORT_DATA.projeto.id;
                 console.log(`✅ Projeto selecionado: ${REPORT_DATA.projeto.nome} (ID: ${projetoIdSelecionado})`);
+                
+                // Disparar change para carregar funcionários/emails e info técnica
+                projetoField.dispatchEvent(new Event('change'));
             }
         }
 

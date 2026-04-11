@@ -446,7 +446,7 @@ def offline_save_report():
             if not numero_formatado:
                 # Fallback de emergência: timestamp garante unicidade
                 numero_formatado = f"OFF-{int(datetime.utcnow().timestamp())}"
-                proximo_numero = relatorios_count + 1
+                proximo_numero = proximo_numero if proximo_numero else 1
 
             app.logger.info(f"✅ Número gerado para sync offline: {numero_formatado}")
         except Exception as _ex:
