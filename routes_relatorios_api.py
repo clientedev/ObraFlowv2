@@ -492,6 +492,11 @@ def get_relatorio(relatorio_id):
             else:
                 lembrete_str = relatorio.lembrete_proxima_visita.isoformat()
 
+        # Strip [offline_id:...] tag for clean UI representation
+        obs_finais_clean = relatorio.observacoes_finais or ''
+        if ' [offline_id:' in obs_finais_clean:
+            obs_finais_clean = obs_finais_clean.split(' [offline_id:')[0].strip()
+
         # Serializar relatório completo
         relatorio_data = {
             'id': relatorio.id,
@@ -501,7 +506,7 @@ def get_relatorio(relatorio_id):
             'data_relatorio': relatorio.data_relatorio.isoformat() if relatorio.data_relatorio else None,
             'categoria': relatorio.categoria or '',
             'local': relatorio.local or '',
-            'observacoes_finais': relatorio.observacoes_finais or '',
+            'observacoes_finais': obs_finais_clean,
             'lembrete_proxima_visita': lembrete_str,
             'conteudo': relatorio.conteudo or '',
             'status': relatorio.status or 'preenchimento',

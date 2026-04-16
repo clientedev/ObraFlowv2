@@ -132,9 +132,11 @@
             <i class="fas fa-comment-dots me-2"></i>Observações Gerais
         </h6>
         {% set obs_finais = report.observacoes_finais if report else relatorio.observacoes_finais %}
-        {% if obs_finais %}
+        {% set obs_finais_clean = (obs_finais | string).split(' [offline_id:')[0] if obs_finais else '' %}
+        
+        {% if obs_finais_clean and obs_finais_clean.strip() != '' %}
         <div class="p-3 rounded" style="background: #fff3cd; border: 1px solid #ffeaa7;">
-            <div style="color: #856404;">{{ obs_finais|safe }}</div>
+            <div style="color: #856404;">{{ obs_finais_clean|safe }}</div>
         </div>
         {% else %}
         <p class="text-muted mb-0 fst-italic">

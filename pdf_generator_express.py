@@ -107,7 +107,11 @@ def gerar_pdf_relatorio_express(relatorio_ou_id, output_path=None, salvar_arquiv
                 self.data_relatorio = express_report.data_relatorio
                 self.data_aprovacao = express_report.data_aprovacao
                 self.status = express_report.status
-                self.observacoes_finais = express_report.observacoes_finais
+                
+                obs_finais_clean = express_report.observacoes_finais or ''
+                if ' [offline_id:' in obs_finais_clean:
+                    obs_finais_clean = obs_finais_clean.split(' [offline_id:')[0].strip()
+                self.observacoes_finais = obs_finais_clean
                 
                 acomp = express_report.acompanhantes
                 if isinstance(acomp, str):
