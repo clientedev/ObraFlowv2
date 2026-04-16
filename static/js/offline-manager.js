@@ -235,18 +235,74 @@
     }
 
     // ============================================================
+    // Helper: Mostrar Toast Nativo
+    // ============================================================
+    function showSyncToast(message, type = 'info', duration = 4000) {
+        if (typeof window.showToast === 'function') {
+            return window.showToast(message, type, duration);
+        }
+        // Fallback básico
+        let container = document.getElementById('elp-sync-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'elp-sync-toast-container';
+            container.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;';
+            document.body.appendChild(container);
+        }
+        
+        const colors = { info: '#0d6efd', success: '#198754', error: '#dc3545', warning: '#ffc107' };
+        const el = document.createElement('div');
+        el.style.cssText = `background:${colors[type] || colors.info};color:white;padding:12px 24px;border-radius:8px;margin-top:10px;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;`;
+        el.innerHTML = message;
+        container.appendChild(el);
+        
+        if (duration > 0) {
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 300);
+            }, duration);
+        }
+        return el;
+    }
+
+    // Controle anti-duplicação
+    let isSyncing = false;
+
+    // ============================================================
     // Sincronizar relatórios pendentes com servidor
     // ============================================================
     async function syncPendingReports() {
-        await initDB();
-        const pending = await dbGetAll('pending_sync');
-
-        if (!pending || pending.length === 0) {
-            console.log('ℹ️ OfflineManager: Nenhum relatório pendente');
+        if (isSyncing) {
+            console.log('⚠️ OfflineManager: Sync local já está em andamento (ignorando para evitar duplicatas).');
             return { synced: 0, errors: 0 };
         }
+        
+        // Proteção multi-aba (Web Locks API)
+        if (navigator.locks) {
+            return navigator.locks.request('elp_sync_lock', { mode: 'exclusive', ifAvailable: true }, async (lock) => {
+                if (!lock) {
+                    console.log('⚠️ OfflineManager: Sync já está sendo executado em outra aba. Ignorando.');
+                    return { synced: 0, errors: 0 };
+                }
+                return await _executeSyncPendingReports();
+            });
+        } else {
+            return await _executeSyncPendingReports();
+        }
+    }
 
-        console.log(`🔄 OfflineManager: Sincronizando ${pending.length} relatório(s) pendente(s)...`);
+    async function _executeSyncPendingReports() {
+        isSyncing = true;
+        try {
+            await initDB();
+            const pending = await dbGetAll('pending_sync');
+
+            if (!pending || pending.length === 0) {
+                console.log('ℹ️ OfflineManager: Nenhum relatório pendente');
+                return { synced: 0, errors: 0 };
+            }
+
+            console.log(`🔄 OfflineManager: Sincronizando ${pending.length} relatório(s) pendente(s)...`);
 
         let synced = 0;
         let errors = 0;
@@ -304,6 +360,10 @@
         }
 
         return { synced, errors };
+
+        } finally {
+            isSyncing = false;
+        }
     }
 
     // Disparar sync ao carregar página quando online
@@ -501,28 +561,12 @@
         const isLoggedIn = window.ELP_USER_LOGGED_IN === true;
         if (!isLoggedIn) return;
 
-        // Verificar se já fez warmup recentemente (últimas 2h)
-        const lastWarmup = localStorage.getItem('elp_last_warmup');
-        const TWO_HOURS = 2 * 60 * 60 * 1000;
-
-        // Se fez warmup recentemente, ainda precisamos checar se o IDB está populado
-        if (lastWarmup && (Date.now() - parseInt(lastWarmup)) < TWO_HOURS) {
-            // Acessar banco diretamente para evitar circularidade com ELPOfflineManager
-            await initDB();
-            const projects = await dbGetAll('projects');
-            if (projects && projects.length > 0) {
-                console.log('ℹ️ OfflineManager: Cache ainda recente e populado, warmup ignorado');
-                return;
-            }
-            console.log('🔥 OfflineManager: Cache recente mas IDB vazio, forçando warmup...');
-        }
-
         if (!navigator.onLine) {
             console.log('ℹ️ OfflineManager: Offline, warmup adiado');
             return;
         }
 
-        console.log('🔥 OfflineManager: Disparando Cache Warmup pós-login...');
+        console.log('🔥 OfflineManager: Disparando Cache Warmup pós-login ou reload para garantir dados frescos...');
 
         // Aguardar SW estar pronto
         if (navigator.serviceWorker.controller) {
@@ -542,10 +586,8 @@
             });
         }
 
-        // Popular IndexedDB em paralelo
+        // Popular IndexedDB em paralelo imediatamente
         await populateFromServer();
-
-        localStorage.setItem('elp_last_warmup', Date.now().toString());
     }
 
     // ============================================================
