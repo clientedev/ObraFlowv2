@@ -293,6 +293,7 @@
 
     async function _executeSyncPendingReports() {
         isSyncing = true;
+        let syncToast = null;
         try {
             await initDB();
             const pending = await dbGetAll('pending_sync');
@@ -304,74 +305,69 @@
 
             console.log(`🔄 OfflineManager: Sincronizando ${pending.length} relatório(s) pendente(s)...`);
 
-        let synced = 0;
-        let errors = 0;
+            // Mostrar toast de progresso
+            syncToast = showSyncToast(
+                `<i class="fas fa-sync fa-spin"></i> Sincronizando ${pending.length} relatório(s) offline...`,
+                'warning', 0
+            );
 
-        for (const record of pending) {
-            try {
-                const response = await fetch('/api/offline/save-report', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCSRFToken()
-                    },
-                    body: JSON.stringify({
-                        offline_id: record.offline_id,
-                        ...record.payload
-                    })
-                });
+            let synced = 0;
+            let errors = 0;
 
-                const result = await response.json();
+            for (const record of pending) {
+                try {
+                    const response = await fetch('/api/offline/save-report', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCSRFToken()
+                        },
+                        body: JSON.stringify({
+                            offline_id: record.offline_id,
+                            ...record.payload
+                        })
+                    });
 
-                if (result.success) {
-                    await dbDelete('pending_sync', record.offline_id);
-                    synced++;
-                    console.log(`✅ Relatório ${record.offline_id} sincronizado → id=${result.relatorio_id}`);
-                } else {
+                    const result = await response.json();
+
+                    if (result.success) {
+                        await dbDelete('pending_sync', record.offline_id);
+                        synced++;
+                        console.log(`✅ Relatório ${record.offline_id} sincronizado → id=${result.relatorio_id}${result.deduplicated ? ' (dedup)' : ''}`);
+                    } else {
+                        errors++;
+                        console.warn(`⚠️ Falha ao sincronizar ${record.offline_id}:`, result.error);
+                    }
+
+                } catch (err) {
                     errors++;
-                    console.warn(`⚠️ Falha ao sincronizar ${record.offline_id}:`, result.error);
+                    console.warn(`⚠️ Erro de rede ao sincronizar ${record.offline_id}:`, err);
                 }
-
-            } catch (err) {
-                errors++;
-                console.warn(`⚠️ Erro de rede ao sincronizar ${record.offline_id}:`, err);
             }
-        }
 
-        console.log(`✅ OfflineManager: Sync concluído — ${synced} ok, ${errors} erros`);
+            console.log(`✅ OfflineManager: Sync concluído — ${synced} ok, ${errors} erros`);
 
-        // --- 2. Atualizar Toast ao finalizar ---
-        if (syncToast) syncToast.remove();
-        
-        if (errors > 0) {
-            console.log(`⚠️ OfflineManager: ${errors} falha(s) tentar sincronizar mais tarde.`);
-            showSyncToast(`<i class="fas fa-exclamation-triangle"></i> Falha ao sincronizar ${errors} relatório(s). O sistema tentará de novo depois.`, 'error', 6000);
-        } else {
-            console.log(`✅ OfflineManager: Todos os ${synced} relatórios pendentes foram recebidos pelo servidor.`);
-            showSyncToast(`<i class="fas fa-check-circle"></i> Sincronização offline concluída com sucesso!`, 'success', 5000);
-        }
+            // Remover toast de progresso e mostrar resultado
+            if (syncToast) { try { syncToast.remove(); } catch(e){} }
 
-        if (synced > 0) {
-            // Notificar página silenciosamente (sem reload)
-            window.dispatchEvent(new CustomEvent('elp:reports-synced', {
-                detail: { synced, errors }
-            }));
-        }
+            if (errors > 0) {
+                showSyncToast(`<i class="fas fa-exclamation-triangle"></i> Falha ao sincronizar ${errors} relatório(s). Tentaremos novamente.`, 'error', 6000);
+            } else if (synced > 0) {
+                showSyncToast(`<i class="fas fa-check-circle"></i> ${synced} relatório(s) sincronizado(s) com sucesso!`, 'success', 5000);
+            }
 
-        return { synced, errors };
+            if (synced > 0) {
+                window.dispatchEvent(new CustomEvent('elp:reports-synced', {
+                    detail: { synced, errors }
+                }));
+            }
 
+            return { synced, errors };
         } finally {
             isSyncing = false;
         }
     }
-
-    // Disparar sync ao carregar página quando online
-    window.addEventListener('load', () => {
-        if (navigator.onLine) {
-            setTimeout(syncPendingReports, 1000);
-        }
-    });
 
     // ============================================================
     // Interceptação de formulários de relatório offline

@@ -1981,9 +1981,14 @@
     // Submissão do formulário
     document.getElementById('reportForm').addEventListener('submit', async function (e) {
         if (!navigator.onLine) {
-            // SAFETY NET: Se o Hydrator (capture=true) já interceptou e chamou
-            // stopImmediatePropagation, este handler NÃO roda. Mas se o hydrator
-            // não carregou (ex: script faltando no cache), precisamos agir aqui.
+            // Se o Hydrator já interceptou e salvou, NÃO salvar de novo.
+            // O hydrator define window._offlineSubmitHandled = true quando salva com sucesso.
+            if (window._offlineSubmitHandled) {
+                console.log('ℹ️ [form_complete] Submit offline já tratado pelo Hydrator. Ignorando safety net.');
+                e.preventDefault();
+                return;
+            }
+            // SAFETY NET: Se o Hydrator não carregou (ex: script faltando no cache), agimos aqui.
             e.preventDefault();
 
             console.warn('📵 [form_complete] Offline detectado no submit — safety net ativado');

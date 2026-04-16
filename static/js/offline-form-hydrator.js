@@ -373,6 +373,10 @@
             showToast('📴 Offline — Salvando relatório no dispositivo...', 'warning');
 
             try {
+                // CRITICAL: Marcar como tratado ANTES de salvar para evitar que a safety net de
+                // form_complete.html também salve (duplicando o relatório).
+                window._offlineSubmitHandled = true;
+
                 const payload = await coletarPayloadCompleto();
                 payload.offline_id = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
                 payload.created_offline = true;

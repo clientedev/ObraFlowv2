@@ -20,7 +20,7 @@ try {
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.16'; // Bump: fix duplicate report sync + force fresh cache
+const SW_VERSION = 'elp-v3.17'; // Fix: dedup offline reports + cache /reports/new for offline
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];
@@ -161,10 +161,15 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 2. Módulo obras/relatórios → CacheFirst (essencial para offline!)
-    // Se tiver query params (filtros, busca), usar NetworkFirst para a filtragem funcionar online
+    // 2. Módulo obras/relatórios → essencial para offline!
     if (request.mode === 'navigate' && isObrasUrl(url.pathname)) {
-        if (url.search) {
+        // Formulários de criação/edição: SEMPRE cache-first para garantir acesso offline
+        // Estes são acessados como /reports/new?projeto_id=X — a página é a mesma
+        // independente do projeto, então cachear uma cópia é suficiente.
+        if (url.pathname.includes('/new') || url.pathname.match(/\/\d+\/edit/)) {
+            event.respondWith(cacheFirstWithBgRevalidation(request));
+        } else if (url.search) {
+            // Listas com filtros (ex: /reports?status=aprovado) — precisa rede para filtrar
             event.respondWith(networkFirstWithCacheFallback(request));
         } else {
             event.respondWith(cacheFirstWithBgRevalidation(request));
@@ -223,7 +228,7 @@ async function cacheFirst(request, cacheName) {
 async function cacheFirstWithBgRevalidation(request) {
     const cache = await caches.open(CACHE_OBRAS);
     const urlWithoutSearch = request.url.split('?')[0];
-    const cached = await cache.match(urlWithoutSearch) || await cache.match(request, { ignoreSearch: true });
+    const cached = await cache.match(urlWithoutSearch, { ignoreVary: true }) || await cache.match(request, { ignoreSearch: true, ignoreVary: true });
 
     const networkFetch = fetchAndCacheIfOk(request, cache);
 
@@ -242,7 +247,7 @@ async function cacheFirstWithBgRevalidation(request) {
         recordNetworkFailure();
         console.warn(`⚠️ SW: Offline e sem cache para ${request.url}`);
         // Tentar servir a página de lista como fallback (evita tela de erro)
-        const fallback = await cache.match('/projects', { ignoreSearch: true }) || await cache.match('/reports', { ignoreSearch: true });
+        const fallback = await cache.match('/projects', { ignoreSearch: true, ignoreVary: true }) || await cache.match('/reports', { ignoreSearch: true, ignoreVary: true });
         if (fallback) return fallback;
         return syntheticErrorResponse('Página ainda não disponível offline. Conecte-se à internet uma vez para baixá-la.');
     }

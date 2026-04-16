@@ -405,6 +405,27 @@ def offline_save_report():
                     'message': 'Relatório atualizado com sucesso'
                 })
 
+        # ── DEDUPLICAÇÃO POR offline_id ─────────────────────────────────────
+        # Se este offline_id já foi processado anteriormente (ex: duplo click,
+        # múltiplas abas sincronizando ao mesmo tempo), retornar sucesso sem duplicar.
+        if offline_id:
+            relatorio_duplicado = Relatorio.query.filter(
+                Relatorio.observacoes_finais.contains(f'[offline_id:{offline_id}]')
+            ).first()
+            if relatorio_duplicado:
+                app.logger.info(
+                    f"⚠️ Relatório offline já processado: offline_id={offline_id} → "
+                    f"relatorio_id={relatorio_duplicado.id}. Ignorando duplicata."
+                )
+                return jsonify({
+                    'success': True,
+                    'relatorio_id': relatorio_duplicado.id,
+                    'offline_id': offline_id,
+                    'numero': relatorio_duplicado.numero,
+                    'message': 'Relatório já existente (dedup)',
+                    'deduplicated': True
+                })
+
         app.logger.info(
             f"📥 Salvando relatório offline: offline_id={offline_id}, "
             f"projeto_id={projeto_id}, autor={current_user.username}"
@@ -497,7 +518,7 @@ def offline_save_report():
             local=local,
             descricao=descricao,
             conteudo=conteudo,
-            observacoes_finais=observacoes if hasattr(Relatorio, 'observacoes_finais') else "",
+            observacoes_finais=(observacoes + (f' [offline_id:{offline_id}]' if offline_id else '')) if hasattr(Relatorio, 'observacoes_finais') else "",
             lembrete_proxima_visita=lembrete_val if hasattr(Relatorio, 'lembrete_proxima_visita') else None,
             data_relatorio=data_relatorio_val if hasattr(Relatorio, 'data_relatorio') else now_brt(),
             created_at=now_brt(),
