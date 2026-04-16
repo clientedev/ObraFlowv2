@@ -368,7 +368,6 @@
             log('🛑 Offline detectado no submit, interceptando...');
             e.preventDefault();
             e.stopImmediatePropagation(); // Impedir que o handler online em form_complete.html rode
-            e.stopImmediatePropagation();
 
             showToast('📴 Offline — Salvando relatório no dispositivo...', 'warning');
 
@@ -382,9 +381,22 @@
                 payload.created_offline = true;
                 payload.created_at = new Date().toISOString();
 
+                // ═══════════════════════════════════════════════════════════════
+                // CRITICAL: Se o autosave já criou este relatório no servidor
+                // (window.currentReportId), incluir esse ID no payload para que
+                // o backend ATUALIZE o relatório existente em vez de criar novo.
+                // ═══════════════════════════════════════════════════════════════
+                const existingReportId = window.currentReportId
+                    || form.getAttribute('data-report-id')
+                    || document.querySelector('input[name="edit_report_id"]')?.value;
+                if (existingReportId) {
+                    payload.relatorio_id = parseInt(existingReportId, 10);
+                    log(`📎 Relatório existente detectado (autosave): ID ${payload.relatorio_id} — será atualizado, não duplicado`);
+                }
+
                 await manager.savePendingReport(payload);
 
-                log(`💾 Relatório salvo offline com ID: ${payload.offline_id}`);
+                log(`💾 Relatório salvo offline com ID: ${payload.offline_id}${existingReportId ? ' (update mode)' : ' (new)'}`);
                 showToast('✅ Relatório salvo! Será enviado quando você tiver conexão.', 'success');
 
                 // Redirecionar após 2s com filtros ocultos e ID do projeto

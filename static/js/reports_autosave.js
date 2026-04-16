@@ -316,12 +316,21 @@ class ReportsAutoSave {
         window.addEventListener('online', () => {
             this.isConnected = true;
             console.log('🔗 AutoSave: Conexão restaurada');
-            this.retrySaveFromLocalStorage();
+            // Apenas re-enviar se o submit offline NÃO foi tratado pelo hydrator/manager
+            if (!window._offlineSubmitHandled) {
+                this.retrySaveFromLocalStorage();
+            } else {
+                console.log('ℹ️ AutoSave: Submit offline já tratado — ignorando retry do localStorage');
+                this.clearLocalStorage();
+            }
         });
 
         window.addEventListener('offline', () => {
             this.isConnected = false;
-            console.log('📴 AutoSave: Conexão perdida - salvando localmente');
+            console.log('📴 AutoSave: Conexão perdida — cancelando debounce pendente');
+            // CRITICAL: Cancelar qualquer autosave pendente imediatamente
+            // para evitar que ele tente salvar no servidor enquanto perde conexão
+            clearTimeout(this.debounceTimer);
         });
     }
 
@@ -656,6 +665,26 @@ class ReportsAutoSave {
     async performSave() {
         if (this.isSaving) {
             console.log('⏸️ AutoSave: Salvamento já em progresso, aguardando...');
+            return;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // CRITICAL: NÃO autosave quando offline!
+        // Se o usuário está offline, o relatório será salvo pelo sistema
+        // offline (hydrator/manager) no momento do submit.
+        // Autosave offline cria duplicatas porque:
+        // 1) Autosave cria relatório no servidor quando online
+        // 2) Usuário perde conexão
+        // 3) Submit offline cria OUTRO relatório
+        // ═══════════════════════════════════════════════════════════════
+        if (!navigator.onLine) {
+            console.log('📴 AutoSave: Offline — autosave suspendo para evitar duplicatas');
+            return;
+        }
+
+        // Se o submit offline já foi tratado, não tentar autosave
+        if (window._offlineSubmitHandled) {
+            console.log('ℹ️ AutoSave: Submit offline já tratado — autosave ignorado');
             return;
         }
 
