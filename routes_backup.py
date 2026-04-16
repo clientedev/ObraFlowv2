@@ -471,7 +471,7 @@ def create_report():
             if data_relatorio_str:
                 data_relatorio = datetime.strptime(data_relatorio_str, '%Y-%m-%d')
             else:
-                data_relatorio = datetime.now()
+                data_relatorio = now_brt()
         except (ValueError, TypeError):
             flash('Dados inválidos no formulário.', 'error')
             return redirect(url_for('create_report'))

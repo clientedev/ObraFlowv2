@@ -20,7 +20,7 @@ try {
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.12'; // Bump: fix offline report creation + save
+const SW_VERSION = 'elp-v3.13'; // Bump: resilient offline sync + date fixes
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];

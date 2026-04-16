@@ -465,7 +465,7 @@ class ArtesanoPDFGenerator:
         elements.append(Spacer(1, 6))
         
         # Data da visita/relatório
-        data_relatorio = relatorio.data_relatorio.strftime('%d/%m/%Y %H:%M') if relatorio.data_relatorio else datetime.now().strftime('%d/%m/%Y %H:%M')
+        data_relatorio = relatorio.data_relatorio.strftime('%d/%m/%Y %H:%M') if relatorio.data_relatorio else now_brt().strftime('%d/%m/%Y %H:%M')
         elements.append(Paragraph(f"<b>Em:</b> {data_relatorio}", self.styles['NormalText']))
         
         return elements

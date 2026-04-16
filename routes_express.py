@@ -170,7 +170,7 @@ def create_express_report():
             try:
                 relatorio.data_relatorio = datetime.strptime(data_relatorio, '%Y-%m-%d')
             except:
-                relatorio.data_relatorio = datetime.now()
+                relatorio.data_relatorio = now_brt()
         
         acompanhantes_str = request.form.get('acompanhantes', '[]')
         try:
@@ -693,7 +693,7 @@ def autosave_express_report_api():
                 try:
                     relatorio.data_relatorio = datetime.strptime(data['data_relatorio'], '%Y-%m-%d')
                 except:
-                    relatorio.data_relatorio = datetime.now()
+                    relatorio.data_relatorio = now_brt()
             
             db.session.add(relatorio)
             db.session.flush()

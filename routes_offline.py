@@ -36,7 +36,7 @@ def offline_version():
 
         response = jsonify({
             'version': version_hash,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': now_brt().isoformat()
         })
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return response
@@ -282,7 +282,7 @@ def offline_sync_data():
 
         response = jsonify({
             'success': True,
-            'synced_at': datetime.utcnow().isoformat(),
+            'synced_at': now_brt().isoformat(),
             'user': user_data,
             'projetos': projetos_data,
             'relatorios': relatorios_data,
@@ -373,7 +373,7 @@ def offline_save_report():
                                 imagem_hash=imagem_hash
                             ).first()
                             if not foto_existente:
-                                timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S%f')
+                                timestamp = now_brt().strftime('%Y%m%d_%H%M%S%f')
                                 final_filename = f"relatorio_{relatorio_id_existente}_{timestamp}_offline_{idx}.{ext}"
                                 final_filepath = os.path.join(upload_folder, final_filename)
                                 with open(final_filepath, 'wb') as f:
@@ -394,7 +394,7 @@ def offline_save_report():
                                 db.session.add(nova_foto)
                         except Exception as e:
                             app.logger.warning(f"Failed to process offline photo (edit mode): {e}")
-                relatorio_existente.updated_at = datetime.utcnow()
+                relatorio_existente.updated_at = now_brt()
                 db.session.commit()
                 app.logger.info(f"✅ Relatório {relatorio_id_existente} atualizado (edição offline)")
                 return jsonify({
@@ -445,18 +445,18 @@ def offline_save_report():
 
             if not numero_formatado:
                 # Fallback de emergência: timestamp garante unicidade
-                numero_formatado = f"OFF-{int(datetime.utcnow().timestamp())}"
+                numero_formatado = f"OFF-{int(now_brt().timestamp())}"
                 proximo_numero = proximo_numero if proximo_numero else 1
 
             app.logger.info(f"✅ Número gerado para sync offline: {numero_formatado}")
         except Exception as _ex:
             proximo_numero = 1
-            numero_formatado = f"OFF-{int(datetime.utcnow().timestamp())}"
+            numero_formatado = f"OFF-{int(now_brt().timestamp())}"
             app.logger.warning(f"⚠️ Fallback de número offline: {numero_formatado} - {_ex}")
 
         # Parse Data Report (Matching routes.py)
         # We ensure it matches datetime.now() if blank, or parses from standard frontend date pickers
-        data_relatorio_val = datetime.now()
+        data_relatorio_val = now_brt()
         if data_relatorio_str:
             try:
                 date_str = str(data_relatorio_str).strip()
@@ -499,9 +499,9 @@ def offline_save_report():
             conteudo=conteudo,
             observacoes_finais=observacoes if hasattr(Relatorio, 'observacoes_finais') else "",
             lembrete_proxima_visita=lembrete_val if hasattr(Relatorio, 'lembrete_proxima_visita') else None,
-            data_relatorio=data_relatorio_val if hasattr(Relatorio, 'data_relatorio') else datetime.now(),
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            data_relatorio=data_relatorio_val if hasattr(Relatorio, 'data_relatorio') else now_brt(),
+            created_at=now_brt(),
+            updated_at=now_brt(),
         )
 
         # Tratar Technical Info - ATUALIZAR O PROJETO (não o relatório)
@@ -552,7 +552,7 @@ def offline_save_report():
             if 'uq_relatorios_projeto_numero' in str(e).lower() or 'unique constraint' in str(e).lower() or 'duplicate' in str(e).lower():
                 # Número já existe: gerar novo número e tentar de novo
                 app.logger.warning(f"⚠️ Conflito de número '{numero_formatado}'. Gerando número alternativo...")
-                timestamp_suffix = int(datetime.utcnow().timestamp())
+                timestamp_suffix = int(now_brt().timestamp())
                 novo_relatorio.numero = f"REL-OFF-{timestamp_suffix}"
                 novo_relatorio.numero_projeto = None
                 try:
@@ -642,7 +642,7 @@ def offline_save_report():
                     ).first()
                     
                     if not foto_existente:
-                        timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S%f')
+                        timestamp = now_brt().strftime('%Y%m%d_%H%M%S%f')
                         final_filename = f"relatorio_{relatorio_id}_{timestamp}_offline_{idx}.{ext}"
                         final_filepath = os.path.join(upload_folder, final_filename)
                         

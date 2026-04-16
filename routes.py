@@ -3305,7 +3305,7 @@ def create_report():
             if data_relatorio_str:
                 data_relatorio = datetime.strptime(data_relatorio_str, '%Y-%m-%d')
             else:
-                data_relatorio = datetime.now()
+                data_relatorio = now_brt()
         except (ValueError, TypeError):
             flash('Dados inválidos no formulário.', 'error')
             return redirect(url_for('create_report'))
@@ -10029,7 +10029,7 @@ def api_get_checklist_progresso(project_id):
                         'numero': rel.numero,
                         'titulo': rel.titulo,
                         'data': rel.data_relatorio.strftime('%d/%m/%Y') if rel.data_relatorio else '',
-                        'url': f'/reports/{rel.id}/view'
+                        'url': f'/reports/{rel.id}/edit'
                     }
 
             items_data.append({

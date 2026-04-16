@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from app import db
@@ -793,7 +793,7 @@ class RelatorioExpress(db.Model):
     titulo = db.Column(db.String(300), nullable=False, default='Relatório Express de Visita')
     autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     aprovador_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    data_relatorio = db.Column(db.DateTime, default=datetime.utcnow)
+    data_relatorio = db.Column(db.DateTime, default=lambda: now_brt())
     data_aprovacao = db.Column(db.DateTime, nullable=True)
     conteudo = db.Column(db.Text)
     descricao = db.Column(db.Text, nullable=True)

@@ -1002,7 +1002,7 @@ class ReportPDFGenerator:
         story.append(Spacer(1, 20))
         
         # Date in right corner format
-        data_formatada = relatorio.data_relatorio.strftime('%d/%m/%Y %H:%M') if relatorio.data_relatorio else datetime.now().strftime('%d/%m/%Y %H:%M')
+        data_formatada = relatorio.data_relatorio.strftime('%d/%m/%Y %H:%M') if relatorio.data_relatorio else now_brt().strftime('%d/%m/%Y %H:%M')
         date_table = Table([['', f'Em: {data_formatada}']], colWidths=[15*cm, 4*cm])
         date_table.setStyle(TableStyle([
             ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
@@ -1017,7 +1017,7 @@ class ReportPDFGenerator:
         story.append(Paragraph("Relatório", self.styles['SectionHeader']))
         story.append(Spacer(1, 10))
         
-        data_formatada = relatorio.data_relatorio.strftime('%d/%m/%Y %H:%M:%S') if relatorio.data_relatorio else datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+        data_formatada = relatorio.data_relatorio.strftime('%d/%m/%Y %H:%M:%S') if relatorio.data_relatorio else now_brt().strftime('%d/%m/%Y %H:%M:%S')
         
         report_table = Table([
             ['Data', ''],

@@ -148,20 +148,32 @@ builtins.now_brt = now_brt
 
 @app.template_filter('to_brazil_tz')
 def to_brazil_tz(dt):
-    """Convert a UTC datetime to Brazil timezone (America/Sao_Paulo)"""
+    """Convert a datetime to Brazil timezone (America/Sao_Paulo).
+    
+    Naive datetimes são tratadas como já estando em BRT (salvas via now_brt()).
+    Datetimes com timezone são convertidas para BRT.
+    """
     if dt is None:
         return None
     if dt.tzinfo is None:
-        dt = pytz.utc.localize(dt)
+        # Naive datetime: já está em BRT, apenas localizar sem converter
+        return BRAZIL_TZ.localize(dt)
     return dt.astimezone(BRAZIL_TZ)
 
 @app.template_filter('format_datetime_br')
 def format_datetime_br(dt, format='%d/%m/%Y às %H:%M'):
-    """Format datetime in Brazil timezone"""
+    """Format datetime in Brazil timezone.
+    
+    Naive datetimes (sem tzinfo) são tratadas como já estando em BRT,
+    pois o sistema salva via now_brt() e datas do usuário já são locais.
+    Datetimes com timezone são convertidas para BRT antes de formatar.
+    """
     if dt is None:
         return 'N/A'
     if dt.tzinfo is None:
-        dt = pytz.utc.localize(dt)
+        # Naive datetime: já está em BRT (salvo via now_brt() ou input do usuário)
+        return dt.strftime(format)
+    # Timezone-aware datetime: converter para BRT
     dt_brazil = dt.astimezone(BRAZIL_TZ)
     return dt_brazil.strftime(format)
 

@@ -979,7 +979,7 @@ async function carregarProgressoChecklist() {
                 ? '<span class="badge bg-success flex-shrink-0"><i class="fas fa-check"></i></span>'
                 : '<span class="badge bg-secondary flex-shrink-0"><i class="fas fa-clock"></i></span>';
             const relLink = done && rel
-                ? `<div class="mt-1"><small class="text-muted"><i class="fas fa-file-alt me-1"></i><a href="${rel.url}" class="text-primary text-decoration-none" target="_blank">Rel. ${rel.numero}${rel.titulo ? ' — ' + rel.titulo : ''}</a> · ${item.concluido_em || ''}</small></div>`
+                ? `<div class="mt-1"><small class="text-muted"><i class="fas fa-file-alt me-1"></i><a href="${rel.url}" class="text-primary text-decoration-none">Rel. ${rel.numero}${rel.titulo ? ' — ' + rel.titulo : ''}</a> · ${item.concluido_em || ''}</small></div>`
                 : '';
             html += `
             <div class="list-group-item px-0 py-2 border-0 border-bottom">
