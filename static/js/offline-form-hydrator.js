@@ -377,7 +377,11 @@
                 window._offlineSubmitHandled = true;
 
                 const payload = await coletarPayloadCompleto();
-                payload.offline_id = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                // CRITICAL: Reutilizar o ID do rascunho se existir, para SOBRESCREVER
+                // o rascunho salvo ao adicionar fotos, em vez de criar um duplicado.
+                payload.offline_id = window._offlineDraftId || `offline_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                window._offlineDraftId = payload.offline_id; // Manter consistência
+                
                 payload.created_offline = true;
                 payload.created_at = new Date().toISOString();
 

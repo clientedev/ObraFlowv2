@@ -1997,7 +1997,8 @@
                 if (window.ELPFormHydrator && typeof window.ELPFormHydrator.coletarPayloadCompleto === 'function') {
                     // Usar o coletor robusto do hydrator
                     const payload = await window.ELPFormHydrator.coletarPayloadCompleto();
-                    payload.offline_id = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                    payload.offline_id = window._offlineDraftId || `offline_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                    window._offlineDraftId = payload.offline_id;
                     payload.created_offline = true;
                     payload.created_at = new Date().toISOString();
 
@@ -2013,7 +2014,8 @@
                     // Fallback mínimo: coletar dados do FormData nativo + fotos como base64
                     const formData = new FormData(this);
                     const payload = { created_offline: true, created_at: new Date().toISOString() };
-                    payload.offline_id = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                    payload.offline_id = window._offlineDraftId || `offline_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                    window._offlineDraftId = payload.offline_id;
                     for (const [key, value] of formData.entries()) {
                         if (key === 'csrf_token' || key === '_token') continue;
                         if (value instanceof File) continue; // Fotos serão coletadas via mobilePhotoData abaixo
