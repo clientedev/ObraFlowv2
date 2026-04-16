@@ -733,20 +733,12 @@
         const isLoggedIn = window.ELP_USER_LOGGED_IN === true;
         if (!isLoggedIn) return;
 
-        // Verificar se já fez warmup recentemente (últimas 2h)
-        const lastWarmup = localStorage.getItem('elp_last_warmup');
-        const TWO_HOURS = 2 * 60 * 60 * 1000;
-
-        // Se fez warmup recentemente, ainda precisamos checar se o IDB está populado
-        if (lastWarmup && (Date.now() - parseInt(lastWarmup)) < TWO_HOURS) {
-            // Acessar banco diretamente para evitar circularidade com ELPOfflineManager
-            await initDB();
-            const projects = await dbGetAll('projects');
-            if (projects && projects.length > 0) {
-                console.log('ℹ️ OfflineManager: Cache ainda recente e populado, warmup ignorado');
-                return;
-            }
-            console.log('🔥 OfflineManager: Cache recente mas IDB vazio, forçando warmup...');
+        // Removido o timeout de 2h para forçar o cache a ser populado sempre
+        // Isso garante que se o usuário testar offline, o IndexedDB já tem os dados.
+        await initDB();
+        const projects = await dbGetAll('projects');
+        if (projects && projects.length === 0) {
+            console.log('🔥 OfflineManager: IDB vazio, forçando warmup imediato...');
         }
 
         if (!navigator.onLine) {
@@ -831,10 +823,11 @@
             // Verificação periódica a cada 30s
             setupPeriodicCheck();
 
-            // Pequeno delay para o SW ficar pronto antes do warmup
+            // Disparar warmup sem delay longo para garantir que o cache seja populado
+            // antes do usuário acidentalmente (ou de propósito para testar) ficar offline
             setTimeout(async () => {
                 await triggerCacheWarmupIfLoggedIn();
-            }, 2000);
+            }, 50);
 
             console.log('✅ OfflineManager v2.0: Inicializado com sync resiliente');
         },
