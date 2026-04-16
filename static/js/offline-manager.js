@@ -1,15 +1,12 @@
 /**
  * ============================================================
- * ELP OFFLINE MANAGER v2.0 — SYNC RESILIENTE
+ * ELP OFFLINE MANAGER v1.0
  * ============================================================
  * Gerencia dados offline usando IndexedDB:
  * - Armazena projetos, relatórios, legendas localmente
  * - Intercepta formulários de relatório quando offline
  * - Sincroniza dados pendentes quando volta online
- * - RESILIÊNCIA: sincroniza pendentes em TODA carga de página
- * - Banner visual persistente mostrando status de sync
- * - Retry com backoff exponencial
- * - Lock anti-duplicação (multi-tab safe)
+ * - Monitora estabilidade da conexão
  * ============================================================
  */
 
@@ -17,14 +14,8 @@
     'use strict';
 
     const DB_NAME = 'elp-offline-db';
-    const DB_VERSION = 2;
+    const DB_VERSION = 1;
     let db = null;
-
-    // Constantes de sync
-    const SYNC_LOCK_KEY = 'elp_sync_lock';
-    const SYNC_LOCK_TTL = 60000; // 60s — se uma aba travou, outra pode assumir
-    const MAX_RETRIES = 5;
-    const BASE_DELAY = 2000; // 2s
 
     // ============================================================
     // IndexedDB — inicialização
@@ -55,7 +46,6 @@
                         keyPath: 'offline_id'
                     });
                     store.createIndex('created_at', 'created_at', { unique: false });
-                    store.createIndex('status', 'status', { unique: false });
                 }
 
                 // Store de legendas
@@ -96,11 +86,10 @@
         return new Promise((resolve, reject) => {
             const tx = db.transaction(storeName, 'readwrite');
             const store = tx.objectStore(storeName);
-            if (Array.isArray(data)) {
-                data.forEach(item => store.put(item));
-            } else {
-                store.put(data);
-            }
+            const req = Array.isArray(data)
+                ? data.map(item => store.put(item))
+                : [store.put(data)];
+
             tx.oncomplete = () => resolve(true);
             tx.onerror = (e) => reject(e.target.error);
         });
@@ -144,106 +133,6 @@
             req.onsuccess = () => resolve(true);
             req.onerror = (e) => reject(e.target.error);
         });
-    }
-
-    // ============================================================
-    // LOCK DISTRIBUÍDA — evita sync duplicado entre abas
-    // ============================================================
-    function acquireSyncLock() {
-        const now = Date.now();
-        const existing = localStorage.getItem(SYNC_LOCK_KEY);
-        if (existing) {
-            const lockTime = parseInt(existing, 10);
-            if (now - lockTime < SYNC_LOCK_TTL) {
-                // Outra aba está sincronizando
-                return false;
-            }
-        }
-        localStorage.setItem(SYNC_LOCK_KEY, now.toString());
-        return true;
-    }
-
-    function releaseSyncLock() {
-        localStorage.removeItem(SYNC_LOCK_KEY);
-    }
-
-    // ============================================================
-    // BANNER DE SINCRONIZAÇÃO VISUAL
-    // ============================================================
-    let syncBanner = null;
-
-    function showSyncBanner(message, type = 'syncing') {
-        removeSyncBanner();
-
-        syncBanner = document.createElement('div');
-        syncBanner.id = 'elp-sync-banner';
-
-        const colors = {
-            syncing: 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)',
-            success: 'linear-gradient(135deg, #198754 0%, #146c43 100%)',
-            error: 'linear-gradient(135deg, #dc3545 0%, #b02a37 100%)',
-            pending: 'linear-gradient(135deg, #fd7e14 0%, #e06100 100%)'
-        };
-
-        const icons = {
-            syncing: '<i class="fas fa-sync-alt fa-spin me-2"></i>',
-            success: '<i class="fas fa-check-circle me-2"></i>',
-            error: '<i class="fas fa-exclamation-triangle me-2"></i>',
-            pending: '<i class="fas fa-cloud-upload-alt me-2"></i>'
-        };
-
-        syncBanner.style.cssText = `
-            position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
-            background: ${colors[type] || colors.syncing};
-            color: white; padding: 10px 20px; font-size: 14px; font-weight: 600;
-            text-align: center; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-            display: flex; align-items: center; justify-content: center;
-            animation: slideDown 0.3s ease-out;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        `;
-
-        syncBanner.innerHTML = `${icons[type] || ''}${message}`;
-
-        // Adicionar animation CSS se não existir
-        if (!document.getElementById('elp-sync-animations')) {
-            const style = document.createElement('style');
-            style.id = 'elp-sync-animations';
-            style.textContent = `
-                @keyframes slideDown {
-                    from { transform: translateY(-100%); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
-                }
-                @keyframes slideUp {
-                    from { transform: translateY(0); opacity: 1; }
-                    to { transform: translateY(-100%); opacity: 0; }
-                }
-                #elp-sync-banner.closing {
-                    animation: slideUp 0.3s ease-in forwards;
-                }
-            `;
-            document.head.appendChild(style);
-        }
-
-        document.body.appendChild(syncBanner);
-
-        // Empurrar conteúdo para baixo
-        document.body.style.marginTop = syncBanner.offsetHeight + 'px';
-    }
-
-    function removeSyncBanner(delay = 0) {
-        if (delay > 0) {
-            setTimeout(() => removeSyncBanner(0), delay);
-            return;
-        }
-        const existing = document.getElementById('elp-sync-banner');
-        if (existing) {
-            existing.classList.add('closing');
-            setTimeout(() => {
-                existing.remove();
-                document.body.style.marginTop = '';
-            }, 300);
-        }
-        syncBanner = null;
     }
 
     // ============================================================
@@ -331,9 +220,7 @@
             tipo: 'relatorio',
             payload: payload,
             created_at: new Date().toISOString(),
-            status: 'pending',
-            retry_count: 0,
-            last_error: null
+            status: 'pending'
         };
 
         await dbPut('pending_sync', record);
@@ -344,14 +231,11 @@
             navigator.serviceWorker.controller.postMessage({ type: 'SYNC_PENDING' });
         }
 
-        // Mostrar banner imediatamente
-        showSyncBanner('📴 Relatório salvo localmente. Será sincronizado quando houver conexão.', 'pending');
-
         return record.offline_id;
     }
 
     // ============================================================
-    // SYNC RESILIENTE — sincronizar relatórios pendentes
+    // Sincronizar relatórios pendentes com servidor
     // ============================================================
     async function syncPendingReports() {
         await initDB();
@@ -359,60 +243,16 @@
 
         if (!pending || pending.length === 0) {
             console.log('ℹ️ OfflineManager: Nenhum relatório pendente');
-            removeSyncBanner();
-            return { synced: 0, errors: 0 };
-        }
-
-        // Verificar conexão real
-        if (!navigator.onLine) {
-            console.log('📵 OfflineManager: Offline — sync adiado');
-            showSyncBanner(`📵 ${pending.length} relatório(s) aguardando conexão para sincronizar`, 'pending');
-            return { synced: 0, errors: 0 };
-        }
-
-        // Tentar adquirir lock (evita sync duplicado entre abas)
-        if (!acquireSyncLock()) {
-            console.log('🔒 OfflineManager: Outra aba está sincronizando, aguardando...');
             return { synced: 0, errors: 0 };
         }
 
         console.log(`🔄 OfflineManager: Sincronizando ${pending.length} relatório(s) pendente(s)...`);
-        showSyncBanner(`🔄 Sincronizando ${pending.length} relatório(s)...`, 'syncing');
 
         let synced = 0;
         let errors = 0;
 
         for (const record of pending) {
-            // Pular itens já em progresso de sync (proteção contra re-entry)
-            if (record.status === 'syncing') {
-                // Se ficou travado em 'syncing' por mais de 2 minutos, resetar
-                const statusAge = Date.now() - (record.sync_started_at || 0);
-                if (statusAge < 120000) {
-                    console.log(`⏳ ${record.offline_id}: Sync em progresso por outra instância, pulando`);
-                    continue;
-                }
-            }
-
-            // Marcar como 'syncing' com timestamp antes de enviar
-            record.status = 'syncing';
-            record.sync_started_at = Date.now();
-            await dbPut('pending_sync', record);
-
-            const retryCount = record.retry_count || 0;
-            if (retryCount >= MAX_RETRIES) {
-                console.error(`❌ ${record.offline_id}: Max retries (${MAX_RETRIES}) atingido`);
-                record.status = 'failed';
-                await dbPut('pending_sync', record);
-                errors++;
-                continue;
-            }
-
             try {
-                showSyncBanner(
-                    `🔄 Sincronizando relatório ${synced + 1}/${pending.length}...`,
-                    'syncing'
-                );
-
                 const response = await fetch('/api/offline/save-report', {
                     method: 'POST',
                     credentials: 'include',
@@ -429,74 +269,35 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    // SUCESSO: remover do IndexedDB
                     await dbDelete('pending_sync', record.offline_id);
                     synced++;
                     console.log(`✅ Relatório ${record.offline_id} sincronizado → id=${result.relatorio_id}`);
                 } else {
-                    // Erro do servidor (mas resposta válida)
-                    record.status = 'pending';
-                    record.retry_count = retryCount + 1;
-                    record.last_error = result.error || 'Erro desconhecido';
-                    await dbPut('pending_sync', record);
                     errors++;
                     console.warn(`⚠️ Falha ao sincronizar ${record.offline_id}:`, result.error);
                 }
 
             } catch (err) {
-                // Erro de rede (fetch falhou) — manter no IDB para próxima tentativa
-                record.status = 'pending';
-                record.retry_count = retryCount + 1;
-                record.last_error = err.message;
-                await dbPut('pending_sync', record);
                 errors++;
-                console.warn(`⚠️ Erro de rede ao sincronizar ${record.offline_id}:`, err.message);
-
-                // Se perdeu conexão, parar de tentar
-                if (!navigator.onLine) {
-                    showSyncBanner(
-                        `📵 Conexão perdida. ${synced} sincronizado(s), ${pending.length - synced} pendente(s)`,
-                        'pending'
-                    );
-                    releaseSyncLock();
-                    return { synced, errors };
-                }
-
-                // Esperar delay exponencial antes da próxima tentativa
-                const delay = Math.min(BASE_DELAY * Math.pow(2, retryCount), 30000);
-                console.log(`⏳ Aguardando ${delay}ms antes de próxima tentativa...`);
-                await new Promise(r => setTimeout(r, delay));
+                console.warn(`⚠️ Erro de rede ao sincronizar ${record.offline_id}:`, err);
             }
         }
 
-        releaseSyncLock();
-
         console.log(`✅ OfflineManager: Sync concluído — ${synced} ok, ${errors} erros`);
 
-        if (synced > 0 && errors === 0) {
-            showSyncBanner(
-                `✅ ${synced} relatório(s) sincronizado(s) com sucesso!`,
-                'success'
-            );
-            removeSyncBanner(4000);
-        } else if (synced > 0 && errors > 0) {
-            showSyncBanner(
-                `⚠️ ${synced} sincronizado(s), ${errors} com erro(s). Tentará novamente.`,
-                'error'
-            );
-            removeSyncBanner(6000);
-        } else if (errors > 0) {
-            showSyncBanner(
-                `❌ Falha ao sincronizar ${errors} relatório(s). Nova tentativa em breve.`,
-                'error'
-            );
-            removeSyncBanner(6000);
+        // --- 2. Atualizar Toast ao finalizar ---
+        if (syncToast) syncToast.remove();
+        
+        if (errors > 0) {
+            console.log(`⚠️ OfflineManager: ${errors} falha(s) tentar sincronizar mais tarde.`);
+            showSyncToast(`<i class="fas fa-exclamation-triangle"></i> Falha ao sincronizar ${errors} relatório(s). O sistema tentará de novo depois.`, 'error', 6000);
         } else {
-            removeSyncBanner();
+            console.log(`✅ OfflineManager: Todos os ${synced} relatórios pendentes foram recebidos pelo servidor.`);
+            showSyncToast(`<i class="fas fa-check-circle"></i> Sincronização offline concluída com sucesso!`, 'success', 5000);
         }
 
         if (synced > 0) {
-            // Notificar página silenciosamente
+            // Notificar página silenciosamente (sem reload)
             window.dispatchEvent(new CustomEvent('elp:reports-synced', {
                 detail: { synced, errors }
             }));
@@ -505,42 +306,12 @@
         return { synced, errors };
     }
 
-    // ============================================================
-    // SYNC AUTOMÁTICO AO CARREGAR PÁGINA (core da resiliência)
-    // ============================================================
-    async function autoSyncOnPageLoad() {
-        await initDB();
-
-        // Verificar se há pendentes
-        const pending = await dbGetAll('pending_sync');
-        const realPending = (pending || []).filter(
-            r => r.status === 'pending' || r.status === 'syncing'
-        );
-
-        if (realPending.length === 0) return;
-
-        console.log(`🔄 OfflineManager [auto]: ${realPending.length} relatório(s) pendente(s) detectado(s)`);
-
+    // Disparar sync ao carregar página quando online
+    window.addEventListener('load', () => {
         if (navigator.onLine) {
-            // Estamos online: sincronizar imediatamente
-            showSyncBanner(
-                `🔄 Sincronizando ${realPending.length} relatório(s) pendente(s)...`,
-                'syncing'
-            );
-            // Pequeno delay para não atrapalhar o carregamento da página
-            setTimeout(async () => {
-                await syncPendingReports();
-                // Após sincronizar, atualizar dados locais
-                await populateFromServer();
-            }, 1500);
-        } else {
-            // Offline: mostrar banner informativo
-            showSyncBanner(
-                `📵 ${realPending.length} relatório(s) aguardando conexão para sincronizar`,
-                'pending'
-            );
+            setTimeout(syncPendingReports, 1000);
         }
-    }
+    });
 
     // ============================================================
     // Interceptação de formulários de relatório offline
@@ -600,7 +371,13 @@
 
     function showOfflineSuccess(offlineId) {
         // Toast de sucesso sem reload
-        showSyncBanner('✅ Relatório salvo localmente! Será sincronizado ao reconectar.', 'pending');
+        const msg = 'Relatório salvo localmente. Será sincronizado quando houver conexão.';
+        if (typeof showToast === 'function') {
+            showToast(msg, 'warning', 6000);
+        } else {
+            console.log('✅ ' + msg);
+            alert(msg);
+        }
 
         // Navegar para lista de relatórios após breve delay
         setTimeout(() => {
@@ -609,8 +386,12 @@
     }
 
     function showOfflineError() {
-        showSyncBanner('❌ Erro ao salvar offline. Tente novamente.', 'error');
-        removeSyncBanner(5000);
+        const msg = 'Erro ao salvar offline. Tente novamente.';
+        if (typeof showToast === 'function') {
+            showToast(msg, 'error', 6000);
+        } else {
+            alert(msg);
+        }
     }
 
     // ============================================================
@@ -626,27 +407,14 @@
             clearTimeout(syncTimer);
             syncTimer = setTimeout(async () => {
                 console.log('🔄 OfflineManager: Iniciando sincronização automática...');
-                const result = await syncPendingReports();
-                if (result.synced > 0) {
-                    await populateFromServer(); // Atualizar dados locais somente após sync com sucesso
-                }
+                await syncPendingReports();
+                await populateFromServer(); // Atualizar dados locais
             }, 3000);
         });
 
         window.addEventListener('offline', () => {
             console.log('📵 OfflineManager: Conexão perdida — modo cache ativo');
             clearTimeout(syncTimer);
-
-            // Checar se tem pendentes e mostrar banner
-            initDB().then(() => dbGetAll('pending_sync')).then(pending => {
-                const realPending = (pending || []).filter(r => r.status !== 'failed');
-                if (realPending.length > 0) {
-                    showSyncBanner(
-                        `📵 Sem conexão. ${realPending.length} relatório(s) serão sincronizados quando reconectar.`,
-                        'pending'
-                    );
-                }
-            });
         });
     }
 
@@ -733,12 +501,20 @@
         const isLoggedIn = window.ELP_USER_LOGGED_IN === true;
         if (!isLoggedIn) return;
 
-        // Removido o timeout de 2h para forçar o cache a ser populado sempre
-        // Isso garante que se o usuário testar offline, o IndexedDB já tem os dados.
-        await initDB();
-        const projects = await dbGetAll('projects');
-        if (projects && projects.length === 0) {
-            console.log('🔥 OfflineManager: IDB vazio, forçando warmup imediato...');
+        // Verificar se já fez warmup recentemente (últimas 2h)
+        const lastWarmup = localStorage.getItem('elp_last_warmup');
+        const TWO_HOURS = 2 * 60 * 60 * 1000;
+
+        // Se fez warmup recentemente, ainda precisamos checar se o IDB está populado
+        if (lastWarmup && (Date.now() - parseInt(lastWarmup)) < TWO_HOURS) {
+            // Acessar banco diretamente para evitar circularidade com ELPOfflineManager
+            await initDB();
+            const projects = await dbGetAll('projects');
+            if (projects && projects.length > 0) {
+                console.log('ℹ️ OfflineManager: Cache ainda recente e populado, warmup ignorado');
+                return;
+            }
+            console.log('🔥 OfflineManager: Cache recente mas IDB vazio, forçando warmup...');
         }
 
         if (!navigator.onLine) {
@@ -781,29 +557,6 @@
     }
 
     // ============================================================
-    // VERIFICAÇÃO PERIÓDICA DE PENDENTES
-    // ============================================================
-    function setupPeriodicCheck() {
-        // A cada 30 segundos, verificar se há pendentes e estamos online
-        setInterval(async () => {
-            if (!navigator.onLine) return;
-            try {
-                await initDB();
-                const pending = await dbGetAll('pending_sync');
-                const realPending = (pending || []).filter(
-                    r => r.status === 'pending'
-                );
-                if (realPending.length > 0) {
-                    console.log(`🔄 OfflineManager [periodic]: ${realPending.length} pendente(s) encontrado(s)`);
-                    await syncPendingReports();
-                }
-            } catch (e) {
-                // Silencioso
-            }
-        }, 30000);
-    }
-
-    // ============================================================
     // API pública
     // ============================================================
     const ELPOfflineManager = {
@@ -816,20 +569,12 @@
             // Registrar SW e disparar warmup após tudo pronto
             await registerServiceWorker();
 
-            // *** CORE DA RESILIÊNCIA ***
-            // Verificar e sincronizar pendentes ao carregar QUALQUER página
-            await autoSyncOnPageLoad();
-
-            // Verificação periódica a cada 30s
-            setupPeriodicCheck();
-
-            // Disparar warmup sem delay longo para garantir que o cache seja populado
-            // antes do usuário acidentalmente (ou de propósito para testar) ficar offline
+            // Pequeno delay para o SW ficar pronto
             setTimeout(async () => {
                 await triggerCacheWarmupIfLoggedIn();
-            }, 50);
+            }, 1000);
 
-            console.log('✅ OfflineManager v2.0: Inicializado com sync resiliente');
+            console.log('✅ OfflineManager: Inicializado completamente');
         },
         savePendingReport,
         syncPendingReports,
@@ -840,8 +585,6 @@
         getLegendas: () => initDB().then(() => dbGetAll('legendas')),
         getChecklist: () => initDB().then(() => dbGetAll('checklist')),
         triggerWarmup: triggerCacheWarmupIfLoggedIn,
-        showSyncBanner,
-        removeSyncBanner,
     };
 
     window.ELPOfflineManager = ELPOfflineManager;
