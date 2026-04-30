@@ -5402,14 +5402,34 @@
         const projetoId = urlParams.get('projeto_id');
         const projetoSelect = document.getElementById('projeto_id');
 
-        if (projetoId && projetoSelect && projetoSelect.value !== projetoId) {
-            projetoSelect.value = projetoId;
-            // Se estiver usando jQuery, acionar evento change para disparar lógicas adicionais
-            if (typeof jQuery !== 'undefined') {
-                $(projetoSelect).trigger('change');
-            } else {
-                projetoSelect.dispatchEvent(new Event('change'));
+        if (projetoId && projetoSelect) {
+            // Se a opção não existe no select (devido a cache stale do SW), criar temporariamente
+            let optionExists = false;
+            for (let i = 0; i < projetoSelect.options.length; i++) {
+                if (projetoSelect.options[i].value === projetoId) {
+                    optionExists = true;
+                    break;
+                }
             }
+            
+            if (!optionExists) {
+                console.log("⚠️ Obra não encontrada no cache local. Criando opção provisória para ID: " + projetoId);
+                const option = new Option(`Obra Selecionada (ID: ${projetoId})`, projetoId, true, true);
+                projetoSelect.add(option);
+            }
+
+            if (projetoSelect.value !== projetoId) {
+                projetoSelect.value = projetoId;
+            }
+            
+            // Acionar evento change para disparar lógicas adicionais (checklist, lembretes, numero)
+            setTimeout(() => {
+                if (typeof jQuery !== 'undefined') {
+                    $(projetoSelect).trigger('change');
+                } else {
+                    projetoSelect.dispatchEvent(new Event('change'));
+                }
+            }, 100);
         }
     });
 </script>
