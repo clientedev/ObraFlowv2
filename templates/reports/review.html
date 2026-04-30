@@ -267,8 +267,8 @@
     </div>
 </div>
 
-<!-- Approval Actions - Only visible to approvers (moved to footer after gallery) -->
-{% if current_user.is_authenticated and (current_user.is_aprovador or current_user.is_master) and relatorio.status == 'Aguardando Aprovação' %}
+<!-- Approval Actions - Only visible to the designated approver for this project -->
+{% if current_user.is_authenticated and user_is_approver and relatorio.status == 'Aguardando Aprovação' %}
 <div class="row mt-4">
     <div class="col-12">
         <div class="card mb-4 shadow-sm border-0">

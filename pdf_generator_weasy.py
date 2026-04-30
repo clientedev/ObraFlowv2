@@ -348,7 +348,7 @@ class WeasyPrintReportGenerator:
             {% else %}
                 <div class="photo-placeholder-first">Foto não disponível</div>
             {% endif %}
-            <div class="first-photo-caption">Foto {{ foto.ordem + 1 }} - {{ foto.legenda }}</div>
+            <div class="first-photo-caption">Foto {{ loop.index }} - {{ foto.legenda }}</div>
         </div>
         {% endfor %}
     </div>
@@ -389,7 +389,7 @@ class WeasyPrintReportGenerator:
                 {% else %}
                     <div class="photo-placeholder-grid">Foto não disponível</div>
                 {% endif %}
-                <div class="grid-photo-caption">Foto {{ foto.ordem + 1 }} - {{ foto.legenda }}</div>
+                <div class="grid-photo-caption">Foto {{ loop.index + 2 + batch_start }} - {{ foto.legenda }}</div>
             </div>
             {% endif %}
             {% endfor %}

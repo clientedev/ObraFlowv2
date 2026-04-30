@@ -3186,15 +3186,33 @@ def autosave_report(report_id):
                             continue
                 
                 elif field == 'lembrete_proxima_visita':
-                    # Converter string ISO para datetime
-                    if value is not None and value != '':
+                    # Converter string ISO para datetime - aceitar vários formatos
+                    if value is not None and value != '' and str(value).strip() != '':
                         try:
                             if isinstance(value, str):
-                                value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                                value = value.strip()
+                                # Tentar ISO completo primeiro (2024-01-15T00:00:00)
+                                try:
+                                    value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                                except (ValueError, AttributeError):
+                                    # Tentar formato de data apenas (2024-01-15 ou 15/01/2024)
+                                    try:
+                                        if len(value) == 10 and '-' in value:
+                                            # Formato YYYY-MM-DD
+                                            value = datetime.strptime(value, '%Y-%m-%d')
+                                        elif len(value) == 10 and '/' in value:
+                                            # Formato DD/MM/YYYY
+                                            value = datetime.strptime(value, '%d/%m/%Y')
+                                        else:
+                                            current_app.logger.warning(f"⚠️ AUTOSAVE: lembrete_proxima_visita formato não reconhecido: '{value}'")
+                                            continue
+                                    except ValueError:
+                                        current_app.logger.warning(f"⚠️ AUTOSAVE: lembrete_proxima_visita valor inválido: '{value}'")
+                                        continue
                             elif not isinstance(value, datetime):
                                 current_app.logger.warning(f"⚠️ AUTOSAVE: lembrete_proxima_visita tipo inválido: {type(value)}")
                                 continue
-                        except (ValueError, AttributeError) as e:
+                        except Exception as e:
                             current_app.logger.warning(f"⚠️ AUTOSAVE: Erro ao converter lembrete_proxima_visita: {e}")
                             continue
                     else:
@@ -3380,11 +3398,19 @@ def create_report():
                     # Get numeracao_inicial from project (default to 1 if not set)
                     numeracao_inicial = getattr(projeto, 'numeracao_inicial', 1) or 1
                     
-                    # Count existing reports for this project
-                    relatorios_count = Relatorio.query.filter_by(projeto_id=projeto_id).count()
+                    # CORREÇÃO CRÍTICA: Usar max(numero_projeto) ao invés de count()
+                    # count() dá resultados errados quando relatórios são excluídos
+                    # max() garante sequencial correto, consistente com api_next_report_number
+                    max_numero_existente = db.session.query(
+                        db.func.max(Relatorio.numero_projeto)
+                    ).filter_by(projeto_id=projeto_id).scalar()
                     
-                    # Calculate next number based on numeracao_inicial + count
-                    proximo_numero = numeracao_inicial + relatorios_count
+                    if max_numero_existente is None:
+                        # Nenhum relatório ainda, usar numeracao_inicial
+                        proximo_numero = numeracao_inicial
+                    else:
+                        # Garantir que nunca fica abaixo do numeracao_inicial e sempre incrementa do max
+                        proximo_numero = max(numeracao_inicial - 1, max_numero_existente) + 1
                     
                     # Double-check this numero doesn't exist (race condition protection)
                     tentativas = 0
@@ -3921,16 +3947,20 @@ def create_report():
             # LÓGICA DE AUTO-BAIXA DA VISITA
             try:
                 hoje = datetime.now().date()
+                # CORREÇÃO: Também considerar a data do relatório (não só hoje)
+                data_rel = relatorio.data_relatorio.date() if relatorio.data_relatorio else hoje
                 visitas_pendentes = Visita.query.filter(
                     Visita.projeto_id == relatorio.projeto_id,
                     Visita.status != 'Realizada',
                     Visita.status != 'Cancelada'
                 ).all()
                 for visita_pend in visitas_pendentes:
-                    if visita_pend.data_inicio and visita_pend.data_inicio.date() == hoje:
-                        visita_pend.status = 'Realizada'
-                        visita_pend.data_realizada = now_brt()
-                        current_app.logger.info(f"✅ Baixa automática na visita {visita_pend.numero} pela geração do relatório {relatorio.numero}")
+                    if visita_pend.data_inicio:
+                        visita_data = visita_pend.data_inicio.date()
+                        if visita_data == hoje or visita_data == data_rel:
+                            visita_pend.status = 'Realizada'
+                            visita_pend.data_realizada = now_brt()
+                            current_app.logger.info(f"✅ Baixa automática na visita {visita_pend.numero} pela geração do relatório {relatorio.numero}")
                 db.session.commit()
             except Exception as v_err:
                 current_app.logger.error(f"❌ Erro ao auto-baixar visita: {v_err}")
@@ -4528,8 +4558,13 @@ def review_report(report_id):
         # Proteger contra JSON malformado no checklist com validação defensiva
         try:
             import json
-            checklist = json.loads(report.checklist_data) if report.checklist_data else {}
-            current_app.logger.info(f"✅ Checklist review carregado: {len(checklist)} itens")
+            checklist_raw = json.loads(report.checklist_data) if report.checklist_data else {}
+            # CORREÇÃO: Suportar tanto dict quanto list
+            if isinstance(checklist_raw, (dict, list)):
+                checklist = checklist_raw
+            else:
+                checklist = {}
+            current_app.logger.info(f"✅ Checklist review carregado: {len(checklist)} itens (tipo: {type(checklist).__name__})")
         except (json.JSONDecodeError, TypeError, AttributeError) as e:
             current_app.logger.exception(f"ERRO JSON REVIEW relatório {report_id}: {str(e)}")
             checklist = {}
@@ -4549,8 +4584,9 @@ def review_report(report_id):
         try:
             # Proteger contra projeto_id None
             projeto_id_safe = getattr(report, 'projeto_id', None) if report else None
-            user_is_approver = current_user_is_aprovador(projeto_id_safe)
-            current_app.logger.info(f"🔐 Usuário {current_user.id} é aprovador: {user_is_approver} (projeto_id={projeto_id_safe})")
+            # CORREÇÃO: Usar aprovador_da_obra (sem bypass de master) para verificação estrita
+            user_is_approver = current_user_is_aprovador_da_obra(projeto_id_safe) if projeto_id_safe else False
+            current_app.logger.info(f"🔐 Usuário {current_user.id} é aprovador DA OBRA: {user_is_approver} (projeto_id={projeto_id_safe})")
         except AttributeError as e:
             current_app.logger.error(f"❌ ATRIBUTO NONE: Erro ao verificar aprovador para relatório {report_id}: {str(e)}")
             user_is_approver = False
@@ -6908,19 +6944,25 @@ def view_report(report_id):
             flash('Acesso negado ao relatório.', 'error')
             return redirect(url_for('reports'))
 
-        # Desserializar checklist com try/except conforme especificação
+        # Desserializar checklist com try/except - SUPORTAR LISTA E DICIONÁRIO
         try:
             import json
             checklist = {}
             if hasattr(report, 'checklist_data') and report.checklist_data:
                 try:
-                    checklist = json.loads(report.checklist_data)
-                    if not isinstance(checklist, dict):
+                    checklist_raw = report.checklist_data
+                    if isinstance(checklist_raw, str):
+                        checklist_raw = json.loads(checklist_raw)
+                    
+                    # CORREÇÃO: Suportar tanto dict quanto list
+                    if isinstance(checklist_raw, (dict, list)):
+                        checklist = checklist_raw
+                    else:
                         checklist = {}
                 except (json.JSONDecodeError, TypeError, AttributeError) as json_error:
                     current_app.logger.error(f"❌ JSON inválido no checklist do relatório {report_id}: {str(json_error)}")
                     checklist = {}
-            current_app.logger.info(f"✅ Checklist carregado: {len(checklist)} itens")
+            current_app.logger.info(f"✅ Checklist carregado: {len(checklist)} itens (tipo: {type(checklist).__name__})")
         except Exception as e:
             current_app.logger.exception(f"ERRO GERAL CHECKLIST relatório {report_id}: {str(e)}")
             checklist = {}
@@ -6933,10 +6975,31 @@ def view_report(report_id):
             current_app.logger.error(f"❌ Erro ao buscar fotos do relatório {report_id}: {str(e)}")
             fotos = []
 
+        # CORREÇÃO CRÍTICA: Processar acompanhantes para exibição
+        acompanhantes_list = []
+        try:
+            import json
+            if hasattr(report, 'acompanhantes') and report.acompanhantes:
+                acomp_data = report.acompanhantes
+                if isinstance(acomp_data, str):
+                    acomp_data = json.loads(acomp_data)
+                if isinstance(acomp_data, list):
+                    for acomp in acomp_data:
+                        if isinstance(acomp, dict):
+                            acompanhantes_list.append(acomp)
+                        elif isinstance(acomp, str):
+                            acompanhantes_list.append({'nome': acomp})
+                current_app.logger.info(f"✅ Acompanhantes carregados: {len(acompanhantes_list)}")
+        except Exception as e:
+            current_app.logger.warning(f"⚠️ Erro ao processar acompanhantes: {str(e)}")
+            acompanhantes_list = []
+
         return render_template('reports/view.html', 
                              report=report,  # Padronizado para 'report' conforme especificação
+                             relatorio=report,  # Compatibilidade com _detalhes_visita.html
                              fotos=fotos,
                              checklist=checklist,
+                             acompanhantes=acompanhantes_list,
                              user_can_edit=user_can_edit,
                              user_can_view=user_can_view)
 
@@ -7431,27 +7494,26 @@ def update_report(report_id):
                     app.logger.warning(f"⚠️ Formato de data inválido: {data_str}")
         if "lembrete_proxima_visita" in data:
             lembrete_val = data.get("lembrete_proxima_visita")
-            if lembrete_val:
+            if lembrete_val and str(lembrete_val).strip():
                 try:
-                    # Tenta converter para data se for string
-                    if isinstance(lembrete_val, str):
-                        # Ignora se for texto genérico (como "TESTE DE NUMERO")
-                        if "TESTE" in lembrete_val.upper() or len(lembrete_val) < 10:
-                            app.logger.warning(f"⚠️ Ignorando lembrete inválido: {lembrete_val}")
-                        else:
-                            # Tenta converter ISO
+                    lembrete_str = str(lembrete_val).strip()
+                    # Tentar ISO completo primeiro (2024-01-15T00:00:00)
+                    try:
+                        relatorio.lembrete_proxima_visita = datetime.fromisoformat(lembrete_str.replace('Z', '+00:00'))
+                    except (ValueError, AttributeError):
+                        # Tentar formato YYYY-MM-DD
+                        try:
+                            relatorio.lembrete_proxima_visita = datetime.strptime(lembrete_str, '%Y-%m-%d')
+                        except ValueError:
+                            # Tentar formato DD/MM/YYYY
                             try:
-                                relatorio.lembrete_proxima_visita = datetime.fromisoformat(lembrete_val.replace('Z', '+00:00'))
+                                relatorio.lembrete_proxima_visita = datetime.strptime(lembrete_str, '%d/%m/%Y')
                             except ValueError:
-                                # Tenta formato YYYY-MM-DD
-                                try:
-                                    relatorio.lembrete_proxima_visita = datetime.strptime(lembrete_val, '%Y-%m-%d')
-                                except ValueError:
-                                    app.logger.warning(f"⚠️ Formato de data inválido para lembrete: {lembrete_val}")
-                    else:
-                        relatorio.lembrete_proxima_visita = lembrete_val
+                                app.logger.warning(f"⚠️ Formato de data inválido para lembrete: {lembrete_str}")
                 except Exception as e:
                     app.logger.error(f"❌ Erro ao processar lembrete_proxima_visita: {e}")
+            else:
+                relatorio.lembrete_proxima_visita = None
 
         # --- SALVAR INFORMAÇÕES TÉCNICAS NO PROJETO ---
         projeto = Projeto.query.get(relatorio.projeto_id)

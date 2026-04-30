@@ -176,11 +176,16 @@
                                      style="height: 200px !important; object-fit: cover !important; width: 100% !important;" 
                                      alt="{{ foto.titulo or 'Foto do relatório' }}">
                                 <div class="card-body p-2">
-                                    {% if foto.titulo %}
+                                    {% if foto.legenda %}
+                                        <h6 class="card-title small mb-1">{{ foto.legenda }}</h6>
+                                    {% elif foto.titulo %}
                                         <h6 class="card-title small mb-1">{{ foto.titulo }}</h6>
                                     {% endif %}
                                     {% if foto.tipo_servico %}
-                                        <span class="badge bg-secondary mb-1">{{ foto.tipo_servico }}</span>
+                                        <span class="badge bg-info mb-1" title="Categoria"><i class="fas fa-tag me-1"></i>{{ foto.tipo_servico }}</span>
+                                    {% endif %}
+                                    {% if foto.local %}
+                                        <span class="badge bg-secondary mb-1" title="Local"><i class="fas fa-map-marker-alt me-1"></i>{{ foto.local }}</span>
                                     {% endif %}
                                     {% if foto.descricao %}
                                         <p class="card-text small text-muted mb-0">{{ foto.descricao }}</p>

@@ -467,10 +467,9 @@
                                     </small>
                                     {% elif next_numero %}
                                     <input type="text" name="numero" id="numero" class="form-control"
-                                        value="{{ next_numero }}" placeholder="REL-0001">
+                                        value="{{ next_numero }}" placeholder="REL-0001" readonly>
                                     <small class="form-text text-muted">
-                                        <i class="fas fa-pencil-alt me-1"></i>Número pré-preenchido automaticamente -
-                                        editável antes de salvar
+                                        <i class="fas fa-lock me-1"></i>Número gerado automaticamente pelo sistema
                                     </small>
                                     {% else %}
                                     <input type="text" name="numero" id="numero" class="form-control"
@@ -1179,7 +1178,7 @@
                 const projeto = projetos.find(p => p.id == projetoId);
                 if (projeto && projeto.next_numero) {
                     numeroInput.value = projeto.next_numero;
-                    numeroInput.readOnly = false;
+                    numeroInput.readOnly = true;
                     console.log(`[Offline] Número do relatório atualizado para: ${projeto.next_numero}`);
                 }
             } catch (error) {
@@ -1200,7 +1199,7 @@
             .then(data => {
                 if (data.success && data.next_numero) {
                     numeroInput.value = data.next_numero;
-                    numeroInput.readOnly = false;
+                    numeroInput.readOnly = true;
                     console.log(`Número do relatório atualizado para: ${data.next_numero}`);
                 }
             })
