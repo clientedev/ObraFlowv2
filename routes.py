@@ -984,6 +984,24 @@ def api_next_report_number(projeto_id):
             'error': f'Erro interno: {str(e)}'
         }), 500
 
+@app.route('/api/projeto/<int:projeto_id>/info')
+@login_required
+def api_projeto_info(projeto_id):
+    """Retorna informações básicas de um projeto pelo ID"""
+    try:
+        projeto = Projeto.query.get(projeto_id)
+        if not projeto:
+            return jsonify({'success': False, 'message': 'Projeto não encontrado'}), 404
+        return jsonify({
+            'success': True,
+            'id': projeto.id,
+            'nome': projeto.nome,
+            'numero': projeto.numero,
+            'status': projeto.status
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/relatorios/ultimo-lembrete')
 @login_required
 def ultimo_lembrete():

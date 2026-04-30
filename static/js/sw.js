@@ -20,7 +20,7 @@ try {
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.20'; // Hide offline_id from UI text
+const SW_VERSION = 'elp-v3.21'; // Force refresh for project selection fix
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];

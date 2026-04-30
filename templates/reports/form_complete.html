@@ -5403,7 +5403,26 @@
         const projetoSelect = document.getElementById('projeto_id');
 
         if (projetoId && projetoSelect) {
-            // Se a opção não existe no select (devido a cache stale do SW), criar temporariamente
+            console.log("🔍 Detectado projeto_id na URL:", projetoId);
+            
+            // Função para forçar a seleção e o carregamento dos dados
+            const forceProjectSelection = (id) => {
+                projetoSelect.value = id;
+                console.log("🚀 Forçando seleção do projeto:", id);
+                
+                // Disparar eventos para carregar checklist, funcionários, número, etc.
+                if (typeof jQuery !== 'undefined' && $(projetoSelect).data('select2')) {
+                    $(projetoSelect).val(id).trigger('change');
+                } else {
+                    projetoSelect.dispatchEvent(new Event('change'));
+                    // Chamar explicitamente as funções críticas para garantir
+                    if (typeof atualizarNumeroRelatorio === 'function') atualizarNumeroRelatorio(id);
+                    if (typeof carregarChecklistObra === 'function') carregarChecklistObra(id);
+                    if (typeof carregarFuncionariosEmails === 'function') carregarFuncionariosEmails();
+                }
+            };
+
+            // Verificar se a opção existe
             let optionExists = false;
             for (let i = 0; i < projetoSelect.options.length; i++) {
                 if (projetoSelect.options[i].value === projetoId) {
@@ -5413,23 +5432,30 @@
             }
             
             if (!optionExists) {
-                console.log("⚠️ Obra não encontrada no cache local. Criando opção provisória para ID: " + projetoId);
-                const option = new Option(`Obra Selecionada (ID: ${projetoId})`, projetoId, true, true);
-                projetoSelect.add(option);
+                console.warn("⚠️ Obra não encontrada no select (cache stale?). Buscando via API...");
+                fetch(`/api/projeto/${projetoId}/info`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log("✅ Dados da obra recuperados:", data.nome);
+                            const newOpt = new Option(`${data.numero || ''} - ${data.nome}`, data.id, true, true);
+                            projetoSelect.add(newOpt);
+                            forceProjectSelection(data.id);
+                        } else {
+                            console.error("❌ Erro ao buscar info da obra:", data.message);
+                        }
+                    })
+                    .catch(err => {
+                        console.error("❌ Erro na requisição de info da obra:", err);
+                        // Fallback: criar opção genérica se a rede falhar
+                        const fallbackOpt = new Option(`Obra ID: ${projetoId}`, projetoId, true, true);
+                        projetoSelect.add(fallbackOpt);
+                        forceProjectSelection(projetoId);
+                    });
+            } else {
+                // Se já existe, apenas seleciona e dispara
+                forceProjectSelection(projetoId);
             }
-
-            if (projetoSelect.value !== projetoId) {
-                projetoSelect.value = projetoId;
-            }
-            
-            // Acionar evento change para disparar lógicas adicionais (checklist, lembretes, numero)
-            setTimeout(() => {
-                if (typeof jQuery !== 'undefined') {
-                    $(projetoSelect).trigger('change');
-                } else {
-                    projetoSelect.dispatchEvent(new Event('change'));
-                }
-            }, 100);
         }
     });
 </script>
