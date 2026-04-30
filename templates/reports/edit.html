@@ -37,6 +37,16 @@
                         </ul>
                     </div>
                     {% endif %}
+                    
+                    {% if current_user.is_master %}
+                    <form action="/reports/delete/{{ relatorio.id }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este relatório? Esta ação não pode ser desfeita.');" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger" title="Excluir Relatório">
+                            <i class="fas fa-trash-alt me-1"></i>Excluir
+                        </button>
+                    </form>
+                    {% endif %}
+
                     <a href="{{ url_for('reports') }}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Voltar
                     </a>

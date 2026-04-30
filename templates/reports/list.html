@@ -20,10 +20,10 @@
                         {% endfor %}
 
                         {% if not ns.found %}
-                        Relatórios de Obra
+                        Relatórios Pendentes
                         {% endif %}
                         {% else %}
-                        Relatórios de Obra
+                        Relatórios Pendentes
                         {% endif %}
                     </h3>
                     <!-- Botão Novo Relatório ocultado conforme solicitação -->
@@ -73,8 +73,7 @@
                                             <option value="">Todos os Status</option>
                                             <option value="preenchimento" {% if status_filter=='preenchimento'
                                                 %}selected{% endif %}>Em preenchimento</option>
-                                            <option value="Aprovado" {% if status_filter=='Aprovado' %}selected{% endif
-                                                %}>Aprovado</option>
+
                                             <option value="Rejeitado" {% if status_filter=='Rejeitado' %}selected{%
                                                 endif %}>Rejeitado</option>
                                             <option value="Aguardando Aprovação" {% if
@@ -223,22 +222,7 @@
                                     </div>
                                 </a>
 
-                                <!-- Botão de Excluir (Absoluto) -->
-                                {% if current_user.is_master %}
-                                <div class="position-absolute bottom-0 end-0 p-3">
-                                    <form action="/reports/delete/{{ report.id }}" method="POST"
-                                        onsubmit="return confirm('Tem certeza que deseja excluir este relatório? Esta ação não pode ser desfeita.');"
-                                        style="display: inline;">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit"
-                                            class="btn btn-sm btn-light text-danger shadow-sm rounded-circle d-flex align-items-center justify-content-center"
-                                            style="width: 32px; height: 32px; border: 1px solid #fee2e2;"
-                                            onclick="event.stopPropagation();" title="Excluir Relatório">
-                                            <i class="fas fa-trash-alt" style="font-size: 0.8rem;"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                                {% endif %}
+
 
                             </div>
                         </div>

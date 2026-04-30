@@ -3020,6 +3020,9 @@ def reports():
             Projeto, Relatorio.projeto_id == Projeto.id
         )
 
+        # Filtrar Aprovados por padrão, conforme solicitado (apenas pendentes)
+        query = query.filter(Relatorio.status != 'Aprovado')
+
         # Aplicar filtro de status se fornecido
         if status_filter:
             from sqlalchemy import or_, func

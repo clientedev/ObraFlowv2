@@ -14,6 +14,15 @@
                 <small class="text-muted d-block d-md-inline">({{ relatorio.numero }})</small>
             </h1>
             <div class="btn-group" role="group">
+                {% if current_user.is_master %}
+                <form action="/reports/delete/{{ relatorio.id }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este relatório? Esta ação não pode ser desfeita.');" style="display: inline;" class="me-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger btn-sm btn-md-normal" title="Excluir Relatório">
+                        <i class="fas fa-trash-alt me-1 me-md-2"></i>Excluir
+                    </button>
+                </form>
+                {% endif %}
+
                 {% if relatorio.status == 'Aprovado' %}
                 <a href="{{ url_for('generate_pdf_report', report_id=relatorio.id) }}" class="btn btn-outline-info btn-sm btn-md-normal" target="_blank">
                     <i class="fas fa-file-pdf me-1 me-md-2"></i><span class="d-none d-sm-inline">Visualizar </span>PDF
