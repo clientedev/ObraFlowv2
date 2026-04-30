@@ -72,7 +72,7 @@ class ProjetoForm(FlaskForm):
     acabamento_peitoris = TextAreaField('Acabamento em peitoris de janela', validators=[Optional()])
     acabamento_muretas = TextAreaField('Acabamento em muretas de terraços', validators=[Optional()])
     definicao_frisos_cor = TextAreaField('Definição sobre frisos de mudança de cor de textura', validators=[Optional()])
-    definicao_face_inferior_abas = TextAreaField('Definição sobre face inferior das abas (friso pingadeira ou cimento invertido)', validators=[Optional()])
+    definicao_face_inferior_abas = TextAreaField('Definição sobre face inferior das abas (friso pingadeira ou caimento invertido)', validators=[Optional()])
     observacoes_projeto_fachada = TextAreaField('Caso haja projeto de fachada, especificar o projetista e fazer observações sobre procedimentos específicos ou divergências de orientações', validators=[Optional()])
     outras_observacoes = TextAreaField('Outras observações', validators=[Optional()])
 

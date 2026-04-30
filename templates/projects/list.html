@@ -35,11 +35,9 @@
                 Obras
                 {% endif %}
             </h1>
-            {% if current_user.is_master %}
             <a href="{{ url_for('project_new') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>Nova Obra
             </a>
-            {% endif %}
         </div>
     </div>
 </div>
@@ -275,14 +273,10 @@
                     {% else %}
                     <i class="fas fa-building fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted">Nenhuma obra cadastrada</h5>
-                    {% if current_user.is_master %}
                     <p class="text-muted">Comece cadastrando a primeira obra.</p>
                     <a href="{{ url_for('project_new') }}" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>Cadastrar Primeira Obra
                     </a>
-                    {% else %}
-                    <p class="text-muted">Nenhuma obra disponível no momento.</p>
-                    {% endif %}
                     {% endif %}
                 </div>
                 {% endif %}

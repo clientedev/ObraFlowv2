@@ -5512,11 +5512,8 @@ def upload_report_photos(report_id):
 @app.route('/projects/new', methods=['GET', 'POST'])
 @login_required
 def project_new():
-    # Only master users can create new projects
-    if not current_user.is_master:
-        flash('Apenas o usuário master pode criar novas obras.', 'danger')
-        return redirect(url_for('projects_list'))
-    
+    # Todos os usuários podem criar obras agora
+    pass
     form = ProjetoForm()
 
     if request.method == 'POST':
