@@ -11250,11 +11250,14 @@ def ensure_project_checklist(project_id):
     items = ChecklistObra.query.filter_by(projeto_id=project_id, ativo=True).all()
     if not items:
         padrao = ChecklistPadrao.query.filter_by(ativo=True).order_by(ChecklistPadrao.ordem).all()
+        user_id = current_user.id if current_user and current_user.is_authenticated else 1
+        
         for p_item in padrao:
             novo_item = ChecklistObra(
                 projeto_id=project_id,
                 texto=p_item.texto,
                 ordem=p_item.ordem,
+                criado_por=user_id,
                 ativo=True
             )
             # Try to populate default fields if the model supports them, otherwise fallback to safe creation
@@ -11268,8 +11271,11 @@ def ensure_project_checklist(project_id):
             db.session.add(novo_item)
         try:
             db.session.commit()
-        except:
+            current_app.logger.info(f"✅ Checklist padrão copiado para o projeto {project_id} com sucesso.")
+        except Exception as e:
             db.session.rollback()
+            current_app.logger.error(f"❌ Erro ao copiar checklist padrão para projeto {project_id}: {str(e)}")
+            
     return ChecklistObra.query.filter_by(projeto_id=project_id, ativo=True).order_by(ChecklistObra.ordem).all()
 
 @app.route("/projects/<int:project_id>/checklist")
