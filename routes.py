@@ -7478,6 +7478,82 @@ def report_edit_complete(report_id):
         app.logger.error(f"❌ Erro ao carregar relatório {report_id}: {e}", exc_info=True)
         return render_template("reports/error_report.html", message=str(e)), 500
 
+@app.route('/api/reports/<int:report_id>/full-data')
+@login_required
+def api_report_full_data(report_id):
+    """Retorna todos os dados de um relatório para hidratação do frontend"""
+    try:
+        relatorio = db.session.get(Relatorio, report_id)
+        if not relatorio:
+            return jsonify({"success": False, "message": "Relatório não encontrado"}), 404
+
+        # Reutilizar lógica de permissão
+        if not can_view_report(current_user, relatorio):
+            return jsonify({"success": False, "message": "Sem permissão"}), 403
+
+        # Serialização simplificada (focada no frontend)
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=report_id).all()
+        
+        # Parse checklist
+        checklist = []
+        if relatorio.checklist_data:
+            import json
+            try:
+                checklist_raw = relatorio.checklist_data
+                if isinstance(checklist_raw, str):
+                    checklist_raw = json.loads(checklist_raw)
+                
+                if isinstance(checklist_raw, list):
+                    for item in checklist_raw:
+                        if isinstance(item, dict):
+                            checklist.append({
+                                "id": item.get("id"),
+                                "texto": item.get("descricao") or item.get("texto", ""),
+                                "checked": bool(item.get("concluido") or item.get("completado", False)),
+                                "imagem_url": item.get("imagem_url", ""),
+                                "observacao": item.get("observacao", "")
+                            })
+            except:
+                pass
+
+        # Parse acompanhantes
+        acompanhantes = []
+        if relatorio.acompanhantes:
+            import json
+            try:
+                acomp_raw = relatorio.acompanhantes
+                if isinstance(acomp_raw, str):
+                    acomp_raw = json.loads(acomp_raw)
+                if isinstance(acomp_raw, list):
+                    acompanhantes = acomp_raw
+            except:
+                pass
+
+        return jsonify({
+            "success": True,
+            "relatorio": {
+                "id": relatorio.id,
+                "numero": relatorio.numero,
+                "titulo": relatorio.titulo,
+                "data_relatorio": relatorio.data_relatorio.strftime("%Y-%m-%d") if relatorio.data_relatorio else "",
+                "projeto_id": relatorio.projeto_id,
+                "observacoes_finais": relatorio.observacoes_finais or relatorio.conteudo,
+                "lembrete_proxima_visita": relatorio.lembrete_proxima_visita.strftime("%Y-%m-%d") if relatorio.lembrete_proxima_visita else ""
+            },
+            "fotos": [{
+                "id": f.id,
+                "url": url_for('api_get_photo', foto_id=f.id),
+                "legenda": f.legenda or f.titulo or "",
+                "categoria": f.tipo_servico or "Geral",
+                "local": f.local or "",
+                "ordem": f.ordem or 0
+            } for f in fotos],
+            "checklist": checklist,
+            "acompanhantes": acompanhantes
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @app.route('/api/reports/<int:report_id>/update', methods=['POST'])
 @csrf.exempt
 @login_required

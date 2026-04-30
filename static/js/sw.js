@@ -166,7 +166,7 @@ self.addEventListener('fetch', (event) => {
         // Formulários de criação/edição: SEMPRE cache-first para garantir acesso offline
         // Estes são acessados como /reports/new?projeto_id=X — a página é a mesma
         // independente do projeto, então cachear uma cópia é suficiente.
-        if (url.pathname.includes('/new') || url.pathname.match(/\/\d+\/edit/)) {
+        if (url.pathname.includes('/new') || url.pathname.match(/\/\d+\/(edit|editarrel)/)) {
             event.respondWith(cacheFirstWithBgRevalidation(request));
         } else if (url.search) {
             // Listas com filtros (ex: /reports?status=aprovado) — precisa rede para filtrar

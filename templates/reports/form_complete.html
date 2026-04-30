@@ -675,7 +675,8 @@
                                         começar.
                                     </p>
                                 </div>
-                                <input type="hidden" id="acompanhantes-data" name="acompanhantes" value="[]">
+                                <input type="hidden" id="acompanhantes-data" name="acompanhantes" 
+                                    value="{{ (report_data.acompanhantes | tojson | safe if report_data and report_data.acompanhantes else '[]') }}">
                             </div>
                         </div>
 
@@ -1168,7 +1169,8 @@
         }
 
         // Em modo de edição, não sobrescrever o número do relatório existente
-        if (window.currentReportId || (typeof EDIT_MODE !== 'undefined' && EDIT_MODE)) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (window.currentReportId || (typeof EDIT_MODE !== 'undefined' && EDIT_MODE) || urlParams.get('edit')) {
             return;
         }
 
@@ -5400,9 +5402,96 @@
     document.addEventListener('DOMContentLoaded', function () {
         const urlParams = new URLSearchParams(window.location.search);
         const projetoId = urlParams.get('projeto_id');
+        const editId = urlParams.get('edit');
         const projetoSelect = document.getElementById('projeto_id');
 
-        if (projetoId && projetoSelect) {
+        // FUNÇÃO DE HIDRATAÇÃO PARA MODO EDIÇÃO (Cache SW Safety Net)
+        if (editId && (typeof EDIT_MODE === 'undefined' || !EDIT_MODE)) {
+            console.log("🛠️ Hidratando formulário para edição do relatório:", editId);
+            fetch(`/api/reports/${editId}/full-data`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const r = data.relatorio;
+                        
+                        // 1. Preencher campos básicos
+                        if (document.getElementById('data_relatorio')) document.getElementById('data_relatorio').value = r.data_relatorio;
+                        if (document.getElementById('numero')) document.getElementById('numero').value = r.numero;
+                        if (document.getElementById('observacoes_gerais')) document.getElementById('observacoes_gerais').value = r.observacoes_finais;
+                        if (document.getElementById('lembrete_proxima_visita')) document.getElementById('lembrete_proxima_visita').value = r.lembrete_proxima_visita;
+                        
+                        // 2. Preencher acompanhantes
+                        const acompField = document.getElementById('acompanhantes-data');
+                        if (acompField) {
+                            const acompList = data.acompanhantes || [];
+                            acompField.value = JSON.stringify(acompList);
+                            if (typeof acompanhantes !== 'undefined') {
+                                acompanhantes = acompList;
+                            }
+                            if (typeof atualizarListaAcompanhantes === 'function') atualizarListaAcompanhantes();
+                        }
+
+                        // 3. Preencher fotos
+                        if (!window.mobilePhotoData) window.mobilePhotoData = [];
+                        data.fotos.forEach(f => {
+                            if (!window.mobilePhotoData.some(p => p.id === f.id)) {
+                                window.mobilePhotoData.push({
+                                    id: f.id,
+                                    savedId: f.id,
+                                    previewUrl: f.url,
+                                    isExisting: true,
+                                    legenda: f.legenda,
+                                    category: f.categoria,
+                                    local: f.local,
+                                    ordem: f.ordem
+                                });
+                            }
+                        });
+                        if (typeof renderMobilePhotos === 'function') renderMobilePhotos();
+
+                        // 4. Selecionar Projeto (isso vai disparar o checklist e funcionários)
+                        if (projetoSelect) {
+                            // Adicionar opção se não existir
+                            if (!Array.from(projetoSelect.options).some(o => o.value == r.projeto_id)) {
+                                projetoSelect.add(new Option(`Obra ID: ${r.projeto_id}`, r.projeto_id, true, true));
+                            }
+                            projetoSelect.value = r.projeto_id;
+                            
+                            // Disparar change para carregar checklist dinâmico
+                            const event = new Event('change');
+                            projetoSelect.dispatchEvent(event);
+                            
+                            // Marcar itens do checklist após o carregamento
+                            setTimeout(() => {
+                                if (data.checklist && data.checklist.length > 0) {
+                                    data.checklist.forEach(item => {
+                                        const cb = document.querySelector(`input[type="checkbox"][data-item-texto="${item.texto}"]`);
+                                        if (cb) {
+                                            cb.checked = item.checked;
+                                            const row = cb.closest('.checklist-item-row');
+                                            if (row) {
+                                                const obs = row.querySelector('textarea');
+                                                if (obs) obs.value = item.observacao || '';
+                                            }
+                                        }
+                                    });
+                                }
+                            }, 1500);
+                        }
+                        
+                        // 5. Configurar modo edição global
+                        window.currentReportId = r.id;
+                        const form = document.getElementById('reportForm');
+                        if (form) form.setAttribute('data-report-id', r.id);
+                        
+                        console.log("✅ Hidratação concluída para ID:", editId);
+                    }
+                })
+                .catch(err => console.error("❌ Erro na hidratação:", err));
+        }
+
+        // LÓGICA DE PROJETO_ID NORMAL (Para novos relatórios)
+        else if (projetoId && projetoSelect) {
             console.log("🔍 Detectado projeto_id na URL:", projetoId);
             
             // Função para forçar a seleção e o carregamento dos dados
