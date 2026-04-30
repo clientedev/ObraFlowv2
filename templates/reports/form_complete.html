@@ -3912,6 +3912,20 @@
 <script>
     // Array para armazenar acompanhantes
     let acompanhantes = [];
+    
+    // Inicializar acompanhantes se houver dados salvos (edição)
+    document.addEventListener('DOMContentLoaded', function() {
+        const acompData = document.getElementById('acompanhantes-data')?.value;
+        if (acompData && acompData !== '[]') {
+            try {
+                acompanhantes = JSON.parse(acompData);
+                console.log('👥 Acompanhantes carregados:', acompanhantes.length);
+                atualizarListaAcompanhantes();
+            } catch (e) {
+                console.error('❌ Erro ao carregar acompanhantes:', e);
+            }
+        }
+    });
 
     // Alternar entre seleção de funcionário e entrada manual
     document.querySelectorAll('input[name="tipo_acompanhante"]').forEach(radio => {
@@ -5181,7 +5195,7 @@
 
 <!-- Checklist da Obra - Sistema Dinâmico -->
 <script>
-    window.currentReportId = {% if relatorio %}{{ relatorio.id }}{% else %}null{% endif %};
+    window.currentReportId = {% if existing_report %}{{ existing_report.id }}{% elif relatorio %}{{ relatorio.id }}{% else %}null{% endif %};
 
     // ============================================================================
     // CHECKLIST DA OBRA - SISTEMA DINÂMICO POR ETAPAS

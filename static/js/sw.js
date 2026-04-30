@@ -20,7 +20,7 @@ try {
  * ============================================================
  */
 
-const SW_VERSION = 'elp-v3.21'; // Force refresh for project selection fix
+const SW_VERSION = 'elp-v3.33'; // Force network-first for edits/params
 const CACHE_CORE = `elp-core-${SW_VERSION}`;      // CSS, JS, fontes, ícones
 const CACHE_OBRAS = `elp-obras-${SW_VERSION}`;     // Páginas HTML de obras/relatórios
 const CACHE_PREFIXES = ['elp-core-', 'elp-obras-'];
@@ -163,14 +163,17 @@ self.addEventListener('fetch', (event) => {
 
     // 2. Módulo obras/relatórios → essencial para offline!
     if (request.mode === 'navigate' && isObrasUrl(url.pathname)) {
-        // Formulários de criação/edição: SEMPRE cache-first para garantir acesso offline
-        // Estes são acessados como /reports/new?projeto_id=X — a página é a mesma
-        // independente do projeto, então cachear uma cópia é suficiente.
+        // Se houver parâmetros na URL (como ?edit= ou ?projeto_id=), PRIORIZAR REDE
+        // para garantir que dados novos/edições sejam carregados corretamente.
+        if (url.search && url.search.length > 1) {
+            console.log(`🌐 Navegação com parâmetros detected: ${url.pathname}${url.search}. Usando NetworkFirst.`);
+            event.respondWith(networkFirstWithCacheFallback(request));
+            return;
+        }
+
+        // Formulários de criação/edição sem parâmetros ou navegação padrão
         if (url.pathname.includes('/new') || url.pathname.match(/\/\d+\/(edit|editarrel)/)) {
             event.respondWith(cacheFirstWithBgRevalidation(request));
-        } else if (url.search) {
-            // Listas com filtros (ex: /reports?status=aprovado) — precisa rede para filtrar
-            event.respondWith(networkFirstWithCacheFallback(request));
         } else {
             event.respondWith(cacheFirstWithBgRevalidation(request));
         }
