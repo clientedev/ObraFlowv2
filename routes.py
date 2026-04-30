@@ -3967,7 +3967,7 @@ def create_report():
             
             # LÓGICA DE AUTO-BAIXA DA VISITA
             try:
-                hoje = datetime.now().date()
+                hoje = now_brt().date()
                 # CORREÇÃO: Também considerar a data do relatório (não só hoje)
                 data_rel = relatorio.data_relatorio.date() if relatorio.data_relatorio else hoje
                 visitas_pendentes = Visita.query.filter(
@@ -4694,7 +4694,7 @@ def approve_report(id):
         
         # Gerar PDF
         obra_nome = sanitize_filename(relatorio.projeto.nome)
-        pdf_filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        pdf_filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{obra_nome}_{now_brt().strftime('%Y%m%d')}.pdf"
         pdf_path = os.path.join('static', 'reports', pdf_filename)
         os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
         
@@ -4991,7 +4991,7 @@ def generate_pdf_report(report_id):
         # Create response for inline viewing
         from flask import Response
         obra_nome = sanitize_filename(relatorio.projeto.nome)
-        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{obra_nome}_{now_brt().strftime('%Y%m%d')}.pdf"
 
         response = Response(
             pdf_data,
@@ -5025,7 +5025,7 @@ def generate_report_pdf_download(id):
         # Create response for download
         from flask import Response
         obra_nome = sanitize_filename(relatorio.projeto.nome)
-        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        filename = f"relatorio_{relatorio.numero.replace('/', '_')}_{obra_nome}_{now_brt().strftime('%Y%m%d')}.pdf"
 
         response = Response(
             pdf_data,
@@ -5059,7 +5059,7 @@ def generate_pdf_report_legacy(id):
         # Create response
         from flask import Response
         obra_nome = sanitize_filename(relatorio.projeto.nome)
-        filename = f"relatorio_legacy_{relatorio.numero.replace('/', '_')}_{obra_nome}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        filename = f"relatorio_legacy_{relatorio.numero.replace('/', '_')}_{obra_nome}_{now_brt().strftime('%Y%m%d')}.pdf"
 
         response = Response(
             pdf_data,
@@ -8557,7 +8557,7 @@ def report_approve(report_id):
         return jsonify({'success': False, 'message': 'Ação inválida.'})
 
     relatorio.aprovador_id = current_user.id
-    relatorio.data_aprovacao = datetime.now()
+    relatorio.data_aprovacao = now_brt()
     relatorio.comentario_aprovacao = comment
 
     db.session.commit()
@@ -10826,7 +10826,7 @@ def relatorio_preview_email(relatorio_id):
     # Preparar dados do preview
     projeto = relatorio.projeto
     data_visita = relatorio.data_visita.strftime('%d/%m/%Y') if relatorio.data_visita else 'N/A'
-    data_atual = datetime.now().strftime('%d/%m/%Y')
+    data_atual = now_brt().strftime('%d/%m/%Y')
 
     assunto = config.template_assunto.format(
         projeto_nome=projeto.nome,
@@ -11718,8 +11718,8 @@ def reports_visits_monthly():
     if request.method == 'POST':
         # Process report generation
         try:
-            mes = int(request.form.get('mes', datetime.now().month))
-            ano = int(request.form.get('ano', datetime.now().year))
+            mes = int(request.form.get('mes', now_brt().month))
+            ano = int(request.form.get('ano', now_brt().year))
             user_id = request.form.get('user_id')
             formato = request.form.get('formato', 'pdf')  # pdf ou excel
             

@@ -11,8 +11,8 @@ import pytz
 BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
 
 def brazil_now():
-    """Return current datetime in Brazil timezone"""
-    return datetime.now(BRAZIL_TZ)
+    """Return current datetime in Brazil timezone (naive for DB storage)"""
+    return datetime.now(BRAZIL_TZ).replace(tzinfo=None)
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -33,7 +33,7 @@ class User(UserMixin, db.Model):
     fcm_token = db.Column(db.Text, nullable=True)  # Token do Firebase Cloud Messaging para push notifications
     reset_token = db.Column(db.String(100), nullable=True, unique=True)  # Token para recuperação de senha
     reset_token_expires = db.Column(db.DateTime, nullable=True)  # Expiração do token de recuperação
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
     
     @property
     def is_aprovador(self):
@@ -63,8 +63,8 @@ class UserEmailConfig(db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     last_test_status = db.Column(db.String(20), default='pending')  # 'pending', 'success', 'error'
     last_test_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=brazil_now)
+    updated_at = db.Column(db.DateTime, nullable=False, default=brazil_now, onupdate=brazil_now)
     
     # Relationship
     user = db.relationship('User', backref='email_config')
@@ -104,8 +104,8 @@ class UserDevice(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     player_id = db.Column(db.String(255), unique=True, nullable=False)
     device_info = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    last_active = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
+    last_active = db.Column(db.DateTime, default=brazil_now, onupdate=brazil_now)
     
     # Relationship
     user = db.relationship('User', backref=db.backref('devices', lazy='dynamic', cascade='all, delete-orphan'))
@@ -122,8 +122,8 @@ class GoogleDriveToken(db.Model):
     encrypted_token = db.Column(db.Text, nullable=False)
     encrypted_refresh_token = db.Column(db.Text, nullable=True)
     token_expiry = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=brazil_now)
+    updated_at = db.Column(db.DateTime, nullable=False, default=brazil_now, onupdate=brazil_now)
     
     user = db.relationship('User', backref='google_drive_token')
     
@@ -188,7 +188,7 @@ class Projeto(db.Model):
     data_previsao_fim = db.Column(db.Date)
     status = db.Column(db.String(50), default='Ativo')
     numeracao_inicial = db.Column(db.Integer, default=1, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
     
     # Informações Técnicas (todos opcionais)
     elementos_construtivos_base = db.Column(db.Text, nullable=True)
@@ -216,8 +216,8 @@ class CategoriaObra(db.Model):
     projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id', ondelete='CASCADE'), nullable=False)
     nome_categoria = db.Column(db.String(100), nullable=False)
     ordem = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
+    updated_at = db.Column(db.DateTime, default=brazil_now, onupdate=brazil_now)
     
     # Relacionamento com Projeto
     projeto = db.relationship('Projeto', backref=db.backref('categorias', lazy='dynamic', order_by='CategoriaObra.ordem'))
@@ -250,7 +250,7 @@ class Contato(db.Model):
     empresa = db.Column(db.String(200))
     cargo = db.Column(db.String(100))
     observacoes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
 
 class ContatoProjeto(db.Model):
     __tablename__ = 'contatos_projetos'
@@ -275,8 +275,8 @@ class EmailCliente(db.Model):
     receber_notificacoes = db.Column(db.Boolean, default=True)
     receber_relatorios = db.Column(db.Boolean, default=True)
     ativo = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
+    updated_at = db.Column(db.DateTime, default=brazil_now, onupdate=brazil_now)
     
     # Relacionamento com Projeto
     projeto = db.relationship('Projeto', backref='emails_clientes')
@@ -295,8 +295,8 @@ class FuncionarioProjeto(db.Model):
     empresa = db.Column(db.String(200))
     is_responsavel_principal = db.Column(db.Boolean, default=False)
     ativo = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
+    updated_at = db.Column(db.DateTime, default=brazil_now, onupdate=brazil_now)
     
     # Relacionamentos
     projeto = db.relationship('Projeto', backref='funcionarios_projetos')
@@ -325,7 +325,7 @@ class Visita(db.Model):
     is_pessoal = db.Column(db.Boolean, default=False)  # Flag para compromissos pessoais - Item 31
     criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Usuário criador - Item 31
     google_event_id = db.Column(db.String(255), nullable=True)  # ID do evento no Google Calendar para evitar duplicação
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
     
     @property
     def projeto(self):
@@ -366,7 +366,7 @@ class VisitaParticipante(db.Model):
     visita_id = db.Column(db.Integer, db.ForeignKey('visitas.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     confirmado = db.Column(db.Boolean, default=False)  # Se o participante confirmou presença
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
     
     # Relacionamentos
     visita = db.relationship('Visita', backref=db.backref('participantes', lazy='dynamic'))
@@ -404,7 +404,7 @@ class Relatorio(db.Model):
     criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Usuário que criou
     atualizado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Último usuário que atualizou
     created_at = db.Column(db.DateTime, default=brazil_now)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=brazil_now, onupdate=brazil_now)
     
     # Composite unique constraint: numero must be unique within each project
     __table_args__ = (db.UniqueConstraint('projeto_id', 'numero', name='uq_relatorios_projeto_numero'),)
@@ -466,7 +466,7 @@ class ComunicacaoVisita(db.Model):
     usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     mensagem = db.Column(db.Text, nullable=False)
     tipo = db.Column(db.String(50), default='Comunicacao')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
     
     @property
     def visita(self):
@@ -508,7 +508,7 @@ class FotoRelatorio(db.Model):
     content_type = db.Column(db.String(100), nullable=True)
     imagem_size = db.Column(db.Integer, nullable=True)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
     
     # Relacionamento
     relatorio = db.relationship('Relatorio', backref=db.backref('imagens', lazy='dynamic', order_by='FotoRelatorio.ordem', cascade='all, delete-orphan'))
@@ -520,7 +520,7 @@ class EnvioRelatorio(db.Model):
     relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=False)
     email_destinatario = db.Column(db.String(120), nullable=False)
     nome_destinatario = db.Column(db.String(200))
-    data_envio = db.Column(db.DateTime, default=datetime.utcnow)
+    data_envio = db.Column(db.DateTime, default=brazil_now)
     status_entrega = db.Column(db.String(50), default='Enviado')
     tentativas = db.Column(db.Integer, default=1)
     erro_envio = db.Column(db.Text)
@@ -544,7 +544,7 @@ class Reembolso(db.Model):
     status = db.Column(db.String(50), default='Pendente')
     aprovado_por = db.Column(db.Integer, db.ForeignKey('users.id'))
     data_aprovacao = db.Column(db.DateTime)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
 
 class LegendaPredefinida(db.Model):
     __tablename__ = 'legendas_predefinidas'
@@ -554,8 +554,8 @@ class LegendaPredefinida(db.Model):
     categoria = db.Column(db.String(100), nullable=False, default='Geral')
     ativo = db.Column(db.Boolean, default=True)
     criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
+    updated_at = db.Column(db.DateTime, default=brazil_now, onupdate=brazil_now)
     
     # Relacionamento
     criador = db.relationship('User', backref='legendas_criadas')
@@ -572,8 +572,8 @@ class AprovadorPadrao(db.Model):
     prioridade = db.Column(db.Integer, default=1)  # 1 = mais alta prioridade
     observacoes = db.Column(db.Text)
     criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
+    updated_at = db.Column(db.DateTime, default=brazil_now, onupdate=brazil_now)
     
     # Relacionamentos
     projeto = db.relationship('Projeto', backref='aprovadores_padrao')
@@ -602,8 +602,8 @@ class ChecklistPadrao(db.Model):
     texto = db.Column(db.String(500), nullable=False)
     ordem = db.Column(db.Integer, default=0)
     ativo = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
+    updated_at = db.Column(db.DateTime, default=brazil_now, onupdate=brazil_now)
     
     def __repr__(self):
         return f'<ChecklistPadrao {self.texto}>'
@@ -621,7 +621,7 @@ class LogEnvioEmail(db.Model):
     assunto = db.Column(db.String(500), nullable=False)
     status = db.Column(db.String(50), nullable=False)  # 'enviado', 'falhou', 'pendente'
     erro_detalhes = db.Column(db.Text)  # Detalhes do erro se houver
-    data_envio = db.Column(db.DateTime, default=datetime.utcnow)
+    data_envio = db.Column(db.DateTime, default=brazil_now)
     
     # Relacionamentos
     projeto = db.relationship('Projeto', backref='logs_envio_email')
@@ -642,7 +642,7 @@ class ConfiguracaoEmail(db.Model):
     email_remetente = db.Column(db.String(255), nullable=False)
     nome_remetente = db.Column(db.String(200), nullable=False)
     ativo = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
     
     # Template padrão para e-mails
     template_assunto = db.Column(db.String(500), default="Relatório do Projeto {projeto_nome} - {data}")
@@ -666,8 +666,8 @@ class ChecklistObra(db.Model):
     ordem = db.Column(db.Integer, default=0)
     ativo = db.Column(db.Boolean, default=True)
     criado_por = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
+    updated_at = db.Column(db.DateTime, default=brazil_now, onupdate=brazil_now)
 
     # Completion tracking — per project stage
     concluido = db.Column(db.Boolean, default=False, nullable=False)
@@ -693,8 +693,8 @@ class ProjetoChecklistConfig(db.Model):
     projeto_id = db.Column(db.Integer, db.ForeignKey("projetos.id"), nullable=False, unique=True)
     tipo_checklist = db.Column(db.String(20), nullable=False, default="padrao")  # "padrao" ou "personalizado"
     criado_por = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
+    updated_at = db.Column(db.DateTime, default=brazil_now, onupdate=brazil_now)
 
     # Relacionamentos
     projeto = db.relationship("Projeto", backref=db.backref("checklist_config", uselist=False))
@@ -719,7 +719,7 @@ class Notificacao(db.Model):
     link_destino = db.Column(db.String(500), nullable=True)
     status = db.Column(db.String(50), default='nao_lida')  # nova, lida, nao_lida
     lida_em = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=brazil_now, nullable=False)
     expires_at = db.Column(db.DateTime, nullable=True)
     email_enviado = db.Column(db.Boolean, default=False)
     email_sucesso = db.Column(db.Boolean, nullable=True)
@@ -778,7 +778,7 @@ class RelatorioExpress(db.Model):
     empresa_telefone = db.Column(db.String(50), nullable=True)
     empresa_email = db.Column(db.String(255), nullable=True)
     empresa_responsavel = db.Column(db.String(200), nullable=True)
-    data_visita = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    data_visita = db.Column(db.Date, nullable=False, default=brazil_now)
     
     # Dados da Obra (inline - não depende de projeto existente)
     obra_nome = db.Column(db.String(200), nullable=True)
@@ -818,7 +818,7 @@ class RelatorioExpress(db.Model):
     criado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     atualizado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=brazil_now)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=brazil_now, onupdate=brazil_now)
     
     # Relacionamentos
     autor = db.relationship('User', foreign_keys=[autor_id], backref='relatorios_express_criados', lazy='select')
@@ -859,7 +859,7 @@ class FotoRelatorioExpress(db.Model):
     content_type = db.Column(db.String(100), nullable=True)
     imagem_size = db.Column(db.Integer, nullable=True)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=brazil_now)
     
     # Relacionamento
     relatorio_express = db.relationship('RelatorioExpress', backref=db.backref('imagens', lazy='dynamic', order_by='FotoRelatorioExpress.ordem', cascade='all, delete-orphan'))
@@ -886,7 +886,7 @@ class Lembrete(db.Model):
     fechado_por_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     
     # Auditoria
-    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    criado_em = db.Column(db.DateTime, default=brazil_now, nullable=False)
     criado_por_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # Relacionamentos

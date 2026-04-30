@@ -12,7 +12,7 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from app import app, db, csrf
+from app import app, db, csrf, now_brt
 from models import Relatorio, FotoRelatorio, Projeto, User
 import traceback # Import traceback for detailed error logging
 import json # Import json for handling JSON data
@@ -297,7 +297,7 @@ def api_criar_relatorio():
                                 if not obra_item.concluido:
                                     obra_item.concluido = True
                                     obra_item.concluido_relatorio_id = novo_relatorio.id
-                                    obra_item.concluido_em = _dt.utcnow()
+                                    obra_item.concluido_em = now_brt()
             except Exception as e:
                 logger.error(f"Erro ao atualizar ChecklistObra na criacao via API: {e}")
 
@@ -602,7 +602,7 @@ def api_atualizar_relatorio(relatorio_id):
                             if not existing_concluido:
                                 obra_item.concluido = True
                                 obra_item.concluido_relatorio_id = relatorio_id
-                                obra_item.concluido_em = _dt.utcnow()
+                                obra_item.concluido_em = now_brt()
                             # If already marked by THIS same report, keep as-is (idempotent)
                         else:
                             # Only unmark if it was THIS report that marked it
@@ -1046,7 +1046,7 @@ def api_autosave_relatorio():
                                     if not obra_item.concluido:
                                         obra_item.concluido = True
                                         obra_item.concluido_relatorio_id = relatorio_id
-                                        obra_item.concluido_em = _dt.utcnow()
+                                        obra_item.concluido_em = now_brt()
                                         print(f"📋 AutoSave CREATE: ChecklistObra item {item_id} marcado como concluído")
                 except Exception as e:
                     logger.error(f"Erro ao salvar ChecklistObra no autosave CREATE: {e}")
@@ -1212,7 +1212,7 @@ def api_autosave_relatorio():
                                 if not obra_item.concluido:
                                     obra_item.concluido = True
                                     obra_item.concluido_relatorio_id = relatorio_id
-                                    obra_item.concluido_em = _dt.utcnow()
+                                    obra_item.concluido_em = now_brt()
                                     print(f"📋 AutoSave UPDATE: ChecklistObra item {item_id} marcado como concluído")
                             else:
                                 # Desmarcar somente se FOI este relatório que marcou

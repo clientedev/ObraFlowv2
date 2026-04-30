@@ -160,7 +160,7 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-12">
                         <p><strong>Tipo de Obra:</strong> {{ project.tipo_obra }}</p>
                         <p><strong>Construtora:</strong> {{ project.construtora }}</p>
                         <p><strong>Responsável:</strong> {{ project.responsavel.nome_completo }}</p>
@@ -188,9 +188,7 @@
                             {% endif %}
                         </p>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Criado em:</strong> {{ project.created_at.strftime('%d/%m/%Y às %H:%M') }}</p>
-                    </div>
+
                 </div>
                 
                 {% if project.endereco %}

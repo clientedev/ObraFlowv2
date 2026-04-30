@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from flask import current_app
 # Import models inside functions to avoid circular imports
 # from models import Notificacao, User, Projeto, Relatorio, FuncionarioProjeto
-from app import db
+from app import db, now_brt
 from onesignal_service import onesignal_service
 
 logger = logging.getLogger(__name__)
@@ -343,7 +343,7 @@ class NotificationService:
             # Prepare notification data
             data = {
                 'tipo': tipo or 'geral',
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': now_brt().isoformat()
             }
             
             # Send via OneSignal
@@ -632,7 +632,7 @@ class NotificationService:
         try:
             from models import Notificacao
             
-            agora = datetime.utcnow()
+            agora = now_brt()
             
             # Buscar notificações expiradas
             notificacoes_expiradas = Notificacao.query.filter(
