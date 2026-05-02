@@ -375,12 +375,17 @@
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="relatoriosDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('reports') }}">Listar Relatórios</a></li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li><a class="dropdown-item" href="{{ url_for('express_reports_list') }}">Listar Express</a>
-                            </li>
+                        </ul>
+                    </li>
 
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="expressDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-bolt"></i> Relatório Express
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="expressDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('new_express_report') }}">Criar novo relatório express</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('express_reports_list') }}">Listar relatórios express</a></li>
                         </ul>
                     </li>
 
