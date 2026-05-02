@@ -154,16 +154,9 @@ class WeasyPrintReportGenerator:
         # Formatar lista de acompanhantes como string
         responsavel_acompanhamento = ', '.join(acompanhantes_nomes) if acompanhantes_nomes else "Não informado"
         
-        # Lógica Simplificada e Robusta (Solicitada pelo Usuário)
-        # Prioridade 1: created_at (Horário de Criação)
-        # fallback: now_brazil (Agora)
-        # NUNCA usar data_relatorio aqui para evitar 00:00
-        
-        c_date = getattr(relatorio, 'created_at', None)
-        final_dt = c_date if c_date else now_brazil
-        
-        # Formatar data
-        date_str = to_brazil_tz(final_dt).strftime('%d/%m/%Y %H:%M')
+        # Formatar data com o exato momento da geração do relatório (Horário do Brasil)
+        final_dt = now_brazil
+        date_str = final_dt.strftime('%d/%m/%Y %H:%M')
 
         data = {
             'titulo': 'Relatório de Visita',
@@ -698,9 +691,9 @@ figure {
     page-break-after: always;
 }
 
-/* Última página NÃO deve quebrar - assinaturas ficam embaixo */
+/* Permite que a última página quebre se não houver espaço para as assinaturas */
 .grid-photos-page.last-batch {
-    page-break-after: avoid;
+    /* page-break-after: avoid; Removido para evitar corte das assinaturas */
 }
 
 .photos-grid-2x2 {
@@ -845,12 +838,12 @@ figure {
     font-weight: bold;
 }
 
-/* ASSINATURAS INLINE - Aparecem após o último grid de fotos, na mesma página */
+/* ASSINATURAS INLINE - Aparecem após o último grid de fotos */
 .assinaturas-inline {
     margin-top: 8mm;
     margin-bottom: 30mm;
     page-break-inside: avoid;
-    page-break-before: avoid;
+    break-inside: avoid;
 }
 
 /* Ajuste de altura da seção de assinaturas para garantir visibilidade */
