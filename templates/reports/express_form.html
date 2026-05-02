@@ -437,227 +437,124 @@
                         </div>
                         {% endif %}
 
-                        <div class="obra-section">
-                            <h5 class="mb-3"><i class="fas fa-building me-2"></i>Dados da Obra</h5>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label" for="obra_nome">Nome da Obra *</label>
-                                    <input type="text" name="obra_nome" id="obra_nome" class="form-control" 
-                                           value="{% if existing_report %}{{ existing_report.obra_nome }}{% endif %}" 
-                                           placeholder="Ex: Edifício Residencial Aurora" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label" for="obra_construtora">Cliente</label>
-                                    <input type="text" name="obra_construtora" id="obra_construtora" class="form-control" 
-                                           value="{% if existing_report %}{{ existing_report.obra_construtora }}{% endif %}"
-                                           placeholder="Nome do cliente">
-                                </div>
-                            </div>
-                            <div class="row">
-                                 <div class="col-md-12 mb-3">
-                                    <label class="form-label" for="obra_endereco">Endereço da Obra</label>
-                                    <div class="input-group">
-                                        <input type="text" name="obra_endereco" id="obra_endereco" class="form-control" 
-                                               value="{% if existing_report %}{{ existing_report.obra_endereco }}{% endif %}"
-                                               placeholder="Rua, número, bairro, cidade">
-                                        <button class="btn btn-outline-secondary" type="button" id="btn-gps" onclick="getLocation()" title="Usar localização atual">
-                                            <i class="fas fa-map-marker-alt"></i> GPS
-                                        </button>
-                                    </div>
-                                    <small id="gps-status" class="form-text text-muted" style="display: none;"></small>
-                                </div>
-                            </div>
-
-                            <!-- Technical Info Collapsible Section -->
-                            <div class="mb-3">
-                                <button class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#technicalInfoCollapse" aria-expanded="false" aria-controls="technicalInfoCollapse">
-                                    <span><i class="fas fa-ruler-combined me-2"></i>Informações Técnicas da Obra</span>
-                                    <i class="fas fa-chevron-down"></i>
-                                </button>
-                                <div class="collapse mt-3" id="technicalInfoCollapse">
-                                    <div class="card card-body bg-light">
-                                        <div class="row g-3">
-                                            <!-- Campo 1 -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">Elementos construtivos da base</label>
-                                                <input type="text" class="form-control technical-field" data-field="elementos_construtivos_base">
-                                            </div>
-
-                                            <!-- Campo 2 -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">Especificação chapisco colante</label>
-                                                <input type="text" class="form-control technical-field" data-field="especificacao_chapisco_colante">
-                                            </div>
-
-                                            <!-- Campo 3 -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">Especificação chapisco da alvenaria</label>
-                                                <input type="text" class="form-control technical-field" data-field="especificacao_chapisco_alvenaria">
-                                            </div>
-
-                                            <!-- Campo 4 -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">Especificação da argamassa de emboço</label>
-                                                <input type="text" class="form-control technical-field" data-field="especificacao_argamassa_emboco">
-                                            </div>
-
-                                            <!-- Campo 5 -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">Forma da aplicação da argamassa de emboço</label>
-                                                <input type="text" class="form-control technical-field" data-field="forma_aplicacao_argamassa">
-                                            </div>
-
-                                            <!-- Campo 6 -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">Acabamentos do revestimento</label>
-                                                <input type="text" class="form-control technical-field" data-field="acabamentos_revestimento">
-                                            </div>
-
-                                            <!-- Campo 7 -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">Acabamento em peitoris de janela</label>
-                                                <input type="text" class="form-control technical-field" data-field="acabamento_peitoris">
-                                            </div>
-
-                                            <!-- Campo 8 -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">Acabamento em muretas de terraços</label>
-                                                <input type="text" class="form-control technical-field" data-field="acabamento_muretas">
-                                            </div>
-
-                                            <!-- Campo 9 -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">Definição sobre frisos de mudança de cor de textura</label>
-                                                <input type="text" class="form-control technical-field" data-field="definicao_frisos_cor">
-                                            </div>
-
-                                            <!-- Campo 10 -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">Definição sobre face inferior das abas (friso pingadeira ou caimento invertido)</label>
-                                                <input type="text" class="form-control technical-field" data-field="definicao_face_inferior_abas">
-                                            </div>
-
-                                            <!-- Campo 11 -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">Caso haja projeto de fachada, especificar o projetista e fazer observações sobre procedimentos específicos ou divergências de orientações</label>
-                                                <textarea class="form-control technical-field" data-field="observacoes_projeto_fachada" rows="2"></textarea>
-                                            </div>
-
-                                            <!-- Campo 12 -->
-                                            <div class="col-12">
-                                                <label class="form-label small fw-bold">Outras observações</label>
-                                                <textarea class="form-control technical-field" data-field="outras_observacoes" rows="2"></textarea>
-                                            </div>
-                                        </div>
-                                        <input type="hidden" name="informacoes_tecnicas" id="informacoes_tecnicas">
-                                    </div>
-                                </div>
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label" for="obra_tipo">Tipo de Obra</label>
-                                    <select name="obra_tipo" id="obra_tipo" class="form-control">
-                                        <option value="">Selecione...</option>
-                                        <option value="Residencial" {% if existing_report and existing_report.obra_tipo == 'Residencial' %}selected{% endif %}>Residencial</option>
-                                        <option value="Comercial" {% if existing_report and existing_report.obra_tipo == 'Comercial' %}selected{% endif %}>Comercial</option>
-                                        <option value="Industrial" {% if existing_report and existing_report.obra_tipo == 'Industrial' %}selected{% endif %}>Industrial</option>
-                                        <option value="Mista" {% if existing_report and existing_report.obra_tipo == 'Mista' %}selected{% endif %}>Mista</option>
-                                        <option value="Reforma" {% if existing_report and existing_report.obra_tipo == 'Reforma' %}selected{% endif %}>Reforma</option>
-                                        <option value="Infraestrutura" {% if existing_report and existing_report.obra_tipo == 'Infraestrutura' %}selected{% endif %}>Infraestrutura</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label" for="obra_responsavel">Responsável</label>
-                                    <input type="text" name="obra_responsavel" id="obra_responsavel" class="form-control" 
-                                           value="{% if existing_report %}{{ existing_report.obra_responsavel }}{% endif %}"
-                                           placeholder="Nome do responsável">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label" for="obra_telefone">Telefone</label>
-                                    <input type="tel" name="obra_telefone" id="obra_telefone" class="form-control" 
-                                           value="{% if existing_report %}{{ existing_report.obra_telefone }}{% endif %}"
-                                           placeholder="(00) 00000-0000">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label" for="obra_email">E-mail de Contato</label>
-                                    <input type="email" name="obra_email" id="obra_email" class="form-control" 
-                                           value="{% if existing_report %}{{ existing_report.obra_email }}{% endif %}"
-                                           placeholder="email@empresa.com">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label" for="data_relatorio">
-                                Data do Relatório *
-                            </label>
-                            <input type="date" name="data_relatorio" id="data_relatorio" class="form-control" value="{{ today }}" required>
-                        </div>
-
+                                                <!-- 1. Título e Número -->
                         <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label" for="titulo">Título do Relatório *</label>
-                                    <input type="text" name="titulo" id="titulo" class="form-control" 
-                                           value="{% if existing_report %}{{ existing_report.titulo }}{% else %}Relatório Express de Visita{% endif %}" required>
-                                </div>
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label class="form-label fw-bold" for="titulo">Título do Relatório *</label>
+                                <input type="text" name="titulo" id="titulo" class="form-control" 
+                                       value="{% if existing_report %}{{ existing_report.titulo }}{% else %}Relatório Express de Visita{% endif %}" required>
                             </div>
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label" for="numero">
-                                        Número do Relatório
-                                        <i class="fas fa-info-circle text-info ms-1" data-bs-toggle="tooltip" 
-                                           title="O número é gerado automaticamente"></i>
-                                    </label>
-                                    {% if existing_report %}
-                                        <input type="text" name="numero" id="numero" class="form-control" 
-                                               value="{{ existing_report.numero }}" readonly>
-                                        <small class="form-text text-muted">
-                                            <i class="fas fa-lock me-1"></i>O número não pode ser alterado após a criação
-                                        </small>
-                                    {% else %}
-                                        <input type="text" name="numero" id="numero" class="form-control" 
-                                               value="{{ next_numero }}" placeholder="EXP-0001">
-                                        <small class="form-text text-muted">
-                                            <i class="fas fa-pencil-alt me-1"></i>Número pré-preenchido automaticamente
-                                        </small>
-                                    {% endif %}
-                                </div>
+                                <label class="form-label fw-bold" for="numero">
+                                    Número do Relatório
+                                    <i class="fas fa-info-circle text-info ms-1" data-bs-toggle="tooltip" 
+                                       title="O número é gerado automaticamente"></i>
+                                </label>
+                                {% if existing_report %}
+                                    <input type="text" name="numero" id="numero" class="form-control bg-light" 
+                                           value="{{ existing_report.numero }}" readonly>
+                                {% else %}
+                                    <input type="text" name="numero" id="numero" class="form-control bg-light" 
+                                           value="{{ next_numero }}" placeholder="EXP-0001" readonly>
+                                {% endif %}
                             </div>
                         </div>
 
+                        <!-- 3. Data -->
                         <div class="row mb-4">
                             <div class="col-12">
-                                <div class="card">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-user-friends me-2"></i>Funcionários da Visita
-                                        </h6>
-                                        <button type="button" class="btn btn-sm btn-primary" onclick="abrirModalAcompanhantesExpress()">
-                                            <i class="fas fa-plus me-1"></i>Adicionar
-                                        </button>
+                                <label class="form-label fw-bold" for="data_relatorio">Data do Relatório *</label>
+                                <input type="date" name="data_relatorio" id="data_relatorio" class="form-control" value="{{ today }}" required>
+                            </div>
+                        </div>
+
+                        <!-- 4. Cliente e 5. Nome da Obra -->
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label class="form-label fw-bold" for="obra_construtora">Cliente</label>
+                                <input type="text" name="obra_construtora" id="obra_construtora" class="form-control" 
+                                       value="{% if existing_report %}{{ existing_report.obra_construtora }}{% endif %}"
+                                       placeholder="Nome do cliente">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold" for="obra_nome">Nome da Obra *</label>
+                                <input type="text" name="obra_nome" id="obra_nome" class="form-control" 
+                                       value="{% if existing_report %}{{ existing_report.obra_nome }}{% endif %}" 
+                                       placeholder="Ex: Edifício Residencial Aurora" required>
+                            </div>
+                        </div>
+
+                        <!-- 6. Endereço - Gps -->
+                        <div class="row mb-4">
+                             <div class="col-md-12">
+                                <label class="form-label fw-bold" for="obra_endereco">Endereço da Obra</label>
+                                <div class="input-group">
+                                    <input type="text" name="obra_endereco" id="obra_endereco" class="form-control" 
+                                           value="{% if existing_report %}{{ existing_report.obra_endereco }}{% endif %}"
+                                           placeholder="Rua, número, bairro, cidade">
+                                    <button class="btn btn-outline-primary fw-bold" type="button" id="btn-gps" onclick="getLocation()" title="Usar localização atual">
+                                        <i class="fas fa-map-marker-alt"></i> GPS
+                                    </button>
+                                </div>
+                                <small id="gps-status" class="form-text text-muted" style="display: none;"></small>
+                            </div>
+                        </div>
+
+                        <!-- 7. Funcionário da visita -->
+                        <div class="card mb-4 border-primary shadow-sm">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 text-white">
+                                    <i class="fas fa-user-friends me-2"></i>Funcionários da Visita
+                                </h6>
+                                <button type="button" class="btn btn-sm btn-light text-primary fw-bold" onclick="abrirModalAcompanhantesExpress()">
+                                    <i class="fas fa-plus me-1"></i>Adicionar
+                                </button>
+                            </div>
+                            <div class="card-body p-3">
+                                <div id="lista-acompanhantes">
+                                    <p class="text-muted text-center py-2 mb-0">
+                                        <i class="fas fa-info-circle me-1"></i> Nenhum funcionário adicionado ainda.
+                                    </p>
+                                </div>
+                                <input type="hidden" id="acompanhantes-data" name="acompanhantes" value="[]">
+                            </div>
+                        </div>
+
+                        <!-- 8. Informações técnicas (botão precisa ser mais visível) -->
+                        <div class="mb-4">
+                            <button class="btn btn-primary btn-lg w-100 text-start d-flex justify-content-between align-items-center shadow" type="button" data-bs-toggle="collapse" data-bs-target="#technicalInfoCollapse" aria-expanded="false" aria-controls="technicalInfoCollapse">
+                                <span class="fw-bold"><i class="fas fa-ruler-combined me-2"></i>Informações Técnicas da Obra</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="collapse mt-3" id="technicalInfoCollapse">
+                                <div class="card card-body bg-light shadow-sm border-0">
+                                    <div class="row g-3">
+                                        <div class="col-12"><label class="form-label small fw-bold">Elementos construtivos da base</label><input type="text" class="form-control technical-field" data-field="elementos_construtivos_base"></div>
+                                        <div class="col-12"><label class="form-label small fw-bold">Especificação chapisco colante</label><input type="text" class="form-control technical-field" data-field="especificacao_chapisco_colante"></div>
+                                        <div class="col-12"><label class="form-label small fw-bold">Especificação chapisco da alvenaria</label><input type="text" class="form-control technical-field" data-field="especificacao_chapisco_alvenaria"></div>
+                                        <div class="col-12"><label class="form-label small fw-bold">Especificação da argamassa de emboço</label><input type="text" class="form-control technical-field" data-field="especificacao_argamassa_emboco"></div>
+                                        <div class="col-12"><label class="form-label small fw-bold">Forma da aplicação da argamassa de emboço</label><input type="text" class="form-control technical-field" data-field="forma_aplicacao_argamassa"></div>
+                                        <div class="col-12"><label class="form-label small fw-bold">Acabamentos do revestimento</label><input type="text" class="form-control technical-field" data-field="acabamentos_revestimento"></div>
+                                        <div class="col-12"><label class="form-label small fw-bold">Acabamento em peitoris de janela</label><input type="text" class="form-control technical-field" data-field="acabamento_peitoris"></div>
+                                        <div class="col-12"><label class="form-label small fw-bold">Acabamento em muretas de terraços</label><input type="text" class="form-control technical-field" data-field="acabamento_muretas"></div>
+                                        <div class="col-12"><label class="form-label small fw-bold">Definição sobre frisos de mudança de cor de textura</label><input type="text" class="form-control technical-field" data-field="definicao_frisos_cor"></div>
+                                        <div class="col-12"><label class="form-label small fw-bold">Definição sobre face inferior das abas (friso pingadeira ou caimento invertido)</label><input type="text" class="form-control technical-field" data-field="definicao_face_inferior_abas"></div>
+                                        <div class="col-12"><label class="form-label small fw-bold">Caso haja projeto de fachada, especificar o projetista e fazer observações sobre procedimentos específicos ou divergências de orientações</label><textarea class="form-control technical-field" data-field="observacoes_projeto_fachada" rows="2"></textarea></div>
+                                        <div class="col-12"><label class="form-label small fw-bold">Outras observações</label><textarea class="form-control technical-field" data-field="outras_observacoes" rows="2"></textarea></div>
                                     </div>
-                                    <div class="card-body">
-                                        <div id="lista-acompanhantes">
-                                            <p class="text-muted text-center py-3">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                Nenhum funcionário adicionado ainda.
-                                            </p>
-                                        </div>
-                                        <input type="hidden" id="acompanhantes-data" name="acompanhantes" value="[]">
-                                    </div>
+                                    <input type="hidden" name="informacoes_tecnicas" id="informacoes_tecnicas">
                                 </div>
                             </div>
                         </div>
 
+                        <!-- 9. Checklist (botão precisa ser mais visível) -->
                         <div class="mb-4">
-                            <button class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#checklistCollapse" aria-expanded="false" aria-controls="checklistCollapse">
-                                <span><i class="fas fa-tasks me-2"></i>Checklist da Obra</span>
+                            <button class="btn btn-info btn-lg w-100 text-start d-flex justify-content-between align-items-center shadow text-white" type="button" data-bs-toggle="collapse" data-bs-target="#checklistCollapse" aria-expanded="false" aria-controls="checklistCollapse" style="background-color: #17a2b8; border-color: #17a2b8;">
+                                <span class="fw-bold"><i class="fas fa-tasks me-2"></i>Checklist da Obra</span>
                                 <i class="fas fa-chevron-down"></i>
                             </button>
                             <div class="collapse mt-3" id="checklistCollapse">
-                                <div class="card card-body bg-light">
+                                <div class="card card-body bg-light shadow-sm border-0">
                                     <div id="checklistItems">
                                         {% if checklist_items %}
                                             {% for item in checklist_items %}
@@ -679,31 +576,33 @@
                                     </div>
 
                                     <div class="text-center mt-3">
-                                        <button type="button" class="btn btn-outline-primary" onclick="addCustomChecklistItem()">
-                                            <i class="fas fa-plus"></i> Adicionar Item Personalizado
+                                        <button type="button" class="btn btn-outline-info fw-bold" onclick="addCustomChecklistItem()">
+                                            <i class="fas fa-plus me-1"></i> Adicionar Item Personalizado
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
+                        <!-- 10. Observações Gerais -->
                         <div class="mb-4">
-                            <label class="form-label" for="conteudo">Observações Gerais</label>
+                            <label class="form-label fw-bold" for="conteudo"><i class="fas fa-edit me-2 text-secondary"></i>Observações Gerais</label>
                             <textarea class="form-control" name="conteudo" id="conteudo" rows="4" 
                                     placeholder="Descreva detalhes gerais da visita, pontos importantes, etc.">{% if existing_report and existing_report.conteudo %}{{ existing_report.conteudo }}{% endif %}</textarea>
                         </div>
 
+                        <!-- 11. Fotos -->
                         <div class="mb-4">
-                            <h5><i class="fas fa-camera"></i> Fotos (Até 200 fotos) <span id="photoCount" class="badge bg-primary ms-2">0</span></h5>
+                            <h5 class="fw-bold"><i class="fas fa-camera text-primary me-2"></i>Fotos (Até 200 fotos) <span id="photoCount" class="badge bg-primary ms-2">0</span></h5>
 
-                            <div class="fixed-photo-buttons sticky-top bg-white p-3 mb-3 border rounded" style="z-index: 10;">
+                            <div class="fixed-photo-buttons sticky-top bg-white p-3 mb-3 border rounded shadow-sm" style="z-index: 10;">
                                 <div class="row g-2">
                                     <div class="col-6">
                                         <button type="button" class="btn btn-outline-primary w-100 mobile-photo-btn" 
                                                 id="mobileCameraBtn" onclick="mobileCaptureFromCamera()" style="min-height: 56px;">
                                             <div class="d-flex flex-column align-items-center">
                                                 <i class="fas fa-camera fa-lg mb-1"></i>
-                                                <small>Câmera</small>
+                                                <small class="fw-bold">Câmera</small>
                                             </div>
                                         </button>
                                     </div>
@@ -712,7 +611,7 @@
                                                 id="mobileGalleryBtn" onclick="mobileSelectFromGallery()" style="min-height: 56px;">
                                             <div class="d-flex flex-column align-items-center">
                                                 <i class="fas fa-images fa-lg mb-1"></i>
-                                                <small>Galeria</small>
+                                                <small class="fw-bold">Galeria</small>
                                             </div>
                                         </button>
                                     </div>
@@ -728,10 +627,10 @@
 
                             <div id="quickPhotoActions" class="text-center mt-3 p-3 bg-light rounded" style="display: none;">
                                 <div class="d-flex justify-content-center gap-2 flex-wrap">
-                                    <button type="button" class="btn btn-success" onclick="mobileCaptureFromCamera()" style="min-height: 48px; border-radius: 24px;">
+                                    <button type="button" class="btn btn-success fw-bold shadow-sm" onclick="mobileCaptureFromCamera()" style="min-height: 48px; border-radius: 24px;">
                                         <i class="fas fa-camera me-2"></i>Adicionar da Câmera
                                     </button>
-                                    <button type="button" class="btn btn-outline-success" onclick="mobileSelectFromGallery()" style="min-height: 48px; border-radius: 24px;">
+                                    <button type="button" class="btn btn-outline-success fw-bold bg-white shadow-sm" onclick="mobileSelectFromGallery()" style="min-height: 48px; border-radius: 24px;">
                                         <i class="fas fa-images me-2"></i>Adicionar da Galeria
                                     </button>
                                 </div>
@@ -741,21 +640,22 @@
                             <div id="photoPreview" class="row" style="display: none;"></div>
                         </div>
 
-                        <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('express_reports_list') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times"></i> Cancelar
-                            </a>
-                            <div class="btn-group">
+                        <!-- Botões (Salvar de um lado, Enviar do outro) -->
+                        <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                            <div class="d-flex w-100 justify-content-between gap-3">
                                 {% if existing_report and existing_report.status == 'Aguardando Aprovação' %}
-                                <button type="button" id="btnSaveDraft" class="btn btn-primary" onclick="saveExpressDraft()">
-                                    <i class="fas fa-save"></i> Salvar
+                                <a href="{{ url_for('express_reports_list') }}" class="btn btn-outline-secondary w-50 fw-bold py-2 shadow-sm bg-white">
+                                    <i class="fas fa-arrow-left me-1"></i> Cancelar
+                                </a>
+                                <button type="button" id="btnSaveDraft" class="btn btn-primary w-50 fw-bold py-2 shadow-sm" onclick="saveExpressDraft()">
+                                    <i class="fas fa-save me-1"></i> Salvar
                                 </button>
                                 {% else %}
-                                <button type="button" id="btnSaveDraft" class="btn btn-outline-primary" onclick="saveExpressDraft()">
-                                    <i class="fas fa-save"></i> Salvar Rascunho
+                                <button type="button" id="btnSaveDraft" class="btn btn-outline-primary w-50 fw-bold py-2 shadow-sm bg-white" onclick="saveExpressDraft()">
+                                    <i class="fas fa-save me-1"></i> Salvar Rascunho
                                 </button>
-                                <button type="button" id="btnSubmitApproval" class="btn btn-success" onclick="submitExpressForApproval()">
-                                    <i class="fas fa-paper-plane"></i> Enviar para Aprovação
+                                <button type="button" id="btnSubmitApproval" class="btn btn-success w-50 fw-bold py-2 shadow-sm" onclick="submitExpressForApproval()">
+                                    <i class="fas fa-paper-plane me-1"></i> Enviar Aprovação
                                 </button>
                                 {% endif %}
                             </div>
