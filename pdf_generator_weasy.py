@@ -455,14 +455,14 @@ class WeasyPrintReportGenerator:
         return """
 @page {
     size: A4;
-    margin: 20mm 15mm 30mm 15mm;
+    margin: 20mm 15mm 45mm 15mm;
     
     @bottom-center {
         content: "Página " counter(page) " / " counter(pages);
         font-family: Arial, Helvetica, sans-serif;
         font-size: 9pt;
         color: #666666;
-        margin-bottom: 5mm;
+        margin-bottom: 2mm;
     }
 }
 
