@@ -1614,6 +1614,21 @@ def marcar_todas_notificacoes_lidas():
         current_app.logger.error(f"❌ Erro ao marcar todas as notificações como lidas: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/notificacoes/limpar', methods=['POST'])
+@login_required
+def limpar_todas_notificacoes():
+    """Limpar (deletar) todas as notificações do usuário"""
+    try:
+        from notification_service import notification_service
+        
+        resultado = notification_service.limpar_todas_notificacoes(current_user.id)
+        
+        return jsonify(resultado)
+    
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao limpar todas as notificações: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/notificacoes/salvar-token', methods=['POST'])
 @login_required
 def salvar_fcm_token():

@@ -424,6 +424,33 @@ class NotificationService:
             db.session.rollback()
             logger.error(f"❌ Erro ao marcar todas como lidas: {e}")
             return {'success': False, 'error': str(e)}
+            
+    def limpar_todas_notificacoes(self, user_id):
+        """
+        Remove todas as notificações de um usuário
+        
+        Args:
+            user_id: ID do usuário
+        """
+        try:
+            from models import Notificacao
+            
+            notificacoes = Notificacao.query.filter_by(user_id=user_id).all()
+            
+            count = 0
+            for notificacao in notificacoes:
+                db.session.delete(notificacao)
+                count += 1
+            
+            db.session.commit()
+            logger.info(f"🧹 {count} notificações deletadas para usuário {user_id}")
+            
+            return {'success': True, 'count': count}
+        
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"❌ Erro ao limpar todas as notificações: {e}")
+            return {'success': False, 'error': str(e)}
     
     def listar_notificacoes(self, user_id, apenas_nao_lidas=False, limit=50):
         """

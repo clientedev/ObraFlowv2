@@ -9,6 +9,7 @@ class NotificationsManager {
         this.notificationsList = null;
         this.unreadCountSpan = null;
         this.markAllReadBtn = null;
+        this.clearNotificationsBtn = null;
         this.refreshInterval = null;
         this.offcanvasInstance = null;
         
@@ -25,6 +26,7 @@ class NotificationsManager {
             this.notificationsList = document.getElementById('notificationsList');
             this.unreadCountSpan = document.getElementById('unreadCount');
             this.markAllReadBtn = document.getElementById('markAllReadBtn');
+            this.clearNotificationsBtn = document.getElementById('clearNotificationsBtn');
             
             // Desktop bell
             if (this.bell) {
@@ -51,6 +53,14 @@ class NotificationsManager {
             if (this.markAllReadBtn) {
                 this.markAllReadBtn.addEventListener('click', () => {
                     this.markAllAsRead();
+                });
+            }
+            
+            if (this.clearNotificationsBtn) {
+                this.clearNotificationsBtn.addEventListener('click', () => {
+                    if (confirm('Tem certeza que deseja limpar todas as notificações? Esta ação não pode ser desfeita.')) {
+                        this.clearAllNotifications();
+                    }
                 });
             }
             
@@ -243,6 +253,27 @@ class NotificationsManager {
             }
         } catch (error) {
             console.error('❌ Erro ao marcar todas como lidas:', error);
+        }
+    }
+    
+    async clearAllNotifications() {
+        try {
+            const response = await fetch('/api/notificacoes/limpar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCsrfToken()
+                }
+            });
+            
+            if (response.ok) {
+                this.notificacoes = [];
+                this.renderizarNotificacoes();
+                this.atualizarContador(0);
+                console.log('✅ Todas as notificações foram apagadas');
+            }
+        } catch (error) {
+            console.error('❌ Erro ao limpar notificações:', error);
         }
     }
     
