@@ -458,11 +458,16 @@ class WeasyPrintReportGenerator:
     margin: 20mm 15mm 45mm 15mm;
     
     @bottom-center {
+        content: element(footer);
+    }
+    
+    @bottom-right {
         content: "Página " counter(page) " / " counter(pages);
         font-family: Arial, Helvetica, sans-serif;
         font-size: 9pt;
         color: #666666;
-        margin-bottom: 2mm;
+        margin-bottom: 5mm;
+        padding-right: 5mm;
     }
 }
 
@@ -571,16 +576,18 @@ body {
 /* Dados Gerais - Tabela */
 .dados-table {
     width: 100%;
+    display: table;
     border-collapse: collapse;
 }
 
 .dados-row {
-    display: flex;
+    display: table-row;
     width: 100%;
 }
 
 .dados-cell {
-    flex: 1;
+    display: table-cell;
+    width: 33.33%;
     padding: 6px 10px;
     border-right: 1px solid #d0d0d0;
     vertical-align: top;
@@ -746,16 +753,18 @@ figure {
 /* Assinaturas - Tabela */
 .assinaturas-table {
     width: 100%;
+    display: table;
     border-collapse: collapse;
 }
 
 .assin-row {
-    display: flex;
+    display: table-row;
     width: 100%;
 }
 
 .assin-cell {
-    flex: 1;
+    display: table-cell;
+    width: 33.33%;
     padding: 6px 10px;
     border-right: 1px solid #d0d0d0;
     vertical-align: top;
@@ -782,15 +791,13 @@ figure {
 
 /* Rodapé - proporções exatas da imagem */
 .footer-section {
-    position: fixed;
-    bottom: 10mm;
-    left: 0;
-    right: 0;
-    padding: 0.8cm 1.5cm 0.5cm 1.5cm;
+    position: running(footer);
+    width: 100%;
+    padding: 0cm 0cm 0cm 0cm;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    background: white;
+    background: transparent;
     border-top: 1px solid #e0e0e0;
 }
 
