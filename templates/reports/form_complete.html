@@ -1481,6 +1481,11 @@
             });
 
             loadPredefinedCaptionsForPhoto(photoId, category);
+            
+            // Tentar inicializar o relatório se ainda não foi criado (uma foto é uma ação significativa)
+            if (typeof tryInitializeAutoSave === 'function') {
+                tryInitializeAutoSave();
+            }
         };
         reader.readAsDataURL(file);
     }
@@ -2505,12 +2510,40 @@
 
             const titulo = document.getElementById('titulo').value;
             const projetoId = document.getElementById('projeto_id').value;
+            
+            // Novos critérios para evitar relatórios vazios:
+            // Só inicializa se houver projeto E (título alterado OU conteúdo presente OU fotos presentes OU checklist marcado)
+            const conteudo = document.getElementById('conteudo')?.value || '';
+            const outrasObs = document.getElementById('outras_observacoes')?.value || '';
+            const techObs = document.getElementById('observacoes_projeto_fachada')?.value || '';
+            const defaultTitle = "Relatório de visita";
+            
+            const hasRealTitle = titulo && titulo.trim() !== "" && titulo !== defaultTitle;
+            const hasContent = (conteudo && conteudo.trim() !== "") || (outrasObs && outrasObs.trim() !== "") || (techObs && techObs.trim() !== "");
+            const hasPhotos = (window.mobilePhotoData && window.mobilePhotoData.length > 0) || (selectedPhotos && selectedPhotos.length > 0);
+            const hasChecklist = window._checklistItemsData && window._checklistItemsData.some(i => i.concluido);
+            
+            // Se já tem report_id (modo edição), inicializar sempre
+            const isEditMode = !!document.querySelector('input[name="edit_report_id"]')?.value || !!window.currentReportId;
 
-            if (titulo && projetoId) {
-                console.log('📝 Dados básicos preenchidos, criando relatório inicial...');
+            if (projetoId && (hasRealTitle || hasContent || hasPhotos || hasChecklist || isEditMode)) {
+                console.log('📝 Dados detectados, criando relatório inicial ou ativando autosave...');
 
-                // Criar relatório inicial
+                // Se já temos um ID (modo edição ou já criado nesta sessão), apenas inicializar o objeto AutoSave
+                if (window.currentReportId || isEditMode) {
+                    const reportId = window.currentReportId || document.querySelector('input[name="edit_report_id"]').value;
+                    if (typeof initAutoSave === 'function') {
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                        window.autoSaveInstance = initAutoSave(reportId, csrfToken);
+                        autoSaveInitialized = true;
+                        console.log('✅ Auto save re-ativado para relatório existente:', reportId);
+                    }
+                    return;
+                }
+
+                // Criar relatório inicial (Modo Criação)
                 createInitialReport().then(reportId => {
+                    if (!reportId) return;
                     window.currentReportId = reportId;
 
                     // Adicionar data-report-id ao formulário para autosave funcionar
@@ -2526,7 +2559,11 @@
                         window.autoSaveInstance = initAutoSave(reportId, csrfToken);
 
                         autoSaveInitialized = true;
-                        console.log('✅ Auto save ativado para relatório', reportId);
+                        console.log('✅ Auto save ativado para novo relatório:', reportId);
+                        
+                        // Opcional: Atualizar a URL sem recarregar para modo de edição
+                        const newUrl = window.location.pathname + '?edit=' + reportId + (projetoId ? '&projeto_id=' + projetoId : '');
+                        window.history.replaceState({ path: newUrl }, '', newUrl);
                     } else {
                         console.error('❌ Função initAutoSave não encontrada');
                     }
@@ -2536,19 +2573,40 @@
             }
         }
 
-        // Observar mudanças nos campos básicos
+        // Observar mudanças nos campos básicos e de conteúdo
         const tituloField = document.getElementById('titulo');
         const projetoField = document.getElementById('projeto_id');
+        const conteudoField = document.getElementById('conteudo');
+        const outrasObsField = document.getElementById('outras_observacoes');
+        const techObsField = document.getElementById('observacoes_projeto_fachada');
 
         if (tituloField) {
             tituloField.addEventListener('blur', tryInitializeAutoSave);
+            tituloField.addEventListener('input', function() {
+                if (this.value !== "Relatório de visita") tryInitializeAutoSave();
+            });
         }
+
+        [conteudoField, outrasObsField, techObsField].forEach(field => {
+            if (field) {
+                field.addEventListener('input', tryInitializeAutoSave);
+                field.addEventListener('blur', tryInitializeAutoSave);
+            }
+        });
 
         if (projetoField) {
             projetoField.addEventListener('change', function () {
                 // Atualizar backup hidden se existir
                 const backup = document.getElementById('projeto_id_backup');
                 if (backup) backup.value = this.value;
+                
+                // Ao mudar projeto, recarregar checklist etc.
+                // Não inicializar autosave imediatamente a menos que já tenha conteúdo
+                if (autoSaveInitialized) {
+                    // Se já estava inicializado, talvez precise resetar ou atualizar
+                    console.log('🔄 Projeto alterado com AutoSave já ativo');
+                }
+                
                 tryInitializeAutoSave();
             });
         }
@@ -5331,6 +5389,11 @@
         const entry = window._checklistItemsData.find(e => e.id === itemId);
         if (entry) {
             entry.concluido = isChecked;
+        }
+
+        // Tentar inicializar o relatório se ainda não foi criado
+        if (typeof tryInitializeAutoSave === 'function') {
+            tryInitializeAutoSave();
         }
 
         // Update row styling for immediate feedback

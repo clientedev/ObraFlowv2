@@ -10112,8 +10112,8 @@ def api_get_project_checklist(project_id):
                 if concluido and concluido_rel_id and concluido_rel_id != relatorio_id:
                     continue
             else:
-                # Creating a NEW report: hide items already completed by any report
-                if concluido and concluido_rel_id:
+                # Creating a NEW report: hide ALL items already completed (even if rel_id is null)
+                if concluido:
                     continue
             
             # Build completion info
@@ -10138,7 +10138,7 @@ def api_get_project_checklist(project_id):
                 'concluido_relatorio_id': concluido_rel_id,
                 'concluido_em': concluido_em.strftime('%d/%m/%Y %H:%M') if concluido_em else None,
                 'concluido_relatorio': relatorio_info,
-                'checked_in_this_report': concluido and concluido_rel_id == relatorio_id
+                'checked_in_this_report': concluido and relatorio_id is not None and concluido_rel_id == relatorio_id
             })
             
         return jsonify({
