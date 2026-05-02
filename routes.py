@@ -4156,22 +4156,19 @@ def create_report():
                     next_numero = f"REL-{proximo_numero_projeto:04d}"
                     current_app.logger.info(f"📋 Next numero for project {projeto_id_param}: {next_numero} (numeracao_inicial: {numeracao_inicial}, max_existente: {max_numero_existente})")
                     
-                    # Buscar lembrete APENAS do relatório IMEDIATAMENTE anterior (N-1)
-                    # Se o próximo número é 81, buscar apenas o relatório 80
-                    numero_anterior = proximo_numero_projeto - 1
+                    # Buscar o lembrete do relatório mais recente desta obra que tenha um lembrete (não apenas o N-1)
+                    relatorio_anterior = Relatorio.query.filter(
+                        Relatorio.projeto_id == projeto_id_param,
+                        Relatorio.lembrete_proxima_visita != None,
+                        Relatorio.lembrete_proxima_visita != ''
+                    ).order_by(Relatorio.numero_projeto.desc()).first()
                     
-                    if numero_anterior >= 1:
-                        relatorio_anterior = Relatorio.query.filter_by(
-                            projeto_id=projeto_id_param,
-                            numero_projeto=numero_anterior
-                        ).first()
-                        
-                        if relatorio_anterior and relatorio_anterior.lembrete_proxima_visita:
-                            lembrete_anterior = {
-                                'numero': relatorio_anterior.numero,
-                                'texto': relatorio_anterior.lembrete_proxima_visita
-                            }
-                            current_app.logger.info(f"📝 Lembrete encontrado do relatório anterior {relatorio_anterior.numero} (numero_projeto={numero_anterior})")
+                    if relatorio_anterior:
+                        lembrete_anterior = {
+                            'numero': relatorio_anterior.numero,
+                            'texto': relatorio_anterior.lembrete_proxima_visita
+                        }
+                        current_app.logger.info(f"📝 Lembrete encontrado do relatório anterior {relatorio_anterior.numero} (mais recente com lembrete)")
             except (ValueError, TypeError):
                 selected_project = None
         else:

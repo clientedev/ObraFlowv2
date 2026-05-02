@@ -706,8 +706,9 @@
                             </label>
                             <!-- Layout Responsivo: Coluna no mobile, Linha no desktop -->
                             <div class="d-flex flex-column flex-md-row gap-2">
-                                <textarea class="form-control" id="novo_lembrete_texto" rows="3"
-                                    placeholder="Deixe um lembrete ou ponto de atenção para a próxima visita a esta obra..."></textarea>
+                                <textarea class="form-control" id="novo_lembrete_texto" name="lembrete_proxima_visita" rows="3"
+                                    placeholder="Deixe um lembrete ou ponto de atenção para a próxima visita a esta obra..."
+                                    oninput="document.getElementById('novo_lembrete_texto_inferior').value = this.value"></textarea>
                                 <button class="btn btn-warning text-dark fw-bold align-self-md-start" type="button"
                                     onclick="salvarNovoLembreteInput()"
                                     style="white-space: nowrap; height: fit-content;">
@@ -794,7 +795,8 @@
                             <!-- Layout Responsivo: Coluna no mobile, Linha no desktop -->
                             <div class="d-flex flex-column flex-md-row gap-2">
                                 <textarea class="form-control" id="novo_lembrete_texto_inferior" rows="2"
-                                    placeholder="Caso tenha esquecido de preencher acima, deixo o lembrete aqui..."></textarea>
+                                    placeholder="Caso tenha esquecido de preencher acima, deixo o lembrete aqui..."
+                                    oninput="document.getElementById('novo_lembrete_texto').value = this.value"></textarea>
                                 <button class="btn btn-warning text-dark fw-bold align-self-md-start" type="button"
                                     onclick="salvarNovoLembreteInputInferior()"
                                     style="white-space: nowrap; height: fit-content;">
@@ -4837,14 +4839,18 @@
                 console.log(`📋 ${data.lembretes.length} lembretes ativos encontrados`);
                 mostrarLembretes(data.lembretes);
 
-                // Mostrar campo de novo lembrete
-                const containerNovo = document.getElementById('novo-lembrete-container');
-                if (containerNovo) containerNovo.style.display = '';
+                // Mostrar campos de novo lembrete
+                ['novo-lembrete-container', 'novo-lembrete-container-inferior'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = '';
+                });
             } else {
                 console.log('📋 Nenhum lembrete ativo');
-                // Mostrar campo de novo lembrete mesmo sem ativos
-                const containerNovo = document.getElementById('novo-lembrete-container');
-                if (containerNovo) containerNovo.style.display = '';
+                // Mostrar campos de novo lembrete mesmo sem ativos
+                ['novo-lembrete-container', 'novo-lembrete-container-inferior'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = '';
+                });
             }
         } catch (error) {
             console.error('❌ Erro ao carregar lembretes:', error);
@@ -4952,7 +4958,9 @@
         window.lembreteSaving = true;
         criarLembrete(projetoId, texto.trim(), false).then(() => {
             textoInput.value = '';
+            document.getElementById('novo_lembrete_texto_inferior').value = '';
             localStorage.removeItem(`lembrete_draft_${projetoId}`);
+            localStorage.removeItem(`lembrete_draft_inferior_${projetoId}`);
             window.lembreteSaving = false;
 
             // Feedback visual no botão
@@ -4992,7 +5000,9 @@
         window.lembreteSaving = true;
         criarLembrete(projetoId, texto.trim(), false).then(() => {
             textoInput.value = '';
+            document.getElementById('novo_lembrete_texto').value = '';
             localStorage.removeItem(`lembrete_draft_inferior_${projetoId}`);
+            localStorage.removeItem(`lembrete_draft_${projetoId}`);
             window.lembreteSaving = false;
 
             // Feedback visual no botão
