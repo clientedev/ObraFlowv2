@@ -10098,6 +10098,30 @@ def api_get_project_checklist(project_id):
             ativo=True
         ).order_by(ChecklistObra.ordem).all()
         
+        # Se um relatorio_id foi passado, carregar as escolhas salvas NESTE relatório específico
+        # Isso serve como redundância caso o ChecklistObra esteja dessincronizado
+        relatorio_checked_ids = set()
+        if relatorio_id:
+            relatorio = db.session.get(Relatorio, relatorio_id)
+            if relatorio and relatorio.checklist_data:
+                import json
+                try:
+                    cdata = relatorio.checklist_data
+                    if isinstance(cdata, str):
+                        cdata = json.loads(cdata)
+                    if isinstance(cdata, list):
+                        for citem in cdata:
+                            # Considerar tanto 'concluido' quanto 'completado' (legado)
+                            if isinstance(citem, dict) and (citem.get('concluido') or citem.get('completado')):
+                                cid = citem.get('id')
+                                if cid:
+                                    try:
+                                        relatorio_checked_ids.add(int(cid))
+                                    except:
+                                        pass
+                except Exception as e:
+                    current_app.logger.warning(f"⚠️ Erro ao parsear checklist_data do relatório {relatorio_id}: {e}")
+
         checklist_items = []
         
         for item in items:
@@ -10106,13 +10130,15 @@ def api_get_project_checklist(project_id):
             concluido_rel_id = getattr(item, 'concluido_relatorio_id', None)
             concluido_em = getattr(item, 'concluido_em', None)
             
+            # Novo: Considerar marcado se estiver no JSON do relatório
+            is_in_relatorio = item.id in relatorio_checked_ids
+            
             # For report context: skip items completed by OTHER reports
+            # Mas NUNCA pular se o item estiver marcado NESTE relatório (is_in_relatorio)
             if relatorio_id is not None:
-                # Editing an existing report: show items completed by THIS report, hide those of OTHERS
-                if concluido and concluido_rel_id and concluido_rel_id != relatorio_id:
+                if concluido and concluido_rel_id and concluido_rel_id != relatorio_id and not is_in_relatorio:
                     continue
             else:
-                # Creating a NEW report: hide ALL items already completed (even if rel_id is null)
                 if concluido:
                     continue
             
@@ -10134,11 +10160,11 @@ def api_get_project_checklist(project_id):
                 'ordem': item.ordem or 0,
                 'descricao': getattr(item, 'descricao', '') or '',
                 'categoria': getattr(item, 'categoria', 'Geral') or 'Geral',
-                'concluido': concluido,
-                'concluido_relatorio_id': concluido_rel_id,
+                'concluido': concluido or is_in_relatorio,
+                'concluido_relatorio_id': concluido_rel_id if not is_in_relatorio else relatorio_id,
                 'concluido_em': concluido_em.strftime('%d/%m/%Y %H:%M') if concluido_em else None,
                 'concluido_relatorio': relatorio_info,
-                'checked_in_this_report': concluido and relatorio_id is not None and concluido_rel_id == relatorio_id
+                'checked_in_this_report': (concluido and relatorio_id is not None and concluido_rel_id == relatorio_id) or is_in_relatorio
             })
             
         return jsonify({
