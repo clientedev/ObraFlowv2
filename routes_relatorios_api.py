@@ -849,6 +849,11 @@ def api_autosave_relatorio():
             }), 400
 
         relatorio_id = data.get('id')
+        if relatorio_id:
+            try:
+                relatorio_id = int(relatorio_id)
+            except (ValueError, TypeError):
+                pass
         print(f"🔍 AutoSave: relatório_id = {relatorio_id}")
         
         # Verificar se existe relatório com o mesmo número
@@ -1213,10 +1218,12 @@ def api_autosave_relatorio():
                                     obra_item.concluido = True
                                     obra_item.concluido_relatorio_id = relatorio_id
                                     obra_item.concluido_em = now_brt()
-                                    print(f"📋 AutoSave UPDATE: ChecklistObra item {item_id} marcado como concluído")
+                                    print(f"📋 AutoSave UPDATE: ChecklistObra item {item_id} marcado como concluído pelo relatório {relatorio_id}")
                             else:
                                 # Desmarcar somente se FOI este relatório que marcou
-                                if obra_item.concluido and obra_item.concluido_relatorio_id == relatorio_id:
+                                # Garantir comparação de tipos (int == int)
+                                current_rel_id = obra_item.concluido_relatorio_id
+                                if obra_item.concluido and current_rel_id is not None and int(current_rel_id) == int(relatorio_id):
                                     obra_item.concluido = False
                                     obra_item.concluido_relatorio_id = None
                                     obra_item.concluido_em = None

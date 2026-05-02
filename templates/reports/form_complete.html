@@ -2474,6 +2474,10 @@
 
     // Inicializar sistema ao carregar a página
     document.addEventListener('DOMContentLoaded', function () {
+        // Inicializar ID do relatório se estiver em modo edição
+        window.currentReportId = document.querySelector('input[name="edit_report_id"]')?.value || null;
+        if (window.currentReportId) console.log('📝 Modo edição detectado para o relatório:', window.currentReportId);
+
         // Auto-carregar dados do projeto se selecionado (tanto via URL quanto manualmente)
         const projetoSelect = document.getElementById('projeto_id');
         if (projetoSelect && projetoSelect.value) {
@@ -5273,7 +5277,7 @@
         if (!projetoId) return;
 
         // Determine current report ID (for editing mode) or null (new report)
-        const relatorioId = window.currentReportId || null;
+        const relatorioId = window.currentReportId || document.querySelector('input[name="edit_report_id"]')?.value || null;
 
         const url = relatorioId
             ? `/api/projeto/${projetoId}/checklist?relatorio_id=${relatorioId}`
