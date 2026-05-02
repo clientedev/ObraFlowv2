@@ -10345,12 +10345,16 @@ def drive_oauth_start():
         redirect_uri = url_for('drive_oauth_callback', _external=True)
         logging.info(f"🔐 OAuth redirect_uri: {redirect_uri}")
         
-        # PKCE desabilitado: usar flow simples sem code_challenge
-        # para evitar o erro 'Missing code verifier' no callback
-        authorization_url, state = get_authorization_url(redirect_uri)
+        # get_authorization_url retorna (url, state, code_verifier)
+        # code_verifier pode ser None (sem PKCE) ou uma string (com PKCE)
+        result = get_authorization_url(redirect_uri)
+        authorization_url, state, code_verifier = result
         logging.info(f"🔐 OAuth authorization_url: {authorization_url}")
+        logging.info(f"🔐 PKCE code_verifier presente: {bool(code_verifier)}")
         
         session['oauth_state'] = state
+        # Salvar code_verifier na sessão para usar no callback
+        session['oauth_code_verifier'] = code_verifier
         
         return redirect(authorization_url)
         
@@ -10381,7 +10385,11 @@ def drive_oauth_callback():
         
         redirect_uri = url_for('drive_oauth_callback', _external=True)
         
-        token_info = exchange_code_for_token(code, redirect_uri)
+        # Recuperar code_verifier da sessão (gerado no start)
+        code_verifier = session.pop('oauth_code_verifier', None)
+        logging.info(f"🔐 Callback: code_verifier={bool(code_verifier)}")
+        
+        token_info = exchange_code_for_token(code, redirect_uri, code_verifier=code_verifier)
         
         stored_token = GoogleDriveToken.query.filter_by(user_id=current_user.id).first()
         if not stored_token:

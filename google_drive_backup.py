@@ -43,11 +43,6 @@ class GoogleDriveBackupOAuth:
             redirect_uri=redirect_uri
         )
         
-        # Desabilitar PKCE explicitamente para evitar o erro
-        # 'Missing code verifier' no callback OAuth
-        if hasattr(flow, 'oauth2session') and hasattr(flow.oauth2session, '_client'):
-            flow.oauth2session._client.code_challenge_method = None
-        
         return flow
     
     def _get_client_config(self) -> Dict:
@@ -59,19 +54,26 @@ class GoogleDriveBackupOAuth:
         
         return json.loads(credentials_json)
     
-    def authorize_with_code(self, code: str, redirect_uri: str) -> Dict[str, Any]:
+    def authorize_with_code(self, code: str, redirect_uri: str, code_verifier: str = None) -> Dict[str, Any]:
         """
         Trocar código de autorização por tokens
         
         Args:
             code: Código de autorização do Google
             redirect_uri: URL de callback
+            code_verifier: Verificador PKCE (se usado no authorization_url)
             
         Returns:
             Token de acesso e refresh token (sem secrets sensíveis)
         """
         flow = self.get_oauth_flow(redirect_uri)
-        flow.fetch_token(code=code)
+        
+        # Passar o code_verifier se PKCE foi usado no authorization
+        fetch_kwargs = {'code': code}
+        if code_verifier:
+            fetch_kwargs['code_verifier'] = code_verifier
+        
+        flow.fetch_token(**fetch_kwargs)
         
         credentials = flow.credentials
         
@@ -317,7 +319,7 @@ class GoogleDriveBackupOAuth:
 drive_backup = GoogleDriveBackupOAuth()
 
 
-def get_authorization_url(redirect_uri: str) -> str:
+def get_authorization_url(redirect_uri: str):
     """
     Obter URL de autorização do Google
     
@@ -325,7 +327,8 @@ def get_authorization_url(redirect_uri: str) -> str:
         redirect_uri: URL de callback
         
     Returns:
-        URL para redirecionar o usuário
+        Tupla (authorization_url, state, code_verifier)
+        code_verifier será None se PKCE não for usado
     """
     flow = drive_backup.get_oauth_flow(redirect_uri)
     # Não usar code_challenge para evitar erro 'Missing code verifier' no callback
@@ -335,21 +338,31 @@ def get_authorization_url(redirect_uri: str) -> str:
         prompt='consent'
     )
     
-    return authorization_url, state
+    # Capturar o code_verifier caso PKCE tenha sido adicionado automaticamente
+    code_verifier = None
+    try:
+        cv = getattr(flow.oauth2session, '_client', None)
+        if cv:
+            code_verifier = getattr(cv, 'code_verifier', None)
+    except Exception:
+        pass
+    
+    return authorization_url, state, code_verifier
 
 
-def exchange_code_for_token(code: str, redirect_uri: str) -> Dict[str, Any]:
+def exchange_code_for_token(code: str, redirect_uri: str, code_verifier: str = None) -> Dict[str, Any]:
     """
     Trocar código por token
     
     Args:
         code: Código de autorização
         redirect_uri: URL de callback
+        code_verifier: Verificador PKCE capturado no start (se houver)
         
     Returns:
         Informações do token
     """
-    return drive_backup.authorize_with_code(code, redirect_uri)
+    return drive_backup.authorize_with_code(code, redirect_uri, code_verifier=code_verifier)
 
 
 def backup_all_reports_to_drive(token_info: Dict[str, Any], db_session, Relatorio, FotoRelatorio, RelatorioExpress, FotoRelatorioExpress, WeasyPrintReportGenerator) -> Dict[str, Any]:
