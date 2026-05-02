@@ -492,6 +492,18 @@
                             <!-- Lembretes will be dynamically loaded here -->
                         </div>
 
+                        <!-- Lembrete da Última Visita (Legado - N-1) -->
+                        {% if lembrete_anterior %}
+                        <div class="alert alert-warning border-warning mb-4" role="alert">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-sticky-note me-2"></i>Lembrete da última visita ({{
+                                lembrete_anterior.numero }})
+                            </h6>
+                            <hr>
+                            <p class="mb-0">{{ lembrete_anterior.texto }}</p>
+                        </div>
+                        {% endif %}
+
 
 
                         <!-- Informações Técnicas (Collapsible - Fechado por padrão) -->
@@ -680,17 +692,6 @@
                             </div>
                         </div>
 
-                        <!-- Lembrete da Última Visita -->
-                        {% if lembrete_anterior %}
-                        <div class="alert alert-warning border-warning mb-4" role="alert">
-                            <h6 class="alert-heading">
-                                <i class="fas fa-sticky-note me-2"></i>Lembrete da última visita ({{
-                                lembrete_anterior.numero }})
-                            </h6>
-                            <hr>
-                            <p class="mb-0">{{ lembrete_anterior.texto }}</p>
-                        </div>
-                        {% endif %}
 
                         <!-- Observações Gerais -->
                         <div class="mb-4">
@@ -699,28 +700,6 @@
                                 placeholder="Descreva detalhes gerais da visita, pontos importantes, etc."></textarea>
                         </div>
 
-                        <!-- Novo Lembrete (Estilo Antigo - Funcionalidade Nova) -->
-                        <div class="mb-4" id="novo-lembrete-container" style="display: none;">
-                            <label class="form-label" for="novo_lembrete_texto">
-                                <i class="fas fa-bell me-2"></i>Lembrete para Próxima Visita (Opcional)
-                            </label>
-                            <!-- Layout Responsivo: Coluna no mobile, Linha no desktop -->
-                            <div class="d-flex flex-column flex-md-row gap-2">
-                                <textarea class="form-control" id="novo_lembrete_texto" name="lembrete_proxima_visita" rows="3"
-                                    placeholder="Deixe um lembrete ou ponto de atenção para a próxima visita a esta obra..."
-                                    oninput="document.getElementById('novo_lembrete_texto_inferior').value = this.value"></textarea>
-                                <button class="btn btn-warning text-dark fw-bold align-self-md-start" type="button"
-                                    onclick="salvarNovoLembreteInput()"
-                                    style="white-space: nowrap; height: fit-content;">
-                                    <i class="fas fa-plus me-1"></i> Adicionar
-                                </button>
-                            </div>
-                            <small class="text-muted mt-1 d-block">Clique em "Adicionar" para salvar este lembrete para
-                                os próximos relatórios.</small>
-
-                            <!-- Container para mostrar OS LEMBRETES ADICIONADOS NESTE RELATÓRIO (Topo) -->
-                            <div class="lembretes-locais-container mt-3"></div>
-                        </div>
 
                         <!-- Sistema de Fotos Mobile-First -->
                         <div class="mb-4">
@@ -788,25 +767,25 @@
                         </div>
 
                         <!-- Novo Lembrete (Estilo Antigo - Funcionalidade Nova) - COPIA INFERIOR PARA MELHOR UX APÓS FOTOS -->
-                        <div class="mb-4 pt-3 border-top" id="novo-lembrete-container-inferior" style="display: none;">
-                            <label class="form-label" for="novo_lembrete_texto_inferior">
-                                <i class="fas fa-bell text-warning me-2"></i>Lembrete para Próxima Visita (Reexibição)
+
+                        <!-- Novo Lembrete (Criação no Final) -->
+                        <div class="mb-4 pt-3 border-top" id="novo-lembrete-container" style="display: none;">
+                            <label class="form-label" for="novo_lembrete_texto">
+                                <i class="fas fa-bell me-2"></i>Lembrete para Próxima Visita (Opcional)
                             </label>
                             <!-- Layout Responsivo: Coluna no mobile, Linha no desktop -->
                             <div class="d-flex flex-column flex-md-row gap-2">
-                                <textarea class="form-control" id="novo_lembrete_texto_inferior" rows="2"
-                                    placeholder="Caso tenha esquecido de preencher acima, deixo o lembrete aqui..."
-                                    oninput="document.getElementById('novo_lembrete_texto').value = this.value"></textarea>
+                                <textarea class="form-control" id="novo_lembrete_texto" name="lembrete_proxima_visita" rows="3"
+                                    placeholder="Deixe um lembrete ou ponto de atenção para a próxima visita a esta obra..."></textarea>
                                 <button class="btn btn-warning text-dark fw-bold align-self-md-start" type="button"
-                                    onclick="salvarNovoLembreteInputInferior()"
+                                    onclick="salvarNovoLembreteInput()"
                                     style="white-space: nowrap; height: fit-content;">
                                     <i class="fas fa-plus me-1"></i> Adicionar
                                 </button>
                             </div>
-                            <small class="text-muted mt-1 d-block">Este lembrete aparecerá no painel e na próxima vez
-                                que abrirem esta obra.</small>
+                            <small class="text-muted mt-1 d-block">Clique em "Adicionar" para salvar este lembrete para os próximos relatórios.</small>
 
-                            <!-- Container para mostrar OS LEMBRETES ADICIONADOS NESTE RELATÓRIO (Inferior) -->
+                            <!-- Container para mostrar OS LEMBRETES ADICIONADOS NESTE RELATÓRIO -->
                             <div class="lembretes-locais-container mt-3"></div>
                         </div>
 
@@ -4839,18 +4818,14 @@
                 console.log(`📋 ${data.lembretes.length} lembretes ativos encontrados`);
                 mostrarLembretes(data.lembretes);
 
-                // Mostrar campos de novo lembrete
-                ['novo-lembrete-container', 'novo-lembrete-container-inferior'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.style.display = '';
-                });
+                // Mostrar campo de novo lembrete
+                const containerNovo = document.getElementById('novo-lembrete-container');
+                if (containerNovo) containerNovo.style.display = '';
             } else {
                 console.log('📋 Nenhum lembrete ativo');
-                // Mostrar campos de novo lembrete mesmo sem ativos
-                ['novo-lembrete-container', 'novo-lembrete-container-inferior'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.style.display = '';
-                });
+                // Mostrar campo de novo lembrete mesmo sem ativos
+                const containerNovo = document.getElementById('novo-lembrete-container');
+                if (containerNovo) containerNovo.style.display = '';
             }
         } catch (error) {
             console.error('❌ Erro ao carregar lembretes:', error);
@@ -4958,50 +4933,6 @@
         window.lembreteSaving = true;
         criarLembrete(projetoId, texto.trim(), false).then(() => {
             textoInput.value = '';
-            document.getElementById('novo_lembrete_texto_inferior').value = '';
-            localStorage.removeItem(`lembrete_draft_${projetoId}`);
-            localStorage.removeItem(`lembrete_draft_inferior_${projetoId}`);
-            window.lembreteSaving = false;
-
-            // Feedback visual no botão
-            const btn = textoInput.nextElementSibling;
-            if (btn) {
-                const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check me-1"></i> Adicionado';
-                setTimeout(() => btn.innerHTML = originalHtml, 2000);
-            }
-
-            // Exibir lembrete também no relatorio atual sem recarregar a tela inteira
-            const containers = document.querySelectorAll('.lembretes-locais-container');
-            containers.forEach(container => {
-                const divText = document.createElement('div');
-                divText.className = 'alert alert-info py-2 px-3 mt-2 mb-1';
-                divText.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + escapeHtml(texto.trim());
-                container.appendChild(divText);
-            });
-        });
-    }
-
-    function salvarNovoLembreteInputInferior() {
-        const projetoId = document.getElementById('projeto_id')?.value;
-        if (!projetoId) {
-            alert('Por favor, selecione uma obra primeiro.');
-            return;
-        }
-
-        const textoInput = document.getElementById('novo_lembrete_texto_inferior');
-        const texto = textoInput.value;
-
-        if (!texto || texto.trim() === '') {
-            alert('Por favor, digite o texto do lembrete.');
-            return;
-        }
-
-        window.lembreteSaving = true;
-        criarLembrete(projetoId, texto.trim(), false).then(() => {
-            textoInput.value = '';
-            document.getElementById('novo_lembrete_texto').value = '';
-            localStorage.removeItem(`lembrete_draft_inferior_${projetoId}`);
             localStorage.removeItem(`lembrete_draft_${projetoId}`);
             window.lembreteSaving = false;
 
@@ -5023,6 +4954,7 @@
             });
         });
     }
+
 
     // Função para tratar clique do botão Enviar para Aprovação
     // MELHORADO: salva automaticamente antes de enviar, igual ao botão Salvar
