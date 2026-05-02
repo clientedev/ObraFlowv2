@@ -370,25 +370,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const employeeColors = new Map();
                 
-                // Ensure data is array before processing - defensive check
-                const visits = Array.isArray(data) ? data : (data.visits || []);
-                
-                // Extrair cores únicas dos funcionários das visitas
-                visits.forEach(visit => {
-                    // Adicionar responsável
-                    if (visit.responsavel_nome && visit.responsavel_cor) {
-                        employeeColors.set(visit.responsavel_nome, visit.responsavel_cor);
-                    }
-                    
-                    // Adicionar participantes
-                    if (visit.participantes && visit.participantes.length > 0) {
-                        visit.participantes.forEach(participante => {
-                            if (participante.nome && participante.cor_agenda) {
-                                employeeColors.set(participante.nome, participante.cor_agenda);
-                            }
-                        });
-                    }
-                });
+                // Se a API retornou a lista de funcionários ativos, usar ela (prioridade)
+                if (data.employees && Array.isArray(data.employees)) {
+                    data.employees.forEach(emp => {
+                        if (emp.nome && emp.cor_agenda) {
+                            employeeColors.set(emp.nome, emp.cor_agenda);
+                        }
+                    });
+                } else {
+                    // Fallback: Extrair cores únicas dos funcionários apenas das visitas carregadas
+                    const visits = Array.isArray(data) ? data : (data.visits || []);
+                    visits.forEach(visit => {
+                        // Adicionar responsável
+                        if (visit.responsavel_nome && visit.responsavel_cor) {
+                            employeeColors.set(visit.responsavel_nome, visit.responsavel_cor);
+                        }
+                        
+                        // Adicionar participantes
+                        if (visit.participantes && visit.participantes.length > 0) {
+                            visit.participantes.forEach(participante => {
+                                if (participante.nome && participante.cor_agenda) {
+                                    employeeColors.set(participante.nome, participante.cor_agenda);
+                                }
+                            });
+                        }
+                    });
+                }
                 
                 // Exibir legenda se houver funcionários com cores
                 if (employeeColors.size > 0) {

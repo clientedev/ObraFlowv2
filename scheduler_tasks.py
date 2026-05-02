@@ -1,4 +1,4 @@
-﻿"""
+"""
 Tarefas Agendadas - Sistema de Limpeza Automática
 Usa APScheduler para executar tarefas periódicas
 """
@@ -33,6 +33,45 @@ def limpar_notificacoes_expiradas_task():
     except Exception as e:
         logger.error(f"❌ [SCHEDULER] Erro na tarefa de limpeza: {e}")
 
+def verificar_visitas_atrasadas_task():
+    """Tarefa para verificar visitas do dia (ou anteriores) não realizadas e notificar responsáveis"""
+    try:
+        with scheduler.app.app_context():
+            from models import Visita
+            from notification_service import notification_service
+            import pytz
+            
+            brazil_tz = pytz.timezone('America/Sao_Paulo')
+            hoje = datetime.now(brazil_tz).date()
+            
+            # Buscar visitas que não foram realizadas
+            visitas_pendentes = Visita.query.filter(
+                Visita.status.notin_(['Realizada', 'Cancelada'])
+            ).all()
+            
+            notificacoes_enviadas = 0
+            for visita in visitas_pendentes:
+                if visita.data_inicio:
+                    visita_data = visita.data_inicio.date()
+                    if visita_data <= hoje:
+                        projeto_nome = visita.projeto.nome if visita.projeto else (visita.projeto_outros or 'Sem Obra')
+                        data_str = visita_data.strftime('%d/%m/%Y')
+                        
+                        # Criar notificação para o responsável
+                        notification_service.criar_notificacao(
+                            user_id=visita.responsavel_id,
+                            titulo="Visita Pendente/Atrasada",
+                            mensagem=f"A visita {visita.numero} ({projeto_nome}) agendada para {data_str} ainda não foi realizada ou não possui relatório.",
+                            tipo="alert",
+                            link=f"/visits"
+                        )
+                        notificacoes_enviadas += 1
+                        
+            if notificacoes_enviadas > 0:
+                logger.info(f"🔔 [SCHEDULER] {notificacoes_enviadas} notificações de visitas pendentes enviadas")
+                
+    except Exception as e:
+        logger.error(f"❌ [SCHEDULER] Erro na tarefa de verificação de visitas: {e}")
 
 def init_scheduler(app):
     """Inicializar scheduler com as tarefas agendadas"""
@@ -58,6 +97,15 @@ def init_scheduler(app):
             replace_existing=True
         )
         
+        # Tarefa 3: Verificação de visitas pendentes às 17h00
+        scheduler.add_job(
+            func=verificar_visitas_atrasadas_task,
+            trigger=CronTrigger(hour=17, minute=0),
+            id='verificar_visitas_pendentes',
+            name='Verificação de Visitas Pendentes',
+            replace_existing=True
+        )
+        
         # Iniciar scheduler
         scheduler.start()
         
@@ -65,6 +113,7 @@ def init_scheduler(app):
         logger.info("📅 Tarefas agendadas:")
         logger.info("   - Limpeza de notificações a cada 6 horas")
         logger.info("   - Limpeza diária às 3h da manhã")
+        logger.info("   - Alertas de visitas pendentes às 17h")
         
         return scheduler
         

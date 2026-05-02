@@ -43,6 +43,11 @@ class GoogleDriveBackupOAuth:
             redirect_uri=redirect_uri
         )
         
+        # Desabilitar PKCE explicitamente para evitar o erro
+        # 'Missing code verifier' no callback OAuth
+        if hasattr(flow, 'oauth2session') and hasattr(flow.oauth2session, '_client'):
+            flow.oauth2session._client.code_challenge_method = None
+        
         return flow
     
     def _get_client_config(self) -> Dict:
@@ -323,6 +328,7 @@ def get_authorization_url(redirect_uri: str) -> str:
         URL para redirecionar o usuário
     """
     flow = drive_backup.get_oauth_flow(redirect_uri)
+    # Não usar code_challenge para evitar erro 'Missing code verifier' no callback
     authorization_url, state = flow.authorization_url(
         access_type='offline',
         include_granted_scopes='true',

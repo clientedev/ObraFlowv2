@@ -6493,14 +6493,16 @@ def visits_list():
                 flash('Erro ao carregar calendário. Exibindo lista.', 'warning')
                 view_type = 'list'
 
-        # Get search query parameter
+        # Get query parameters
         q = request.args.get('q', '').strip()
+        status_filter = request.args.get('status', '').strip()
+        projeto_id_filter = request.args.get('projeto_id', '').strip()
 
         # Query robusta com múltiplos fallbacks
         visits = []
         try:
-            # Tentativa 1: Query completa
-            base_query = Visita.query
+            # Tentativa 1: Query completa com join
+            base_query = Visita.query.outerjoin(Projeto, Visita.projeto_id == Projeto.id)
 
             if q:
                 from sqlalchemy import or_
@@ -6508,10 +6510,17 @@ def visits_list():
                 base_query = base_query.filter(or_(
                     Visita.numero.ilike(search_term),
                     Visita.observacoes.ilike(search_term),
-                    Visita.projeto_outros.ilike(search_term)
+                    Visita.projeto_outros.ilike(search_term),
+                    Projeto.nome.ilike(search_term)
                 ))
+                
+            if status_filter:
+                base_query = base_query.filter(Visita.status == status_filter)
+                
+            if projeto_id_filter and projeto_id_filter.isdigit():
+                base_query = base_query.filter(Visita.projeto_id == int(projeto_id_filter))
 
-            visits = base_query.order_by(Visita.data_inicio.desc()).limit(50).all()
+            visits = base_query.order_by(Visita.data_inicio.desc()).limit(100).all()
             current_app.logger.info(f"✅ {len(visits)} visitas carregadas com sucesso")
 
         except Exception as query_error:
@@ -6553,11 +6562,14 @@ def visits_list():
 
         visits = safe_visits
 
+        # Projetos ativos para o filtro
+        projetos = Projeto.query.filter_by(is_active=True).order_by(Projeto.nome).all()
+
         # Renderizar template com tratamento de erro
         try:
             # Fuso horário de Brasília (BRT = UTC-3) - agora usando now_brt() diretamente
             agora = now_brt()
-            return render_template('visits/list.html', visits=visits, now=agora)
+            return render_template('visits/list.html', visits=visits, now=agora, projetos=projetos)
         except Exception as template_error:
             current_app.logger.error(f"❌ Erro no template visits/list.html: {template_error}")
             # Template de emergência em caso de erro
@@ -8889,8 +8901,26 @@ def api_visits_calendar():
 
         current_app.logger.info(f"✅ Calendário carregado com {len(visits_data)} eventos")
 
+        # Buscar todos os funcionários ativos (não clientes) para a legenda
+        funcionarios = db.session.query(User).filter(
+            User.is_cliente == False,
+            User.is_active == True
+        ).all()
+        
+        employees_data = []
+        for func in funcionarios:
+            employees_data.append({
+                'nome': func.nome_completo,
+                'cor_agenda': func.cor_agenda or '#0EA5E9'
+            })
+
         # Ensure proper JSON response structure for FullCalendar compatibility
-        response_data = visits_data  # Return direct array for frontend compatibility
+        # We return an object with visits and employees arrays
+        response_data = {
+            'success': True,
+            'visits': visits_data,
+            'employees': employees_data
+        }
 
         return jsonify(response_data)
 
@@ -10315,6 +10345,8 @@ def drive_oauth_start():
         redirect_uri = url_for('drive_oauth_callback', _external=True)
         logging.info(f"🔐 OAuth redirect_uri: {redirect_uri}")
         
+        # PKCE desabilitado: usar flow simples sem code_challenge
+        # para evitar o erro 'Missing code verifier' no callback
         authorization_url, state = get_authorization_url(redirect_uri)
         logging.info(f"🔐 OAuth authorization_url: {authorization_url}")
         
@@ -10323,7 +10355,8 @@ def drive_oauth_start():
         return redirect(authorization_url)
         
     except Exception as e:
-        logging.error(f"Erro ao iniciar OAuth: {e}")
+        import logging as _log
+        _log.error(f"Erro ao iniciar OAuth: {e}")
         flash(f'Erro ao iniciar autenticação: {str(e)}', 'error')
         return redirect(url_for('admin_drive_test'))
 
@@ -10337,6 +10370,7 @@ def drive_oauth_callback():
         return redirect(url_for('index'))
     
     try:
+        import logging
         from google_drive_backup import exchange_code_for_token
         from datetime import datetime
         
@@ -10368,6 +10402,7 @@ def drive_oauth_callback():
         return redirect(url_for('admin_drive_test'))
         
     except Exception as e:
+        import logging
         db.session.rollback()
         logging.error(f"Erro no callback OAuth: {e}")
         flash(f'Erro na autenticação: {str(e)}', 'error')

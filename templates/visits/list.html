@@ -28,27 +28,79 @@
 <!-- Filtros e Busca -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-body py-3">
-                <form method="GET" action="{{ url_for('visits_list') }}" class="row g-3 align-items-end">
-                    <div class="col-md-8">
-                        <label class="form-label fw-bold">🔍 Busca Rápida</label>
-                        <input type="text" class="form-control" name="q" value="{{ request.args.get('q', '') }}"
-                               placeholder="Digite projeto, responsável ou número da visita..." style="min-height: 44px;">
-                    </div>
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-0 pt-3 pb-0">
+                <h6 class="text-muted mb-0"><i class="fas fa-filter me-2"></i>Filtrar Visitas</h6>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('visits_list') }}" id="filter-form" class="row g-3 align-items-end">
+                    
+                    <!-- Busca por texto -->
                     <div class="col-md-4">
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary" style="min-height: 44px;">
-                                <i class="fas fa-search me-1"></i>Buscar
-                            </button>
-                            {% if request.args.get('q') %}
-                            <a href="{{ url_for('visits_list') }}" class="btn btn-outline-secondary" style="min-height: 44px;">
-                                <i class="fas fa-times me-1"></i>Limpar
-                            </a>
-                            {% endif %}
-                        </div>
+                        <label class="form-label fw-semibold small text-uppercase text-muted">🔍 Buscar por Obra ou Número</label>
+                        <input type="text" class="form-control" name="q" 
+                               value="{{ request.args.get('q', '') }}"
+                               placeholder="Ex: Ibirapuera, VIS-0035..."
+                               style="min-height: 44px;">
                     </div>
+
+                    <!-- Filtro por Obra (dropdown) -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small text-uppercase text-muted">🏗️ Filtrar por Obra</label>
+                        <select class="form-select" name="projeto_id" style="min-height: 44px;">
+                            <option value="">Todas as obras</option>
+                            {% for proj in projetos %}
+                            <option value="{{ proj.id }}"
+                                {% if request.args.get('projeto_id') == proj.id|string %}selected{% endif %}>
+                                {{ proj.numero }} - {{ proj.nome }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Filtro por Status -->
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold small text-uppercase text-muted">📋 Status</label>
+                        <select class="form-select" name="status" style="min-height: 44px;">
+                            <option value="">Todos</option>
+                            <option value="Agendada"  {% if request.args.get('status') == 'Agendada'  %}selected{% endif %}>Agendada</option>
+                            <option value="Realizada" {% if request.args.get('status') == 'Realizada' %}selected{% endif %}>Realizada</option>
+                            <option value="Cancelada" {% if request.args.get('status') == 'Cancelada' %}selected{% endif %}>Cancelada</option>
+                        </select>
+                    </div>
+
+                    <!-- Botões -->
+                    <div class="col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-fill" style="min-height: 44px;">
+                            <i class="fas fa-search me-1"></i>Buscar
+                        </button>
+                        {% if request.args.get('q') or request.args.get('status') or request.args.get('projeto_id') %}
+                        <a href="{{ url_for('visits_list') }}" class="btn btn-outline-secondary" 
+                           title="Limpar filtros" style="min-height: 44px;">
+                            <i class="fas fa-times"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+
                 </form>
+
+                <!-- Indicador de filtros ativos -->
+                {% if request.args.get('q') or request.args.get('status') or request.args.get('projeto_id') %}
+                <div class="mt-2 pt-2 border-top d-flex flex-wrap gap-2 align-items-center">
+                    <small class="text-muted">Filtros ativos:</small>
+                    {% if request.args.get('q') %}
+                    <span class="badge bg-primary">Busca: "{{ request.args.get('q') }}"</span>
+                    {% endif %}
+                    {% if request.args.get('status') %}
+                    <span class="badge bg-secondary">Status: {{ request.args.get('status') }}</span>
+                    {% endif %}
+                    {% if request.args.get('projeto_id') %}
+                    <span class="badge bg-info text-dark">Obra selecionada</span>
+                    {% endif %}
+                    <small class="text-muted ms-2">— {{ visits|length }} resultado(s) encontrado(s)</small>
+                </div>
+                {% endif %}
+
             </div>
         </div>
     </div>

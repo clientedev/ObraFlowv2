@@ -470,5 +470,69 @@ def generate_placeholder_image(filename=None):
             <text x="50%" y="60%" font-family="Arial, sans-serif" font-size="10" 
                   fill="#6c757d" text-anchor="middle" dy=".3em">{file_info}</text>
         </svg>'''
-
         return svg_placeholder.encode('utf-8')
+
+def verificar_e_baixar_visita(projeto_id, data_relatorio, relatorio_numero):
+    """
+    Verifica se há uma visita agendada para a mesma obra e data.
+    Se houver, dá baixa automática (marca como Realizada) e envia notificação.
+    """
+    from models import Visita
+    from app import db
+    from datetime import datetime
+    import pytz
+    from notification_service import notification_service
+    from flask import current_app
+    
+    try:
+        if not projeto_id or not data_relatorio:
+            return False
+            
+        brazil_tz = pytz.timezone('America/Sao_Paulo')
+        now_brt = datetime.now(brazil_tz)
+        
+        # Converter para date object se for datetime
+        data_rel = data_relatorio.date() if hasattr(data_relatorio, 'date') else data_relatorio
+        if isinstance(data_rel, str):
+            try:
+                data_rel = datetime.strptime(data_rel, '%Y-%m-%d').date()
+            except:
+                pass
+                
+        visitas_pendentes = Visita.query.filter(
+            Visita.projeto_id == projeto_id,
+            Visita.status != 'Realizada',
+            Visita.status != 'Cancelada'
+        ).all()
+        
+        baixas = 0
+        for visita in visitas_pendentes:
+            if visita.data_inicio:
+                visita_data = visita.data_inicio.date()
+                # Verifica se é a mesma data
+                if visita_data == data_rel:
+                    visita.status = 'Realizada'
+                    visita.data_realizada = now_brt
+                    
+                    # Enviar notificação de sucesso
+                    notification_service.criar_notificacao(
+                        user_id=visita.responsavel_id,
+                        titulo="Visita Concluída",
+                        mensagem=f"Sua visita {visita.numero} foi marcada como Realizada automaticamente devido à criação do relatório {relatorio_numero}.",
+                        tipo="success",
+                        link=f"/visits/{visita.id}"
+                    )
+                    
+                    current_app.logger.info(f"✅ Baixa automática na visita {visita.numero} pelo relatório {relatorio_numero}")
+                    baixas += 1
+                    
+        if baixas > 0:
+            db.session.commit()
+            return True
+            
+        return False
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error(f"❌ Erro ao auto-baixar visita: {e}")
+        db.session.rollback()
+        return False

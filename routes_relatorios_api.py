@@ -368,6 +368,10 @@ def api_criar_relatorio():
             
             db.session.commit()
             
+            # Auto-baixa da visita agendada (se houver)
+            from utils import verificar_e_baixar_visita
+            verificar_e_baixar_visita(novo_relatorio.projeto_id, novo_relatorio.data_relatorio, novo_relatorio.numero)
+            
             # Criar notificação de relatório pendente para o aprovador
             if novo_relatorio.aprovador_id:
                 from notification_service import notification_service
@@ -1578,7 +1582,12 @@ def api_autosave_relatorio():
             relatorio_final.updated_at = now_brt()
             db.session.commit()
             logger.info(f"✅ Relatório {relatorio_final.numero} FINALIZADO - Status: {relatorio_final.status}")
-            print(f"✅ Relatório {relatorio_final.numero} FINALIZADO")
+            print(f"🏁 Relatório {relatorio_final.numero} FINALIZADO")
+
+        # Em qualquer autosave bem-sucedido, tentar baixar a visita associada
+        if relatorio_final and relatorio_final.data_relatorio:
+            from utils import verificar_e_baixar_visita
+            verificar_e_baixar_visita(relatorio_final.projeto_id, relatorio_final.data_relatorio, relatorio_final.numero)
 
         # VALIDAÇÃO DETALHADA: Verificar quantas imagens foram realmente salvas no banco
         total_imagens_db = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).count()
