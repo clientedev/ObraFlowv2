@@ -6,6 +6,8 @@ Integração com OAuth 2.0 para salvar relatórios em pastas organizadas
 import os
 import io
 import json
+import base64
+import hashlib
 import mimetypes
 import tempfile
 from datetime import datetime
@@ -321,31 +323,26 @@ drive_backup = GoogleDriveBackupOAuth()
 
 def get_authorization_url(redirect_uri: str):
     """
-    Obter URL de autorização do Google
+    Obter URL de autorização do Google com PKCE gerado manualmente.
     
-    Args:
-        redirect_uri: URL de callback
-        
     Returns:
         Tupla (authorization_url, state, code_verifier)
-        code_verifier será None se PKCE não for usado
     """
     flow = drive_backup.get_oauth_flow(redirect_uri)
-    # Não usar code_challenge para evitar erro 'Missing code verifier' no callback
+    
+    # Gerar PKCE manualmente para ter controle total do code_verifier
+    code_verifier = base64.urlsafe_b64encode(os.urandom(32)).decode('utf-8').rstrip('=')
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode('ascii')).digest()
+    ).decode('utf-8').rstrip('=')
+    
     authorization_url, state = flow.authorization_url(
         access_type='offline',
         include_granted_scopes='true',
-        prompt='consent'
+        prompt='consent',
+        code_challenge=code_challenge,
+        code_challenge_method='S256'
     )
-    
-    # Capturar o code_verifier caso PKCE tenha sido adicionado automaticamente
-    code_verifier = None
-    try:
-        cv = getattr(flow.oauth2session, '_client', None)
-        if cv:
-            code_verifier = getattr(cv, 'code_verifier', None)
-    except Exception:
-        pass
     
     return authorization_url, state, code_verifier
 
