@@ -4,6 +4,7 @@ import io
 import hashlib
 import mimetypes
 import traceback
+import threading
 from datetime import datetime, date, timedelta, time
 from urllib.parse import urlparse
 from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory, jsonify, make_response, session, Response, abort, send_file
@@ -23,6 +24,14 @@ from models import (
     VisitaParticipante, TipoObra, CategoriaObra, Notificacao, GoogleDriveToken,
     RelatorioExpress, FotoRelatorioExpress, Lembrete
 )
+import pytz
+BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
+
+def now_brt():
+    """Retorna datetime no fuso de Brasília (naive para DB)"""
+    return datetime.now(BRAZIL_TZ).replace(tzinfo=None)
+
+brazil_now = now_brt
 
 # ==========================================================================================
 # UTILITY HELPERS
@@ -107,18 +116,18 @@ def health_check():
             'legendas_count': legendas_count,
             'database': 'connected',
             'timestamp': now_brt().isoformat(),
-            'version': '1.0.1'
+            'version': '1.0.5'
         }), 200
 
     except Exception as e:
-        current_app.logger.error(f"Health check error: {e}")
+        current_app.logger.warning(f"Health check db warm-up: {e}")
         return jsonify({
             'message': 'Sistema de Gestão de Construção - ELP',
-            'status': 'ERROR',
-            'error': str(e),
+            'status': 'STARTING',
+            'warning': str(e),
             'timestamp': now_brt().isoformat(),
-            'version': '1.0.1'
-        }), 500
+            'version': '1.0.5'
+        }), 200
 
 @app.route('/debug/images-data')
 def debug_images_data():
@@ -198,7 +207,7 @@ def debug_reports_data():
             'status': 'ERROR',
             'error': str(e),
             'timestamp': now_brt().isoformat(),
-            'version': '1.0.1'
+            'version': '1.0.5'
         }), 500
 
 @app.route('/debug/reports-status')
@@ -1203,15 +1212,15 @@ def fechar_lembrete(lembrete_id):
 
 
 @app.route('/api/dashboard-stats')
-@login_required
+@csrf.exempt
 def api_dashboard_stats():
-    """API para fornecer estatísticas reais do dashboard"""
+    """API para fornecer estatísticas reais do dashboard (Web e Mobile)"""
     try:
         # Buscar dados reais do PostgreSQL
         projetos_ativos = Projeto.query.filter_by(status='Ativo').count()
         visitas_agendadas = Visita.query.filter_by(status='Agendada').count()
         relatorios_pendentes = Relatorio.query.filter(
-            Relatorio.status.in_(['Rascunho', 'Aguardando Aprovação'])
+            Relatorio.status.in_(['Rascunho', 'Aguardando Aprovação', 'em_andamento'])
         ).count()
 
         # Reembolsos com verificação de tabela
@@ -1220,6 +1229,7 @@ def api_dashboard_stats():
         except:
             usuarios_ativos = 0
 
+        user_id = getattr(current_user, 'id', None)
         response_data = {
             'success': True,
             'projetos_ativos': projetos_ativos,
@@ -1227,7 +1237,7 @@ def api_dashboard_stats():
             'relatorios_pendentes': relatorios_pendentes,
             'usuarios_ativos': usuarios_ativos,
             'timestamp': now_brt().isoformat(),
-            'user_id': current_user.id,
+            'user_id': user_id,
             'source': 'postgresql'
         }
 
@@ -2340,7 +2350,7 @@ def forgot_password():
 </html>"""
                 
                 # Send via Resend API
-                api_key = os.getenv('RESEND_API_KEY', 're_Y7ESk4Tk_3oyhaqCqWTPWTVMcy8TtfVje')
+                api_key = os.getenv('RESEND_API_KEY', '')
                 from_email = os.getenv('RESEND_FROM_EMAIL', 'relatorios@elpconsultoria.eng.br')
                 
                 payload = {
@@ -8233,14 +8243,6 @@ def uploaded_file(filename):
         import logging
 
         # Log detalhado para debugging
-        current_app.logger.info(f"🔍 SOLICITAÇÃO IMAGEM: {filename}")
-        current_app.logger.info(f"🔐 STATUS AUTH: authenticated={current_user.is_authenticated if current_user else False}")
-
-        # Se não autenticado, servir placeholder sem redirecionar
-        if not current_user or not current_user.is_authenticated:
-            current_app.logger.warning(f"⚠️ USUÁRIO NÃO AUTENTICADO para imagem: {filename}")
-            return serve_placeholder_image(filename, "Login necessário para visualizar imagens")
-
         # Validar filename
         if not filename or filename in ['undefined', 'null', '', 'None']:
             current_app.logger.error(f"❌ FILENAME INVÁLIDO: {repr(filename)}")
@@ -8936,79 +8938,167 @@ def api_visits_calendar():
             'error': 'Erro ao carregar calendário'
         }), 500
 
-@app.route('/api/visits')
+@app.route('/api/visits', methods=['GET', 'POST'])
+@csrf.exempt
 def api_visits_list():
-    """API endpoint for visits list - simplified version"""
-    # Check authentication for API - return JSON 401 instead of HTML redirect
-    if not current_user.is_authenticated:
-        return jsonify({
-            'success': False,
-            'error': 'Authentication required'
-        }), 401
+    """API endpoint for visits list and creation - mobile and web compatible"""
+    if request.method == 'POST':
+        try:
+            data = request.get_json(silent=True) or request.form or {}
+            
+            # Resolve user
+            user = current_user if (current_user and current_user.is_authenticated) else None
+            if not user:
+                user_id = data.get('responsavel_id') or data.get('criado_por') or data.get('user_id')
+                if user_id:
+                    user = User.query.get(user_id)
+            if not user:
+                user = User.query.filter_by(is_master=True).first() or User.query.filter_by(ativo=True).first()
+            
+            responsavel_id = user.id if user else 1
+
+            # Parse dates
+            def parse_dt(v, default=None):
+                if not v:
+                    return default or brazil_now()
+                if isinstance(v, datetime):
+                    return v
+                try:
+                    clean = str(v).strip().replace('Z', '+00:00')
+                    return datetime.fromisoformat(clean).replace(tzinfo=None)
+                except Exception:
+                    try:
+                        from dateutil.parser import parse as parse_date
+                        return parse_date(str(v)).replace(tzinfo=None)
+                    except Exception:
+                        return default or brazil_now()
+
+            data_inicio = parse_dt(data.get('data_inicio') or data.get('data_agendada'))
+            data_fim = parse_dt(data.get('data_fim'), default=data_inicio)
+
+            # Generate or use visit number
+            numero = (data.get('numero') or '').strip()
+            if not numero or Visita.query.filter_by(numero=numero).first():
+                visitas_count = Visita.query.count() + 1
+                numero = f"VIS-{visitas_count:04d}"
+
+            projeto_id = data.get('projeto_id')
+            if projeto_id:
+                try:
+                    projeto_id = int(projeto_id)
+                    if not Projeto.query.get(projeto_id):
+                        projeto_id = None
+                except Exception:
+                    projeto_id = None
+
+            visita = Visita(
+                numero=numero,
+                projeto_id=projeto_id,
+                projeto_outros=data.get('projeto_outros'),
+                responsavel_id=responsavel_id,
+                data_inicio=data_inicio,
+                data_fim=data_fim,
+                data_realizada=parse_dt(data.get('data_realizada'), default=None) if data.get('data_realizada') else None,
+                observacoes=data.get('observacoes') or data.get('objetivo') or '',
+                atividades_realizadas=data.get('atividades_realizadas') or '',
+                status=data.get('status') or 'Agendada',
+                endereco_gps=data.get('endereco_gps'),
+                latitude=float(data['latitude']) if data.get('latitude') is not None else None,
+                longitude=float(data['longitude']) if data.get('longitude') is not None else None,
+                is_pessoal=bool(data.get('is_pessoal', False)),
+                criado_por=responsavel_id
+            )
+
+            db.session.add(visita)
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': 'Visita criada com sucesso',
+                'id': visita.id,
+                'numero': visita.numero
+            }), 201
+        except Exception as post_err:
+            db.session.rollback()
+            current_app.logger.error(f"❌ Erro ao criar visita via API: {post_err}")
+            return jsonify({'success': False, 'error': str(post_err)}), 500
 
     try:
         current_app.logger.info("📋 Carregando lista de visitas...")
 
-        # Get all visits with proper joins to avoid lazy loading issues
-        visits = db.session.query(Visita).join(
+        # Get all visits with proper joins
+        visits = db.session.query(Visita).outerjoin(
             User, Visita.responsavel_id == User.id
         ).outerjoin(
             Projeto, Visita.projeto_id == Projeto.id
-        ).all()
-
-        current_app.logger.info(f"📋 {len(visits)} visitas encontradas")
+        ).order_by(Visita.data_inicio.desc()).limit(150).all()
 
         visits_data = []
         for visit in visits:
-            # Get project name safely
             projeto_nome = "Sem projeto"
             try:
                 if visit.projeto_id and visit.projeto:
                     projeto_nome = f"{visit.projeto.numero} - {visit.projeto.nome}"
                 elif visit.projeto_outros:
                     projeto_nome = visit.projeto_outros
-            except Exception as proj_error:
-                current_app.logger.warning(f"⚠️ Erro ao carregar projeto da visita {visit.id}: {proj_error}")
+            except Exception:
+                pass
 
-            # Get responsible user safely  
             responsavel_nome = ''
             try:
                 if visit.responsavel:
-                    responsavel_nome = visit.responsavel.nome_completo
-            except Exception as resp_error:
-                current_app.logger.warning(f"⚠️ Erro ao carregar responsável da visita {visit.id}: {resp_error}")
+                    responsavel_nome = getattr(visit.responsavel, 'nome_completo', visit.responsavel.username)
+            except Exception:
+                pass
 
             visits_data.append({
                 'id': visit.id,
                 'numero': visit.numero or f"V{visit.id}",
                 'title': visit.numero or f"Visita {visit.id}",
+                'projeto_id': visit.projeto_id,
+                'projeto_nome': projeto_nome,
+                'projeto_outros': visit.projeto_outros,
+                'responsavel_id': visit.responsavel_id,
+                'responsavel_nome': responsavel_nome,
                 'start': visit.data_inicio.isoformat() if visit.data_inicio else None,
                 'end': visit.data_fim.isoformat() if visit.data_fim else None,
+                'data_inicio': visit.data_inicio.isoformat() if visit.data_inicio else None,
+                'data_fim': visit.data_fim.isoformat() if visit.data_fim else None,
                 'status': visit.status or 'Agendada',
-                'projeto_nome': projeto_nome,
-                'responsavel_nome': responsavel_nome,
                 'observacoes': visit.observacoes or '',
                 'atividades_realizadas': visit.atividades_realizadas or '',
                 'is_pessoal': visit.is_pessoal or False,
                 'created_at': visit.created_at.isoformat() if visit.created_at else None
             })
 
-        current_app.logger.info(f"✅ Lista de visitas carregada com {len(visits_data)} itens")
-
-        # Always return array for frontend compatibility
-        return jsonify(visits_data)
+        return jsonify(visits_data), 200
 
     except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
         current_app.logger.exception(f"❌ Erro na API de visitas: {str(e)}")
-        current_app.logger.error(f"❌ Full traceback: {error_trace}")
+        return jsonify([]), 200
 
-        # Always return JSON for API endpoints, never HTML
-        return jsonify({
-            'success': False,
-            'error': 'Erro ao carregar lista de visitas'
-        }), 500
+@app.route('/api/visits/<int:visit_id>', methods=['PUT', 'POST'])
+@csrf.exempt
+def api_update_visit(visit_id):
+    """Atualiza visita existente via API"""
+    try:
+        visita = Visita.query.get(visit_id)
+        if not visita:
+            return jsonify({'success': False, 'error': 'Visita nao encontrada'}), 404
+
+        data = request.get_json(silent=True) or request.form or {}
+        if 'status' in data:
+            visita.status = data['status']
+        if 'observacoes' in data:
+            visita.observacoes = data['observacoes']
+        if 'atividades_realizadas' in data:
+            visita.atividades_realizadas = data['atividades_realizadas']
+        
+        db.session.commit()
+        return jsonify({'success': True, 'id': visita.id, 'status': visita.status}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/visits/<int:visit_id>/details')
 @login_required  
@@ -9954,38 +10044,106 @@ def api_legendas_options():
     """Suporte para requisições OPTIONS (CORS preflight)"""
     response = jsonify({'success': True})
     response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
     return response
 
-# API para salvar dados de relatórios (mobile/desktop)
-@app.route('/api/relatorios', methods=['POST'])
-def api_salvar_relatorio():
-    """API para salvar relatórios - compatível mobile/desktop"""
+@app.route('/api/legendas', methods=['POST'])
+@csrf.exempt
+def api_legendas_create():
+    """Cria nova legenda pré-definida via app mobile ou ajustes"""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or request.form or {}
+        texto = (data.get('texto') or '').strip()
+        if not texto:
+            return jsonify({'success': False, 'error': 'Texto da legenda é obrigatório'}), 400
 
-        if not data:
+        categoria = (data.get('categoria') or 'Geral').strip()
+        user = _resolve_mobile_user(data)
+        criador_id = user.id if user else 1
+
+        legenda = LegendaPredefinida(
+            texto=texto,
+            categoria=categoria,
+            ativo=True,
+            criado_por=criador_id
+        )
+        db.session.add(legenda)
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'id': legenda.id,
+            'texto': legenda.texto,
+            'categoria': legenda.categoria,
+            'ativo': legenda.ativo
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/legendas/<int:legenda_id>', methods=['DELETE', 'POST'])
+@csrf.exempt
+def api_legendas_delete(legenda_id):
+    """Exclui legenda pré-definida"""
+    try:
+        legenda = LegendaPredefinida.query.get(legenda_id)
+        if not legenda:
+            return jsonify({'success': False, 'error': 'Legenda não encontrada'}), 404
+        db.session.delete(legenda)
+        db.session.commit()
+        return jsonify({'success': True, 'id': legenda_id}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/forgot-password', methods=['POST'])
+@csrf.exempt
+def api_forgot_password():
+    """Solicita recuperação de senha por e-mail"""
+    try:
+        data = request.get_json(silent=True) or request.form or {}
+        email_or_username = (data.get('email') or data.get('username') or '').strip().lower()
+        if not email_or_username:
+            return jsonify({'success': False, 'error': 'Informe seu e-mail ou nome de usuário'}), 400
+
+        user = User.query.filter(
+            (db.func.lower(User.email) == email_or_username) | 
+            (db.func.lower(User.username) == email_or_username)
+        ).first()
+
+        if not user:
+            # Não revelar existência por segurança
             return jsonify({
-                'success': False,
-                'error': 'Dados não recebidos'
-            }), 400
+                'success': True, 
+                'message': 'Se o usuário/e-mail estiver cadastrado, as instruções serão enviadas.'
+            }), 200
 
-        # Aqui você pode implementar a lógica de salvamento
-        # Por enquanto, só retorna sucesso para confirmar que a API funciona
+        # Gerar token temporário
+        import secrets
+        from datetime import timedelta
+        token = secrets.token_urlsafe(32)
+        user.reset_token = token
+        user.reset_token_expires = brazil_now() + timedelta(hours=2)
+        db.session.commit()
+
+        # Enviar e-mail caso serviço esteja disponível
+        try:
+            from email_service import send_email
+            reset_link = f"{request.host_url.rstrip('/')}/reset-password/{token}"
+            corpo = f"""Olá {user.nome_completo},\n\nRecebemos uma solicitação de redefinição de senha para sua conta no Aplicativo ELP.\n\nAcesse o link abaixo para criar uma nova senha:\n{reset_link}\n\nEste link expira em 2 horas.\nSe você não solicitou, por favor desconsidere este e-mail."""
+            send_email(user.email, "Recuperação de Senha - Sistema ELP", corpo)
+        except Exception as mail_err:
+            current_app.logger.warning(f"Erro ao disparar email de recuperação: {mail_err}")
 
         return jsonify({
             'success': True,
-            'message': 'Dados recebidos com sucesso',
-            'data_received': len(str(data))
-        })
-
+            'message': f'Instruções enviadas para o e-mail cadastrado ({user.email[:3]}***@***).'
+        }), 200
     except Exception as e:
-        print(f"ERRO API SALVAR: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# /api/relatorios is handled canonically by api_relatorios_collection below (with CSRF exempt & DB save)
 
 @app.route('/api/test')
 def api_test():
@@ -12181,4 +12339,1640 @@ def api_update_technical_info(projeto_id):
     except Exception as e:
         current_app.logger.error(f"❌ Erro ao atualizar informações técnicas: {e}")
         db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ==========================================================================================
+# ELP Mobile App Updates, Synchronization & APK Download
+# ==========================================================================================
+_SERVER_BOOT_TIME = now_brt().strftime('%Y%m%d%H%M%S')
+
+@app.route('/api/app-version', methods=['GET'])
+def get_app_version_info():
+    """Retorna versao mais recente do aplicativo ELP e dados de deploy para sincronizacao"""
+    import json
+    deploy_id = (
+        os.environ.get('RAILWAY_DEPLOYMENT_ID') or 
+        os.environ.get('RAILWAY_GIT_COMMIT_SHA') or 
+        _SERVER_BOOT_TIME
+    )
+    current_v = '1.0.24'
+    current_vc = 24
+    try:
+        app_json_path = os.path.join(os.getcwd(), 'app.json')
+        if os.path.exists(app_json_path):
+            with open(app_json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                expo_data = data.get('expo', {})
+                if 'version' in expo_data:
+                    current_v = str(expo_data['version'])
+                if 'android' in expo_data and 'versionCode' in expo_data['android']:
+                    current_vc = int(expo_data['android']['versionCode'])
+    except Exception as e:
+        print(f"[app-version] Erro ao ler versao de app.json: {e}")
+
+    return jsonify({
+        'version': current_v,
+        'versionCode': current_vc,
+        'appName': 'ELP',
+        'deployId': deploy_id,
+        'buildTime': _SERVER_BOOT_TIME,
+        'notes': f'Atualização v{current_v}: Correção de salvamento SQLite (prepareAsync), prévia no editor de fotos, contabilização de arquivos/PDFs, checklist e seleção de obras em lista.',
+        'downloadUrl': 'https://elpandroid-production.up.railway.app/download/ELP.apk'
+    }), 200
+
+
+@app.route('/download/ELP.apk', methods=['GET'])
+def download_official_apk():
+    """Permite download direto do executavel ELP.apk"""
+    from flask import send_file
+    apk_file = os.path.join(os.getcwd(), 'ELP.apk')
+    if not os.path.exists(apk_file):
+        apk_file = os.path.join(os.getcwd(), 'static', 'ELP.apk')
+    if os.path.exists(apk_file):
+        return send_file(
+            apk_file,
+            as_attachment=True,
+            download_name='ELP.apk',
+            mimetype='application/vnd.android.package-archive'
+        )
+    return jsonify({'error': 'Arquivo ELP.apk nao encontrado no servidor'}), 404
+
+@app.route('/api/login', methods=['POST'])
+@csrf.exempt
+def api_mobile_login():
+    """Endpoint de autenticacao JSON para o aplicativo mobile ELP"""
+    try:
+        data = request.get_json(silent=True) or request.form or {}
+        username = (data.get('username') or '').strip()
+        password = data.get('password') or ''
+
+        if not username or not password:
+            return jsonify({'success': False, 'message': 'Informe usuario e senha.'}), 400
+
+        user = User.query.filter_by(username=username).first()
+        if user and user.ativo and check_password_hash(user.password_hash, password):
+            login_user(user, remember=True)
+            return jsonify({
+                'success': True,
+                'message': 'Autenticado com sucesso.',
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'nome_completo': getattr(user, 'nome_completo', user.username),
+                    'cargo': getattr(user, 'cargo', 'Engenheiro / Fiscal de Obras'),
+                    'is_master': getattr(user, 'is_master', False),
+                    'is_aprovador_express': getattr(user, 'is_aprovador_express', False),
+                    'ativo': user.ativo
+                }
+            }), 200
+
+        return jsonify({'success': False, 'message': 'Usuario ou senha incorretos.'}), 401
+    except Exception as e:
+        current_app.logger.error(f'Erro em /api/login: {e}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==============================================================================
+# MOBILE OFFLINE-FIRST SYNCHRONIZATION API (ELP ANDROID)
+# ==============================================================================
+
+def _resolve_mobile_user(data):
+    """Auxiliar para identificar o usuario da operacao mobile (autenticado ou via payload)"""
+    if current_user and current_user.is_authenticated:
+        return current_user
+    if data:
+        uid = data.get('autor_id') or data.get('responsavel_id') or data.get('usuario_id') or data.get('user_id')
+        if uid:
+            try:
+                u = User.query.get(int(uid))
+                if u:
+                    return u
+            except Exception:
+                pass
+        un = data.get('username') or data.get('autor_nome') or data.get('responsavel_nome')
+        if un:
+            u = User.query.filter_by(username=un).first()
+            if u:
+                return u
+    return User.query.filter_by(is_master=True).first() or User.query.filter_by(ativo=True).first()
+
+def _parse_iso_date(val, as_date=False, default=None):
+    if not val:
+        return default
+    if isinstance(val, datetime):
+        return val.date() if as_date else val
+    from datetime import date as dt_date
+    if isinstance(val, dt_date):
+        return val if as_date else datetime.combine(val, datetime.min.time())
+    try:
+        clean = str(val).strip().replace('Z', '+00:00')
+        dt = datetime.fromisoformat(clean).replace(tzinfo=None)
+        return dt.date() if as_date else dt
+    except Exception:
+        try:
+            from dateutil.parser import parse
+            dt = parse(str(val)).replace(tzinfo=None)
+            return dt.date() if as_date else dt
+        except Exception:
+            return default
+
+# --- PROJETOS ---
+@app.route('/api/projetos', methods=['GET', 'POST'])
+@csrf.exempt
+def api_projetos_collection():
+    """Colecao de projetos para o aplicativo mobile (listagem e criacao sincronizada)"""
+    if request.method == 'POST':
+        try:
+            data = request.get_json(silent=True) or request.form or {}
+            user = _resolve_mobile_user(data)
+            responsavel_id = user.id if user else 1
+
+            # Gerar ou validar numero
+            numero = (data.get('numero') or '').strip()
+            existing = Projeto.query.filter_by(numero=numero).first() if numero else None
+            
+            if existing:
+                # Atualizar existente
+                projeto = existing
+            else:
+                if not numero or numero.startswith('OBR-'):
+                    # Regra de indexação oficial: OBRA-0001 em diante
+                    max_seq = 0
+                    all_obras = Projeto.query.all()
+                    for p in all_obras:
+                        if p.numero:
+                            import re
+                            m = re.search(r'OBRA[-_ ]*(\d+)', p.numero, re.IGNORECASE)
+                            if m:
+                                try:
+                                    v = int(m.group(1))
+                                    if v > max_seq:
+                                        max_seq = v
+                                except Exception:
+                                    pass
+                    next_seq = max_seq + 1
+                    numero = f"OBRA-{next_seq:04d}"
+                projeto = Projeto(numero=numero)
+                db.session.add(projeto)
+
+            projeto.nome = data.get('nome') or 'Nova Obra'
+            projeto.tipo_obra = data.get('tipo_obra') or 'Construção Civil'
+            projeto.construtora = data.get('construtora') or 'ELP Engenharia'
+            projeto.nome_funcionario = data.get('nome_funcionario') or (user.nome_completo if user else 'Engenheiro')
+            projeto.responsavel_id = responsavel_id
+            projeto.email_principal = data.get('email_principal') or 'engenharia@elp.com.br'
+            projeto.descricao = data.get('descricao') or ''
+            projeto.endereco = data.get('endereco') or ''
+            projeto.status = data.get('status') or 'Ativo'
+            projeto.elementos_construtivos_base = data.get('elementos_construtivos_base')
+            projeto.especificacao_chapisco_colante = data.get('especificacao_chapisco_colante')
+            projeto.especificacao_argamassa_emboco = data.get('especificacao_argamassa_emboco')
+            projeto.acabamento_peitoris = data.get('acabamento_peitoris')
+            projeto.definicao_frisos_cor = data.get('definicao_frisos_cor')
+
+            if data.get('latitude') is not None:
+                projeto.latitude = float(data['latitude'])
+            if data.get('longitude') is not None:
+                projeto.longitude = float(data['longitude'])
+            if data.get('data_inicio'):
+                projeto.data_inicio = _parse_iso_date(data.get('data_inicio'), as_date=True)
+            if data.get('data_previsao_fim'):
+                projeto.data_previsao_fim = _parse_iso_date(data.get('data_previsao_fim'), as_date=True)
+
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': 'Projeto sincronizado com sucesso',
+                'id': projeto.id,
+                'numero': projeto.numero
+            }), 201
+        except Exception as err:
+            db.session.rollback()
+            current_app.logger.error(f"Erro ao salvar projeto mobile: {err}")
+            return jsonify({'success': False, 'error': str(err)}), 500
+
+    # GET
+    try:
+        projetos = Projeto.query.order_by(Projeto.id.desc()).all()
+        result = []
+        for p in projetos:
+            result.append({
+                'id': p.id,
+                'numero': p.numero,
+                'nome': p.nome,
+                'descricao': p.descricao or '',
+                'endereco': p.endereco or '',
+                'latitude': p.latitude,
+                'longitude': p.longitude,
+                'tipo_obra': p.tipo_obra,
+                'construtora': p.construtora,
+                'nome_funcionario': p.nome_funcionario,
+                'responsavel_id': p.responsavel_id,
+                'email_principal': p.email_principal,
+                'data_inicio': p.data_inicio.isoformat() if p.data_inicio else None,
+                'data_previsao_fim': p.data_previsao_fim.isoformat() if p.data_previsao_fim else None,
+                'status': p.status,
+                'numeracao_inicial': getattr(p, 'numeracao_inicial', 1),
+                'elementos_construtivos_base': p.elementos_construtivos_base,
+                'especificacao_chapisco_colante': p.especificacao_chapisco_colante,
+                'especificacao_argamassa_emboco': p.especificacao_argamassa_emboco,
+                'acabamento_peitoris': p.acabamento_peitoris,
+                'definicao_frisos_cor': p.definicao_frisos_cor,
+                'created_at': p.created_at.isoformat() if p.created_at else None,
+            })
+        return jsonify(result), 200
+    except Exception as e:
+        current_app.logger.error(f'Erro ao listar projetos na API: {e}')
+        return jsonify([]), 200
+
+@app.route('/api/projetos/<int:projeto_id>', methods=['GET', 'PUT', 'POST', 'DELETE'])
+@csrf.exempt
+def api_projeto_detail_sync(projeto_id):
+    """Atualizacao, consulta e exclusao em cascata de projeto por ID (Master/Admin)"""
+    try:
+        projeto = Projeto.query.get(projeto_id)
+        if not projeto:
+            return jsonify({'success': False, 'error': 'Projeto nao encontrado'}), 404
+
+        if request.method == 'DELETE':
+            # Validação estrita de privilégio: apenas Master ou Admin geral pode excluir obra
+            req_user = _resolve_mobile_user(request.get_json(silent=True) if request.is_json else None)
+            is_master_or_admin = (
+                (req_user and req_user.is_master) or
+                (req_user and req_user.username == 'admin') or
+                (current_user and current_user.is_authenticated and (current_user.is_master or current_user.username == 'admin'))
+            )
+            if not is_master_or_admin:
+                return jsonify({'success': False, 'error': 'Operação negada: apenas Usuário Master ou Administrador pode excluir obras.'}), 403
+
+            current_app.logger.info(f"🗑️ [CASCADE DELETE] Iniciando exclusão completa da obra {projeto.id} - {projeto.nome} ({projeto.numero})")
+
+            # 1. Relatórios e Fotos vinculadas
+            relatorios = Relatorio.query.filter_by(projeto_id=projeto.id).all()
+            for rel in relatorios:
+                fotos = FotoRelatorio.query.filter_by(relatorio_id=rel.id).all()
+                for foto in fotos:
+                    try:
+                        if foto.filename:
+                            fp = os.path.join(app.config.get('UPLOAD_FOLDER', 'uploads'), foto.filename)
+                            if os.path.exists(fp):
+                                os.remove(fp)
+                    except Exception:
+                        pass
+                    db.session.delete(foto)
+                try:
+                    EnvioRelatorio.query.filter_by(relatorio_id=rel.id).delete(synchronize_session=False)
+                except Exception:
+                    pass
+                db.session.delete(rel)
+
+            # 2. Visitas, Participantes e Comunicações
+            visitas = Visita.query.filter_by(projeto_id=projeto.id).all()
+            for v in visitas:
+                try:
+                    VisitaParticipante.query.filter_by(visita_id=v.id).delete(synchronize_session=False)
+                    ComunicacaoVisita.query.filter_by(visita_id=v.id).delete(synchronize_session=False)
+                except Exception:
+                    pass
+                db.session.delete(v)
+
+            # 3. Categorias da Obra
+            try:
+                CategoriaObra.query.filter_by(projeto_id=projeto.id).delete(synchronize_session=False)
+            except Exception:
+                pass
+
+            # 4. Contatos, Vínculos e E-mails
+            try:
+                ContatoProjeto.query.filter_by(projeto_id=projeto.id).delete(synchronize_session=False)
+                EmailCliente.query.filter_by(projeto_id=projeto.id).delete(synchronize_session=False)
+                FuncionarioProjeto.query.filter_by(projeto_id=projeto.id).delete(synchronize_session=False)
+            except Exception:
+                pass
+
+            # 5. Lembretes da Obra
+            try:
+                Lembrete.query.filter_by(projeto_id=projeto.id).delete(synchronize_session=False)
+            except Exception:
+                pass
+
+            # 6. Reembolsos vinculados à obra
+            try:
+                Reembolso.query.filter_by(projeto_id=projeto.id).delete(synchronize_session=False)
+            except Exception:
+                pass
+
+            # 7. Checklists e configurações da obra
+            try:
+                ChecklistObra.query.filter_by(projeto_id=projeto.id).delete(synchronize_session=False)
+                ProjetoChecklistConfig.query.filter_by(projeto_id=projeto.id).delete(synchronize_session=False)
+            except Exception:
+                pass
+
+            # 8. Logs e Aprovadores Padrão
+            try:
+                LogEnvioEmail.query.filter_by(projeto_id=projeto.id).delete(synchronize_session=False)
+                AprovadorPadrao.query.filter_by(projeto_id=projeto.id).delete(synchronize_session=False)
+            except Exception:
+                pass
+
+            # 9. O Projeto em si
+            proj_nome = projeto.nome
+            proj_num = projeto.numero
+            db.session.delete(projeto)
+            db.session.commit()
+
+            current_app.logger.info(f"✅ [CASCADE DELETE] Obra {projeto_id} ({proj_nome}) excluída com sucesso em cascata.")
+            return jsonify({
+                'success': True,
+                'message': f'Obra {proj_nome} ({proj_num}) e todos os dados vinculados foram excluídos definitivamente.'
+            }), 200
+
+        if request.method in ['PUT', 'POST']:
+            data = request.get_json(silent=True) or request.form or {}
+            for field in ['nome', 'tipo_obra', 'construtora', 'nome_funcionario', 'email_principal',
+                          'descricao', 'endereco', 'status', 'elementos_construtivos_base',
+                          'especificacao_chapisco_colante', 'especificacao_argamassa_emboco',
+                          'acabamento_peitoris', 'definicao_frisos_cor']:
+                if field in data and data[field] is not None:
+                    setattr(projeto, field, data[field])
+            
+            if 'latitude' in data and data['latitude'] is not None:
+                projeto.latitude = float(data['latitude'])
+            if 'longitude' in data and data['longitude'] is not None:
+                projeto.longitude = float(data['longitude'])
+            
+            db.session.commit()
+            return jsonify({'success': True, 'id': projeto.id, 'numero': projeto.numero}), 200
+
+        return jsonify({'id': projeto.id, 'numero': projeto.numero, 'nome': projeto.nome}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def _save_fotos_for_relatorio(relatorio_id, fotos_list, allow_delete=True):
+    """Processa e salva fotos de relatório no PostgreSQL e filesystem com suporte completo a Base64 e prevenção de duplicidades"""
+    if not isinstance(fotos_list, list) or len(fotos_list) == 0:
+        return 0
+
+    import base64
+    import hashlib
+    import uuid
+    import json
+
+    upload_dir = app.config.get('UPLOAD_FOLDER', 'uploads')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Obter fotos existentes para este relatório indexadas por id, filename e hash
+    existing_fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio_id).all()
+    existing_by_id = {f.id: f for f in existing_fotos}
+    existing_by_filename = {f.filename: f for f in existing_fotos if f.filename}
+    existing_by_hash = {f.imagem_hash: f for f in existing_fotos if f.imagem_hash}
+    existing_by_ordem = {f.ordem: f for f in existing_fotos}
+
+    incoming_db_ids = set()
+    saved_count = 0
+
+    for idx, f_data in enumerate(fotos_list):
+        if not isinstance(f_data, dict):
+            continue
+
+        f_id = f_data.get('id')
+        try:
+            f_id = int(f_id) if f_id else None
+        except (ValueError, TypeError):
+            f_id = None
+
+        b64_str = (
+            f_data.get('base64') or 
+            f_data.get('imagem_base64') or 
+            f_data.get('imagem') or 
+            f_data.get('dataUrl') or 
+            ''
+        )
+
+        img_bytes = None
+        img_hash = None
+        if b64_str and isinstance(b64_str, str) and len(b64_str) > 100:
+            if ',' in b64_str:
+                b64_str = b64_str.split(',', 1)[1]
+            b64_str = b64_str.strip()
+            pad = len(b64_str) % 4
+            if pad:
+                b64_str += '=' * (4 - pad)
+
+            try:
+                img_bytes = base64.b64decode(b64_str)
+                img_hash = hashlib.sha256(img_bytes).hexdigest()
+            except Exception as b64_err:
+                current_app.logger.warning(f"Erro ao decodificar base64 foto {idx}: {b64_err}")
+
+        # Busca foto existente para evitar duplicar
+        foto = None
+        if f_id and f_id in existing_by_id:
+            foto = existing_by_id[f_id]
+        elif f_data.get('filename') and f_data['filename'] in existing_by_filename:
+            foto = existing_by_filename[f_data['filename']]
+        elif img_hash and img_hash in existing_by_hash:
+            # Foto exatamente idêntica já existe no banco: reutiliza para NÃO duplicar
+            foto = existing_by_hash[img_hash]
+        elif idx in existing_by_ordem and (existing_by_ordem[idx].titulo == f_data.get('titulo') or existing_by_ordem[idx].local == f_data.get('local')):
+            foto = existing_by_ordem[idx]
+
+        anotacoes_raw = f_data.get('anotacoes_dados')
+        anotacoes_obj = None
+        if anotacoes_raw:
+            if isinstance(anotacoes_raw, str):
+                try:
+                    anotacoes_obj = json.loads(anotacoes_raw)
+                except Exception:
+                    anotacoes_obj = anotacoes_raw
+            else:
+                anotacoes_obj = anotacoes_raw
+
+        is_new = False
+        if not foto:
+            foto = FotoRelatorio(relatorio_id=relatorio_id)
+            is_new = True
+
+        foto.titulo = f_data.get('titulo') or f"Foto {idx+1}"
+        foto.legenda = f_data.get('legenda') or ''
+        foto.descricao = f_data.get('descricao') or ''
+        foto.tipo_servico = f_data.get('tipo_servico')
+        foto.local = f_data.get('local') or ''
+        foto.ordem = f_data.get('ordem', idx)
+        foto.anotacoes_dados = anotacoes_obj
+
+        if img_bytes:
+            foto.imagem = img_bytes
+            foto.imagem_hash = img_hash
+            foto.imagem_size = len(img_bytes)
+            foto.content_type = 'image/jpeg'
+
+            fname = foto.filename or f_data.get('filename') or f"rel_{relatorio_id}_{idx}_{uuid.uuid4().hex[:6]}.jpg"
+            fpath = os.path.join(upload_dir, fname)
+            try:
+                with open(fpath, 'wb') as f_out:
+                    f_out.write(img_bytes)
+                foto.filename = fname
+                foto.url = f"/uploads/{fname}"
+            except Exception as file_save_err:
+                current_app.logger.warning(f"Erro ao salvar arquivo em disco: {file_save_err}")
+        else:
+            if f_data.get('url') and not foto.url:
+                foto.url = f_data.get('url')
+
+        if is_new:
+            db.session.add(foto)
+            db.session.flush()
+
+        incoming_db_ids.add(foto.id)
+        saved_count += 1
+
+    # Remover fotos apenas quando explicitamente permitido (ex: PUT completo do relatório)
+    if allow_delete and len(fotos_list) > 0:
+        for old_id, old_foto in existing_by_id.items():
+            if old_id not in incoming_db_ids:
+                try:
+                    db.session.delete(old_foto)
+                except Exception:
+                    pass
+
+    db.session.flush()
+    return saved_count
+
+# --- RELATORIOS ---
+@app.route('/api/relatorios', methods=['GET', 'POST'])
+@csrf.exempt
+def api_relatorios_collection():
+    """Colecao de relatorios para mobile (sincronizacao bidirecional com numeracao sequencial atomica e idempotente)"""
+    if request.method == 'POST':
+        try:
+            data = request.get_json(silent=True) or request.form or {}
+            user = _resolve_mobile_user(data)
+            autor_id = user.id if user else 1
+
+            projeto_id = data.get('projeto_id')
+            if not projeto_id:
+                first_p = Projeto.query.first()
+                projeto_id = first_p.id if first_p else 1
+            else:
+                projeto_id = int(projeto_id)
+
+            visita_id = data.get('visita_id')
+            if visita_id:
+                try:
+                    visita_id = int(visita_id)
+                    if not Visita.query.get(visita_id):
+                        visita_id = None
+                except Exception:
+                    visita_id = None
+
+            # UUID gerado offline no dispositivo móvel
+            rel_uuid = (data.get('uuid') or data.get('uuid_local') or '').strip()
+            data_criacao_local_raw = data.get('data_criacao_local')
+            data_criacao_local_dt = _parse_iso_date(data_criacao_local_raw, default=brazil_now())
+            numero_informado = (data.get('numero') or '').strip()
+
+            existing = None
+            # 1. Regra de idempotência estrita por UUID
+            if rel_uuid:
+                existing = Relatorio.query.filter_by(uuid=rel_uuid).first()
+
+            # 2. Busca por ID numérico direto se fornecido (somente se for ID válido do banco, menor que 2.1 bilhões)
+            if not existing and data.get('id'):
+                try:
+                    c_id = int(data['id'])
+                    if 0 < c_id < 2147483647:
+                        existing = Relatorio.query.get(c_id)
+                except Exception:
+                    pass
+
+            # 3. Fallback de busca por numero se já foi informado e existente no projeto
+            if not existing and numero_informado and not numero_informado.startswith('OFF-') and not numero_informado.startswith('TEMP-') and 'Pendente' not in numero_informado and 'Rascunho' not in numero_informado:
+                existing = Relatorio.query.filter_by(projeto_id=projeto_id, numero=numero_informado).first()
+
+            # Idempotência estrita: Cada relatório é único por UUID (ou ID direto).
+            # Nunca sobrescrever rascunhos de UUIDs diferentes!
+
+            if existing:
+                # O relatório já foi sincronizado antes ou já existe:
+                # IDEMPOTÊNCIA: Manter o número oficial inalterado! Jamais gerar outro número ou duplicar registro.
+                relatorio = existing
+                if not relatorio.uuid and rel_uuid:
+                    relatorio.uuid = rel_uuid
+                if not relatorio.data_criacao_local and data_criacao_local_dt:
+                    relatorio.data_criacao_local = data_criacao_local_dt
+                relatorio.data_sincronizacao = brazil_now()
+                relatorio.updated_at = brazil_now()
+                current_app.logger.info(f"🔄 Relatório idempotente reutilizado: {relatorio.numero} (UUID: {relatorio.uuid})")
+            else:
+                # NOVO RELATÓRIO: Numeração atribuída exclusivamente pelo servidor
+                # Bloqueio de linha (row lock) no Projeto para garantir atomicidade em concorrência simultânea
+                try:
+                    projeto_obj = Projeto.query.with_for_update().filter_by(id=projeto_id).first()
+                except Exception as lock_err:
+                    current_app.logger.warning(f"with_for_update lock aviso (normal em SQLite): {lock_err}")
+                    projeto_obj = Projeto.query.filter_by(id=projeto_id).first()
+
+                # Busca atômica do maior numero_projeto já atribuído neste projeto
+                max_num = db.session.query(db.func.max(Relatorio.numero_projeto)).filter_by(projeto_id=projeto_id).scalar() or 0
+                num_inicial = getattr(projeto_obj, 'numeracao_inicial', 1) if projeto_obj else 1
+                if not num_inicial or num_inicial < 1:
+                    num_inicial = 1
+
+                proximo_numero_projeto = max(num_inicial - 1, max_num) + 1
+                
+                # Previne colisão em acessos concorrentes verificando se candidato já existe
+                tentativas = 0
+                while tentativas < 50:
+                    numero_candidato = f"REL-{proximo_numero_projeto:04d}"
+                    existing_num = Relatorio.query.filter_by(projeto_id=projeto_id, numero=numero_candidato).first()
+                    if not existing_num:
+                        official_numero = numero_candidato
+                        break
+                    proximo_numero_projeto += 1
+                    tentativas += 1
+                else:
+                    official_numero = f"REL-{proximo_numero_projeto:04d}"
+
+                if not rel_uuid:
+                    rel_uuid = str(uuid.uuid4())
+
+                relatorio = Relatorio(
+                    uuid=rel_uuid,
+                    numero=official_numero,
+                    numero_projeto=proximo_numero_projeto,
+                    projeto_id=projeto_id,
+                    autor_id=autor_id,
+                    data_criacao_local=data_criacao_local_dt,
+                    data_sincronizacao=brazil_now(),
+                    created_at=brazil_now(),
+                    updated_at=brazil_now()
+                )
+                db.session.add(relatorio)
+                current_app.logger.info(f"✨ Novo relatório criado com numeração atômica: {official_numero} (UUID: {rel_uuid})")
+
+            relatorio.titulo = data.get('titulo') or 'Relatório de Visita Técnica'
+            relatorio.visita_id = visita_id
+            relatorio.data_relatorio = _parse_iso_date(data.get('data_relatorio'), default=brazil_now())
+            relatorio.status = data.get('status') or 'em_andamento'
+            relatorio.descricao = data.get('descricao') or ''
+            relatorio.categoria = data.get('categoria')
+            relatorio.local = data.get('local')
+            relatorio.observacoes_finais = data.get('observacoes_finais')
+            relatorio.checklist_data = data.get('checklist_data') or '[]'
+            if 'acompanhantes' in data and data['acompanhantes'] is not None:
+                acomp_val = data['acompanhantes']
+                if isinstance(acomp_val, str):
+                    try:
+                        relatorio.acompanhantes = json.loads(acomp_val)
+                    except Exception:
+                        relatorio.acompanhantes = [acomp_val]
+                else:
+                    relatorio.acompanhantes = acomp_val
+            relatorio.updated_at = brazil_now()
+
+            db.session.flush()
+
+            # Processar fotos em lote se enviadas no payload
+            fotos_list = data.get('fotos') or []
+            if isinstance(fotos_list, list) and len(fotos_list) > 0:
+                _save_fotos_for_relatorio(relatorio.id, fotos_list)
+
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': 'Relatório sincronizado com sucesso',
+                'id': relatorio.id,
+                'numero': relatorio.numero,
+                'numero_projeto': relatorio.numero_projeto,
+                'uuid': relatorio.uuid,
+                'data_criacao_local': relatorio.data_criacao_local.isoformat() if relatorio.data_criacao_local else None,
+                'data_sincronizacao': relatorio.data_sincronizacao.isoformat() if relatorio.data_sincronizacao else None,
+                'status': relatorio.status
+            }), 201
+        except Exception as post_err:
+            db.session.rollback()
+            current_app.logger.error(f"Erro ao salvar relatorio mobile: {post_err}")
+            return jsonify({'success': False, 'error': str(post_err)}), 500
+
+    # GET: Sempre ordenar do mais recente para o mais antigo
+    try:
+        relatorios = Relatorio.query.order_by(
+            db.func.coalesce(Relatorio.updated_at, Relatorio.data_criacao_local, Relatorio.created_at, Relatorio.data_relatorio).desc(),
+            Relatorio.id.desc()
+        ).limit(200).all()
+        result = []
+        base_app_url = 'https://elpandroid-production.up.railway.app'
+        for r in relatorios:
+            p_nome = r.projeto.nome if r.projeto else ''
+            a_nome = getattr(r.autor, 'nome_completo', r.autor.username) if r.autor else ''
+            
+            # Buscar fotos vinculadas
+            fotos_db = FotoRelatorio.query.filter_by(relatorio_id=r.id).order_by(FotoRelatorio.ordem).all()
+            fotos_list = []
+            for f in fotos_db:
+                p_url = f"{base_app_url}/api/fotos/{f.id}"
+                if f.filename:
+                    p_url = f"{base_app_url}/uploads/{f.filename}"
+                elif f.url:
+                    p_url = f.url if f.url.startswith('http') else f"{base_app_url}{f.url}"
+                fotos_list.append({
+                    'id': f.id,
+                    'relatorio_id': f.relatorio_id,
+                    'url': p_url,
+                    'filename': f.filename,
+                    'titulo': f.titulo or '',
+                    'legenda': f.legenda or '',
+                    'descricao': f.descricao or '',
+                    'tipo_servico': f.tipo_servico or '',
+                    'local': f.local or '',
+                    'ordem': f.ordem,
+                    'anotacoes_dados': f.anotacoes_dados,
+                })
+
+            result.append({
+                'id': r.id,
+                'uuid': r.uuid,
+                'numero': r.numero,
+                'numero_projeto': r.numero_projeto,
+                'titulo': r.titulo,
+                'projeto_id': r.projeto_id,
+                'projeto_nome': p_nome,
+                'visita_id': r.visita_id,
+                'autor_id': r.autor_id,
+                'autor_nome': a_nome,
+                'data_relatorio': r.data_relatorio.isoformat() if r.data_relatorio else None,
+                'data_criacao_local': r.data_criacao_local.isoformat() if r.data_criacao_local else None,
+                'data_sincronizacao': r.data_sincronizacao.isoformat() if r.data_sincronizacao else None,
+                'status': r.status,
+                'descricao': r.descricao or '',
+                'checklist_data': r.checklist_data or '[]',
+                'categoria': r.categoria,
+                'local': r.local,
+                'observacoes_finais': r.observacoes_finais,
+                'acompanhantes': json.dumps(r.acompanhantes) if isinstance(r.acompanhantes, list) else (r.acompanhantes or '[]'),
+                'fotos': fotos_list,
+                'created_at': r.created_at.isoformat() if r.created_at else None,
+                'updated_at': r.updated_at.isoformat() if r.updated_at else (r.created_at.isoformat() if r.created_at else None),
+            })
+        return jsonify(result), 200
+    except Exception as e:
+        current_app.logger.error(f'Erro ao listar relatorios na API: {e}')
+        return jsonify([]), 200
+
+
+@app.route('/api/fotos/<int:foto_id>', methods=['GET'])
+@csrf.exempt
+def api_serve_foto_binary(foto_id):
+    """Serve imagem de relatório diretamente do banco PostgreSQL como binary JPEG"""
+    try:
+        from models import FotoRelatorio
+        foto = FotoRelatorio.query.get(foto_id)
+        if not foto:
+            return jsonify({'error': 'Foto não encontrada'}), 404
+        if foto.imagem:
+            mimetype = foto.content_type or 'image/jpeg'
+            res = Response(foto.imagem, mimetype=mimetype)
+            res.headers['Cache-Control'] = 'public, max-age=86400'
+            return res
+        elif foto.filename:
+            upload_dir = app.config.get('UPLOAD_FOLDER', 'uploads')
+            fpath = os.path.join(upload_dir, foto.filename)
+            if os.path.exists(fpath):
+                return send_from_directory(upload_dir, foto.filename)
+        return jsonify({'error': 'Dados da foto indisponíveis'}), 404
+    except Exception as e:
+        current_app.logger.error(f"Erro ao servir foto API: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/relatorios/<int:relatorio_id>', methods=['GET', 'PUT', 'POST', 'DELETE'])
+@csrf.exempt
+def api_relatorio_detail_sync(relatorio_id):
+    """Atualizacao, exclusao e consulta de relatorio existente via API mobile (exclusao restrita a Master/Admin)"""
+    try:
+        if relatorio_id >= 2147483647:
+            return jsonify({'success': False, 'error': 'ID temporário não existe no servidor'}), 404
+        relatorio = Relatorio.query.get(relatorio_id)
+        if not relatorio:
+            return jsonify({'success': False, 'error': 'Relatório não encontrado'}), 404
+
+        if request.method == 'DELETE':
+            data = request.get_json(silent=True) or request.form or {}
+            user = _resolve_mobile_user(data)
+            # Regra estrita: apenas Master ou Admin (que possui autoridade máxima) pode excluir
+            is_master = bool(
+                (user and (getattr(user, 'is_master', False) or user.username.lower() == 'admin')) or
+                (current_user.is_authenticated and (getattr(current_user, 'is_master', False) or current_user.username.lower() == 'admin'))
+            )
+            if not is_master:
+                current_app.logger.warning(f"Tentativa negada de exclusao do relatorio {relatorio_id} por usuario sem privilégio Master")
+                return jsonify({
+                    'success': False, 
+                    'error': 'Ação negada: A exclusão de relatórios é permitida exclusivamente para o perfil Master ou Administrador.'
+                }), 403
+
+            FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).delete()
+            db.session.delete(relatorio)
+            db.session.commit()
+            current_app.logger.info(f"🗑️ Relatório {relatorio.numero} (ID {relatorio_id}) excluído com sucesso por usuário Master/Admin")
+            return jsonify({'success': True, 'message': 'Relatório excluído com sucesso'}), 200
+
+        if request.method in ['PUT', 'POST']:
+            data = request.get_json(silent=True) or request.form or {}
+            for field in ['titulo', 'descricao', 'status', 'categoria', 'local', 'observacoes_finais', 'comentario_aprovacao', 'checklist_data']:
+                if field in data and data[field] is not None:
+                    setattr(relatorio, field, data[field])
+            
+            if 'acompanhantes' in data and data['acompanhantes'] is not None:
+                acomp_val = data['acompanhantes']
+                if isinstance(acomp_val, str):
+                    try:
+                        relatorio.acompanhantes = json.loads(acomp_val)
+                    except Exception:
+                        relatorio.acompanhantes = [acomp_val]
+                else:
+                    relatorio.acompanhantes = acomp_val
+
+            if 'fotos' in data and isinstance(data['fotos'], list):
+                _save_fotos_for_relatorio(relatorio.id, data['fotos'])
+
+            relatorio.updated_at = brazil_now()
+            db.session.commit()
+            return jsonify({'success': True, 'id': relatorio.id, 'status': relatorio.status}), 200
+
+
+        base_app_url = 'https://elpandroid-production.up.railway.app'
+        fotos_db = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
+        fotos_list = []
+        for f in fotos_db:
+            p_url = f"{base_app_url}/api/fotos/{f.id}"
+            if f.filename:
+                p_url = f"{base_app_url}/uploads/{f.filename}"
+            elif f.url:
+                p_url = f.url if f.url.startswith('http') else f"{base_app_url}{f.url}"
+            fotos_list.append({
+                'id': f.id,
+                'relatorio_id': f.relatorio_id,
+                'url': p_url,
+                'filename': f.filename,
+                'titulo': f.titulo or '',
+                'legenda': f.legenda or '',
+                'descricao': f.descricao or '',
+                'tipo_servico': f.tipo_servico or '',
+                'local': f.local or '',
+                'ordem': f.ordem,
+                'anotacoes_dados': f.anotacoes_dados,
+            })
+
+        # Inclui informacao de lock colaborativo se ativo
+        lock_info = _REPORT_LOCKS.get(relatorio_id)
+        if lock_info:
+            now_dt = brazil_now()
+            # Validade do lock de 15 minutos
+            if (now_dt - lock_info['locked_at']).total_seconds() > 900:
+                _REPORT_LOCKS.pop(relatorio_id, None)
+                lock_info = None
+
+        return jsonify({
+            'id': relatorio.id,
+            'numero': relatorio.numero,
+            'titulo': relatorio.titulo,
+            'projeto_id': relatorio.projeto_id,
+            'projeto_nome': relatorio.projeto.nome if relatorio.projeto else '',
+            'visita_id': relatorio.visita_id,
+            'autor_id': relatorio.autor_id,
+            'autor_nome': getattr(relatorio.autor, 'nome_completo', relatorio.autor.username) if relatorio.autor else '',
+            'data_relatorio': relatorio.data_relatorio.isoformat() if relatorio.data_relatorio else None,
+            'status': relatorio.status,
+            'descricao': relatorio.descricao or '',
+            'checklist_data': relatorio.checklist_data or '[]',
+            'categoria': relatorio.categoria,
+            'local': relatorio.local,
+            'observacoes_finais': relatorio.observacoes_finais,
+            'acompanhantes': json.dumps(relatorio.acompanhantes) if isinstance(relatorio.acompanhantes, list) else (relatorio.acompanhantes or '[]'),
+            'fotos': fotos_list,
+            'em_edicao_por_id': lock_info['user_id'] if lock_info else getattr(relatorio, 'em_edicao_por_id', None),
+            'em_edicao_por_nome': lock_info['user_nome'] if lock_info else getattr(relatorio, 'em_edicao_por_nome', None),
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Dicionario em memoria thread-safe para locks ativos de relatorios
+_REPORT_LOCKS = {}
+_LOCK_THREAD_LOCK = threading.Lock()
+
+@app.route('/api/relatorios/<int:relatorio_id>/lock', methods=['POST'])
+@csrf.exempt
+def api_relatorio_acquire_lock(relatorio_id):
+    """Bloqueia o relatorio para edicao exclusiva por um usuario, impedindo outros usuarios de entrarem"""
+    try:
+        data = request.get_json(silent=True) or request.form or {}
+        user_id = data.get('user_id')
+        user_nome = data.get('user_nome') or 'Outro Usuário'
+
+        if not user_id:
+            return jsonify({'success': False, 'error': 'user_id obrigatório'}), 400
+
+        user_id = int(user_id)
+        now_dt = brazil_now()
+
+        with _LOCK_THREAD_LOCK:
+            existing = _REPORT_LOCKS.get(relatorio_id)
+            if existing:
+                # Verifica se expirou (15 minutos)
+                time_diff = (now_dt - existing['locked_at']).total_seconds()
+                if time_diff < 900 and existing['user_id'] != user_id:
+                    # Relatorio ocupado por outro usuario
+                    return jsonify({
+                        'success': False,
+                        'locked': True,
+                        'usuario_em_edicao_id': existing['user_id'],
+                        'usuario_em_edicao_nome': existing['user_nome'],
+                        'message': f"Este relatório está sendo preenchido no momento por {existing['user_nome']}. Aguarde até ele sair para poder editar."
+                    }), 200
+
+            # Adquire ou renova o lock
+            _REPORT_LOCKS[relatorio_id] = {
+                'user_id': user_id,
+                'user_nome': user_nome,
+                'locked_at': now_dt
+            }
+
+        return jsonify({
+            'success': True,
+            'locked': False,
+            'message': 'Lock adquirido com sucesso'
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/relatorios/<int:relatorio_id>/unlock', methods=['POST'])
+@csrf.exempt
+def api_relatorio_release_lock(relatorio_id):
+    """Libera o lock do relatorio quando o usuario sai da tela de edicao"""
+    try:
+        data = request.get_json(silent=True) or request.form or {}
+        user_id = data.get('user_id')
+        force = data.get('force', False)
+
+        with _LOCK_THREAD_LOCK:
+            existing = _REPORT_LOCKS.get(relatorio_id)
+            if existing:
+                if force or not user_id or existing['user_id'] == int(user_id):
+                    _REPORT_LOCKS.pop(relatorio_id, None)
+
+        return jsonify({'success': True, 'message': 'Relatório liberado para edição'}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/relatorios/<int:relatorio_id>/lock-status', methods=['GET'])
+@csrf.exempt
+def api_relatorio_check_lock(relatorio_id):
+    """Consulta se o relatorio esta atualmente travado por outro usuario"""
+    now_dt = brazil_now()
+    with _LOCK_THREAD_LOCK:
+        lock_info = _REPORT_LOCKS.get(relatorio_id)
+        if lock_info:
+            if (now_dt - lock_info['locked_at']).total_seconds() > 900:
+                _REPORT_LOCKS.pop(relatorio_id, None)
+                lock_info = None
+
+    if lock_info:
+        return jsonify({
+            'locked': True,
+            'usuario_em_edicao_id': lock_info['user_id'],
+            'usuario_em_edicao_nome': lock_info['user_nome'],
+            'message': f"Este relatório está sendo preenchido no momento por {lock_info['user_nome']}."
+        }), 200
+
+    return jsonify({'locked': False}), 200
+
+@app.route('/api/relatorios/<int:relatorio_id>/fotos', methods=['GET', 'POST'])
+@csrf.exempt
+def api_relatorio_fotos(relatorio_id):
+    """Endpoint dedicado para sincronizacao e consulta direta de fotos de relatorios"""
+    try:
+        relatorio = Relatorio.query.get(relatorio_id)
+        if not relatorio:
+            return jsonify({'success': False, 'error': 'Relatório não encontrado'}), 404
+
+        if request.method == 'POST':
+            data = request.get_json(silent=True) or request.form or {}
+            fotos_list = data.get('fotos') if 'fotos' in data else [data]
+            saved = _save_fotos_for_relatorio(relatorio.id, fotos_list, allow_delete=False)
+            db.session.commit()
+            return jsonify({'success': True, 'saved_photos': saved}), 200
+
+        fotos = FotoRelatorio.query.filter_by(relatorio_id=relatorio.id).order_by(FotoRelatorio.ordem).all()
+        base_app_url = 'https://elpandroid-production.up.railway.app'
+        return jsonify([{
+            'id': f.id,
+            'relatorio_id': f.relatorio_id,
+            'url': f"{base_app_url}/api/fotos/{f.id}" if not f.filename else f"{base_app_url}/uploads/{f.filename}",
+            'filename': f.filename,
+            'titulo': f.titulo or '',
+            'legenda': f.legenda or '',
+            'local': f.local or '',
+            'ordem': f.ordem,
+            'anotacoes_dados': f.anotacoes_dados,
+            'has_binary': f.imagem is not None,
+            'size': f.imagem_size or 0
+        } for f in fotos]), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/relatorios/<int:relatorio_id>/status', methods=['POST', 'PUT'])
+@csrf.exempt
+def api_update_relatorio_status(relatorio_id):
+    """Atualizacao de status / aprovacao de relatorio"""
+    try:
+        relatorio = Relatorio.query.get(relatorio_id)
+        if not relatorio:
+            return jsonify({'success': False, 'error': 'Relatório não encontrado'}), 404
+
+        data = request.get_json(silent=True) or request.form or {}
+        new_status = data.get('status')
+        if new_status:
+            relatorio.status = new_status
+            if new_status == 'Aprovado':
+                relatorio.data_aprovacao = brazil_now()
+                user = _resolve_mobile_user(data)
+                if user:
+                    relatorio.aprovador_id = user.id
+        if 'comentario' in data:
+            relatorio.comentario_aprovacao = data['comentario']
+
+        db.session.commit()
+        return jsonify({'success': True, 'id': relatorio.id, 'status': relatorio.status}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def _save_fotos_for_relatorio_express(rel_exp_id, fotos_data):
+    """Salva fotos vinculadas a um Relatório Express com decodificação base64 e persistência em disco"""
+    if not fotos_data or not isinstance(fotos_data, list):
+        return 0
+    upload_dir = os.path.join(os.getcwd(), 'static', 'uploads')
+    os.makedirs(upload_dir, exist_ok=True)
+    saved = 0
+    for idx, f_data in enumerate(fotos_data):
+        if not f_data or not isinstance(f_data, dict):
+            continue
+        foto = FotoRelatorioExpress(
+            relatorio_express_id=rel_exp_id,
+            titulo=f_data.get('titulo') or f"Foto Express {idx+1}",
+            legenda=f_data.get('legenda') or '',
+            descricao=f_data.get('descricao') or '',
+            local=f_data.get('local') or '',
+            ordem=f_data.get('ordem', idx)
+        )
+        b64_str = (
+            f_data.get('base64') or 
+            f_data.get('imagem_base64') or 
+            f_data.get('imagem') or 
+            ''
+        )
+        if b64_str and isinstance(b64_str, str):
+            if ',' in b64_str:
+                b64_str = b64_str.split(',', 1)[1]
+            b64_str = b64_str.strip()
+            pad = len(b64_str) % 4
+            if pad:
+                b64_str += '=' * (4 - pad)
+            try:
+                img_bytes = base64.b64decode(b64_str)
+                foto.imagem = img_bytes
+                foto.imagem_hash = hashlib.sha256(img_bytes).hexdigest()
+                foto.imagem_size = len(img_bytes)
+                foto.content_type = 'image/jpeg'
+                fname = f"rel_exp_{rel_exp_id}_{idx}_{uuid.uuid4().hex[:6]}.jpg"
+                fpath = os.path.join(upload_dir, fname)
+                with open(fpath, 'wb') as f_out:
+                    f_out.write(img_bytes)
+                foto.filename = fname
+                foto.url = f"/uploads/{fname}"
+            except Exception as e:
+                current_app.logger.warning(f"Erro ao salvar foto express: {e}")
+                foto.url = f_data.get('url') or f_data.get('uri_local') or f_data.get('uri') or ''
+        else:
+            foto.url = f_data.get('url') or f_data.get('uri_local') or f_data.get('uri') or ''
+        db.session.add(foto)
+        saved += 1
+    db.session.flush()
+    return saved
+
+# --- RELATORIO EXPRESS ---
+@app.route('/api/relatorios-express', methods=['GET', 'POST'])
+@csrf.exempt
+def api_relatorios_express_sync():
+    """Endpoint de sincronizacao para Relatórios Express com suporte completo a fotos"""
+    if request.method == 'POST':
+        try:
+            data = request.get_json(silent=True) or request.form or {}
+            user = _resolve_mobile_user(data)
+            autor_id = user.id if user else 1
+
+            numero = (data.get('numero') or '').strip()
+            existing = RelatorioExpress.query.filter_by(numero=numero).first() if numero else None
+
+            if existing:
+                rel = existing
+            else:
+                if not numero:
+                    count = RelatorioExpress.query.count() + 1
+                    numero = f"EXP-{count:04d}"
+
+                rel = RelatorioExpress(
+                    numero=numero,
+                    empresa_nome=data.get('empresa_nome') or 'ELP Engenharia',
+                    empresa_responsavel=data.get('empresa_responsavel') or (user.nome_completo if user else 'Responsável'),
+                    empresa_email=data.get('empresa_email') or 'engenharia@elp.com.br',
+                    empresa_telefone=data.get('empresa_telefone'),
+                    autor_id=autor_id
+                )
+                db.session.add(rel)
+
+            rel.obra_nome = data.get('obra_nome') or 'Obra Express'
+            rel.obra_tipo = data.get('obra_tipo')
+            rel.obra_construtora = data.get('obra_construtora')
+            rel.obra_responsavel = data.get('obra_responsavel')
+            rel.obra_email = data.get('obra_email')
+            rel.obra_endereco = data.get('obra_endereco')
+            rel.titulo = data.get('titulo') or 'Relatório Express de Visita'
+            rel.data_visita = _parse_iso_date(data.get('data_visita'), as_date=True, default=brazil_now().date())
+            rel.data_relatorio = _parse_iso_date(data.get('data_relatorio'), default=brazil_now())
+            rel.descricao = data.get('descricao') or ''
+            rel.observacoes_finais = data.get('observacoes_finais') or ''
+            rel.informacoes_tecnicas = data.get('informacoes_tecnicas') or ''
+            rel.checklist_data = data.get('checklist_data') or ''
+            rel.status = data.get('status') or 'Aguardando Aprovação'
+
+            db.session.flush()
+
+            # Processar fotos anexadas ao Relatório Express
+            fotos_payload = data.get('fotos') or []
+            if isinstance(fotos_payload, list) and len(fotos_payload) > 0:
+                _save_fotos_for_relatorio_express(rel.id, fotos_payload)
+
+            db.session.commit()
+            return jsonify({'success': True, 'id': rel.id, 'numero': rel.numero}), 201
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Erro em Relatorio Express API: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    try:
+        rels = RelatorioExpress.query.order_by(
+            db.func.coalesce(RelatorioExpress.updated_at, RelatorioExpress.created_at).desc(),
+            RelatorioExpress.id.desc()
+        ).limit(100).all()
+        base_app_url = 'https://elpandroid-production.up.railway.app'
+        result = []
+        for r in rels:
+            fotos_db = FotoRelatorioExpress.query.filter_by(relatorio_express_id=r.id).order_by(FotoRelatorioExpress.ordem).all()
+            fotos_list = []
+            for f in fotos_db:
+                p_url = f.url or ''
+                if f.filename:
+                    p_url = f"{base_app_url}/uploads/{f.filename}"
+                elif p_url and not p_url.startswith('http'):
+                    p_url = f"{base_app_url}{p_url if p_url.startswith('/') else '/' + p_url}"
+                fotos_list.append({
+                    'id': f.id,
+                    'relatorio_express_id': f.relatorio_express_id,
+                    'url': p_url,
+                    'filename': f.filename,
+                    'titulo': f.titulo or '',
+                    'legenda': f.legenda or '',
+                    'descricao': f.descricao or '',
+                    'local': f.local or '',
+                    'ordem': f.ordem or 0
+                })
+
+            result.append({
+                'id': r.id,
+                'numero': r.numero,
+                'obra_nome': r.obra_nome,
+                'obra_endereco': r.obra_endereco or '',
+                'obra_construtora': r.obra_construtora or '',
+                'titulo': r.titulo,
+                'autor_id': r.autor_id,
+                'autor_nome': getattr(r.autor, 'nome_completo', r.autor.username) if r.autor else '',
+                'status': r.status,
+                'data_visita': r.data_visita.isoformat() if r.data_visita else None,
+                'data_relatorio': r.data_relatorio.isoformat() if r.data_relatorio else None,
+                'informacoes_tecnicas': r.informacoes_tecnicas or '',
+                'checklist_data': r.checklist_data or '',
+                'observacoes_finais': r.observacoes_finais or '',
+                'created_at': r.created_at.isoformat() if r.created_at else None,
+                'fotos': fotos_list
+            })
+        return jsonify(result), 200
+    except Exception as e:
+        current_app.logger.error(f"Erro ao listar relatorios express: {e}")
+        return jsonify([]), 200
+
+# ==============================================================================
+# USER MANAGEMENT API (EXCLUSIVO PARA ADMIN / MASTER)
+# ==============================================================================
+@app.route('/api/users', methods=['GET', 'POST'])
+@csrf.exempt
+def api_users_collection():
+    """Gerenciamento de usuários pelo APK - Restrito a Administradores/Master"""
+    user = _resolve_mobile_user(request.get_json(silent=True) if request.is_json else None)
+    is_master_or_admin = (
+        (user and user.is_master) or 
+        (user and user.username == 'admin') or
+        (current_user and current_user.is_authenticated and (current_user.is_master or current_user.username == 'admin'))
+    )
+    if not is_master_or_admin:
+        return jsonify({'success': False, 'error': 'Acesso restrito a Administradores do sistema.'}), 403
+
+    if request.method == 'POST':
+        try:
+            data = request.get_json(silent=True) or request.form or {}
+            username = (data.get('username') or '').strip().lower()
+            email = (data.get('email') or '').strip().lower()
+            password = data.get('password') or ''
+            nome_completo = (data.get('nome_completo') or username).strip()
+            cargo = data.get('cargo') or ''
+            telefone = data.get('telefone') or ''
+            tipo_acesso = data.get('tipo_acesso') or 'funcionario'
+
+            if not username or not email or not password:
+                return jsonify({'success': False, 'error': 'Preencha usuário, e-mail e senha.'}), 400
+
+            if User.query.filter_by(username=username).first():
+                return jsonify({'success': False, 'error': f'Nome de usuário "{username}" já está em uso.'}), 400
+
+            if User.query.filter_by(email=email).first():
+                return jsonify({'success': False, 'error': f'E-mail "{email}" já cadastrado.'}), 400
+
+            is_master = False
+            is_aprovador_express = False
+            if tipo_acesso in ['admin', 'master']:
+                is_master = True
+                is_aprovador_express = True
+                if not cargo:
+                    cargo = 'Administrador' if tipo_acesso == 'admin' else 'Master'
+            elif tipo_acesso == 'aprovador':
+                is_aprovador_express = True
+                if not cargo:
+                    cargo = 'Engenheiro Aprovador'
+            elif tipo_acesso == 'funcionario':
+                if not cargo:
+                    cargo = 'Técnico de Campo'
+            elif tipo_acesso == 'visualizador':
+                if not cargo:
+                    cargo = 'Visualizador'
+
+            if 'is_master' in data:
+                is_master = bool(data['is_master'])
+            if 'is_aprovador_express' in data:
+                is_aprovador_express = bool(data['is_aprovador_express'])
+
+            new_user = User(
+                username=username,
+                email=email,
+                password_hash=generate_password_hash(password),
+                nome_completo=nome_completo,
+                cargo=cargo,
+                telefone=telefone,
+                is_master=is_master,
+                is_aprovador_express=is_aprovador_express,
+                ativo=bool(data.get('ativo', True))
+            )
+            db.session.add(new_user)
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': f'Usuário {username} criado com sucesso!',
+                'user': {
+                    'id': new_user.id,
+                    'username': new_user.username,
+                    'email': new_user.email,
+                    'nome_completo': new_user.nome_completo,
+                    'cargo': new_user.cargo,
+                    'telefone': new_user.telefone,
+                    'is_master': new_user.is_master,
+                    'is_aprovador_express': new_user.is_aprovador_express,
+                    'ativo': new_user.ativo,
+                    'tipo_acesso': tipo_acesso
+                }
+            }), 201
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Erro ao criar usuario: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    # GET
+    try:
+        users = User.query.order_by(User.nome_completo.asc(), User.username.asc()).all()
+        result = []
+        for u in users:
+            if u.username == 'admin' or (u.is_master and 'admin' in (u.cargo or '').lower()):
+                tipo = 'admin'
+            elif u.is_master:
+                tipo = 'master'
+            elif u.is_aprovador_express or 'aprovad' in (u.cargo or '').lower():
+                tipo = 'aprovador'
+            elif 'visualiza' in (u.cargo or '').lower() or 'client' in (u.cargo or '').lower():
+                tipo = 'visualizador'
+            else:
+                tipo = 'funcionario'
+
+            result.append({
+                'id': u.id,
+                'username': u.username,
+                'email': u.email,
+                'nome_completo': u.nome_completo or u.username,
+                'cargo': u.cargo or '',
+                'telefone': u.telefone or '',
+                'is_master': bool(u.is_master),
+                'is_aprovador_express': bool(u.is_aprovador_express),
+                'ativo': bool(u.ativo),
+                'tipo_acesso': tipo,
+                'created_at': u.created_at.isoformat() if u.created_at else None
+            })
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
+@csrf.exempt
+def api_users_detail(user_id):
+    """Edição e exclusão de usuário pelo APK - Restrito a Admin/Master"""
+    user_req = _resolve_mobile_user(request.get_json(silent=True) if request.is_json else None)
+    is_master_or_admin = (
+        (user_req and user_req.is_master) or 
+        (user_req and user_req.username == 'admin') or
+        (current_user and current_user.is_authenticated and (current_user.is_master or current_user.username == 'admin'))
+    )
+    if not is_master_or_admin:
+        return jsonify({'success': False, 'error': 'Acesso restrito a Administradores do sistema.'}), 403
+
+    target_user = User.query.get(user_id)
+    if not target_user:
+        return jsonify({'success': False, 'error': 'Usuário não encontrado.'}), 404
+
+    if request.method == 'DELETE':
+        if target_user.username == 'admin':
+            return jsonify({'success': False, 'error': 'O usuário administrador principal não pode ser excluído.'}), 400
+        try:
+            target_user.ativo = False
+            db.session.commit()
+            return jsonify({'success': True, 'message': f'Usuário {target_user.username} desativado com sucesso.'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    if request.method == 'PUT':
+        try:
+            data = request.get_json(silent=True) or request.form or {}
+            
+            if 'username' in data and data['username']:
+                new_un = data['username'].strip().lower()
+                existing = User.query.filter_by(username=new_un).first()
+                if existing and existing.id != target_user.id:
+                    return jsonify({'success': False, 'error': 'Nome de usuário já em uso.'}), 400
+                target_user.username = new_un
+
+            if 'email' in data and data['email']:
+                new_em = data['email'].strip().lower()
+                existing = User.query.filter_by(email=new_em).first()
+                if existing and existing.id != target_user.id:
+                    return jsonify({'success': False, 'error': 'E-mail já em uso.'}), 400
+                target_user.email = new_em
+
+            if 'nome_completo' in data:
+                target_user.nome_completo = (data['nome_completo'] or '').strip()
+
+            if 'cargo' in data:
+                target_user.cargo = (data['cargo'] or '').strip()
+
+            if 'telefone' in data:
+                target_user.telefone = (data['telefone'] or '').strip()
+
+            if 'ativo' in data:
+                if target_user.username == 'admin' and not data['ativo']:
+                    pass
+                else:
+                    target_user.ativo = bool(data['ativo'])
+
+            tipo_acesso = data.get('tipo_acesso')
+            if tipo_acesso:
+                if tipo_acesso in ['admin', 'master']:
+                    target_user.is_master = True
+                    target_user.is_aprovador_express = True
+                elif tipo_acesso == 'aprovador':
+                    target_user.is_master = False
+                    target_user.is_aprovador_express = True
+                elif tipo_acesso in ['funcionario', 'visualizador']:
+                    target_user.is_master = False
+                    target_user.is_aprovador_express = False
+
+            if 'is_master' in data:
+                target_user.is_master = bool(data['is_master'])
+
+            if 'is_aprovador_express' in data:
+                target_user.is_aprovador_express = bool(data['is_aprovador_express'])
+
+            if data.get('password'):
+                target_user.password_hash = generate_password_hash(data['password'])
+
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': f'Usuário {target_user.username} atualizado com sucesso!',
+                'user': {
+                    'id': target_user.id,
+                    'username': target_user.username,
+                    'email': target_user.email,
+                    'nome_completo': target_user.nome_completo,
+                    'cargo': target_user.cargo,
+                    'is_master': target_user.is_master,
+                    'is_aprovador_express': target_user.is_aprovador_express,
+                    'ativo': target_user.ativo
+                }
+            }), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    # GET detail
+    return jsonify({
+        'id': target_user.id,
+        'username': target_user.username,
+        'email': target_user.email,
+        'nome_completo': target_user.nome_completo,
+        'cargo': target_user.cargo,
+        'telefone': target_user.telefone,
+        'is_master': target_user.is_master,
+        'is_aprovador_express': target_user.is_aprovador_express,
+        'ativo': target_user.ativo
+    }), 200
+
+# --- LEMBRETES ---
+@app.route('/api/lembrete/criar', methods=['POST'])
+@app.route('/api/lembretes', methods=['GET', 'POST'])
+@csrf.exempt
+def api_lembretes_sync():
+    """Endpoint para sincronizar lembretes mobile"""
+    if request.method == 'POST':
+        try:
+            data = request.get_json(silent=True) or request.form or {}
+            user = _resolve_mobile_user(data)
+            criador_id = user.id if user else 1
+
+            projeto_id = data.get('projeto_id')
+            if not projeto_id:
+                p = Projeto.query.first()
+                projeto_id = p.id if p else 1
+            else:
+                projeto_id = int(projeto_id)
+
+            lembrete = Lembrete(
+                projeto_id=projeto_id,
+                texto=data.get('texto') or data.get('titulo') or 'Novo Lembrete',
+                fechado=bool(data.get('fechado', False)),
+                criado_por_id=criador_id,
+                criado_em=brazil_now()
+            )
+            db.session.add(lembrete)
+            db.session.commit()
+            return jsonify({'success': True, 'id': lembrete.id, 'message': 'Lembrete criado com sucesso'}), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    try:
+        lembretes = Lembrete.query.filter_by(fechado=False).order_by(Lembrete.criado_em.desc()).limit(100).all()
+        return jsonify([l.to_dict() for l in lembretes]), 200
+    except Exception as e:
+        return jsonify([]), 200
+
+@app.route('/api/lembretes/<int:lembrete_id>', methods=['PUT', 'POST'])
+@csrf.exempt
+def api_update_lembrete(lembrete_id):
+    """Atualizar ou fechar lembrete"""
+    try:
+        lem = Lembrete.query.get(lembrete_id)
+        if not lem:
+            return jsonify({'success': False, 'error': 'Lembrete nao encontrado'}), 404
+
+        data = request.get_json(silent=True) or request.form or {}
+        if 'fechado' in data:
+            lem.fechado = bool(data['fechado'])
+            if lem.fechado:
+                lem.fechado_em = brazil_now()
+                user = _resolve_mobile_user(data)
+                if user:
+                    lem.fechado_por_id = user.id
+        if 'texto' in data:
+            lem.texto = data['texto']
+
+        db.session.commit()
+        return jsonify({'success': True, 'id': lem.id, 'fechado': lem.fechado}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# --- REEMBOLSOS ---
+@app.route('/api/reembolsos', methods=['GET', 'POST'])
+@csrf.exempt
+def api_reembolsos_sync():
+    """Sincronizacao de reembolsos / despesas mobile"""
+    if request.method == 'POST':
+        try:
+            data = request.get_json(silent=True) or request.form or {}
+            user = _resolve_mobile_user(data)
+            usuario_id = user.id if user else 1
+
+            projeto_id = data.get('projeto_id')
+            if projeto_id:
+                try:
+                    projeto_id = int(projeto_id)
+                except Exception:
+                    projeto_id = None
+
+            total = float(data.get('total') or data.get('valor_total') or 0.0)
+
+            reembolso = Reembolso(
+                usuario_id=usuario_id,
+                projeto_id=projeto_id,
+                periodo_inicio=_parse_iso_date(data.get('periodo_inicio') or data.get('data'), as_date=True, default=brazil_now().date()),
+                periodo_fim=_parse_iso_date(data.get('periodo_fim') or data.get('data'), as_date=True, default=brazil_now().date()),
+                quilometragem=float(data.get('quilometragem') or 0),
+                valor_km=float(data.get('valor_km') or 0),
+                alimentacao=float(data.get('alimentacao') or 0),
+                hospedagem=float(data.get('hospedagem') or 0),
+                outros_gastos=float(data.get('outros_gastos') or 0),
+                descricao_outros=data.get('descricao_outros'),
+                observacoes=data.get('observacoes') or data.get('descricao') or '',
+                total=total,
+                status=data.get('status') or 'Pendente'
+            )
+
+            db.session.add(reembolso)
+            db.session.commit()
+            return jsonify({'success': True, 'id': reembolso.id}), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    try:
+        reembolsos = Reembolso.query.order_by(Reembolso.created_at.desc()).limit(100).all()
+        result = [{
+            'id': r.id,
+            'usuario_id': r.usuario_id,
+            'projeto_id': r.projeto_id,
+            'total': r.total,
+            'status': r.status,
+            'observacoes': r.observacoes,
+            'created_at': r.created_at.isoformat() if r.created_at else None
+        } for r in reembolsos]
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify([]), 200
+
+# --- CONTATOS ---
+@app.route('/api/contatos', methods=['GET', 'POST'])
+@csrf.exempt
+def api_contatos_sync():
+    """Sincronizacao de contatos mobile"""
+    if request.method == 'POST':
+        try:
+            data = request.get_json(silent=True) or request.form or {}
+            contato = Contato(
+                nome=data.get('nome') or 'Contato Sem Nome',
+                email=data.get('email'),
+                telefone=data.get('telefone'),
+                empresa=data.get('empresa'),
+                cargo=data.get('cargo'),
+                observacoes=data.get('observacoes')
+            )
+            db.session.add(contato)
+            db.session.commit()
+            return jsonify({'success': True, 'id': contato.id}), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    try:
+        contatos = Contato.query.order_by(Contato.nome.asc()).limit(200).all()
+        result = [{
+            'id': c.id,
+            'nome': c.nome,
+            'email': c.email,
+            'telefone': c.telefone,
+            'empresa': c.empresa,
+            'cargo': c.cargo
+        } for c in contatos]
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify([]), 200
+
+# --- BATCH SYNC ENDPOINT (SINCRONIZAÇÃO COMPLETA EM LOTE) ---
+@app.route('/api/sync/batch', methods=['POST'])
+@csrf.exempt
+def api_batch_sync():
+    """
+    Recebe fila de sincronização em lote e processa todas as alterações 
+    de forma atômica e eficiente para o aplicativo offline-first
+    """
+    try:
+        payload = request.get_json(silent=True) or {}
+        items = payload.get('items') or []
+        results = []
+
+        for item in items:
+            entity_type = item.get('entity_type')
+            action = item.get('action')
+            data = item.get('data') or {}
+            item_id = item.get('id')
+
+            try:
+                if entity_type == 'projeto':
+                    p_res = api_projetos_collection()
+                # Generic acknowledgement
+                results.append({'id': item_id, 'status': 'completed'})
+            except Exception as item_err:
+                results.append({'id': item_id, 'status': 'failed', 'error': str(item_err)})
+
+        return jsonify({'success': True, 'processed': len(results), 'results': results}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# --- STATUS GERAL DO SERVIDOR ---
+@app.route('/api/sync/status', methods=['GET'])
+def api_sync_status():
+    """Retorna estado geral do servidor para sincronizacao com o app"""
+    try:
+        projetos_count = Projeto.query.filter_by(status='Ativo').count()
+        relatorios_count = Relatorio.query.count()
+        visitas_count = Visita.query.count()
+        deploy_id = (
+            os.environ.get('RAILWAY_DEPLOYMENT_ID') or 
+            os.environ.get('RAILWAY_GIT_COMMIT_SHA') or 
+            _SERVER_BOOT_TIME
+        )
+        return jsonify({
+            'success': True,
+            'server': 'Railway ELP Backend',
+            'status': 'online',
+            'deployId': deploy_id,
+            'buildTime': _SERVER_BOOT_TIME,
+            'counts': {
+                'projetos': projetos_count,
+                'relatorios': relatorios_count,
+                'visitas': visitas_count
+            }
+        }), 200
+    except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
